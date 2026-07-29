@@ -172,6 +172,23 @@ export interface LexAuditLog {
   _creationTime: number;
 }
 
+export interface LexDocument {
+  _id: string;
+  caseId?: string;
+  title: string;
+  type: "pleading" | "affidavit" | "contract" | "poa" | "correspondence" | "evidence" | "template" | "other";
+  storageId: string;
+  mimeType: string;
+  sizeBytes: number;
+  tags: string[];
+  uploadedBy: string;
+  isTemplate: boolean;
+  isPrivileged: boolean;
+  version: number;
+  parentDocumentId?: string;
+  _creationTime: number;
+}
+
 // Initial mock databases
 const INITIAL_USERS: LexUser[] = [
   { _id: "u1", name: "Ram Chandra", email: "ram@lexnepal.com", role: "partner", isActive: true, phone: "+977 9851012345", barCouncilNumber: "NPC-001234", barCouncilExpiry: "2083-05-15" },
@@ -257,6 +274,13 @@ const INITIAL_AUDIT_LOG: LexAuditLog[] = [
   { _id: "al6", userId: "u4", action: "DELETE", resource: "leads", resourceId: "lead5", details: "Marked lead Sunita Gurung as lost", ipAddress: "192.168.1.1", _creationTime: Date.now() - 86400000 * 3 }
 ];
 
+const INITIAL_DOCUMENTS: LexDocument[] = [
+  { _id: "doc1", caseId: "case1", title: "Sharma Appeal Petition", type: "pleading", storageId: "mock-storage-1", mimeType: "application/pdf", sizeBytes: 340000, tags: [], uploadedBy: "u2", isTemplate: false, isPrivileged: false, version: 2, _creationTime: Date.now() - 86400000 * 10 },
+  { _id: "doc2", caseId: "case1", title: "Property Title Deed (Exhibit A)", type: "evidence", storageId: "mock-storage-2", mimeType: "image/jpeg", sizeBytes: 2100000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 5 },
+  { _id: "doc3", caseId: "case1", title: "Client Retainer Agreement", type: "contract", storageId: "mock-storage-3", mimeType: "application/pdf", sizeBytes: 180000, tags: [], uploadedBy: "u4", isTemplate: false, isPrivileged: true, version: 1, _creationTime: Date.now() - 86400000 * 30 },
+  { _id: "doc4", caseId: "case2", title: "TechVenture Trademark Certificate", type: "evidence", storageId: "mock-storage-4", mimeType: "application/pdf", sizeBytes: 890000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 20 }
+];
+
 // Global in-memory simulation databases
 let globalUsers = [...INITIAL_USERS];
 let globalClients = [...INITIAL_CLIENTS];
@@ -271,6 +295,7 @@ let globalLeads = [...INITIAL_LEADS];
 let globalAttendance = [...INITIAL_ATTENDANCE];
 let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
 let globalAuditLog = [...INITIAL_AUDIT_LOG];
+let globalDocuments = [...INITIAL_DOCUMENTS];
 
 const listeners = new Set<() => void>();
 
@@ -541,6 +566,27 @@ export function useQuery(queryFunc: any, args: any): any {
     if (args?.userId) filtered = filtered.filter((e) => e.userId === args.userId);
     if (args?.resource) filtered = filtered.filter((e) => e.resource === args.resource);
     return filtered.sort((a, b) => b._creationTime - a._creationTime).slice(0, 200);
+  }
+
+  // listDocuments
+  if (queryName.includes("listDocuments")) {
+    let filtered = [...globalDocuments];
+    if (args?.caseId) filtered = filtered.filter((d) => d.caseId === args.caseId);
+    if (args?.isTemplate !== undefined) filtered = filtered.filter((d) => d.isTemplate === args.isTemplate);
+    return filtered.sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // getDocument
+  if (queryName.includes("getDocument")) {
+    return globalDocuments.find((d) => d._id === args?.documentId) || null;
+  }
+
+  // getFileUrl
+  if (queryName.includes("getFileUrl")) {
+    // In our mock, if the storageId looks like a blob URL (created via URL.createObjectURL),
+    // we return it directly so the browser can download/open it.
+    // For initial seed documents ("mock-storage-X"), we just return a fake string.
+    return args?.storageId?.startsWith("blob:") ? args.storageId : `https://mock-file-storage.local/${args?.storageId}`;
   }
 
   return undefined;
@@ -840,6 +886,44 @@ export function useMutation(mutationFunc: any): any {
       globalAuditLog.unshift(entry);
       notifyListeners();
       return entry._id;
+    }
+
+    // documents.generateUploadUrl
+    if (mutationName.includes("generateUploadUrl")) {
+      return "mock-upload-url";
+    }
+
+    // documents.createDocument
+    if (mutationName.includes("createDocument")) {
+      const config = getStoredConfig();
+      const user = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
+      
+      // Calculate version (if parentDocumentId provided, increment its version)
+      let nextVersion = 1;
+      if (args.parentDocumentId) {
+        const parent = globalDocuments.find((d) => d._id === args.parentDocumentId);
+        if (parent) {
+          nextVersion = parent.version + 1;
+        }
+      }
+
+      const newDoc: LexDocument = {
+        _id: "doc_" + Date.now(),
+        _creationTime: Date.now(),
+        uploadedBy: user._id,
+        version: nextVersion,
+        ...args,
+      };
+      globalDocuments.push(newDoc);
+      notifyListeners();
+      return newDoc._id;
+    }
+
+    // documents.deleteDocument
+    if (mutationName.includes("deleteDocument")) {
+      globalDocuments = globalDocuments.filter((d) => d._id !== args.documentId);
+      notifyListeners();
+      return { success: true };
     }
 
     return { success: true };
