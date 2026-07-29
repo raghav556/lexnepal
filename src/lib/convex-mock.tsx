@@ -126,6 +126,52 @@ export interface LexMessage {
   _creationTime: number;
 }
 
+export interface LexLead {
+  _id: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  source: "website" | "referral" | "walk_in" | "phone" | "social";
+  practiceAreaInterest?: string;
+  message?: string;
+  status: "new" | "contacted" | "consultation_scheduled" | "converted" | "lost";
+  assignedTo?: string;
+  convertedClientId?: string;
+  notes?: string;
+  _creationTime: number;
+}
+
+export interface LexAttendance {
+  _id: string;
+  userId: string;
+  date: string;
+  clockIn?: string;
+  clockOut?: string;
+  status: "present" | "absent" | "half_day" | "leave";
+}
+
+export interface LexLeaveRequest {
+  _id: string;
+  userId: string;
+  type: "annual" | "sick" | "maternity" | "paternity" | "unpaid";
+  fromDate: string;
+  toDate: string;
+  reason?: string;
+  status: "pending" | "approved" | "rejected";
+  reviewedBy?: string;
+}
+
+export interface LexAuditLog {
+  _id: string;
+  userId: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  details?: string;
+  ipAddress?: string;
+  _creationTime: number;
+}
+
 // Initial mock databases
 const INITIAL_USERS: LexUser[] = [
   { _id: "u1", name: "Ram Chandra", email: "ram@lexnepal.com", role: "partner", isActive: true, phone: "+977 9851012345", barCouncilNumber: "NPC-001234", barCouncilExpiry: "2083-05-15" },
@@ -182,6 +228,35 @@ const INITIAL_MESSAGES: LexMessage[] = [
   { _id: "m4", caseId: "case2", senderId: "u1", content: "We are reviewing your draft articles of association today.", isInternal: false, attachmentIds: [], readBy: ["u1"], _creationTime: Date.now() - 86400000 }
 ];
 
+const INITIAL_LEADS: LexLead[] = [
+  { _id: "lead1", fullName: "Rajan Karki", phone: "+977 9841234567", practiceAreaInterest: "Property Law", source: "website", status: "new", _creationTime: Date.now() - 86400000 * 2 },
+  { _id: "lead2", fullName: "Srijana Thapa", phone: "+977 9851234567", email: "srijana@email.com", practiceAreaInterest: "Family Law", source: "referral", status: "contacted", _creationTime: Date.now() - 86400000 * 3 },
+  { _id: "lead3", fullName: "Himalaya Trading Pvt. Ltd.", phone: "+977 01 4321234", email: "legal@himalaya.com", practiceAreaInterest: "Corporate Law", source: "website", status: "consultation_scheduled", assignedTo: "u1", _creationTime: Date.now() - 86400000 * 5 },
+  { _id: "lead4", fullName: "Gopal Bhandari", phone: "+977 9806543210", practiceAreaInterest: "Criminal Law", source: "walk_in", status: "converted", convertedClientId: "c1", _creationTime: Date.now() - 86400000 * 8 },
+  { _id: "lead5", fullName: "Sunita Gurung", phone: "+977 9812223334", practiceAreaInterest: "Immigration", source: "social", status: "lost", notes: "Client chose another firm", _creationTime: Date.now() - 86400000 * 10 }
+];
+
+const TODAY = new Date().toISOString().slice(0, 10);
+const INITIAL_ATTENDANCE: LexAttendance[] = [
+  { _id: "att1", userId: "u1", date: TODAY, clockIn: "9:02 AM", clockOut: "6:15 PM", status: "present" },
+  { _id: "att2", userId: "u2", date: TODAY, clockIn: "9:30 AM", clockOut: "6:00 PM", status: "present" },
+  { _id: "att3", userId: "u5", date: TODAY, clockIn: undefined, clockOut: undefined, status: "leave" }
+];
+
+const INITIAL_LEAVE_REQUESTS: LexLeaveRequest[] = [
+  { _id: "lr1", userId: "u2", type: "sick", fromDate: "2026-07-28", toDate: "2026-07-30", reason: "Medical leave — fever", status: "approved", reviewedBy: "u4" },
+  { _id: "lr2", userId: "u5", type: "annual", fromDate: "2026-08-03", toDate: "2026-08-05", reason: "Family event", status: "pending" }
+];
+
+const INITIAL_AUDIT_LOG: LexAuditLog[] = [
+  { _id: "al1", userId: "u2", action: "VIEW", resource: "documents", resourceId: "DOC-001", details: "Viewed: Property Title Deed — Plot 234", ipAddress: "192.168.1.14", _creationTime: Date.now() - 3600000 * 2 },
+  { _id: "al2", userId: "u1", action: "CREATE", resource: "cases", resourceId: "KTM/2081/234", details: "Created new case: Property Dispute — Bhaktapur Plot 234", ipAddress: "192.168.1.10", _creationTime: Date.now() - 3600000 * 4 },
+  { _id: "al3", userId: "u4", action: "UPDATE", resource: "users", resourceId: "u5", details: "Changed role: intern → paralegal", ipAddress: "192.168.1.1", _creationTime: Date.now() - 3600000 * 8 },
+  { _id: "al4", userId: "u1", action: "SEND", resource: "invoices", resourceId: "INV-2081-001", details: "Sent invoice INV-2081-001 to Hari Prasad", ipAddress: "192.168.1.10", _creationTime: Date.now() - 86400000 },
+  { _id: "al5", userId: "u2", action: "UPLOAD", resource: "documents", resourceId: "DOC-089", details: "Uploaded: Court Notice — Hearing 15 Mangsir", ipAddress: "192.168.1.14", _creationTime: Date.now() - 86400000 * 2 },
+  { _id: "al6", userId: "u4", action: "DELETE", resource: "leads", resourceId: "lead5", details: "Marked lead Sunita Gurung as lost", ipAddress: "192.168.1.1", _creationTime: Date.now() - 86400000 * 3 }
+];
+
 // Global in-memory simulation databases
 let globalUsers = [...INITIAL_USERS];
 let globalClients = [...INITIAL_CLIENTS];
@@ -192,6 +267,10 @@ let globalTimeEntries = [...INITIAL_TIME_ENTRIES];
 let globalInvoices = [...INITIAL_INVOICES];
 let globalTrustTransactions = [...INITIAL_TRUST_TRANSACTIONS];
 let globalMessages = [...INITIAL_MESSAGES];
+let globalLeads = [...INITIAL_LEADS];
+let globalAttendance = [...INITIAL_ATTENDANCE];
+let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
+let globalAuditLog = [...INITIAL_AUDIT_LOG];
 
 const listeners = new Set<() => void>();
 
@@ -423,14 +502,45 @@ export function useQuery(queryFunc: any, args: any): any {
   if (queryName.includes("listMessages")) {
     const caseId = args?.caseId;
     let list = globalMessages.filter((m) => m.caseId === caseId);
-    // Sort chronological for chat view, but page index ordered
     list = list.sort((a, b) => a._creationTime - b._creationTime);
-    // Pagination return format
     return {
       page: list,
       isDone: true,
       continueCursor: "",
     };
+  }
+
+  // listLeads
+  if (queryName.includes("listLeads")) {
+    let filtered = [...globalLeads];
+    if (args?.status) {
+      filtered = filtered.filter((l) => l.status === args.status);
+    }
+    return filtered.sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // listAttendance
+  if (queryName.includes("listAttendance")) {
+    let filtered = [...globalAttendance];
+    if (args?.userId) filtered = filtered.filter((a) => a.userId === args.userId);
+    if (args?.date) filtered = filtered.filter((a) => a.date === args.date);
+    return filtered;
+  }
+
+  // listLeaveRequests
+  if (queryName.includes("listLeaveRequests")) {
+    let filtered = [...globalLeaveRequests];
+    if (args?.userId) filtered = filtered.filter((l) => l.userId === args.userId);
+    if (args?.status) filtered = filtered.filter((l) => l.status === args.status);
+    return filtered;
+  }
+
+  // listAuditLog
+  if (queryName.includes("listAuditLog")) {
+    let filtered = [...globalAuditLog];
+    if (args?.userId) filtered = filtered.filter((e) => e.userId === args.userId);
+    if (args?.resource) filtered = filtered.filter((e) => e.resource === args.resource);
+    return filtered.sort((a, b) => b._creationTime - a._creationTime).slice(0, 200);
   }
 
   return undefined;
@@ -628,6 +738,108 @@ export function useMutation(mutationFunc: any): any {
       });
       notifyListeners();
       return { success: true };
+    }
+
+    // leads.updateLead
+    if (mutationName.includes("updateLead")) {
+      const { leadId, ...updates } = args;
+      globalLeads = globalLeads.map((l) => l._id === leadId ? { ...l, ...updates } : l);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // leads.convertToClient — creates a client record and marks lead as converted
+    if (mutationName.includes("convertToClient")) {
+      const { leadId, ...clientArgs } = args;
+      const lead = globalLeads.find((l) => l._id === leadId);
+      if (!lead) return { success: false };
+      const newClientId = "c_" + Date.now();
+      const newClient: LexClient = {
+        _id: newClientId,
+        fullName: lead.fullName,
+        type: clientArgs.type || "individual",
+        email: lead.email,
+        phone: lead.phone,
+        kycStatus: "pending",
+        isActive: true,
+        ...clientArgs,
+      };
+      globalClients.push(newClient);
+      globalLeads = globalLeads.map((l) =>
+        l._id === leadId ? { ...l, status: "converted" as const, convertedClientId: newClientId } : l
+      );
+      // Write audit log entry
+      const config = getStoredConfig();
+      const user = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
+      globalAuditLog.unshift({
+        _id: "al_" + Date.now(),
+        userId: user._id,
+        action: "CONVERT",
+        resource: "leads",
+        resourceId: leadId,
+        details: `Converted lead "${lead.fullName}" to client record`,
+        ipAddress: "127.0.0.1",
+        _creationTime: Date.now(),
+      });
+      notifyListeners();
+      return newClientId;
+    }
+
+    // hr.upsertAttendance
+    if (mutationName.includes("upsertAttendance")) {
+      const { userId, date, ...rest } = args;
+      const existing = globalAttendance.find((a) => a.userId === userId && a.date === date);
+      if (existing) {
+        globalAttendance = globalAttendance.map((a) =>
+          a.userId === userId && a.date === date ? { ...a, ...rest } : a
+        );
+      } else {
+        globalAttendance.push({ _id: "att_" + Date.now(), userId, date, ...rest });
+      }
+      notifyListeners();
+      return { success: true };
+    }
+
+    // hr.createLeaveRequest
+    if (mutationName.includes("createLeaveRequest")) {
+      const config = getStoredConfig();
+      const user = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
+      const newLR: LexLeaveRequest = {
+        _id: "lr_" + Date.now(),
+        userId: user._id,
+        status: "pending",
+        ...args,
+      };
+      globalLeaveRequests.push(newLR);
+      notifyListeners();
+      return newLR._id;
+    }
+
+    // hr.reviewLeaveRequest
+    if (mutationName.includes("reviewLeaveRequest")) {
+      const { leaveRequestId, status } = args;
+      const config = getStoredConfig();
+      const reviewer = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
+      globalLeaveRequests = globalLeaveRequests.map((lr) =>
+        lr._id === leaveRequestId ? { ...lr, status, reviewedBy: reviewer._id } : lr
+      );
+      notifyListeners();
+      return { success: true };
+    }
+
+    // auditLog.writeAuditLog
+    if (mutationName.includes("writeAuditLog")) {
+      const config = getStoredConfig();
+      const user = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
+      const entry: LexAuditLog = {
+        _id: "al_" + Date.now(),
+        userId: user._id,
+        _creationTime: Date.now(),
+        ...args,
+      };
+      globalAuditLog.unshift(entry);
+      notifyListeners();
+      return entry._id;
     }
 
     return { success: true };
