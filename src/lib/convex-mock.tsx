@@ -505,13 +505,8 @@ export function useQuery(queryFunc: any, args: any): any {
   // listInvoices
   if (queryName.includes("listInvoices")) {
     let filtered = [...globalInvoices];
-    if (args?.clientId) {
-      filtered = filtered.filter((i) => i.clientId === args.clientId);
-    }
-    if (args?.caseId) {
-      filtered = filtered.filter((i) => i.caseId === args.caseId);
-    }
-    return filtered;
+    if (args?.clientId) filtered = filtered.filter((i) => i.clientId === args.clientId);
+    return filtered.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
   }
 
   // listTrustTransactions
@@ -922,6 +917,71 @@ export function useMutation(mutationFunc: any): any {
     // documents.deleteDocument
     if (mutationName.includes("deleteDocument")) {
       globalDocuments = globalDocuments.filter((d) => d._id !== args.documentId);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // invoices.createInvoiceFromTimeEntries
+    if (mutationName.includes("createInvoiceFromTimeEntries")) {
+      const { caseId, clientId, dueDate, notes } = args;
+      const unbilled = globalTimeEntries.filter((t) => t.caseId === caseId && t.isBillable && !t.invoiceId);
+      if (unbilled.length === 0) return { success: false, message: "No unbilled entries found." };
+
+      const subtotal = unbilled.reduce((sum, t) => sum + (t.minutes / 60) * t.ratePerHour, 0);
+      const vatAmount = subtotal * 0.13;
+      const total = subtotal + vatAmount;
+
+      const newInvoiceId = "inv_" + Date.now();
+      const newInvoice: LexInvoice = {
+        _id: newInvoiceId,
+        invoiceNumber: "INV-" + new Date().getFullYear() + "-" + String(globalInvoices.length + 1).padStart(3, "0"),
+        caseId,
+        clientId,
+        subtotal,
+        vatAmount,
+        total,
+        issuedDate: new Date().toISOString().split("T")[0],
+        dueDate,
+        status: "sent",
+        notes,
+      };
+
+      globalInvoices.push(newInvoice);
+
+      // Mark time entries as billed
+      globalTimeEntries = globalTimeEntries.map((t) => 
+        (t.caseId === caseId && t.isBillable && !t.invoiceId) ? { ...t, invoiceId: newInvoiceId } : t
+      );
+
+      notifyListeners();
+      return newInvoiceId;
+    }
+
+    // invoices.payInvoice (Mock Payment Gateway callback)
+    if (mutationName.includes("payInvoice")) {
+      const { invoiceId, paymentMethod } = args;
+      const invoiceIndex = globalInvoices.findIndex((i) => i._id === invoiceId);
+      if (invoiceIndex === -1) return { success: false };
+
+      const invoice = globalInvoices[invoiceIndex];
+      globalInvoices[invoiceIndex] = { ...invoice, status: "paid", paidDate: new Date().toISOString().split("T")[0] };
+
+      // Record Trust Transaction
+      const lastTx = globalTrustTransactions.filter(t => t.clientId === invoice.clientId).pop();
+      const newBalance = (lastTx?.balance || 0) + invoice.total;
+      
+      globalTrustTransactions.push({
+        _id: "tt_" + Date.now(),
+        clientId: invoice.clientId,
+        caseId: invoice.caseId,
+        type: "receipt",
+        amount: invoice.total,
+        description: `Payment via ${paymentMethod} for ${invoice.invoiceNumber}`,
+        date: new Date().toISOString().split("T")[0],
+        balance: newBalance,
+        approvedBy: "System"
+      });
+
       notifyListeners();
       return { success: true };
     }
