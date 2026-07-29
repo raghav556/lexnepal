@@ -1,11 +1,12 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
-import { Scale, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Settings, Shield, LogOut, Menu, X } from "lucide-react";
+import { Scale, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Settings, Shield, LogOut, Menu, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth.ts";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 const NAV = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -48,7 +49,6 @@ function AdminSidebar() {
             <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.profile.name ?? "Admin"}</p>
             <p className="text-xs text-sidebar-foreground/50 truncate">{user?.profile.email}</p>
           </div>
-          <Link to="/staff" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">Switch to Staff Portal</Link>
           <button onClick={handleSignout} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/5 w-full transition-colors cursor-pointer mt-1">
             <LogOut className="w-4 h-4" />Sign Out
           </button>
@@ -75,6 +75,30 @@ function AdminSidebar() {
   );
 }
 
+function AdminRoleGuard({ children }: { children: React.ReactNode }) {
+  const currentUser = useCurrentUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser === undefined) return;
+    if (currentUser === null) return;
+    if (currentUser.role !== "admin") {
+      if (currentUser.role === "client") navigate("/client", { replace: true });
+      else navigate("/staff", { replace: true });
+    }
+  }, [currentUser, navigate]);
+
+  if (currentUser === undefined) {
+    return (
+      <div className="dark min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (currentUser === null || currentUser.role !== "admin") return null;
+  return <>{children}</>;
+}
+
 export default function AdminLayout() {
   return (
     <div className="dark min-h-screen">
@@ -90,10 +114,12 @@ export default function AdminLayout() {
         </div>
       </Unauthenticated>
       <Authenticated>
-        <div className="flex h-screen overflow-hidden bg-background">
-          <AdminSidebar />
-          <main className="flex-1 overflow-auto bg-background"><Outlet /></main>
-        </div>
+        <AdminRoleGuard>
+          <div className="flex h-screen overflow-hidden bg-background">
+            <AdminSidebar />
+            <main className="flex-1 overflow-auto bg-background"><Outlet /></main>
+          </div>
+        </AdminRoleGuard>
       </Authenticated>
     </div>
   );

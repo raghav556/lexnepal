@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel.d.ts";
+import { requireRole } from "./lib/roles.ts";
 
 export type UserRole = Doc<"users">["role"];
 
@@ -61,8 +62,8 @@ export const updateUser = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    // Only admins can update user roles
+    await requireRole(ctx, ["admin"]);
     const { userId, ...updates } = args;
     await ctx.db.patch(userId, updates);
   },

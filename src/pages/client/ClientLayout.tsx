@@ -1,11 +1,12 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
-import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, Bell, LogOut, Menu, X } from "lucide-react";
+import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, Bell, LogOut, Menu, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth.ts";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 const NAV = [
   { label: "Dashboard", href: "/client", icon: LayoutDashboard },
@@ -85,6 +86,30 @@ function ClientSidebar() {
   );
 }
 
+function ClientRoleGuard({ children }: { children: React.ReactNode }) {
+  const currentUser = useCurrentUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser === undefined) return;
+    if (currentUser === null) return;
+    if (currentUser.role !== "client") {
+      if (currentUser.role === "admin") navigate("/admin", { replace: true });
+      else navigate("/staff", { replace: true });
+    }
+  }, [currentUser, navigate]);
+
+  if (currentUser === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (currentUser === null || currentUser.role !== "client") return null;
+  return <>{children}</>;
+}
+
 export default function ClientLayout() {
   return (
     <div className="min-h-screen">
@@ -103,10 +128,12 @@ export default function ClientLayout() {
         </div>
       </Unauthenticated>
       <Authenticated>
-        <div className="flex h-screen overflow-hidden">
-          <ClientSidebar />
-          <main className="flex-1 overflow-auto pb-16 md:pb-0"><Outlet /></main>
-        </div>
+        <ClientRoleGuard>
+          <div className="flex h-screen overflow-hidden">
+            <ClientSidebar />
+            <main className="flex-1 overflow-auto pb-16 md:pb-0"><Outlet /></main>
+          </div>
+        </ClientRoleGuard>
       </Authenticated>
     </div>
   );

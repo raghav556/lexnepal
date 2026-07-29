@@ -1,11 +1,12 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
-import { Scale, LayoutDashboard, FolderOpen, CalendarDays, FileText, CheckSquare, Clock, Users, LogOut, Menu, X, Bell } from "lucide-react";
+import { Scale, LayoutDashboard, FolderOpen, CalendarDays, FileText, CheckSquare, Clock, Users, LogOut, Menu, X, Bell, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth.ts";
+import { useCurrentUser, STAFF_ROLES } from "@/hooks/use-current-user.ts";
 
 const NAV = [
   { label: "Dashboard", href: "/staff", icon: LayoutDashboard },
@@ -48,7 +49,6 @@ function StaffSidebar() {
             <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.profile.name ?? "Staff"}</p>
             <p className="text-xs text-sidebar-foreground/50 truncate">{user?.profile.email}</p>
           </div>
-          <Link to="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">Switch to Admin</Link>
           <button onClick={handleSignout} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/5 w-full transition-colors cursor-pointer mt-1">
             <LogOut className="w-4 h-4" />Sign Out
           </button>
@@ -84,6 +84,30 @@ function StaffSidebar() {
   );
 }
 
+function StaffRoleGuard({ children }: { children: React.ReactNode }) {
+  const currentUser = useCurrentUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser === undefined) return;
+    if (currentUser === null) return;
+    if (!STAFF_ROLES.includes(currentUser.role)) {
+      if (currentUser.role === "admin") navigate("/admin", { replace: true });
+      else navigate("/client", { replace: true });
+    }
+  }, [currentUser, navigate]);
+
+  if (currentUser === undefined) {
+    return (
+      <div className="dark min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (currentUser === null || !STAFF_ROLES.includes(currentUser.role)) return null;
+  return <>{children}</>;
+}
+
 export default function StaffLayout() {
   return (
     <div className="dark min-h-screen">
@@ -99,10 +123,12 @@ export default function StaffLayout() {
         </div>
       </Unauthenticated>
       <Authenticated>
-        <div className="flex h-screen overflow-hidden bg-background">
-          <StaffSidebar />
-          <main className="flex-1 overflow-auto pb-16 md:pb-0 bg-background"><Outlet /></main>
-        </div>
+        <StaffRoleGuard>
+          <div className="flex h-screen overflow-hidden bg-background">
+            <StaffSidebar />
+            <main className="flex-1 overflow-auto pb-16 md:pb-0 bg-background"><Outlet /></main>
+          </div>
+        </StaffRoleGuard>
       </Authenticated>
     </div>
   );
