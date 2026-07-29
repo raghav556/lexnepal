@@ -3,27 +3,60 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { FolderOpen, CalendarDays, CheckSquare, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
-
-const STATS = [
-  { label: "Active Cases", value: "24", icon: FolderOpen, color: "text-blue-400" },
-  { label: "Today's Hearings", value: "3", icon: CalendarDays, color: "text-amber-400" },
-  { label: "Pending Tasks", value: "11", icon: CheckSquare, color: "text-green-400" },
-  { label: "Unbilled Hours (Week)", value: "14.5h", icon: Clock, color: "text-purple-400" },
-];
-
-const UPCOMING_HEARINGS = [
-  { id: "1", case: "Sharma vs. Municipality", court: "Supreme Court", dateBs: "15 Mangsir 2081", time: "10:00 AM", urgent: false },
-  { id: "2", case: "TechVenture IP Dispute", court: "High Court, Patan", dateBs: "15 Mangsir 2081", time: "2:00 PM", urgent: false },
-  { id: "3", case: "Gurung Family Dispute", court: "District Court, KTM", dateBs: "16 Mangsir 2081", time: "11:00 AM", urgent: true },
-];
-
-const URGENT_TASKS = [
-  { id: "1", title: "File bail application \u2014 Gurung case", due: "Today", priority: "urgent" },
-  { id: "2", title: "Review MOA draft before client meeting", due: "Tomorrow", priority: "high" },
-  { id: "3", title: "Submit trademark registration docs", due: "3 days", priority: "medium" },
-];
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api.js";
 
 export default function StaffDashboard() {
+  const cases = useQuery(api.cases.listCases, {}) || [];
+  const hearings = useQuery(api.hearings.listHearings, {}) || [];
+  const tasks = useQuery(api.tasks.listTasks, {}) || [];
+  const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
+
+  // Compute stats dynamically
+  const activeCasesCount = cases.filter((c: any) => c.status === "active").length;
+  const todayHearingsCount = hearings.filter((h: any) => h.status === "scheduled").length;
+  const pendingTasksCount = tasks.filter((t: any) => t.status === "todo" || t.status === "in_progress").length;
+  const totalMinutes = timeEntries.reduce((sum: number, e: any) => sum + e.minutes, 0);
+  const unbilledHours = (totalMinutes / 60).toFixed(1) + "h";
+
+  const STATS = [
+    { label: "Active Cases", value: String(activeCasesCount), icon: FolderOpen, color: "text-blue-400" },
+    { label: "Upcoming Hearings", value: String(todayHearingsCount), icon: CalendarDays, color: "text-amber-400" },
+    { label: "Pending Tasks", value: String(pendingTasksCount), icon: CheckSquare, color: "text-green-400" },
+    { label: "Logged Hours", value: unbilledHours, icon: Clock, color: "text-purple-400" },
+  ];
+
+  // Up to 3 upcoming hearings
+  const upcomingHearings = hearings
+    .filter((h: any) => h.status === "scheduled")
+    .slice(0, 3)
+    .map((h: any) => {
+      const caseObj = cases.find((c: any) => c._id === h.caseId);
+      return {
+        id: h._id,
+        case: caseObj ? caseObj.title : "Unknown Case",
+        court: h.court,
+        dateBs: h.dateBs,
+        time: h.time || "N/A",
+        urgent: h.purpose?.toLowerCase().includes("final") || false,
+      };
+    });
+
+  // Up to 3 priority tasks
+  const urgentTasks = tasks
+    .filter((t: any) => t.status !== "done" && t.status !== "cancelled")
+    .sort((a: any, b: any) => {
+      const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+      return (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4);
+    })
+    .slice(0, 3)
+    .map((t: any) => ({
+      id: t._id,
+      title: t.title,
+      due: t.dueDateBs || "No due date",
+      priority: t.priority,
+    }));
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div>
@@ -33,10 +66,15 @@ export default function StaffDashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {STATS.map((s) => (
-          <Card key={s.label}><CardContent className="p-4 flex items-center gap-3">
-            <s.icon className={`w-5 h-5 ${s.color}`} />
-            <div><p className="text-xl font-bold text-foreground">{s.value}</p><p className="text-xs text-muted-foreground">{s.label}</p></div>
-          </CardContent></Card>
+          <Card key={s.label}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <s.icon className={`w-5 h-5 ${s.color}`} />
+              <div>
+                <p className="text-xl font-bold text-foreground">{s.value}</p>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
@@ -44,46 +82,59 @@ export default function StaffDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base font-semibold">Upcoming Hearings</CardTitle>
-            <Button asChild variant="ghost" size="sm" className="text-xs"><Link to="/staff/hearings">View all</Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs">
+              <Link to="/staff/hearings">View all</Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {UPCOMING_HEARINGS.map((h) => (
-              <div key={h.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-secondary/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex flex-col items-center justify-center text-accent">
-                    <span className="text-xs font-bold leading-none">{h.dateBs.split(" ")[0]}</span>
-                    <span className="text-xs leading-none opacity-70">{h.dateBs.split(" ")[1]}</span>
+            {upcomingHearings.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No upcoming hearings scheduled.</p>
+            ) : (
+              upcomingHearings.map((h) => (
+                <div key={h.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-secondary/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-accent/10 flex flex-col items-center justify-center text-accent flex-shrink-0">
+                      <span className="text-xs font-bold leading-none">{h.dateBs.split(" ")[0] || "Court"}</span>
+                      <span className="text-[10px] leading-none opacity-70 mt-0.5">{h.dateBs.split(" ")[1] || ""}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground line-clamp-1">{h.case}</p>
+                      <p className="text-xs text-muted-foreground">{h.court} &mdash; {h.time}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{h.case}</p>
-                    <p className="text-xs text-muted-foreground">{h.court} \u2014 {h.time}</p>
-                  </div>
+                  {h.urgent && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
                 </div>
-                {h.urgent && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base font-semibold">Priority Tasks</CardTitle>
-            <Button asChild variant="ghost" size="sm" className="text-xs"><Link to="/staff/tasks">View all</Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs">
+              <Link to="/staff/tasks">View all</Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {URGENT_TASKS.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">Due: {t.due}</p>
+            {urgentTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No pending tasks.</p>
+            ) : (
+              urgentTasks.map((t) => (
+                <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">Due: {t.due}</p>
+                  </div>
+                  <Badge className={`text-xs ml-2 flex-shrink-0 uppercase ${
+                    t.priority === "urgent" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                    t.priority === "high" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" :
+                    t.priority === "medium" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                  }`}>{t.priority}</Badge>
                 </div>
-                <Badge className={`text-xs ml-2 flex-shrink-0 ${
-                  t.priority === "urgent" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                  t.priority === "high" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" :
-                  "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                }`}>{t.priority}</Badge>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
