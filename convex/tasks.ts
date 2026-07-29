@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles.ts";
 
 export const listTasks = query({
   args: {
@@ -33,10 +34,7 @@ export const createTask = mutation({
     dueDateBs: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const user = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!user) throw new ConvexError({ code: "NOT_FOUND", message: "User not found" });
+    const user = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     return ctx.db.insert("tasks", {
       ...args,
       createdBy: user._id,
@@ -59,8 +57,7 @@ export const updateTask = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     const { taskId, ...updates } = args;
     await ctx.db.patch(taskId, updates);
   },
@@ -69,8 +66,7 @@ export const updateTask = mutation({
 export const deleteTask = mutation({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     await ctx.db.delete(args.taskId);
   },
 });

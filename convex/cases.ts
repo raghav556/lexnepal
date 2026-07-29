@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireRole, requireAuth, STAFF_ROLES } from "./lib/roles.ts";
 
 export const listCases = query({
   args: {
@@ -45,8 +46,7 @@ export const createCase = mutation({
     filingDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     return ctx.db.insert("cases", {
       ...args,
       status: "active",
@@ -68,8 +68,7 @@ export const updateCase = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     const { caseId, ...updates } = args;
     await ctx.db.patch(caseId, updates);
   },

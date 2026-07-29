@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles.ts";
 
 export const listTimeEntries = query({
   args: {
@@ -29,10 +30,7 @@ export const createTimeEntry = mutation({
     ratePerHour: v.number(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const user = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!user) throw new ConvexError({ code: "NOT_FOUND", message: "User not found" });
+    const user = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     return ctx.db.insert("timeEntries", { ...args, userId: user._id });
   },
 });
@@ -40,8 +38,7 @@ export const createTimeEntry = mutation({
 export const deleteTimeEntry = mutation({
   args: { entryId: v.id("timeEntries") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     await ctx.db.delete(args.entryId);
   },
 });

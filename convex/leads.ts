@@ -1,5 +1,23 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireRole, STAFF_ROLES } from "./lib/roles.ts";
+
+export const updateLead = mutation({
+  args: {
+    leadId: v.id("leads"),
+    status: v.optional(v.union(
+      v.literal("new"), v.literal("contacted"),
+      v.literal("consultation_scheduled"), v.literal("converted"), v.literal("lost"),
+    )),
+    assignedTo: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
+    const { leadId, ...updates } = args;
+    await ctx.db.patch(leadId, updates);
+  },
+});
 
 export const createLead = mutation({
   args: {
@@ -14,6 +32,7 @@ export const createLead = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    // Public: no auth required for website form submissions
     return ctx.db.insert("leads", { ...args, status: "new" });
   },
 });
@@ -24,23 +43,5 @@ export const listLeads = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
     return ctx.db.query("leads").collect();
-  },
-});
-
-export const updateLead = mutation({
-  args: {
-    leadId: v.id("leads"),
-    status: v.optional(v.union(
-      v.literal("new"), v.literal("contacted"),
-      v.literal("consultation_scheduled"), v.literal("converted"), v.literal("lost"),
-    )),
-    assignedTo: v.optional(v.id("users")),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const { leadId, ...updates } = args;
-    await ctx.db.patch(leadId, updates);
   },
 });

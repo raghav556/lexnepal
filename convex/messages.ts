@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles.ts";
 import { paginationOptsValidator } from "convex/server";
 
 export const listMessages = query({
@@ -27,10 +28,13 @@ export const sendMessage = mutation({
     attachmentIds: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const user = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!user) throw new ConvexError({ code: "NOT_FOUND", message: "User not found" });
+    const user = await requireAuth(ctx);
+    // Internal messages are staff/admin only
+    if (args.isInternal) {
+      if (!([...STAFF_ROLES, "admin"] as string[]).includes(user.role)) {
+        throw new ConvexError({ code: "FORBIDDEN", message: "Only staff may send internal messages" });
+      }
+    }
     return ctx.db.insert("messages", {
       ...args,
       senderId: user._id,
@@ -42,10 +46,7 @@ export const sendMessage = mutation({
 export const markMessagesRead = mutation({
   args: { caseId: v.id("cases") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const user = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!user) return;
+    const user = await requireAuth(ctx);
     const unread = await ctx.db
       .query("messages")
       .withIndex("by_case", (q) => q.eq("caseId", args.caseId))

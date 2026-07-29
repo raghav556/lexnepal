@@ -7,7 +7,7 @@ export type UserRole = Doc<"users">["role"];
 
 export const updateCurrentUser = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ id: string; role: UserRole }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({ code: "UNAUTHENTICATED", message: "User not logged in" });
@@ -16,14 +16,15 @@ export const updateCurrentUser = mutation({
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
-    if (user !== null) return user._id;
-    return await ctx.db.insert("users", {
+    if (user !== null) return { id: user._id, role: user.role };
+    const id = await ctx.db.insert("users", {
       name: identity.name,
       email: identity.email,
       tokenIdentifier: identity.tokenIdentifier,
       role: "client",
       isActive: true,
     });
+    return { id, role: "client" };
   },
 });
 

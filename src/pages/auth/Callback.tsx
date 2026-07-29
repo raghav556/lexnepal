@@ -1,26 +1,38 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthCallback } from "@usehercules/auth/react";
-import { useConvexAuth, useMutation, useConvex } from "convex/react";
+import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { getPortalForRole } from "@/hooks/use-current-user.ts";
+import type { UserRole } from "@/convex/users.ts";
+
+function getPortalForRole(role: UserRole): string {
+  if (role === "admin") return "/admin";
+  if (role === "client") return "/client";
+  return "/staff";
+}
 
 export default function AuthCallback() {
   const navigate = useNavigate();
   const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const updateCurrentUser = useMutation(api.users.updateCurrentUser);
-  const convex = useConvex();
+  // Store the role returned by updateCurrentUser so we can redirect correctly
+  const roleRef = useRef<UserRole | null>(null);
 
   const onSync = useCallback(async () => {
-    await updateCurrentUser();
-    // After syncing, fetch the user's role and redirect to the correct portal
-    const user = await convex.query(api.users.getCurrentUser, {});
-    if (user) {
-      navigate(getPortalForRole(user.role), { replace: true });
+    const result = await updateCurrentUser();
+    roleRef.current = result.role;
+  }, [updateCurrentUser]);
+
+  const navigateByRole = useCallback(() => {
+    const role = roleRef.current;
+    if (role) {
+      navigate(getPortalForRole(role), { replace: true });
+    } else {
+      navigate("/", { replace: true });
     }
-  }, [updateCurrentUser, convex, navigate]);
+  }, [navigate]);
 
   const navigateHome = useCallback(
     () => navigate("/", { replace: true }),
@@ -30,7 +42,7 @@ export default function AuthCallback() {
   const { status, error, retry } = useAuthCallback({
     isBackendAuthenticated: isConvexAuthenticated,
     onSync,
-    onSuccess: navigateHome,
+    onSuccess: navigateByRole,
     onNoAuthParams: navigateHome,
   });
 
@@ -54,7 +66,7 @@ export default function AuthCallback() {
   return (
     <div className="flex flex-col items-center justify-center h-svh gap-4">
       <Spinner className="size-8" />
-      <p className="text-sm text-muted-foreground">Loading...</p>
+      <p className="text-sm text-muted-foreground">Signing you in...</p>
     </div>
   );
 }

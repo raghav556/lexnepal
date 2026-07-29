@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth } from "./lib/roles.ts";
 
 export const listNotifications = query({
   args: {},
@@ -22,8 +23,7 @@ export const listNotifications = query({
 export const markRead = mutation({
   args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireAuth(ctx);
     await ctx.db.patch(args.notificationId, { isRead: true });
   },
 });

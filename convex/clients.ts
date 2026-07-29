@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireRole, STAFF_ROLES } from "./lib/roles.ts";
 
 export const listClients = query({
   args: {},
@@ -31,8 +32,7 @@ export const createClient = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     return ctx.db.insert("clients", { ...args, kycStatus: "pending", isActive: true });
   },
 });
@@ -50,8 +50,7 @@ export const updateClient = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     const { clientId, ...updates } = args;
     await ctx.db.patch(clientId, updates);
   },

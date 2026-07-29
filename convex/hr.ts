@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireRole, requireAuth, STAFF_ROLES } from "./lib/roles.ts";
 
 export const listAttendance = query({
   args: {
@@ -30,8 +31,7 @@ export const upsertAttendance = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     const existing = await ctx.db
       .query("attendance")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -76,10 +76,7 @@ export const createLeaveRequest = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const user = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!user) throw new ConvexError({ code: "NOT_FOUND", message: "User not found" });
+    const user = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
     return ctx.db.insert("leaveRequests", { ...args, userId: user._id, status: "pending" });
   },
 });
@@ -90,10 +87,7 @@ export const reviewLeaveRequest = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const reviewer = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!reviewer) throw new ConvexError({ code: "NOT_FOUND", message: "User not found" });
+    const reviewer = await requireRole(ctx, ["admin"]);
     await ctx.db.patch(args.leaveRequestId, {
       status: args.status,
       reviewedBy: reviewer._id,

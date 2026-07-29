@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth, requireRole } from "./lib/roles.ts";
 
 export const listAuditLog = query({
   args: {
@@ -7,8 +8,7 @@ export const listAuditLog = query({
     resource: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    await requireRole(ctx, ["admin"]);
     if (args.userId) {
       return ctx.db.query("auditLog").withIndex("by_user", (q) => q.eq("userId", args.userId!)).order("desc").take(200);
     }
@@ -27,10 +27,7 @@ export const writeAuditLog = mutation({
     details: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
-    const user = await ctx.db.query("users").withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).unique();
-    if (!user) throw new ConvexError({ code: "NOT_FOUND", message: "User not found" });
+    const user = await requireAuth(ctx);
     return ctx.db.insert("auditLog", { ...args, userId: user._id });
   },
 });

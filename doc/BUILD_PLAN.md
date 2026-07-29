@@ -12,11 +12,11 @@
 |---|---|---|
 | Public website UI | ✅ 100% | Brand theme applied, leads wired |
 | Convex schema | ✅ 100% | All 18 tables defined |
-| Staff portal UI | 80% | All pages built, all data is mock |
-| Client portal UI | 80% | All pages built, all data is mock |
-| Admin console UI | 80% | All pages built, all data is mock |
+| Staff portal UI | 80% | All pages built, mock data |
+| Client portal UI | 80% | All pages built, mock data |
+| Admin console UI | 80% | All pages built, role edit live |
 | Auth | ✅ Done | Hercules Auth wired, callback working |
-| RBAC | 0% | Role guards in layouts, no server enforcement yet |
+| RBAC | ✅ Done | Server enforcement + post-login redirect |
 | File storage | 0% | Not started |
 | Billing / PDF | 0% | Not started |
 | Notifications | 0% | Not started |
@@ -24,57 +24,48 @@
 ---
 
 ## Phase 1 — Public Website Fixes ✅ DONE
-**Status:** Complete
-
-- [x] Nav links consistent (`/lawyers` route)
-- [x] `leads` table in `convex/schema.ts`
-- [x] `createLead` mutation in `convex/leads.ts` (public, no auth required)
-- [x] LexNepal brand theme applied: navy `oklch(0.32 0.06 265)` primary, gold `oklch(0.68 0.12 60)` accent, ivory bg, dark sidebar for portals
-
----
 
 ## Phase 2 — Convex Backend Foundation ✅ DONE
+
+## Phase 3 — Role-Based Access Control ✅ DONE
 **Status:** Complete
 
-- [x] Extended `users` table: `role`, `barCouncilNumber`, `barCouncilExpiry`, `isActive`, `avatar`, `phone`
-- [x] All 18 tables defined in `convex/schema.ts`
-- [x] All queries & mutations built: `cases`, `clients`, `documents`, `hearings`, `hr`, `invoices`, `leads`, `messages`, `notifications`, `tasks`, `timeEntries`, `auditLog`
-- [x] `requireRole` / `requireAuth` helpers in `convex/lib/roles.ts`
-- [x] `useCurrentUser` hook + `getPortalForRole` in `src/hooks/use-current-user.ts`
-- [x] `lex-constants.ts`, `nepali-calendar.ts`
-
----
-
-## Phase 3 — Role-Based Access Control
-**Status:** Not started  
-**Effort:** Medium (1–2 days)  
-**Depends on:** Phase 2 ✅
-
-- [ ] Add role check after sign-in: redirect to `/client`, `/staff`, or `/admin` based on role
-- [ ] Apply `requireRole` to every sensitive mutation and query
-- [ ] Admin Users page: real role assignment (edit + save)
-- [ ] Block direct URL access to wrong portal
+- [x] `updateCurrentUser` returns `{ id, role }` — Callback.tsx redirects to correct portal
+- [x] All sensitive mutations enforce `requireRole` / `requireAuth`
+  - `createCase`, `updateCase` → staff + admin
+  - `createClient`, `updateClient` → staff + admin
+  - `createHearing`, `updateHearing` → staff + admin
+  - `createDocument` → any auth; `deleteDocument` → staff + admin
+  - `createTask`, `updateTask`, `deleteTask` → staff + admin
+  - `createTimeEntry`, `deleteTimeEntry` → staff + admin
+  - `createInvoice`, `updateInvoiceStatus`, `addLineItem`, `createTrustTransaction` → staff + admin
+  - `sendMessage` → any auth; internal messages → staff + admin
+  - `updateLead` → staff + admin; `createLead` → public
+  - `createLeaveRequest` → staff + admin; `reviewLeaveRequest` → admin only
+  - `listAuditLog` → admin only
+- [x] AdminUsersPage: live role assignment via `updateUser` mutation (admin-only)
+- [x] Layout role guards redirect to correct portal on wrong access
 
 ---
 
 ## Phase 4 — Staff Portal (Live Data)
 **Status:** Not started  
 **Effort:** Large (2–3 days)  
-**Depends on:** Phase 2 ✅, Phase 3
+**Depends on:** Phase 3 ✅
 
 ---
 
 ## Phase 5 — Client Portal (Live Data)
 **Status:** Not started  
 **Effort:** Medium (1–2 days)  
-**Depends on:** Phase 2 ✅, Phase 3
+**Depends on:** Phase 3 ✅
 
 ---
 
 ## Phase 6 — Admin Console (Live Data)
 **Status:** Not started  
 **Effort:** Large (2 days)  
-**Depends on:** Phase 2 ✅, Phase 3
+**Depends on:** Phase 3 ✅
 
 ---
 
