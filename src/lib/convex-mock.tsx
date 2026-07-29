@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+export { ConvexReactClient } from "./convex-client-stub.ts";
 
 // Types matching Convex schema
 export interface LexUser {
@@ -245,12 +246,7 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Convex React Client Mock
-export class ConvexReactClient {
-  constructor(public url: string) {}
-  setAuth() {}
-  clearAuth() {}
-}
+// ConvexReactClient is defined in convex-client-stub.ts and re-exported above
 
 // Context for Convex auth
 const ConvexAuthContext = createContext<{
