@@ -15,9 +15,9 @@ export const PRACTICE_AREAS = [
 ];
 
 export const COURTS = [
-  "Supreme Court of Nepal", "High Court \u2014 Patan", "High Court \u2014 Butwal",
-  "High Court \u2014 Biratnagar", "High Court \u2014 Pokhara", "High Court \u2014 Hetauda",
-  "District Court \u2014 Kathmandu", "District Court \u2014 Lalitpur", "Labour Court",
+  "Supreme Court of Nepal", "High Court — Patan", "High Court — Butwal",
+  "High Court — Biratnagar", "High Court — Pokhara", "High Court — Hetauda",
+  "District Court — Kathmandu", "District Court — Lalitpur", "Labour Court",
   "Revenue Tribunal", "Administrative Court", "Other",
 ];
 

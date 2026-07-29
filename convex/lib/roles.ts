@@ -6,7 +6,6 @@ export type UserRole = Doc<"users">["role"];
 
 export const STAFF_ROLES: UserRole[] = ["partner", "senior_associate", "associate", "paralegal", "intern"];
 
-// Returns the authenticated user if their role is in allowedRoles, otherwise throws
 export async function requireRole(
   ctx: QueryCtx | MutationCtx,
   allowedRoles: UserRole[],
@@ -24,7 +23,6 @@ export async function requireRole(
   return user;
 }
 
-// Returns the authenticated user regardless of role (just checks auth + user exists)
 export async function requireAuth(
   ctx: QueryCtx | MutationCtx,
 ): Promise<Doc<"users">> {

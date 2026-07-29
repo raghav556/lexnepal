@@ -1,6 +1,6 @@
 /**
- * BS (Bikram Sambat) \u21c4 Gregorian calendar conversion utility.
- * Covers BS years 2000\u20132090.
+ * BS (Bikram Sambat) <-> Gregorian calendar conversion utility.
+ * Covers BS years 2000-2090.
  */
 
 const BS_MONTH_DAYS: Record<number, number[]> = {
@@ -133,7 +133,7 @@ export function bsToGregorian(bs: BsDate): Date {
 
 const BS_MONTHS_EN = ["Baisakh","Jestha","Ashadh","Shrawan","Bhadra","Ashwin","Kartik","Mangsir","Poush","Magh","Falgun","Chaitra"];
 
-export function formatBs(bs: BsDate, lang: "ne" | "en" = "en"): string {
+export function formatBs(bs: BsDate, _lang: "ne" | "en" = "en"): string {
   return `${bs.day} ${BS_MONTHS_EN[bs.month - 1]} ${bs.year}`;
 }
 

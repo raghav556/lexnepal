@@ -62,7 +62,6 @@ export const updateUser = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Only admins can update user roles
     await requireRole(ctx, ["admin"]);
     const { userId, ...updates } = args;
     await ctx.db.patch(userId, updates);
