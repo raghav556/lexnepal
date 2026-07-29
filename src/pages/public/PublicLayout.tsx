@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils.ts";
 
 const NAV_LINKS = [
   { label: "Practice Areas", href: "/practice-areas" },
-  { label: "Our Lawyers", href: "/lawyers" },
+  { label: "Our Lawyers", href: "/our-lawyers" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];
@@ -94,14 +94,14 @@ export default function PublicLayout() {
             <div>
               <h4 className="font-semibold text-sm mb-3 text-accent">Quick Links</h4>
               <ul className="space-y-1 text-sm text-primary-foreground/70">
-                {([["Book Consultation","/consultation"],["Our Lawyers","/lawyers"],["Contact","/contact"]] as [string,string][]).map(([label,href]) => (
+                {([["Book Consultation","/consultation"],["Our Lawyers","/our-lawyers"],["Contact","/contact"]] as [string,string][]).map(([label,href]) => (
                   <li key={href}><Link to={href} className="hover:text-accent transition-colors">{label}</Link></li>
                 ))}
               </ul>
             </div>
           </div>
           <div className="border-t border-primary-foreground/20 mt-8 pt-6 text-xs text-primary-foreground/50 flex flex-col sm:flex-row justify-between gap-2">
-            <span>\u00a9 {new Date().getFullYear()} LexNepal. All rights reserved.</span>
+            <span>&copy; {new Date().getFullYear()} LexNepal. All rights reserved.</span>
             <span>Reg. Nepal Bar Council | VAT: 00000000</span>
           </div>
         </div>
