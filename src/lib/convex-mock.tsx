@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { toast } from "sonner";
 export { ConvexReactClient } from "./convex-client-stub.ts";
 
 // Types matching Convex schema
@@ -11,6 +12,22 @@ export interface LexUser {
   phone?: string;
   barCouncilNumber?: string;
   barCouncilExpiry?: string;
+  isPublicFacing?: boolean;
+  bio?: string;
+  avatarUrl?: string;
+  twoFactorEnabled?: boolean;
+  isPending?: boolean;
+  activationToken?: string;
+}
+
+export interface LexSession {
+  _id: string;
+  userId: string;
+  device: string;
+  browser: string;
+  ipAddress: string;
+  lastActive: string;
+  isCurrent: boolean;
 }
 
 export interface LexClient {
@@ -126,6 +143,17 @@ export interface LexMessage {
   _creationTime: number;
 }
 
+export interface LexNotification {
+  _id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type?: string;
+  isRead: boolean;
+  link?: string;
+  _creationTime: number;
+}
+
 export interface LexLead {
   _id: string;
   fullName: string;
@@ -138,6 +166,61 @@ export interface LexLead {
   assignedTo?: string;
   convertedClientId?: string;
   notes?: string;
+  intakeToken?: string;
+  intakeSubmitted?: boolean;
+  _creationTime: number;
+}
+
+export interface LexIntakeForm {
+  _id: string;
+  leadId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  address: string;
+  citizenshipNo: string;
+  practiceArea: string;
+  caseDescription: string;
+  documentStorageIds: string[];
+  submittedAt: number;
+}
+
+export interface LexAppointment {
+  _id: string;
+  clientId?: string;
+  leadId?: string;
+  lawyerId: string;
+  date: string;
+  time: string;
+  type: "in_person" | "virtual" | "phone";
+  status: "scheduled" | "completed" | "cancelled";
+  notes?: string;
+  _creationTime: number;
+}
+
+export interface LexExpense {
+  _id: string;
+  description: string;
+  category: "office_rent" | "utilities" | "court_fees" | "courier" | "printing" | "travel" | "supplies" | "software" | "other";
+  amount: number;
+  caseId?: string;
+  receiptId?: string;
+  date: string;
+  submittedBy: string;
+  status: "pending" | "approved" | "rejected";
+  approvedBy?: string;
+  _creationTime: number;
+}
+
+export interface LexCauseList {
+  _id: string;
+  caseId: string; // Internal case ID if matched
+  courtName: string;
+  judgeName: string;
+  hearingType: string;
+  serialNumber: string;
+  status: "scheduled" | "heard" | "adjourned";
+  pesiDate: string; // BS Date string
   _creationTime: number;
 }
 
@@ -200,10 +283,49 @@ export interface LexNotification {
   _creationTime: number;
 }
 
-// Initial mock databases
+export interface LexTemplate {
+  _id: string;
+  title: string;
+  type: "retainer" | "petition" | "nda" | "general";
+  content: string; // Contains placeholders like {{CLIENT_NAME}}
+  _creationTime: number;
+}
+
+export interface LexResearchNote {
+  _id: string;
+  title: string;
+  category: "supreme_court" | "high_court" | "district_court" | "commentary" | "procedure" | "template_research";
+  tags: string[];
+  content: string;
+  authorId: string;
+  _creationTime: number;
+}
+
 const INITIAL_USERS: LexUser[] = [
-  { _id: "u1", name: "Ram Chandra", email: "ram@lexnepal.com", role: "partner", isActive: true, phone: "+977 9851012345", barCouncilNumber: "NPC-001234", barCouncilExpiry: "2083-05-15" },
-  { _id: "u2", name: "Sita Thapa", email: "sita@lexnepal.com", role: "associate", isActive: true, phone: "+977 9841054321", barCouncilNumber: "NPC-005678", barCouncilExpiry: "2082-12-30" },
+  { 
+    _id: "u1", name: "Ramesh Badal", email: "ramesh@srimarlaw.com.np", role: "partner", isActive: true, isPublicFacing: true, phone: "+977-9860520520", barCouncilNumber: "NPC-001234", barCouncilExpiry: "2083-05-15",
+    avatarUrl: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=256&h=256&auto=format&fit=crop",
+    bio: "Ramesh Badal is a Senior Lawyer and the Former Attorney General of Nepal. With unparalleled expertise in constitutional and corporate law, he leads Srimar Law's high-stakes litigation.",
+    linkedinUrl: "https://linkedin.com", twitterUrl: "https://twitter.com", publicEmail: "ramesh@srimarlaw.com.np"
+  },
+  { 
+    _id: "u2", name: "Sangit Dhungana", email: "sangit@srimarlaw.com.np", role: "associate", isActive: true, isPublicFacing: true, phone: "+977-9860520520", barCouncilNumber: "NPC-005678", barCouncilExpiry: "2082-12-30",
+    avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&h=256&auto=format&fit=crop",
+    bio: "Sangit Dhungana is a dedicated Associate Lawyer at Srimar Law, specializing in corporate compliance, dispute resolution, and civil litigation.",
+    linkedinUrl: "https://linkedin.com", publicEmail: "sangit@srimarlaw.com.np"
+  },
+  { 
+    _id: "u6", name: "Rajan Sharma", email: "rajan@srimarlaw.com.np", role: "associate", isActive: true, isPublicFacing: true, phone: "+977 9801122334", barCouncilNumber: "NPC-008910", barCouncilExpiry: "2084-01-10",
+    avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256&h=256&auto=format&fit=crop",
+    bio: "Rajan specializes in intellectual property and tech law. He advises Nepal's leading startups on regulatory compliance and data protection frameworks.",
+    linkedinUrl: "https://linkedin.com", twitterUrl: "https://twitter.com"
+  },
+  { 
+    _id: "u7", name: "Priya Gurung", email: "priya@srimarlaw.com.np", role: "associate", isActive: true, isPublicFacing: true, phone: "+977 9811223344", barCouncilNumber: "NPC-009988", barCouncilExpiry: "2085-02-15",
+    avatarUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=256&h=256&auto=format&fit=crop",
+    bio: "Priya is a dedicated advocate focusing on family law and dispute resolution. She is known for her empathetic approach and fierce courtroom advocacy.",
+    publicEmail: "priya@srimarlaw.com.np"
+  },
   { _id: "u3", name: "Hari Prasad", email: "hari@client.com", role: "client", isActive: true, phone: "+977 9803098765" },
   { _id: "u4", name: "Gita Nepal", email: "gita@admin.com", role: "admin", isActive: true, phone: "+977 9812345678" },
   { _id: "u5", name: "Krishna Aryal", email: "krishna@intern.com", role: "intern", isActive: true, phone: "+977 9860112233" }
@@ -216,15 +338,15 @@ const INITIAL_CLIENTS: LexClient[] = [
 ];
 
 const INITIAL_CASES: LexCase[] = [
-  { _id: "case1", caseNumber: "KTM/2081/234", title: "Property Dispute \u2014 Bhaktapur Plot 234", practiceArea: "Property Law", status: "active", clientId: "c1", assignedLawyerId: "u2", teamMemberIds: ["u2", "u1"], court: "District Court — Kathmandu", filingDate: "2026-01-10", conflictChecked: true },
-  { _id: "case2", caseNumber: "PAT/2081/582", title: "Company Registration \u2014 TechVenture Pvt. Ltd.", practiceArea: "Corporate Law", status: "active", clientId: "c2", assignedLawyerId: "u1", teamMemberIds: ["u1"], court: "High Court — Patan", filingDate: "2026-02-15", conflictChecked: true },
+  { _id: "case1", caseNumber: "KTM/2081/234", title: "Property Dispute \u2014 Bhaktapur Plot 234", practiceArea: "Property Law", status: "active", clientId: "c1", assignedLawyerId: "u2", teamMemberIds: ["u2", "u1"], court: "District Court ΓÇö Kathmandu", filingDate: "2026-01-10", conflictChecked: true },
+  { _id: "case2", caseNumber: "PAT/2081/582", title: "Company Registration \u2014 TechVenture Pvt. Ltd.", practiceArea: "Corporate Law", status: "active", clientId: "c2", assignedLawyerId: "u1", teamMemberIds: ["u1"], court: "High Court ΓÇö Patan", filingDate: "2026-02-15", conflictChecked: true },
   { _id: "case3", caseNumber: "KTM/2081/999", title: "Sharma vs. Kathmandu Municipality", practiceArea: "Civil Litigation", status: "on_hold", clientId: "c1", assignedLawyerId: "u2", teamMemberIds: ["u2"], court: "Supreme Court of Nepal", filingDate: "2026-03-01", conflictChecked: true }
 ];
 
 const INITIAL_HEARINGS: LexHearing[] = [
   { _id: "h1", caseId: "case3", court: "Supreme Court of Nepal", dateGregorian: "2026-11-28", dateBs: "15 Mangsir 2083", time: "10:00 AM", purpose: "Final Hearing", status: "scheduled", notes: "Ensure all primary files are in order." },
-  { _id: "h2", caseId: "case2", court: "High Court — Patan", dateGregorian: "2026-11-28", dateBs: "15 Mangsir 2083", time: "02:00 PM", purpose: "Interim Order Debate", status: "scheduled" },
-  { _id: "h3", caseId: "case1", court: "District Court — Kathmandu", dateGregorian: "2026-11-29", dateBs: "16 Mangsir 2083", time: "11:00 AM", purpose: "Evidence Submission", status: "scheduled" }
+  { _id: "h2", caseId: "case2", court: "High Court ΓÇö Patan", dateGregorian: "2026-11-28", dateBs: "15 Mangsir 2083", time: "02:00 PM", purpose: "Interim Order Debate", status: "scheduled" },
+  { _id: "h3", caseId: "case1", court: "District Court ΓÇö Kathmandu", dateGregorian: "2026-11-29", dateBs: "16 Mangsir 2083", time: "11:00 AM", purpose: "Evidence Submission", status: "scheduled" }
 ];
 
 const INITIAL_TASKS: LexTask[] = [
@@ -258,7 +380,7 @@ const INITIAL_MESSAGES: LexMessage[] = [
 
 const INITIAL_LEADS: LexLead[] = [
   { _id: "lead1", fullName: "Rajan Karki", phone: "+977 9841234567", practiceAreaInterest: "Property Law", source: "website", status: "new", _creationTime: Date.now() - 86400000 * 2 },
-  { _id: "lead2", fullName: "Srijana Thapa", phone: "+977 9851234567", email: "srijana@email.com", practiceAreaInterest: "Family Law", source: "referral", status: "contacted", _creationTime: Date.now() - 86400000 * 3 },
+  { _id: "lead2", fullName: "Srijana Thapa", phone: "+977 9851234567", email: "srijana@email.com", practiceAreaInterest: "Family Law", source: "referral", status: "contacted", intakeToken: "mock-token-123", intakeSubmitted: false, _creationTime: Date.now() - 86400000 * 3 },
   { _id: "lead3", fullName: "Himalaya Trading Pvt. Ltd.", phone: "+977 01 4321234", email: "legal@himalaya.com", practiceAreaInterest: "Corporate Law", source: "website", status: "consultation_scheduled", assignedTo: "u1", _creationTime: Date.now() - 86400000 * 5 },
   { _id: "lead4", fullName: "Gopal Bhandari", phone: "+977 9806543210", practiceAreaInterest: "Criminal Law", source: "walk_in", status: "converted", convertedClientId: "c1", _creationTime: Date.now() - 86400000 * 8 },
   { _id: "lead5", fullName: "Sunita Gurung", phone: "+977 9812223334", practiceAreaInterest: "Immigration", source: "social", status: "lost", notes: "Client chose another firm", _creationTime: Date.now() - 86400000 * 10 }
@@ -272,16 +394,16 @@ const INITIAL_ATTENDANCE: LexAttendance[] = [
 ];
 
 const INITIAL_LEAVE_REQUESTS: LexLeaveRequest[] = [
-  { _id: "lr1", userId: "u2", type: "sick", fromDate: "2026-07-28", toDate: "2026-07-30", reason: "Medical leave — fever", status: "approved", reviewedBy: "u4" },
+  { _id: "lr1", userId: "u2", type: "sick", fromDate: "2026-07-28", toDate: "2026-07-30", reason: "Medical leave ΓÇö fever", status: "approved", reviewedBy: "u4" },
   { _id: "lr2", userId: "u5", type: "annual", fromDate: "2026-08-03", toDate: "2026-08-05", reason: "Family event", status: "pending" }
 ];
 
 const INITIAL_AUDIT_LOG: LexAuditLog[] = [
-  { _id: "al1", userId: "u2", action: "VIEW", resource: "documents", resourceId: "DOC-001", details: "Viewed: Property Title Deed — Plot 234", ipAddress: "192.168.1.14", _creationTime: Date.now() - 3600000 * 2 },
-  { _id: "al2", userId: "u1", action: "CREATE", resource: "cases", resourceId: "KTM/2081/234", details: "Created new case: Property Dispute — Bhaktapur Plot 234", ipAddress: "192.168.1.10", _creationTime: Date.now() - 3600000 * 4 },
-  { _id: "al3", userId: "u4", action: "UPDATE", resource: "users", resourceId: "u5", details: "Changed role: intern → paralegal", ipAddress: "192.168.1.1", _creationTime: Date.now() - 3600000 * 8 },
+  { _id: "al1", userId: "u2", action: "VIEW", resource: "documents", resourceId: "DOC-001", details: "Viewed: Property Title Deed ΓÇö Plot 234", ipAddress: "192.168.1.14", _creationTime: Date.now() - 3600000 * 2 },
+  { _id: "al2", userId: "u1", action: "CREATE", resource: "cases", resourceId: "KTM/2081/234", details: "Created new case: Property Dispute ΓÇö Bhaktapur Plot 234", ipAddress: "192.168.1.10", _creationTime: Date.now() - 3600000 * 4 },
+  { _id: "al3", userId: "u4", action: "UPDATE", resource: "users", resourceId: "u5", details: "Changed role: intern ΓåÆ paralegal", ipAddress: "192.168.1.1", _creationTime: Date.now() - 3600000 * 8 },
   { _id: "al4", userId: "u1", action: "SEND", resource: "invoices", resourceId: "INV-2081-001", details: "Sent invoice INV-2081-001 to Hari Prasad", ipAddress: "192.168.1.10", _creationTime: Date.now() - 86400000 },
-  { _id: "al5", userId: "u2", action: "UPLOAD", resource: "documents", resourceId: "DOC-089", details: "Uploaded: Court Notice — Hearing 15 Mangsir", ipAddress: "192.168.1.14", _creationTime: Date.now() - 86400000 * 2 },
+  { _id: "al5", userId: "u2", action: "UPLOAD", resource: "documents", resourceId: "DOC-089", details: "Uploaded: Court Notice ΓÇö Hearing 15 Mangsir", ipAddress: "192.168.1.14", _creationTime: Date.now() - 86400000 * 2 },
   { _id: "al6", userId: "u4", action: "DELETE", resource: "leads", resourceId: "lead5", details: "Marked lead Sunita Gurung as lost", ipAddress: "192.168.1.1", _creationTime: Date.now() - 86400000 * 3 }
 ];
 
@@ -296,6 +418,87 @@ const INITIAL_NOTIFICATIONS: LexNotification[] = [
   { _id: "notif1", userId: "u2", title: "New Assignment", message: "You were assigned to KTM/2081/234", type: "info", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 86400000 },
   { _id: "notif2", userId: "u1", title: "New Message", message: "Sita Thapa sent a new message in TechVenture case.", type: "alert", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 3600000 },
   { _id: "notif3", userId: "u3", title: "Hearing Scheduled", message: "Your hearing is scheduled for 15 Mangsir 2083", type: "success", isRead: false, link: "/client/matters", _creationTime: Date.now() - 7200000 },
+];
+
+const INITIAL_TEMPLATES: LexTemplate[] = [
+  {
+    _id: "tmpl1",
+    title: "Standard Retainer Agreement",
+    type: "retainer",
+    content: "RETAINER AGREEMENT\n\nThis Agreement is made on {{TODAY_DATE}} between Srimar Law and {{CLIENT_NAME}} (Client).\n\nThe Client engages the Law Firm to represent them in the matter of: {{CASE_TITLE}} (Case No: {{CASE_NUMBER}}).\n\nThe matter is currently at {{COURT_NAME}} before Hon. Judge {{JUDGE_NAME}}.\n\nSignatures:\n\n___________________\n{{CLIENT_NAME}}\n\n___________________\nSrimar Law",
+    _creationTime: Date.now() - 100000,
+  },
+  {
+    _id: "tmpl2",
+    title: "Simple Power of Attorney",
+    type: "general",
+    content: "POWER OF ATTORNEY (WAKALATNAMA)\n\nI, {{CLIENT_NAME}}, hereby authorize Srimar Law and its lawyers to act on my behalf in the matter of {{CASE_TITLE}} before {{COURT_NAME}}.\n\nDate: {{TODAY_DATE}}\nSignature:\n___________________",
+    _creationTime: Date.now() - 50000,
+  }
+];
+
+const INITIAL_RESEARCH_NOTES: LexResearchNote[] = [
+  {
+    _id: "rn1",
+    title: "Supreme Court on Adverse Possession — NKP 2078/12",
+    category: "supreme_court",
+    tags: ["adverse possession", "property", "limitation"],
+    content: "The Supreme Court in NKP 2078, Issue 12 held that adverse possession claims require uninterrupted, open, and hostile possession for a statutory period of 12 years under the Muluki Civil Code. The claimant must also demonstrate that the original owner had full knowledge and did not act. Relevant section: Civil Code Section 96.",
+    authorId: "u1",
+    _creationTime: Date.now() - 86400000 * 30
+  },
+  {
+    _id: "rn2",
+    title: "Company Registration Process — ORC 2079 Amendment",
+    category: "procedure",
+    tags: ["company", "ORC", "registration", "corporate"],
+    content: "Following the Office of Company Registrar 2079 Amendment, all private limited companies must now submit a digital copy of the MOA/AOA along with the physical filing. PAN registration at IRD must be completed within 30 days of ORC approval. Contact: ORC Tripureshwor, 01-4228890.",
+    authorId: "u1",
+    _creationTime: Date.now() - 86400000 * 20
+  },
+  {
+    _id: "rn3",
+    title: "High Court — Patan: Interim Stay in Property Disputes",
+    category: "high_court",
+    tags: ["interim stay", "property", "injunction", "Patan HC"],
+    content: "Patan HC has consistently required three conditions for interim stay in property disputes: (1) Prima facie case established, (2) Balance of convenience in petitioner's favour, (3) Irreparable harm if stay not granted. Supporting precedent: Rajan Shrestha v. Municipality (2079). Filing fee: NPR 500 application, NPR 2000 for urgent listing.",
+    authorId: "u2",
+    _creationTime: Date.now() - 86400000 * 15
+  },
+  {
+    _id: "rn4",
+    title: "Labour Court Procedure — Wrongful Termination Claims",
+    category: "procedure",
+    tags: ["labour", "wrongful termination", "Labour Act 2074"],
+    content: "Under the Labour Act 2074, an employee disputing termination must file with the Labour Office within 35 days. If unresolved within 30 days at the Labour Office, the matter proceeds to the Labour Court. Key documentation: Appointment letter, termination notice, payslips for last 3 months, and any written warnings. Compensation formula: 1 month salary per year of service (up to 12 months).",
+    authorId: "u2",
+    _creationTime: Date.now() - 86400000 * 8
+  },
+  {
+    _id: "rn5",
+    title: "E-Signature Validity under Electronic Transactions Act 2063",
+    category: "commentary",
+    tags: ["e-signature", "digital signature", "ETA 2063", "contracts"],
+    content: "Under Nepal's Electronic Transactions Act 2063, digitally signed documents using government-issued digital certificates are legally valid and enforceable. However, documents requiring physical appearance (like property deeds, wills, and powers of attorney) still require physical presence and notarization. E-signatures from private platforms do not yet have formal statutory recognition.",
+    authorId: "u1",
+    _creationTime: Date.now() - 86400000 * 3
+  }
+];
+
+const INITIAL_EXPENSES: LexExpense[] = [
+  { _id: "exp1", description: "Office Rent — Babarmahal", category: "office_rent", amount: 85000, date: TODAY, submittedBy: "u3", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 30 },
+  { _id: "exp2", description: "Supreme Court Filing Fee — Case CASE-2081-001", category: "court_fees", amount: 5000, caseId: "case1", date: TODAY, submittedBy: "u2", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 20 },
+  { _id: "exp3", description: "Document Courier — Blue Dart", category: "courier", amount: 1200, caseId: "case2", date: TODAY, submittedBy: "u3", status: "pending", _creationTime: Date.now() - 86400000 * 5 },
+  { _id: "exp4", description: "Internet & Electricity — Shrawan", category: "utilities", amount: 6500, date: TODAY, submittedBy: "u3", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 15 },
+  { _id: "exp5", description: "Printing & Photocopying — 500 pages", category: "printing", amount: 2500, caseId: "case1", date: TODAY, submittedBy: "u4", status: "pending", _creationTime: Date.now() - 86400000 * 2 },
+  { _id: "exp6", description: "Travel to High Court Patan", category: "travel", amount: 3000, caseId: "case3", date: TODAY, submittedBy: "u2", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 10 },
+  { _id: "exp7", description: "Legal Research Software License", category: "software", amount: 15000, date: TODAY, submittedBy: "u1", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 45 },
+  { _id: "exp8", description: "Office Stationery — Notepad, Pens, Binders", category: "supplies", amount: 1800, date: TODAY, submittedBy: "u3", status: "pending", _creationTime: Date.now() - 86400000 },
+];
+
+const INITIAL_PESI: LexCauseList[] = [
+  { _id: "pesi1", caseId: "case1", courtName: "Supreme Court", judgeName: "Hon. Sapana Pradhan Malla, Hon. Kumar Regmi", hearingType: "Final Hearing", serialNumber: "12 (Kha)", status: "scheduled", pesiDate: "15 Bhadra 2081", _creationTime: Date.now() },
+  { _id: "pesi2", caseId: "case3", courtName: "High Court Patan", judgeName: "Hon. Neeta Gautam Dixit", hearingType: "Interim Order Discussion", serialNumber: "3 (Ka)", status: "scheduled", pesiDate: "16 Bhadra 2081", _creationTime: Date.now() },
 ];
 
 // Global in-memory simulation databases
@@ -314,6 +517,90 @@ let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
 let globalAuditLog = [...INITIAL_AUDIT_LOG];
 let globalDocuments = [...INITIAL_DOCUMENTS];
 let globalNotifications = [...INITIAL_NOTIFICATIONS];
+let globalTemplates = [...INITIAL_TEMPLATES];
+let globalResearchNotes = [...INITIAL_RESEARCH_NOTES];
+let globalIntakeForms: LexIntakeForm[] = [];
+let globalAppointments: any[] = [
+  { _id: "apt1", clientId: "c1", lawyerId: "u2", date: TODAY, time: "11:00 AM", type: "in_person", status: "scheduled", _creationTime: Date.now() - 86400000 },
+];
+let globalExpenses = [...INITIAL_EXPENSES];
+let globalPesi = [...INITIAL_PESI];
+let globalSettings = {
+  firmName: "Srimar Law",
+  tagline: "Nepal's Premier Legal Practice",
+  email: "mail@srimarlaw.com.np",
+  phone: "+977-1-4220000",
+  address: "Babarmahal, Kathmandu, Nepal",
+  facebookUrl: "https://facebook.com/Srimar Law",
+  linkedinUrl: "https://linkedin.com/company/Srimar Law",
+  twitterUrl: "https://x.com/Srimar Law",
+  instagramUrl: "https://instagram.com/Srimar Law",
+  tiktokUrl: "https://tiktok.com/@Srimar Law",
+  youtubeUrl: "https://youtube.com/Srimar Law",
+  logoUrl: "",
+  faviconUrl: "",
+  heroImageUrl: "",
+  primaryColor: "#3b0764", // default deep navy/purple
+  seoMetaDescription: "Srimar Law is Nepal's Premier Legal Practice providing corporate, civil, and criminal defense.",
+  seoTitleFormat: "Srimar Law | %s",
+  googleAnalyticsId: "",
+  mobileAppBannerVisible: true,
+  mobileAppTitle: "Srimar Law Mobile App",
+  mobileAppDescription: "Get legal assistance at your fingertips. Coming soon to iOS and Android.",
+  mobileAppPlayStoreUrl: "https://play.google.com",
+  mobileAppAppStoreUrl: "https://apple.com",
+  integrations: {
+    smsProvider: "none", // sparrow, aakash, twilio, none
+    smsKeys: { token: "", accountSid: "", authToken: "" },
+    activePayments: ["bank_transfer"] as string[], // esewa, khalti, bank_transfer
+    paymentKeys: { esewaMerchantId: "", khaltiSecretKey: "", bankName: "", accountName: "", accountNumber: "", branch: "" },
+    videoProvider: "google_meet", // google_meet, zoom, manual
+    videoKeys: { clientId: "", clientSecret: "" }
+  }
+};
+
+let globalTestimonials: any[] = [
+  { _id: "t1", name: "Rajesh Shrestha", company: "Shrestha Group of Companies", text: "Srimar Law handled our corporate restructuring with exceptional expertise. The client portal made staying updated effortless.", rating: 5, isApproved: true, _creationTime: Date.now() - 864000000 },
+  { _id: "t2", name: "Priya Karmacharya", company: "Individual Client", text: "They resolved my property dispute in record time. Transparent billing and constant communication set them apart.", rating: 5, isApproved: true, _creationTime: Date.now() - 864000000 },
+  { _id: "t3", name: "Bikash Maharjan", company: "Tech Startup Founder", text: "Our IP registration was seamless. The team's understanding of Nepal's legal landscape is unmatched.", rating: 5, isApproved: true, _creationTime: Date.now() - 864000000 }
+];
+
+let globalPracticeAreas: any[] = [
+  { _id: "pa1", title: "Corporate Law", slug: "corporate-law", iconName: "Building2", description: "Company registration, mergers, and corporate governance.", isActive: true, _creationTime: Date.now() - 864000000 },
+  { _id: "pa2", title: "Criminal Defense", slug: "criminal-defense", iconName: "Shield", description: "Expert defense in criminal proceedings.", isActive: true, _creationTime: Date.now() - 864000000 },
+  { _id: "pa3", title: "Civil Litigation", slug: "civil-litigation", iconName: "Scale", description: "Property disputes, contracts, and tort claims.", isActive: true, _creationTime: Date.now() - 864000000  },
+];
+
+let globalSessions: LexSession[] = [
+  { _id: "sess_1", userId: "u_1", device: "Windows 11 PC", browser: "Chrome", ipAddress: "192.168.1.12", lastActive: new Date().toISOString(), isCurrent: true },
+  { _id: "sess_2", userId: "u_1", device: "iPhone 14 Pro", browser: "Safari", ipAddress: "103.10.20.5", lastActive: new Date(Date.now() - 3600000).toISOString(), isCurrent: false }
+];
+
+
+let globalBlogPosts: any[] = [
+  { 
+    _id: "bp1", 
+    title: "Understanding Nepal's New Civil Code", 
+    slug: "civil-code-nepal", 
+    excerpt: "A quick guide to the Muluki Ain updates. Learn how these changes affect business contracts and family law in Nepal.", 
+    content: "<h2>The Muluki Civil Code</h2><p>Nepal's Civil Code represents a monumental shift in the legal landscape...</p><h3>Key Changes to Contract Law</h3><p>Contracts now require more stringent verification...</p>", 
+    status: "published", 
+    author: "Srimar Law Team", 
+    category: "Civil Law",
+    coverImageUrl: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=1200&auto=format&fit=crop",
+    publishDate: new Date(Date.now() - 864000000).toISOString(), 
+    _creationTime: Date.now() - 864000000 
+  }
+];
+
+let globalSystemSettings = {
+  defaultHourlyRate: "5000",
+  vatRate: "13",
+  invoicePaymentTerms: "14",
+  defaultLanguage: "en",
+  clientPortalEnabled: true,
+  onlineBookingEnabled: true
+};
 
 const listeners = new Set<() => void>();
 
@@ -328,7 +615,7 @@ interface PreviewConfig {
 }
 
 const getStoredConfig = (): PreviewConfig => {
-  const stored = localStorage.getItem("lexnepal_preview_config");
+  const stored = localStorage.getItem("Srimar Law_preview_config");
   if (stored) {
     try {
       return JSON.parse(stored);
@@ -343,11 +630,11 @@ const getStoredConfig = (): PreviewConfig => {
 };
 
 const saveStoredConfig = (config: PreviewConfig) => {
-  localStorage.setItem("lexnepal_preview_config", JSON.stringify(config));
+  localStorage.setItem("Srimar Law_preview_config", JSON.stringify(config));
 };
 
 // React Context for Preview Settings
-const PreviewContext = createContext<{
+export const PreviewContext = createContext<{
   config: PreviewConfig;
   setConfig: React.Dispatch<React.SetStateAction<PreviewConfig>>;
 } | null>(null);
@@ -429,7 +716,7 @@ export function AuthLoading({ children }: { children: React.ReactNode }) {
 }
 
 // useQuery mock implementation
-export function useQuery(queryFunc: any, args: any): any {
+export function useQuery(queryFunc: any, args?: any): any {
   const preview = useContext(PreviewContext);
   const [, setTick] = useState(0);
 
@@ -453,6 +740,35 @@ export function useQuery(queryFunc: any, args: any): any {
   // listUsers
   if (queryName.includes("listUsers")) {
     return globalUsers;
+  }
+
+  // CMS Queries
+  if (queryName.includes("getSettings")) return globalSettings;
+  if (queryName.includes("listTestimonials")) return globalTestimonials;
+  if (queryName.includes("listPracticeAreas")) return globalPracticeAreas;
+  if (queryName.includes("listBlogPosts")) return globalBlogPosts;
+
+  // Appointments
+  if (queryName.includes("listAppointments")) {
+    return globalAppointments;
+  }
+
+  // Notifications
+  if (queryName.includes("listNotifications")) {
+    return globalNotifications.filter(n => n.userId === args?.userId).sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // HR Queries
+  if (queryName.includes("listAttendance")) {
+    return globalAttendance.filter(a => a.date === args?.date);
+  }
+  if (queryName.includes("listLeaveRequests")) {
+    return globalLeaveRequests;
+  }
+
+  // users.listSessions
+  if (queryName.includes("listSessions")) {
+    return globalSessions.filter(s => s.userId === args?.userId);
   }
 
   // listClients
@@ -590,8 +906,185 @@ export function useQuery(queryFunc: any, args: any): any {
   }
 
   // getDocument
-  if (queryName.includes("getDocument")) {
-    return globalDocuments.find((d) => d._id === args?.documentId) || null;
+  if (queryName.includes("documents.getDocument")) {
+    return globalDocuments.find(d => d._id === args.documentId) || null;
+  }
+
+  // listTemplates
+  if (queryName.includes("templates.listTemplates")) {
+    return [...globalTemplates].sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // research.listNotes
+  if (queryName.includes("research.listNotes")) {
+    return [...globalResearchNotes].sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // cases.checkConflict — fuzzy search across clients, cases, opposing counsel
+  if (queryName.includes("cases.checkConflict")) {
+    const q = (args?.query || "").toLowerCase().trim();
+    if (!q || q.length < 2) return [];
+    const hits: Array<{ type: string; name: string; reason: string; caseId?: string; caseNumber?: string }> = [];
+
+    // Search clients
+    globalClients.forEach((c) => {
+      const nameMatch = c.fullName.toLowerCase().includes(q);
+      const companyMatch = c.companyName?.toLowerCase().includes(q);
+      if (nameMatch || companyMatch) {
+        hits.push({ type: "Existing Client", name: c.fullName, reason: nameMatch ? "Name match" : "Company name match" });
+      }
+    });
+
+    // Search cases — title and opposing counsel
+    globalCases.forEach((cas) => {
+      if (cas.title.toLowerCase().includes(q)) {
+        hits.push({ type: "Existing Case", name: cas.title, reason: "Case title match", caseId: cas._id, caseNumber: cas.caseNumber });
+      }
+      if (cas.opposingCounsel?.toLowerCase().includes(q)) {
+        hits.push({ type: "Opposing Counsel", name: cas.opposingCounsel, reason: `Opposing counsel in case ${cas.caseNumber}`, caseId: cas._id, caseNumber: cas.caseNumber });
+      }
+    });
+
+    return hits;
+  }
+
+  // leads.getIntakeByToken
+  if (queryName.includes("leads.getIntakeByToken")) {
+    const lead = globalLeads.find(l => l.intakeToken === args?.token);
+    if (!lead) return null;
+    return { lead };
+  }
+
+  // appointments.listClientAppointments
+  if (queryName.includes("appointments.listClientAppointments")) {
+    const clientId = args?.clientId || getStoredConfig().activeRole === "client" ? globalClients[0]._id : undefined;
+    return globalAppointments.filter(a => a.clientId === clientId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  // expenses.list
+  if (queryName.includes("expenses.list")) {
+    let filtered = [...globalExpenses];
+    if (args?.category && args.category !== "all") filtered = filtered.filter(e => e.category === args.category);
+    if (args?.status && args.status !== "all") filtered = filtered.filter(e => e.status === args.status);
+    if (args?.caseId) filtered = filtered.filter(e => e.caseId === args.caseId);
+    return filtered.sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // expenses.getStats
+  if (queryName.includes("expenses.getStats")) {
+    const total = globalExpenses.reduce((s, e) => s + e.amount, 0);
+    const approved = globalExpenses.filter(e => e.status === "approved").reduce((s, e) => s + e.amount, 0);
+    const pending = globalExpenses.filter(e => e.status === "pending").reduce((s, e) => s + e.amount, 0);
+    const caseLinked = globalExpenses.filter(e => !!e.caseId).reduce((s, e) => s + e.amount, 0);
+    const byCategory: Record<string, number> = {};
+    globalExpenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
+    return { total, approved, pending, caseLinked, byCategory, count: globalExpenses.length, pendingCount: globalExpenses.filter(e => e.status === "pending").length };
+  }
+
+  // analytics.getDashboardData
+  if (queryName.includes("analytics.getDashboardData")) {
+    // Revenue by practice area
+    const revenueByPractice: Record<string, number> = {};
+    globalInvoices.filter(i => i.status === "paid").forEach(inv => {
+      const c = globalCases.find(cs => cs._id === inv.caseId);
+      const pa = c?.practiceArea || "Other";
+      revenueByPractice[pa] = (revenueByPractice[pa] || 0) + inv.total;
+    });
+
+    // Billable hours by associate
+    const hoursByAssociate: Record<string, number> = {};
+    globalTimeEntries.filter(t => t.isBillable).forEach(te => {
+      const u = globalUsers.find(us => us._id === te.userId);
+      const name = u?.name || te.userId;
+      hoursByAssociate[name] = (hoursByAssociate[name] || 0) + ((te as any).minutes / 60);
+    });
+
+    // Case status distribution
+    const casesByStatus: Record<string, number> = {};
+    globalCases.forEach(c => { casesByStatus[c.status] = (casesByStatus[c.status] || 0) + 1; });
+
+    // Monthly revenue (simulate 6 months)
+    const monthlyRevenue = [
+      { month: "Magh", revenue: 185000 },
+      { month: "Falgun", revenue: 220000 },
+      { month: "Chaitra", revenue: 175000 },
+      { month: "Baisakh", revenue: 310000 },
+      { month: "Jestha", revenue: 265000 },
+      { month: "Ashar", revenue: 290000 },
+    ];
+
+    // Key metrics
+    const totalRevenue = globalInvoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
+    const totalBilled = globalInvoices.reduce((s, i) => s + i.total, 0);
+    const realizationRate = totalBilled > 0 ? Math.round((totalRevenue / totalBilled) * 100) : 0;
+    const avgCaseValue = globalCases.length > 0 ? Math.round(totalRevenue / globalCases.length) : 0;
+    const totalClients = globalClients.length;
+    const activeClients = globalClients.filter(c => (c as any).isActive).length;
+    const retentionRate = totalClients > 0 ? Math.round((activeClients / totalClients) * 100) : 0;
+
+    return {
+      revenueByPractice,
+      hoursByAssociate,
+      casesByStatus,
+      monthlyRevenue,
+      totalRevenue,
+      realizationRate,
+      avgCaseValue,
+      retentionRate,
+      totalCases: globalCases.length,
+      activeCases: globalCases.filter(c => c.status === "active").length,
+      totalExpenses: globalExpenses.reduce((s, e) => s + e.amount, 0),
+    };
+  }
+
+  // court.getPesi
+  if (queryName.includes("court.getPesi")) {
+    // Return pesi items for a specific case, or all if not provided
+    if (args?.caseId) {
+      return globalPesi.filter(p => p.caseId === args.caseId);
+    }
+    return [...globalPesi];
+  }
+
+  // cms.getSettings
+  if (queryName.includes("cms.getSettings")) {
+    return { ...globalSettings };
+  }
+
+  // cms.listPracticeAreas
+  if (queryName.includes("cms.listPracticeAreas")) {
+    if (args?.isActive) {
+      return globalPracticeAreas.filter(pa => pa.isActive);
+    }
+    return [...globalPracticeAreas];
+  }
+
+  // cms.listBlogPosts
+  if (queryName.includes("cms.listBlogPosts")) {
+    return [...globalBlogPosts];
+  }
+
+  // cms.getBlogPostBySlug
+  if (queryName.includes("cms.getBlogPostBySlug")) {
+    return globalBlogPosts.find(bp => bp.slug === args?.slug) || null;
+  }
+
+  // settings.getSystemSettings
+  if (queryName.includes("settings.getSystemSettings")) {
+    return { ...globalSystemSettings };
+  }
+
+  // cms.listTestimonials
+  if (queryName.includes("cms.listTestimonials")) {
+    if (args?.isApproved) {
+      return globalTestimonials.filter(t => t.isApproved);
+    }
+    return [...globalTestimonials];
+  }
+
+  // cms.listPublicTeam
+  if (queryName.includes("cms.listPublicTeam")) {
+    return globalUsers.filter(u => u.isPublicFacing && (u.role === "partner" || u.role === "senior_associate" || u.role === "associate"));
   }
 
   // getFileUrl
@@ -609,6 +1102,105 @@ export function useQuery(queryFunc: any, args: any): any {
 export function useMutation(mutationFunc: any): any {
   const mutationName = typeof mutationFunc === "string" ? mutationFunc : String(mutationFunc);
 
+  // TEMPLATES
+  if (mutationName.includes("templates.createTemplate")) {
+    return async (args: any) => {
+      const newTmpl: LexTemplate = {
+        _id: `tmpl_${Date.now()}`,
+        title: args.title,
+        type: args.type,
+        content: args.content,
+        _creationTime: Date.now(),
+      };
+      globalTemplates.push(newTmpl);
+      notifyListeners();
+      return newTmpl._id;
+    };
+  }
+  if (mutationName.includes("templates.updateTemplate")) {
+    return async (args: any) => {
+      const idx = globalTemplates.findIndex(t => t._id === args.id);
+      if (idx !== -1) {
+        globalTemplates[idx] = { ...globalTemplates[idx], ...args };
+        notifyListeners();
+      }
+    };
+  }
+  if (mutationName.includes("templates.deleteTemplate")) {
+    return async (args: { id: string }) => {
+      globalTemplates = globalTemplates.filter(t => t._id !== args.id);
+      notifyListeners();
+    };
+  }
+
+  // RESEARCH NOTES
+  if (mutationName.includes("research.createNote")) {
+    return async (args: any) => {
+      const newNote: LexResearchNote = {
+        _id: `rn_${Date.now()}`,
+        title: args.title,
+        category: args.category,
+        tags: args.tags || [],
+        content: args.content,
+        authorId: args.authorId,
+        _creationTime: Date.now(),
+      };
+      globalResearchNotes.push(newNote);
+      notifyListeners();
+      return newNote._id;
+    };
+  }
+  if (mutationName.includes("research.updateNote")) {
+    return async (args: any) => {
+      const idx = globalResearchNotes.findIndex(n => n._id === args.id);
+      if (idx !== -1) {
+        globalResearchNotes[idx] = { ...globalResearchNotes[idx], ...args };
+        notifyListeners();
+      }
+    };
+  }
+  if (mutationName.includes("research.deleteNote")) {
+    return async (args: { id: string }) => {
+      globalResearchNotes = globalResearchNotes.filter(n => n._id !== args.id);
+      notifyListeners();
+    };
+  }
+
+  // EXPENSES
+  if (mutationName.includes("expenses.create")) {
+    return async (args: any) => {
+      const newExp: LexExpense = {
+        _id: `exp_${Date.now()}`,
+        description: args.description,
+        category: args.category,
+        amount: args.amount,
+        caseId: args.caseId,
+        date: args.date,
+        submittedBy: args.submittedBy,
+        status: "pending",
+        _creationTime: Date.now(),
+      };
+      globalExpenses.push(newExp);
+      notifyListeners();
+      return newExp._id;
+    };
+  }
+  if (mutationName.includes("expenses.approve")) {
+    return async (args: any) => {
+      const idx = globalExpenses.findIndex(e => e._id === args.id);
+      if (idx !== -1) {
+        globalExpenses[idx] = { ...globalExpenses[idx], status: args.status, approvedBy: args.approvedBy };
+        notifyListeners();
+      }
+    };
+  }
+  if (mutationName.includes("expenses.delete")) {
+    return async (args: { id: string }) => {
+      globalExpenses = globalExpenses.filter(e => e._id !== args.id);
+      notifyListeners();
+    };
+  }
+
   return async (args: any) => {
     console.log(`Mock Mutation Triggered: ${mutationName}`, args);
 
@@ -625,6 +1217,274 @@ export function useMutation(mutationFunc: any): any {
       return { success: true };
     }
 
+    // users.createUser
+    if (mutationName.includes("createUser")) {
+      const activationToken = "setup_" + Math.random().toString(36).substring(2, 15);
+      const newUser: LexUser = {
+        _id: "u_" + Date.now(),
+        isActive: true, // Keep it true so it doesn't show as suspended, but it's pending
+        isPending: true,
+        activationToken,
+        ...args
+      };
+      globalUsers.push(newUser);
+      notifyListeners();
+      
+      // Simulate Email Notification
+      setTimeout(() => {
+        toast.info(`📧 Email Sent: Invitation link delivered to ${args.email}`, {
+          duration: 6000,
+          description: `(MOCK) User must click link: http://localhost:3002/setup-account?token=${activationToken}`
+        });
+      }, 500);
+
+      return newUser._id;
+    }
+
+    // users.activateAccount
+    if (mutationName.includes("activateAccount")) {
+      const { token, password } = args;
+      const userIndex = globalUsers.findIndex(u => u.activationToken === token);
+      if (userIndex === -1) {
+        throw new Error("Invalid or expired activation link");
+      }
+      
+      // In a real app we'd hash the password and clear the token.
+      globalUsers[userIndex] = {
+        ...globalUsers[userIndex],
+        isPending: false,
+        activationToken: undefined
+      };
+      notifyListeners();
+      return { success: true };
+    }
+
+    // HR Mutations
+    if (mutationName.includes("reviewLeaveRequest")) {
+      const { leaveRequestId, status } = args;
+      const leave = globalLeaveRequests.find(l => l._id === leaveRequestId);
+      if (leave) { leave.status = status; }
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("upsertAttendance")) {
+      const { userId, date, status } = args;
+      const existingIndex = globalAttendance.findIndex(a => a.userId === userId && a.date === date);
+      if (existingIndex > -1) {
+        globalAttendance[existingIndex].status = status;
+      } else {
+        globalAttendance.push({ _id: "att_" + Date.now(), userId, date, status, checkIn: "09:00 AM" });
+      }
+      notifyListeners();
+      return { success: true };
+    }
+
+    // CMS Mutations
+    if (mutationName.includes("updateSettings")) {
+      globalSettings = { ...globalSettings, ...args };
+      notifyListeners();
+      return { success: true };
+    }
+
+    // Appointments & Mock Email Triggers
+    if (mutationName.includes("createAppointment")) {
+      const newItem = { _id: "apt_" + Date.now(), _creationTime: Date.now(), status: "pending", ...args };
+      globalAppointments.push(newItem);
+      
+      // Simulate Email/SMS sent to user
+      toast("📧 Mock Email/SMS Sent", {
+        description: `To ${args.clientName}: Your appointment request for ${args.date} at ${args.timeSlot} has been received and is pending review.`,
+        duration: 8000,
+      });
+
+      // Add a notification for Admins (in this mock, we just use u_1 for Admin)
+      globalNotifications.push({
+        _id: "notif_" + Date.now(),
+        userId: "u_1",
+        title: "New Appointment Request",
+        message: `${args.clientName} requested an appointment for ${args.practiceArea}.`,
+        isRead: false,
+        link: "/admin/appointments",
+        _creationTime: Date.now()
+      });
+
+      notifyListeners();
+      return newItem._id;
+    }
+
+    if (mutationName.includes("updateAppointmentStatus")) {
+      const { id, status, meetingLink } = args;
+      const aptIndex = globalAppointments.findIndex(a => a._id === id);
+      if (aptIndex > -1) {
+        globalAppointments[aptIndex] = { ...globalAppointments[aptIndex], status, meetingLink };
+        
+        if (status === "confirmed") {
+          const apt = globalAppointments[aptIndex];
+          // Simulate Email/SMS to user
+          toast("📧 Mock Email/SMS Sent", {
+            description: `To ${apt.clientName}: Your appointment is CONFIRMED for ${apt.date} at ${apt.timeSlot}.${meetingLink ? ' Link: ' + meetingLink : ''}`,
+            duration: 8000,
+          });
+
+          // Add a notification for the client (if they have an account, for mock we just assume u_3 is a client)
+          globalNotifications.push({
+            _id: "notif_" + Date.now(),
+            userId: "u_3",
+            title: "Appointment Confirmed",
+            message: `Your appointment on ${apt.date} at ${apt.timeSlot} has been confirmed.`,
+            isRead: false,
+            link: "/client/appointments",
+            _creationTime: Date.now()
+          });
+        }
+      }
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("assignLawyerToAppointment")) {
+      const { id, assignedLawyerId } = args;
+      const apt = globalAppointments.find(a => a._id === id);
+      if (apt) { apt.assignedLawyerId = assignedLawyerId; }
+      notifyListeners();
+      return { success: true };
+    }
+
+    // Notifications
+    if (mutationName.includes("notifications.markRead")) {
+      const notif = globalNotifications.find(n => n._id === args.notificationId);
+      if (notif) { notif.isRead = true; }
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("notifications.markAllRead")) {
+      // mark all for current user? in mock we mark all true
+      globalNotifications.forEach(n => n.isRead = true);
+      notifyListeners();
+      return { success: true };
+    }
+    
+    // Testimonials
+    if (mutationName.includes("createTestimonial")) {
+      const newItem = { _id: "t_" + Date.now(), _creationTime: Date.now(), ...args };
+      globalTestimonials.push(newItem);
+      notifyListeners();
+      return newItem._id;
+    }
+    if (mutationName.includes("updateTestimonial")) {
+      const { id, ...updates } = args;
+      globalTestimonials = globalTestimonials.map(t => t._id === id ? { ...t, ...updates } : t);
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("deleteTestimonial")) {
+      globalTestimonials = globalTestimonials.filter(t => t._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // Chatbots / Leads
+    if (mutationName.includes("chatbots.submitLead")) {
+      const newItem = { 
+        _id: "lead_" + Date.now(), 
+        _creationTime: Date.now(), 
+        status: "new",
+        source: "website",
+        ...args 
+      };
+      globalLeads.unshift(newItem);
+      notifyListeners();
+      
+      toast.success("Lead captured!", {
+        description: `New lead from ${args.fullName} via Chatbot.`,
+      });
+      return newItem._id;
+    }
+
+    // Practice Areas
+    if (mutationName.includes("createPracticeArea")) {
+      const newItem = { _id: "pa_" + Date.now(), _creationTime: Date.now(), ...args };
+      globalPracticeAreas.push(newItem);
+      notifyListeners();
+      return newItem._id;
+    }
+    if (mutationName.includes("updatePracticeArea")) {
+      const { id, ...updates } = args;
+      globalPracticeAreas = globalPracticeAreas.map(t => t._id === id ? { ...t, ...updates } : t);
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("deletePracticeArea")) {
+      globalPracticeAreas = globalPracticeAreas.filter(t => t._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // Blog Posts
+    if (mutationName.includes("createBlogPost")) {
+      const newItem = { _id: "bp_" + Date.now(), _creationTime: Date.now(), ...args };
+      globalBlogPosts.push(newItem);
+      notifyListeners();
+      return newItem._id;
+    }
+    if (mutationName.includes("updateBlogPost")) {
+      const { id, ...updates } = args;
+      globalBlogPosts = globalBlogPosts.map(t => t._id === id ? { ...t, ...updates } : t);
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("deleteBlogPost")) {
+      globalBlogPosts = globalBlogPosts.filter(t => t._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.updateProfile
+    if (mutationName.includes("updateProfile")) {
+      const { userId, ...updates } = args;
+      globalUsers = globalUsers.map((user) => {
+        if (user._id === userId) {
+          return { ...user, ...updates };
+        }
+        return user;
+      });
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.changePassword
+    if (mutationName.includes("changePassword")) {
+      // Mock validating old password and setting new password
+      return { success: true };
+    }
+
+    // users.toggle2FA
+    if (mutationName.includes("toggle2FA")) {
+      const { userId, enabled } = args;
+      globalUsers = globalUsers.map((user) => {
+        if (user._id === userId) {
+          return { ...user, twoFactorEnabled: enabled };
+        }
+        return user;
+      });
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.revokeSession
+    if (mutationName.includes("revokeSession")) {
+      const { sessionId } = args;
+      globalSessions = globalSessions.filter(s => s._id !== sessionId);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.sendPasswordReset
+    if (mutationName.includes("sendPasswordReset")) {
+      return { success: true };
+    }
+
     // users.updateCurrentUser
     if (mutationName.includes("updateCurrentUser")) {
       const preview = getStoredConfig();
@@ -635,6 +1495,62 @@ export function useMutation(mutationFunc: any): any {
     // leads.createLead
     if (mutationName.includes("createLead")) {
       return { success: true, leadId: "mock-lead-id" };
+    }
+
+    // leads.generateIntakeLink
+    if (mutationName.includes("generateIntakeLink")) {
+      const idx = globalLeads.findIndex(l => l._id === args.leadId);
+      if (idx !== -1) {
+        const token = `intake_${Math.random().toString(36).substr(2, 9)}`;
+        globalLeads[idx] = { ...globalLeads[idx], intakeToken: token, intakeSubmitted: false };
+        notifyListeners();
+        return token;
+      }
+      throw new Error("Lead not found");
+    }
+
+    // leads.submitIntake
+    if (mutationName.includes("submitIntake")) {
+      const idx = globalLeads.findIndex(l => l.intakeToken === args.token);
+      if (idx !== -1) {
+        const lead = globalLeads[idx];
+        const newIntake: LexIntakeForm = {
+          _id: `intake_${Date.now()}`,
+          leadId: lead._id,
+          fullName: args.fullName,
+          phone: args.phone,
+          email: args.email,
+          address: args.address,
+          citizenshipNo: args.citizenshipNo,
+          practiceArea: args.practiceArea,
+          caseDescription: args.caseDescription,
+          documentStorageIds: args.documentStorageIds || [],
+          submittedAt: Date.now(),
+        };
+        globalIntakeForms.push(newIntake);
+        globalLeads[idx] = { ...lead, intakeSubmitted: true, fullName: args.fullName, email: args.email, phone: args.phone };
+        notifyListeners();
+        return { success: true };
+      }
+      throw new Error("Invalid or expired intake token");
+    }
+
+    // appointments.bookConsultation
+    if (mutationName.includes("bookConsultation")) {
+      const newApt: LexAppointment = {
+        _id: `apt_${Date.now()}`,
+        clientId: args.clientId,
+        lawyerId: args.lawyerId,
+        date: args.date,
+        time: args.time,
+        type: args.type,
+        status: "scheduled",
+        notes: args.notes,
+        _creationTime: Date.now(),
+      };
+      globalAppointments.push(newApt);
+      notifyListeners();
+      return newApt._id;
     }
 
     // clients.createClient
@@ -648,6 +1564,16 @@ export function useMutation(mutationFunc: any): any {
       globalClients.push(newClient);
       notifyListeners();
       return newClient._id;
+    }
+
+    // cases.markConflictChecked
+    if (mutationName.includes("markConflictChecked")) {
+      const idx = globalCases.findIndex(c => c._id === args.caseId);
+      if (idx !== -1) {
+        globalCases[idx] = { ...globalCases[idx], conflictChecked: true, conflictClearedBy: args.clearedBy };
+        notifyListeners();
+      }
+      return { success: true };
     }
 
     // clients.updateClient
@@ -858,7 +1784,7 @@ export function useMutation(mutationFunc: any): any {
       return { success: true };
     }
 
-    // leads.convertToClient — creates a client record and marks lead as converted
+    // leads.convertToClient ΓÇö creates a client record and marks lead as converted
     if (mutationName.includes("convertToClient")) {
       const { leadId, ...clientArgs } = args;
       const lead = globalLeads.find((l) => l._id === leadId);
@@ -1076,6 +2002,93 @@ export function useMutation(mutationFunc: any): any {
       return { success: true };
     }
 
+    // cms.updateSettings
+    if (mutationName.includes("cms.updateSettings")) {
+      globalSettings = { ...globalSettings, ...args };
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.createPracticeArea
+    if (mutationName.includes("cms.createPracticeArea")) {
+      const pa = { _id: "pa_" + Date.now(), _creationTime: Date.now(), ...args };
+      globalPracticeAreas.push(pa);
+      notifyListeners();
+      return pa._id;
+    }
+
+    // cms.updatePracticeArea
+    if (mutationName.includes("cms.updatePracticeArea")) {
+      globalPracticeAreas = globalPracticeAreas.map(pa => pa._id === args.id ? { ...pa, ...args } : pa);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.deletePracticeArea
+    if (mutationName.includes("cms.deletePracticeArea")) {
+      globalPracticeAreas = globalPracticeAreas.filter(pa => pa._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.createBlogPost
+    if (mutationName.includes("cms.createBlogPost")) {
+      const post = { _id: "bp_" + Date.now(), _creationTime: Date.now(), ...args };
+      globalBlogPosts.push(post);
+      notifyListeners();
+      return post._id;
+    }
+
+    // cms.updateBlogPost
+    if (mutationName.includes("cms.updateBlogPost")) {
+      globalBlogPosts = globalBlogPosts.map(bp => bp._id === args.id ? { ...bp, ...args } : bp);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.deleteBlogPost
+    if (mutationName.includes("cms.deleteBlogPost")) {
+      globalBlogPosts = globalBlogPosts.filter(bp => bp._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // settings.updateSystemSettings
+    if (mutationName.includes("settings.updateSystemSettings")) {
+      globalSystemSettings = { ...globalSystemSettings, ...args };
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.createTestimonial
+    if (mutationName.includes("cms.createTestimonial")) {
+      const t = { _id: "t_" + Date.now(), _creationTime: Date.now(), ...args };
+      globalTestimonials.push(t);
+      notifyListeners();
+      return t._id;
+    }
+
+    // cms.updateTestimonial
+    if (mutationName.includes("cms.updateTestimonial")) {
+      globalTestimonials = globalTestimonials.map(t => t._id === args.id ? { ...t, ...args } : t);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.deleteTestimonial
+    if (mutationName.includes("cms.deleteTestimonial")) {
+      globalTestimonials = globalTestimonials.filter(t => t._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.updateTeamMember
+    if (mutationName.includes("cms.updateTeamMember")) {
+      globalUsers = globalUsers.map(u => u._id === args.id ? { ...u, ...args } : u);
+      notifyListeners();
+      return { success: true };
+    }
+
     return { success: true };
   };
 }
@@ -1170,24 +2183,33 @@ function PreviewControlPanel({
                 >
                   Public Website
                 </a>
-                <a
-                  href="/client"
-                  className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border"
+                <button
+                  onClick={() => {
+                    setConfig((prev) => ({ ...prev, activeRole: "client" }));
+                    setTimeout(() => { window.location.href = "/client"; }, 50);
+                  }}
+                  className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border cursor-pointer"
                 >
                   Client Portal
-                </a>
-                <a
-                  href="/staff"
-                  className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border"
+                </button>
+                <button
+                  onClick={() => {
+                    setConfig((prev) => ({ ...prev, activeRole: "partner" }));
+                    setTimeout(() => { window.location.href = "/staff"; }, 50);
+                  }}
+                  className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border cursor-pointer"
                 >
-                  Staff Portal
-                </a>
-                <a
-                  href="/admin"
-                  className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border"
+                  Lex Workspace
+                </button>
+                <button
+                  onClick={() => {
+                    setConfig((prev) => ({ ...prev, activeRole: "admin" }));
+                    setTimeout(() => { window.location.href = "/admin"; }, 50);
+                  }}
+                  className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border cursor-pointer"
                 >
                   Admin Console
-                </a>
+                </button>
               </div>
             </div>
           </div>

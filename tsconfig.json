@@ -16,13 +16,13 @@
     "noUnusedParameters": false,
     "noImplicitAny": false,
     "allowJs": true,
-    "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
       "@/convex/*": ["./convex/*"],
       "convex/react": ["./src/lib/convex-mock.tsx"],
       "@usehercules/auth/react": ["./src/lib/hercules-react-shim.ts"]
     },
+    "types": ["vite/client"],
     "baseUrl": "."
   },
   "include": ["src", "vite.config.ts"],

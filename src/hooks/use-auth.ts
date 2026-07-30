@@ -22,11 +22,11 @@ export function useAuth(): AuthState {
     user: {
       profile: {
         name: "Mock Administrator",
-        email: "admin@lexnepal.com",
+        email: "admin@Srimar Law.com",
       },
     },
     signout: async () => {
-      // noop — auth not configured
+      // noop - auth not configured
     },
   };
 }

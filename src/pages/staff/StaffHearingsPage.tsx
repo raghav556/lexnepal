@@ -9,6 +9,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Input } from "@/components/ui/input.tsx";
 import { COURTS } from "@/lib/lex-constants.ts";
+import { useI18n } from "@/lib/i18n-context.tsx";
+import { getBSDate } from "@/lib/bs-calendar.ts";
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
@@ -18,9 +20,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function StaffHearingsPage() {
+  const { t, language } = useI18n();
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const cases = useQuery(api.cases.listCases, {}) || [];
   const users = useQuery(api.users.listUsers, {}) || [];
+  const pesiList = useQuery(api.court?.getPesi as any, {}) || [];
 
   const createHearing = useMutation(api.hearings.createHearing);
   const updateHearing = useMutation(api.hearings.updateHearing);
@@ -157,11 +161,19 @@ export default function StaffHearingsPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-bold text-foreground">Hearing Calendar</h1>
-        <Button size="sm" onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Add Hearing
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-foreground">{t("hearings.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("hearings.subtitle")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => toast.success("Mock Pesi synced successfully!")}>
+            <CalendarDays className="w-4 h-4 mr-1" /> {t("hearings.fetch_pesi")}
+          </Button>
+          <Button size="sm" onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-4 h-4 mr-1" /> {t("action.add")}
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -189,10 +201,10 @@ export default function StaffHearingsPage() {
                       <p className="font-semibold text-sm text-foreground line-clamp-1">{matchedCase ? matchedCase.title : "Unknown Case"}</p>
                       <p className="text-xs text-muted-foreground font-mono">{matchedCase ? matchedCase.caseNumber : "N/A"}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{h.court} &mdash; {h.time || "N/A"}</p>
-                      {lawyer && <p className="text-xs text-muted-foreground">Assigned: {lawyer.name}</p>}
+                      {lawyer && <p className="text-xs text-muted-foreground">{t("hearings.assigned")}: {lawyer.name}</p>}
                       <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground/70">
                         <CalendarDays className="w-3 h-3" />
-                        <span>{formatDualDate(h.dateGregorian)}</span>
+                        <span>{formatDualDate(h.dateGregorian)} | {getBSDate(h.dateGregorian, language === 'ne')}</span>
                       </div>
                     </div>
                   </div>
@@ -202,6 +214,42 @@ export default function StaffHearingsPage() {
                       <Edit2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Automated Cause List (Pesi) - Mock
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pesiList.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No pesi data synced from court servers.</p>
+          ) : (
+            pesiList.map((p: any) => {
+              const matchedCase = cases.find((c: any) => c._id === p.caseId);
+              return (
+                <div key={p._id} className="flex items-start justify-between p-4 rounded-lg border border-border hover:bg-secondary/30 transition-colors gap-3">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-orange-500/10 flex flex-col items-center justify-center text-orange-600 flex-shrink-0 font-serif">
+                      <span className="text-lg font-bold leading-none">{p.pesiDate.split(" ")[0]}</span>
+                      <span className="text-[10px] opacity-80 mt-0.5">{p.pesiDate.split(" ")[1]}</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-foreground line-clamp-1">{matchedCase ? matchedCase.title : "Unknown Case"}</p>
+                      <p className="text-xs font-mono text-muted-foreground mt-0.5">S.N: {p.serialNumber} | {p.courtName}</p>
+                      <p className="text-xs text-muted-foreground">{p.judgeName}</p>
+                      <p className="text-xs text-muted-foreground italic mt-0.5">{p.hearingType}</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 capitalize text-xs">
+                    Pesi {p.status}
+                  </Badge>
                 </div>
               );
             })
@@ -255,7 +303,7 @@ export default function StaffHearingsPage() {
                 <label className="text-xs font-medium text-foreground">Select Case <span className="text-destructive">*</span></label>
                 <select
                   required
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                  className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                   value={caseId}
                   onChange={(e) => {
                     setCaseId(e.target.value);
@@ -278,7 +326,7 @@ export default function StaffHearingsPage() {
                 <label className="text-xs font-medium text-foreground">Court Room <span className="text-destructive">*</span></label>
                 <select
                   required
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                  className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                   value={court}
                   onChange={(e) => setCourt(e.target.value)}
                 >
@@ -340,7 +388,7 @@ export default function StaffHearingsPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Preparatory Notes</label>
                 <textarea
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
                   placeholder="Items to prepare, files required..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -375,7 +423,7 @@ export default function StaffHearingsPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Hearing Status</label>
                 <select
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                  className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
@@ -389,7 +437,7 @@ export default function StaffHearingsPage() {
                 <label className="text-xs font-medium text-foreground">Hearing Outcome / Verdict Summary</label>
                 <textarea
                   required={status === "completed"}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
                   placeholder="Case outcome, court directions, verbal orders..."
                   value={outcome}
                   onChange={(e) => setOutcome(e.target.value)}
@@ -424,7 +472,7 @@ export default function StaffHearingsPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Notes</label>
                 <textarea
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[50px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[50px]"
                   placeholder="Add details, next prep steps..."
                   value={updateNotes}
                   onChange={(e) => setUpdateNotes(e.target.value)}

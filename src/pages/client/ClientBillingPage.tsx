@@ -66,7 +66,7 @@ export default function ClientBillingPage() {
     // Simulate gateway delay
     setTimeout(async () => {
       try {
-        await payInvoice({ invoiceId: selectedInvoice._id as any, paymentMethod: method });
+        await payInvoice({ invoiceId: selectedInvoice._id as any });
         toast.success(`Payment of ${formatNPR(selectedInvoice.total)} successful via ${method}`);
         setPaymentModalOpen(false);
         setSelectedInvoice(null);
@@ -152,8 +152,16 @@ export default function ClientBillingPage() {
         {/* Escrow Trust Ledger */}
         <Card>
           <CardHeader className="pb-3 border-b">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-base font-semibold font-serif">Trust Escrow Ledger</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-semibold font-serif">Trust Escrow Ledger</CardTitle>
+              </div>
+              <Button size="sm" variant="outline" className="h-8 text-xs bg-accent/10 text-accent hover:bg-accent/20 border-accent/20" onClick={() => {
+                setSelectedInvoice({ _id: 'retainer_topup', total: 50000, invoiceNumber: 'Retainer Deposit' });
+                setPaymentModalOpen(true);
+              }}>
+                + Top Up Retainer
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="pt-4 space-y-3">

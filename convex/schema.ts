@@ -20,6 +20,19 @@ export default defineSchema({
     barCouncilNumber: v.optional(v.string()),
     barCouncilExpiry: v.optional(v.string()),
     isActive: v.boolean(),
+    isPublicFacing: v.optional(v.boolean()),
+    bio: v.optional(v.string()),
+    longBio: v.optional(v.string()),
+    publicEmail: v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
+    twitterUrl: v.optional(v.string()),
+    education: v.optional(v.array(v.object({
+      degree: v.string(),
+      institution: v.string(),
+      year: v.string(),
+    }))),
+    practiceAreas: v.optional(v.array(v.string())),
+    notableCases: v.optional(v.array(v.string())),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_role", ["role"])
@@ -44,6 +57,7 @@ export default defineSchema({
       v.literal("submitted"),
       v.literal("verified"),
     ),
+    kycDocuments: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
     isActive: v.boolean(),
   })
@@ -118,6 +132,9 @@ export default defineSchema({
     uploadedBy: v.id("users"),
     isTemplate: v.boolean(),
     isPrivileged: v.boolean(),
+    requiresSignature: v.optional(v.boolean()),
+    signatureStatus: v.optional(v.union(v.literal("pending"), v.literal("signed"))),
+    signedAt: v.optional(v.string()),
   })
     .index("by_case", ["caseId"])
     .index("by_uploader", ["uploadedBy"])
@@ -303,4 +320,84 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_read", ["isRead"]),
+
+  appointments: defineTable({
+    clientName: v.string(),
+    clientEmail: v.optional(v.string()),
+    clientPhone: v.string(),
+    practiceArea: v.string(),
+    date: v.string(),
+    timeSlot: v.string(),
+    notes: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("confirmed"), v.literal("completed"), v.literal("cancelled")),
+    assignedLawyerId: v.optional(v.id("users")),
+    meetingLink: v.optional(v.string()),
+  }).index("by_date", ["date"]).index("by_status", ["status"]).index("by_assigned_lawyer", ["assignedLawyerId"]),
+
+  cmsSettings: defineTable({
+    key: v.string(),
+    value: v.any(),
+  }).index("by_key", ["key"]),
+
+  practiceAreas: defineTable({
+    title: v.string(),
+    description: v.string(),
+    icon: v.string(),
+    slug: v.string(),
+    isActive: v.boolean(),
+  }).index("by_slug", ["slug"]),
+
+  blogPosts: defineTable({
+    title: v.string(),
+    excerpt: v.string(),
+    content: v.string(),
+    slug: v.string(),
+    author: v.string(),
+    publishDate: v.string(),
+    status: v.union(v.literal("published"), v.literal("draft")),
+    imageUrl: v.optional(v.string()),
+  }).index("by_status", ["status"]).index("by_slug", ["slug"]),
+
+  careers: defineTable({
+    title: v.string(),
+    department: v.string(),
+    location: v.string(),
+    type: v.union(v.literal("full_time"), v.literal("part_time"), v.literal("contract"), v.literal("internship")),
+    description: v.string(),
+    requirements: v.array(v.string()),
+    isActive: v.boolean(),
+    postedDate: v.string(),
+  }).index("by_status", ["isActive"]),
+
+  jobApplications: defineTable({
+    jobId: v.id("careers"),
+    applicantName: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    resumeUrl: v.optional(v.string()),
+    coverLetter: v.optional(v.string()),
+    status: v.union(v.literal("new"), v.literal("reviewed"), v.literal("interviewed"), v.literal("rejected"), v.literal("hired")),
+    appliedDate: v.string(),
+  }).index("by_job", ["jobId"]).index("by_status", ["status"]),
+
+  resources: defineTable({
+    title: v.string(),
+    description: v.string(),
+    category: v.string(),
+    coverImageUrl: v.optional(v.string()),
+    fileUrl: v.string(),
+    isGated: v.boolean(),
+    downloads: v.number(),
+    publishedDate: v.string(),
+  }).index("by_category", ["category"]),
+
+  newsAndAwards: defineTable({
+    title: v.string(),
+    excerpt: v.string(),
+    content: v.string(),
+    date: v.string(),
+    type: v.union(v.literal("award"), v.literal("press_release"), v.literal("firm_news")),
+    linkUrl: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+  }).index("by_type", ["type"]).index("by_date", ["date"]),
 });

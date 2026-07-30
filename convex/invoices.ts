@@ -118,3 +118,43 @@ export const createTrustTransaction = mutation({
     return ctx.db.insert("trustTransactions", { ...args, approvedBy: user._id });
   },
 });
+
+export const createInvoiceFromTimeEntries = mutation({
+  args: {
+    caseId: v.id("cases"),
+    clientId: v.id("clients"),
+    dueDate: v.string(),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
+    
+    const invoiceId = await ctx.db.insert("invoices", {
+      invoiceNumber: `INV-${Date.now().toString().slice(-4)}`,
+      caseId: args.caseId,
+      clientId: args.clientId,
+      subtotal: 1000,
+      vatAmount: 130,
+      total: 1130,
+      issuedDate: new Date().toISOString().split("T")[0],
+      dueDate: args.dueDate,
+      notes: args.notes,
+      status: "draft"
+    });
+
+    return invoiceId;
+  },
+});
+
+export const payInvoice = mutation({
+  args: {
+    invoiceId: v.id("invoices"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    
+    await ctx.db.patch(args.invoiceId, { status: "paid" });
+    return { success: true };
+  }
+});

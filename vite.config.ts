@@ -9,10 +9,9 @@ export default defineConfig({
     alias: [
       // Mock Convex react hooks/components to run fully offline/locally
       { find: "convex/react", replacement: path.resolve(__dirname, "./src/lib/convex-mock.tsx") },
-      // The more specific alias must come first
       { find: "@/convex", replacement: path.resolve(__dirname, "./convex") },
       { find: "@", replacement: path.resolve(__dirname, "./src") },
-      // Shim for @usehercules/auth/react — not published as a sub-path export
+      // Shim for @usehercules/auth/react
       { find: "@usehercules/auth/react", replacement: path.resolve(__dirname, "./src/lib/hercules-react-shim.ts") },
     ],
   },

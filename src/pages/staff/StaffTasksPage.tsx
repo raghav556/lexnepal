@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { Pagination } from "@/components/ui/pagination.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -33,6 +35,20 @@ export default function StaffTasksPage() {
   const createTask = useMutation(api.tasks.createTask);
   const updateTask = useMutation(api.tasks.updateTask);
   const deleteTask = useMutation(api.tasks.deleteTask);
+
+  const {
+    paginatedItems,
+    currentPage,
+    totalPages,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination
+  } = usePagination(tasks, 12);
+
+  useEffect(() => {
+    resetPagination();
+  }, [view]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -200,10 +216,10 @@ export default function StaffTasksPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {tasks.length === 0 ? (
+          {paginatedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No tasks recorded.</p>
           ) : (
-            tasks.map((task: any) => {
+            paginatedItems.map((task: any) => {
               const matchedCase = cases.find((c: any) => c._id === task.caseId);
               return (
                 <Card
@@ -242,6 +258,15 @@ export default function StaffTasksPage() {
               );
             })
           )}
+          
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+            className="mt-6"
+          />
         </div>
       )}
 
@@ -270,7 +295,7 @@ export default function StaffTasksPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Task Description</label>
                 <textarea
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
                   placeholder="Task briefing, special notes, references..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -282,7 +307,7 @@ export default function StaffTasksPage() {
                   <label className="text-xs font-medium text-foreground">Assignee <span className="text-destructive">*</span></label>
                   <select
                     required
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={assignedTo}
                     onChange={(e) => setAssignedTo(e.target.value)}
                   >
@@ -298,7 +323,7 @@ export default function StaffTasksPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Related Case</label>
                   <select
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={caseId}
                     onChange={(e) => setCaseId(e.target.value)}
                   >
@@ -318,7 +343,7 @@ export default function StaffTasksPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Priority</label>
                   <select
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as any)}
                   >

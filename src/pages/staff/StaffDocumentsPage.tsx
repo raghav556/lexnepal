@@ -1,4 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { Pagination } from "@/components/ui/pagination.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -136,6 +138,20 @@ export default function StaffDocumentsPage() {
     d.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const {
+    paginatedItems,
+    currentPage,
+    totalPages,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination
+  } = usePagination(filteredDocs, 12);
+
+  useEffect(() => {
+    resetPagination();
+  }, [search]);
+
   if (isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -174,7 +190,7 @@ export default function StaffDocumentsPage() {
       </div>
 
       <div className="space-y-2">
-        {filteredDocs.length === 0 ? (
+        {paginatedItems.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyTitle>No Documents Found</EmptyTitle>
@@ -182,7 +198,7 @@ export default function StaffDocumentsPage() {
             </EmptyHeader>
           </Empty>
         ) : (
-          filteredDocs.map((doc: any) => {
+          paginatedItems.map((doc: any) => {
             const matchedCase = cases.find((c: any) => c._id === doc.caseId);
             const sizeStr = (doc.sizeBytes / 1024).toFixed(0) + " KB";
             const dateStr = new Date(doc._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -224,6 +240,15 @@ export default function StaffDocumentsPage() {
           })
         )}
       </div>
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        onNextPage={nextPage}
+        onPrevPage={prevPage}
+        className="mt-6"
+      />
 
       {/* Upload Modal */}
       {isModalOpen && (

@@ -42,7 +42,7 @@ export function NotificationBell() {
   const handleMarkAllRead = async () => {
     if (!currentUser) return;
     try {
-      await markAllRead({ userId: currentUser._id as any });
+      await markAllRead();
       toast.success("All notifications marked as read");
     } catch (e) {
       toast.error("Failed to mark notifications read");

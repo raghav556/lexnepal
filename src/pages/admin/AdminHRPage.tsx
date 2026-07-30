@@ -73,6 +73,34 @@ export default function AdminHRPage() {
     }
   };
 
+  const handleMarkAbsent = async (userId: string) => {
+    try {
+      await upsertAttendance({
+        userId: userId as any,
+        date: today,
+        status: "absent",
+      });
+      toast.success("Marked as absent.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to mark absent.");
+    }
+  };
+
+  const handleClockOut = async (userId: string, clockIn: string) => {
+    try {
+      await upsertAttendance({
+        userId: userId as any,
+        date: today,
+        clockIn,
+        clockOut: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        status: "present",
+      });
+      toast.success("Clocked out successfully.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to clock out.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -82,8 +110,41 @@ export default function AdminHRPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 font-sans">
+    <div className="p-4 sm:p-6 space-y-6 font-sans">
       <h1 className="font-serif text-2xl font-bold text-foreground">HR Management</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold font-serif text-primary">{staffUsers.length}</span>
+            <span className="text-xs text-muted-foreground uppercase font-semibold">Total Staff</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-500/5 border-green-500/20">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold font-serif text-green-600 dark:text-green-400">
+              {attendance.filter((a: any) => a.status === 'present').length}
+            </span>
+            <span className="text-xs text-green-600/70 dark:text-green-400/70 uppercase font-semibold">Present Today</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-500/5 border-blue-500/20">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold font-serif text-blue-600 dark:text-blue-400">
+              {attendance.filter((a: any) => a.status === 'leave').length}
+            </span>
+            <span className="text-xs text-blue-600/70 dark:text-blue-400/70 uppercase font-semibold">On Leave</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-yellow-500/5 border-yellow-500/20">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold font-serif text-yellow-600 dark:text-yellow-400">
+              {leaveRequests.filter((l: any) => l.status === 'pending').length}
+            </span>
+            <span className="text-xs text-yellow-600/70 dark:text-yellow-400/70 uppercase font-semibold">Pending Leaves</span>
+          </CardContent>
+        </Card>
+      </div>
 
       <Tabs defaultValue="attendance">
         <TabsList>
@@ -116,16 +177,33 @@ export default function AdminHRPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {record ? (
-                        <Badge className={`text-xs capitalize ${STATUS_COLORS[record.status]}`}>{record.status}</Badge>
+                        <>
+                          <Badge className={`text-xs capitalize ${STATUS_COLORS[record.status]}`}>{record.status}</Badge>
+                          {record.status === "present" && !record.clockOut && (
+                            <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => handleClockOut(u._id, record.clockIn)}>
+                              Clock Out
+                            </Button>
+                          )}
+                        </>
                       ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7"
-                          onClick={() => handleMarkPresent(u._id)}
-                        >
-                          Mark Present
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
+                            onClick={() => handleMarkPresent(u._id)}
+                          >
+                            Mark Present
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                            onClick={() => handleMarkAbsent(u._id)}
+                          >
+                            Absent
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>

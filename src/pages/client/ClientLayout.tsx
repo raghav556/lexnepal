@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
-import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, Bell, LogOut, Menu, X, Loader2 } from "lucide-react";
+import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, Bell, LogOut, Menu, X, Loader2, Calendar, User as UserIcon, ChevronUp, Globe, ShieldCheck, PenTool } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -8,13 +8,24 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { NotificationBell } from "@/components/ui/notification-bell.tsx";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu.tsx";
 
-const NAV = [
-  { label: "Dashboard", href: "/client", icon: LayoutDashboard },
-  { label: "My Cases", href: "/client/cases", icon: FolderOpen },
-  { label: "Documents", href: "/client/documents", icon: FileText },
-  { label: "Messages", href: "/client/messages", icon: MessageSquare },
-  { label: "Billing", href: "/client/billing", icon: Receipt },
+type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: any; heading?: string };
+
+const NAV: NavItem[] = [
+  { heading: "Overview" },
+  { label: "Dashboard", i18nKey: "nav.dashboard", href: "/client", icon: LayoutDashboard },
+  
+  { heading: "Your Matters" },
+  { label: "My Cases", i18nKey: "nav.cases", href: "/client/cases", icon: FolderOpen },
+  { label: "Documents", i18nKey: "nav.documents", href: "/client/documents", icon: FileText },
+  { label: "Messages", i18nKey: "nav.messages", href: "/client/messages", icon: MessageSquare },
+  
+  { heading: "Services" },
+  { label: "Identity (KYC)", i18nKey: "nav.kyc", href: "/client/kyc", icon: ShieldCheck },
+  { label: "E-Signatures", i18nKey: "nav.signatures", href: "/client/signatures", icon: PenTool },
+  { label: "Billing", i18nKey: "nav.billing", href: "/client/billing", icon: Receipt },
+  { label: "Book Appointment", i18nKey: "nav.book_appointment", href: "/client/booking", icon: Calendar },
 ];
 
 function ClientSidebar() {
@@ -22,6 +33,8 @@ function ClientSidebar() {
   const { signout, user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const t = (key: string) => key;
+  const isActive = (href: string) => location.pathname === href;
 
   const handleSignout = async () => { await signout(); navigate("/"); };
 
@@ -31,33 +44,56 @@ function ClientSidebar() {
         <div className="px-4 py-5 border-b border-border flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><Scale className="w-4 h-4 text-primary-foreground" /></div>
           <div>
-            <div className="font-serif text-sm font-bold text-primary">LexNepal</div>
+            <div className="font-serif text-sm font-bold text-primary">Srimar Law</div>
             <div className="text-xs text-muted-foreground">Client Portal</div>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map(({ label, href, icon: Icon }) => (
-            <Link key={href} to={href} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              location.pathname === href ? "bg-accent/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-            )}><Icon className="w-4 h-4" />{label}</Link>
-          ))}
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {NAV.map((item, idx) => {
+            if (item.heading) {
+              return <div key={`heading-${idx}`} className="text-xs font-semibold text-muted-foreground mt-5 mb-2 px-3 uppercase tracking-wider">{item.heading}</div>;
+            }
+            const { label, href, icon: Icon } = item;
+            return (
+              <Link key={href} to={href!} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                isActive(href!) ? "bg-accent/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              )}><Icon className="w-4 h-4" />{label}</Link>
+            );
+          })}
         </nav>
         <div className="px-3 py-4 border-t border-border">
-          <div className="px-3 py-2 mb-2 flex items-center justify-between gap-2">
-            <div className="overflow-hidden">
-              <p className="text-xs font-medium text-foreground truncate">{user?.profile.name ?? "Client"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.profile.email}</p>
-            </div>
-            <NotificationBell />
-          </div>
-          <button onClick={handleSignout} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/5 w-full transition-colors cursor-pointer">
-            <LogOut className="w-4 h-4" />Sign Out
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-secondary transition-colors">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <UserIcon className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 text-left overflow-hidden">
+                  <p className="text-xs font-medium text-foreground truncate">{user?.profile.name ?? "Client"}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{user?.profile.email}</p>
+                </div>
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56" side="top">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/client/profile" className="cursor-pointer">
+                  <UserIcon className="w-4 h-4 mr-2" /> Profile & Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignout} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <LogOut className="w-4 h-4 mr-2" /> Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
       <div className="md:hidden sticky top-0 z-50 bg-card border-b border-border flex items-center justify-between px-4 h-14">
-        <div className="flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /><span className="font-serif font-bold text-primary text-sm">LexNepal</span></div>
+        <div className="flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /><span className="font-serif font-bold text-primary text-sm">Srimar Law</span></div>
         <div className="flex items-center gap-2">
           <NotificationBell />
           <button onClick={() => setOpen((v) => !v)} className="p-1">{open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
@@ -67,11 +103,17 @@ function ClientSidebar() {
       {open && (
         <div className="md:hidden fixed inset-0 z-40 bg-background pt-14">
           <nav className="px-4 py-4 space-y-1">
-            {NAV.map(({ label, href, icon: Icon }) => (
-              <Link key={href} to={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
-                location.pathname === href ? "bg-accent/10 text-accent" : "text-foreground"
-              )}><Icon className="w-4 h-4" />{label}</Link>
-            ))}
+            {NAV.map((item, idx) => {
+              if (item.heading) {
+                return <div key={`mob-heading-${idx}`} className="text-xs font-semibold text-muted-foreground mt-4 mb-2 px-3 uppercase tracking-wider">{item.heading}</div>;
+              }
+              const { label, href, icon: Icon } = item;
+              return (
+                <Link key={href} to={href!} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+                  location.pathname === href ? "bg-accent/10 text-accent" : "text-foreground"
+                )}><Icon className="w-4 h-4" />{label}</Link>
+              );
+            })}
             <button onClick={handleSignout} className="flex items-center gap-3 px-3 py-3 text-sm text-destructive w-full cursor-pointer">
               <LogOut className="w-4 h-4" />Sign Out
             </button>
@@ -80,8 +122,8 @@ function ClientSidebar() {
       )}
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around py-2 z-30">
-        {NAV.map(({ href, icon: Icon }) => (
-          <Link key={href} to={href} className={cn("p-2 rounded-lg", location.pathname === href ? "text-accent" : "text-muted-foreground")}>
+        {NAV.filter(item => !item.heading).map(({ href, icon: Icon }) => (
+          <Link key={href} to={href!} className={cn("p-2 rounded-lg", location.pathname === href ? "text-accent" : "text-muted-foreground")}>
             <Icon className="w-5 h-5" />
           </Link>
         ))}
@@ -110,7 +152,14 @@ function ClientRoleGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (currentUser === null || currentUser.role !== "client") return null;
+  if (currentUser === null || currentUser.role !== "client") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background flex-col gap-4">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Redirecting to your portal…</p>
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 

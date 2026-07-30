@@ -300,7 +300,7 @@ export default function StaffTimeTrackerPage() {
                 <label className="text-xs font-medium text-foreground">Select Case Matter <span className="text-destructive">*</span></label>
                 <select
                   required
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                  className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                   value={caseId}
                   onChange={(e) => setCaseId(e.target.value)}
                 >
@@ -319,7 +319,7 @@ export default function StaffTimeTrackerPage() {
                 <label className="text-xs font-medium text-foreground">Description of Work <span className="text-destructive">*</span></label>
                 <textarea
                   required
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
                   placeholder="Drafting document, witness examination preparation, filing brief..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -366,7 +366,7 @@ export default function StaffTimeTrackerPage() {
                       type="button"
                       onClick={() => setIsBillable(true)}
                       className={`flex-1 h-9 rounded-md border text-xs font-semibold cursor-pointer ${
-                        isBillable ? "bg-primary text-primary-foreground border-primary" : "bg-transparent border-input hover:bg-secondary/50"
+                        isBillable ? "bg-primary text-primary-foreground border-primary" : "bg-input text-foreground border-input hover:bg-secondary/50"
                       }`}
                     >
                       Billable
@@ -375,7 +375,7 @@ export default function StaffTimeTrackerPage() {
                       type="button"
                       onClick={() => setIsBillable(false)}
                       className={`flex-1 h-9 rounded-md border text-xs font-semibold cursor-pointer ${
-                        !isBillable ? "bg-primary text-primary-foreground border-primary" : "bg-transparent border-input hover:bg-secondary/50"
+                        !isBillable ? "bg-primary text-primary-foreground border-primary" : "bg-input text-foreground border-input hover:bg-secondary/50"
                       }`}
                     >
                       Non-Billable

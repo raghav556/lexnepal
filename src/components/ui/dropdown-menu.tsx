@@ -58,7 +58,7 @@ export const DropdownMenuGroup = ({ children }: any) => <>{children}</>
 export const DropdownMenuItem = React.forwardRef<HTMLDivElement, any>(({ children, className, onClick, ...props }, ref) => (
   <div 
     ref={ref} 
-    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${className || ""}`}
+    className={`px-3 py-1.5 text-sm text-foreground cursor-pointer hover:bg-accent hover:text-accent-foreground ${className || ""}`}
     onClick={(e) => {
       if (onClick) onClick(e);
     }}
@@ -70,7 +70,7 @@ export const DropdownMenuItem = React.forwardRef<HTMLDivElement, any>(({ childre
 DropdownMenuItem.displayName = "DropdownMenuItem"
 
 export const DropdownMenuLabel = ({ children, className }: any) => (
-  <div className={`px-3 py-1.5 text-sm font-semibold ${className || ""}`}>{children}</div>
+  <div className={`px-3 py-1.5 text-sm font-semibold text-foreground ${className || ""}`}>{children}</div>
 )
 
 export const DropdownMenuSeparator = () => (

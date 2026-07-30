@@ -14,7 +14,7 @@ export function generateInvoicePDF(
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 58, 138); // Blue 900
-  doc.text("LexNepal", 14, 22);
+  doc.text("Srimar Law", 14, 22);
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");

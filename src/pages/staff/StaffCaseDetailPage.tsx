@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import { TemplateGeneratorModal } from "@/components/documents/TemplateGeneratorModal.tsx";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -26,6 +27,7 @@ export default function StaffCaseDetailPage() {
   const clients = useQuery(api.clients.listClients, {}) || [];
   const users = useQuery(api.users.listUsers, {}) || [];
   const hearings = useQuery(api.hearings.listHearings, { caseId: caseId as any }) || [];
+  const documents = useQuery(api.documents.listDocuments as any, { caseId: caseId as any }) || [];
   const updateCase = useMutation(api.cases.updateCase);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -34,6 +36,7 @@ export default function StaffCaseDetailPage() {
   const [judge, setJudge] = useState("");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
   // Initialize form state once data arrives
   const startEditing = () => {
@@ -234,9 +237,35 @@ export default function StaffCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="documents" className="mt-4">
-          <p className="text-sm text-muted-foreground text-center py-8 bg-card rounded-lg border border-dashed border-border">
-            Document management is handled in Phase 7. Live storage binding will be wired next.
-          </p>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-medium">Case Documents</h3>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setIsGeneratorOpen(true)}>
+                <FileText className="w-4 h-4 mr-2" /> Generate from Template
+              </Button>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {documents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8 bg-card rounded-lg border border-dashed border-border">
+                No documents generated or uploaded for this case yet.
+              </p>
+            ) : (
+              documents.map((doc: any) => (
+                <div key={doc._id} className="p-3 bg-card border rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-8 h-8 text-primary opacity-70" />
+                    <div>
+                      <p className="text-sm font-medium">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(doc._creationTime).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs">{doc.type}</Badge>
+                </div>
+              ))
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-4">
@@ -269,6 +298,15 @@ export default function StaffCaseDetailPage() {
           </p>
         </TabsContent>
       </Tabs>
+
+      {caseId && caseData && (
+        <TemplateGeneratorModal 
+          caseId={caseId} 
+          clientId={caseData.clientId} 
+          open={isGeneratorOpen} 
+          onOpenChange={setIsGeneratorOpen} 
+        />
+      )}
     </div>
   );
 }

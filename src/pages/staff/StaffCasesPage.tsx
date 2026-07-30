@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { Pagination } from "@/components/ui/pagination.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
-import { Plus, Search, CalendarDays, X, Loader2 } from "lucide-react";
+import { Plus, Search, CalendarDays, X, Loader2, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { PRACTICE_AREAS, COURTS } from "@/lib/lex-constants.ts";
+import { ConflictCheckerModal } from "@/components/cases/ConflictCheckerModal.tsx";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -38,6 +41,7 @@ export default function StaffCasesPage() {
   const [court, setCourt] = useState(COURTS[0]);
   const [opposingCounsel, setOpposingCounsel] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConflictChecker, setShowConflictChecker] = useState(false);
 
   const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,13 +92,32 @@ export default function StaffCasesPage() {
     );
   });
 
+  const {
+    paginatedItems,
+    currentPage,
+    totalPages,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination
+  } = usePagination(filteredCases, 10);
+
+  useEffect(() => {
+    resetPagination();
+  }, [search]);
+
   return (
     <div className="p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-2xl font-bold text-foreground">Cases</h1>
-        <Button size="sm" onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> New Case
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowConflictChecker(true)}>
+            <ShieldCheck className="w-4 h-4 mr-1" /> Conflict Check
+          </Button>
+          <Button size="sm" onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New Case
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
@@ -108,12 +131,12 @@ export default function StaffCasesPage() {
       </div>
 
       <div className="space-y-2">
-        {filteredCases.length === 0 ? (
+        {paginatedItems.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8 bg-card rounded-lg border border-dashed border-border">
             No cases found matching your criteria.
           </p>
         ) : (
-          filteredCases.map((c: any) => {
+          paginatedItems.map((c: any) => {
             const client = clients.find((cl: any) => cl._id === c.clientId);
             const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
             const nextHearingObj = hearings.find((h: any) => h.caseId === c._id && h.status === "scheduled");
@@ -149,6 +172,15 @@ export default function StaffCasesPage() {
           })
         )}
       </div>
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        onNextPage={nextPage}
+        onPrevPage={prevPage}
+        className="mt-6"
+      />
 
       {/* Case Creation Modal */}
       {showCreateModal && (
@@ -187,7 +219,7 @@ export default function StaffCasesPage() {
                   <label className="text-xs font-medium text-foreground">Client <span className="text-destructive">*</span></label>
                   <select
                     required
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
                   >
@@ -202,7 +234,7 @@ export default function StaffCasesPage() {
                   <label className="text-xs font-medium text-foreground">Assigned Lawyer <span className="text-destructive">*</span></label>
                   <select
                     required
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={assignedLawyerId}
                     onChange={(e) => setAssignedLawyerId(e.target.value)}
                   >
@@ -220,7 +252,7 @@ export default function StaffCasesPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Practice Area</label>
                   <select
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={practiceArea}
                     onChange={(e) => setPracticeArea(e.target.value)}
                   >
@@ -233,7 +265,7 @@ export default function StaffCasesPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Court Name</label>
                   <select
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
+                    className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={court}
                     onChange={(e) => setCourt(e.target.value)}
                   >
@@ -256,7 +288,7 @@ export default function StaffCasesPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Description / Notes</label>
                 <textarea
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
                   placeholder="Case notes, key concerns, property numbers..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -275,6 +307,12 @@ export default function StaffCasesPage() {
           </div>
         </div>
       )}
+
+      {/* Conflict Checker Modal */}
+      <ConflictCheckerModal
+        open={showConflictChecker}
+        onOpenChange={setShowConflictChecker}
+      />
     </div>
   );
 }

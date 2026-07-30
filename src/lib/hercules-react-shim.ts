@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shim for @usehercules/auth/react
  *
  * The @usehercules/auth package doesn't publish a /react sub-path.

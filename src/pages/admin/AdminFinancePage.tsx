@@ -54,7 +54,7 @@ export default function AdminFinancePage() {
       
       await createInvoice({
         caseId: selectedCaseId as any,
-        clientId: selectedCase.clientId,
+        clientId: (selectedCase?.clientId || "") as any,
         dueDate: dueDate.toISOString().split("T")[0],
         notes: "Thank you for your business.",
       });

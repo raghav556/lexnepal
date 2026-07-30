@@ -21,7 +21,7 @@ export default function ClientDashboard() {
     <div className="p-4 sm:p-6 space-y-6">
       <div>
         <h1 className="font-serif text-2xl font-bold text-foreground">Welcome back</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Here's an overview of your matters with LexNepal.</p>
+        <p className="text-muted-foreground text-sm mt-0.5">Here's an overview of your matters with Srimar Law.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

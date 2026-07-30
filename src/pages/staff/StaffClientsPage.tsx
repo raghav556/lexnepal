@@ -186,7 +186,7 @@ export default function StaffClientsPage() {
                     type="button"
                     onClick={() => setType("individual")}
                     className={`flex-1 h-9 rounded-md border text-xs font-semibold cursor-pointer ${
-                      type === "individual" ? "bg-primary text-primary-foreground border-primary" : "bg-transparent border-input hover:bg-secondary/50"
+                      type === "individual" ? "bg-primary text-primary-foreground border-primary" : "bg-input text-foreground border-input hover:bg-secondary/50"
                     }`}
                   >
                     Individual
@@ -195,7 +195,7 @@ export default function StaffClientsPage() {
                     type="button"
                     onClick={() => setType("corporate")}
                     className={`flex-1 h-9 rounded-md border text-xs font-semibold cursor-pointer ${
-                      type === "corporate" ? "bg-primary text-primary-foreground border-primary" : "bg-transparent border-input hover:bg-secondary/50"
+                      type === "corporate" ? "bg-primary text-primary-foreground border-primary" : "bg-input text-foreground border-input hover:bg-secondary/50"
                     }`}
                   >
                     Corporate
@@ -259,7 +259,7 @@ export default function StaffClientsPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Physical Address</label>
                 <Input
-                  placeholder="Thamel, Kathmandu"
+                  placeholder="Thapathali, M8QF+22X, Swet Binayak Marg, Kathmandu"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                 />
@@ -268,7 +268,7 @@ export default function StaffClientsPage() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Internal Notes</label>
                 <textarea
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
                   placeholder="Special instructions, KYC remarks, etc..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
