@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { useCurrentUser, STAFF_ROLES } from "@/hooks/use-current-user.ts";
+import { NotificationBell } from "@/components/ui/notification-bell.tsx";
 
 const NAV = [
   { label: "Dashboard", href: "/staff", icon: LayoutDashboard },
@@ -45,9 +46,12 @@ function StaffSidebar() {
           ))}
         </nav>
         <div className="px-3 py-4 border-t border-sidebar-border">
-          <div className="px-3 py-2 mb-2">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.profile.name ?? "Staff"}</p>
-            <p className="text-xs text-sidebar-foreground/50 truncate">{user?.profile.email}</p>
+          <div className="px-3 py-2 mb-2 flex items-center justify-between gap-2">
+            <div className="overflow-hidden">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.profile.name ?? "Staff"}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate">{user?.profile.email}</p>
+            </div>
+            <NotificationBell />
           </div>
           <button onClick={handleSignout} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/5 w-full transition-colors cursor-pointer mt-1">
             <LogOut className="w-4 h-4" />Sign Out
@@ -58,7 +62,7 @@ function StaffSidebar() {
       <div className="md:hidden sticky top-0 z-50 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-2"><Scale className="w-5 h-5 text-sidebar-primary-foreground" /><span className="font-serif font-bold text-sidebar-primary-foreground text-sm">Staff Portal</span></div>
         <div className="flex items-center gap-2">
-          <Bell className="w-5 h-5 text-sidebar-foreground/60" />
+          <NotificationBell />
           <button onClick={() => setOpen((v) => !v)} className="p-1 text-sidebar-foreground">{open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
         </div>
       </div>

@@ -189,6 +189,17 @@ export interface LexDocument {
   _creationTime: number;
 }
 
+export interface LexNotification {
+  _id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: "info" | "alert" | "success" | "warning";
+  isRead: boolean;
+  link?: string;
+  _creationTime: number;
+}
+
 // Initial mock databases
 const INITIAL_USERS: LexUser[] = [
   { _id: "u1", name: "Ram Chandra", email: "ram@lexnepal.com", role: "partner", isActive: true, phone: "+977 9851012345", barCouncilNumber: "NPC-001234", barCouncilExpiry: "2083-05-15" },
@@ -281,6 +292,12 @@ const INITIAL_DOCUMENTS: LexDocument[] = [
   { _id: "doc4", caseId: "case2", title: "TechVenture Trademark Certificate", type: "evidence", storageId: "mock-storage-4", mimeType: "application/pdf", sizeBytes: 890000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 20 }
 ];
 
+const INITIAL_NOTIFICATIONS: LexNotification[] = [
+  { _id: "notif1", userId: "u2", title: "New Assignment", message: "You were assigned to KTM/2081/234", type: "info", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 86400000 },
+  { _id: "notif2", userId: "u1", title: "New Message", message: "Sita Thapa sent a new message in TechVenture case.", type: "alert", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 3600000 },
+  { _id: "notif3", userId: "u3", title: "Hearing Scheduled", message: "Your hearing is scheduled for 15 Mangsir 2083", type: "success", isRead: false, link: "/client/matters", _creationTime: Date.now() - 7200000 },
+];
+
 // Global in-memory simulation databases
 let globalUsers = [...INITIAL_USERS];
 let globalClients = [...INITIAL_CLIENTS];
@@ -296,6 +313,7 @@ let globalAttendance = [...INITIAL_ATTENDANCE];
 let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
 let globalAuditLog = [...INITIAL_AUDIT_LOG];
 let globalDocuments = [...INITIAL_DOCUMENTS];
+let globalNotifications = [...INITIAL_NOTIFICATIONS];
 
 const listeners = new Set<() => void>();
 
@@ -686,12 +704,26 @@ export function useMutation(mutationFunc: any): any {
     // hearings.updateHearing
     if (mutationName.includes("updateHearing")) {
       const { hearingId, ...updates } = args;
-      globalHearings = globalHearings.map((h) => {
-        if (h._id === hearingId) {
-          return { ...h, ...updates };
-        }
-        return h;
-      });
+      const hIndex = globalHearings.findIndex(h => h._id === hearingId);
+      if (hIndex === -1) return { success: false };
+
+      globalHearings[hIndex] = { ...globalHearings[hIndex], ...updates };
+
+      // Notification trigger: Alert client when hearing is modified
+      const theCase = globalCases.find(c => c._id === globalHearings[hIndex].caseId);
+      if (theCase) {
+        globalNotifications.push({
+          _id: "notif_" + Date.now(),
+          userId: theCase.clientId,
+          title: "Hearing Updated",
+          message: `The hearing for ${theCase.title} has been updated.`,
+          type: "alert",
+          isRead: false,
+          link: "/client/matters",
+          _creationTime: Date.now()
+        });
+      }
+
       notifyListeners();
       return { success: true };
     }
@@ -753,18 +785,55 @@ export function useMutation(mutationFunc: any): any {
 
     // messages.sendMessage
     if (mutationName.includes("sendMessage")) {
-      const config = getStoredConfig();
-      const user = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
       const newMsg: LexMessage = {
-        ...args,
         _id: "msg_" + Date.now(),
-        senderId: user._id,
-        readBy: [user._id],
-        _creationTime: Date.now()
+        caseId: args.caseId,
+        senderId: args.senderId,
+        content: args.content,
+        isInternal: args.isInternal,
+        attachmentIds: args.attachmentIds || [],
+        readBy: [args.senderId],
+        _creationTime: Date.now(),
       };
       globalMessages.push(newMsg);
+
+      // Notification Trigger
+      const theCase = globalCases.find(c => c._id === args.caseId);
+      if (theCase) {
+        const sender = globalUsers.find(u => u._id === args.senderId);
+        const senderClient = globalClients.find(c => c._id === args.senderId);
+        const senderName = sender ? sender.name : (senderClient ? senderClient.fullName : "Someone");
+        
+        // If staff sent a message, alert the client (unless it's internal)
+        if (sender && !args.isInternal) {
+          globalNotifications.push({
+            _id: "notif_" + Date.now(),
+            userId: theCase.clientId,
+            title: "New Message",
+            message: `${senderName} sent you a message regarding ${theCase.title}.`,
+            type: "info",
+            isRead: false,
+            link: "/client/messages",
+            _creationTime: Date.now()
+          });
+        } 
+        // If client sent a message, alert the assigned lawyer
+        else if (senderClient) {
+          globalNotifications.push({
+            _id: "notif_" + Date.now(),
+            userId: theCase.assignedLawyerId,
+            title: "New Client Message",
+            message: `${senderName} sent a message regarding ${theCase.title}.`,
+            type: "info",
+            isRead: false,
+            link: "/staff/cases",
+            _creationTime: Date.now()
+          });
+        }
+      }
+
       notifyListeners();
-      return newMsg._id;
+      return { success: true };
     }
 
     // messages.markMessagesRead
@@ -982,6 +1051,27 @@ export function useMutation(mutationFunc: any): any {
         approvedBy: "System"
       });
 
+      notifyListeners();
+      return { success: true };
+    }
+
+    // notifications.markRead
+    if (mutationName.includes("markRead")) {
+      const { notificationId } = args;
+      const index = globalNotifications.findIndex((n) => n._id === notificationId);
+      if (index !== -1) {
+        globalNotifications[index] = { ...globalNotifications[index], isRead: true };
+        notifyListeners();
+      }
+      return { success: true };
+    }
+
+    // notifications.markAllRead
+    if (mutationName.includes("markAllRead")) {
+      const { userId } = args;
+      globalNotifications = globalNotifications.map((n) =>
+        n.userId === userId ? { ...n, isRead: true } : n
+      );
       notifyListeners();
       return { success: true };
     }

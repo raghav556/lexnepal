@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { NotificationBell } from "@/components/ui/notification-bell.tsx";
 
 const NAV = [
   { label: "Dashboard", href: "/client", icon: LayoutDashboard },
@@ -42,9 +43,12 @@ function ClientSidebar() {
           ))}
         </nav>
         <div className="px-3 py-4 border-t border-border">
-          <div className="px-3 py-2 mb-2">
-            <p className="text-xs font-medium text-foreground truncate">{user?.profile.name ?? "Client"}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.profile.email}</p>
+          <div className="px-3 py-2 mb-2 flex items-center justify-between gap-2">
+            <div className="overflow-hidden">
+              <p className="text-xs font-medium text-foreground truncate">{user?.profile.name ?? "Client"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.profile.email}</p>
+            </div>
+            <NotificationBell />
           </div>
           <button onClick={handleSignout} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/5 w-full transition-colors cursor-pointer">
             <LogOut className="w-4 h-4" />Sign Out
@@ -55,7 +59,7 @@ function ClientSidebar() {
       <div className="md:hidden sticky top-0 z-50 bg-card border-b border-border flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /><span className="font-serif font-bold text-primary text-sm">LexNepal</span></div>
         <div className="flex items-center gap-2">
-          <Bell className="w-5 h-5 text-muted-foreground" />
+          <NotificationBell />
           <button onClick={() => setOpen((v) => !v)} className="p-1">{open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
         </div>
       </div>
