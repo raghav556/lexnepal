@@ -28,7 +28,7 @@ function formatDate(ts: number) {
 
 export default function StaffResearchPage() {
   const notes = (useQuery(api.research.listNotes as any, {}) || []) as any[];
-  const users = (useQuery(api.users.listUsers as any, {}) || []) as any[];
+  const users = (useQuery(api.users.listStaffDirectory as any, {}) || []) as any[];
 
   const createNote = useMutation(api.research.createNote as any);
   const updateNote = useMutation(api.research.updateNote as any);

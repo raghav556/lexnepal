@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog.tsx";
 import { toast } from "sonner";
-import { Plus, GripVertical, Edit, Trash2, Link as LinkIcon, Navigation, LayoutTemplate, Layers, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, Link as LinkIcon, Navigation, LayoutTemplate, Layers, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 
 type LinkLocation = "header" | "footer_col_1" | "footer_col_2";
@@ -128,29 +128,76 @@ export default function AdminCMSNavigation() {
   };
 
   const LinkRow = ({ link, index, list, depth = 0 }: { link: any; index: number; list: any[]; depth?: number }) => (
-    <div className={`flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg group ${depth > 0 ? 'ml-8 relative before:absolute before:-left-4 before:top-1/2 before:w-4 before:h-px before:bg-border' : ''} ${!link.isActive ? 'opacity-50' : ''}`}>
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-          <button disabled={index === 0} onClick={() => handleReorder(index, 'up', list)} className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"><ChevronUp className="w-3 h-3" /></button>
-          <button disabled={index === list.length - 1} onClick={() => handleReorder(index, 'down', list)} className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"><ChevronDown className="w-3 h-3" /></button>
+    <div
+      className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 p-3 bg-muted/30 border border-border rounded-lg group min-w-0 ${
+        depth > 0
+          ? "ml-3 sm:ml-6 border-l-2 border-l-primary/30 relative"
+          : ""
+      } ${!link.isActive ? "opacity-50" : ""}`}
+    >
+      <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <div className="flex flex-col shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            disabled={index === 0}
+            onClick={() => handleReorder(index, "up", list)}
+            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+            aria-label="Move up"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            disabled={index === list.length - 1}
+            onClick={() => handleReorder(index, "down", list)}
+            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+            aria-label="Move down"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
         </div>
-        <div>
-          <p className="font-semibold text-sm flex items-center gap-2">
-            {link.label} 
-            {link.openInNewTab && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
-            {!link.isActive && <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Hidden</span>}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="break-words">{link.label}</span>
+            {link.openInNewTab && <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />}
+            {!link.isActive && (
+              <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                Hidden
+              </span>
+            )}
           </p>
-          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><LinkIcon className="w-3 h-3" /> {link.url}</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 min-w-0">
+            <LinkIcon className="w-3 h-3 shrink-0" />
+            <span className="truncate">{link.url}</span>
+          </p>
         </div>
       </div>
-      <div className="flex items-center gap-1 md:gap-2">
-        <Button variant="ghost" size="sm" onClick={() => handleToggleVisibility(link)} className="text-muted-foreground hover:text-foreground">
+      <div className="flex items-center justify-end gap-0.5 sm:gap-1 pl-9 sm:pl-0 shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleToggleVisibility(link)}
+          className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
+          title={link.isActive ? "Hide" : "Show"}
+        >
           {link.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => handleOpenModal(link.location, link)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleOpenModal(link.location, link)}
+          className="h-9 w-9 p-0"
+          title="Edit"
+        >
           <Edit className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDelete(link._id)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => handleDelete(link._id)}
+          title="Delete"
+        >
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
@@ -158,31 +205,36 @@ export default function AdminCMSNavigation() {
   );
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Navigation & Menus</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Build and organize your public website header and footer menus.</p>
-        </div>
+    <div className="p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 pb-24 w-full min-w-0 overflow-x-hidden">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Navigation & Menus</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Build and organize your public website header and footer menus.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 min-w-0">
         {/* HEADER BUILDER */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6 min-w-0">
           <FadeInUp>
-            <Card className="border-border shadow-sm">
-              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl flex items-center gap-2"><Navigation className="w-5 h-5 text-primary" /> Header Menu</CardTitle>
+            <Card className="border-border shadow-sm min-w-0 overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6">
+                <div className="min-w-0">
+                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                    <Navigation className="w-5 h-5 text-primary shrink-0" /> Header Menu
+                  </CardTitle>
                   <CardDescription>Main top navigation bar.</CardDescription>
                 </div>
-                <Button onClick={() => handleOpenModal("header")} size="sm" className="gap-2"><Plus className="w-4 h-4"/> Add Link</Button>
+                <Button onClick={() => handleOpenModal("header")} size="sm" className="gap-2 w-full sm:w-auto shrink-0">
+                  <Plus className="w-4 h-4" /> Add Link
+                </Button>
               </CardHeader>
-              <CardContent className="pt-6 space-y-3">
+              <CardContent className="pt-4 sm:pt-6 space-y-3 px-3 sm:px-6">
                 {!links ? (
                   <div className="animate-pulse space-y-3">
-                    {[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted/50 rounded-lg"></div>)}
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 bg-muted/50 rounded-lg" />
+                    ))}
                   </div>
                 ) : headerLinks.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-border rounded-lg">
@@ -193,22 +245,29 @@ export default function AdminCMSNavigation() {
                   headerLinks.map((link, idx) => {
                     const children = getChildLinks(link._id);
                     return (
-                      <div key={link._id} className="space-y-2">
+                      <div key={link._id} className="space-y-2 min-w-0">
                         <LinkRow link={link} index={idx} list={headerLinks} />
-                        {/* Sub-links */}
                         {children.map((child, cIdx) => (
                           <LinkRow key={child._id} link={child} index={cIdx} list={children} depth={1} />
                         ))}
-                        {/* Add Sub-link button */}
-                        <button 
+                        <button
+                          type="button"
                           onClick={() => {
                             setEditingId(null);
-                            setFormData({ label: "", url: "", location: "header", order: children.length, isActive: true, parentId: link._id, openInNewTab: false });
+                            setFormData({
+                              label: "",
+                              url: "",
+                              location: "header",
+                              order: children.length,
+                              isActive: true,
+                              parentId: link._id,
+                              openInNewTab: false,
+                            });
                             setIsModalOpen(true);
                           }}
-                          className="ml-8 text-xs font-medium flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors py-1"
+                          className="ml-3 sm:ml-6 w-[calc(100%-0.75rem)] sm:w-auto text-xs font-medium inline-flex items-center justify-center sm:justify-start gap-1.5 text-muted-foreground hover:text-primary transition-colors py-2 px-2 rounded-md border border-dashed border-border hover:border-primary/40"
                         >
-                          <Plus className="w-3 h-3" /> Add Dropdown Item
+                          <Plus className="w-3.5 h-3.5" /> Add Dropdown Item
                         </button>
                       </div>
                     );
@@ -219,53 +278,82 @@ export default function AdminCMSNavigation() {
           </FadeInUp>
         </div>
 
-        {/* FOOTER BUILDER */}
-        <div className="space-y-6">
+        {/* FOOTER BUILDER — side-by-side from md until lg stacks under header as one col */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 sm:gap-6 min-w-0">
           <FadeInUp delay={100}>
-            <Card className="border-border shadow-sm">
-              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider"><LayoutTemplate className="w-4 h-4" /> Footer Column 1</CardTitle>
-                  <Button onClick={() => handleOpenModal("footer_col_1")} size="sm" variant="outline" className="h-8 w-8 p-0"><Plus className="w-4 h-4"/></Button>
+            <Card className="border-border shadow-sm min-w-0 overflow-hidden h-full">
+              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col gap-3 px-3 sm:px-6">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <CardTitle className="text-xs sm:text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider min-w-0">
+                    <LayoutTemplate className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Footer Column 1</span>
+                  </CardTitle>
+                  <Button
+                    onClick={() => handleOpenModal("footer_col_1")}
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 p-0 shrink-0"
+                    title="Add link"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Input 
-                  value={footerTitle1} 
-                  onChange={e => setFooterTitle1(e.target.value)} 
-                  onBlur={() => handleSaveFooterTitle('footerCol1Title', footerTitle1)}
-                  className="font-bold text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors"
+                <Input
+                  value={footerTitle1}
+                  onChange={(e) => setFooterTitle1(e.target.value)}
+                  onBlur={() => handleSaveFooterTitle("footerCol1Title", footerTitle1)}
+                  className="font-bold text-base sm:text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors"
                   placeholder="Column Title (e.g. Quick Links)"
                 />
               </CardHeader>
-              <CardContent className="pt-6 space-y-2">
-                {footer1Links.map((link, idx) => <LinkRow key={link._id} link={link} index={idx} list={footer1Links} />)}
-                {footer1Links.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Empty column</p>}
+              <CardContent className="pt-4 sm:pt-6 space-y-2 px-3 sm:px-6">
+                {footer1Links.map((link, idx) => (
+                  <LinkRow key={link._id} link={link} index={idx} list={footer1Links} />
+                ))}
+                {footer1Links.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">Empty column</p>
+                )}
               </CardContent>
             </Card>
           </FadeInUp>
 
           <FadeInUp delay={200}>
-            <Card className="border-border shadow-sm">
-              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider"><Layers className="w-4 h-4" /> Footer Column 2</CardTitle>
-                  <Button onClick={() => handleOpenModal("footer_col_2")} size="sm" variant="outline" className="h-8 w-8 p-0"><Plus className="w-4 h-4"/></Button>
+            <Card className="border-border shadow-sm min-w-0 overflow-hidden h-full">
+              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col gap-3 px-3 sm:px-6">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <CardTitle className="text-xs sm:text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider min-w-0">
+                    <Layers className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Footer Column 2</span>
+                  </CardTitle>
+                  <Button
+                    onClick={() => handleOpenModal("footer_col_2")}
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 p-0 shrink-0"
+                    title="Add link"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Input 
-                  value={footerTitle2} 
-                  onChange={e => setFooterTitle2(e.target.value)} 
-                  onBlur={() => handleSaveFooterTitle('footerCol2Title', footerTitle2)}
-                  className="font-bold text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors"
+                <Input
+                  value={footerTitle2}
+                  onChange={(e) => setFooterTitle2(e.target.value)}
+                  onBlur={() => handleSaveFooterTitle("footerCol2Title", footerTitle2)}
+                  className="font-bold text-base sm:text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors"
                   placeholder="Column Title (e.g. Our Services)"
                 />
               </CardHeader>
-              <CardContent className="pt-6 space-y-2">
-                {footer2Links.map((link, idx) => <LinkRow key={link._id} link={link} index={idx} list={footer2Links} />)}
-                {footer2Links.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Empty column</p>}
+              <CardContent className="pt-4 sm:pt-6 space-y-2 px-3 sm:px-6">
+                {footer2Links.map((link, idx) => (
+                  <LinkRow key={link._id} link={link} index={idx} list={footer2Links} />
+                ))}
+                {footer2Links.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">Empty column</p>
+                )}
               </CardContent>
             </Card>
           </FadeInUp>
         </div>
-
       </div>
 
       {/* MODAL */}
@@ -306,7 +394,7 @@ export default function AdminCMSNavigation() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 border border-border p-3 rounded-lg bg-muted/20">
                   <div className="flex-1">
                     <p className="text-sm font-medium">Visible</p>
@@ -328,9 +416,9 @@ export default function AdminCMSNavigation() {
               </div>
 
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Link</Button>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button type="submit" className="w-full sm:w-auto">Save Link</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -79,53 +79,95 @@ export default function AdminCMSPracticeAreas() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Practice Areas</h1>
-          <p className="text-muted-foreground mt-1">Manage the legal services displayed on the public website.</p>
+    <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Practice Areas</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Manage the legal services displayed on the public website.
+          </p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="gap-2">
+        <Button onClick={() => handleOpenModal()} className="gap-2 w-full sm:w-auto shrink-0">
           <Plus className="w-4 h-4" /> Add Practice Area
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {practiceAreas.map((pa: any) => (
-          <Card key={pa._id} className={!pa.isActive ? "opacity-60 grayscale" : ""}>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  {iconMap[pa.iconName || pa.icon] || <Briefcase className="w-5 h-5" />}
+      {practiceAreas.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+          <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">No practice areas yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
+          {practiceAreas.map((pa: any) => (
+            <Card
+              key={pa._id}
+              className={`min-w-0 overflow-hidden ${!pa.isActive ? "opacity-60 grayscale" : ""}`}
+            >
+              <CardHeader className="space-y-3 pb-2 px-3 sm:px-6">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    {iconMap[pa.iconName || pa.icon] || <Briefcase className="w-5 h-5" />}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CardTitle className="text-base sm:text-lg font-serif break-words leading-snug">
+                        {pa.title}
+                      </CardTitle>
+                      <Badge
+                        variant={pa.isActive ? "default" : "secondary"}
+                        className="shrink-0 whitespace-nowrap gap-1"
+                      >
+                        {pa.isActive ? (
+                          <>
+                            <Eye className="w-3 h-3" /> Active
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3 h-3" /> Hidden
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+                    <CardDescription className="line-clamp-2 text-xs sm:text-sm">
+                      {pa.description}
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg font-serif">{pa.title}</CardTitle>
-                  <CardDescription className="line-clamp-2">{pa.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-border">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenModal(pa)}
+                    className="gap-2"
+                  >
+                    <Edit className="w-4 h-4" /> Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(pa._id)}
+                    className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
-              <Badge variant={pa.isActive ? "default" : "secondary"}>
-                {pa.isActive ? <span className="flex items-center gap-1"><Eye className="w-3 h-3"/> Active</span> : <span className="flex items-center gap-1"><EyeOff className="w-3 h-3"/> Hidden</span>}
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
-                <Button variant="outline" size="sm" onClick={() => handleOpenModal(pa)} className="gap-2">
-                  <Edit className="w-4 h-4" /> Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(pa._id)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Practice Area" : "New Practice Area"}</DialogTitle>
-            <DialogDescription>Configure how this service appears on the public website.</DialogDescription>
+            <DialogDescription>
+              Configure how this service appears on the public website.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
@@ -133,7 +175,13 @@ export default function AdminCMSPracticeAreas() {
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    title: e.target.value,
+                    slug: e.target.value.toLowerCase().replace(/\s+/g, "-"),
+                  })
+                }
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 placeholder="e.g. Corporate Law"
               />
@@ -144,12 +192,15 @@ export default function AdminCMSPracticeAreas() {
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground"
+                className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground"
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="iconName">Icon Name</Label>
-              <Select value={formData.iconName} onValueChange={(v) => setFormData({ ...formData, iconName: v })}>
+              <Select
+                value={formData.iconName}
+                onValueChange={(v) => setFormData({ ...formData, iconName: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select an icon" />
                 </SelectTrigger>
@@ -163,15 +214,15 @@ export default function AdminCMSPracticeAreas() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Short Description</Label>
-              <Textarea 
-                id="description" 
-                value={formData.description} 
+              <Textarea
+                id="description"
+                value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief summary for the cards on the homepage."
               />
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-              <div className="space-y-0.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-border">
+              <div className="space-y-0.5 min-w-0">
                 <label className="text-sm font-medium">Visibility</label>
                 <p className="text-xs text-muted-foreground">Publish to the public website</p>
               </div>
@@ -179,13 +230,21 @@ export default function AdminCMSPracticeAreas() {
                 type="checkbox"
                 checked={formData.isActive}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="w-4 h-4 accent-primary"
+                className="w-4 h-4 accent-primary shrink-0"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>Save Practice Area</Button>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSave} className="w-full sm:w-auto">
+              Save Practice Area
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

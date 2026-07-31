@@ -54,7 +54,7 @@ export default function AdminAnalyticsPage() {
             <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
             <Banknote className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-2xl font-bold text-foreground">{new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR" }).format(data.totalRevenue || 0)}</p>
+          <p className="text-lg sm:text-2xl font-bold text-foreground min-w-0 truncate">{new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR" }).format(data.totalRevenue || 0)}</p>
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><TrendingUp className="w-3 h-3" /> From paid invoices</p>
         </div>
         
@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage() {
             <p className="text-sm font-medium text-muted-foreground">Avg Case Value</p>
             <Briefcase className="w-4 h-4 text-purple-500" />
           </div>
-          <p className="text-2xl font-bold text-foreground">{new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR" }).format(data.avgCaseValue || 0)}</p>
+          <p className="text-lg sm:text-2xl font-bold text-foreground min-w-0 truncate">{new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR" }).format(data.avgCaseValue || 0)}</p>
           <p className="text-xs text-muted-foreground mt-1">Across {data.totalCases} cases</p>
         </div>
 

@@ -111,27 +111,47 @@ export default function AdminCMSDashboard() {
     toast.info("Changes discarded.");
   };
 
-  if (!settings) return <div className="p-8 text-muted-foreground animate-pulse">Loading premium settings...</div>;
+  if (!settings) return <div className="p-3 sm:p-6 text-muted-foreground animate-pulse">Loading premium settings...</div>;
+
+  const settingsTabs = [
+    { value: "general", label: "General", short: "General", icon: Globe },
+    { value: "branding", label: "Branding & Media", short: "Branding", icon: Palette },
+    { value: "socials", label: "Contact & Socials", short: "Contact", icon: Mail },
+    { value: "seo", label: "SEO & Analytics", short: "SEO", icon: Search },
+    { value: "mobile", label: "Mobile App", short: "Mobile", icon: Smartphone },
+    { value: "notifications", label: "Notifications & Hours", short: "Hours", icon: AlertCircle },
+    { value: "advanced", label: "Advanced & Legal", short: "Advanced", icon: Shield },
+  ] as const;
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-24">
-      <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-24 w-full min-w-0 overflow-x-hidden">
+      <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
         
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Site Settings</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Site Settings</h1>
           <p className="text-muted-foreground mt-1 text-sm">Manage global website configuration, branding, and SEO properties.</p>
         </div>
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="mb-6 bg-muted/50 p-1 border border-border rounded-lg h-auto flex flex-wrap gap-1">
-            <TabsTrigger value="general" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><Globe className="w-4 h-4" /> General</TabsTrigger>
-            <TabsTrigger value="branding" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><Palette className="w-4 h-4" /> Branding & Media</TabsTrigger>
-            <TabsTrigger value="socials" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><Mail className="w-4 h-4" /> Contact & Socials</TabsTrigger>
-            <TabsTrigger value="seo" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><Search className="w-4 h-4" /> SEO & Analytics</TabsTrigger>
-            <TabsTrigger value="mobile" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><Smartphone className="w-4 h-4" /> Mobile App</TabsTrigger>
-            <TabsTrigger value="notifications" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><AlertCircle className="w-4 h-4" /> Notifications & Hours</TabsTrigger>
-            <TabsTrigger value="advanced" className="py-2.5 px-4 gap-2 data-[state=active]:bg-background"><Shield className="w-4 h-4" /> Advanced & Legal</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="general" className="w-full min-w-0 gap-0">
+          {/* Horizontal scroll on phone — avoids tall stacked nav pushing content below fold */}
+          <div className="mb-4 sm:mb-6 -mx-1 px-1 min-w-0">
+            <TabsList className="w-full max-w-full h-auto justify-start gap-1 p-1 bg-muted/50 border border-border rounded-lg inline-flex flex-nowrap overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:thin]">
+              {settingsTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="shrink-0 py-2 px-2.5 sm:px-4 gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=inactive]:bg-transparent hover:bg-background/50"
+                  >
+                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="sm:hidden">{tab.short}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           <form id="settings-form" onSubmit={handleSubmit}>
             
@@ -140,7 +160,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">General Information</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">General Information</CardTitle>
                     <CardDescription>This information appears on the homepage and global headers.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6">
@@ -162,7 +182,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">Theme Engine</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">Theme Engine</CardTitle>
                     <CardDescription>Select the primary color scheme that drives the entire application.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
@@ -181,14 +201,14 @@ export default function AdminCMSDashboard() {
                           onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
                           className="w-32 font-mono uppercase"
                         />
-                        <div className="flex gap-2 border-l border-border pl-4">
+                        <div className="flex flex-wrap gap-2 sm:border-l sm:border-border sm:pl-4">
                           {PREDEFINED_COLORS.map(color => (
                             <button
                               key={color.hex}
                               type="button"
                               title={color.name}
                               onClick={() => setFormData({ ...formData, primaryColor: color.hex })}
-                              className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${formData.primaryColor.toLowerCase() === color.hex ? 'border-primary ring-2 ring-primary/30 ring-offset-2 ring-offset-background' : 'border-transparent'}`}
+                              className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 shrink-0 ${formData.primaryColor.toLowerCase() === color.hex ? 'border-primary ring-2 ring-primary/30 ring-offset-2 ring-offset-background' : 'border-transparent'}`}
                               style={{ backgroundColor: color.hex }}
                             />
                           ))}
@@ -200,7 +220,7 @@ export default function AdminCMSDashboard() {
 
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">Brand Assets (Media)</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">Brand Assets (Media)</CardTitle>
                     <CardDescription>Upload or link media files to customize the site's look and feel.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -230,7 +250,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">Contact Information</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">Contact Information</CardTitle>
                     <CardDescription>Displayed in the footer and contact page.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -251,7 +271,7 @@ export default function AdminCMSDashboard() {
 
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">Social Links</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">Social Links</CardTitle>
                     <CardDescription>Optional URLs for social media integration.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -271,7 +291,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">SEO & Analytics</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">SEO & Analytics</CardTitle>
                     <CardDescription>Optimize search engine visibility and track visitors.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
@@ -299,7 +319,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">Mobile App Banner</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">Mobile App Banner</CardTitle>
                     <CardDescription>Configure the "Coming Soon" mobile app section on the homepage.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
@@ -345,7 +365,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl">Global Announcement Bar</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">Global Announcement Bar</CardTitle>
                     <CardDescription>A banner that appears at the top of the public website for important alerts.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
@@ -377,7 +397,7 @@ export default function AdminCMSDashboard() {
 
                 <Card className="border-border mt-6">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl flex items-center gap-2"><Clock className="w-5 h-5"/> Business Hours & Emergency</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Clock className="w-5 h-5 shrink-0"/> Business Hours & Emergency</CardTitle>
                     <CardDescription>Configure when the office is open and who to contact in a crisis.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -412,7 +432,7 @@ export default function AdminCMSDashboard() {
               <FadeInUp>
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
-                    <CardTitle className="text-xl flex items-center gap-2"><Shield className="w-5 h-5"/> Legal & Compliance</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Shield className="w-5 h-5 shrink-0"/> Legal & Compliance</CardTitle>
                     <CardDescription>Links to your legal policies and cookie consent settings.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
@@ -442,7 +462,7 @@ export default function AdminCMSDashboard() {
 
                 <Card className="border-border mt-6 border-destructive/20 shadow-sm">
                   <CardHeader className="bg-destructive/5 border-b border-destructive/20 pb-4">
-                    <CardTitle className="text-xl text-destructive flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Maintenance & Danger Zone</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl text-destructive flex items-center gap-2"><AlertCircle className="w-5 h-5 shrink-0"/> Maintenance & Danger Zone</CardTitle>
                     <CardDescription>Take the site offline or inject advanced scripts.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
@@ -484,15 +504,15 @@ export default function AdminCMSDashboard() {
 
       {/* STICKY SAVE BAR */}
       {hasUnsavedChanges && (
-        <div className="fixed bottom-0 left-0 right-0 lg:pl-64 bg-background/80 backdrop-blur-md border-t border-border p-4 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] z-40 animate-in slide-in-from-bottom-full">
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="fixed bottom-0 left-0 right-0 md:pl-56 bg-background/80 backdrop-blur-md border-t border-border p-4 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] z-40 animate-in slide-in-from-bottom-full">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3 text-amber-600 dark:text-amber-500 font-medium">
               <AlertCircle className="w-5 h-5 animate-pulse" />
               <span>You have unsaved changes!</span>
             </div>
-            <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={discardChanges} disabled={isSaving}>Discard</Button>
-              <Button type="submit" form="settings-form" disabled={isSaving} className="gap-2 bg-primary text-primary-foreground">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Button type="button" variant="outline" onClick={discardChanges} disabled={isSaving} className="w-full sm:w-auto">Discard</Button>
+              <Button type="submit" form="settings-form" disabled={isSaving} className="gap-2 bg-primary text-primary-foreground w-full sm:w-auto">
                 <Save className="w-4 h-4" />
                 {isSaving ? "Saving..." : "Save Settings"}
               </Button>

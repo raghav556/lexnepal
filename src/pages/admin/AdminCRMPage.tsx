@@ -37,12 +37,17 @@ interface ConvertModalState {
 
 export default function AdminCRMPage() {
   const leads = useQuery(api.leads.listLeads, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const updateLead = useMutation(api.leads.updateLead);
   const convertToClient = useMutation(api.leads.convertToClient);
   const generateIntakeLink = useMutation(api.leads.generateIntakeLink as any);
 
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  // List by default on phones (avoids page-wide horizontal scroll from kanban columns)
+  const [view, setView] = useState<"kanban" | "list">(() =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches
+      ? "kanban"
+      : "list",
+  );
   const [search, setSearch] = useState("");
   const [detailsModal, setDetailsModal] = useState<any | null>(null);
 
@@ -160,7 +165,7 @@ export default function AdminCRMPage() {
   // Card component for rendering a single lead in both Kanban and List
   const LeadCard = ({ lead, isKanban = false }: { lead: any, isKanban?: boolean }) => (
     <div 
-      className={`bg-card border border-border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${isKanban ? 'p-3' : 'p-3.5 flex items-start justify-between gap-4'}`}
+      className={`bg-card border border-border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${isKanban ? 'p-3' : 'p-3.5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4'}`}
       onClick={(e) => {
         // Prevent opening details if clicking on buttons/selects
         if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.select-trigger')) return;
@@ -212,8 +217,8 @@ export default function AdminCRMPage() {
       </div>
       
       {!isKanban && (
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Badge className={`text-xs whitespace-nowrap ${STATUS_COLORS[lead.status]}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-shrink-0 w-full sm:w-auto min-w-0">
+          <Badge className={`text-xs whitespace-nowrap w-fit ${STATUS_COLORS[lead.status]}`}>
             {STATUS_LABELS[lead.status]}
           </Badge>
           {lead.status !== "converted" && (
@@ -221,7 +226,7 @@ export default function AdminCRMPage() {
               value={lead.status}
               onValueChange={(val) => handleStatusChange(lead._id, val)}
             >
-              <SelectTrigger className="w-[130px] h-7 text-xs select-trigger">
+              <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs select-trigger">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -234,7 +239,7 @@ export default function AdminCRMPage() {
           {lead.status !== "converted" && lead.status !== "lost" && (
             <Button
               size="sm"
-              className="text-xs h-7 gap-1 whitespace-nowrap"
+              className="text-xs h-8 gap-1 w-full sm:w-auto"
               variant="outline"
               onClick={(e) => { e.stopPropagation(); setConvertModal({ leadId: lead._id, leadName: lead.fullName, email: lead.email, phone: lead.phone }); }}
             >
@@ -247,32 +252,36 @@ export default function AdminCRMPage() {
   );
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 font-sans h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-foreground">CRM — Lead Pipeline</h1>
+    <div className="p-3 sm:p-6 space-y-4 font-sans h-full flex flex-col w-full min-w-0 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0 min-w-0">
+        <div className="min-w-0">
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">CRM — Lead Pipeline</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage intake inquiries and convert to client matters.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              className="pl-9 h-9 text-sm" 
-              placeholder="Search leads..." 
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto min-w-0">
+          <div className="relative min-w-0 flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-9 h-9 text-sm w-full"
+              placeholder="Search leads…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex bg-muted rounded-md p-1">
-            <button 
+          <div className="flex bg-muted rounded-md p-1 shrink-0 self-start">
+            <button
+              type="button"
               onClick={() => setView("kanban")}
               className={`p-1.5 rounded-sm transition-colors ${view === "kanban" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              aria-label="Kanban view"
             >
               <KanbanSquare className="w-4 h-4" />
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setView("list")}
               className={`p-1.5 rounded-sm transition-colors ${view === "list" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              aria-label="List view"
             >
               <AlignJustify className="w-4 h-4" />
             </button>
@@ -280,43 +289,58 @@ export default function AdminCRMPage() {
         </div>
       </div>
 
-      {/* Pipeline summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-shrink-0">
-        {Object.entries(STATUS_LABELS).map(([key, label]) => (
-          <Card key={key} className={key === "converted" ? "border-green-500/30" : ""}>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">
-                {leads.filter((l: any) => l.status === key).length}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Pipeline KPIs: scrollable chips on phone (no page overflow), 5-col on large screens */}
+      <div className="flex-shrink-0 min-w-0 -mx-3 px-3 sm:mx-0 sm:px-0">
+        <div className="flex lg:grid lg:grid-cols-5 gap-2 sm:gap-3 overflow-x-auto lg:overflow-visible pb-1 snap-x snap-mandatory lg:snap-none">
+          {Object.entries(STATUS_LABELS).map(([key, label]) => (
+            <Card
+              key={key}
+              className={`min-w-[140px] sm:min-w-[160px] lg:min-w-0 snap-start shrink-0 lg:shrink ${key === "converted" ? "border-green-500/30" : ""}`}
+            >
+              <CardContent className="p-3 text-center">
+                <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                  {leads.filter((l: any) => l.status === key).length}
+                </p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 leading-snug px-0.5">
+                  {label}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {view === "kanban" ? (
-        <div className="flex-1 overflow-x-auto pb-4 mt-2">
-          <div className="flex gap-4 min-w-max h-full">
-            {Object.keys(STATUS_LABELS).map((statusKey) => {
-              const colLeads = filteredLeads.filter((l: any) => l.status === statusKey);
-              return (
-                <div key={statusKey} className="w-80 flex flex-col bg-secondary/20 rounded-xl border border-border/40 min-h-[600px] max-h-[750px]">
-                  <div className="p-3 border-b border-border/40 flex items-center justify-between bg-card/50 rounded-t-xl sticky top-0">
-                    <h3 className="font-semibold text-sm text-foreground">{STATUS_LABELS[statusKey]}</h3>
-                    <Badge variant="secondary" className="text-xs">{colLeads.length}</Badge>
+        <div className="flex-1 min-w-0 mt-1 flex flex-col overflow-hidden">
+          <p className="md:hidden text-xs text-muted-foreground mb-2 shrink-0">
+            Swipe sideways to browse pipeline stages.
+          </p>
+          <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain pb-4">
+            <div className="flex gap-3 sm:gap-4 w-max max-w-none h-full min-h-[420px]">
+              {Object.keys(STATUS_LABELS).map((statusKey) => {
+                const colLeads = filteredLeads.filter((l: any) => l.status === statusKey);
+                return (
+                  <div
+                    key={statusKey}
+                    className="w-[min(280px,85vw)] sm:w-72 md:w-80 flex flex-col bg-secondary/20 rounded-xl border border-border/40 min-h-[420px] max-h-[min(750px,70vh)] shrink-0"
+                  >
+                    <div className="p-3 border-b border-border/40 flex items-center justify-between gap-2 bg-card/50 rounded-t-xl sticky top-0 z-10">
+                      <h3 className="font-semibold text-sm text-foreground truncate">{STATUS_LABELS[statusKey]}</h3>
+                      <Badge variant="secondary" className="text-xs shrink-0">{colLeads.length}</Badge>
+                    </div>
+                    <div className="p-3 flex-1 overflow-y-auto space-y-3 min-h-0">
+                      {colLeads.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-4">No leads</p>
+                      ) : (
+                        colLeads.map((lead: any) => (
+                          <LeadCard key={lead._id} lead={lead} isKanban={true} />
+                        ))
+                      )}
+                    </div>
                   </div>
-                  <div className="p-3 flex-1 overflow-y-auto space-y-3">
-                    {colLeads.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">No leads</p>
-                    ) : (
-                      colLeads.map((lead: any) => (
-                        <LeadCard key={lead._id} lead={lead} isKanban={true} />
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : (
@@ -383,7 +407,7 @@ export default function AdminCRMPage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Source</p>
                   <Badge variant="secondary" className="capitalize">{detailsModal.source?.replace("_", " ")}</Badge>

@@ -91,61 +91,84 @@ export default function AdminCMSResources() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="font-serif text-3xl font-bold">Resources CMS</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Manage whitepapers, legal guides, and downloadable resources.</p>
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+        <div className="min-w-0">
+          <h1 className="font-serif text-xl sm:text-3xl font-bold">Resources CMS</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Manage whitepapers, legal guides, and downloadable resources.
+          </p>
         </div>
-        <Button className="bg-accent hover:bg-accent/90" onClick={() => handleOpenModal()}>
+        <Button
+          className="bg-accent hover:bg-accent/90 w-full sm:w-auto shrink-0"
+          onClick={() => handleOpenModal()}
+        >
           <Plus className="w-4 h-4 mr-2" /> Upload Resource
         </Button>
       </div>
 
       <FadeInUp>
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="bg-secondary/20 border-b">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-accent" /> Resource Library
+        <Card className="border-border/50 shadow-sm min-w-0 overflow-hidden">
+          <CardHeader className="bg-secondary/20 border-b px-3 sm:px-6 py-3 sm:py-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-accent shrink-0" /> Resource Library
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {resources.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
-                <BookOpen className="w-12 h-12 mb-4 opacity-20" />
-                <p>No resources published yet. Click "Upload Resource" to add a whitepaper.</p>
+              <div className="p-8 sm:p-12 text-center text-muted-foreground flex flex-col items-center">
+                <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20" />
+                <p className="text-sm">No resources published yet. Click &quot;Upload Resource&quot; to add a whitepaper.</p>
               </div>
             ) : (
               <div className="divide-y">
                 {resources.map((res: any) => (
-                  <div key={res._id} className="p-4 flex items-center justify-between hover:bg-secondary/20 transition-colors gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center shrink-0">
-                        <BookOpen className="w-6 h-6 text-muted-foreground" />
+                  <div
+                    key={res._id}
+                    className="p-3 sm:p-4 flex flex-col gap-3 hover:bg-secondary/20 transition-colors min-w-0"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-secondary rounded-lg flex items-center justify-center shrink-0">
+                        <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold truncate">{res.title}</h4>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
-                          <span className="uppercase tracking-wider">{res.category}</span>
-                          <span>•</span>
-                          <span>Published: {res.publishedDate ? format(new Date(res.publishedDate), "MMM d, yyyy") : "—"}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1"><Download className="w-3 h-3" /> {res.downloads ?? 0} downloads</span>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <h4 className="font-bold text-sm sm:text-base break-words leading-snug">{res.title}</h4>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">{res.category}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                          <span>
+                            Published:{" "}
+                            {res.publishedDate ? format(new Date(res.publishedDate), "MMM d, yyyy") : "—"}
+                          </span>
+                          <span className="hidden sm:inline">·</span>
+                          <span className="flex items-center gap-1">
+                            <Download className="w-3 h-3" /> {res.downloads ?? 0} downloads
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center justify-between gap-2 pl-0 sm:pl-[3.25rem]">
                       {res.isGated ? (
-                        <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-200 font-medium">Lead Magnet</span>
+                        <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 font-medium whitespace-nowrap">
+                          Lead Magnet
+                        </span>
                       ) : (
-                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 border border-green-200 font-medium">Public</span>
+                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 font-medium whitespace-nowrap">
+                          Public
+                        </span>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenModal(res)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(res._id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleOpenModal(res)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(res._id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -156,24 +179,36 @@ export default function AdminCMSResources() {
       </FadeInUp>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-lg bg-background border-border">
+        <DialogContent className="max-w-lg w-[calc(100%-1rem)] sm:w-full bg-background border-border">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Resource" : "Upload Resource"}</DialogTitle>
-            <DialogDescription>Provide a downloadable file URL and metadata for the public resources page.</DialogDescription>
+            <DialogDescription>
+              Provide a downloadable file URL and metadata for the public resources page.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 min-w-0">
             <div className="space-y-2">
               <label className="text-sm font-medium">Title</label>
-              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Resource title" />
+              <Input
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Resource title"
+                className="min-w-0"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
-              <Input value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} placeholder="Guide, Whitepaper, Report..." />
+              <Input
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="Guide, Whitepaper, Report..."
+                className="min-w-0"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <textarea
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex min-h-[80px] w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Short description"
@@ -181,24 +216,39 @@ export default function AdminCMSResources() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">File URL</label>
-              <Input value={formData.fileUrl} onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })} placeholder="https://.../file.pdf" />
+              <Input
+                value={formData.fileUrl}
+                onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
+                placeholder="https://.../file.pdf"
+                className="min-w-0"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Cover Image URL (optional)</label>
-              <Input value={formData.coverImageUrl} onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })} placeholder="https://..." />
+              <Input
+                value={formData.coverImageUrl}
+                onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
+                placeholder="https://..."
+                className="min-w-0"
+              />
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-start sm:items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={formData.isGated}
                 onChange={(e) => setFormData({ ...formData, isGated: e.target.checked })}
+                className="mt-0.5 sm:mt-0 shrink-0"
               />
               Gated (require email before download)
             </label>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editingId ? "Save Changes" : "Create Resource"}</Button>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} className="w-full sm:w-auto">
+              {editingId ? "Save Changes" : "Create Resource"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

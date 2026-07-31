@@ -6,12 +6,37 @@ import { Label } from "@/components/ui/label.tsx";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { Save, Settings, CreditCard, Globe, Layers, Blocks, MessageSquare, Wallet, Video, UploadCloud } from "lucide-react";
+import { Save, Settings, CreditCard, Globe, Layers, Blocks, MessageSquare, Wallet, Video, UploadCloud, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { ROLE_LABELS } from "@/lib/lex-constants.ts";
+
+const ALL_CAPABILITIES = [
+  "users.manage",
+  "users.view_directory",
+  "cases.view_all",
+  "cases.manage",
+  "finance.manage",
+  "hr.manage",
+  "cms.manage",
+  "audit.view",
+  "settings.manage",
+] as const;
+
+const MATRIX_ROLES = [
+  "admin", "partner", "senior_associate", "associate", "paralegal", "intern", "client",
+] as const;
 
 export default function AdminSettingsPage() {
   const settings = useQuery(api.settings.getSystemSettings);
   const updateSettings = useMutation(api.settings.updateSystemSettings);
+  const rolePermissions = useQuery(api.users.getRolePermissions, {});
+  const saveRolePermissions = useMutation(api.users.saveRolePermissions);
+  const [permMatrix, setPermMatrix] = useState<Record<string, string[]>>({});
+  const [savingPerms, setSavingPerms] = useState(false);
+
+  useEffect(() => {
+    if (rolePermissions) setPermMatrix(rolePermissions as Record<string, string[]>);
+  }, [rolePermissions]);
 
   const [formData, setFormData] = useState({
     defaultHourlyRate: "5000",
@@ -59,11 +84,11 @@ export default function AdminSettingsPage() {
   };
 
   if (!settings) {
-    return <div className="p-8 text-muted-foreground">Loading settings...</div>;
+    return <div className="p-4 sm:p-6 text-muted-foreground">Loading settings...</div>;
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-serif font-bold text-foreground">System Settings</h1>
@@ -72,9 +97,10 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap h-auto">
           <TabsTrigger value="general" className="gap-2"><Settings className="w-4 h-4" /> General Settings</TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2"><Blocks className="w-4 h-4" /> Integrations Hub</TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-2"><Shield className="w-4 h-4" /> Role Permissions</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -485,6 +511,92 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
         </form>
+
+        <TabsContent value="permissions" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
+                Role Permission Matrix
+              </CardTitle>
+              <CardDescription>
+                Capabilities enforced by <code className="text-xs">requirePermission</code>. Admins always retain full access.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {!rolePermissions ? (
+                <p className="text-sm text-muted-foreground">Loading permissions…</p>
+              ) : (
+                <table className="w-full text-sm border-collapse min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 pr-3 font-medium">Capability</th>
+                      {MATRIX_ROLES.map((role) => (
+                        <th key={role} className="text-center py-2 px-1 font-medium whitespace-nowrap">
+                          {ROLE_LABELS[role] || role}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ALL_CAPABILITIES.map((cap) => (
+                      <tr key={cap} className="border-b border-border/60">
+                        <td className="py-2 pr-3 font-mono text-xs">{cap}</td>
+                        {MATRIX_ROLES.map((role) => {
+                          const checked = (permMatrix[role] || []).includes(cap);
+                          const locked = role === "admin";
+                          return (
+                            <td key={role} className="text-center py-2 px-1">
+                              <input
+                                type="checkbox"
+                                disabled={locked}
+                                checked={locked || checked}
+                                onChange={() => {
+                                  if (locked) return;
+                                  setPermMatrix((prev) => {
+                                    const current = new Set(prev[role] || []);
+                                    if (current.has(cap)) current.delete(cap);
+                                    else current.add(cap);
+                                    return { ...prev, [role]: Array.from(current) };
+                                  });
+                                }}
+                                className="accent-primary"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <div className="flex justify-end mt-4">
+                <Button
+                  disabled={savingPerms || !rolePermissions}
+                  className="gap-2"
+                  onClick={async () => {
+                    setSavingPerms(true);
+                    try {
+                      const withAdmin = {
+                        ...permMatrix,
+                        admin: [...ALL_CAPABILITIES],
+                      };
+                      await saveRolePermissions({ permissions: withAdmin });
+                      toast.success("Role permissions saved.");
+                    } catch {
+                      toast.error("Failed to save permissions.");
+                    } finally {
+                      setSavingPerms(false);
+                    }
+                  }}
+                >
+                  <Save className="w-4 h-4" />
+                  {savingPerms ? "Saving…" : "Save Permissions"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

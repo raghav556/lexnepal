@@ -34,10 +34,9 @@ const ROLE_FILTER = [
 ];
 
 export default function LawyerDirectoryPage() {
-  const allUsers = useQuery(api.users.listUsers, {}) || [];
-  // Only show users who are marked as public facing and have an appropriate role
-  const lawyers = allUsers.filter((u: any) => 
-    (u.role === "partner" || u.role === "associate" || u.role === "senior_associate") && u.isActive && u.isPublicFacing
+  const publicTeam = useQuery(api.cms.listPublicTeam, {}) || [];
+  const lawyers = publicTeam.filter((u: any) =>
+    u.role === "partner" || u.role === "associate" || u.role === "senior_associate"
   );
 
   const [search, setSearch] = useState("");

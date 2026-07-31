@@ -26,6 +26,7 @@ import type * as invoices from "../invoices.js";
 import type * as leads from "../leads.js";
 import type * as lib_notify from "../lib/notify.js";
 import type * as lib_roles from "../lib/roles.js";
+import type * as lib_totp from "../lib/totp.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as research from "../research.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   leads: typeof leads;
   "lib/notify": typeof lib_notify;
   "lib/roles": typeof lib_roles;
+  "lib/totp": typeof lib_totp;
   messages: typeof messages;
   notifications: typeof notifications;
   research: typeof research;

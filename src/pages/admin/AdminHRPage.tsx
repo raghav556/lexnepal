@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.t
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { Clock, CalendarOff, DollarSign, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Clock, CalendarOff, DollarSign, Loader2, CheckCircle, XCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { useQuery, useMutation } from "convex/react";
@@ -33,8 +33,6 @@ export default function AdminHRPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const isLoading = users === undefined;
-
-  // Staff users only (non-client, non-admin)
   const staffUsers = users.filter((u: any) => u.role !== "client");
 
   const getUserName = (userId: string) => {
@@ -103,230 +101,282 @@ export default function AdminHRPage() {
     );
   }
 
-  return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans">
-      <h1 className="font-serif text-2xl font-bold text-foreground">HR Management</h1>
+  const presentCount = attendance.filter((a: any) => a.status === "present").length;
+  const leaveCount = attendance.filter((a: any) => a.status === "leave").length;
+  const pendingLeaves = leaveRequests.filter((l: any) => l.status === "pending").length;
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold font-serif text-primary">{staffUsers.length}</span>
-            <span className="text-xs text-muted-foreground uppercase font-semibold">Total Staff</span>
-          </CardContent>
-        </Card>
-        <Card className="bg-green-500/5 border-green-500/20">
-          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold font-serif text-green-600 dark:text-green-400">
-              {attendance.filter((a: any) => a.status === 'present').length}
-            </span>
-            <span className="text-xs text-green-600/70 dark:text-green-400/70 uppercase font-semibold">Present Today</span>
-          </CardContent>
-        </Card>
-        <Card className="bg-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold font-serif text-blue-600 dark:text-blue-400">
-              {attendance.filter((a: any) => a.status === 'leave').length}
-            </span>
-            <span className="text-xs text-blue-600/70 dark:text-blue-400/70 uppercase font-semibold">On Leave</span>
-          </CardContent>
-        </Card>
-        <Card className="bg-yellow-500/5 border-yellow-500/20">
-          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold font-serif text-yellow-600 dark:text-yellow-400">
-              {leaveRequests.filter((l: any) => l.status === 'pending').length}
-            </span>
-            <span className="text-xs text-yellow-600/70 dark:text-yellow-400/70 uppercase font-semibold">Pending Leaves</span>
-          </CardContent>
-        </Card>
+  const kpiCards = [
+    { label: "Total Staff", value: staffUsers.length, icon: Users, tone: "bg-primary/10 text-primary" },
+    { label: "Present Today", value: presentCount, icon: CheckCircle, tone: "bg-green-500/10 text-green-500" },
+    { label: "On Leave", value: leaveCount, icon: CalendarOff, tone: "bg-blue-500/10 text-blue-500" },
+    { label: "Pending Leaves", value: pendingLeaves, icon: Clock, tone: "bg-amber-500/10 text-amber-500" },
+  ];
+
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 font-sans w-full min-w-0 max-w-none">
+      <div className="min-w-0">
+        <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">HR Management</h1>
+        <p className="text-sm text-muted-foreground mt-1">Attendance, leave, and payroll for firm staff.</p>
       </div>
 
-      <Tabs defaultValue="attendance">
-        <TabsList>
-          <TabsTrigger value="attendance"><Clock className="w-3.5 h-3.5 mr-1" />Attendance</TabsTrigger>
-          <TabsTrigger value="leave"><CalendarOff className="w-3.5 h-3.5 mr-1" />Leave Requests</TabsTrigger>
-          <TabsTrigger value="payroll"><DollarSign className="w-3.5 h-3.5 mr-1" />Payroll</TabsTrigger>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {kpiCards.map(({ label, value, icon: Icon, tone }) => (
+          <Card key={label} className="min-w-0 overflow-hidden">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground font-medium leading-snug">{label}</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1 tabular-nums leading-none">{value}</p>
+                </div>
+                <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center ${tone}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Tabs defaultValue="attendance" className="w-full min-w-0">
+        <TabsList className="mb-4 h-auto w-full grid grid-cols-3 gap-1">
+          <TabsTrigger value="attendance" className="text-xs sm:text-sm px-1 sm:px-3 gap-1">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Attendance</span>
+          </TabsTrigger>
+          <TabsTrigger value="leave" className="text-xs sm:text-sm px-1 sm:px-3 gap-1">
+            <CalendarOff className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Leave</span>
+          </TabsTrigger>
+          <TabsTrigger value="payroll" className="text-xs sm:text-sm px-1 sm:px-3 gap-1">
+            <DollarSign className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Payroll</span>
+          </TabsTrigger>
         </TabsList>
 
-        {/* Attendance Tab */}
-        <TabsContent value="attendance" className="mt-4 space-y-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold font-serif">
-                Today — {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+        {/* Attendance — full-width stacked staff cards (no nested list inside cramped card body) */}
+        <TabsContent value="attendance" className="mt-0 space-y-3 min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            Today — <span className="text-muted-foreground font-normal">{todayLabel}</span>
+          </p>
+
+          {staffUsers.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No staff members found.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2 w-full min-w-0">
               {staffUsers.map((u: any) => {
                 const record = attendance.find((a: any) => a.userId === u._id);
                 return (
-                  <div key={u._id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{u.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{u.role.replace("_", " ")}</p>
-                      {record?.clockIn && (
-                        <p className="text-xs text-muted-foreground">
-                          In: {record.clockIn} — Out: {record.clockOut ?? "Still in office"}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {record ? (
-                        <>
-                          <Badge className={`text-xs capitalize ${STATUS_COLORS[record.status]}`}>{record.status}</Badge>
-                          {record.status === "present" && !record.clockOut && (
-                            <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => handleClockOut(u._id, record.clockIn)}>
-                              Clock Out
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
-                            onClick={() => handleMarkPresent(u._id)}
-                          >
-                            Mark Present
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                            onClick={() => handleMarkAbsent(u._id)}
-                          >
-                            Absent
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Leave Requests Tab */}
-        <TabsContent value="leave" className="mt-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold font-serif">Leave Requests</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {leaveRequests.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No leave requests found.</p>
-              ) : (
-                <div className="divide-y divide-border">
-                  {leaveRequests.map((l: any) => (
-                    <div key={l._id} className="flex items-center justify-between p-4 gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{getUserName(l.userId)}</p>
+                  <Card key={u._id} className="w-full min-w-0 overflow-hidden">
+                    <CardContent className="p-3 sm:p-4 space-y-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{u.name}</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {l.type} leave — {l.fromDate} to {l.toDate}
+                          {String(u.role).replace(/_/g, " ")}
                         </p>
-                        {l.reason && <p className="text-xs text-muted-foreground">{l.reason}</p>}
-                        {l.reviewedBy && (
-                          <p className="text-xs text-muted-foreground">
-                            Reviewed by: {getUserName(l.reviewedBy)}
+                        {record?.clockIn && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            In: {record.clockIn}
+                            {record.clockOut ? ` — Out: ${record.clockOut}` : " — Still in office"}
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge className={`text-xs ${STATUS_COLORS[l.status]}`}>{l.status}</Badge>
-                        {l.status === "pending" && (
-                          <div className="flex gap-1">
+
+                      <div className="w-full">
+                        {record ? (
+                          <div className="flex flex-wrap items-center gap-2 w-full">
+                            <Badge className={`text-xs capitalize ${STATUS_COLORS[record.status]}`}>
+                              {record.status.replace(/_/g, " ")}
+                            </Badge>
+                            {record.status === "present" && !record.clockOut && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-8 flex-1 sm:flex-none"
+                                onClick={() => handleClockOut(u._id, record.clockIn)}
+                              >
+                                Clock Out
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
                             <Button
                               size="sm"
-                              className="text-xs h-7 px-2 gap-1"
-                              disabled={processingId === l._id}
-                              onClick={() => handleLeaveReview(l._id, "approved")}
+                              variant="outline"
+                              className="text-xs h-9 w-full sm:w-auto text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
+                              onClick={() => handleMarkPresent(u._id)}
                             >
-                              <CheckCircle className="w-3 h-3" /> Approve
+                              Mark Present
                             </Button>
                             <Button
                               size="sm"
-                              variant="destructive"
-                              className="text-xs h-7 px-2 gap-1"
-                              disabled={processingId === l._id}
-                              onClick={() => handleLeaveReview(l._id, "rejected")}
+                              variant="outline"
+                              className="text-xs h-9 w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                              onClick={() => handleMarkAbsent(u._id)}
                             >
-                              <XCircle className="w-3 h-3" /> Reject
+                              Absent
                             </Button>
                           </div>
                         )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
-        {/* Payroll Tab */}
-        <TabsContent value="payroll" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
+        {/* Leave */}
+        <TabsContent value="leave" className="mt-0 min-w-0">
+          {leaveRequests.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No leave requests found.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {leaveRequests.map((l: any) => (
+                <Card key={l._id} className="min-w-0 overflow-hidden">
+                  <CardContent className="p-3 sm:p-4 space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{getUserName(l.userId)}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {l.type} leave — {l.fromDate} to {l.toDate}
+                        </p>
+                        {l.reason && <p className="text-xs text-muted-foreground mt-1 break-words">{l.reason}</p>}
+                      </div>
+                      <Badge className={`text-xs shrink-0 ${STATUS_COLORS[l.status]}`}>{l.status}</Badge>
+                    </div>
+                    {l.status === "pending" && (
+                      <div className="grid grid-cols-2 gap-2 sm:flex sm:w-auto">
+                        <Button
+                          size="sm"
+                          className="text-xs h-9 gap-1 w-full sm:w-auto"
+                          disabled={processingId === l._id}
+                          onClick={() => handleLeaveReview(l._id, "approved")}
+                        >
+                          <CheckCircle className="w-3 h-3" /> Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="text-xs h-9 gap-1 w-full sm:w-auto"
+                          disabled={processingId === l._id}
+                          onClick={() => handleLeaveReview(l._id, "rejected")}
+                        >
+                          <XCircle className="w-3 h-3" /> Reject
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Payroll */}
+        <TabsContent value="payroll" className="mt-0 space-y-4 min-w-0">
+          <Card className="min-w-0 overflow-hidden">
+            <CardHeader className="pb-3 px-3 sm:px-6">
               <CardTitle className="text-sm font-semibold font-serif">
                 Payroll — {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </CardTitle>
-              <p className="text-xs text-muted-foreground">PF 10% employee · SSF 3.33% employer · VAT/tax bands applied server-side</p>
+              <p className="text-xs text-muted-foreground">PF 10% · SSF 3.33% · tax bands applied server-side</p>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-xs text-muted-foreground">
-                      <th className="text-left py-2 pr-4">Employee</th>
-                      <th className="text-right py-2 pr-4">Gross</th>
-                      <th className="text-right py-2 pr-4">PF (10%)</th>
-                      <th className="text-right py-2 pr-4">SSF (3.33%)</th>
-                      <th className="text-right py-2 pr-4">Tax</th>
-                      <th className="text-right py-2">Net Pay</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {payroll.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-muted-foreground text-xs">
-                          No staff with base salary set. Set salaries below to generate payroll.
-                        </td>
-                      </tr>
-                    ) : (
-                      payroll.map((p: any) => (
-                        <tr key={p.userId}>
-                          <td className="py-3 pr-4">
-                            <p className="font-medium text-foreground">{p.name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{String(p.role).replace("_", " ")}</p>
-                          </td>
-                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.gross)}</td>
-                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.pf)}</td>
-                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.ssf)}</td>
-                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.tax)}</td>
-                          <td className="text-right py-3 font-semibold text-foreground">{formatNPR(p.net)}</td>
+            <CardContent className="px-3 sm:px-6 pb-4">
+              {payroll.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  No staff with base salary set. Set salaries below to generate payroll.
+                </p>
+              ) : (
+                <>
+                  {/* Mobile cards */}
+                  <div className="md:hidden space-y-3">
+                    {payroll.map((p: any) => (
+                      <div key={p.userId} className="rounded-lg border border-border p-3 space-y-2 min-w-0">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{p.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{String(p.role).replace(/_/g, " ")}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                          <span className="text-muted-foreground">Gross</span>
+                          <span className="text-right text-foreground">{formatNPR(p.gross)}</span>
+                          <span className="text-muted-foreground">PF</span>
+                          <span className="text-right text-muted-foreground">{formatNPR(p.pf)}</span>
+                          <span className="text-muted-foreground">SSF</span>
+                          <span className="text-right text-muted-foreground">{formatNPR(p.ssf)}</span>
+                          <span className="text-muted-foreground">Tax</span>
+                          <span className="text-right text-muted-foreground">{formatNPR(p.tax)}</span>
+                          <span className="text-muted-foreground font-medium">Net Pay</span>
+                          <span className="text-right font-semibold text-foreground">{formatNPR(p.net)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm min-w-[560px]">
+                      <thead>
+                        <tr className="border-b border-border text-xs text-muted-foreground">
+                          <th className="text-left py-2 pr-4">Employee</th>
+                          <th className="text-right py-2 pr-4">Gross</th>
+                          <th className="text-right py-2 pr-4">PF (10%)</th>
+                          <th className="text-right py-2 pr-4">SSF (3.33%)</th>
+                          <th className="text-right py-2 pr-4">Tax</th>
+                          <th className="text-right py-2">Net Pay</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {payroll.map((p: any) => (
+                          <tr key={p.userId}>
+                            <td className="py-3 pr-4">
+                              <p className="font-medium text-foreground">{p.name}</p>
+                              <p className="text-xs text-muted-foreground capitalize">{String(p.role).replace(/_/g, " ")}</p>
+                            </td>
+                            <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.gross)}</td>
+                            <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.pf)}</td>
+                            <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.ssf)}</td>
+                            <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.tax)}</td>
+                            <td className="text-right py-3 font-semibold text-foreground">{formatNPR(p.net)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className="min-w-0 overflow-hidden">
+            <CardHeader className="pb-3 px-3 sm:px-6">
               <CardTitle className="text-sm font-semibold font-serif">Set Base Salary (NPR / month)</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 px-3 sm:px-6 pb-4">
               {staffUsers.map((u: any) => (
-                <div key={u._id} className="flex items-center justify-between gap-3 p-2 border rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium">{u.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{u.role?.replace("_", " ")}</p>
+                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border rounded-lg min-w-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{u.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{u.role?.replace(/_/g, " ")}</p>
                   </div>
                   <form
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto"
                     onSubmit={async (e) => {
                       e.preventDefault();
                       const fd = new FormData(e.currentTarget);
@@ -344,9 +394,9 @@ export default function AdminHRPage() {
                       type="number"
                       defaultValue={u.baseSalary || ""}
                       placeholder="0"
-                      className="w-28 h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      className="flex-1 sm:flex-none sm:w-28 h-9 rounded-md border border-input bg-background px-2 text-sm min-w-0"
                     />
-                    <Button type="submit" size="sm" variant="outline" className="h-8 text-xs">Save</Button>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 text-xs shrink-0">Save</Button>
                   </form>
                 </div>
               ))}

@@ -79,90 +79,98 @@ export default function AdminCMSAbout() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">About Us Page</h2>
-          <p className="text-muted-foreground">Manage the content of the public About Us page.</p>
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-serif">About Us Page</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage the content of the public About Us page.
+          </p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={handleSave} disabled={isSaving} className="shrink-0 w-full sm:w-auto">
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {/* Hero Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Hero Section</CardTitle>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 min-w-0">
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl">Hero Section</CardTitle>
             <CardDescription>The top banner of the About page.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
+          <CardContent className="space-y-4 px-3 sm:px-6">
+            <div className="space-y-2 min-w-0">
               <Label>Title</Label>
-              <Input 
-                value={formData.hero.title} 
-                onChange={(e) => setFormData(p => ({ ...p, hero: { ...p.hero, title: e.target.value } }))}
+              <Input
+                value={formData.hero.title}
+                onChange={(e) => setFormData((p) => ({ ...p, hero: { ...p.hero, title: e.target.value } }))}
+                className="min-w-0 w-full"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label>Description</Label>
-              <Textarea 
+              <Textarea
                 rows={3}
-                value={formData.hero.description} 
-                onChange={(e) => setFormData(p => ({ ...p, hero: { ...p.hero, description: e.target.value } }))}
+                value={formData.hero.description}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, hero: { ...p.hero, description: e.target.value } }))
+                }
+                className="min-w-0 w-full resize-y"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Mission Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mission Section</CardTitle>
-            <CardDescription>Your firm's mission statement.</CardDescription>
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl">Mission Section</CardTitle>
+            <CardDescription>Your firm&apos;s mission statement.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
+          <CardContent className="space-y-4 px-3 sm:px-6">
+            <div className="space-y-2 min-w-0">
               <Label>Mission Text</Label>
-              <Textarea 
+              <Textarea
                 rows={4}
-                value={formData.mission.text} 
-                onChange={(e) => setFormData(p => ({ ...p, mission: { ...p.mission, text: e.target.value } }))}
+                value={formData.mission.text}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, mission: { ...p.mission, text: e.target.value } }))
+                }
+                className="min-w-0 w-full resize-y"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Arrays using JSON */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Core Values (JSON)</CardTitle>
-              <CardDescription>Edit the list of core values. Valid icons: Shield, Target, Users, Award, Scale.</CardDescription>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-w-0">
+          <Card className="min-w-0 overflow-hidden">
+            <CardHeader className="px-3 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Core Values (JSON)</CardTitle>
+              <CardDescription>
+                Edit the list of core values. Valid icons: Shield, Target, Users, Award, Scale.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Textarea 
-                rows={12}
-                className="font-mono text-xs"
+            <CardContent className="px-3 sm:px-6">
+              <Textarea
+                rows={10}
+                className="font-mono text-xs min-w-0 w-full resize-y"
                 value={formData.valuesJson}
-                onChange={(e) => setFormData(p => ({ ...p, valuesJson: e.target.value }))}
+                onChange={(e) => setFormData((p) => ({ ...p, valuesJson: e.target.value }))}
               />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Journey / Timeline (JSON)</CardTitle>
-              <CardDescription>Edit the firm's timeline events.</CardDescription>
+          <Card className="min-w-0 overflow-hidden">
+            <CardHeader className="px-3 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Journey / Timeline (JSON)</CardTitle>
+              <CardDescription>Edit the firm&apos;s timeline events.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Textarea 
-                rows={12}
-                className="font-mono text-xs"
+            <CardContent className="px-3 sm:px-6">
+              <Textarea
+                rows={10}
+                className="font-mono text-xs min-w-0 w-full resize-y"
                 value={formData.timelineJson}
-                onChange={(e) => setFormData(p => ({ ...p, timelineJson: e.target.value }))}
+                onChange={(e) => setFormData((p) => ({ ...p, timelineJson: e.target.value }))}
               />
             </CardContent>
           </Card>

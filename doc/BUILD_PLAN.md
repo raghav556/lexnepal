@@ -16,10 +16,33 @@
 | Client portal | Done | Dashboard/cases/billing/KYC/e-sign/booking wired to client record |
 | Admin console | Done | Finance status, payroll generator, CMS news/resources CRUD |
 | Auth | Done | Mock opt-in via `VITE_USE_MOCK`; live OIDC hooks ready |
-| RBAC | Done | Case list scoped by role; server `requireRole` |
+| RBAC | Done | `requireRole` + `requirePermission` matrix; case scoping |
+| User management | Done | Invite lifecycle, suspend gates, TOTP 2FA, admin CRUD, staff directory |
 | File storage | Partial | Convex `generateUploadUrl` + mock blob fallback |
 | Billing / PDF | Done | Invoice lifecycle, PDF, gateway initiate + payments rows |
 | Notifications | Done | In-app + email/SMS audit log via `communications` |
+
+---
+
+## User Management System (UMS)
+
+Primary UI: `/admin/users` (`AdminUsersPage`). Self-service: shared profile page. Backend: `convex/users.ts`, `convex/lib/roles.ts`, `convex/lib/totp.ts`.
+
+| Capability | Behavior |
+|---|---|
+| Invite | `createUser` sets `isPending`, inactive until activate; 7-day `inviteExpiresAt`; email via audit/comms log |
+| Resend / reset | `resendInvitation`, `sendPasswordReset` refresh token + expiry |
+| Activate | `/setup-account?token=` → `activateAccount`; OIDC email match also binds + activates |
+| Client link | Client-role invites auto-create/link `clients.userId` |
+| Suspend | `isActive: false` enforced in `requireAuth` / `requireRole`; sessions revoked |
+| Directory | `listUsers` admin-only; `listStaffDirectory` for assignment dropdowns |
+| Sessions | Created on `updateCurrentUser`; admin revoke-all; profile revoke own |
+| Audit | `auditLog` on invite/role/suspend/activate/2FA/profile |
+| 2FA | TOTP enroll/confirm/disable (`beginTotpEnrollment`…) |
+| Permissions | Default matrix in `DEFAULT_ROLE_PERMISSIONS`; editable under Settings → Role Permissions |
+| Soft delete | `archiveUser` (hard delete blocked if assigned to cases) |
+
+SSO / SCIM / multi-firm org units: deferred to Phase 8.
 
 ---
 
@@ -33,6 +56,7 @@
 - [x] Phase 5 — Finance/payments/payroll
 - [x] Phase 6 — Notifications & communications
 - [x] Phase 7 — i18n, RBAC, SaaS prep doc
+- [x] UMS completion — invite lifecycle, gates, admin CRUD, profile/2FA, permission matrix
 - [ ] Phase 8 — Multi-firm SaaS (see `SAAS_MULTI_FIRM_PHASE8.md`)
 
 ---

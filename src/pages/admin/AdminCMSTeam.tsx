@@ -102,6 +102,7 @@ export default function AdminCMSTeam() {
           email: formData.email,
           role: formData.role as any,
           isPublicFacing: formData.isPublicFacing,
+          invite: false,
         });
         toast.success("Team member created successfully. You can now edit their details.");
       } else if (editingId) {
@@ -167,34 +168,39 @@ export default function AdminCMSTeam() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Team Roster Management</h1>
-          <p className="text-muted-foreground mt-1">Manage public profiles, credentials, and visibility of your legal team.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">
+            <span className="sm:hidden">Team Roster</span>
+            <span className="hidden sm:inline">Team Roster Management</span>
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Manage public profiles, credentials, and visibility of your legal team.
+          </p>
         </div>
-        <Button onClick={openCreateModal} className="gap-2">
+        <Button onClick={openCreateModal} className="gap-2 w-full md:w-auto shrink-0">
           <Plus className="w-4 h-4" /> Add Team Member
         </Button>
       </div>
 
       {/* Controls */}
-      <Card className="bg-card">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by name..." 
+      <Card className="bg-card min-w-0 overflow-hidden">
+        <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 w-full min-w-0"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <select 
-              className="bg-background text-foreground border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          <div className="relative w-full sm:w-auto sm:min-w-[200px] shrink-0">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <select
+              className="w-full bg-background text-foreground border border-border rounded-md pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary h-10"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
             >
@@ -208,16 +214,79 @@ export default function AdminCMSTeam() {
         </CardContent>
       </Card>
 
-      {/* Data Table */}
-      <Card>
-        <div className="overflow-x-auto">
+      {/* Roster — cards on phone, table from md up */}
+      <Card className="min-w-0 overflow-hidden">
+        <div className="md:hidden divide-y divide-border">
+          {filteredUsers.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              No team members found matching your criteria.
+            </p>
+          ) : (
+            filteredUsers.map((user: any) => (
+              <div key={user._id} className="p-3 space-y-3 min-w-0">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border shrink-0">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <UserCircle className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-foreground break-words">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email || "No email provided"}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <Badge variant="outline" className="capitalize">
+                        {user.role.replace("_", " ")}
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(user._id, user.isPublicFacing)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          user.isPublicFacing
+                            ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+                            : "bg-muted text-muted-foreground border-border"
+                        }`}
+                      >
+                        {user.isPublicFacing ? (
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5" />
+                        )}
+                        {user.isPublicFacing ? "Public" : "Hidden"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 pl-[3.25rem]">
+                  <Button variant="outline" size="sm" onClick={() => openEditModal(user)} className="gap-1.5">
+                    <Edit2 className="w-4 h-4" /> Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(user._id)}
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground uppercase border-b border-border">
               <tr>
-                <th className="px-6 py-4 font-medium">Team Member</th>
-                <th className="px-6 py-4 font-medium">Role</th>
-                <th className="px-6 py-4 font-medium">Visibility</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-4 lg:px-6 py-4 font-medium">Team Member</th>
+                <th className="px-4 lg:px-6 py-4 font-medium">Role</th>
+                <th className="px-4 lg:px-6 py-4 font-medium">Visibility</th>
+                <th className="px-4 lg:px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -230,45 +299,57 @@ export default function AdminCMSTeam() {
               ) : (
                 filteredUsers.map((user: any) => (
                   <tr key={user._id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border flex-shrink-0">
+                    <td className="px-4 lg:px-6 py-4 min-w-0">
+                      <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border shrink-0">
                           {user.avatarUrl ? (
                             <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
                           ) : (
                             <UserCircle className="w-6 h-6 text-primary" />
                           )}
                         </div>
-                        <div>
-                          <div className="font-bold text-foreground">{user.name}</div>
-                          <div className="text-xs text-muted-foreground">{user.email || 'No email provided'}</div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-foreground truncate">{user.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {user.email || "No email provided"}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge variant="outline" className="capitalize">
+                    <td className="px-4 lg:px-6 py-4">
+                      <Badge variant="outline" className="capitalize whitespace-nowrap">
                         {user.role.replace("_", " ")}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4">
-                      <button 
+                    <td className="px-4 lg:px-6 py-4">
+                      <button
+                        type="button"
                         onClick={() => toggleStatus(user._id, user.isPublicFacing)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                          user.isPublicFacing 
-                            ? "bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20" 
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
+                          user.isPublicFacing
+                            ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 hover:bg-green-500/20"
                             : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
                         }`}
                       >
-                        {user.isPublicFacing ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {user.isPublicFacing ? (
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5" />
+                        )}
                         {user.isPublicFacing ? "Public" : "Hidden"}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 lg:px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => openEditModal(user)}>
                           <Edit2 className="w-4 h-4 mr-2" /> Edit
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(user._id)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(user._id)}
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -283,39 +364,45 @@ export default function AdminCMSTeam() {
 
       {/* Editor Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-border bg-background">
-          <div className="p-6 border-b border-border bg-muted/30">
-            <h2 className="text-2xl font-serif font-bold text-foreground">
+        <DialogContent className="max-w-3xl max-h-[90vh] w-[calc(100%-1.5rem)] sm:w-full overflow-hidden flex flex-col p-0 border-border bg-background">
+          <div className="p-4 sm:p-6 border-b border-border bg-muted/30 min-w-0">
+            <h2 className="text-lg sm:text-2xl font-serif font-bold text-foreground break-words">
               {modalMode === "create" ? "Add New Team Member" : `Edit ${formData.name}'s Profile`}
             </h2>
-            <p className="text-muted-foreground text-sm mt-1">Fill out the information below to update the public roster.</p>
+            <p className="text-muted-foreground text-sm mt-1">
+              Fill out the information below to update the public roster.
+            </p>
           </div>
-          
-          <div className="flex border-b border-border px-6 pt-2 bg-muted/10 gap-6 text-sm font-medium">
-            <button 
-              className={`pb-3 border-b-2 transition-colors ${activeTab === "basic" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+
+          <div className="flex border-b border-border px-3 sm:px-6 pt-2 bg-muted/10 gap-3 sm:gap-6 text-xs sm:text-sm font-medium overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+            <button
+              type="button"
+              className={`pb-3 border-b-2 transition-colors shrink-0 ${activeTab === "basic" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
               onClick={() => setActiveTab("basic")}
             >
-              Basic Info
+              Basic
             </button>
-            <button 
-              className={`pb-3 border-b-2 transition-colors ${activeTab === "professional" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            <button
+              type="button"
+              className={`pb-3 border-b-2 transition-colors shrink-0 ${activeTab === "professional" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
               onClick={() => setActiveTab("professional")}
             >
-              Professional Background
+              <span className="sm:hidden">Professional</span>
+              <span className="hidden sm:inline">Professional Background</span>
             </button>
-            <button 
-              className={`pb-3 border-b-2 transition-colors ${activeTab === "education" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            <button
+              type="button"
+              className={`pb-3 border-b-2 transition-colors shrink-0 ${activeTab === "education" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
               onClick={() => setActiveTab("education")}
             >
               Education
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background min-w-0">
             {activeTab === "basic" && (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Full Name</label>
                     <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Ramesh Badal" />
@@ -335,7 +422,7 @@ export default function AdminCMSTeam() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Public Email (Contact)</label>
                     <Input value={formData.publicEmail} onChange={e => setFormData({...formData, publicEmail: e.target.value})} placeholder="e.g. ramesh@lexnepal.com" />
@@ -375,35 +462,48 @@ export default function AdminCMSTeam() {
                   <Input value={formData.barCouncilNumber} onChange={e => setFormData({...formData, barCouncilNumber: e.target.value})} placeholder="e.g. 12345" className="max-w-md" />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-3 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <label className="text-sm font-medium text-foreground">Practice Areas</label>
-                    <Button variant="outline" size="sm" onClick={() => addArrayItem("practiceAreas")}><Plus className="w-3 h-3 mr-1"/> Add Area</Button>
+                    <Button variant="outline" size="sm" onClick={() => addArrayItem("practiceAreas")} className="w-full sm:w-auto">
+                      <Plus className="w-3 h-3 mr-1" /> Add Area
+                    </Button>
                   </div>
                   {formData.practiceAreas.length === 0 && <p className="text-xs text-muted-foreground italic">No practice areas added.</p>}
                   {formData.practiceAreas.map((area: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input value={area} onChange={e => updateArrayItem("practiceAreas", index, e.target.value)} placeholder="e.g. Corporate Litigation" />
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeArrayItem("practiceAreas", index)}><X className="w-4 h-4"/></Button>
+                    <div key={index} className="flex items-center gap-2 min-w-0">
+                      <Input
+                        value={area}
+                        onChange={(e) => updateArrayItem("practiceAreas", index, e.target.value)}
+                        placeholder="e.g. Corporate Litigation"
+                        className="min-w-0"
+                      />
+                      <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeArrayItem("practiceAreas", index)}>
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-3 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <label className="text-sm font-medium text-foreground">Notable Cases / Achievements</label>
-                    <Button variant="outline" size="sm" onClick={() => addArrayItem("notableCases")}><Plus className="w-3 h-3 mr-1"/> Add Case</Button>
+                    <Button variant="outline" size="sm" onClick={() => addArrayItem("notableCases")} className="w-full sm:w-auto">
+                      <Plus className="w-3 h-3 mr-1" /> Add Case
+                    </Button>
                   </div>
                   {formData.notableCases.length === 0 && <p className="text-xs text-muted-foreground italic">No notable cases added.</p>}
                   {formData.notableCases.map((caseStr: string, index: number) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <textarea 
-                        className="w-full min-h-[60px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                        value={caseStr} 
-                        onChange={e => updateArrayItem("notableCases", index, e.target.value)} 
-                        placeholder="e.g. Successfully defended XYZ Corp in a high-profile merger dispute." 
+                    <div key={index} className="flex items-start gap-2 min-w-0">
+                      <textarea
+                        className="w-full min-w-0 min-h-[60px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                        value={caseStr}
+                        onChange={(e) => updateArrayItem("notableCases", index, e.target.value)}
+                        placeholder="e.g. Successfully defended XYZ Corp in a high-profile merger dispute."
                       />
-                      <Button variant="ghost" size="icon" className="text-destructive mt-1" onClick={() => removeArrayItem("notableCases", index)}><X className="w-4 h-4"/></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive mt-1 shrink-0" onClick={() => removeArrayItem("notableCases", index)}>
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -411,10 +511,12 @@ export default function AdminCMSTeam() {
             )}
 
             {activeTab === "education" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-2">
+              <div className="space-y-4 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <label className="text-sm font-medium text-foreground">Education History</label>
-                  <Button variant="outline" size="sm" onClick={addEducation}><Plus className="w-3 h-3 mr-1"/> Add Education</Button>
+                  <Button variant="outline" size="sm" onClick={addEducation} className="w-full sm:w-auto">
+                    <Plus className="w-3 h-3 mr-1" /> Add Education
+                  </Button>
                 </div>
                 {formData.education.length === 0 && (
                   <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground">
@@ -425,7 +527,7 @@ export default function AdminCMSTeam() {
                   <Card key={index} className="bg-muted/10 border-border/50">
                     <CardContent className="p-4 flex gap-4 items-start">
                       <div className="flex-1 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">Degree / Qualification</label>
                             <Input value={edu.degree} onChange={e => updateEducation(index, "degree", e.target.value)} placeholder="e.g. LL.M in Corporate Law" />
@@ -448,9 +550,11 @@ export default function AdminCMSTeam() {
             )}
           </div>
 
-          <div className="p-6 border-t border-border bg-muted/30 flex items-center justify-end gap-3 rounded-b-lg">
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+          <div className="p-3 sm:p-6 border-t border-border bg-muted/30 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 rounded-b-lg">
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving} className="gap-2 w-full sm:w-auto">
               <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>

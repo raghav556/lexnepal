@@ -23,7 +23,7 @@ export default function StaffHearingsPage() {
   const { t, language } = useI18n();
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const cases = useQuery(api.cases.listCases, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const pesiResult = useQuery(api.court.getPesi, {});
   const pesiList = Array.isArray(pesiResult)
     ? pesiResult

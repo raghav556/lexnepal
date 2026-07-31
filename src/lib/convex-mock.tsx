@@ -22,6 +22,12 @@ export interface LexUser {
   twoFactorEnabled?: boolean;
   isPending?: boolean;
   activationToken?: string;
+  inviteExpiresAt?: string;
+  invitedAt?: string;
+  practiceAreas?: string[];
+  avatar?: string;
+  lastLoginAt?: string;
+  totpSecret?: string;
 }
 
 export interface LexSession {
@@ -567,8 +573,8 @@ let globalPracticeAreas: any[] = [
 ];
 
 let globalSessions: LexSession[] = [
-  { _id: "sess_1", userId: "u_1", device: "Windows 11 PC", browser: "Chrome", ipAddress: "192.168.1.12", lastActive: new Date().toISOString(), isCurrent: true },
-  { _id: "sess_2", userId: "u_1", device: "iPhone 14 Pro", browser: "Safari", ipAddress: "103.10.20.5", lastActive: new Date(Date.now() - 3600000).toISOString(), isCurrent: false }
+  { _id: "sess_1", userId: "u1", device: "Windows 11 PC", browser: "Chrome", ipAddress: "192.168.1.12", lastActive: new Date().toISOString(), isCurrent: true },
+  { _id: "sess_2", userId: "u1", device: "iPhone 14 Pro", browser: "Safari", ipAddress: "103.10.20.5", lastActive: new Date(Date.now() - 3600000).toISOString(), isCurrent: false },
 ];
 
 
@@ -741,6 +747,43 @@ export function useQuery(queryFunc: any, args?: any): any {
     return globalUsers;
   }
 
+  // listStaffDirectory
+  if (queryName.includes("listStaffDirectory")) {
+    const STAFF = ["partner", "senior_associate", "associate", "paralegal", "intern"];
+    return globalUsers
+      .filter((u) => STAFF.includes(u.role) && u.isActive && !u.isPending)
+      .map((u) => ({ _id: u._id, name: u.name, role: u.role, email: u.email }));
+  }
+
+  if (queryName.includes("getRolePermissions")) {
+    return (globalSettings as any).rolePermissions || {
+      admin: ["users.manage", "users.view_directory", "cases.view_all", "cases.manage", "finance.manage", "hr.manage", "cms.manage", "audit.view", "settings.manage"],
+      partner: ["users.view_directory", "cases.view_all", "cases.manage", "finance.manage", "hr.manage", "audit.view"],
+      senior_associate: ["users.view_directory", "cases.view_all", "cases.manage"],
+      associate: ["users.view_directory", "cases.manage"],
+      paralegal: ["users.view_directory", "cases.manage"],
+      intern: ["users.view_directory"],
+      client: [],
+    };
+  }
+
+  if (queryName.includes("getUserActivity")) {
+    const userId = args?.userId;
+    return globalAuditLog
+      .filter((l) => l.userId === userId || (l.resource === "users" && l.resourceId === userId))
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 20);
+  }
+
+  if (queryName.includes("getMyAuditLog")) {
+    const role = preview ? preview.config.activeRole : "admin";
+    const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+    return globalAuditLog
+      .filter((l) => l.userId === me._id)
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 30);
+  }
+
   // CMS Queries
   if (queryName.includes("getSettings")) return globalSettings;
   if (queryName.includes("listTestimonials")) {
@@ -872,9 +915,17 @@ export function useQuery(queryFunc: any, args?: any): any {
     return globalLeaveRequests;
   }
 
-  // users.listSessions
+  // users.listSessions / listMySessions
+  if (queryName.includes("listMySessions")) {
+    const role = preview ? preview.config.activeRole : "admin";
+    const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+    return globalSessions.filter((s) => s.userId === me._id);
+  }
   if (queryName.includes("listSessions")) {
-    return globalSessions.filter(s => s.userId === args?.userId);
+    const role = preview ? preview.config.activeRole : "admin";
+    const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+    const targetId = args?.userId || me._id;
+    return globalSessions.filter((s) => s.userId === targetId);
   }
 
   // listClients
@@ -1368,44 +1419,190 @@ export function useMutation(mutationFunc: any): any {
 
     // users.createUser
     if (mutationName.includes("createUser")) {
-      const activationToken = "setup_" + Math.random().toString(36).substring(2, 15);
+      const sendInvite = args.invite !== false;
+      const activationToken = sendInvite ? "setup_" + Math.random().toString(36).substring(2, 15) : undefined;
+      const inviteExpiresAt = sendInvite ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined;
+      const id = "u_" + Date.now();
       const newUser: LexUser = {
-        _id: "u_" + Date.now(),
-        isActive: true, // Keep it true so it doesn't show as suspended, but it's pending
-        isPending: true,
+        _id: id,
+        name: args.name,
+        email: args.email || "",
+        role: args.role,
+        isActive: sendInvite ? false : true,
+        isPending: sendInvite,
+        isPublicFacing: args.isPublicFacing || false,
+        phone: args.phone,
+        barCouncilNumber: args.barCouncilNumber,
+        barCouncilExpiry: args.barCouncilExpiry,
+        practiceAreas: args.practiceAreas,
         activationToken,
-        ...args
+        inviteExpiresAt,
       };
       globalUsers.push(newUser);
       notifyListeners();
-      
-      // Simulate Email Notification
-      setTimeout(() => {
-        toast.info(`📧 Email Sent: Invitation link delivered to ${args.email}`, {
-          duration: 6000,
-          description: `(MOCK) User must click link: http://localhost:3002/setup-account?token=${activationToken}`
-        });
-      }, 500);
 
-      return newUser._id;
+      if (sendInvite && args.email && activationToken) {
+        setTimeout(() => {
+          toast.info(`📧 Email Sent: Invitation link delivered to ${args.email}`, {
+            duration: 6000,
+            description: `(MOCK) User must click link: ${window.location.origin}/setup-account?token=${activationToken}`,
+          });
+        }, 500);
+      }
+
+      return { id, activationToken, inviteExpiresAt };
+    }
+
+    // users.resendInvitation
+    if (mutationName.includes("resendInvitation")) {
+      const token = "setup_" + Math.random().toString(36).substring(2, 15);
+      const expires = new Date(Date.now() + 7 * 86400000).toISOString();
+      globalUsers = globalUsers.map((u) =>
+        u._id === args.userId
+          ? { ...u, activationToken: token, isPending: true, isActive: false, inviteExpiresAt: expires }
+          : u,
+      );
+      notifyListeners();
+      return { success: true, activationToken: token, inviteExpiresAt: expires };
+    }
+
+    // users.archiveUser
+    if (mutationName.includes("archiveUser")) {
+      globalUsers = globalUsers.map((u) =>
+        u._id === args.userId ? { ...u, isActive: false } : u,
+      );
+      globalSessions = globalSessions.filter((s) => s.userId !== args.userId);
+      notifyListeners();
+      return { success: true, mode: "soft" };
+    }
+
+    // users.bulkUpdateUsers
+    if (mutationName.includes("bulkUpdateUsers")) {
+      let count = 0;
+      for (const userId of args.userIds || []) {
+        const user = globalUsers.find((u) => u._id === userId);
+        if (!user) continue;
+        if (args.action === "suspend") {
+          globalUsers = globalUsers.map((u) => (u._id === userId ? { ...u, isActive: false } : u));
+          count++;
+        } else if (args.action === "reactivate" && !user.isPending) {
+          globalUsers = globalUsers.map((u) => (u._id === userId ? { ...u, isActive: true } : u));
+          count++;
+        } else if (args.action === "resend_invite" && user.email && (user.isPending || !user.isActive)) {
+          const token = "setup_" + Math.random().toString(36).substring(2, 15);
+          globalUsers = globalUsers.map((u) =>
+            u._id === userId
+              ? { ...u, activationToken: token, isPending: true, isActive: false, inviteExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString() }
+              : u,
+          );
+          count++;
+        }
+      }
+      notifyListeners();
+      return { success: true, count };
+    }
+
+    // users.saveRolePermissions
+    if (mutationName.includes("saveRolePermissions")) {
+      (globalSettings as any).rolePermissions = args.permissions;
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.updateOwnProfile
+    if (mutationName.includes("updateOwnProfile")) {
+      const role = getStoredConfig().activeRole;
+      const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      globalUsers = globalUsers.map((u) =>
+        u._id === me._id ? { ...u, ...args } : u,
+      );
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.generateAvatarUploadUrl
+    if (mutationName.includes("generateAvatarUploadUrl")) {
+      return "mock-upload-url-" + Date.now();
+    }
+
+    // users.setAvatarFromStorage
+    if (mutationName.includes("setAvatarFromStorage")) {
+      const role = getStoredConfig().activeRole;
+      const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      const url = `https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=256&h=256&auto=format&fit=crop&mock=${args.storageId}`;
+      globalUsers = globalUsers.map((u) => (u._id === me._id ? { ...u, avatar: url } : u));
+      notifyListeners();
+      return { success: true, url };
+    }
+
+    // users.beginTotpEnrollment
+    if (mutationName.includes("beginTotpEnrollment")) {
+      const secret = "MOCK2FASECRET" + Math.random().toString(36).slice(2, 8).toUpperCase();
+      const role = getStoredConfig().activeRole;
+      const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      globalUsers = globalUsers.map((u) =>
+        u._id === me._id ? { ...u, totpSecret: secret, twoFactorEnabled: false } : u,
+      );
+      notifyListeners();
+      return {
+        secret,
+        otpauthUrl: `otpauth://totp/SrimarLaw:${me.email}?secret=${secret}&issuer=SrimarLaw`,
+      };
+    }
+
+    // users.confirmTotpEnrollment
+    if (mutationName.includes("confirmTotpEnrollment")) {
+      if (!args.code || args.code.length < 4) throw new Error("Invalid authenticator code");
+      const role = getStoredConfig().activeRole;
+      const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      globalUsers = globalUsers.map((u) =>
+        u._id === me._id ? { ...u, twoFactorEnabled: true } : u,
+      );
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.disableTotp
+    if (mutationName.includes("disableTotp")) {
+      if (!args.code || args.code.length < 4) throw new Error("Invalid authenticator code");
+      const role = getStoredConfig().activeRole;
+      const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      globalUsers = globalUsers.map((u) =>
+        u._id === me._id ? { ...u, twoFactorEnabled: false, totpSecret: undefined } : u,
+      );
+      notifyListeners();
+      return { success: true };
+    }
+
+    // users.revokeAllSessions
+    if (mutationName.includes("revokeAllSessions")) {
+      const before = globalSessions.length;
+      globalSessions = globalSessions.filter((s) => s.userId !== args.userId);
+      notifyListeners();
+      return { success: true, count: before - globalSessions.length };
     }
 
     // users.activateAccount
     if (mutationName.includes("activateAccount")) {
-      const { token, password } = args;
-      const userIndex = globalUsers.findIndex(u => u.activationToken === token);
+      const { token } = args;
+      const userIndex = globalUsers.findIndex((u) => u.activationToken === token);
       if (userIndex === -1) {
-        throw new Error("Invalid or expired activation link");
+        throw new Error("Invalid activation token");
       }
-      
-      // In a real app we'd hash the password and clear the token.
+      const user = globalUsers[userIndex];
+      if (user.inviteExpiresAt && new Date(user.inviteExpiresAt).getTime() < Date.now()) {
+        throw new Error("Invitation has expired. Ask an admin to resend the invite.");
+      }
+
       globalUsers[userIndex] = {
         ...globalUsers[userIndex],
         isPending: false,
-        activationToken: undefined
+        isActive: true,
+        activationToken: undefined,
+        inviteExpiresAt: undefined,
       };
       notifyListeners();
-      return { success: true };
+      return { success: true, userId: user._id, role: user.role };
     }
 
     // HR Mutations
@@ -1691,19 +1888,22 @@ export function useMutation(mutationFunc: any): any {
 
     // users.changePassword
     if (mutationName.includes("changePassword")) {
-      // Mock validating old password and setting new password
-      return { success: true };
+      const { currentPassword, newPassword } = args;
+      if (!newPassword || newPassword.length < 8) throw new Error("Password must be at least 8 characters");
+      if (currentPassword === undefined) throw new Error("Current password is required");
+      return { success: true, message: "Password updated." };
     }
 
-    // users.toggle2FA
+    // users.toggle2FA (deprecated)
     if (mutationName.includes("toggle2FA")) {
-      const { userId, enabled } = args;
-      globalUsers = globalUsers.map((user) => {
-        if (user._id === userId) {
-          return { ...user, twoFactorEnabled: enabled };
-        }
-        return user;
-      });
+      const role = getStoredConfig().activeRole;
+      const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      if (args.enabled) {
+        throw new Error("Use beginTotpEnrollment and confirmTotpEnrollment to enable 2FA");
+      }
+      globalUsers = globalUsers.map((u) =>
+        u._id === me._id ? { ...u, twoFactorEnabled: false, totpSecret: undefined } : u,
+      );
       notifyListeners();
       return { success: true };
     }

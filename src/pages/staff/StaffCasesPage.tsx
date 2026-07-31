@@ -24,7 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function StaffCasesPage() {
   const cases = useQuery(api.cases.listCases, {}) || [];
   const clients = useQuery(api.clients.listClients, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const createCase = useMutation(api.cases.createCase);
 

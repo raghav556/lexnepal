@@ -13,6 +13,7 @@ LexNepal is complete as a **single-firm** product. Schema already includes:
 4. **Per-firm branding** — theme colors, domain/subdomain routing
 5. **Platform billing** — LexNepal subscription separate from firm client invoices
 6. **Super-admin console** — manage firms, suspend, usage metrics
+7. **Enterprise IdP** — Okta / Azure AD SSO + SCIM provisioning (beyond current OIDC + TOTP UMS)
 
 ## Rule
 

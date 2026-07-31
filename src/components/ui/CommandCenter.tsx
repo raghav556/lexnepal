@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Send, Lock, MessageCircle, FileText, User, Paperclip, Users, ShieldCheck } from "lucide-react";
+import { X, Send, Lock, MessageCircle, FileText, User, Paperclip, Users, ShieldCheck, ChevronLeft } from "lucide-react";
 import { Button } from "./button.tsx";
 import { Input } from "./input.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -17,16 +17,21 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
     ? allCases 
     : allCases.filter((c: any) => c.assignedLawyerId === currentUser?._id);
 
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const STAFF_ROLES = ["admin", "partner", "associate", "paralegal"];
   const staffUsers = users.filter((u: any) => STAFF_ROLES.includes(u.role) && u._id !== currentUser?._id);
   
   const [activeTab, setActiveTab] = useState<"cases" | "team">("cases");
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
   const [draft, setDraft] = useState("");
   const [isInternal, setIsInternal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) setMobileShowChat(false);
+  }, [isOpen]);
 
   const currentThreadId = activeTab === "cases" 
     ? selectedCase 
@@ -115,7 +120,10 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
             className="fixed top-0 right-0 h-screen w-full md:w-[850px] bg-background border-l border-border z-[101] flex flex-col md:flex-row shadow-2xl"
           >
             {/* Left Sidebar: Threads */}
-            <div className="w-full md:w-[280px] border-r border-border flex flex-col bg-muted/10">
+            <div className={cn(
+              "w-full md:w-[280px] border-r border-border flex-col bg-muted/10",
+              mobileShowChat ? "hidden md:flex" : "flex"
+            )}>
               <div className="p-4 border-b border-border bg-background flex items-center justify-between">
                 <h2 className="font-serif font-bold text-lg flex items-center gap-2">
                   <MessageCircle className="w-5 h-5 text-accent" />
@@ -129,7 +137,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
               {/* Tabs */}
               <div className="flex p-2 gap-1 bg-background border-b border-border">
                 <button
-                  onClick={() => setActiveTab("cases")}
+                  onClick={() => { setActiveTab("cases"); setMobileShowChat(false); }}
                   className={cn("flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors",
                     activeTab === "cases" ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-muted"
                   )}
@@ -137,7 +145,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   Client Cases
                 </button>
                 <button
-                  onClick={() => setActiveTab("team")}
+                  onClick={() => { setActiveTab("team"); setMobileShowChat(false); }}
                   className={cn("flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1.5",
                     activeTab === "team" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
                   )}
@@ -155,7 +163,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   return (
                     <button
                       key={c._id}
-                      onClick={() => setSelectedCase(c._id)}
+                      onClick={() => { setSelectedCase(c._id); setMobileShowChat(true); }}
                       className={cn(
                         "w-full text-left p-3 rounded-lg transition-all duration-200 border",
                         isActive 
@@ -179,7 +187,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     return (
                       <button
                         key={u._id}
-                        onClick={() => setSelectedStaff(u._id)}
+                        onClick={() => { setSelectedStaff(u._id); setMobileShowChat(true); }}
                         className={cn(
                           "w-full text-left p-3 rounded-lg transition-all duration-200 border flex items-center gap-3",
                           isActive 
@@ -206,8 +214,39 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
             </div>
 
             {/* Middle: Chat Thread */}
-            <div className="flex-1 flex flex-col bg-background relative">
-              {/* Header */}
+            <div className={cn(
+              "flex-1 flex-col bg-background relative",
+              mobileShowChat ? "flex" : "hidden md:flex"
+            )}>
+              {/* Mobile header: back + close */}
+              <div className="h-14 border-b border-border px-3 flex items-center justify-between bg-background z-10 flex md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileShowChat(false)}
+                  className="p-2 text-muted-foreground hover:text-foreground"
+                  aria-label="Back to threads"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1 min-w-0 px-2 text-center">
+                  {activeTab === "cases" ? (
+                    <>
+                      <h3 className="font-bold text-sm text-foreground truncate">{caseDetails?.caseDetails?.title || "Chat"}</h3>
+                      <p className="text-[10px] text-muted-foreground truncate">{caseDetails?.clientDetails?.name}</p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="font-bold text-sm text-foreground truncate">{staffDetails?.name || "Team Chat"}</h3>
+                      <p className="text-[10px] text-muted-foreground">Secure 1-on-1</p>
+                    </>
+                  )}
+                </div>
+                <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground" aria-label="Close">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Desktop header */}
               <div className="h-16 border-b border-border px-6 flex items-center justify-between bg-background z-10 hidden md:flex">
                 {activeTab === "cases" ? (
                   <div>

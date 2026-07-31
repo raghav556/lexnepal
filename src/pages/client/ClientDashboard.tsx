@@ -29,7 +29,7 @@ export default function ClientDashboard() {
     clientId ? { clientId: clientId as any } : "skip",
   ) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const documents = useQuery(api.documents.listDocuments, {}) || [];
 
   const caseIds = new Set(cases.map((c: any) => c._id));

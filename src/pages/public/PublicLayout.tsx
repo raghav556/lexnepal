@@ -91,8 +91,8 @@ export default function PublicLayout() {
 
       {/* Top Bar */}
       <div className="hidden md:block bg-primary text-primary-foreground py-2 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="flex gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-y-2">
+          <div className="flex flex-wrap gap-4 sm:gap-6">
             <a href={`tel:${settings?.phone || "+97701XXXXXXX"}`} className="flex items-center gap-1.5 hover:text-accent transition-colors">
               <Phone className="w-3.5 h-3.5" /> {settings?.phone || "+977 01 XXXXXXX"}
             </a>
@@ -102,14 +102,16 @@ export default function PublicLayout() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-primary-foreground/60">Office Hours: Sun-Fri 9AM-6PM</span>
-            <div className="w-px h-4 bg-primary-foreground/20" />
-            <div className="flex gap-3">
-              <a href={settings?.facebookUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Facebook"><Facebook className="w-4 h-4" /></a>
-              <a href={settings?.linkedinUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="LinkedIn"><Linkedin className="w-4 h-4" /></a>
-              <a href={settings?.twitterUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Twitter"><Twitter className="w-4 h-4" /></a>
-              <a href={settings?.instagramUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Instagram"><Instagram className="w-4 h-4" /></a>
-              <a href={settings?.youtubeUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="YouTube"><Youtube className="w-4 h-4" /></a>
-              <a href={settings?.tiktokUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="TikTok"><Video className="w-4 h-4" /></a>
+            <div className="hidden lg:flex items-center gap-4">
+              <div className="w-px h-4 bg-primary-foreground/20" />
+              <div className="flex gap-3">
+                <a href={settings?.facebookUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Facebook"><Facebook className="w-4 h-4" /></a>
+                <a href={settings?.linkedinUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="LinkedIn"><Linkedin className="w-4 h-4" /></a>
+                <a href={settings?.twitterUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Twitter"><Twitter className="w-4 h-4" /></a>
+                <a href={settings?.instagramUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Instagram"><Instagram className="w-4 h-4" /></a>
+                <a href={settings?.youtubeUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="YouTube"><Youtube className="w-4 h-4" /></a>
+                <a href={settings?.tiktokUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="TikTok"><Video className="w-4 h-4" /></a>
+              </div>
             </div>
           </div>
         </div>
@@ -174,16 +176,16 @@ export default function PublicLayout() {
               </Button>
             </div>
 
-            <button className="md:hidden p-2" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">
+            <button className="lg:hidden p-2" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile menu with slide animation */}
+        {/* Mobile / tablet menu with slide animation */}
         <div className={cn(
-          "md:hidden border-t border-border bg-background overflow-hidden transition-all duration-300 ease-in-out",
-          mobileOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 border-t-0"
+          "lg:hidden border-t border-border bg-background overflow-hidden transition-all duration-300 ease-in-out",
+          mobileOpen ? "max-h-[min(70vh,32rem)] opacity-100 overflow-y-auto" : "max-h-0 opacity-0 border-t-0"
         )}>
           <div className="px-4 py-4 space-y-3">
             {navLinks.map((l) => (

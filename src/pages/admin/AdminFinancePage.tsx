@@ -143,32 +143,43 @@ export default function AdminFinancePage() {
     );
   }
 
+  const kpiCards = [
+    { label: "Collected", value: formatNPR(totalRevenue), color: "text-green-500" },
+    { label: "Outstanding", value: formatNPR(totalOutstanding), color: "text-red-500" },
+    { label: "Trust Escrow", value: formatNPR(trustBalance), color: "text-primary" },
+  ];
+
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <h1 className="font-serif text-2xl font-bold text-foreground">Finance & Compliance</h1>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Collected", value: formatNPR(totalRevenue), color: "text-green-500" },
-          { label: "Outstanding", value: formatNPR(totalOutstanding), color: "text-red-500" },
-          { label: "Total Trust Escrow", value: formatNPR(trustBalance), color: "text-primary" },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
+      <div className="min-w-0">
+        <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Finance & Compliance</h1>
+        <p className="text-sm text-muted-foreground mt-1">Invoices, collections, and trust ledger.</p>
+      </div>
+
+      {/* 2-col on phone (3rd spans full), 3-col from sm — avoids one huge card per row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {kpiCards.map((s, i) => (
+          <Card
+            key={s.label}
+            className={`min-w-0 overflow-hidden ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <p className={`text-base sm:text-xl font-bold tabular-nums leading-tight break-words ${s.color}`}>
+                {s.value}
+              </p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-w-0">
+        <Card className="lg:col-span-2 min-w-0 overflow-hidden">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b px-3 sm:px-6">
             <CardTitle className="text-base font-semibold font-serif">Invoices</CardTitle>
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
-                <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Invoice</Button>
+                <Button size="sm" className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-1" /> New Invoice</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -208,7 +219,7 @@ export default function AdminFinancePage() {
               </DialogContent>
             </Dialog>
           </CardHeader>
-          <CardContent className="space-y-3 pt-4">
+          <CardContent className="space-y-3 pt-4 px-3 sm:px-6">
             {invoices.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No invoices found.</p>
             ) : (
@@ -217,18 +228,18 @@ export default function AdminFinancePage() {
                 const caseNum = cases.find((c: any) => c._id === inv.caseId)?.caseNumber || "Matter";
                 
                 return (
-                  <div key={inv._id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Receipt className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{inv.invoiceNumber} — {clientName}</p>
-                        <p className="text-xs text-muted-foreground">{caseNum} | Issued: {inv.issuedDate} | Due: {inv.dueDate}</p>
-                        <p className="text-xs text-muted-foreground font-mono">Subtotal: {formatNPR(inv.subtotal)} + VAT (13%): {formatNPR(inv.vatAmount)}</p>
+                  <div key={inv._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border rounded-lg min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Receipt className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{inv.invoiceNumber} — {clientName}</p>
+                        <p className="text-xs text-muted-foreground break-words">{caseNum} · {inv.issuedDate} · Due {inv.dueDate}</p>
+                        <p className="text-xs text-muted-foreground font-mono break-words">Subtotal {formatNPR(inv.subtotal)} + VAT {formatNPR(inv.vatAmount)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-foreground">{formatNPR(inv.total)}</p>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end pl-8 sm:pl-0">
+                      <div className="text-left sm:text-right mr-auto sm:mr-0">
+                        <p className="text-sm font-bold text-foreground tabular-nums">{formatNPR(inv.total)}</p>
                         <Badge className={`text-[10px] uppercase ${STATUS_COLORS[inv.status] || "bg-gray-100"}`}>{inv.status}</Badge>
                       </div>
                       {inv.status === "draft" && (
@@ -257,30 +268,30 @@ export default function AdminFinancePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6">
             <CardTitle className="text-base font-semibold font-serif">Trust Ledger (All)</CardTitle>
-            <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleTrustReceipt}>
+            <Button size="sm" variant="outline" className="text-xs h-7 w-full sm:w-auto" onClick={handleTrustReceipt}>
               + Receipt
             </Button>
           </CardHeader>
-          <CardContent className="pt-4 space-y-2 max-h-[60vh] overflow-y-auto">
+          <CardContent className="pt-4 space-y-2 max-h-[60vh] overflow-y-auto px-3 sm:px-6">
             {trustLedger.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No trust transactions.</p>
             ) : (
               trustLedger.map((t: any) => {
                 const clientName = clients.find((c: any) => c._id === t.clientId)?.fullName || "Client";
                 return (
-                  <div key={t._id} className="p-3 border border-border rounded-lg bg-card text-xs">
-                    <div className="flex justify-between items-start mb-1">
-                      <p className="font-semibold text-foreground line-clamp-1 flex-1">{t.description}</p>
-                      <p className={`font-bold ml-2 ${t.type === "receipt" ? "text-green-500" : "text-red-500"}`}>
+                  <div key={t._id} className="p-3 border border-border rounded-lg bg-card text-xs min-w-0">
+                    <div className="flex justify-between items-start gap-2 mb-1 min-w-0">
+                      <p className="font-semibold text-foreground line-clamp-2 min-w-0 flex-1">{t.description}</p>
+                      <p className={`font-bold shrink-0 tabular-nums ${t.type === "receipt" ? "text-green-500" : "text-red-500"}`}>
                         {t.type === "receipt" ? "+" : "-"}{formatNPR(t.amount)}
                       </p>
                     </div>
-                    <div className="flex justify-between text-muted-foreground">
+                    <div className="flex justify-between gap-2 text-muted-foreground min-w-0">
                       <span className="truncate">{clientName}</span>
-                      <span>{t.date}</span>
+                      <span className="shrink-0">{t.date}</span>
                     </div>
                   </div>
                 );

@@ -30,7 +30,7 @@ export default function StaffTasksPage() {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const tasks = useQuery(api.tasks.listTasks, {}) || [];
   const cases = useQuery(api.cases.listCases, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
 
   const createTask = useMutation(api.tasks.createTask);
   const updateTask = useMutation(api.tasks.updateTask);

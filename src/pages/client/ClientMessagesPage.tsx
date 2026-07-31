@@ -14,7 +14,7 @@ export default function ClientMessagesPage() {
   const clientRecord = useQuery(api.clients.getMyClientRecord, {});
   const clientId = clientRecord?._id;
   const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
 
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState("");

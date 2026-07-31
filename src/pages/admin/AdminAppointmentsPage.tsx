@@ -13,7 +13,7 @@ import { FadeInUp } from "@/components/ui/animations.tsx";
 
 export default function AdminAppointmentsPage() {
   const appointments = useQuery(api.appointments.listAppointments, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   
   const lawyers = users.filter((u: any) => ["partner", "associate", "senior_associate"].includes(u.role));
   
@@ -129,31 +129,54 @@ export default function AdminAppointmentsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Appointments & Calendar</h1>
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-foreground">Appointments & Calendar</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage firm schedule, online consultations, and lawyer assignments.</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+        <Button onClick={() => setIsCreateOpen(true)} className="gap-2 w-full sm:w-auto shrink-0">
           <Plus className="w-4 h-4" /> Book Appointment
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-4 rounded-xl border border-border">
-        <div className="flex bg-muted p-1 rounded-lg">
-          <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="gap-2">
-            <List className="w-4 h-4" /> List View
+      {/* View + filters: equal-width controls so labels never clip on narrow phones */}
+      <div className="flex flex-col gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border w-full min-w-0">
+        <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg w-full min-w-0">
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="gap-1.5 min-w-0 h-9 text-xs sm:text-sm"
+          >
+            <List className="w-4 h-4 shrink-0" />
+            <span className="truncate">List</span>
+            <span className="hidden sm:inline truncate">View</span>
           </Button>
-          <Button variant={viewMode === "calendar" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("calendar")} className="gap-2">
-            <CalendarDays className="w-4 h-4" /> Calendar View
+          <Button
+            variant={viewMode === "calendar" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("calendar")}
+            className="gap-1.5 min-w-0 h-9 text-xs sm:text-sm"
+          >
+            <CalendarDays className="w-4 h-4 shrink-0" />
+            <span className="truncate">Calendar</span>
+            <span className="hidden sm:inline truncate">View</span>
           </Button>
         </div>
-        <div className="flex gap-2">
-          <Button variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")} size="sm">All</Button>
-          <Button variant={filter === "pending" ? "default" : "outline"} onClick={() => setFilter("pending")} size="sm">Pending</Button>
-          <Button variant={filter === "confirmed" ? "default" : "outline"} onClick={() => setFilter("confirmed")} size="sm">Confirmed</Button>
-          <Button variant={filter === "cancelled" ? "default" : "outline"} onClick={() => setFilter("cancelled")} size="sm">Cancelled</Button>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full min-w-0">
+          <Button variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")} size="sm" className="w-full h-9 text-xs sm:text-sm">
+            All
+          </Button>
+          <Button variant={filter === "pending" ? "default" : "outline"} onClick={() => setFilter("pending")} size="sm" className="w-full h-9 text-xs sm:text-sm">
+            Pending
+          </Button>
+          <Button variant={filter === "confirmed" ? "default" : "outline"} onClick={() => setFilter("confirmed")} size="sm" className="w-full h-9 text-xs sm:text-sm">
+            Confirmed
+          </Button>
+          <Button variant={filter === "cancelled" ? "default" : "outline"} onClick={() => setFilter("cancelled")} size="sm" className="w-full h-9 text-xs sm:text-sm">
+            Cancelled
+          </Button>
         </div>
       </div>
 
@@ -163,7 +186,8 @@ export default function AdminAppointmentsPage() {
             <CardHeader className="bg-muted/30 border-b pb-4">
               <CardTitle className="text-xl">{today.toLocaleString('default', { month: 'long', year: 'numeric' })}</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
+              <div className="min-w-[720px]">
               <div className="grid grid-cols-7 border-b border-border text-sm font-medium text-center">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="py-3 border-r border-border last:border-0 bg-muted/20 text-muted-foreground">{day}</div>
@@ -177,7 +201,7 @@ export default function AdminAppointmentsPage() {
                   const isToday = isCurrentMonth && dayNumber === today.getDate();
 
                   return (
-                    <div key={i} className={`min-h-[120px] p-2 border-r border-b border-border relative ${!isCurrentMonth ? 'bg-muted/10 text-muted-foreground/30' : 'bg-background hover:bg-muted/10 transition-colors'}`}>
+                    <div key={i} className={`min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-border relative ${!isCurrentMonth ? 'bg-muted/10 text-muted-foreground/30' : 'bg-background hover:bg-muted/10 transition-colors'}`}>
                       {isCurrentMonth && (
                         <>
                           <div className={`text-sm font-medium mb-1 ${isToday ? 'bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center' : ''}`}>
@@ -198,6 +222,7 @@ export default function AdminAppointmentsPage() {
                     </div>
                   );
                 })}
+              </div>
               </div>
             </CardContent>
           </Card>
@@ -228,7 +253,7 @@ export default function AdminAppointmentsPage() {
                       {/* Main Details */}
                       <div className="p-6 flex-1 flex flex-col justify-between">
                         <div>
-                          <div className="flex justify-between items-start mb-2">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
                             <div>
                               <h3 className="text-xl font-serif font-bold text-foreground">{apt.clientName}</h3>
                               <p className="text-sm text-muted-foreground font-medium">{apt.clientPhone} {apt.clientEmail && `• ${apt.clientEmail}`}</p>
@@ -277,7 +302,7 @@ export default function AdminAppointmentsPage() {
                               onValueChange={(val) => handleAssign(apt._id, val)}
                               disabled={apt.status === "cancelled" || apt.status === "completed"}
                             >
-                              <SelectTrigger className="w-[200px] h-9 bg-background">
+                              <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
                                 <SelectValue placeholder="Assign Lawyer..." />
                               </SelectTrigger>
                               <SelectContent>
@@ -347,7 +372,7 @@ export default function AdminAppointmentsPage() {
               <label className="text-sm font-medium text-foreground">Client Name</label>
               <Input required value={createData.clientName} onChange={e => setCreateData({...createData, clientName: e.target.value})} placeholder="Full Name" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Phone</label>
                 <Input required value={createData.clientPhone} onChange={e => setCreateData({...createData, clientPhone: e.target.value})} placeholder="Phone number" />
@@ -357,7 +382,7 @@ export default function AdminAppointmentsPage() {
                 <Input type="email" value={createData.clientEmail} onChange={e => setCreateData({...createData, clientEmail: e.target.value})} placeholder="Email address" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Date</label>
                 <Input type="date" required value={createData.date} onChange={e => setCreateData({...createData, date: e.target.value})} />

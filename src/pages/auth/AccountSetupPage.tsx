@@ -42,10 +42,11 @@ export default function AccountSetupPage() {
     setIsSubmitting(true);
     try {
       await activateAccount({ token, password });
-      toast.success("Account activated successfully! You can now log in.");
-      navigate("/"); 
+      toast.success("Account activated successfully! You can now sign in.");
+      navigate("/sign-in");
     } catch (error: any) {
-      toast.error(error.message || "Failed to activate account.");
+      const msg = error?.data?.message || error?.message || "Failed to activate account.";
+      toast.error(msg.includes("expired") ? "This invitation has expired. Ask an admin to resend the invite." : msg);
     } finally {
       setIsSubmitting(false);
     }

@@ -109,12 +109,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+        <Card className="min-w-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold font-serif">Monthly Revenue (NPR)</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0">
+            <div className="min-w-0">
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthlyRevenue}>
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
@@ -123,14 +124,16 @@ export default function AdminDashboard() {
                 <Line type="monotone" dataKey="revenue" stroke="oklch(0.68 0.12 60)" strokeWidth={2} dot={{ fill: "oklch(0.68 0.12 60)", r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold font-serif">Active Cases by Practice Area</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0">
+            <div className="min-w-0">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={casesByArea.length > 0 ? casesByArea : [
                 { area: "Corporate", count: 8 }, { area: "Criminal", count: 5 },
@@ -143,6 +146,7 @@ export default function AdminDashboard() {
                 <Bar dataKey="count" fill="oklch(0.32 0.06 265)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -161,7 +165,7 @@ export default function AdminDashboard() {
                 const pct = Math.round((s.hours / s.target) * 100);
                 return (
                   <div key={s.name} className="flex items-center gap-4">
-                    <div className="w-40 flex-shrink-0 text-right">
+                    <div className="w-24 sm:w-40 shrink-0 min-w-0 text-right">
                       <p className="text-sm font-medium text-foreground capitalize">{s.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">{s.role}</p>
                     </div>

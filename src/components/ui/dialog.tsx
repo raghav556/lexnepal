@@ -24,7 +24,7 @@ export function DialogTrigger({ children, asChild }: any) {
 const DialogContent = React.forwardRef<HTMLDivElement, any>(({ className, children, onClose, ...props }, ref) => (
   <div
     ref={ref}
-    className={`bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in-50 zoom-in-95 ${className || ""}`}
+    className={`bg-card border border-border rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-4 animate-in fade-in-50 zoom-in-95 ${className || ""}`}
     {...props}
   >
     {children}

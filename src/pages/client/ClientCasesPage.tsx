@@ -19,7 +19,7 @@ export default function ClientCasesPage() {
   const clientRecord = useQuery(api.clients.getMyClientRecord, {});
   const clientId = clientRecord?._id;
   const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
 
   if (currentUser === undefined || clientRecord === undefined) {

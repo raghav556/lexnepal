@@ -28,7 +28,7 @@ export default function StaffCaseDetailPage() {
 
   const caseData = useQuery(api.cases.getCase, caseId ? { caseId: caseId as any } : "skip");
   const clients = useQuery(api.clients.listClients, {}) || [];
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const hearings = useQuery(api.hearings.listHearings, caseId ? { caseId: caseId as any } : "skip") || [];
   const documents = useQuery(api.documents.listDocuments as any, caseId ? { caseId: caseId as any } : "skip") || [];
   const updateCase = useMutation(api.cases.updateCase);

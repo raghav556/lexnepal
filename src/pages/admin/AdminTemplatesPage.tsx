@@ -127,7 +127,7 @@ export default function AdminTemplatesPage() {
             <DialogTitle>{editingTemplate ? "Edit Template" : "New Template"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4 flex-1 overflow-y-auto pr-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Template Title</label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Standard Retainer Agreement" />
@@ -149,9 +149,9 @@ export default function AdminTemplatesPage() {
             </div>
             
             <div className="space-y-2 flex-1 flex flex-col min-h-[300px]">
-              <div className="flex justify-between items-end">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-2">
                 <label className="text-sm font-medium text-foreground">Content</label>
-                <span className="text-xs text-muted-foreground">Available Variables: {'{{CLIENT_NAME}}, {{CLIENT_PHONE}}, {{CASE_NUMBER}}, {{CASE_TITLE}}, {{COURT_NAME}}, {{JUDGE_NAME}}, {{TODAY_DATE}}'}</span>
+                <span className="text-xs text-muted-foreground break-all">Available Variables: {'{{CLIENT_NAME}}, {{CLIENT_PHONE}}, {{CASE_NUMBER}}, {{CASE_TITLE}}, {{COURT_NAME}}, {{JUDGE_NAME}}, {{TODAY_DATE}}'}</span>
               </div>
               <Textarea 
                 value={content} 

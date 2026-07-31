@@ -45,6 +45,15 @@ export default defineSchema({
     activationToken: v.optional(v.string()),
     isPending: v.optional(v.boolean()),
     twoFactorEnabled: v.optional(v.boolean()),
+    twoFactorRequired: v.optional(v.boolean()),
+    totpSecret: v.optional(v.string()),
+    passwordHash: v.optional(v.string()),
+    lastLoginAt: v.optional(v.string()),
+    invitedAt: v.optional(v.string()),
+    invitedBy: v.optional(v.id("users")),
+    inviteExpiresAt: v.optional(v.string()),
+    deactivatedAt: v.optional(v.string()),
+    deactivatedBy: v.optional(v.id("users")),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_role", ["role"])
