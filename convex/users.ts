@@ -68,3 +68,77 @@ export const updateUser = mutation({
     await ctx.db.patch(userId, updates);
   },
 });
+
+export const createUser = mutation({
+  args: {
+    name: v.string(),
+    email: v.optional(v.string()),
+    role: v.union(
+      v.literal("partner"), v.literal("senior_associate"), v.literal("associate"),
+      v.literal("paralegal"), v.literal("intern"), v.literal("admin"), v.literal("client"),
+    ),
+    isPublicFacing: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+    const tokenIdentifier = "manual_" + Math.random().toString(36).substring(2, 15);
+    const id = await ctx.db.insert("users", {
+      tokenIdentifier,
+      name: args.name,
+      email: args.email,
+      role: args.role,
+      isActive: true,
+      isPublicFacing: args.isPublicFacing || false,
+    });
+    return id;
+  },
+});
+
+export const deleteUser = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+    await ctx.db.delete(args.userId);
+  },
+});
+
+export const updateProfile = mutation({
+  args: {
+    userId: v.id("users"),
+    name: v.optional(v.string()),
+    role: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    longBio: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
+    twitterUrl: v.optional(v.string()),
+    publicEmail: v.optional(v.string()),
+    barCouncilNumber: v.optional(v.string()),
+    isPublicFacing: v.optional(v.boolean()),
+    practiceAreas: v.optional(v.array(v.string())),
+    notableCases: v.optional(v.array(v.string())),
+    education: v.optional(v.array(v.object({
+      degree: v.string(),
+      institution: v.string(),
+      year: v.string(),
+    }))),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+    const { userId, ...updates } = args;
+    await ctx.db.patch(userId, updates);
+  },
+});
+
+export const togglePublicStatus = mutation({
+  args: {
+    userId: v.id("users"),
+    isPublicFacing: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+    await ctx.db.patch(args.userId, { isPublicFacing: args.isPublicFacing });
+  },
+});

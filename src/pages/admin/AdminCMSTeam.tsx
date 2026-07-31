@@ -1,241 +1,461 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
+import React, { useState, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { Users, Save, CheckCircle, XCircle, UserCircle } from "lucide-react";
+import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
 
 export default function AdminCMSTeam() {
   const users = useQuery(api.users.listUsers, {}) || [];
+  const createUser = useMutation(api.users.createUser);
   const updateTeamMember = useMutation(api.users.updateProfile);
-  
-  // Filter only staff that could be public facing
-  const eligibleStaff = users.filter((u: any) => 
-    ["partner", "senior_associate", "associate"].includes(u.role)
-  );
+  const deleteUser = useMutation(api.users.deleteUser);
+  const togglePublicStatus = useMutation(api.users.togglePublicStatus);
 
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u: any) => {
+      // Only partners, associates, and paralegals usually go on the public page
+      const isEligibleRole = ["partner", "senior_associate", "associate", "paralegal"].includes(u.role);
+      if (!isEligibleRole) return false;
+      
+      const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
+      const matchesRole = roleFilter === "all" || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchQuery, roleFilter]);
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [activeTab, setActiveTab] = useState<"basic" | "professional" | "education">("basic");
+  
+  // Form State
+  const [formData, setFormData] = useState<any>({
+    name: "",
+    email: "",
+    role: "associate",
+    isPublicFacing: false,
+    bio: "",
+    longBio: "",
+    avatarUrl: "",
+    linkedinUrl: "",
+    twitterUrl: "",
+    publicEmail: "",
+    barCouncilNumber: "",
+    practiceAreas: [],
+    notableCases: [],
+    education: [],
+  });
   const [isSaving, setIsSaving] = useState(false);
 
-  const startEditing = (user: any) => {
+  const openCreateModal = () => {
+    setModalMode("create");
+    setEditingId(null);
+    setFormData({
+      name: "", email: "", role: "associate", isPublicFacing: false,
+      bio: "", longBio: "", avatarUrl: "", linkedinUrl: "", twitterUrl: "", publicEmail: "", barCouncilNumber: "",
+      practiceAreas: [], notableCases: [], education: [],
+    });
+    setActiveTab("basic");
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user: any) => {
+    setModalMode("edit");
     setEditingId(user._id);
     setFormData({
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "associate",
       isPublicFacing: user.isPublicFacing || false,
       bio: user.bio || "",
+      longBio: user.longBio || "",
       avatarUrl: user.avatarUrl || "",
       linkedinUrl: user.linkedinUrl || "",
       twitterUrl: user.twitterUrl || "",
       publicEmail: user.publicEmail || "",
-      longBio: user.longBio || "",
-      practiceAreasStr: (user.practiceAreas || []).join(", "),
-      notableCasesStr: (user.notableCases || []).join("\n"),
-      educationStr: (user.education || []).map((e: any) => `${e.degree} | ${e.institution} | ${e.year}`).join("\n"),
+      barCouncilNumber: user.barCouncilNumber || "",
+      practiceAreas: user.practiceAreas || [],
+      notableCases: user.notableCases || [],
+      education: user.education || [],
     });
+    setActiveTab("basic");
+    setIsModalOpen(true);
   };
 
-  const handleSave = async (id: string) => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSaving(true);
     try {
-      const payload = {
-        ...formData,
-        practiceAreas: formData.practiceAreasStr.split(",").map((s: string) => s.trim()).filter(Boolean),
-        notableCases: formData.notableCasesStr.split("\n").map((s: string) => s.trim()).filter(Boolean),
-        education: formData.educationStr.split("\n").map((line: string) => {
-          const parts = line.split("|").map(s => s.trim());
-          return { degree: parts[0] || "", institution: parts[1] || "", year: parts[2] || "" };
-        }).filter((e: any) => e.degree !== ""),
-      };
-      delete payload.practiceAreasStr;
-      delete payload.notableCasesStr;
-      delete payload.educationStr;
-      
-      await updateTeamMember({ userId: id, ...payload });
-      toast.success("Team member updated successfully.");
-      setEditingId(null);
+      if (modalMode === "create") {
+        await createUser({
+          name: formData.name,
+          email: formData.email,
+          role: formData.role as any,
+          isPublicFacing: formData.isPublicFacing,
+        });
+        toast.success("Team member created successfully. You can now edit their details.");
+      } else if (editingId) {
+        await updateTeamMember({
+          userId: editingId as any,
+          ...formData,
+        });
+        toast.success("Team member updated successfully.");
+      }
+      setIsModalOpen(false);
     } catch (error) {
-      toast.error("Failed to update team member.");
+      toast.error("An error occurred while saving.");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to completely remove this team member? This action cannot be undone.")) {
+      try {
+        await deleteUser({ userId: id as any });
+        toast.success("Team member deleted.");
+      } catch (e) {
+        toast.error("Failed to delete user.");
+      }
+    }
+  };
+
+  const toggleStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await togglePublicStatus({ userId: id as any, isPublicFacing: !currentStatus });
+      toast.success(`User is now ${!currentStatus ? 'Public' : 'Hidden'}.`);
+    } catch (e) {
+      toast.error("Failed to update status.");
+    }
+  };
+
+  // Dynamic Array Handlers
+  const addArrayItem = (field: "practiceAreas" | "notableCases") => {
+    setFormData({ ...formData, [field]: [...formData[field], ""] });
+  };
+  const updateArrayItem = (field: "practiceAreas" | "notableCases", index: number, value: string) => {
+    const newArray = [...formData[field]];
+    newArray[index] = value;
+    setFormData({ ...formData, [field]: newArray });
+  };
+  const removeArrayItem = (field: "practiceAreas" | "notableCases", index: number) => {
+    const newArray = formData[field].filter((_: any, i: number) => i !== index);
+    setFormData({ ...formData, [field]: newArray });
+  };
+
+  const addEducation = () => {
+    setFormData({ ...formData, education: [...formData.education, { degree: "", institution: "", year: "" }] });
+  };
+  const updateEducation = (index: number, key: string, value: string) => {
+    const newEdu = [...formData.education];
+    newEdu[index] = { ...newEdu[index], [key]: value };
+    setFormData({ ...formData, education: newEdu });
+  };
+  const removeEducation = (index: number) => {
+    const newEdu = formData.education.filter((_: any, i: number) => i !== index);
+    setFormData({ ...formData, education: newEdu });
+  };
+
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
+    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Dynamic Team Roster</h1>
-          <p className="text-muted-foreground mt-1">Manage which advocates appear on the public 'Our Team' page.</p>
+          <h1 className="text-3xl font-serif font-bold text-foreground">Team Roster Management</h1>
+          <p className="text-muted-foreground mt-1">Manage public profiles, credentials, and visibility of your legal team.</p>
         </div>
+        <Button onClick={openCreateModal} className="gap-2">
+          <Plus className="w-4 h-4" /> Add Team Member
+        </Button>
       </div>
 
-      <div className="grid gap-6">
-        {eligibleStaff.map((user: any) => (
-          <Card key={user._id}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden border border-border">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <UserCircle className="w-6 h-6" />
-                  )}
+      {/* Controls */}
+      <Card className="bg-card">
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by name..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <select 
+              className="bg-background text-foreground border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="partner">Partners</option>
+              <option value="senior_associate">Senior Associates</option>
+              <option value="associate">Associates</option>
+              <option value="paralegal">Paralegals</option>
+            </select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Data Table */}
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted/50 text-muted-foreground uppercase border-b border-border">
+              <tr>
+                <th className="px-6 py-4 font-medium">Team Member</th>
+                <th className="px-6 py-4 font-medium">Role</th>
+                <th className="px-6 py-4 font-medium">Visibility</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                    No team members found matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user: any) => (
+                  <tr key={user._id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border flex-shrink-0">
+                          {user.avatarUrl ? (
+                            <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <UserCircle className="w-6 h-6 text-primary" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-foreground">{user.name}</div>
+                          <div className="text-xs text-muted-foreground">{user.email || 'No email provided'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className="capitalize">
+                        {user.role.replace("_", " ")}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button 
+                        onClick={() => toggleStatus(user._id, user.isPublicFacing)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          user.isPublicFacing 
+                            ? "bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20" 
+                            : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                        }`}
+                      >
+                        {user.isPublicFacing ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {user.isPublicFacing ? "Public" : "Hidden"}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEditModal(user)}>
+                          <Edit2 className="w-4 h-4 mr-2" /> Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(user._id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Editor Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-border bg-background">
+          <div className="p-6 border-b border-border bg-muted/30">
+            <h2 className="text-2xl font-serif font-bold text-foreground">
+              {modalMode === "create" ? "Add New Team Member" : `Edit ${formData.name}'s Profile`}
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">Fill out the information below to update the public roster.</p>
+          </div>
+          
+          <div className="flex border-b border-border px-6 pt-2 bg-muted/10 gap-6 text-sm font-medium">
+            <button 
+              className={`pb-3 border-b-2 transition-colors ${activeTab === "basic" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setActiveTab("basic")}
+            >
+              Basic Info
+            </button>
+            <button 
+              className={`pb-3 border-b-2 transition-colors ${activeTab === "professional" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setActiveTab("professional")}
+            >
+              Professional Background
+            </button>
+            <button 
+              className={`pb-3 border-b-2 transition-colors ${activeTab === "education" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setActiveTab("education")}
+            >
+              Education
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 bg-background">
+            {activeTab === "basic" && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Full Name</label>
+                    <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Ramesh Badal" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Role</label>
+                    <select 
+                      className="w-full bg-background border border-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                      value={formData.role}
+                      onChange={e => setFormData({...formData, role: e.target.value})}
+                    >
+                      <option value="partner">Partner</option>
+                      <option value="senior_associate">Senior Associate</option>
+                      <option value="associate">Associate</option>
+                      <option value="paralegal">Paralegal</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg">{user.name}</CardTitle>
-                  <CardDescription className="capitalize flex items-center gap-2">
-                    {user.role.replace("_", " ")}
-                    {user.isPublicFacing ? (
-                      <Badge className="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-0 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Public
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground flex items-center gap-1">
-                        <XCircle className="w-3 h-3" /> Hidden
-                      </Badge>
-                    )}
-                  </CardDescription>
+                
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Public Email (Contact)</label>
+                    <Input value={formData.publicEmail} onChange={e => setFormData({...formData, publicEmail: e.target.value})} placeholder="e.g. ramesh@lexnepal.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Avatar URL</label>
+                    <Input value={formData.avatarUrl} onChange={e => setFormData({...formData, avatarUrl: e.target.value})} placeholder="https://..." />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Short Bio (Displayed on cards)</label>
+                  <textarea 
+                    className="w-full min-h-[80px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    value={formData.bio}
+                    onChange={e => setFormData({...formData, bio: e.target.value})}
+                    placeholder="A brief 1-2 sentence introduction..."
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Full Biography (Displayed on individual profile page)</label>
+                  <textarea 
+                    className="w-full min-h-[150px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    value={formData.longBio}
+                    onChange={e => setFormData({...formData, longBio: e.target.value})}
+                    placeholder="Detailed professional history..."
+                  />
                 </div>
               </div>
-              {editingId !== user._id && (
-                <Button variant="outline" onClick={() => startEditing(user)}>Edit Public Profile</Button>
-              )}
-            </CardHeader>
-            
-            {editingId === user._id && (
-              <CardContent className="mt-4 border-t pt-4 space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-md border border-input bg-muted/30">
-                  <div>
-                    <p className="font-medium">Show on Public Website</p>
-                    <p className="text-sm text-muted-foreground">Toggle to display this advocate on the homepage.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={formData.isPublicFacing}
-                      onChange={(e) => setFormData({...formData, isPublicFacing: e.target.checked})}
-                    />
-                    <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Avatar Image URL (Optional)</label>
-                  <input
-                    type="url"
-                    value={formData.avatarUrl}
-                    onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                    placeholder="https://example.com/photo.jpg"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">LinkedIn URL (Optional)</label>
-                  <input
-                    type="url"
-                    value={formData.linkedinUrl}
-                    onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
-                    placeholder="https://linkedin.com/in/username"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Twitter/X URL (Optional)</label>
-                  <input
-                    type="url"
-                    value={formData.twitterUrl}
-                    onChange={(e) => setFormData({ ...formData, twitterUrl: e.target.value })}
-                    placeholder="https://twitter.com/username"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Public Contact Email (Optional)</label>
-                  <input
-                    type="email"
-                    value={formData.publicEmail}
-                    onChange={(e) => setFormData({ ...formData, publicEmail: e.target.value })}
-                    placeholder="lawyer@Srimar Law.com.np"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Public Biography</label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    placeholder="Expert in Corporate Law with 10 years of experience..."
-                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Detailed Biography (Extended Profile)</label>
-                  <textarea
-                    value={formData.longBio}
-                    onChange={(e) => setFormData({ ...formData, longBio: e.target.value })}
-                    placeholder="Provide a detailed professional history..."
-                    className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Practice Areas (Comma separated)</label>
-                  <input
-                    type="text"
-                    value={formData.practiceAreasStr}
-                    onChange={(e) => setFormData({ ...formData, practiceAreasStr: e.target.value })}
-                    placeholder="Corporate Law, Intellectual Property, Civil Litigation"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Notable Cases (One per line)</label>
-                  <textarea
-                    value={formData.notableCasesStr}
-                    onChange={(e) => setFormData({ ...formData, notableCasesStr: e.target.value })}
-                    placeholder="Landmark ruling on XYZ..."
-                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">Education (Format: Degree | Institution | Year per line)</label>
-                  <textarea
-                    value={formData.educationStr}
-                    onChange={(e) => setFormData({ ...formData, educationStr: e.target.value })}
-                    placeholder="LL.M. in Corporate Law | Harvard Law School | 2015"
-                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                  <Button onClick={() => handleSave(user._id)} disabled={isSaving} className="gap-2">
-                    <Save className="w-4 h-4" /> Save Profile
-                  </Button>
-                </div>
-              </CardContent>
             )}
-          </Card>
-        ))}
 
-        {eligibleStaff.length === 0 && (
-          <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground">
-            <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            <p>No eligible staff members found.</p>
-            <p className="text-sm">Only Partners and Associates can be displayed publicly.</p>
+            {activeTab === "professional" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Bar Council Registration Number</label>
+                  <Input value={formData.barCouncilNumber} onChange={e => setFormData({...formData, barCouncilNumber: e.target.value})} placeholder="e.g. 12345" className="max-w-md" />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">Practice Areas</label>
+                    <Button variant="outline" size="sm" onClick={() => addArrayItem("practiceAreas")}><Plus className="w-3 h-3 mr-1"/> Add Area</Button>
+                  </div>
+                  {formData.practiceAreas.length === 0 && <p className="text-xs text-muted-foreground italic">No practice areas added.</p>}
+                  {formData.practiceAreas.map((area: string, index: number) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input value={area} onChange={e => updateArrayItem("practiceAreas", index, e.target.value)} placeholder="e.g. Corporate Litigation" />
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeArrayItem("practiceAreas", index)}><X className="w-4 h-4"/></Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">Notable Cases / Achievements</label>
+                    <Button variant="outline" size="sm" onClick={() => addArrayItem("notableCases")}><Plus className="w-3 h-3 mr-1"/> Add Case</Button>
+                  </div>
+                  {formData.notableCases.length === 0 && <p className="text-xs text-muted-foreground italic">No notable cases added.</p>}
+                  {formData.notableCases.map((caseStr: string, index: number) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <textarea 
+                        className="w-full min-h-[60px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                        value={caseStr} 
+                        onChange={e => updateArrayItem("notableCases", index, e.target.value)} 
+                        placeholder="e.g. Successfully defended XYZ Corp in a high-profile merger dispute." 
+                      />
+                      <Button variant="ghost" size="icon" className="text-destructive mt-1" onClick={() => removeArrayItem("notableCases", index)}><X className="w-4 h-4"/></Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "education" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">Education History</label>
+                  <Button variant="outline" size="sm" onClick={addEducation}><Plus className="w-3 h-3 mr-1"/> Add Education</Button>
+                </div>
+                {formData.education.length === 0 && (
+                  <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground">
+                    <p className="text-sm">No education records added.</p>
+                  </div>
+                )}
+                {formData.education.map((edu: any, index: number) => (
+                  <Card key={index} className="bg-muted/10 border-border/50">
+                    <CardContent className="p-4 flex gap-4 items-start">
+                      <div className="flex-1 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Degree / Qualification</label>
+                            <Input value={edu.degree} onChange={e => updateEducation(index, "degree", e.target.value)} placeholder="e.g. LL.M in Corporate Law" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Year</label>
+                            <Input value={edu.year} onChange={e => updateEducation(index, "year", e.target.value)} placeholder="e.g. 2015" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">Institution</label>
+                          <Input value={edu.institution} onChange={e => updateEducation(index, "institution", e.target.value)} placeholder="e.g. Kathmandu University School of Law" />
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="text-destructive mt-6" onClick={() => removeEducation(index)}><Trash2 className="w-4 h-4"/></Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+
+          <div className="p-6 border-t border-border bg-muted/30 flex items-center justify-end gap-3 rounded-b-lg">
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+              <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

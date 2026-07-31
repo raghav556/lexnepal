@@ -43,6 +43,20 @@ export default defineSchema({
     value: v.string(),
   }).index("by_key", ["key"]),
 
+  conflictChecks: defineTable({
+    searchQuery: v.string(),
+    hitsCount: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("cleared"),
+      v.literal("conflict")
+    ),
+    runBy: v.optional(v.id("users")), // User ID of the person who ran it
+    runByName: v.string(), // Snapshot of their name
+    timestamp: v.string(), // ISO string
+    notes: v.optional(v.string()), // E.g., "Cleared because of X"
+  }).index("by_status", ["status"]),
+
   clients: defineTable({
     userId: v.optional(v.id("users")),
     type: v.union(v.literal("individual"), v.literal("corporate")),

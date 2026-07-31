@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Menu, X, Scale, Phone, Mail, ArrowRight, Facebook, Linkedin, Instagram, Youtube, Twitter, Video } from "lucide-react";
+import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
+import { Menu, X, Scale, Phone, Mail, ArrowRight, Facebook, Linkedin, Instagram, Youtube, Twitter, Video, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { ChatbotWidget } from "@/components/ui/ChatbotWidget.tsx";
@@ -34,8 +35,26 @@ export default function PublicLayout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // Scroll Progress Bar Logic
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background relative">
+      {/* Animated Scroll Progress Bar */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-accent z-[100] origin-left shadow-[0_0_10px_rgba(212,175,55,0.8)]"
+        style={{ scaleX }}
+      />
+
       {/* Top Bar */}
       <div className="hidden md:block bg-primary text-primary-foreground py-2 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
@@ -229,6 +248,22 @@ export default function PublicLayout() {
       </footer>
       
       {/* Global Public Chatbot Widget */}
+      {/* Scroll To Top Button */}
+      <AnimatePresence>
+        {scrolled && (
+          <motion.button
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.8 }}
+            onClick={scrollToTop}
+            className="fixed bottom-24 right-6 z-40 w-12 h-12 bg-primary/80 backdrop-blur-md text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-white/10 group"
+            aria-label="Scroll to top"
+          >
+            <ChevronUp className="w-6 h-6 group-hover:-translate-y-1 transition-transform" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       <ChatbotWidget />
     </div>
   );
