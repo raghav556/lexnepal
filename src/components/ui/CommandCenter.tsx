@@ -15,7 +15,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
   // Security/Privacy Filter: Admins see all cases. Lawyers only see cases assigned to them.
   const cases = currentUser?.role === "admin" 
     ? allCases 
-    : allCases.filter((c: any) => c.lawyerId === currentUser?._id);
+    : allCases.filter((c: any) => c.assignedLawyerId === currentUser?._id);
 
   const users = useQuery(api.users.listUsers, {}) || [];
   const STAFF_ROLES = ["admin", "partner", "associate", "paralegal"];

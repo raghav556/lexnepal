@@ -334,7 +334,7 @@ export default function HomePage() {
                   <HoverGlowCard className="h-full rounded-xl">
                     <Card className="h-full border-border bg-card hover:border-accent/50 transition-colors duration-300 relative z-10">
                       <CardContent className="p-6">
-                        <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-4 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/20">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/15">
                           {iconMap[area.iconName] || <Briefcase className="w-5 h-5" />}
                         </div>
                         <h3 className="text-lg font-serif font-bold text-foreground mb-2">{area.title}</h3>
@@ -367,7 +367,7 @@ export default function HomePage() {
                 <HoverGlowCard className="h-full rounded-xl">
                   <Card className="h-full border-border bg-card relative z-10">
                     <CardContent className="p-6">
-                      <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-4"><f.icon className="w-5 h-5 text-accent" /></div>
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4"><f.icon className="w-5 h-5 text-primary" /></div>
                       <h3 className="font-semibold text-foreground mb-2">{f.title}</h3>
                       <p className="text-sm text-muted-foreground">{f.desc}</p>
                     </CardContent>
@@ -393,8 +393,8 @@ export default function HomePage() {
             <div className="hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-0.5 bg-gradient-to-r from-accent/20 via-accent/40 to-accent/20" />
             {PROCESS_STEPS.map((s, i) => (
               <FadeInUp key={s.step} delay={i * 0.2} className="text-center relative">
-                <div className="w-24 h-24 mx-auto rounded-2xl bg-accent/10 flex items-center justify-center mb-6 relative">
-                  <s.icon className="w-10 h-10 text-accent" />
+                <div className="w-24 h-24 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-6 relative">
+                  <s.icon className="w-10 h-10 text-primary" />
                   <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center shadow-lg">
                     {s.step}
                   </div>
@@ -600,7 +600,7 @@ export default function HomePage() {
         <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10" />
         <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-          <p className="text-center text-sm font-bold text-accent uppercase tracking-[0.2em]">Trusted By Leading Organizations</p>
+          <p className="text-center text-sm font-bold text-muted-foreground uppercase tracking-[0.2em]">Trusted By Leading Organizations</p>
         </div>
         <div className="flex w-[200%] animate-[marquee_20s_linear_infinite] opacity-80 hover:opacity-100 transition-opacity duration-500">
           <div className="flex flex-1 justify-around items-center gap-12">
@@ -725,7 +725,7 @@ export default function HomePage() {
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl px-8 h-14 font-semibold text-lg shadow-xl shadow-accent/20">
                 <Link to="/consultation">Book Free Consultation</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground rounded-xl px-8 h-14 font-semibold text-lg">
+              <Button asChild size="lg" className="bg-transparent border-2 border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 rounded-xl px-8 h-14 font-semibold text-lg">
                 <Link to="/contact">Contact Us</Link>
               </Button>
             </div>

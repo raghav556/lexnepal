@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save } from "lucide-react";
+import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { TemplateGeneratorModal } from "@/components/documents/TemplateGeneratorModal.tsx";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { cn } from "@/lib/utils.ts";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -20,15 +22,24 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function StaffCaseDetailPage() {
-  const { caseId } = useParams<{ caseId: string }>();
+  const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
 
-  const caseData = useQuery(api.cases.getCase, { caseId: caseId as any });
+  const caseData = useQuery(api.cases.getCase, caseId ? { caseId: caseId as any } : "skip");
   const clients = useQuery(api.clients.listClients, {}) || [];
   const users = useQuery(api.users.listUsers, {}) || [];
-  const hearings = useQuery(api.hearings.listHearings, { caseId: caseId as any }) || [];
-  const documents = useQuery(api.documents.listDocuments as any, { caseId: caseId as any }) || [];
+  const hearings = useQuery(api.hearings.listHearings, caseId ? { caseId: caseId as any } : "skip") || [];
+  const documents = useQuery(api.documents.listDocuments as any, caseId ? { caseId: caseId as any } : "skip") || [];
   const updateCase = useMutation(api.cases.updateCase);
+
+  const paginatedMsgs = useQuery(
+    api.messages.listMessages,
+    caseId ? { caseId: caseId as any, paginationOpts: { numItems: 100, cursor: null } } : "skip",
+  );
+  const messages = paginatedMsgs?.page || [];
+  const sendMessage = useMutation(api.messages.sendMessage);
+  const markMessagesRead = useMutation(api.messages.markMessagesRead);
 
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("");
@@ -37,8 +48,50 @@ export default function StaffCaseDetailPage() {
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [isInternal, setIsInternal] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize form state once data arrives
+  useEffect(() => {
+    if (caseId) {
+      markMessagesRead({ caseId: caseId as any }).catch(() => {});
+    }
+  }, [caseId, markMessagesRead, messages.length]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const timeline = useMemo(() => {
+    if (!caseData) return [];
+    const events: { key: string; date: string; label: string; detail: string }[] = [];
+    if (caseData.filingDate) {
+      events.push({
+        key: "filed",
+        date: caseData.filingDate,
+        label: "Case Registered",
+        detail: caseData.caseNumber,
+      });
+    }
+    for (const h of hearings as any[]) {
+      events.push({
+        key: `h-${h._id}`,
+        date: h.dateGregorian || h.dateBs || "",
+        label: h.purpose || "Hearing",
+        detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}`,
+      });
+    }
+    for (const d of documents as any[]) {
+      events.push({
+        key: `d-${d._id}`,
+        date: d._creationTime ? new Date(d._creationTime).toISOString().slice(0, 10) : "",
+        label: `Document: ${d.title}`,
+        detail: d.type || "Document",
+      });
+    }
+    return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [caseData, hearings, documents]);
+
   const startEditing = () => {
     if (caseData) {
       setStatus(caseData.status);
@@ -66,6 +119,21 @@ export default function StaffCaseDetailPage() {
       toast.error(err?.message || "Failed to update case.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!caseId || !draft.trim()) return;
+    try {
+      await sendMessage({
+        caseId: caseId as any,
+        content: draft.trim(),
+        isInternal,
+        attachmentIds: [],
+      });
+      setDraft("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send message.");
     }
   };
 
@@ -211,13 +279,13 @@ export default function StaffCaseDetailPage() {
               No hearings scheduled for this case yet.
             </p>
           ) : (
-            hearings.map((h: any, i: number) => (
+            hearings.map((h: any) => (
               <Card key={h._id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-accent/10 flex flex-col items-center justify-center text-accent flex-shrink-0">
-                      <span className="text-xs font-bold leading-none">{h.dateBs.split(" ")[0]}</span>
-                      <span className="text-[10px] leading-none opacity-70 mt-0.5">{h.dateBs.split(" ")[1]}</span>
+                      <span className="text-xs font-bold leading-none">{(h.dateBs || "").split(" ")[0]}</span>
+                      <span className="text-[10px] leading-none opacity-70 mt-0.5">{(h.dateBs || "").split(" ")[1]}</span>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{h.purpose || "Hearing"}</p>
@@ -270,32 +338,82 @@ export default function StaffCaseDetailPage() {
 
         <TabsContent value="timeline" className="mt-4">
           <div className="space-y-3 p-4 bg-card border rounded-lg">
-            <div className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-accent mt-1" />
-                <div className="w-0.5 flex-1 bg-border mt-1" />
-              </div>
-              <div className="pb-3">
-                <p className="text-sm font-medium text-foreground">Case Registered</p>
-                <p className="text-xs text-muted-foreground">{caseData.filingDate || "N/A"} &mdash; System</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-accent mt-1" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Conflict Checked & Cleared</p>
-                <p className="text-xs text-muted-foreground">Automatic validation completed &mdash; Compliance Officer</p>
-              </div>
-            </div>
+            {timeline.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No timeline events yet.</p>
+            ) : (
+              timeline.map((event, idx) => (
+                <div key={event.key} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-accent mt-1" />
+                    {idx < timeline.length - 1 && <div className="w-0.5 flex-1 bg-border mt-1" />}
+                  </div>
+                  <div className="pb-3">
+                    <p className="text-sm font-medium text-foreground">{event.label}</p>
+                    <p className="text-xs text-muted-foreground">{event.date || "—"} &mdash; {event.detail}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="messages" className="mt-4">
-          <p className="text-sm text-muted-foreground text-center py-8 bg-card rounded-lg border border-dashed border-border">
-            Internal firm notes are handled in Phase 5. Dynamic messaging client will be wired there.
-          </p>
+          <Card>
+            <CardContent className="p-0 flex flex-col h-[420px]">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No notes or messages for this case yet.
+                  </p>
+                ) : (
+                  messages.map((msg: any) => {
+                    const sender = users.find((u: any) => u._id === msg.senderId);
+                    const isMe = msg.senderId === currentUser?._id;
+                    return (
+                      <div key={msg._id} className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
+                        <div className={cn(
+                          "rounded-lg px-3 py-2 max-w-[85%] text-sm border",
+                          msg.isInternal
+                            ? "bg-muted text-foreground border-border"
+                            : isMe
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card text-foreground border-border",
+                        )}>
+                          {msg.isInternal && (
+                            <p className="text-[10px] uppercase tracking-wide font-semibold opacity-70 mb-1">Internal</p>
+                          )}
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <p className="text-[10px] mt-1 opacity-70">
+                            {sender?.name || "Unknown"} · {new Date(msg._creationTime).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              <div className="border-t p-3 space-y-2">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} />
+                  Internal note (hidden from client)
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder={isInternal ? "Add internal note..." : "Message client..."}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSendMessage();
+                    }}
+                  />
+                  <Button size="sm" onClick={handleSendMessage} disabled={!draft.trim()}>
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

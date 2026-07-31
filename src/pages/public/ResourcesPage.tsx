@@ -11,13 +11,28 @@ import { toast } from "sonner";
 export default function ResourcesPage() {
   const resources = useQuery(api.cms.listResources, {});
   const createLead = useMutation(api.leads.createLead);
+  const incrementDownload = useMutation(api.cms.incrementResourceDownload);
   
   const [selectedRes, setSelectedRes] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const openFile = async (res: any) => {
+    try {
+      await incrementDownload({ id: res._id });
+    } catch {
+      // non-blocking
+    }
+    if (res.fileUrl) {
+      window.open(res.fileUrl, "_blank", "noopener,noreferrer");
+      toast.success("Download started.");
+    } else {
+      toast.error("No file URL available for this resource.");
+    }
+  };
   
-  const handleDownload = async (e: React.FormEvent, isGated: boolean, resName: string) => {
+  const handleDownload = async (e: React.FormEvent, isGated: boolean, res: any) => {
     e.preventDefault();
     if (isGated) {
       setIsSubmitting(true);
@@ -26,17 +41,19 @@ export default function ResourcesPage() {
           fullName: name,
           email: email,
           source: "website",
-          message: `Requested Resource Download: ${resName}`,
+          message: `Requested Resource Download: ${res.title}`,
         });
-        toast.success("Download Started: Your document is downloading and a copy has been sent to your email.");
+        await openFile(res);
         setSelectedRes(null);
+        setName("");
+        setEmail("");
       } catch (error) {
         toast.error("Error: Failed to submit request.");
       } finally {
         setIsSubmitting(false);
       }
     } else {
-        toast.success("Download Started: Your document is downloading.");
+      await openFile(res);
     }
   };
 
@@ -104,7 +121,7 @@ export default function ResourcesPage() {
                               <DialogTitle className="text-2xl font-serif mb-2">Download: {res.title}</DialogTitle>
                               <p className="text-muted-foreground text-sm">Please provide your details to access this premium legal resource.</p>
                             </DialogHeader>
-                            <form onSubmit={(e) => handleDownload(e, true, res.title)} className="space-y-4 pt-4">
+                            <form onSubmit={(e) => handleDownload(e, true, res)} className="space-y-4 pt-4">
                               <div className="space-y-2">
                                 <label className="text-sm font-medium">Full Name</label>
                                 <Input required placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
@@ -120,7 +137,7 @@ export default function ResourcesPage() {
                           </DialogContent>
                         </Dialog>
                       ) : (
-                        <Button variant="outline" className="w-full" onClick={(e) => handleDownload(e, false, res.title)}>
+                        <Button variant="outline" className="w-full" onClick={(e) => handleDownload(e, false, res)}>
                           <Download className="w-4 h-4 mr-2"/> Download PDF
                         </Button>
                       )}

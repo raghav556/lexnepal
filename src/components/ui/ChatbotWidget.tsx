@@ -12,7 +12,6 @@ type Message = {
   role: "user" | "bot";
   content: string;
   isForm?: boolean;
-  isForm?: boolean;
   isLink?: boolean;
   linkText?: string;
   linkHref?: string;

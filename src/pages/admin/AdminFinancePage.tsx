@@ -26,8 +26,12 @@ export default function AdminFinancePage() {
   const clients = useQuery(api.clients.listClients, {}) || [];
 
   const createInvoice = useMutation(api.invoices.createInvoiceFromTimeEntries);
+  const updateStatus = useMutation(api.invoices.updateInvoiceStatus);
+  const createTrust = useMutation(api.invoices.createTrustTransaction);
+  const sendEmail = useMutation(api.communications.sendEmail);
 
   const [isDrafting, setIsDrafting] = useState(false);
+  const [statusBusy, setStatusBusy] = useState<string | null>(null);
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -78,6 +82,56 @@ export default function AdminFinancePage() {
       toast.success("PDF generated successfully");
     } catch (err) {
       toast.error("Failed to generate PDF");
+    }
+  };
+
+  const handleStatus = async (invoice: any, status: "sent" | "paid" | "overdue" | "cancelled") => {
+    setStatusBusy(invoice._id + status);
+    try {
+      await updateStatus({
+        invoiceId: invoice._id,
+        status,
+        paidDate: status === "paid" ? new Date().toISOString().slice(0, 10) : undefined,
+      });
+      if (status === "sent") {
+        const client = clients.find((c: any) => c._id === invoice.clientId);
+        if (client?.email) {
+          await sendEmail({
+            to: client.email,
+            subject: `Invoice ${invoice.invoiceNumber}`,
+            body: `Dear ${client.fullName},\n\nPlease find invoice ${invoice.invoiceNumber} for ${formatNPR(invoice.total)}. Due: ${invoice.dueDate}.\n\nSrimar Law`,
+            relatedId: invoice._id,
+          });
+        }
+      }
+      toast.success(`Invoice marked ${status}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update invoice");
+    } finally {
+      setStatusBusy(null);
+    }
+  };
+
+  const handleTrustReceipt = async () => {
+    const clientId = clients[0]?._id;
+    if (!clientId) return toast.error("No clients available");
+    try {
+      const amount = 50000;
+      const balance =
+        trustLedger
+          .filter((t: any) => t.clientId === clientId)
+          .reduce((s: number, t: any) => s + (t.type === "receipt" ? t.amount : -t.amount), 0) + amount;
+      await createTrust({
+        clientId,
+        type: "receipt",
+        amount,
+        description: "Retainer top-up",
+        date: new Date().toISOString().slice(0, 10),
+        balance,
+      });
+      toast.success("Trust receipt recorded");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to record trust transaction");
     }
   };
 
@@ -177,6 +231,21 @@ export default function AdminFinancePage() {
                         <p className="text-sm font-bold text-foreground">{formatNPR(inv.total)}</p>
                         <Badge className={`text-[10px] uppercase ${STATUS_COLORS[inv.status] || "bg-gray-100"}`}>{inv.status}</Badge>
                       </div>
+                      {inv.status === "draft" && (
+                        <Button size="sm" variant="outline" className="text-xs h-7" disabled={!!statusBusy} onClick={() => handleStatus(inv, "sent")}>
+                          Send
+                        </Button>
+                      )}
+                      {(inv.status === "sent" || inv.status === "overdue") && (
+                        <Button size="sm" variant="outline" className="text-xs h-7" disabled={!!statusBusy} onClick={() => handleStatus(inv, "paid")}>
+                          Mark Paid
+                        </Button>
+                      )}
+                      {inv.status !== "cancelled" && inv.status !== "paid" && (
+                        <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" disabled={!!statusBusy} onClick={() => handleStatus(inv, "cancelled")}>
+                          Cancel
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => handleDownloadPDF(inv)} title="Download PDF">
                         <Download className="w-4 h-4" />
                       </Button>
@@ -189,8 +258,11 @@ export default function AdminFinancePage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3 border-b">
+          <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold font-serif">Trust Ledger (All)</CardTitle>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleTrustReceipt}>
+              + Receipt
+            </Button>
           </CardHeader>
           <CardContent className="pt-4 space-y-2 max-h-[60vh] overflow-y-auto">
             {trustLedger.length === 0 ? (

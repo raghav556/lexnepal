@@ -55,7 +55,7 @@ export default function AdminAnalyticsPage() {
             <Banknote className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR" }).format(data.totalRevenue || 0)}</p>
-          <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1"><TrendingUp className="w-3 h-3" /> +12% from last month</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><TrendingUp className="w-3 h-3" /> From paid invoices</p>
         </div>
         
         <div className="bg-card border border-border p-4 rounded-xl shadow-xs">

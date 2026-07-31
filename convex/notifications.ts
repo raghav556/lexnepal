@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuth } from "./lib/roles.ts";
+import { requireAuth } from "./lib/roles";
 
 export const listNotifications = query({
   args: {},
@@ -46,5 +46,23 @@ export const markAllRead = mutation({
     for (const notification of unread) {
       await ctx.db.patch(notification._id, { isRead: true });
     }
+  },
+});
+
+export const createNotification = mutation({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    body: v.string(),
+    type: v.union(
+      v.literal("hearing_reminder"), v.literal("task_due"), v.literal("invoice_sent"),
+      v.literal("payment_received"), v.literal("document_request"),
+      v.literal("message"), v.literal("system"),
+    ),
+    relatedId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    return ctx.db.insert("notifications", { ...args, isRead: false });
   },
 });

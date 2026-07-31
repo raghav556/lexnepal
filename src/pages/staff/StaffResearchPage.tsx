@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/hooks/use-auth.ts";
 
 const CATEGORY_META: Record<string, { label: string; color: string }> = {
   supreme_court:    { label: "Supreme Court",    color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
@@ -28,7 +27,6 @@ function formatDate(ts: number) {
 }
 
 export default function StaffResearchPage() {
-  const { user } = useAuth();
   const notes = (useQuery(api.research.listNotes as any, {}) || []) as any[];
   const users = (useQuery(api.users.listUsers as any, {}) || []) as any[];
 
@@ -79,8 +77,7 @@ export default function StaffResearchPage() {
         await updateNote({ id: editingNote._id, title: formTitle, category: formCategory, tags, content: formContent });
         toast.success("Research note updated");
       } else {
-        const authorId = user?.profile?._id || "u1";
-        await createNote({ title: formTitle, category: formCategory, tags, content: formContent, authorId });
+        await createNote({ title: formTitle, category: formCategory, tags, content: formContent });
         toast.success("Research note saved to vault");
       }
       setShowModal(false);

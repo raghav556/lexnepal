@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireRole, STAFF_ROLES } from "./lib/roles.ts";
+import { requireRole, STAFF_ROLES } from "./lib/roles";
 
 export const listHearings = query({
   args: { caseId: v.optional(v.id("cases")) },

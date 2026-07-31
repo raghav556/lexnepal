@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireRole, requireAuth, STAFF_ROLES } from "./lib/roles.ts";
+import { requireRole, requireAuth, STAFF_ROLES } from "./lib/roles";
 
 export const listAttendance = query({
   args: {
@@ -92,5 +92,54 @@ export const reviewLeaveRequest = mutation({
       status: args.status,
       reviewedBy: reviewer._id,
     });
+  },
+});
+
+/** Nepal payroll calculator: PF 10%+10%, SSF 3.33% employer, simplified tax bands */
+export const generatePayroll = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, ["admin"]);
+    const users = await ctx.db.query("users").collect();
+    const staff = users.filter(
+      (u) => u.isActive && u.role !== "client" && (u.baseSalary || 0) > 0,
+    );
+
+    return staff.map((u) => {
+      const gross = u.baseSalary || 0;
+      const pfEmployee = Math.round(gross * 0.1);
+      const pfEmployer = Math.round(gross * 0.1);
+      const ssfEmployer = Math.round(gross * 0.0333);
+      // Simplified progressive tax on taxable (gross - pfEmployee)
+      const taxable = Math.max(0, gross - pfEmployee);
+      let tax = 0;
+      if (taxable > 500000) tax += (taxable - 500000) * 0.2;
+      else if (taxable > 200000) tax += (taxable - 200000) * 0.1;
+      tax = Math.round(tax);
+      const net = gross - pfEmployee - tax;
+      return {
+        userId: u._id,
+        name: u.name || "Staff",
+        role: u.role,
+        gross,
+        pf: pfEmployee,
+        pfEmployer,
+        ssf: ssfEmployer,
+        tax,
+        net,
+      };
+    });
+  },
+});
+
+export const setBaseSalary = mutation({
+  args: {
+    userId: v.id("users"),
+    baseSalary: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+    await ctx.db.patch(args.userId, { baseSalary: args.baseSalary });
+    return { success: true };
   },
 });

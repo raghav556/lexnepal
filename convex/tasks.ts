@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles.ts";
+import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles";
 
 export const listTasks = query({
   args: {

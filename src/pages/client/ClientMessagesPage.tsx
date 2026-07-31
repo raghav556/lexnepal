@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils.ts";
 
 export default function ClientMessagesPage() {
   const currentUser = useCurrentUser();
-  const cases = useQuery(api.cases.listCases, currentUser ? { clientId: currentUser._id as any } : "skip" as any) || [];
+  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientId = clientRecord?._id;
+  const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
   const users = useQuery(api.users.listUsers, {}) || [];
 
   const [selected, setSelected] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function ClientMessagesPage() {
     }
   };
 
-  if (currentUser === undefined || currentUser === null) {
+  if (currentUser === undefined || currentUser === null || clientRecord === undefined) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

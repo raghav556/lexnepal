@@ -1,16 +1,39 @@
 ﻿import { Button } from "@/components/ui/button.tsx";
 import { LogIn } from "lucide-react";
 
+const useMock = import.meta.env.VITE_USE_MOCK === "true";
+const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY as string | undefined;
+const clientId = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID as string | undefined;
+
 /**
- * Placeholder sign-in button.
- * When Hercules Auth is configured, this should call the Hercules sign-in flow.
- * For UI preview without a backend, it just shows the button.
+ * Sign-in button.
+ * Live: redirects to OIDC authorize endpoint when configured.
+ * Mock: navigates to admin portal for local demo.
  */
 export function SignInButton() {
   const handleSignIn = () => {
-    // In production this would trigger Hercules auth redirect.
-    // For now, alert that auth is not configured for local preview.
-    alert("Sign-in requires Hercules Auth to be configured. Set VITE_CONVEX_URL and auth environment variables.");
+    if (useMock) {
+      window.location.href = "/admin";
+      return;
+    }
+
+    if (!authority || !clientId) {
+      alert(
+        "Sign-in is not configured. Set VITE_HERCULES_OIDC_AUTHORITY and VITE_HERCULES_OIDC_CLIENT_ID, or enable VITE_USE_MOCK=true for offline demo.",
+      );
+      return;
+    }
+
+    const redirectUri =
+      (import.meta.env.VITE_AUTH_REDIRECT_URI as string | undefined) ||
+      `${window.location.origin}/auth/callback`;
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid profile email",
+    });
+    window.location.href = `${authority.replace(/\/$/, "")}/authorize?${params.toString()}`;
   };
 
   return (

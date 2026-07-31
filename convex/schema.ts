@@ -2,8 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // SaaS-ready firm registry (single default firm for now)
+  firms: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    isActive: v.boolean(),
+  }).index("by_slug", ["slug"]),
+
   users: defineTable({
     tokenIdentifier: v.string(),
+    firmId: v.optional(v.id("firms")),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     role: v.union(
@@ -33,14 +41,21 @@ export default defineSchema({
     }))),
     practiceAreas: v.optional(v.array(v.string())),
     notableCases: v.optional(v.array(v.string())),
+    baseSalary: v.optional(v.number()),
+    activationToken: v.optional(v.string()),
+    isPending: v.optional(v.boolean()),
+    twoFactorEnabled: v.optional(v.boolean()),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_role", ["role"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_firm", ["firmId"])
+    .index("by_activation", ["activationToken"]),
 
   firmSettings: defineTable({
+    firmId: v.optional(v.id("firms")),
     key: v.string(),
-    value: v.string(),
+    value: v.any(),
   }).index("by_key", ["key"]),
 
   conflictChecks: defineTable({
@@ -58,6 +73,7 @@ export default defineSchema({
   }).index("by_status", ["status"]),
 
   clients: defineTable({
+    firmId: v.optional(v.id("firms")),
     userId: v.optional(v.id("users")),
     type: v.union(v.literal("individual"), v.literal("corporate")),
     fullName: v.string(),
@@ -76,9 +92,11 @@ export default defineSchema({
     isActive: v.boolean(),
   })
     .index("by_name", ["fullName"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_firm", ["firmId"]),
 
   cases: defineTable({
+    firmId: v.optional(v.id("firms")),
     caseNumber: v.string(),
     title: v.string(),
     description: v.optional(v.string()),
@@ -104,7 +122,8 @@ export default defineSchema({
     .index("by_client", ["clientId"])
     .index("by_lawyer", ["assignedLawyerId"])
     .index("by_status", ["status"])
-    .index("by_case_number", ["caseNumber"]),
+    .index("by_case_number", ["caseNumber"])
+    .index("by_firm", ["firmId"]),
 
   hearings: defineTable({
     caseId: v.id("cases"),
@@ -260,12 +279,13 @@ export default defineSchema({
     .index("by_sender", ["senderId"]),
 
   leads: defineTable({
+    firmId: v.optional(v.id("firms")),
     fullName: v.string(),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     source: v.union(
       v.literal("website"), v.literal("referral"), v.literal("walk_in"),
-      v.literal("phone"), v.literal("social"),
+      v.literal("phone"), v.literal("social"), v.literal("newsletter"),
     ),
     practiceAreaInterest: v.optional(v.string()),
     message: v.optional(v.string()),
@@ -276,9 +296,12 @@ export default defineSchema({
     assignedTo: v.optional(v.id("users")),
     convertedClientId: v.optional(v.id("clients")),
     notes: v.optional(v.string()),
+    intakeToken: v.optional(v.string()),
+    intakeSubmitted: v.optional(v.boolean()),
   })
     .index("by_status", ["status"])
-    .index("by_assigned", ["assignedTo"]),
+    .index("by_assigned", ["assignedTo"])
+    .index("by_intake_token", ["intakeToken"]),
 
   attendance: defineTable({
     userId: v.id("users"),
@@ -336,9 +359,11 @@ export default defineSchema({
     .index("by_read", ["isRead"]),
 
   appointments: defineTable({
+    firmId: v.optional(v.id("firms")),
     clientName: v.string(),
     clientEmail: v.optional(v.string()),
     clientPhone: v.string(),
+    clientId: v.optional(v.id("clients")),
     practiceArea: v.string(),
     date: v.string(),
     timeSlot: v.string(),
@@ -347,6 +372,77 @@ export default defineSchema({
     assignedLawyerId: v.optional(v.id("users")),
     meetingLink: v.optional(v.string()),
   }).index("by_date", ["date"]).index("by_status", ["status"]).index("by_assigned_lawyer", ["assignedLawyerId"]),
+
+  sessions: defineTable({
+    userId: v.id("users"),
+    device: v.string(),
+    browser: v.string(),
+    ipAddress: v.string(),
+    lastActive: v.string(),
+    isCurrent: v.boolean(),
+  }).index("by_user", ["userId"]),
+
+  testimonials: defineTable({
+    clientName: v.string(),
+    company: v.optional(v.string()),
+    quote: v.string(),
+    rating: v.optional(v.number()),
+    isApproved: v.boolean(),
+    avatarUrl: v.optional(v.string()),
+  }).index("by_approved", ["isApproved"]),
+
+  expenses: defineTable({
+    firmId: v.optional(v.id("firms")),
+    description: v.string(),
+    category: v.union(
+      v.literal("office_rent"), v.literal("utilities"), v.literal("court_fees"),
+      v.literal("courier"), v.literal("printing"), v.literal("travel"),
+      v.literal("supplies"), v.literal("software"), v.literal("other"),
+    ),
+    amount: v.number(),
+    caseId: v.optional(v.id("cases")),
+    receiptId: v.optional(v.string()),
+    date: v.string(),
+    submittedBy: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+    approvedBy: v.optional(v.id("users")),
+    invoiceId: v.optional(v.id("invoices")),
+  })
+    .index("by_status", ["status"])
+    .index("by_case", ["caseId"])
+    .index("by_date", ["date"]),
+
+  documentTemplates: defineTable({
+    title: v.string(),
+    type: v.union(
+      v.literal("retainer"), v.literal("petition"), v.literal("nda"), v.literal("general"),
+    ),
+    content: v.string(),
+  }),
+
+  researchNotes: defineTable({
+    title: v.string(),
+    category: v.union(
+      v.literal("supreme_court"), v.literal("high_court"), v.literal("district_court"),
+      v.literal("commentary"), v.literal("procedure"), v.literal("template_research"),
+    ),
+    tags: v.array(v.string()),
+    content: v.string(),
+    authorId: v.id("users"),
+  }).index("by_author", ["authorId"]).index("by_category", ["category"]),
+
+  newsletterSubscribers: defineTable({
+    email: v.string(),
+    subscribedAt: v.string(),
+    isActive: v.boolean(),
+  }).index("by_email", ["email"]),
+
+  legalPages: defineTable({
+    slug: v.union(v.literal("privacy-policy"), v.literal("terms")),
+    title: v.string(),
+    content: v.string(),
+    updatedAt: v.string(),
+  }).index("by_slug", ["slug"]),
 
   cmsSettings: defineTable({
     key: v.string(),
@@ -361,16 +457,7 @@ export default defineSchema({
     isActive: v.boolean(),
   }).index("by_slug", ["slug"]),
 
-  blogPosts: defineTable({
-    title: v.string(),
-    excerpt: v.string(),
-    content: v.string(),
-    slug: v.string(),
-    author: v.string(),
-    publishDate: v.string(),
-    status: v.union(v.literal("published"), v.literal("draft")),
-    imageUrl: v.optional(v.string()),
-  }).index("by_status", ["status"]).index("by_slug", ["slug"]),
+
 
   careers: defineTable({
     title: v.string(),
@@ -414,4 +501,28 @@ export default defineSchema({
     linkUrl: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
   }).index("by_type", ["type"]).index("by_date", ["date"]),
+
+  blogPosts: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    category: v.string(),
+    excerpt: v.string(),
+    content: v.string(),
+    coverImageUrl: v.optional(v.string()),
+    author: v.string(),
+    status: v.union(v.literal("draft"), v.literal("published")),
+    publishDate: v.string(), // ISO string, empty if draft
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
+  }).index("by_status", ["status"]).index("by_slug", ["slug"]),
+
+  navigation: defineTable({
+    label: v.string(),
+    url: v.string(),
+    location: v.union(v.literal("header"), v.literal("footer_col_1"), v.literal("footer_col_2")),
+    order: v.number(),
+    isActive: v.boolean(),
+    parentId: v.optional(v.id("navigation")),
+    openInNewTab: v.optional(v.boolean()),
+  }).index("by_location", ["location"]).index("by_parent", ["parentId"]),
 });

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 export { ConvexReactClient } from "./convex-client-stub.ts";
-
+import { getFunctionName } from "convex/server";
 // Types matching Convex schema
 export interface LexUser {
   _id: string;
@@ -15,6 +15,10 @@ export interface LexUser {
   isPublicFacing?: boolean;
   bio?: string;
   avatarUrl?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  publicEmail?: string;
+  baseSalary?: number;
   twoFactorEnabled?: boolean;
   isPending?: boolean;
   activationToken?: string;
@@ -40,8 +44,10 @@ export interface LexClient {
   companyName?: string;
   registrationNumber?: string;
   kycStatus: "pending" | "submitted" | "verified";
+  kycDocuments?: string[];
   notes?: string;
   isActive: boolean;
+  userId?: string;
 }
 
 export interface LexCase {
@@ -140,17 +146,6 @@ export interface LexMessage {
   isInternal: boolean;
   attachmentIds: string[];
   readBy: string[];
-  _creationTime: number;
-}
-
-export interface LexNotification {
-  _id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type?: string;
-  isRead: boolean;
-  link?: string;
   _creationTime: number;
 }
 
@@ -277,7 +272,7 @@ export interface LexNotification {
   userId: string;
   title: string;
   message: string;
-  type: "info" | "alert" | "success" | "warning";
+  type?: string;
   isRead: boolean;
   link?: string;
   _creationTime: number;
@@ -332,7 +327,7 @@ const INITIAL_USERS: LexUser[] = [
 ];
 
 const INITIAL_CLIENTS: LexClient[] = [
-  { _id: "c1", fullName: "Hari Prasad", type: "individual", email: "hari@client.com", phone: "+977 9803098765", address: "Koteshwor, Kathmandu", kycStatus: "verified", isActive: true, notes: "Regular property dispute consultations." },
+  { _id: "c1", fullName: "Hari Prasad", type: "individual", email: "hari@client.com", phone: "+977 9803098765", address: "Koteshwor, Kathmandu", kycStatus: "verified", isActive: true, notes: "Regular property dispute consultations.", userId: "u3" },
   { _id: "c2", fullName: "TechVenture Pvt. Ltd.", type: "corporate", email: "legal@techventure.com.np", phone: "+977 01 4412345", address: "Lalitpur", companyName: "TechVenture Pvt. Ltd.", registrationNumber: "REG-9912", kycStatus: "submitted", isActive: true },
   { _id: "c3", fullName: "Shree Ram Builders", type: "corporate", email: "shreerambuilders@ncell.com", phone: "+977 9851099999", address: "Bhaktapur", companyName: "Shree Ram Builders", kycStatus: "pending", isActive: true }
 ];
@@ -650,7 +645,6 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
   return (
     <PreviewContext.Provider value={{ config, setConfig }}>
       {children}
-      <PreviewControlPanel config={config} setConfig={setConfig} />
     </PreviewContext.Provider>
   );
 }
@@ -728,7 +722,12 @@ export function useQuery(queryFunc: any, args?: any): any {
     };
   }, []);
 
-  const queryName = typeof queryFunc === "string" ? queryFunc : String(queryFunc);
+  let queryName = "";
+  try {
+    queryName = typeof queryFunc === "string" ? queryFunc : getFunctionName(queryFunc);
+  } catch {
+    queryName = "";
+  }
 
   // getCurrentUser
   if (queryName.includes("getCurrentUser")) {
@@ -744,9 +743,116 @@ export function useQuery(queryFunc: any, args?: any): any {
 
   // CMS Queries
   if (queryName.includes("getSettings")) return globalSettings;
-  if (queryName.includes("listTestimonials")) return globalTestimonials;
-  if (queryName.includes("listPracticeAreas")) return globalPracticeAreas;
-  if (queryName.includes("listBlogPosts")) return globalBlogPosts;
+  if (queryName.includes("listTestimonials")) {
+    if (args?.isApproved) return globalTestimonials.filter((t: any) => t.isApproved);
+    return globalTestimonials;
+  }
+  if (queryName.includes("listPracticeAreas")) {
+    const areas = globalPracticeAreas || [];
+    if (args?.isActive !== undefined) return areas.filter((a: any) => a.isActive === args.isActive);
+    return areas;
+  }
+  if (queryName.includes("listBlogPosts")) {
+    if (args?.status) return globalBlogPosts.filter((p: any) => p.status === args.status);
+    return globalBlogPosts;
+  }
+  if (queryName.includes("getBlogPostBySlug")) {
+    return globalBlogPosts.find((p: any) => p.slug === args?.slug) || null;
+  }
+  if (queryName.includes("listPublicTeam")) {
+    return globalUsers.filter((u) => u.isPublicFacing && u.isActive && u.role !== "client");
+  }
+  if (queryName.includes("listCareers")) {
+    const jobs = (globalThis as any).__lexCareers || [
+      { _id: "job1", title: "Associate Lawyer", department: "Litigation", location: "Kathmandu", type: "full_time", description: "Litigation associate role.", requirements: ["NPC license", "2+ years"], isActive: true, postedDate: new Date().toISOString() },
+    ];
+    if (args?.isActive !== undefined) return jobs.filter((j: any) => j.isActive === args.isActive);
+    return jobs;
+  }
+  if (queryName.includes("listResources")) {
+    return (globalThis as any).__lexResources || [
+      { _id: "res1", title: "Guide to Company Registration in Nepal", description: "Step-by-step ORC process.", category: "Corporate", fileUrl: "https://example.com/guide.pdf", isGated: true, downloads: 12, publishedDate: new Date().toISOString() },
+    ];
+  }
+  if (queryName.includes("listNewsAndAwards")) {
+    return (globalThis as any).__lexNews || [
+      { _id: "news1", title: "Firm Recognized for Corporate Excellence", excerpt: "Award recognition.", content: "Full story.", date: new Date().toISOString().slice(0, 10), type: "award" },
+    ];
+  }
+  if (queryName.includes("listNavigationLinks")) {
+    const links = (globalThis as any).__lexNav || [
+      { _id: "n1", label: "Home", url: "/", location: "header", order: 1, isActive: true },
+      { _id: "n2", label: "About Us", url: "/about-us", location: "header", order: 2, isActive: true },
+      { _id: "n3", label: "Practice Areas", url: "/practice-areas", location: "header", order: 3, isActive: true },
+      { _id: "n4", label: "Our Team", url: "/lawyers", location: "header", order: 4, isActive: true },
+      { _id: "n5", label: "Blog", url: "/blog", location: "header", order: 5, isActive: true },
+      { _id: "n6", label: "Contact", url: "/contact", location: "header", order: 6, isActive: true },
+    ];
+    if (args?.location) return links.filter((l: any) => l.location === args.location);
+    return links;
+  }
+  if (queryName.includes("listJobApplications")) {
+    return (globalThis as any).__lexJobApps || [];
+  }
+  if (queryName.includes("getLegalPage")) {
+    const pages: any = {
+      "privacy-policy": { slug: "privacy-policy", title: "Privacy Policy", content: "# Privacy Policy\n\nWe respect your privacy.", updatedAt: new Date().toISOString() },
+      terms: { slug: "terms", title: "Terms of Service", content: "# Terms of Service\n\nGoverning law: Nepal.", updatedAt: new Date().toISOString() },
+    };
+    return pages[args?.slug] || null;
+  }
+  if (queryName.includes("getMyClientRecord")) {
+    return globalClients.find((c: any) => c.userId === "u3") || globalClients[0] || null;
+  }
+  if (queryName.includes("getDashboardData") || queryName.includes("analytics")) {
+    return {
+      totalRevenue: 240000,
+      realizationRate: 82,
+      avgCaseValue: 80000,
+      totalCases: globalCases.length,
+      totalClients: globalClients.length,
+      outstanding: 45000,
+      totalExpenses: globalExpenses.reduce((s, e) => s + e.amount, 0),
+      openLeads: globalLeads.filter((l) => l.status === "new").length,
+      revenueByPractice: { Corporate: 120000, Litigation: 80000, Family: 40000 },
+      hoursByAssociate: { "Sangit Dhungana": 42, "Ramesh Badal": 28 },
+      monthlyRevenue: [
+        { month: "2083-01", revenue: 40000 },
+        { month: "2083-02", revenue: 55000 },
+        { month: "2083-03", revenue: 70000 },
+      ],
+      casesByStatus: { active: 2, inquiry: 1 },
+      kpis: { activeCases: 2, revenue: 240000, outstanding: 45000 },
+    };
+  }
+  if (queryName.includes("generatePayroll")) {
+    return globalUsers
+      .filter((u) => u.role !== "client" && u.isActive)
+      .map((u, i) => {
+        const gross = (u as any).baseSalary || [180000, 90000, 70000, 25000][i % 4];
+        const pf = Math.round(gross * 0.1);
+        const ssf = Math.round(gross * 0.0333);
+        const tax = Math.round(Math.max(0, gross - pf) > 200000 ? (gross - pf - 200000) * 0.1 : 0);
+        return { userId: u._id, name: u.name, role: u.role, gross, pf, pfEmployer: pf, ssf, tax, net: gross - pf - tax };
+      });
+  }
+  if (queryName.includes("listAvailableSlots")) {
+    return ["10:00 AM", "11:00 AM", "01:30 PM", "03:00 PM", "04:30 PM"];
+  }
+  if (queryName.includes("getPesi")) {
+    return { available: false, message: "Automated Pesi sync is not connected.", items: [] };
+  }
+  if (queryName.includes("getSystemSettings")) {
+    return globalSystemSettings || {
+      defaultHourlyRate: "5000",
+      vatRate: "13",
+      invoicePaymentTerms: "14",
+      defaultLanguage: "en",
+      clientPortalEnabled: true,
+      onlineBookingEnabled: true,
+      integrations: { smsProvider: "none", activePayments: ["bank_transfer"], emailProvider: "none" },
+    };
+  }
 
   // Appointments
   if (queryName.includes("listAppointments")) {
@@ -1039,11 +1145,11 @@ export function useQuery(queryFunc: any, args?: any): any {
 
   // court.getPesi
   if (queryName.includes("court.getPesi")) {
-    // Return pesi items for a specific case, or all if not provided
-    if (args?.caseId) {
-      return globalPesi.filter(p => p.caseId === args.caseId);
-    }
-    return [...globalPesi];
+    return {
+      available: false,
+      message: "Automated Pesi sync is not connected. Enter hearings manually or import when available.",
+      items: args?.caseId ? globalPesi.filter((p) => p.caseId === args.caseId) : [...globalPesi],
+    };
   }
 
   // cms.getSettings
@@ -1095,12 +1201,55 @@ export function useQuery(queryFunc: any, args?: any): any {
     return args?.storageId?.startsWith("blob:") ? args.storageId : `https://mock-file-storage.local/${args?.storageId}`;
   }
 
+  // Analytics Dashboard Data
+  if (queryName.includes("analytics.getDashboardData")) {
+    return {
+      totalRevenue: 2450000,
+      realizationRate: 85,
+      avgCaseValue: 45000,
+      totalCases: 120,
+      retentionRate: 92,
+      revenueByPractice: {
+        "Corporate Law": 850000,
+        "Civil Litigation": 600000,
+        "Family Law": 450000,
+        "Real Estate": 350000,
+        "Criminal Defense": 200000
+      },
+      hoursByAssociate: {
+        "Aarav Sharma": 145,
+        "Priya Thapa": 132,
+        "Bishal Karki": 118,
+        "Sita Rai": 95
+      },
+      monthlyRevenue: [
+        { month: "Jan", revenue: 320000 },
+        { month: "Feb", revenue: 380000 },
+        { month: "Mar", revenue: 410000 },
+        { month: "Apr", revenue: 390000 },
+        { month: "May", revenue: 460000 },
+        { month: "Jun", revenue: 490000 }
+      ],
+      casesByStatus: {
+        active: 65,
+        closed: 40,
+        pending_hearing: 10,
+        appealed: 5
+      }
+    };
+  }
+
   return undefined;
 }
 
 // useMutation mock implementation
 export function useMutation(mutationFunc: any): any {
-  const mutationName = typeof mutationFunc === "string" ? mutationFunc : String(mutationFunc);
+  let mutationName = "";
+  try {
+    mutationName = typeof mutationFunc === "string" ? mutationFunc : getFunctionName(mutationFunc);
+  } catch {
+    mutationName = "";
+  }
 
   // TEMPLATES
   if (mutationName.includes("templates.createTemplate")) {
@@ -1194,7 +1343,7 @@ export function useMutation(mutationFunc: any): any {
       }
     };
   }
-  if (mutationName.includes("expenses.delete")) {
+  if (mutationName.includes("expenses.delete") || mutationName.includes("expenses.remove")) {
     return async (args: { id: string }) => {
       globalExpenses = globalExpenses.filter(e => e._id !== args.id);
       notifyListeners();
@@ -1273,7 +1422,7 @@ export function useMutation(mutationFunc: any): any {
       if (existingIndex > -1) {
         globalAttendance[existingIndex].status = status;
       } else {
-        globalAttendance.push({ _id: "att_" + Date.now(), userId, date, status, checkIn: "09:00 AM" });
+        globalAttendance.push({ _id: "att_" + Date.now(), userId, date, status, clockIn: "09:00 AM" });
       }
       notifyListeners();
       return { success: true };
@@ -1380,6 +1529,93 @@ export function useMutation(mutationFunc: any): any {
     }
     if (mutationName.includes("deleteTestimonial")) {
       globalTestimonials = globalTestimonials.filter(t => t._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("createJobApplication")) {
+      const apps = ((globalThis as any).__lexJobApps ||= []);
+      const id = "app_" + Date.now();
+      apps.unshift({ _id: id, status: "new", appliedDate: new Date().toISOString(), ...args });
+      notifyListeners();
+      toast.success("Application submitted");
+      return id;
+    }
+    if (mutationName.includes("subscribeNewsletter")) {
+      toast.success("Subscribed to newsletter");
+      return { success: true, alreadySubscribed: false };
+    }
+    if (mutationName.includes("createResource") || mutationName.includes("createNewsAndAward")) {
+      notifyListeners();
+      toast.success("Saved");
+      return "cms_" + Date.now();
+    }
+    if (mutationName.includes("updateResource") || mutationName.includes("updateNewsAndAward") || mutationName.includes("deleteResource") || mutationName.includes("deleteNewsAndAward")) {
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("incrementResourceDownload")) {
+      return { success: true };
+    }
+    if (mutationName.includes("submitKyc")) {
+      const idx = globalClients.findIndex((c: any) => c._id === args.clientId || c.userId === "u3");
+      if (idx >= 0) {
+        globalClients[idx] = {
+          ...globalClients[idx],
+          kycStatus: "submitted",
+          kycDocuments: args.documentStorageIds || [],
+          address: args.address || globalClients[idx].address,
+        };
+      }
+      notifyListeners();
+      toast.success("KYC submitted");
+      return { success: true };
+    }
+    if (mutationName.includes("signDocument")) {
+      const idx = globalDocuments.findIndex((d) => d._id === args.documentId);
+      if (idx >= 0) {
+        (globalDocuments[idx] as any).signatureStatus = "signed";
+        (globalDocuments[idx] as any).signedAt = new Date().toISOString();
+      }
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("bookConsultation")) {
+      const id = "apt_" + Date.now();
+      globalAppointments.push({
+        _id: id,
+        clientName: args.clientName,
+        clientEmail: args.clientEmail,
+        clientPhone: args.clientPhone,
+        clientId: args.clientId,
+        practiceArea: args.practiceArea,
+        date: args.date,
+        timeSlot: args.timeSlot,
+        notes: args.notes,
+        assignedLawyerId: args.assignedLawyerId,
+        status: "pending",
+        _creationTime: Date.now(),
+      } as any);
+      notifyListeners();
+      toast.success("Appointment requested");
+      return id;
+    }
+    if (mutationName.includes("initiateGatewayPayment")) {
+      return { paymentId: "pay_" + Date.now(), gateway: args.gateway, amount: 0, nextStep: "redirect_or_confirm" };
+    }
+    if (mutationName.includes("sendEmail") || mutationName.includes("sendSms") || mutationName.includes("sendHearingReminder")) {
+      toast.success("Message queued", { description: "Logged for delivery (configure provider in Settings)." });
+      return { success: true, delivered: false };
+    }
+    if (mutationName.includes("setBaseSalary")) {
+      globalUsers = globalUsers.map((u) =>
+        u._id === args.userId ? { ...u, baseSalary: args.baseSalary } as any : u,
+      );
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("expenses.remove") || (mutationName.includes("expenses.") && mutationName.includes("remove"))) {
+      globalExpenses = globalExpenses.filter((e) => e._id !== args.id);
       notifyListeners();
       return { success: true };
     }
@@ -1537,20 +1773,117 @@ export function useMutation(mutationFunc: any): any {
 
     // appointments.bookConsultation
     if (mutationName.includes("bookConsultation")) {
-      const newApt: LexAppointment = {
+      const newApt: any = {
         _id: `apt_${Date.now()}`,
+        clientName: args.clientName || "Client",
+        clientEmail: args.clientEmail,
+        clientPhone: args.clientPhone || "",
         clientId: args.clientId,
-        lawyerId: args.lawyerId,
+        practiceArea: args.practiceArea || "Consultation",
         date: args.date,
-        time: args.time,
-        type: args.type,
-        status: "scheduled",
+        timeSlot: args.timeSlot || args.time,
         notes: args.notes,
+        assignedLawyerId: args.assignedLawyerId || args.lawyerId,
+        status: "pending",
         _creationTime: Date.now(),
       };
       globalAppointments.push(newApt);
       notifyListeners();
       return newApt._id;
+    }
+
+    // clients.submitKyc
+    if (mutationName.includes("submitKyc")) {
+      const client =
+        (args.clientId && globalClients.find((c) => c._id === args.clientId)) ||
+        globalClients.find((c: any) => c.userId === "u3") ||
+        globalClients[0];
+      if (!client) throw new Error("No client profile linked to this account");
+      globalClients = globalClients.map((c) =>
+        c._id === client._id
+          ? { ...c, kycStatus: "submitted", kycDocuments: args.documentStorageIds, address: args.address ?? c.address }
+          : c,
+      );
+      notifyListeners();
+      return { success: true };
+    }
+
+    // documents.signDocument
+    if (mutationName.includes("signDocument")) {
+      globalDocuments = globalDocuments.map((d) =>
+        d._id === args.documentId
+          ? { ...d, signatureStatus: "signed", signedAt: new Date().toISOString() }
+          : d,
+      );
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms.subscribeNewsletter
+    if (mutationName.includes("subscribeNewsletter")) {
+      return { success: true, alreadySubscribed: false };
+    }
+
+    // cms.createJobApplication
+    if (mutationName.includes("createJobApplication")) {
+      const apps = ((globalThis as any).__lexJobApps ||= []);
+      const id = `app_${Date.now()}`;
+      apps.push({ _id: id, ...args, status: "new", appliedDate: new Date().toISOString() });
+      notifyListeners();
+      return id;
+    }
+
+    // cms.incrementResourceDownload
+    if (mutationName.includes("incrementResourceDownload")) {
+      const resources = ((globalThis as any).__lexResources ||= []);
+      const idx = resources.findIndex((r: any) => r._id === args.id);
+      if (idx !== -1) resources[idx].downloads = (resources[idx].downloads || 0) + 1;
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms news CRUD
+    if (mutationName.includes("createNewsAndAward")) {
+      const news = ((globalThis as any).__lexNews ||= []);
+      const id = `news_${Date.now()}`;
+      news.push({ _id: id, ...args });
+      notifyListeners();
+      return id;
+    }
+    if (mutationName.includes("updateNewsAndAward")) {
+      const news = ((globalThis as any).__lexNews ||= []);
+      const { id, ...updates } = args;
+      const idx = news.findIndex((n: any) => n._id === id);
+      if (idx !== -1) news[idx] = { ...news[idx], ...updates };
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("deleteNewsAndAward")) {
+      (globalThis as any).__lexNews = (((globalThis as any).__lexNews) || []).filter((n: any) => n._id !== args.id);
+      notifyListeners();
+      return { success: true };
+    }
+
+    // cms resources CRUD
+    if (mutationName.includes("createResource")) {
+      const resources = ((globalThis as any).__lexResources ||= []);
+      const id = `res_${Date.now()}`;
+      resources.push({ _id: id, downloads: 0, publishedDate: new Date().toISOString(), ...args });
+      notifyListeners();
+      return id;
+    }
+    if (mutationName.includes("updateResource")) {
+      const resources = ((globalThis as any).__lexResources ||= []);
+      const { id, ...updates } = args;
+      const idx = resources.findIndex((r: any) => r._id === id);
+      if (idx !== -1) resources[idx] = { ...resources[idx], ...updates };
+      notifyListeners();
+      return { success: true };
+    }
+    if (mutationName.includes("deleteResource")) {
+      (globalThis as any).__lexResources = (((globalThis as any).__lexResources) || []).filter((r: any) => r._id !== args.id);
+      notifyListeners();
+      return { success: true };
     }
 
     // clients.createClient

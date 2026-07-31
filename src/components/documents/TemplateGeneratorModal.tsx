@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Loader2, FileText, CheckCircle2, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth.ts";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 interface Props {
   caseId: string;
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function TemplateGeneratorModal({ caseId, clientId, open, onOpenChange }: Props) {
-  const { user } = useAuth();
+  const currentUser = useCurrentUser();
   const templates = useQuery(api.templates.listTemplates as any, {}) || [];
   const client = useQuery(api.clients.listClients as any, {})?.find((c: any) => c._id === clientId);
   const caseData = useQuery(api.cases.getCase as any, { caseId: caseId as any });
@@ -65,7 +65,8 @@ export function TemplateGeneratorModal({ caseId, clientId, open, onOpenChange }:
         mimeType: "text/plain",
         sizeBytes: generatedText.length,
         tags: ["generated", "template"],
-        uploadedBy: user?.profile._id || "u1",
+        isTemplate: false,
+        isPrivileged: false,
       });
       toast.success("Document saved to case file!");
       onOpenChange(false);

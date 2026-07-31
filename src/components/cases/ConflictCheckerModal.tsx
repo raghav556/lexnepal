@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { AlertTriangle, CheckCircle2, Search, ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth.ts";
 
 interface Props {
   open: boolean;
@@ -18,7 +17,6 @@ interface Props {
 }
 
 export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }: Props) {
-  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isMarking, setIsMarking] = useState(false);
@@ -45,7 +43,7 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
     if (!caseId) return;
     setIsMarking(true);
     try {
-      await markConflictChecked({ caseId, clearedBy: user?.profile._id || "u1" });
+      await markConflictChecked({ caseId, cleared: true });
       toast.success(`Conflict check cleared for case ${caseNumber || caseId}`);
       onOpenChange(false);
     } catch (err: any) {

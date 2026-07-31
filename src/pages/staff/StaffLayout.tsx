@@ -168,14 +168,14 @@ function StaffRoleGuard({ children }: { children: React.ReactNode }) {
 
   if (currentUser === undefined) {
     return (
-      <div className="dark min-h-screen flex items-center justify-center bg-background">
+      <div className="dark min-h-screen flex items-center justify-center bg-background text-foreground">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
   if (currentUser === null || !STAFF_ROLES.includes(currentUser.role)) {
     return (
-      <div className="dark min-h-screen flex items-center justify-center bg-background flex-col gap-4">
+      <div className="dark min-h-screen flex items-center justify-center bg-background flex-col gap-4 text-foreground">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">Redirecting to your portal…</p>
       </div>
@@ -188,7 +188,7 @@ export default function StaffLayout() {
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
-    <div className="dark min-h-screen">
+    <div className="dark min-h-screen text-foreground">
       <AuthLoading>
         <div className="min-h-screen flex items-center justify-center bg-background"><Skeleton className="w-56 h-screen hidden md:block" /></div>
       </AuthLoading>

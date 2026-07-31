@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,11 +10,18 @@ import { RevealText, FadeInUp } from "@/components/ui/animations";
 import { format } from "date-fns";
 
 export default function ClientSignaturesPage() {
-  const currentUser = useCurrentUser();
-  
-  // Fetch documents that require signature. (Mocking the query filter in UI for now)
+  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const cases = useQuery(
+    api.cases.listCases,
+    clientRecord?._id ? { clientId: clientRecord._id as any } : "skip",
+  ) || [];
   const documents = useQuery(api.documents.listDocuments, {}) || [];
-  const signatureDocs = documents.filter((d: any) => d.requiresSignature);
+  const signDocument = useMutation(api.documents.signDocument);
+
+  const caseIds = new Set(cases.map((c: any) => c._id));
+  const signatureDocs = documents.filter(
+    (d: any) => d.requiresSignature && (!d.caseId || caseIds.has(d.caseId)),
+  );
 
   const pendingDocs = signatureDocs.filter((d: any) => d.signatureStatus === "pending");
   const signedDocs = signatureDocs.filter((d: any) => d.signatureStatus === "signed");
@@ -23,15 +29,21 @@ export default function ClientSignaturesPage() {
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [isSigning, setIsSigning] = useState(false);
 
-  const handleSign = () => {
+  const handleSign = async () => {
+    if (!selectedDoc) return;
     setIsSigning(true);
-    // Simulate digital signature process
-    setTimeout(() => {
-      setIsSigning(false);
+    try {
+      await signDocument({
+        documentId: selectedDoc._id,
+        signatureNote: "Signed electronically by client via portal",
+      });
       toast.success(`Successfully signed ${selectedDoc.title}`);
       setSelectedDoc(null);
-      // In a real app, we'd trigger a mutation to update signatureStatus to 'signed' and set signedAt.
-    }, 1500);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sign document.");
+    } finally {
+      setIsSigning(false);
+    }
   };
 
   return (
@@ -42,8 +54,6 @@ export default function ClientSignaturesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Pending Signatures */}
         <FadeInUp delay={0.1}>
           <Card className="border-border/50 shadow-sm h-full flex flex-col">
             <CardHeader className="bg-secondary/20 border-b pb-4">
@@ -52,7 +62,9 @@ export default function ClientSignaturesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 flex-1">
-              {pendingDocs.length === 0 ? (
+              {clientRecord === undefined ? (
+                <p className="text-sm text-muted-foreground text-center py-10">Loading...</p>
+              ) : pendingDocs.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center py-10 opacity-60">
                   <CheckCircle2 className="w-12 h-12 mb-2 text-green-500" />
                   <p className="text-sm">You're all caught up! No pending documents.</p>
@@ -77,11 +89,9 @@ export default function ClientSignaturesPage() {
                             <DialogTitle>Sign Document: {doc.title}</DialogTitle>
                           </DialogHeader>
                           <div className="flex-1 bg-secondary/30 border rounded-lg flex items-center justify-center relative overflow-hidden">
-                            {/* Mock PDF Viewer */}
                             <div className="absolute inset-0 flex flex-col items-center p-8 overflow-y-auto text-sm text-foreground/80 space-y-4">
-                              <h2 className="text-2xl font-serif font-bold text-center border-b pb-4 mb-4 w-full">ENGAGEMENT LETTER</h2>
-                              <p>This Engagement Letter outlines the terms of legal representation...</p>
-                              {/* ... more mock content ... */}
+                              <h2 className="text-2xl font-serif font-bold text-center border-b pb-4 mb-4 w-full">{doc.title}</h2>
+                              <p>Please review this document carefully before signing.</p>
                               <div className="mt-20 w-full pt-10 border-t border-dashed">
                                 <p className="mb-2 font-bold">Client Signature Block:</p>
                                 <div className="p-4 bg-background border rounded border-accent/30 text-accent/50 italic text-center">
@@ -109,7 +119,6 @@ export default function ClientSignaturesPage() {
           </Card>
         </FadeInUp>
 
-        {/* Completed Signatures */}
         <FadeInUp delay={0.2}>
           <Card className="border-border/50 shadow-sm h-full flex flex-col">
             <CardHeader className="bg-secondary/20 border-b pb-4">
@@ -129,7 +138,7 @@ export default function ClientSignaturesPage() {
                     <div key={doc._id} className="flex items-center justify-between p-3 border rounded-lg bg-secondary/20">
                       <div className="flex flex-col">
                         <p className="text-sm font-semibold">{doc.title}</p>
-                        <p className="text-xs text-muted-foreground">Signed on {doc.signedAt ? format(new Date(doc.signedAt), 'MMM d, yyyy') : 'Recently'}</p>
+                        <p className="text-xs text-muted-foreground">Signed on {doc.signedAt ? format(new Date(doc.signedAt), "MMM d, yyyy") : "Recently"}</p>
                       </div>
                       <Button variant="ghost" size="icon">
                         <Download className="w-4 h-4 text-muted-foreground" />
@@ -141,7 +150,6 @@ export default function ClientSignaturesPage() {
             </CardContent>
           </Card>
         </FadeInUp>
-
       </div>
     </div>
   );

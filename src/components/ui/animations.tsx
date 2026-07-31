@@ -3,7 +3,7 @@ import { motion, useInView } from "motion/react";
 import { cn } from "@/lib/utils";
 
 // The premium easing curve for "quiet luxury" feeling
-export const PREMIUM_EASE = [0.22, 1, 0.36, 1];
+export const PREMIUM_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 // 1. RevealText Effect (Slides up from behind a mask)
 export function RevealText({

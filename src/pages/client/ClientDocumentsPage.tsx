@@ -36,7 +36,9 @@ function DownloadButton({ storageId }: { storageId: string }) {
 
 export default function ClientDocumentsPage() {
   const currentUser = useCurrentUser();
-  const cases = useQuery(api.cases.listCases, currentUser ? { clientId: currentUser._id as any } : "skip" as any) || [];
+  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientId = clientRecord?._id;
+  const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
   const allDocs = useQuery(api.documents.listDocuments, {}) || [];
   
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
@@ -45,7 +47,7 @@ export default function ClientDocumentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  if (currentUser === undefined) {
+  if (currentUser === undefined || clientRecord === undefined) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

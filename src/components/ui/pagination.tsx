@@ -24,7 +24,7 @@ export function Pagination({
 
   // Generate page numbers to display
   const getPageNumbers = () => {
-    const pages = [];
+    const pages: Array<number | string> = [];
     const maxVisiblePages = 5;
 
     if (totalPages <= maxVisiblePages) {

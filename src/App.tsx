@@ -19,6 +19,7 @@ import PublicLawyerProfilePage from "./pages/public/PublicLawyerProfilePage.tsx"
 import CareersPage from "./pages/public/CareersPage.tsx";
 import ResourcesPage from "./pages/public/ResourcesPage.tsx";
 import NewsPage from "./pages/public/NewsPage.tsx";
+import LegalPage from "./pages/public/LegalPage.tsx";
 
 import ClientLayout from "./pages/client/ClientLayout.tsx";
 import ClientDashboard from "./pages/client/ClientDashboard.tsx";
@@ -55,6 +56,7 @@ import AdminCMSPracticeAreas from "./pages/admin/AdminCMSPracticeAreas.tsx";
 import AdminCMSTestimonials from "./pages/admin/AdminCMSTestimonials.tsx";
 import AdminCMSTeam from "./pages/admin/AdminCMSTeam.tsx";
 import AdminCMSBlog from "./pages/admin/AdminCMSBlog.tsx";
+import AdminCMSNavigation from "./pages/admin/AdminCMSNavigation.tsx";
 import AdminAppointmentsPage from "./pages/admin/AdminAppointmentsPage.tsx";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage.tsx";
 import AdminExpensesPage from "./pages/admin/AdminExpensesPage.tsx";
@@ -63,6 +65,8 @@ import AdminConflictChecker from "./pages/admin/AdminConflictChecker.tsx";
 import AdminDocumentGenerator from "./pages/admin/AdminDocumentGenerator.tsx";
 import AdminCMSCareers from "./pages/admin/AdminCMSCareers.tsx";
 import AdminCMSResources from "./pages/admin/AdminCMSResources.tsx";
+import AdminCMSNews from "./pages/admin/AdminCMSNews.tsx";
+import AdminCMSAbout from "./pages/admin/AdminCMSAbout.tsx";
 
 import SharedProfilePage from "./pages/shared/SharedProfilePage.tsx";
 
@@ -125,6 +129,8 @@ export default function App() {
             <Route path="careers" element={<CareersPage />} />
             <Route path="resources" element={<ResourcesPage />} />
             <Route path="news" element={<NewsPage />} />
+            <Route path="privacy-policy" element={<LegalPage />} />
+            <Route path="terms" element={<LegalPage />} />
           </Route>
 
           <Route path="/client" element={<ClientLayout />}>
@@ -165,17 +171,19 @@ export default function App() {
             <Route path="audit" element={<AdminAuditPage />} />
             <Route path="cms">
               <Route index element={<AdminCMSDashboard />} />
+              <Route path="navigation" element={<AdminCMSNavigation />} />
               <Route path="practice-areas" element={<AdminCMSPracticeAreas />} />
               <Route path="testimonials" element={<AdminCMSTestimonials />} />
               <Route path="team" element={<AdminCMSTeam />} />
               <Route path="blog" element={<AdminCMSBlog />} />
+              <Route path="news" element={<AdminCMSNews />} />
               <Route path="careers" element={<AdminCMSCareers />} />
               <Route path="resources" element={<AdminCMSResources />} />
+              <Route path="about" element={<AdminCMSAbout />} />
             </Route>
             <Route path="conflict-checker" element={<AdminConflictChecker />} />
             <Route path="document-generator" element={<AdminDocumentGenerator />} />
             <Route path="appointments" element={<AdminAppointmentsPage />} />
-            <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="templates" element={<AdminTemplatesPage />} />
             <Route path="profile" element={<SharedProfilePage />} />
           </Route>

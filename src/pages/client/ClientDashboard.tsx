@@ -2,12 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.t
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
-import { FolderOpen, FileText, Receipt, MessageSquare, CalendarDays, ArrowRight } from "lucide-react";
-
-const MOCK_CASES = [
-  { id: "1", title: "Property Dispute \u2014 Bhaktapur Plot 234", status: "active", nextHearing: "15 Mangsir 2081", lawyer: "Adv. Binod Thapa" },
-  { id: "2", title: "Company Registration \u2014 TechVenture Pvt. Ltd.", status: "active", nextHearing: null, lawyer: "Adv. Ramesh Adhikari" },
-];
+import { FolderOpen, FileText, Receipt, MessageSquare, CalendarDays, ArrowRight, Loader2 } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api.js";
+import { formatNPR } from "@/lib/lex-constants.ts";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -17,19 +16,76 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ClientDashboard() {
+  const currentUser = useCurrentUser();
+  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientId = clientRecord?._id;
+
+  const cases = useQuery(
+    api.cases.listCases,
+    clientId ? { clientId: clientId as any } : "skip",
+  ) || [];
+  const invoices = useQuery(
+    api.invoices.listInvoices,
+    clientId ? { clientId: clientId as any } : "skip",
+  ) || [];
+  const hearings = useQuery(api.hearings.listHearings, {}) || [];
+  const users = useQuery(api.users.listUsers, {}) || [];
+  const documents = useQuery(api.documents.listDocuments, {}) || [];
+
+  const caseIds = new Set(cases.map((c: any) => c._id));
+  const myHearings = hearings.filter(
+    (h: any) => caseIds.has(h.caseId) && h.status === "scheduled",
+  );
+  const activeCases = cases.filter((c: any) => c.status === "active");
+  const outstanding = invoices
+    .filter((i: any) => i.status !== "paid" && i.status !== "cancelled")
+    .reduce((s: number, i: any) => s + (i.total || 0), 0);
+  const pendingDocs = documents.filter(
+    (d: any) => d.caseId && caseIds.has(d.caseId) && d.requiresSignature && d.signatureStatus === "pending",
+  );
+
+  // Lightweight unread estimate: non-internal messages on client cases (best-effort)
+  const firstCaseId = cases[0]?._id;
+  const msgs = useQuery(
+    api.messages.listMessages,
+    firstCaseId ? { caseId: firstCaseId as any, paginationOpts: { numItems: 50, cursor: null } } : "skip",
+  );
+  const unreadEstimate = (msgs?.page || []).filter(
+    (m: any) => !m.isInternal && currentUser && !(m.readBy || []).includes(currentUser._id),
+  ).length;
+
+  if (clientRecord === undefined) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (clientRecord === null) {
+    return (
+      <div className="p-4 sm:p-6">
+        <h1 className="font-serif text-2xl font-bold text-foreground">Welcome</h1>
+        <p className="text-muted-foreground text-sm mt-2">
+          No client profile is linked to this account yet. Please contact the firm to complete setup.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-bold text-foreground">Welcome back</h1>
+        <h1 className="font-serif text-2xl font-bold text-foreground">Welcome back{clientRecord.fullName ? `, ${clientRecord.fullName.split(" ")[0]}` : ""}</h1>
         <p className="text-muted-foreground text-sm mt-0.5">Here's an overview of your matters with Srimar Law.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Active Cases", value: "2", icon: FolderOpen, color: "text-blue-500" },
-          { label: "Pending Documents", value: "3", icon: FileText, color: "text-amber-500" },
-          { label: "Unread Messages", value: "1", icon: MessageSquare, color: "text-green-500" },
-          { label: "Outstanding Balance", value: "NPR 15,000", icon: Receipt, color: "text-red-500" },
+          { label: "Active Cases", value: String(activeCases.length), icon: FolderOpen, color: "text-blue-500" },
+          { label: "Pending Signatures", value: String(pendingDocs.length), icon: FileText, color: "text-amber-500" },
+          { label: "Unread Messages", value: String(unreadEstimate), icon: MessageSquare, color: "text-green-500" },
+          { label: "Outstanding Balance", value: formatNPR(outstanding), icon: Receipt, color: "text-red-500" },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -51,36 +107,55 @@ export default function ClientDashboard() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {MOCK_CASES.map((c) => (
-            <div key={c.id} className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-              <div>
-                <p className="text-sm font-medium text-foreground">{c.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Assigned: {c.lawyer}</p>
-                {c.nextHearing && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-accent">
-                    <CalendarDays className="w-3 h-3" />Next hearing: {c.nextHearing}
+          {activeCases.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No active cases.</p>
+          ) : (
+            activeCases.map((c: any) => {
+              const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
+              const nextHearing = myHearings.find((h: any) => h.caseId === c._id);
+              return (
+                <div key={c._id} className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{c.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Assigned: {lawyer?.name || "Unassigned"}</p>
+                    {nextHearing && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-accent">
+                        <CalendarDays className="w-3 h-3" />Next hearing: {nextHearing.dateBs || nextHearing.dateGregorian}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <Badge className={`text-xs ${STATUS_COLORS[c.status]}`}>{c.status === "active" ? "Active" : c.status}</Badge>
-            </div>
-          ))}
+                  <Badge className={`text-xs ${STATUS_COLORS[c.status] || ""}`}>{c.status === "active" ? "Active" : c.status}</Badge>
+                </div>
+              );
+            })
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base font-semibold">Upcoming Hearings</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 p-3 rounded-lg bg-accent/5 border border-accent/20">
-            <div className="w-12 h-12 rounded-lg bg-accent/10 flex flex-col items-center justify-center">
-              <span className="text-accent text-xs font-bold">15</span>
-              <span className="text-accent text-xs">Mangsir</span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">Property Dispute \u2014 Bhaktapur Plot 234</p>
-              <p className="text-xs text-muted-foreground">District Court, Kathmandu \u2014 11:00 AM</p>
-            </div>
-          </div>
+        <CardContent className="space-y-3">
+          {myHearings.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No upcoming hearings.</p>
+          ) : (
+            myHearings.slice(0, 5).map((h: any) => {
+              const matchedCase = cases.find((c: any) => c._id === h.caseId);
+              const dayPart = (h.dateBs || "").split(" ")[0] || "—";
+              const monthPart = (h.dateBs || "").split(" ")[1] || "";
+              return (
+                <div key={h._id} className="flex items-center gap-4 p-3 rounded-lg bg-accent/5 border border-accent/20">
+                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex flex-col items-center justify-center">
+                    <span className="text-accent text-xs font-bold">{dayPart}</span>
+                    <span className="text-accent text-xs">{monthPart}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{matchedCase?.title || "Hearing"}</p>
+                    <p className="text-xs text-muted-foreground">{h.court} {h.time ? `— ${h.time}` : ""}</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </div>

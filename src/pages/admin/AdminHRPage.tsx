@@ -19,22 +19,16 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
-// Static payroll (HR payroll requires a payroll module — kept as structured display)
-const PAYROLL = [
-  { name: "Ram Chandra",   role: "Partner",          gross: 180000, pf: 10800, ssf: 9000, tax: 25000, net: 135200 },
-  { name: "Sita Thapa",    role: "Associate",         gross: 90000,  pf: 5400,  ssf: 4500, tax: 8000,  net: 72100  },
-  { name: "Gita Nepal",    role: "Admin",             gross: 70000,  pf: 4200,  ssf: 3500, tax: 5500,  net: 56800  },
-  { name: "Krishna Aryal", role: "Intern",            gross: 25000,  pf: 1500,  ssf: 1250, tax: 0,     net: 22250  },
-];
-
 export default function AdminHRPage() {
   const today = new Date().toISOString().slice(0, 10);
   const users = useQuery(api.users.listUsers, {}) || [];
   const attendance = useQuery(api.hr.listAttendance, { date: today }) || [];
   const leaveRequests = useQuery(api.hr.listLeaveRequests, {}) || [];
+  const payroll = useQuery(api.hr.generatePayroll, {}) || [];
 
   const reviewLeave = useMutation(api.hr.reviewLeaveRequest);
   const upsertAttendance = useMutation(api.hr.upsertAttendance);
+  const setBaseSalary = useMutation(api.hr.setBaseSalary);
 
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -271,12 +265,13 @@ export default function AdminHRPage() {
         </TabsContent>
 
         {/* Payroll Tab */}
-        <TabsContent value="payroll" className="mt-4">
+        <TabsContent value="payroll" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold font-serif">
                 Payroll — {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </CardTitle>
+              <p className="text-xs text-muted-foreground">PF 10% employee · SSF 3.33% employer · VAT/tax bands applied server-side</p>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -285,29 +280,76 @@ export default function AdminHRPage() {
                     <tr className="border-b border-border text-xs text-muted-foreground">
                       <th className="text-left py-2 pr-4">Employee</th>
                       <th className="text-right py-2 pr-4">Gross</th>
-                      <th className="text-right py-2 pr-4">PF (12%)</th>
-                      <th className="text-right py-2 pr-4">SSF (5%)</th>
+                      <th className="text-right py-2 pr-4">PF (10%)</th>
+                      <th className="text-right py-2 pr-4">SSF (3.33%)</th>
                       <th className="text-right py-2 pr-4">Tax</th>
                       <th className="text-right py-2">Net Pay</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {PAYROLL.map((p) => (
-                      <tr key={p.name}>
-                        <td className="py-3 pr-4">
-                          <p className="font-medium text-foreground">{p.name}</p>
-                          <p className="text-xs text-muted-foreground">{p.role}</p>
+                    {payroll.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-muted-foreground text-xs">
+                          No staff with base salary set. Set salaries below to generate payroll.
                         </td>
-                        <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.gross)}</td>
-                        <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.pf)}</td>
-                        <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.ssf)}</td>
-                        <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.tax)}</td>
-                        <td className="text-right py-3 font-semibold text-foreground">{formatNPR(p.net)}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      payroll.map((p: any) => (
+                        <tr key={p.userId}>
+                          <td className="py-3 pr-4">
+                            <p className="font-medium text-foreground">{p.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{String(p.role).replace("_", " ")}</p>
+                          </td>
+                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.gross)}</td>
+                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.pf)}</td>
+                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.ssf)}</td>
+                          <td className="text-right py-3 pr-4 text-muted-foreground">{formatNPR(p.tax)}</td>
+                          <td className="text-right py-3 font-semibold text-foreground">{formatNPR(p.net)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold font-serif">Set Base Salary (NPR / month)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {staffUsers.map((u: any) => (
+                <div key={u._id} className="flex items-center justify-between gap-3 p-2 border rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">{u.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{u.role?.replace("_", " ")}</p>
+                  </div>
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.currentTarget);
+                      const baseSalary = Number(fd.get("salary"));
+                      try {
+                        await setBaseSalary({ userId: u._id, baseSalary });
+                        toast.success(`Salary updated for ${u.name}`);
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to set salary");
+                      }
+                    }}
+                  >
+                    <input
+                      name="salary"
+                      type="number"
+                      defaultValue={u.baseSalary || ""}
+                      placeholder="0"
+                      className="w-28 h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                    <Button type="submit" size="sm" variant="outline" className="h-8 text-xs">Save</Button>
+                  </form>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>

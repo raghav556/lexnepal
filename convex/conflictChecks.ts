@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 
 export const logSearch = mutation({
   args: {
@@ -9,8 +10,7 @@ export const logSearch = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    // Allow unauthenticated for now if needed, or link to user
-    let runBy = undefined;
+    let runBy: Id<"users"> | undefined = undefined;
     if (identity) {
       const user = await ctx.db
         .query("users")
@@ -25,7 +25,7 @@ export const logSearch = mutation({
       searchQuery: args.searchQuery,
       hitsCount: args.hitsCount,
       status: args.hitsCount === 0 ? "cleared" : "pending",
-      runBy: runBy,
+      runBy,
       runByName: identity?.name || args.runByName || "Admin User",
       timestamp: new Date().toISOString(),
     });

@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { Label } from "@/components/ui/label.tsx";
-import { User as UserIcon, AlertTriangle, Check, X, Search, Ban, Activity, Mail, Phone, CalendarDays, UserPlus, FileText, Settings, Shield, LogOut, Menu, Loader2, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, ChevronUp } from "lucide-react";
+import { User as UserIcon, AlertTriangle, Check, X, Search, Ban, Activity, Mail, Phone, CalendarDays, UserPlus, FileText, Settings, Shield, LogOut, Menu, Loader2, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, ChevronUp, Navigation, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -32,12 +32,15 @@ const NAV: NavItem[] = [
   
   { heading: "Public CMS" },
   { label: "Site Settings", i18nKey: "nav.site_settings", href: "/admin/cms", icon: Globe },
+  { label: "Navigation & Menus", i18nKey: "nav.navigation", href: "/admin/cms/navigation", icon: Navigation },
   { label: "Practice Areas", i18nKey: "nav.practice_areas", href: "/admin/cms/practice-areas", icon: Briefcase },
   { label: "Testimonials", i18nKey: "nav.testimonials", href: "/admin/cms/testimonials", icon: Quote },
   { label: "Public Team", i18nKey: "nav.public_team", href: "/admin/cms/team", icon: Users },
   { label: "Blog Articles", i18nKey: "nav.blog_articles", href: "/admin/cms/blog", icon: PenTool },
+  { label: "News & Awards", i18nKey: "nav.news_awards", href: "/admin/cms/news", icon: Newspaper },
   { label: "Careers", i18nKey: "nav.careers", href: "/admin/cms/careers", icon: Briefcase },
   { label: "Resources", i18nKey: "nav.resources", href: "/admin/cms/resources", icon: FileText },
+  { label: "About Page", i18nKey: "nav.about_page", href: "/admin/cms/about", icon: FileText },
   
   { heading: "System" },
   { label: "Doc Generator", i18nKey: "nav.doc_generator", href: "/admin/document-generator", icon: FileText },
@@ -53,7 +56,12 @@ function AdminSidebar() {
   const [open, setOpen] = useState(false);
   const { t, language, setLanguage } = useI18n();
 
-  const isActive = (href: string) => href === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(href);
+  const isActive = (href?: string) => {
+    if (!href) return false;
+    if (href === "/admin") return location.pathname === "/admin";
+    if (href === "/admin/cms") return location.pathname === "/admin/cms";
+    return location.pathname.startsWith(href);
+  };
   const handleSignout = async () => { await signout(); navigate("/"); };
 
   return (
@@ -130,11 +138,18 @@ function AdminSidebar() {
       {open && (
         <div className="md:hidden fixed inset-0 z-40 bg-sidebar pt-14">
           <nav className="px-4 py-4 space-y-1">
-            {NAV.map(({ label, i18nKey, href, icon: Icon }) => (
-              <Link key={href} to={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
-                isActive(href) ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground"
-              )}><Icon className="w-4 h-4" />{t(i18nKey) !== i18nKey ? t(i18nKey) : label}</Link>
-            ))}
+            {NAV.map((item, idx) => {
+              if (item.heading) {
+                return <div key={`mheading-${idx}`} className="text-xs font-semibold text-sidebar-foreground/40 mt-4 mb-1 px-3 uppercase tracking-wider">{item.heading}</div>;
+              }
+              const { label, i18nKey, href, icon: Icon } = item;
+              if (!href || !Icon) return null;
+              return (
+                <Link key={href} to={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+                  isActive(href) ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground"
+                )}><Icon className="w-4 h-4" />{t(i18nKey!) !== i18nKey ? t(i18nKey!) : label}</Link>
+              );
+            })}
           </nav>
         </div>
       )}
@@ -157,7 +172,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
 
   if (currentUser === undefined) {
     return (
-      <div className="dark min-h-screen flex items-center justify-center bg-background">
+      <div className="dark min-h-screen flex items-center justify-center bg-background text-foreground">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -168,7 +183,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
 
 export default function AdminLayout() {
   return (
-    <div className="dark min-h-screen">
+    <div className="dark min-h-screen text-foreground">
       <AuthLoading>
         <div className="min-h-screen flex items-center justify-center bg-background"><Skeleton className="w-56 h-screen hidden md:block" /></div>
       </AuthLoading>

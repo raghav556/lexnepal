@@ -1,13 +1,14 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
 import { Menu, X, Scale, Phone, Mail, ArrowRight, Facebook, Linkedin, Instagram, Youtube, Twitter, Video, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { ChatbotWidget } from "@/components/ui/ChatbotWidget.tsx";
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { Authenticated, Unauthenticated, useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { cn } from "@/lib/utils.ts";
+import { toast } from "sonner";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -20,9 +21,42 @@ const NAV_LINKS = [
 
 export default function PublicLayout() {
   const settings = useQuery(api.cms.getSettings);
+  const headerNav = useQuery(api.cms.listNavigationLinks, { location: "header" });
+  const subscribeNewsletter = useMutation(api.cms.subscribeNewsletter);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const location = useLocation();
+
+  const navLinks = useMemo(() => {
+    const active = (headerNav || []).filter((l: any) => l.isActive !== false);
+    if (active.length === 0) return NAV_LINKS;
+    return active.map((l: any) => ({
+      label: l.label as string,
+      href: (l.url as string) || "/",
+      openInNewTab: !!l.openInNewTab,
+    }));
+  }, [headerNav]);
+
+  const handleNewsletterSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const email = newsletterEmail.trim();
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    setIsSubscribing(true);
+    try {
+      const result = await subscribeNewsletter({ email });
+      toast.success(result?.alreadySubscribed ? "You are already subscribed." : "Thanks for subscribing!");
+      setNewsletterEmail("");
+    } catch {
+      toast.error("Failed to subscribe. Please try again.");
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
@@ -70,12 +104,12 @@ export default function PublicLayout() {
             <span className="text-primary-foreground/60">Office Hours: Sun-Fri 9AM-6PM</span>
             <div className="w-px h-4 bg-primary-foreground/20" />
             <div className="flex gap-3">
-              {settings?.facebookUrl && <a href={settings.facebookUrl} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Facebook"><Facebook className="w-4 h-4" /></a>}
-              {settings?.linkedinUrl && <a href={settings.linkedinUrl} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="LinkedIn"><Linkedin className="w-4 h-4" /></a>}
-              {settings?.twitterUrl && <a href={settings.twitterUrl} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Twitter"><Twitter className="w-4 h-4" /></a>}
-              {settings?.instagramUrl && <a href={settings.instagramUrl} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Instagram"><Instagram className="w-4 h-4" /></a>}
-              {settings?.youtubeUrl && <a href={settings.youtubeUrl} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="YouTube"><Youtube className="w-4 h-4" /></a>}
-              {settings?.tiktokUrl && <a href={settings.tiktokUrl} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="TikTok"><Video className="w-4 h-4" /></a>}
+              <a href={settings?.facebookUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Facebook"><Facebook className="w-4 h-4" /></a>
+              <a href={settings?.linkedinUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="LinkedIn"><Linkedin className="w-4 h-4" /></a>
+              <a href={settings?.twitterUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Twitter"><Twitter className="w-4 h-4" /></a>
+              <a href={settings?.instagramUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="Instagram"><Instagram className="w-4 h-4" /></a>
+              <a href={settings?.youtubeUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="YouTube"><Youtube className="w-4 h-4" /></a>
+              <a href={settings?.tiktokUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" aria-label="TikTok"><Video className="w-4 h-4" /></a>
             </div>
           </div>
         </div>
@@ -98,11 +132,24 @@ export default function PublicLayout() {
             </Link>
 
             <nav className="hidden lg:flex items-center gap-1.5 bg-muted/20 p-1.5 rounded-full border border-border/50">
-              {NAV_LINKS.map((l) => {
+              {navLinks.map((l) => {
                 const isActive = location.pathname === l.href;
+                if ((l as any).openInNewTab || /^https?:\/\//.test(l.href)) {
+                  return (
+                    <a
+                      key={`${l.label}-${l.href}`}
+                      href={l.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 text-muted-foreground hover:text-primary hover:bg-muted/50"
+                    >
+                      {l.label}
+                    </a>
+                  );
+                }
                 return (
                   <Link 
-                    key={l.href} 
+                    key={`${l.label}-${l.href}`}
                     to={l.href}
                     className={cn(
                       "px-5 py-2 rounded-full text-sm font-medium transition-all duration-300",
@@ -139,13 +186,26 @@ export default function PublicLayout() {
           mobileOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0 border-t-0"
         )}>
           <div className="px-4 py-4 space-y-3">
-            {NAV_LINKS.map((l) => (
-              <Link key={l.href} to={l.href} className={cn(
-                "block text-sm font-medium transition-colors",
-                location.pathname === l.href ? "text-primary" : "text-foreground hover:text-primary"
-              )} onClick={() => setMobileOpen(false)}>
-                {l.label}
-              </Link>
+            {navLinks.map((l) => (
+              /^https?:\/\//.test(l.href) || (l as any).openInNewTab ? (
+                <a
+                  key={`m-${l.label}-${l.href}`}
+                  href={l.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block text-sm font-medium text-foreground hover:text-primary"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {l.label}
+                </a>
+              ) : (
+                <Link key={`m-${l.label}-${l.href}`} to={l.href} className={cn(
+                  "block text-sm font-medium transition-colors",
+                  location.pathname === l.href ? "text-primary" : "text-foreground hover:text-primary"
+                )} onClick={() => setMobileOpen(false)}>
+                  {l.label}
+                </Link>
+              )
             ))}
             <div className="pt-2 flex flex-col gap-3">
               <Authenticated>
@@ -230,10 +290,23 @@ export default function PublicLayout() {
             <div>
               <h4 className="font-semibold text-sm mb-3 text-accent">Stay Updated</h4>
               <p className="text-sm text-primary-foreground/60 mb-3">Get legal insights and firm updates delivered to your inbox.</p>
-              <div className="flex gap-2">
-                <input type="email" placeholder="you@email.com" className="flex-1 rounded-lg bg-primary-foreground/10 border border-primary-foreground/20 px-3 py-2 text-sm text-primary-foreground placeholder:text-primary-foreground/40 focus:outline-none focus:border-accent/50" />
-                <button className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">Subscribe</button>
-              </div>
+              <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
+                <input
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  className="flex-1 rounded-lg bg-primary-foreground/10 border border-primary-foreground/20 px-3 py-2 text-sm text-primary-foreground placeholder:text-primary-foreground/40 focus:outline-none focus:border-accent/50"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubscribing}
+                  className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-60"
+                >
+                  {isSubscribing ? "..." : "Subscribe"}
+                </button>
+              </form>
             </div>
           </div>
           <div className="border-t border-primary-foreground/20 mt-10 pt-6 text-xs text-primary-foreground/50 flex flex-col sm:flex-row justify-between gap-2">

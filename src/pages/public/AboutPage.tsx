@@ -3,15 +3,21 @@ import { Link } from "react-router-dom";
 import { Scale, Shield, Users, Target, Award, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api.js";
 
-const VALUES = [
-  { icon: Shield, title: "Integrity First", desc: "We uphold the highest ethical standards in every case, maintaining complete transparency with our clients." },
-  { icon: Target, title: "Precision & Diligence", desc: "Every detail matters in law. We leave no stone unturned in building your case and protecting your interests." },
-  { icon: Users, title: "Client-Centered", desc: "Your goals drive our strategy. We listen first, then craft legal solutions tailored to your specific needs." },
-  { icon: Award, title: "Excellence in Practice", desc: "Our advocates are among the most experienced in Nepal, registered with the Nepal Bar Council and continuously trained." },
+const ICON_MAP: Record<string, any> = {
+  Scale, Shield, Users, Target, Award
+};
+
+const DEFAULT_VALUES = [
+  { icon: "Shield", title: "Integrity First", desc: "We uphold the highest ethical standards in every case, maintaining complete transparency with our clients." },
+  { icon: "Target", title: "Precision & Diligence", desc: "Every detail matters in law. We leave no stone unturned in building your case and protecting your interests." },
+  { icon: "Users", title: "Client-Centered", desc: "Your goals drive our strategy. We listen first, then craft legal solutions tailored to your specific needs." },
+  { icon: "Award", title: "Excellence in Practice", desc: "Our advocates are among the most experienced in Nepal, registered with the Nepal Bar Council and continuously trained." },
 ];
 
-const TIMELINE = [
+const DEFAULT_TIMELINE = [
   { year: "2010", title: "Firm Founded", desc: "Established in Kathmandu with a vision to modernize legal practice in Nepal." },
   { year: "2015", title: "50+ Corporate Clients", desc: "Became one of Kathmandu's leading corporate law practices." },
   { year: "2019", title: "Digital Transformation", desc: "Launched our Client Portal — bringing transparency and 24/7 case access to our clients." },
@@ -19,6 +25,16 @@ const TIMELINE = [
 ];
 
 export default function AboutPage() {
+  const settings = useQuery(api.cms.getSettings) || {};
+  const data = settings.about_page || {};
+
+  const heroTitle = data.hero?.title || "Modernizing Legal Practice in Nepal";
+  const heroDescription = data.hero?.description || "We combine decades of courtroom experience with cutting-edge technology to deliver transparent, efficient, and results-driven legal services.";
+  const missionText = data.mission?.text || "At Srimar Law, we believe that access to quality legal representation should not be a privilege. Our mission is to provide every client — from individuals facing personal legal challenges to multinational corporations navigating Nepal's regulatory landscape — with the same level of dedication, expertise, and transparency.";
+  
+  const valuesList = data.values || DEFAULT_VALUES;
+  const timelineList = data.timeline || DEFAULT_TIMELINE;
+
   return (
     <div>
       {/* Hero */}
@@ -31,11 +47,10 @@ export default function AboutPage() {
               About Srimar Law
             </div>
             <h1 className="font-serif text-5xl md:text-6xl font-bold text-primary-foreground leading-tight mb-6">
-              Modernizing <span className="text-accent">Legal Practice</span> in Nepal
+              {heroTitle}
             </h1>
             <p className="text-xl text-primary-foreground/70 max-w-2xl">
-              We combine decades of courtroom experience with cutting-edge technology to deliver 
-              transparent, efficient, and results-driven legal services.
+              {heroDescription}
             </p>
           </motion.div>
         </div>
@@ -48,10 +63,7 @@ export default function AboutPage() {
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
               <h2 className="font-serif text-4xl font-bold text-foreground mb-6">Our Mission</h2>
               <p className="text-muted-foreground text-lg mb-6">
-                At Srimar Law, we believe that access to quality legal representation should not be a privilege. 
-                Our mission is to provide every client — from individuals facing personal legal challenges to 
-                multinational corporations navigating Nepal's regulatory landscape — with the same level of 
-                dedication, expertise, and transparency.
+                {missionText}
               </p>
               <ul className="space-y-3">
                 {["Nepal Bar Council certified advocates", "End-to-end digital case tracking", "Multilingual support (Nepali, English, Hindi)", "Free initial consultation for new clients"].map((item) => (
@@ -93,19 +105,22 @@ export default function AboutPage() {
             <p className="text-muted-foreground max-w-xl mx-auto">These principles guide every case we take, every brief we file, and every client interaction.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {VALUES.map((v, i) => (
-              <motion.div key={v.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.5 }}>
-                <Card className="h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-4">
-                      <v.icon className="w-6 h-6 text-accent" />
-                    </div>
-                    <h3 className="font-semibold text-foreground mb-2">{v.title}</h3>
-                    <p className="text-sm text-muted-foreground">{v.desc}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            {valuesList.map((v: any, i: number) => {
+              const Icon = ICON_MAP[v.icon] || Scale;
+              return (
+                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.5 }}>
+                  <Card className="h-full hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-4">
+                        <Icon className="w-6 h-6 text-accent" />
+                      </div>
+                      <h3 className="font-semibold text-foreground mb-2">{v.title}</h3>
+                      <p className="text-sm text-muted-foreground">{v.desc}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -118,8 +133,8 @@ export default function AboutPage() {
           </div>
           <div className="relative">
             <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-border md:-translate-x-px" />
-            {TIMELINE.map((t, i) => (
-              <motion.div key={t.year} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15, duration: 0.5 }}
+            {timelineList.map((t: any, i: number) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15, duration: 0.5 }}
                 className={`relative flex items-start gap-6 mb-10 ${i % 2 === 0 ? 'md:flex-row-reverse md:text-right' : ''}`}
               >
                 <div className="hidden md:block flex-1" />

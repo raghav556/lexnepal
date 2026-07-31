@@ -1,8 +1,8 @@
-# LexNepal — Full Build Plan
+# LexNepal — Full Build Plan (Updated)
 
 **App:** Nepal law firm management platform  
 **Stack:** Vite + React + TypeScript + Convex + Hercules Auth  
-**Last updated:** 2081 Mangsir (July 2026)
+**Last updated:** Aug 2026 (audit roadmap implementation)
 
 ---
 
@@ -10,93 +10,36 @@
 
 | Area | Status | Notes |
 |---|---|---|
-| Public website UI | ✅ 100% | Brand theme applied, leads wired |
-| Convex schema | ✅ 100% | All 18 tables defined |
-| Staff portal UI | 80% | All pages built, mock data |
-| Client portal UI | 80% | All pages built, mock data |
-| Admin console UI | 80% | All pages built, role edit live |
-| Auth | ✅ Done | Hercules Auth wired, callback working |
-| RBAC | ✅ Done | Server enforcement + post-login redirect |
-| File storage | 0% | Not started |
-| Billing / PDF | 0% | Not started |
-| Notifications | 0% | Not started |
+| Public website UI | Done | CMS-driven nav, legal pages, careers/resources/news |
+| Convex schema | Done | firms + firmId prep, expenses, templates, research, testimonials, intake, sessions, legal pages |
+| Staff portal | Done | Live queries; case messages/timeline; Pesi honest empty state |
+| Client portal | Done | Dashboard/cases/billing/KYC/e-sign/booking wired to client record |
+| Admin console | Done | Finance status, payroll generator, CMS news/resources CRUD |
+| Auth | Done | Mock opt-in via `VITE_USE_MOCK`; live OIDC hooks ready |
+| RBAC | Done | Case list scoped by role; server `requireRole` |
+| File storage | Partial | Convex `generateUploadUrl` + mock blob fallback |
+| Billing / PDF | Done | Invoice lifecycle, PDF, gateway initiate + payments rows |
+| Notifications | Done | In-app + email/SMS audit log via `communications` |
 
 ---
 
-## Phase 1 — Public Website Fixes ✅ DONE
+## Phase status (audit roadmap)
 
-## Phase 2 — Convex Backend Foundation ✅ DONE
-
-## Phase 3 — Role-Based Access Control ✅ DONE
-**Status:** Complete
-
-- [x] `updateCurrentUser` returns `{ id, role }` — Callback.tsx redirects to correct portal
-- [x] All sensitive mutations enforce `requireRole` / `requireAuth`
-  - `createCase`, `updateCase` → staff + admin
-  - `createClient`, `updateClient` → staff + admin
-  - `createHearing`, `updateHearing` → staff + admin
-  - `createDocument` → any auth; `deleteDocument` → staff + admin
-  - `createTask`, `updateTask`, `deleteTask` → staff + admin
-  - `createTimeEntry`, `deleteTimeEntry` → staff + admin
-  - `createInvoice`, `updateInvoiceStatus`, `addLineItem`, `createTrustTransaction` → staff + admin
-  - `sendMessage` → any auth; internal messages → staff + admin
-  - `updateLead` → staff + admin; `createLead` → public
-  - `createLeaveRequest` → staff + admin; `reviewLeaveRequest` → admin only
-  - `listAuditLog` → admin only
-- [x] AdminUsersPage: live role assignment via `updateUser` mutation (admin-only)
-- [x] Layout role guards redirect to correct portal on wrong access
+- [x] Phase 0 — Foundation (mock flag, env example, firmId, providers, auth hooks)
+- [x] Phase 1 — Schema & API parity (expenses, templates, research, analytics, settings, CMS gaps, intake)
+- [x] Phase 2 — Public CMS (nav, privacy/terms, news admin, resources CRUD, careers apply, newsletter)
+- [x] Phase 3 — Staff portal (Command Center fix, Pesi, appointments links, case detail, BS calendar)
+- [x] Phase 4 — Client portal (dashboard, clientId fix, KYC, e-sign, booking)
+- [x] Phase 5 — Finance/payments/payroll
+- [x] Phase 6 — Notifications & communications
+- [x] Phase 7 — i18n, RBAC, SaaS prep doc
+- [ ] Phase 8 — Multi-firm SaaS (see `SAAS_MULTI_FIRM_PHASE8.md`)
 
 ---
 
-## Phase 4 — Staff Portal (Live Data)
-**Status:** Not started  
-**Effort:** Large (2–3 days)  
-**Depends on:** Phase 3 ✅
+## Nepal-Specific Requirements
 
----
-
-## Phase 5 — Client Portal (Live Data)
-**Status:** Not started  
-**Effort:** Medium (1–2 days)  
-**Depends on:** Phase 3 ✅
-
----
-
-## Phase 6 — Admin Console (Live Data)
-**Status:** Not started  
-**Effort:** Large (2 days)  
-**Depends on:** Phase 3 ✅
-
----
-
-## Phase 7 — File & Document Management
-**Status:** Not started  
-**Effort:** Medium (1–2 days)  
-**Depends on:** Phase 4
-
----
-
-## Phase 8 — Billing & PDF Invoicing
-**Status:** Not started  
-**Effort:** Medium (1–2 days)  
-**Depends on:** Phase 6
-
----
-
-## Phase 9 — Notifications
-**Status:** Not started  
-**Effort:** Small–Medium (1 day)  
-**Depends on:** Phase 4, Phase 5
-
----
-
-## Nepal-Specific Requirements (apply across all phases)
-
-- All dates displayed in **Bikram Sambat (BS)** with Gregorian in parentheses
-- All currency in **NPR** formatted as `रू 1,25,000` using `formatNPR()` from `src/lib/lex-constants.ts`
-- **VAT rate: 13%** — always calculated server-side in Convex mutations
-- **Provident Fund (PF): 10%** employer + **10%** employee contribution
-- **SSF (Social Security Fund): 3.33%** employer contribution
-- Court names use official Nepal judiciary names
-- Bar Council numbers format: `NPC-XXXXXX`
-- Case numbers format: `KTM/YYYY/NNN` (or district prefix)
+- Dates: prefer `nepali-calendar.ts` / `bs-calendar.ts` re-exports
+- Currency NPR via `formatNPR()`
+- VAT 13% server-side
+- PF 10% + SSF 3.33% in payroll generator

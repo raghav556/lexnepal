@@ -12,7 +12,7 @@ import {
   Receipt, Plus, Search, CheckCircle2, XCircle, Trash2, Loader2, Calendar, FolderOpen, CreditCard
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth.ts";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 const CATEGORIES: Record<string, string> = {
   office_rent: "Office Rent",
@@ -41,8 +41,8 @@ function formatDate(dateStr: string) {
 }
 
 export default function AdminExpensesPage() {
-  const { user } = useAuth();
-  const currentUserId = user?.profile?._id || "u1";
+  const currentUser = useCurrentUser();
+  const currentUserId = currentUser?._id || "u1";
 
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -55,7 +55,7 @@ export default function AdminExpensesPage() {
 
   const createExpense = useMutation(api.expenses.create as any);
   const approveExpense = useMutation(api.expenses.approve as any);
-  const deleteExpense = useMutation(api.expenses.delete as any);
+  const deleteExpense = useMutation(api.expenses.remove as any);
 
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

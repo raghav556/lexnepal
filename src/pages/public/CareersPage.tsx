@@ -7,25 +7,51 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RevealText, FadeInUp, HoverGlowCard } from "@/components/ui/animations";
-import { Briefcase, MapPin, Clock, Upload } from "lucide-react";
+import { Briefcase, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CareersPage() {
   const jobs = useQuery(api.cms.listCareers, { isActive: true });
+  const createApplication = useMutation(api.cms.createJobApplication);
   const [selectedJob, setSelectedJob] = useState<any>(null);
-  
-  // NOTE: In a real app we'd use a generateUploadUrl mutation + standard upload flow.
-  // For UI demonstration, we'll just capture details and show a success message.
-  
-  const handleApply = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    applicantName: "",
+    email: "",
+    phone: "",
+    resumeUrl: "",
+    coverLetter: "",
+  });
+
+  const resetForm = () => {
+    setForm({ applicantName: "", email: "", phone: "", resumeUrl: "", coverLetter: "" });
+  };
+
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Application Submitted: Thank you for your interest. Our HR team will review your application and get back to you.");
-    setSelectedJob(null);
+    if (!selectedJob) return;
+    setIsSubmitting(true);
+    try {
+      await createApplication({
+        jobId: selectedJob._id,
+        applicantName: form.applicantName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        resumeUrl: form.resumeUrl.trim() || undefined,
+        coverLetter: form.coverLetter.trim() || undefined,
+      });
+      toast.success("Application submitted. Our HR team will review and get back to you.");
+      setSelectedJob(null);
+      resetForm();
+    } catch {
+      toast.error("Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Hero Section */}
       <section className="bg-primary py-24 px-4 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-accent via-primary to-primary"></div>
         <div className="relative max-w-4xl mx-auto z-10">
@@ -40,7 +66,6 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* Culture Section */}
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
           <FadeInUp delay={0.1}>
@@ -63,7 +88,6 @@ export default function CareersPage() {
           </FadeInUp>
         </div>
 
-        {/* Open Positions */}
         <RevealText as="h2" className="text-3xl font-serif font-bold mb-10 text-center">Open Positions</RevealText>
         
         {jobs === undefined ? (
@@ -94,7 +118,12 @@ export default function CareersPage() {
                     <CardContent>
                       <p className="text-muted-foreground mb-6 line-clamp-3">{job.description}</p>
                       
-                      <Dialog open={selectedJob?._id === job._id} onOpenChange={(open) => !open && setSelectedJob(null)}>
+                      <Dialog open={selectedJob?._id === job._id} onOpenChange={(open) => {
+                        if (!open) {
+                          setSelectedJob(null);
+                          resetForm();
+                        }
+                      }}>
                         <DialogTrigger asChild>
                           <Button variant="outline" onClick={() => setSelectedJob(job)}>View Details & Apply</Button>
                         </DialogTrigger>
@@ -116,8 +145,8 @@ export default function CareersPage() {
                               <div>
                                 <h4 className="font-bold mb-2">Requirements</h4>
                                 <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                                  {job.requirements.map((req: string, i: number) => (
-                                    <li key={i}>{req}</li>
+                                  {job.requirements.map((req: string, idx: number) => (
+                                    <li key={idx}>{req}</li>
                                   ))}
                                 </ul>
                               </div>
@@ -129,29 +158,55 @@ export default function CareersPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div className="space-y-2">
                                     <label className="text-sm font-medium">Full Name</label>
-                                    <Input required placeholder="John Doe" />
+                                    <Input
+                                      required
+                                      placeholder="John Doe"
+                                      value={form.applicantName}
+                                      onChange={(e) => setForm({ ...form, applicantName: e.target.value })}
+                                    />
                                   </div>
                                   <div className="space-y-2">
                                     <label className="text-sm font-medium">Email</label>
-                                    <Input required type="email" placeholder="john@example.com" />
+                                    <Input
+                                      required
+                                      type="email"
+                                      placeholder="john@example.com"
+                                      value={form.email}
+                                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                    />
                                   </div>
                                 </div>
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium">Phone</label>
-                                  <Input required placeholder="+977 XXXXXXXXXX" />
+                                  <Input
+                                    required
+                                    placeholder="+977 XXXXXXXXXX"
+                                    value={form.phone}
+                                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                  />
                                 </div>
                                 <div className="space-y-2">
-                                  <label className="text-sm font-medium">Resume (PDF)</label>
-                                  <div className="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground hover:bg-secondary/50 transition-colors cursor-pointer">
-                                    <Upload className="w-8 h-8 mb-2" />
-                                    <span className="text-sm">Click to upload your resume</span>
-                                  </div>
+                                  <label className="text-sm font-medium">Resume URL</label>
+                                  <Input
+                                    type="url"
+                                    placeholder="https://... (link to your resume PDF)"
+                                    value={form.resumeUrl}
+                                    onChange={(e) => setForm({ ...form, resumeUrl: e.target.value })}
+                                  />
+                                  <p className="text-xs text-muted-foreground">Paste a public link to your resume if you do not have file upload available.</p>
                                 </div>
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium">Cover Letter (Optional)</label>
-                                  <Textarea placeholder="Tell us why you're a great fit..." className="h-32" />
+                                  <Textarea
+                                    placeholder="Tell us why you're a great fit..."
+                                    className="h-32"
+                                    value={form.coverLetter}
+                                    onChange={(e) => setForm({ ...form, coverLetter: e.target.value })}
+                                  />
                                 </div>
-                                <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-white">Submit Application</Button>
+                                <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-white" disabled={isSubmitting}>
+                                  {isSubmitting ? "Submitting..." : "Submit Application"}
+                                </Button>
                               </form>
                             </div>
                           </div>

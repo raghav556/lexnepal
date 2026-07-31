@@ -22,13 +22,18 @@ export default function StaffAppointmentsPage() {
     ? appointments 
     : appointments.filter((a: any) => a.status === filter);
 
-  const handleGenerateLink = async (id: string) => {
-    const mockLink = `https://meet.google.com/mock-${Math.random().toString(36).substring(2, 8)}`;
+  const handleAddMeetingLink = async (id: string) => {
+    const link = window.prompt("Enter meeting link (leave empty for none):");
+    if (link === null) return;
     try {
-      await updateStatus({ id: id as any, status: "confirmed", meetingLink: mockLink });
-      toast.success("Video link generated and appointment confirmed.");
+      await updateStatus({
+        id: id as any,
+        status: "confirmed",
+        meetingLink: link.trim() || undefined,
+      } as any);
+      toast.success(link.trim() ? "Meeting link saved and appointment confirmed." : "Appointment confirmed.");
     } catch {
-      toast.error("Failed to generate link.");
+      toast.error("Failed to save meeting link.");
     }
   };
 
@@ -100,8 +105,8 @@ export default function StaffAppointmentsPage() {
                       )}
 
                       {!apt.meetingLink ? (
-                        <Button size="sm" className="gap-2" onClick={() => handleGenerateLink(apt._id)}>
-                          <Video className="w-4 h-4" /> Generate Link
+                        <Button size="sm" className="gap-2" onClick={() => handleAddMeetingLink(apt._id)}>
+                          <Video className="w-4 h-4" /> Add Meeting Link
                         </Button>
                       ) : (
                         <a href={apt.meetingLink} target="_blank" rel="noreferrer" className="text-sm text-accent hover:underline flex items-center gap-1.5 font-medium px-3 py-2 bg-accent/10 rounded-md">

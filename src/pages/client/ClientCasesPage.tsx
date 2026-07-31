@@ -16,11 +16,13 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ClientCasesPage() {
   const currentUser = useCurrentUser();
-  const cases = useQuery(api.cases.listCases, currentUser ? { clientId: currentUser._id as any } : "skip" as any) || [];
+  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientId = clientRecord?._id;
+  const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
   const users = useQuery(api.users.listUsers, {}) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
 
-  if (currentUser === undefined) {
+  if (currentUser === undefined || clientRecord === undefined) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

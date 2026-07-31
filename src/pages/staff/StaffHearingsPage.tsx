@@ -24,7 +24,13 @@ export default function StaffHearingsPage() {
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const cases = useQuery(api.cases.listCases, {}) || [];
   const users = useQuery(api.users.listUsers, {}) || [];
-  const pesiList = useQuery(api.court?.getPesi as any, {}) || [];
+  const pesiResult = useQuery(api.court.getPesi, {});
+  const pesiList = Array.isArray(pesiResult)
+    ? pesiResult
+    : ((pesiResult as any)?.items || []);
+  const pesiMessage =
+    (!Array.isArray(pesiResult) && (pesiResult as any)?.message) ||
+    "Automated Pesi sync is not connected. Enter hearings manually.";
 
   const createHearing = useMutation(api.hearings.createHearing);
   const updateHearing = useMutation(api.hearings.updateHearing);
@@ -167,7 +173,11 @@ export default function StaffHearingsPage() {
           <p className="text-sm text-muted-foreground">{t("hearings.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => toast.success("Mock Pesi synced successfully!")}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => toast.message("Pesi sync unavailable", { description: pesiMessage })}
+          >
             <CalendarDays className="w-4 h-4 mr-1" /> {t("hearings.fetch_pesi")}
           </Button>
           <Button size="sm" onClick={() => setShowCreateModal(true)}>
@@ -224,12 +234,12 @@ export default function StaffHearingsPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Automated Cause List (Pesi) - Mock
+            Automated Cause List (Pesi)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {pesiList.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No pesi data synced from court servers.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">{pesiMessage}</p>
           ) : (
             pesiList.map((p: any) => {
               const matchedCase = cases.find((c: any) => c._id === p.caseId);
