@@ -30,6 +30,7 @@ import ClientBillingPage from "./pages/client/ClientBillingPage.tsx";
 import ClientBookingPage from "./pages/client/ClientBookingPage.tsx";
 import ClientKYCOnboarding from "./pages/client/ClientKYCOnboarding.tsx";
 import ClientSignaturesPage from "./pages/client/ClientSignaturesPage.tsx";
+import ClientChecklistPage from "./pages/client/ClientChecklistPage.tsx";
 
 import StaffLayout from "./pages/staff/StaffLayout.tsx";
 import StaffDashboard from "./pages/staff/StaffDashboard.tsx";
@@ -69,6 +70,7 @@ import AdminCMSNews from "./pages/admin/AdminCMSNews.tsx";
 import AdminCMSAbout from "./pages/admin/AdminCMSAbout.tsx";
 
 import SharedProfilePage from "./pages/shared/SharedProfilePage.tsx";
+import SharedDocumentPage from "./pages/public/SharedDocumentPage.tsx";
 
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
@@ -115,6 +117,7 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/setup-account" element={<AccountSetupPage />} />
           <Route path="/intake/:token" element={<IntakeFormPage />} />
+          <Route path="/share/:token" element={<SharedDocumentPage />} />
 
           <Route path="/" element={<PublicLayout />}>
             <Route index element={<HomePage />} />
@@ -142,6 +145,7 @@ export default function App() {
             <Route path="booking" element={<ClientBookingPage />} />
             <Route path="kyc" element={<ClientKYCOnboarding />} />
             <Route path="signatures" element={<ClientSignaturesPage />} />
+            <Route path="checklist" element={<ClientChecklistPage />} />
             <Route path="profile" element={<SharedProfilePage />} />
           </Route>
 

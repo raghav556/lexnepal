@@ -51,6 +51,19 @@ export const getCase = query({
   },
 });
 
+export const getCaseWithDetails = query({
+  args: { caseId: v.id("cases") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Not authenticated" });
+    const c = await ctx.db.get(args.caseId);
+    if (!c) return null;
+    const client = await ctx.db.get(c.clientId);
+    const lawyer = await ctx.db.get(c.assignedLawyerId);
+    return { ...c, client, lawyer };
+  },
+});
+
 export const createCase = mutation({
   args: {
     caseNumber: v.string(),

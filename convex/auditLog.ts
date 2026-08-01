@@ -19,6 +19,32 @@ export const listAuditLog = query({
   },
 });
 
+export const getDocumentAuditLog = query({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    // Fetch all logs for this document, limit to 100 for now.
+    // In a production app, we'd add an index on [resource, resourceId] for better performance.
+    const logs = await ctx.db
+      .query("auditLog")
+      .withIndex("by_resource", (q) => q.eq("resource", "documents"))
+      .order("desc")
+      .take(1000);
+      
+    const docLogs = logs.filter(l => l.resourceId === args.documentId);
+    
+    // Enrich with user data
+    return Promise.all(docLogs.map(async (log) => {
+       const user = await ctx.db.get(log.userId);
+       return {
+         ...log,
+         userName: user?.name || "System",
+         userRole: user?.role || "System",
+       }
+    }));
+  }
+});
+
 export const writeAuditLog = mutation({
   args: {
     action: v.string(),

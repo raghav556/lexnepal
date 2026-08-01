@@ -92,6 +92,50 @@ export const seedDefaultFirm = mutation({
       });
     }
 
+    const sops = await ctx.db.query("sopTemplates").collect();
+    if (sops.length === 0) {
+      const defaults = [
+        {
+          key: "new_case",
+          label: "Litigation Setup (Firad Registration)",
+          taskTitles: ["Draft Vakalatnama", "Prepare Firad Patra (Petition)", "Collect Client KYC & ID", "Pay Initial Court Dastur"],
+          defaultPriority: "high" as const,
+          practiceArea: "litigation",
+        },
+        {
+          key: "hearing_prep",
+          label: "Hearing Preparation (Bahas Prep)",
+          taskTitles: ["Review opposing reply (Pratiuttar)", "Draft written arguments/notes", "Compile precedent case laws", "Client Briefing"],
+          defaultPriority: "high" as const,
+          practiceArea: "litigation",
+        },
+        {
+          key: "company_incorporation",
+          label: "Company Incorporation (ORC)",
+          taskTitles: ["Draft MOA/AOA", "Name reservation at ORC", "PAN registration follow-up", "Share certificates issuance"],
+          defaultPriority: "high" as const,
+          practiceArea: "corporate",
+        },
+        {
+          key: "property_due_diligence",
+          label: "Property Due Diligence",
+          taskTitles: ["Title search (Malpot)", "Check encumbrances", "Survey / boundary verification", "Draft sale deed review"],
+          defaultPriority: "medium" as const,
+          practiceArea: "property",
+        },
+        {
+          key: "family_divorce",
+          label: "Family — Divorce / Partition Prep",
+          taskTitles: ["Collect marriage / citizenship docs", "Draft petition", "Asset inventory checklist", "Client counseling note"],
+          defaultPriority: "medium" as const,
+          practiceArea: "family",
+        },
+      ];
+      for (const sop of defaults) {
+        await ctx.db.insert("sopTemplates", sop);
+      }
+    }
+
     return { success: true, firmId: firm._id };
   },
 });

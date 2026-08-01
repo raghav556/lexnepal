@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
-import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, LogOut, Menu, X, Loader2, Calendar, User as UserIcon, ChevronUp, ShieldCheck, PenTool } from "lucide-react";
+import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, LogOut, Menu, X, Loader2, Calendar, User as UserIcon, ChevronUp, ShieldCheck, PenTool, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
 
   { heading: "Your Matters" },
   { label: "My Cases", i18nKey: "nav.cases", href: "/client/cases", icon: FolderOpen },
+  { label: "Checklist", i18nKey: "nav.checklist", href: "/client/checklist", icon: ClipboardList },
   { label: "Documents", i18nKey: "nav.documents", href: "/client/documents", icon: FileText },
   { label: "Messages", i18nKey: "nav.messages", href: "/client/messages", icon: MessageSquare },
 

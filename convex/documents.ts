@@ -2,15 +2,11 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles";
+import { requireAuth, requireRole, STAFF_ROLES, isStaffOrAdmin } from "./lib/roles";
 import { notifyUser } from "./lib/notify";
 import { assertOtpVerified, completeRecipientAfterSign } from "./envelopes";
 
 export const SIGN_CONSENT_VERSION = "esign-consent-v1";
-
-function isStaffOrAdmin(role: string) {
-  return STAFF_ROLES.includes(role as any) || role === "admin";
-}
 
 async function getClientCaseIds(
   ctx: QueryCtx | MutationCtx,
@@ -75,24 +71,34 @@ export const listDocuments = query({
   args: {
     caseId: v.optional(v.id("cases")),
     isTemplate: v.optional(v.boolean()),
+    inTrash: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
+    
+    // Base filter function
+    const isVisible = (d: Doc<"documents">) => {
+      if (args.inTrash) return d.isDeleted === true;
+      return d.isDeleted !== true;
+    };
 
     if (isStaffOrAdmin(user.role)) {
       if (args.caseId) {
-        return ctx.db
+        const docs = await ctx.db
           .query("documents")
           .withIndex("by_case", (q) => q.eq("caseId", args.caseId!))
           .collect();
+        return docs.filter(isVisible);
       }
       if (args.isTemplate !== undefined) {
-        return ctx.db
+        const docs = await ctx.db
           .query("documents")
           .withIndex("by_template", (q) => q.eq("isTemplate", args.isTemplate!))
           .collect();
+        return docs.filter(isVisible);
       }
-      return ctx.db.query("documents").collect();
+      const allDocs = await ctx.db.query("documents").collect();
+      return allDocs.filter(isVisible);
     }
 
     const { caseIds } = await getClientCaseIds(ctx, user._id);
@@ -101,14 +107,15 @@ export const listDocuments = query({
       if (!caseIds.has(args.caseId)) {
         throw new ConvexError({ code: "FORBIDDEN", message: "Access denied to this case" });
       }
-      return ctx.db
+      const docs = await ctx.db
         .query("documents")
         .withIndex("by_case", (q) => q.eq("caseId", args.caseId!))
         .collect();
+      return docs.filter(isVisible);
     }
 
     const all = await ctx.db.query("documents").collect();
-    return all.filter((d) => clientCanAccessDoc(d, user._id, caseIds));
+    return all.filter((d) => isVisible(d) && clientCanAccessDoc(d, user._id, caseIds));
   },
 });
 
@@ -120,34 +127,222 @@ export const getDocument = query({
     if (!doc) return null;
     await assertCanAccessDocument(ctx, user, doc);
     return doc;
+    return doc;
   },
+});
+
+export const searchDocuments = query({
+  args: {
+    query: v.string(),
+    caseId: v.optional(v.id("cases")),
+    type: v.optional(v.string()),
+    isDeleted: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    const isStaff = user.role !== "client" && user.role !== "admin";
+    const isAdmin = user.role === "admin";
+
+    let q = ctx.db.query("documents")
+      .withSearchIndex("search_text", (q) => {
+        const search = q.search("searchableText", args.query);
+        if (args.caseId) search.eq("caseId", args.caseId);
+        if (args.type) search.eq("type", args.type as any);
+        if (args.isDeleted !== undefined) search.eq("isDeleted", args.isDeleted);
+        return search;
+      });
+
+    const docs = await q.collect();
+
+    // Client filtering
+    let caseIds = new Set<import("./_generated/dataModel").Id<"cases">>();
+    if (!isStaff && !isAdmin) {
+      const res = await getClientCaseIds(ctx, user._id);
+      caseIds = res.caseIds;
+    }
+
+    return docs.filter((d) => {
+      // 1. deleted check
+      if (d.isDeleted && !args.isDeleted) return false;
+      // 2. staff access check
+      if (isStaff || isAdmin) {
+        if (d.isPrivileged && !isAdmin) return false;
+        return true;
+      }
+      // 3. client access check
+      if (d.isPrivileged) return false;
+      if (d.confidentialityLevel === "internal" || d.confidentialityLevel === "privileged") return false;
+      return clientCanAccessDoc(d, user._id, caseIds);
+    });
+  }
+});
+
+export const getRecentDocuments = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    const isStaff = user.role !== "client" && user.role !== "admin";
+    const isAdmin = user.role === "admin";
+    
+    // Fetch documents, sort by _creationTime desc
+    const docs = await ctx.db.query("documents").order("desc").take(args.limit || 5);
+    
+    // Filter
+    let caseIds = new Set<import("./_generated/dataModel").Id<"cases">>();
+    if (!isStaff && !isAdmin) {
+      const res = await getClientCaseIds(ctx, user._id);
+      caseIds = res.caseIds;
+    }
+    
+    return docs.filter((d) => {
+      if (d.isDeleted) return false;
+      if (isStaff || isAdmin) {
+        if (d.isPrivileged && !isAdmin) return false;
+        return true;
+      }
+      if (d.isPrivileged) return false;
+      if (d.confidentialityLevel === "internal" || d.confidentialityLevel === "privileged") return false;
+      return clientCanAccessDoc(d, user._id, caseIds);
+    });
+  }
 });
 
 export const createDocument = mutation({
   args: {
     caseId: v.optional(v.id("cases")),
     title: v.string(),
+    description: v.optional(v.string()),
     type: v.union(
-      v.literal("pleading"),
-      v.literal("affidavit"),
-      v.literal("contract"),
-      v.literal("poa"),
-      v.literal("correspondence"),
-      v.literal("evidence"),
-      v.literal("template"),
-      v.literal("other"),
+      v.literal("pleading"), v.literal("affidavit"), v.literal("contract"),
+      v.literal("poa"), v.literal("correspondence"), v.literal("evidence"),
+      v.literal("template"), v.literal("court_filing"), 
+      v.literal("notice"), v.literal("memo"), v.literal("other"),
     ),
     storageId: v.string(),
     mimeType: v.string(),
     sizeBytes: v.number(),
-    tags: v.array(v.string()),
+    sha256: v.optional(v.string()),
+    searchableText: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
     isTemplate: v.boolean(),
     isPrivileged: v.boolean(),
+    confidentialityLevel: v.optional(v.union(
+      v.literal("public"), v.literal("internal"), 
+      v.literal("confidential"), v.literal("privileged"),
+    )),
+    physicalLocation: v.optional(v.string()),
+    dateBs: v.optional(v.string()),
+    parentDocumentId: v.optional(v.id("documents")),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
-    return ctx.db.insert("documents", { ...args, version: 1, uploadedBy: user._id });
+    
+    // Auto-generate documentNumber (e.g. DOC-YYYY-XXXX)
+    const year = new Date().getFullYear();
+    const count = (await ctx.db.query("documents").collect()).length + 1;
+    const documentNumber = `DOC-${year}-${count.toString().padStart(4, "0")}`;
+
+    let version = 1;
+    if (args.parentDocumentId) {
+       const parent = await ctx.db.get(args.parentDocumentId);
+       if (parent) {
+         // Count existing versions in this chain to determine next version
+         const allDocs = await ctx.db.query("documents").collect();
+         const chain = allDocs.filter(d => d._id === args.parentDocumentId || d.parentDocumentId === args.parentDocumentId);
+         version = chain.length + 1;
+       }
+    }
+
+    const docId = await ctx.db.insert("documents", { 
+      ...args,
+      tags: args.tags || [],
+      documentNumber,
+      version, 
+      uploadedBy: user._id,
+      isDeleted: false,
+      status: "draft"
+    });
+
+    await ctx.db.insert("auditLog", {
+      userId: user._id,
+      action: args.parentDocumentId ? "document.version_uploaded" : "document.created",
+      resource: "documents",
+      resourceId: docId,
+      details: `Document "${args.title}" uploaded. Version ${version}.`
+    });
+
+    return docId;
   },
+});
+
+export const trashDocument = mutation({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    if (!isStaffOrAdmin(user.role)) {
+       throw new ConvexError("Only staff can trash documents.");
+    }
+    
+    await ctx.db.patch(args.documentId, { 
+      isDeleted: true,
+      deletedAt: new Date().toISOString(),
+      deletedBy: user._id
+    });
+
+    await ctx.db.insert("auditLog", {
+      userId: user._id,
+      action: "document.trashed",
+      resource: "documents",
+      resourceId: args.documentId,
+      details: `Document moved to trash`
+    });
+  },
+});
+
+export const restoreDocument = mutation({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    if (!isStaffOrAdmin(user.role)) {
+       throw new ConvexError("Only staff can restore documents.");
+    }
+    
+    await ctx.db.patch(args.documentId, { 
+      isDeleted: false,
+      deletedAt: undefined,
+      deletedBy: undefined
+    });
+
+    await ctx.db.insert("auditLog", {
+      userId: user._id,
+      action: "document.restored",
+      resource: "documents",
+      resourceId: args.documentId,
+      details: `Document restored from trash`
+    });
+  },
+});
+
+export const listDocumentVersions = query({
+  args: { rootDocumentId: v.id("documents") },
+  handler: async (ctx, args) => {
+     const user = await requireAuth(ctx);
+     // For simplicity, we just fetch all docs and filter in memory since document volume per case is small
+     const allDocs = await ctx.db.query("documents").collect();
+     
+     // Find the root doc
+     const root = allDocs.find(d => d._id === args.rootDocumentId);
+     if (!root) return [];
+     
+     // The chain includes the root and any docs that point to it
+     // For a true robust system, we would traverse up to find the true root, but assuming rootDocumentId is the true root for now
+     const versions = allDocs.filter(d => 
+       (d._id === args.rootDocumentId || d.parentDocumentId === args.rootDocumentId) &&
+       d.isDeleted !== true
+     );
+     
+     return versions.sort((a, b) => b.version - a.version);
+  }
 });
 
 export const deleteDocument = mutation({
@@ -456,3 +651,96 @@ export const getSignatureCertificate = query({
     };
   },
 });
+
+export const createShareLink = mutation({
+  args: {
+    documentId: v.id("documents"),
+    expiresAt: v.optional(v.string()),
+    passwordHash: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    if (!isStaffOrAdmin(user.role)) {
+      throw new ConvexError("Only staff can generate share links");
+    }
+    const token = crypto.randomUUID();
+    await ctx.db.insert("documentShares", {
+      documentId: args.documentId,
+      token,
+      expiresAt: args.expiresAt,
+      passwordHash: args.passwordHash,
+      createdBy: user._id,
+      downloadsCount: 0,
+      isActive: true,
+    });
+    return token;
+  },
+});
+
+export const getSharedDocument = query({
+  args: { token: v.string(), password: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const share = await ctx.db
+      .query("documentShares")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+    
+    if (!share || !share.isActive) {
+      throw new ConvexError("This share link is invalid or has been revoked.");
+    }
+    if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+      throw new ConvexError("This share link has expired.");
+    }
+
+    if (share.passwordHash && share.passwordHash !== args.password) {
+      return { isPasswordRequired: true };
+    }
+
+    const doc = await ctx.db.get(share.documentId);
+    if (!doc || doc.isDeleted) {
+      throw new ConvexError("The document has been deleted or is unavailable.");
+    }
+
+    const url = await ctx.storage.getUrl(doc.storageId as any);
+    return { ...doc, url };
+  },
+});
+
+export const triggerOCR = mutation({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    if (!isStaffOrAdmin(user.role)) {
+      throw new ConvexError("Only staff can trigger OCR");
+    }
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) throw new ConvexError("Document not found");
+
+    // Simulate OCR processing by generating mock searchable text
+    // In a real implementation, this would call an external API (e.g., AWS Textract)
+    const simulatedText = `Extracted text from ${doc.title}:\n\n This document pertains to legal matters. Confidential and privileged information. Reference: ${doc.documentNumber}. Signed and executed on the date recorded.`;
+    
+    await ctx.db.patch(args.documentId, {
+      searchableText: simulatedText
+    });
+    
+    return { success: true, text: simulatedText };
+  },
+});
+
+export const hardDeleteDocument = mutation({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+    if (!isStaffOrAdmin(user.role)) throw new ConvexError("Unauthorized");
+    
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) throw new ConvexError("Document not found");
+    
+    if (!doc.isDeleted) throw new ConvexError("Document must be in trash to hard delete");
+    
+    await ctx.db.delete(args.documentId);
+    return { success: true };
+  },
+});
+

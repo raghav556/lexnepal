@@ -45,7 +45,7 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
   const handleSignout = async () => { await signout(); navigate("/"); };
 
   return (
-    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border shrink-0">
+    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border shrink-0 print:hidden">
       <div className="px-4 py-5 border-b border-sidebar-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center"><Scale className="w-4 h-4 text-sidebar-primary-foreground" /></div>
@@ -129,7 +129,7 @@ function StaffMobileChrome() {
 
   return (
     <>
-      <div className="md:hidden sticky top-0 z-50 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 h-14 shrink-0 w-full">
+      <div className="md:hidden sticky top-0 z-50 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 h-14 shrink-0 w-full print:hidden">
         <span className="font-serif font-bold text-sidebar-primary-foreground text-sm">{t("nav.staff_portal")}</span>
         <div className="flex items-center gap-2">
           <button
@@ -165,7 +165,7 @@ function StaffMobileChrome() {
         </div>
       )}
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border flex justify-around py-2 z-30">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border flex justify-around py-2 z-30 print:hidden">
         {NAV.filter((item) => !item.heading && item.href && item.icon).slice(0, 5).map(({ href, icon: Icon }) => (
           <Link key={href} to={href!} className={cn("p-2 rounded-lg", isActive(href!) ? "text-sidebar-primary" : "text-sidebar-foreground/50")}><Icon className="w-5 h-5" /></Link>
         ))}
@@ -229,11 +229,11 @@ export default function StaffLayout() {
       </Unauthenticated>
       <Authenticated>
         <StaffRoleGuard>
-          <div className="flex h-screen overflow-hidden bg-background">
+          <div className="flex h-screen overflow-hidden bg-background print:h-auto print:overflow-visible">
             <StaffDesktopSidebar onOpenChat={() => setChatOpen(true)} />
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
               <StaffMobileChrome />
-              <main className="flex-1 min-w-0 overflow-auto pb-16 md:pb-0 bg-background"><Outlet /></main>
+              <main className="flex-1 min-w-0 overflow-auto pb-16 md:pb-0 bg-background print:overflow-visible print:pb-0"><Outlet /></main>
             </div>
           </div>
           <CommandCenter isOpen={chatOpen} onClose={() => setChatOpen(false)} />

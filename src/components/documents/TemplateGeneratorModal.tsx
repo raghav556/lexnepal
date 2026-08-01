@@ -1,134 +1,165 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { Loader2, FileSignature, FileText, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { Loader2, FileText, CheckCircle2, Copy } from "lucide-react";
-import { toast } from "sonner";
-import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { generatePdfFromHtml } from "@/lib/pdfGenerator.ts";
 
-interface Props {
-  caseId: string;
-  clientId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export function TemplateGeneratorModal({ caseId, clientId, open, onOpenChange }: Props) {
-  const currentUser = useCurrentUser();
-  const templates = useQuery(api.templates.listTemplates as any, {}) || [];
-  const client = useQuery(api.clients.listClients as any, {})?.find((c: any) => c._id === clientId);
-  const caseData = useQuery(api.cases.getCase as any, { caseId: caseId as any });
+export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const cases = useQuery(api.cases.listCases, {}) || [];
+  const templates = useQuery(api.templates.listTemplates, {}) || [];
   
-  const createDocument = useMutation(api.documents.createDocument as any);
+  const createDocument = useMutation(api.documents.createDocument);
+  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+  
+  const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
+  const [selectedCase, setSelectedCase] = useState<string>("general");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [generatedText, setGeneratedText] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const selectedCaseData = useQuery(
+    api.cases.getCaseWithDetails, 
+    selectedCase !== "general" ? { caseId: selectedCase as any } : "skip"
+  );
 
-  const handleSelectTemplate = (id: string) => {
-    setSelectedTemplateId(id);
-    const tmpl = templates.find((t: any) => t._id === id);
-    if (!tmpl || !client || !caseData) return;
+  const toggleTemplate = (id: string) => {
+    const next = new Set(selectedTemplates);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedTemplates(next);
+  }
 
-    let text = tmpl.content;
+  const handleGenerate = async () => {
+    if (selectedTemplates.size === 0) return toast.error("Please select at least one template.");
+    setIsGenerating(true);
     
-    // Replace variables
-    text = text.replace(/{{CLIENT_NAME}}/g, client.fullName);
-    text = text.replace(/{{CLIENT_PHONE}}/g, client.phone || "[No Phone]");
-    text = text.replace(/{{CASE_NUMBER}}/g, caseData.caseNumber);
-    text = text.replace(/{{CASE_TITLE}}/g, caseData.title);
-    text = text.replace(/{{COURT_NAME}}/g, caseData.court || "[Court]");
-    text = text.replace(/{{JUDGE_NAME}}/g, caseData.judge || "[Judge]");
-    text = text.replace(/{{TODAY_DATE}}/g, new Date().toISOString().split("T")[0]);
-
-    setGeneratedText(text);
-  };
-
-  const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(generatedText);
-    toast.success("Copied to clipboard!");
-  };
-
-  const handleSaveToCase = async () => {
-    if (!generatedText) return;
-    setIsSaving(true);
     try {
-      // In a real app, we would generate a PDF or Word doc, upload to storage, and save the storageId.
-      // Here we mock the save process.
-      await createDocument({
-        caseId: caseId,
-        title: `Generated: ${templates.find((t: any) => t._id === selectedTemplateId)?.title}`,
-        type: "contract",
-        storageId: "mock_generated_" + Date.now(),
-        mimeType: "text/plain",
-        sizeBytes: generatedText.length,
-        tags: ["generated", "template"],
-        isTemplate: false,
-        isPrivileged: false,
-      });
-      toast.success("Document saved to case file!");
-      onOpenChange(false);
+      const selected = templates.filter(t => selectedTemplates.has(t._id));
+      
+      for (const template of selected) {
+        // 1. Map Variables
+        let htmlContent = template.htmlContent;
+        if (selectedCaseData) {
+          htmlContent = htmlContent.replace(/{{client\.name}}/g, selectedCaseData.client?.fullName || "________________");
+          htmlContent = htmlContent.replace(/{{client\.phone}}/g, selectedCaseData.client?.phone || "________________");
+          htmlContent = htmlContent.replace(/{{client\.address}}/g, selectedCaseData.client?.address || "________________");
+          htmlContent = htmlContent.replace(/{{case\.number}}/g, selectedCaseData.caseNumber || "________________");
+          htmlContent = htmlContent.replace(/{{case\.title}}/g, selectedCaseData.title || "________________");
+          htmlContent = htmlContent.replace(/{{case\.court}}/g, selectedCaseData.court || "________________");
+          htmlContent = htmlContent.replace(/{{lawyer\.name}}/g, selectedCaseData.lawyer?.name || "________________");
+        } else {
+          // If no case is selected, replace variables with blanks for manual filling
+          htmlContent = htmlContent.replace(/{{.*?}}/g, "________________");
+        }
+        
+        // General Variables
+        const d = new Date();
+        htmlContent = htmlContent.replace(/{{today_gregorian}}/g, d.toLocaleDateString());
+        htmlContent = htmlContent.replace(/{{today_bs}}/g, "२०८०-०१-०१"); // Mock BS date
+
+        // 2. Generate PDF
+        toast.info(`Generating ${template.title}...`);
+        const file = await generatePdfFromHtml(htmlContent, `${template.title}.pdf`);
+        
+        // 3. Upload to Storage
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!result.ok) throw new Error(`Failed to upload ${template.title}`);
+        const { storageId } = await result.json();
+
+        // 4. Save Document
+        await createDocument({
+          title: `Generated: ${template.title}`,
+          type: "other", // Could map to template category if we update the type enum
+          storageId,
+          mimeType: "application/pdf",
+          sizeBytes: file.size,
+          tags: ["auto-generated", template.category],
+          caseId: selectedCase === "general" ? undefined : selectedCase as any,
+          isTemplate: false,
+          isPrivileged: false,
+        });
+      }
+
+      toast.success(`${selectedTemplates.size} document(s) generated successfully!`);
+      onClose();
+      setSelectedTemplates(new Set());
+      setSelectedCase("general");
     } catch (err: any) {
-      toast.error("Failed to save document");
+      toast.error(err.message || "Failed to generate document.");
     } finally {
-      setIsSaving(false);
+      setIsGenerating(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[600px] border-primary/20 shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Generate Document from Template</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 font-serif text-xl text-primary">
+            <FileSignature className="w-5 h-5" /> Document Assembly
+          </DialogTitle>
+          <DialogDescription>
+            Select templates and a case to automatically merge client data and generate PDFs.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4 flex-1 flex flex-col min-h-0">
-          <div className="space-y-2 shrink-0">
-            <label className="text-sm font-medium">Select Template</label>
-            <Select value={selectedTemplateId} onValueChange={handleSelectTemplate}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a standard template..." />
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Select Template(s)</label>
+            <div className="grid gap-2">
+              {templates.map((t: any) => {
+                const isSelected = selectedTemplates.has(t._id);
+                return (
+                  <div 
+                    key={t._id} 
+                    onClick={() => toggleTemplate(t._id)}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all flex items-start gap-3 ${isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50'}`}
+                  >
+                    <FileText className={`w-5 h-5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <div className="flex-1">
+                      <p className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{t.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+                    </div>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                  </div>
+                )
+              })}
+              {templates.length === 0 && (
+                <div className="p-4 text-center text-muted-foreground border rounded-lg">No templates available. Create some in the Admin console.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            <label className="text-sm font-semibold">Assign to Case (Optional)</label>
+            <Select value={selectedCase} onValueChange={setSelectedCase}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a case" />
               </SelectTrigger>
               <SelectContent>
-                {templates.map((t: any) => (
-                  <SelectItem key={t._id} value={t._id}>
-                    {t.title} <span className="text-muted-foreground text-xs ml-2">({t.type})</span>
-                  </SelectItem>
+                <SelectItem value="general">-- Firm General (No Case) --</SelectItem>
+                {cases.map((c: any) => (
+                  <SelectItem key={c._id} value={c._id}>{c.caseNumber} - {c.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">Variables like client name and case number will be auto-filled if a case is selected.</p>
           </div>
-
-          {generatedText && (
-            <div className="flex-1 flex flex-col min-h-[300px] border rounded-md overflow-hidden bg-muted/30">
-              <div className="bg-muted px-3 py-2 flex items-center justify-between border-b shrink-0">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</span>
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyToClipboard}>
-                  <Copy className="w-3 h-3 mr-1" /> Copy Text
-                </Button>
-              </div>
-              <div className="p-4 overflow-y-auto flex-1 font-mono text-sm whitespace-pre-wrap">
-                {generatedText}
-              </div>
-            </div>
-          )}
-          {!generatedText && (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] border border-dashed rounded-md text-muted-foreground">
-              <FileText className="w-8 h-8 mb-2 opacity-50" />
-              <p className="text-sm">Select a template to generate a document.</p>
-            </div>
-          )}
         </div>
 
-        <div className="flex justify-end gap-2 shrink-0 pt-4 border-t mt-auto">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSaveToCase} disabled={!generatedText || isSaving} className="gap-2">
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Save to Case
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isGenerating}>Cancel</Button>
+          <Button onClick={handleGenerate} disabled={isGenerating || selectedTemplates.size === 0}>
+            {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : `Generate ${selectedTemplates.size > 0 ? selectedTemplates.size : ''} Document(s)`}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

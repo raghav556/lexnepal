@@ -162,3 +162,21 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: oklch(0.6 0.02 260 / 40%); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: oklch(0.6 0.02 260 / 70%); }
+
+/* A4 court-ready print layout for Trial Briefs */
+@media print {
+  @page {
+    size: A4;
+    margin: 1.6cm;
+  }
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

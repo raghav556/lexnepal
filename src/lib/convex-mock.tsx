@@ -106,6 +106,7 @@ export interface LexHearing {
 
 export interface LexTask {
   _id: string;
+  firmId?: string;
   caseId?: string;
   title: string;
   description?: string;
@@ -113,9 +114,37 @@ export interface LexTask {
   createdBy: string;
   status: "todo" | "in_progress" | "done" | "cancelled";
   priority: "low" | "medium" | "high" | "urgent";
+  category?: "filing" | "research" | "client" | "court" | "admin" | "other";
   dueDate?: string;
   dueDateBs?: string;
   isRecurring: boolean;
+  recurrenceRule?: "daily" | "weekly" | "monthly";
+  reminderAt?: string;
+  completedAt?: string;
+  archivedAt?: string;
+  parentTaskId?: string;
+  watchers?: string[];
+  clientVisible?: boolean;
+  hearingId?: string;
+  documentId?: string;
+  lastDueReminderAt?: string;
+}
+
+export interface LexSopTemplate {
+  _id: string;
+  key: string;
+  label: string;
+  taskTitles: string[];
+  defaultPriority: "low" | "medium" | "high" | "urgent";
+  practiceArea?: string;
+}
+
+export interface LexTaskComment {
+  _id: string;
+  taskId: string;
+  authorId: string;
+  content: string;
+  _creationTime: number;
 }
 
 export interface LexTimeEntry {
@@ -166,6 +195,17 @@ export interface LexMessage {
   attachmentIds: string[];
   readBy: string[];
   _creationTime: number;
+}
+
+export interface LexBrief {
+  _id: string;
+  caseId: string;
+  title: string;
+  content: string;
+  authorId: string;
+  sharedWith: string[];
+  _creationTime: number;
+  lastModified: number;
 }
 
 export interface LexLead {
@@ -307,6 +347,7 @@ export interface LexNotification {
   type?: string;
   isRead: boolean;
   link?: string;
+  relatedId?: string;
   _creationTime: number;
 }
 
@@ -397,9 +438,61 @@ const INITIAL_HEARINGS: LexHearing[] = [
 ];
 
 const INITIAL_TASKS: LexTask[] = [
-  { _id: "t1", caseId: "case1", title: "File bail application \u2014 Gurung case", assignedTo: "u2", createdBy: "u1", status: "todo", priority: "urgent", dueDate: "2026-07-30", dueDateBs: "15 Shrawan 2083", isRecurring: false },
-  { _id: "t2", caseId: "case2", title: "Review MOA draft before client meeting", assignedTo: "u2", createdBy: "u1", status: "in_progress", priority: "high", dueDate: "2026-07-31", dueDateBs: "16 Shrawan 2083", isRecurring: false },
-  { _id: "t3", caseId: "case2", title: "Submit trademark registration docs", assignedTo: "u1", createdBy: "u1", status: "todo", priority: "medium", dueDate: "2026-08-02", dueDateBs: "18 Shrawan 2083", isRecurring: false }
+  { _id: "t1", caseId: "case1", title: "File bail application \u2014 Gurung case", assignedTo: "u2", createdBy: "u1", status: "todo", priority: "urgent", category: "court", dueDate: "2026-07-30", dueDateBs: "15 Shrawan 2083", isRecurring: false, clientVisible: false, watchers: [] },
+  { _id: "t2", caseId: "case2", title: "Review MOA draft before client meeting", assignedTo: "u2", createdBy: "u1", status: "in_progress", priority: "high", category: "client", dueDate: "2026-07-31", dueDateBs: "16 Shrawan 2083", isRecurring: false, clientVisible: true, watchers: [] },
+  { _id: "t3", caseId: "case2", title: "Submit trademark registration docs", assignedTo: "u1", createdBy: "u1", status: "todo", priority: "medium", category: "filing", dueDate: "2026-08-02", dueDateBs: "18 Shrawan 2083", isRecurring: false, clientVisible: true, watchers: [] },
+  { _id: "t4", caseId: "case1", title: "Provide citizenship copy for filing", assignedTo: "u2", createdBy: "u1", status: "todo", priority: "medium", category: "client", dueDate: "2026-08-05", dueDateBs: "21 Shrawan 2083", isRecurring: false, clientVisible: true, watchers: [] },
+];
+
+const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
+  {
+    _id: "sop1",
+    key: "new_case",
+    label: "Litigation Setup (Firad Registration)",
+    taskTitles: ["Draft Vakalatnama", "Prepare Firad Patra (Petition)", "Collect Client KYC & ID", "Pay Initial Court Dastur"],
+    defaultPriority: "high",
+    practiceArea: "litigation",
+  },
+  {
+    _id: "sop2",
+    key: "hearing_prep",
+    label: "Hearing Preparation (Bahas Prep)",
+    taskTitles: ["Review opposing reply (Pratiuttar)", "Draft written arguments/notes", "Compile precedent case laws", "Client Briefing"],
+    defaultPriority: "high",
+    practiceArea: "litigation",
+  },
+  {
+    _id: "sop3",
+    key: "company_incorporation",
+    label: "Company Incorporation (ORC)",
+    taskTitles: ["Draft MOA/AOA", "Name reservation at ORC", "PAN registration follow-up", "Share certificates issuance"],
+    defaultPriority: "high",
+    practiceArea: "corporate",
+  },
+  {
+    _id: "sop4",
+    key: "property_due_diligence",
+    label: "Property Due Diligence",
+    taskTitles: ["Title search (Malpot)", "Check encumbrances", "Survey / boundary verification", "Draft sale deed review"],
+    defaultPriority: "medium",
+    practiceArea: "property",
+  },
+  {
+    _id: "sop5",
+    key: "family_divorce",
+    label: "Family — Divorce / Partition Prep",
+    taskTitles: ["Collect marriage / citizenship docs", "Draft petition", "Asset inventory checklist", "Client counseling note"],
+    defaultPriority: "medium",
+    practiceArea: "family",
+  },
+];
+
+const INITIAL_TASK_COMMENTS: LexTaskComment[] = [];
+
+const HEARING_PREP_TITLES_MOCK = [
+  "Review case file and precedents",
+  "Draft written arguments/notes",
+  "Client briefing completed",
 ];
 
 const INITIAL_TIME_ENTRIES: LexTimeEntry[] = [
@@ -423,6 +516,10 @@ const INITIAL_MESSAGES: LexMessage[] = [
   { _id: "m2", caseId: "case1", senderId: "u3", content: "Thank you. Do I need to present any evidence?", isInternal: false, attachmentIds: [], readBy: ["u3"], _creationTime: Date.now() - 3600000 },
   { _id: "m3", caseId: "case1", senderId: "u2", content: "Yes, please bring the original land certificate and the latest tax receipts.", isInternal: false, attachmentIds: [], readBy: ["u2"], _creationTime: Date.now() - 1800000 },
   { _id: "m4", caseId: "case2", senderId: "u1", content: "We are reviewing your draft articles of association today.", isInternal: false, attachmentIds: [], readBy: ["u1"], _creationTime: Date.now() - 86400000 }
+];
+
+const INITIAL_BRIEFS: LexBrief[] = [
+  { _id: "b1", caseId: "case1", title: "Bahas Note - Property Partition", content: "<p><strong>Key Argument:</strong> The partition deed was executed but not registered.</p><p>As per <strong>NKP 2078</strong>, registration within 6 months is mandatory.</p>", authorId: "u2", sharedWith: ["u1"], _creationTime: Date.now() - 86400000 * 2, lastModified: Date.now() - 86400000 },
 ];
 
 const INITIAL_LEADS: LexLead[] = [
@@ -572,10 +669,13 @@ let globalClients = [...INITIAL_CLIENTS];
 let globalCases = [...INITIAL_CASES];
 let globalHearings = [...INITIAL_HEARINGS];
 let globalTasks = [...INITIAL_TASKS];
+let globalSopTemplates = [...INITIAL_SOP_TEMPLATES];
+let globalTaskComments = [...INITIAL_TASK_COMMENTS];
 let globalTimeEntries = [...INITIAL_TIME_ENTRIES];
 let globalInvoices = [...INITIAL_INVOICES];
 let globalTrustTransactions = [...INITIAL_TRUST_TRANSACTIONS];
 let globalMessages = [...INITIAL_MESSAGES];
+let globalBriefs = [...INITIAL_BRIEFS];
 let globalLeads = [...INITIAL_LEADS];
 let globalAttendance = [...INITIAL_ATTENDANCE];
 let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
@@ -585,6 +685,20 @@ let globalEnvelopes: any[] = [];
 let globalEnvelopeRecipients: any[] = [];
 let globalSigningChallenges: any[] = [];
 let globalNotifications = [...INITIAL_NOTIFICATIONS];
+
+function mockNotifyTask(userId: string, title: string, body: string, taskId: string) {
+  globalNotifications.unshift({
+    _id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    userId,
+    title,
+    body,
+    type: "task_due",
+    isRead: false,
+    link: "/staff/tasks",
+    relatedId: taskId,
+    _creationTime: Date.now(),
+  });
+}
 
 async function mockHashOtp(code: string) {
   const data = new TextEncoder().encode(`${code}:srimar-esign-otp-v1`);
@@ -1044,18 +1158,56 @@ export function useQuery(queryFunc: any, args?: any): any {
   }
 
   // listTasks
-  if (queryName.includes("listTasks")) {
+  if (queryName.includes("listTasks") && !queryName.includes("listWorkload")) {
+    const me = globalUsers[0]; // mock current user fallback
+    // Soft client simulation: if filter asks clientVisible via args._clientOnly
     let filtered = [...globalTasks];
-    if (args?.caseId) {
-      filtered = filtered.filter((t) => t.caseId === args.caseId);
+    if (args?.parentTaskId) {
+      filtered = filtered.filter((t) => t.parentTaskId === args.parentTaskId);
+    } else {
+      if (args?.hearingId) filtered = filtered.filter((t) => t.hearingId === args.hearingId);
+      if (args?.caseId) filtered = filtered.filter((t) => t.caseId === args.caseId);
+      if (args?.assignedTo) filtered = filtered.filter((t) => t.assignedTo === args.assignedTo);
+      if (!args?.includeSubtasks && !args?.hearingId && !args?.parentTaskId) {
+        filtered = filtered.filter((t) => !t.parentTaskId);
+      }
     }
-    if (args?.assignedTo) {
-      filtered = filtered.filter((t) => t.assignedTo === args.assignedTo);
-    }
-    if (args?.status) {
-      filtered = filtered.filter((t) => t.status === args.status);
-    }
+    if (args?.status) filtered = filtered.filter((t) => t.status === args.status);
+    if (!args?.includeArchived) filtered = filtered.filter((t) => !t.archivedAt);
+    void me;
     return filtered;
+  }
+
+  if (queryName.includes("listWorkload")) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const open = globalTasks.filter(
+      (t) => !t.archivedAt && !t.parentTaskId && t.status !== "done" && t.status !== "cancelled",
+    );
+    const map: Record<string, { assignedTo: string; total: number; urgent: number; overdue: number }> = {};
+    for (const t of open) {
+      if (!map[t.assignedTo]) map[t.assignedTo] = { assignedTo: t.assignedTo, total: 0, urgent: 0, overdue: 0 };
+      map[t.assignedTo].total++;
+      if (t.priority === "urgent" || t.priority === "high") map[t.assignedTo].urgent++;
+      if (t.dueDate) {
+        const due = new Date(t.dueDate);
+        due.setHours(0, 0, 0, 0);
+        if (!Number.isNaN(due.getTime()) && due.getTime() < today.getTime()) map[t.assignedTo].overdue++;
+      }
+    }
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }
+
+  if (queryName.includes("listSopTemplates") || queryName.includes("tasks.listSopTemplates")) {
+    let list = [...globalSopTemplates];
+    if (args?.practiceArea) list = list.filter((s) => s.practiceArea === args.practiceArea);
+    return list;
+  }
+
+  if (queryName.includes("listComments") || queryName.includes("tasks.listComments")) {
+    return globalTaskComments
+      .filter((c) => c.taskId === args?.taskId)
+      .sort((a, b) => a._creationTime - b._creationTime);
   }
 
   // listTimeEntries
@@ -1263,6 +1415,14 @@ export function useQuery(queryFunc: any, args?: any): any {
   // research.listNotes
   if (queryName.includes("research.listNotes")) {
     return [...globalResearchNotes].sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // briefs.list
+  if (queryName.includes("briefs.list")) {
+    const cid = args?.caseId;
+    let filtered = [...globalBriefs];
+    if (cid) filtered = filtered.filter(b => b.caseId === cid);
+    return filtered.sort((a, b) => b.lastModified - a.lastModified);
   }
 
   // cases.checkConflict — fuzzy search across clients, cases, opposing counsel
@@ -1524,13 +1684,15 @@ export function useMutation(mutationFunc: any): any {
   // RESEARCH NOTES
   if (mutationName.includes("research.createNote")) {
     return async (args: any) => {
-      const newNote: LexResearchNote = {
+      const newNote: any = {
         _id: `rn_${Date.now()}`,
         title: args.title,
         category: args.category,
         tags: args.tags || [],
         content: args.content,
         authorId: args.authorId,
+        caseId: args.caseId,
+        citation: args.citation,
         _creationTime: Date.now(),
       };
       globalResearchNotes.push(newNote);
@@ -1550,6 +1712,41 @@ export function useMutation(mutationFunc: any): any {
   if (mutationName.includes("research.deleteNote")) {
     return async (args: { id: string }) => {
       globalResearchNotes = globalResearchNotes.filter(n => n._id !== args.id);
+      notifyListeners();
+    };
+  }
+
+  // BRIEFS
+  if (mutationName.includes("briefs.create")) {
+    return async (args: any) => {
+      const newBrief: LexBrief = {
+        _id: `b_${Date.now()}`,
+        caseId: args.caseId,
+        title: args.title || "Untitled Brief",
+        content: args.content || "",
+        authorId: args.authorId,
+        sharedWith: args.sharedWith || [],
+        _creationTime: Date.now(),
+        lastModified: Date.now(),
+      };
+      globalBriefs.push(newBrief);
+      notifyListeners();
+      return newBrief._id;
+    };
+  }
+  if (mutationName.includes("briefs.update")) {
+    return async (args: any) => {
+      const idx = globalBriefs.findIndex(b => b._id === args.id);
+      if (idx !== -1) {
+        const { id: _id, ...rest } = args;
+        globalBriefs[idx] = { ...globalBriefs[idx], ...rest, lastModified: Date.now() };
+        notifyListeners();
+      }
+    };
+  }
+  if (mutationName.includes("briefs.delete")) {
+    return async (args: { id: string }) => {
+      globalBriefs = globalBriefs.filter(b => b._id !== args.id);
       notifyListeners();
     };
   }
@@ -1590,8 +1787,9 @@ export function useMutation(mutationFunc: any): any {
   }
 
   // TASKS
-  if (mutationName.includes("tasks.createTask")) {
+  if (mutationName.includes("tasks.createTask") || (mutationName.endsWith("createTask") && mutationName.includes("task"))) {
     return async (args: any) => {
+      const recurring = !!(args.isRecurring && args.recurrenceRule);
       const newTask: LexTask = {
         _id: `t_${Date.now()}`,
         title: args.title,
@@ -1601,27 +1799,205 @@ export function useMutation(mutationFunc: any): any {
         createdBy: "u1",
         status: "todo",
         priority: args.priority || "medium",
+        category: args.category,
         dueDate: args.dueDate,
-        isRecurring: false,
+        dueDateBs: args.dueDateBs,
+        hearingId: args.hearingId,
+        documentId: args.documentId,
+        parentTaskId: args.parentTaskId,
+        watchers: args.watchers || [],
+        clientVisible: args.clientVisible ?? false,
+        isRecurring: recurring,
+        recurrenceRule: recurring ? args.recurrenceRule : undefined,
+        reminderAt: args.reminderAt,
       };
       globalTasks.push(newTask);
+      if (args.assignedTo && args.assignedTo !== "u1") {
+        mockNotifyTask(args.assignedTo, "New task assigned", `"${args.title}" was assigned to you.`, newTask._id);
+      }
       notifyListeners();
       return newTask._id;
     };
   }
-  if (mutationName.includes("tasks.updateTask")) {
-    return async (args: any) => {
-      const idx = globalTasks.findIndex(t => t._id === args.taskId);
+
+  if (mutationName.includes("archiveTask")) {
+    return async (args: { taskId: string }) => {
+      const idx = globalTasks.findIndex((t) => t._id === args.taskId);
       if (idx !== -1) {
-        globalTasks[idx] = { ...globalTasks[idx], ...args };
+        globalTasks[idx] = { ...globalTasks[idx], archivedAt: new Date().toISOString(), status: "cancelled" };
         notifyListeners();
       }
     };
   }
-  if (mutationName.includes("tasks.deleteTask")) {
+
+  if (mutationName.includes("restoreTask")) {
     return async (args: { taskId: string }) => {
+      const idx = globalTasks.findIndex((t) => t._id === args.taskId);
+      if (idx !== -1) {
+        const t = { ...globalTasks[idx], status: "todo" as const };
+        delete t.archivedAt;
+        globalTasks[idx] = t;
+        notifyListeners();
+      }
+    };
+  }
+  if (mutationName.includes("tasks.updateTask") || (mutationName.endsWith("updateTask") && mutationName.includes("task"))) {
+    return async (args: any) => {
+      const idx = globalTasks.findIndex(t => t._id === args.taskId);
+      if (idx === -1) return;
+      const { taskId: _taskId, ...raw } = args;
+      const updates: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(raw)) {
+        if (value !== undefined) updates[key] = value === null ? undefined : value;
+      }
+      const prev = globalTasks[idx];
+      if (raw.status !== undefined) {
+        if (raw.status === "done" && prev.status !== "done") {
+          updates.completedAt = new Date().toISOString();
+        } else if (raw.status !== "done") {
+          updates.completedAt = undefined;
+        }
+      }
+      globalTasks[idx] = { ...prev, ...updates } as LexTask;
+      if (updates.caseId === undefined && "caseId" in updates) delete globalTasks[idx].caseId;
+      if (updates.dueDate === undefined && "dueDate" in updates) delete globalTasks[idx].dueDate;
+      if (updates.dueDateBs === undefined && "dueDateBs" in updates) delete globalTasks[idx].dueDateBs;
+      if (updates.description === undefined && "description" in updates) delete globalTasks[idx].description;
+      if (updates.completedAt === undefined && "completedAt" in updates) delete globalTasks[idx].completedAt;
+      if (updates.hearingId === undefined && "hearingId" in updates) delete globalTasks[idx].hearingId;
+      if (updates.documentId === undefined && "documentId" in updates) delete globalTasks[idx].documentId;
+      if (raw.assignedTo && raw.assignedTo !== prev.assignedTo) {
+        mockNotifyTask(raw.assignedTo, "Task reassigned to you", `"${globalTasks[idx].title}" was reassigned to you.`, prev._id);
+      }
+      notifyListeners();
+    };
+  }
+  if (mutationName.includes("tasks.deleteTask") || (mutationName.endsWith("deleteTask") && mutationName.includes("task"))) {
+    return async (args: { taskId: string }) => {
+      globalTaskComments = globalTaskComments.filter((c) => c.taskId !== args.taskId);
       globalTasks = globalTasks.filter(t => t._id !== args.taskId);
       notifyListeners();
+    };
+  }
+
+  if (mutationName.includes("runSop") || mutationName.includes("tasks.runSop")) {
+    return async (args: { templateKey: string; caseId: string; assignedTo?: string }) => {
+      const template = globalSopTemplates.find((t) => t.key === args.templateKey);
+      if (!template) throw new Error("SOP template not found");
+      const existingTitles = new Set(
+        globalTasks.filter((t) => t.caseId === args.caseId).map((t) => t.title.trim().toLowerCase()),
+      );
+      const assignee = args.assignedTo || "u1";
+      let created = 0;
+      let skipped = 0;
+      for (const title of template.taskTitles) {
+        if (existingTitles.has(title.trim().toLowerCase())) {
+          skipped++;
+          continue;
+        }
+        const id = `t_${Date.now()}_${created}`;
+        globalTasks.push({
+          _id: id,
+          title,
+          caseId: args.caseId,
+          assignedTo: assignee,
+          createdBy: "u1",
+          status: "todo",
+          priority: template.defaultPriority,
+          isRecurring: false,
+        });
+        existingTitles.add(title.trim().toLowerCase());
+        created++;
+        if (assignee !== "u1") {
+          mockNotifyTask(assignee, "New task assigned", `"${title}" was assigned to you.`, id);
+        }
+      }
+      notifyListeners();
+      return { created, skipped, label: template.label };
+    };
+  }
+
+  if (mutationName.includes("createHearingPrepTasks")) {
+    return async (args: { hearingId: string; assignedTo?: string }) => {
+      const hearing = globalHearings.find((h) => h._id === args.hearingId);
+      if (!hearing) throw new Error("Hearing not found");
+      const caseDoc = globalCases.find((c) => c._id === hearing.caseId);
+      const assignee = args.assignedTo || caseDoc?.assignedLawyerId || "u1";
+      const existingTitles = new Set(
+        globalTasks.filter((t) => t.hearingId === args.hearingId).map((t) => t.title.trim().toLowerCase()),
+      );
+      let created = 0;
+      let skipped = 0;
+      for (const title of HEARING_PREP_TITLES_MOCK) {
+        if (existingTitles.has(title.toLowerCase())) {
+          skipped++;
+          continue;
+        }
+        const id = `t_${Date.now()}_${created}`;
+        globalTasks.push({
+          _id: id,
+          title,
+          caseId: hearing.caseId,
+          hearingId: args.hearingId,
+          assignedTo: assignee,
+          createdBy: "u1",
+          status: "todo",
+          priority: "high",
+          dueDate: hearing.dateGregorian,
+          dueDateBs: hearing.dateBs,
+          description: `Hearing prep for ${hearing.court}`,
+          isRecurring: false,
+        });
+        created++;
+      }
+      notifyListeners();
+      return { created, skipped };
+    };
+  }
+
+  if (mutationName.includes("addComment") && mutationName.includes("task")) {
+    return async (args: { taskId: string; content: string }) => {
+      const content = (args.content || "").trim();
+      if (!content) throw new Error("Comment cannot be empty");
+      const id = `tc_${Date.now()}`;
+      globalTaskComments.push({
+        _id: id,
+        taskId: args.taskId,
+        authorId: "u1",
+        content,
+        _creationTime: Date.now(),
+      });
+      notifyListeners();
+      return id;
+    };
+  }
+
+  if (mutationName.includes("scanOverdueReminders") || mutationName.includes("sendOverdueReminders")) {
+    return async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let sent = 0;
+      for (const task of globalTasks) {
+        if (!task.dueDate || task.status === "done" || task.status === "cancelled") continue;
+        const due = new Date(task.dueDate);
+        if (Number.isNaN(due.getTime())) continue;
+        due.setHours(0, 0, 0, 0);
+        if (due.getTime() > today.getTime()) continue;
+        if (task.lastDueReminderAt) {
+          const last = new Date(task.lastDueReminderAt);
+          if (!Number.isNaN(last.getTime()) && last.toDateString() === new Date().toDateString()) continue;
+        }
+        mockNotifyTask(
+          task.assignedTo,
+          "Task due / overdue",
+          `"${task.title}" is due or overdue (${task.dueDateBs || task.dueDate}).`,
+          task._id,
+        );
+        task.lastDueReminderAt = new Date().toISOString();
+        sent++;
+      }
+      notifyListeners();
+      return { sent };
     };
   }
 
@@ -2804,41 +3180,6 @@ export function useMutation(mutationFunc: any): any {
         });
       }
 
-      notifyListeners();
-      return { success: true };
-    }
-
-    // tasks.createTask
-    if (mutationName.includes("createTask")) {
-      const newTask: LexTask = {
-        _id: "t_" + Date.now(),
-        status: "todo",
-        isRecurring: false,
-        createdBy: "u1",
-        ...args
-      };
-      globalTasks.push(newTask);
-      notifyListeners();
-      return newTask._id;
-    }
-
-    // tasks.updateTask
-    if (mutationName.includes("updateTask")) {
-      const { taskId, ...updates } = args;
-      globalTasks = globalTasks.map((t) => {
-        if (t._id === taskId) {
-          return { ...t, ...updates };
-        }
-        return t;
-      });
-      notifyListeners();
-      return { success: true };
-    }
-
-    // tasks.deleteTask
-    if (mutationName.includes("deleteTask")) {
-      const { taskId } = args;
-      globalTasks = globalTasks.filter((t) => t._id !== taskId);
       notifyListeners();
       return { success: true };
     }

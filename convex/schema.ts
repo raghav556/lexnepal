@@ -157,6 +157,16 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_case_number", ["caseNumber"])
     .index("by_firm", ["firmId"]),
+    
+  templates: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    category: v.union(v.literal("vakalatnama"), v.literal("firad_patra"), v.literal("jawab"), v.literal("prastab_patra"), v.literal("retainer"), v.literal("poa"), v.literal("contract"), v.literal("other")),
+    htmlContent: v.string(),
+    variables: v.array(v.string()), // e.g. ["client.name", "case.number"]
+    firmId: v.optional(v.id("firms")), // null means system-wide template
+    createdBy: v.optional(v.id("users")),
+  }).index("by_category", ["category"]).index("by_firm", ["firmId"]),
 
   hearings: defineTable({
     caseId: v.id("cases"),
@@ -195,11 +205,15 @@ export default defineSchema({
 
   documents: defineTable({
     caseId: v.optional(v.id("cases")),
+    firmId: v.optional(v.id("firms")),
+    documentNumber: v.string(), // "DOC-2025-0001"
     title: v.string(),
+    description: v.optional(v.string()),
     type: v.union(
       v.literal("pleading"), v.literal("affidavit"), v.literal("contract"),
       v.literal("poa"), v.literal("correspondence"), v.literal("evidence"),
-      v.literal("template"), v.literal("other"),
+      v.literal("template"), v.literal("court_filing"), 
+      v.literal("notice"), v.literal("memo"), v.literal("other"),
     ),
     storageId: v.string(),
     mimeType: v.string(),
@@ -211,13 +225,36 @@ export default defineSchema({
     uploadedBy: v.id("users"),
     isTemplate: v.boolean(),
     isPrivileged: v.boolean(),
+    
+    // Search & Discovery
+    searchableText: v.optional(v.string()),     // OCR/extracted text
+    thumbnailStorageId: v.optional(v.string()),  // Preview thumbnail
+    status: v.optional(v.union(
+      v.literal("draft"), v.literal("review"), 
+      v.literal("approved"), v.literal("filed"), v.literal("archived"),
+    )),
+    isDeleted: v.optional(v.boolean()),
+    deletedAt: v.optional(v.string()),
+    deletedBy: v.optional(v.id("users")),
+    isLockedForEdit: v.optional(v.boolean()),
+    lockedBy: v.optional(v.id("users")),
+    lockedAt: v.optional(v.string()),
+    physicalLocation: v.optional(v.string()),    // "Office A, Cabinet 3"
+    expiresAt: v.optional(v.string()),
+    retentionPolicy: v.optional(v.string()),
+    dateBs: v.optional(v.string()),              // Bikram Sambat date
+    isOnLegalHold: v.optional(v.boolean()),
+    confidentialityLevel: v.optional(v.union(
+      v.literal("public"), v.literal("internal"), 
+      v.literal("confidential"), v.literal("privileged"),
+    )),
+
+    // --- Signature Fields ---
     requiresSignature: v.optional(v.boolean()),
     signatureStatus: v.optional(v.union(v.literal("pending"), v.literal("signed"))),
     signedAt: v.optional(v.string()),
-    /** Only this user may complete the e-sign action (usually the case client). */
     intendedSignerUserId: v.optional(v.id("users")),
     signedByUserId: v.optional(v.id("users")),
-    /** P2 e-sign evidence */
     signatureMethod: v.optional(
       v.union(v.literal("draw"), v.literal("type"), v.literal("upload")),
     ),
@@ -228,11 +265,36 @@ export default defineSchema({
     viewedAt: v.optional(v.string()),
     signerUserAgent: v.optional(v.string()),
   })
-    .index("by_case", ["caseId"])
-    .index("by_uploader", ["uploadedBy"])
-    .index("by_template", ["isTemplate"])
-    .index("by_intended_signer", ["intendedSignerUserId"])
-    .index("by_signature_status", ["signatureStatus"]),
+  .index("by_case", ["caseId"])
+  .index("by_type", ["type"])
+  .index("by_parent", ["parentDocumentId"])
+  .index("by_uploader", ["uploadedBy"])
+  .index("by_template", ["isTemplate"])
+  .index("by_intended_signer", ["intendedSignerUserId"])
+  .index("by_signature_status", ["signatureStatus"])
+  .index("by_deleted", ["isDeleted"])
+  .searchIndex("search_text", {
+    searchField: "searchableText",
+    filterFields: ["caseId", "type", "isDeleted", "isPrivileged", "confidentialityLevel"]
+  }),
+
+  documentTags: defineTable({
+    name: v.string(),
+    color: v.optional(v.string()), // hex code or tailwind class
+    firmId: v.optional(v.id("firms")),
+  }).index("by_name", ["name"]),
+
+  documentShares: defineTable({
+    documentId: v.id("documents"),
+    token: v.string(),
+    passwordHash: v.optional(v.string()), // Simple hashed password or plaintext for prototype
+    expiresAt: v.optional(v.string()), // ISO string
+    createdBy: v.id("users"),
+    downloadsCount: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_token", ["token"]),
 
   /** P3 multi-signer envelope wrapping one document */
   signatureEnvelopes: defineTable({
@@ -291,6 +353,7 @@ export default defineSchema({
     .index("by_user_document", ["userId", "documentId"]),
 
   tasks: defineTable({
+    firmId: v.optional(v.id("firms")),
     caseId: v.optional(v.id("cases")),
     title: v.string(),
     description: v.optional(v.string()),
@@ -302,13 +365,56 @@ export default defineSchema({
     priority: v.union(
       v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"),
     ),
+    category: v.optional(v.union(
+      v.literal("filing"),
+      v.literal("research"),
+      v.literal("client"),
+      v.literal("court"),
+      v.literal("admin"),
+      v.literal("other"),
+    )),
     dueDate: v.optional(v.string()),
     dueDateBs: v.optional(v.string()),
     isRecurring: v.boolean(),
+    recurrenceRule: v.optional(v.union(
+      v.literal("daily"),
+      v.literal("weekly"),
+      v.literal("monthly"),
+    )),
+    reminderAt: v.optional(v.string()),
+    completedAt: v.optional(v.string()),
+    archivedAt: v.optional(v.string()),
+    parentTaskId: v.optional(v.id("tasks")),
+    watchers: v.optional(v.array(v.id("users"))),
+    clientVisible: v.optional(v.boolean()),
+    hearingId: v.optional(v.id("hearings")),
+    documentId: v.optional(v.id("documents")),
+    lastDueReminderAt: v.optional(v.string()),
   })
     .index("by_case", ["caseId"])
     .index("by_assignee", ["assignedTo"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_hearing", ["hearingId"])
+    .index("by_parent", ["parentTaskId"])
+    .index("by_firm", ["firmId"]),
+
+  sopTemplates: defineTable({
+    key: v.string(),
+    label: v.string(),
+    taskTitles: v.array(v.string()),
+    defaultPriority: v.union(
+      v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"),
+    ),
+    practiceArea: v.optional(v.string()),
+  })
+    .index("by_key", ["key"])
+    .index("by_practice", ["practiceArea"]),
+
+  taskComments: defineTable({
+    taskId: v.id("tasks"),
+    authorId: v.id("users"),
+    content: v.string(),
+  }).index("by_task", ["taskId"]),
 
   timeEntries: defineTable({
     caseId: v.id("cases"),

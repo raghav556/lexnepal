@@ -1,15 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { FolderOpen, CalendarDays, CheckSquare, Clock, AlertTriangle } from "lucide-react";
+import { FolderOpen, CalendarDays, CheckSquare, Clock, AlertTriangle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import { PRIORITY_COLORS } from "@/lib/task-constants.ts";
 
 export default function StaffDashboard() {
   const cases = useQuery(api.cases.listCases, {}) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const tasks = useQuery(api.tasks.listTasks, {}) || [];
+  const workload = useQuery(api.tasks.listWorkload, {}) || [];
+  const users = useQuery(api.users.listStaffDirectory, {}) || [];
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
 
   // Compute stats dynamically
@@ -126,18 +129,44 @@ export default function StaffDashboard() {
                     <p className="text-sm font-medium text-foreground">{t.title}</p>
                     <p className="text-xs text-muted-foreground">Due: {t.due}</p>
                   </div>
-                  <Badge className={`text-xs ml-2 flex-shrink-0 uppercase ${
-                    t.priority === "urgent" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                    t.priority === "high" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" :
-                    t.priority === "medium" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                  }`}>{t.priority}</Badge>
+                  <Badge className={`text-xs ml-2 flex-shrink-0 uppercase ${PRIORITY_COLORS[t.priority]}`}>{t.priority}</Badge>
                 </div>
               ))
             )}
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" /> Team Workload
+          </CardTitle>
+          <Button asChild variant="ghost" size="sm" className="text-xs">
+            <Link to="/staff/tasks">Open board</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {workload.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No open tasks.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(workload as any[]).slice(0, 6).map((row) => {
+                const user = users.find((u: any) => u._id === row.assignedTo);
+                return (
+                  <div key={row.assignedTo} className="p-3 rounded-lg border border-border">
+                    <p className="text-sm font-semibold truncate">{user?.name || "Staff"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {row.total} open · {row.urgent} high ·{" "}
+                      <span className={row.overdue > 0 ? "text-destructive font-medium" : ""}>{row.overdue} overdue</span>
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

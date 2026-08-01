@@ -48,6 +48,10 @@ export default function StaffHearingsPage() {
   
   const createHearing = useMutation(api.hearings.createHearing);
   const updateHearing = useMutation(api.hearings.updateHearing);
+  const createHearingPrepTasks = useMutation(api.tasks.createHearingPrepTasks);
+  const updateTask = useMutation(api.tasks.updateTask);
+  const allTasks = useQuery(api.tasks.listTasks, {}) || [];
+  const [prepLoadingId, setPrepLoadingId] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -58,9 +62,6 @@ export default function StaffHearingsPage() {
   const [search, setSearch] = useState("");
   const [courtFilter, setCourtFilter] = useState("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  // Checklists (Local State Mock)
-  const [checklists, setChecklists] = useState<Record<string, Record<string, boolean>>>({});
   
   // Scheduling Form State
   const [caseId, setCaseId] = useState("");
@@ -110,14 +111,16 @@ export default function StaffHearingsPage() {
     }
   };
 
-  const toggleChecklist = (hearingId: string, task: string) => {
-    setChecklists(prev => ({
-      ...prev,
-      [hearingId]: {
-        ...(prev[hearingId] || {}),
-        [task]: !prev[hearingId]?.[task]
-      }
-    }));
+  const handleGeneratePrepTasks = async (hearingId: string) => {
+    setPrepLoadingId(hearingId);
+    try {
+      const res = await createHearingPrepTasks({ hearingId: hearingId as any });
+      toast.success(`Prep pack: ${(res as any).created} created, ${(res as any).skipped} already linked.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to generate prep tasks.");
+    } finally {
+      setPrepLoadingId(null);
+    }
   };
 
   const handleScheduleHearing = async (e: React.FormEvent) => {
@@ -340,8 +343,8 @@ export default function StaffHearingsPage() {
                 const matchedCase = cases.find((c: any) => c._id === h.caseId);
                 const lawyer = matchedCase ? users.find((u: any) => u._id === matchedCase.assignedLawyerId) : null;
                 const hasConflict = conflictIds.has(h._id);
-                const checks = checklists[h._id] || {};
-                const progress = Object.values(checks).filter(Boolean).length;
+                const prepTasks = allTasks.filter((t: any) => t.hearingId === h._id);
+                const prepDone = prepTasks.filter((t: any) => t.status === "done").length;
                 
                 return (
                   <Card key={h._id} className={`hover:shadow-md transition-all duration-200 ${hasConflict ? 'border-red-300 shadow-red-500/10' : ''}`}>
@@ -380,20 +383,43 @@ export default function StaffHearingsPage() {
                               </div>
                             )}
 
-                            {/* Preparation Checklist */}
+                            {/* Hearing prep tasks (persisted) */}
                             <div className="mt-4 pt-4 border-t border-border">
-                               <div className="flex items-center justify-between mb-2">
-                                 <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Preparation Checklist</h5>
-                                 <span className="text-xs font-mono">{progress}/3 Done</span>
+                               <div className="flex items-center justify-between mb-2 gap-2">
+                                 <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hearing Prep Tasks</h5>
+                                 <span className="text-xs font-mono">{prepDone}/{Math.max(prepTasks.length, 3)} Done</span>
                                </div>
-                               <div className="space-y-1.5">
-                                  {["Review case file and precedents", "Draft written arguments/notes", "Client briefing completed"].map(task => (
-                                    <label key={task} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/40 p-1 rounded transition-colors">
-                                      <input type="checkbox" className="accent-primary w-4 h-4" checked={!!checks[task]} onChange={() => toggleChecklist(h._id, task)} />
-                                      <span className={checks[task] ? "line-through text-muted-foreground" : "text-foreground"}>{task}</span>
-                                    </label>
-                                  ))}
-                               </div>
+                               {prepTasks.length === 0 ? (
+                                 <div className="space-y-2">
+                                   <p className="text-xs text-muted-foreground">No prep tasks linked yet. Generate the standard Bahas pack.</p>
+                                   <Button size="sm" variant="secondary" disabled={prepLoadingId === h._id} onClick={() => handleGeneratePrepTasks(h._id)}>
+                                     {prepLoadingId === h._id ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckSquare className="w-3.5 h-3.5 mr-1" />}
+                                     Generate prep pack
+                                   </Button>
+                                 </div>
+                               ) : (
+                                 <div className="space-y-1.5">
+                                   {prepTasks.map((task: any) => (
+                                     <label key={task._id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/40 p-1 rounded transition-colors">
+                                       <input
+                                         type="checkbox"
+                                         className="accent-primary w-4 h-4"
+                                         checked={task.status === "done"}
+                                         onChange={(e) => {
+                                           updateTask({
+                                             taskId: task._id,
+                                             status: e.target.checked ? "done" : "in_progress",
+                                           }).catch(() => toast.error("Failed to update task"));
+                                         }}
+                                       />
+                                       <span className={task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}>{task.title}</span>
+                                     </label>
+                                   ))}
+                                   <Button size="sm" variant="ghost" className="h-7 text-xs px-1" disabled={prepLoadingId === h._id} onClick={() => handleGeneratePrepTasks(h._id)}>
+                                     Sync missing prep items
+                                   </Button>
+                                 </div>
+                               )}
                             </div>
                          </div>
                       </div>

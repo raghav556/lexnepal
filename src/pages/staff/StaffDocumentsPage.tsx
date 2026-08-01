@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
@@ -6,8 +7,14 @@ import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { 
   FileText, Upload, Search, Filter, Download, Loader2, Plus, X, 
-  Lock, PenTool, Send, Eye, Folder, History, Trash2
+  Lock, PenTool, Send, Eye, Folder, History, Trash2, Tags, LayoutTemplate, Clock, Link2, ScanText
 } from "lucide-react";
+import { MultiFileUploadModal } from "@/components/documents/MultiFileUploadModal.tsx";
+import { AdvancedSearch } from "@/components/documents/AdvancedSearch.tsx";
+import { TagManagementModal } from "@/components/documents/TagManagementModal.tsx";
+import { TemplateGeneratorModal } from "@/components/documents/TemplateGeneratorModal.tsx";
+import { DocumentShareModal } from "@/components/documents/DocumentShareModal.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { toast } from "sonner";
@@ -28,19 +35,30 @@ const TYPE_COLORS: Record<string, string> = {
 const DOC_TYPES = ["pleading", "affidavit", "contract", "poa", "correspondence", "evidence", "other"];
 
 export default function StaffDocumentsPage() {
-  const allDocs = useQuery(api.documents.listDocuments, { isTemplate: false }) || [];
+  const [searchFilters, setSearchFilters] = useState<{ query: string; caseId?: string; type?: string; tag?: string }>({ query: "" });
+  
+  const searchResults = useQuery(api.documents.searchDocuments, searchFilters.query ? searchFilters : "skip") || [];
+  const listResults = useQuery(api.documents.listDocuments, { isTemplate: false }) || [];
   const cases = useQuery(api.cases.listCases, {}) || [];
+  
+  const allDocs = searchFilters.query ? searchResults : listResults;
+  const recentDocs = useQuery(api.documents.getRecentDocuments, { limit: 5 }) || [];
   const signers = useQuery(api.envelopes.listPortalSigners, {}) || [];
-  const envelopes = useQuery(api.envelopes.listEnvelopes, {}) || [];
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.createDocument);
   const requestSignature = useMutation(api.documents.requestSignature);
   const createEnvelope = useMutation(api.envelopes.createEnvelope);
   const sendEnvelope = useMutation(api.envelopes.sendEnvelope);
+  const triggerOCR = useMutation(api.documents.triggerOCR);
+  const softDeleteDoc = useMutation(api.documents.trashDocument);
+  const restoreDoc = useMutation(api.documents.restoreDocument);
+  const hardDeleteDoc = useMutation(api.documents.hardDeleteDocument);
 
   // States
-  const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "folders" | "trash">("list");
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [selectedSubFolder, setSelectedSubFolder] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("all");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [activeSidebarDoc, setActiveSidebarDoc] = useState<any | null>(null);
@@ -48,6 +66,9 @@ export default function StaffDocumentsPage() {
   // Modals
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [envelopeDoc, setEnvelopeDoc] = useState<any>(null);
 
   // Upload Form
@@ -70,15 +91,34 @@ export default function StaffDocumentsPage() {
   const isLoading = allDocs === undefined || cases === undefined;
 
   // Filter & Pagination
-  const filteredDocs = allDocs.filter((d: any) => {
-    if (search && !d.title.toLowerCase().includes(search.toLowerCase())) return false;
+  const docsToDisplay = allDocs;
+  const filteredDocs = docsToDisplay.filter((d: any) => {
+    // If in trash mode, only show deleted
+    if (viewMode === "trash") {
+      return d.isDeleted === true;
+    }
+    // If not in trash mode, hide deleted
+    if (d.isDeleted) return false;
+
+    if (viewMode === "folders") {
+      if (selectedFolder !== null && d.caseId !== selectedFolder) return false;
+      if (selectedSubFolder !== null && d.type !== selectedSubFolder) return false;
+    }
     if (filterType !== "all" && d.type !== filterType) return false;
+    
+    if (!searchFilters.query && searchFilters.tag) {
+      if (!d.tags?.some((t: string) => t.toLowerCase() === searchFilters.tag?.toLowerCase())) return false;
+    }
+    if (!searchFilters.query) {
+       if (searchFilters.caseId && d.caseId !== searchFilters.caseId) return false;
+       if (searchFilters.type && d.type !== searchFilters.type) return false;
+    }
     return true;
   });
 
   const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } = usePagination(filteredDocs, 12);
 
-  useEffect(() => { resetPagination(); }, [search, filterType]);
+  useEffect(() => { resetPagination(); }, [searchFilters, filterType, viewMode, selectedFolder]);
 
   const toggleDocSelection = (id: string) => {
     setSelectedDocs(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -194,6 +234,50 @@ export default function StaffDocumentsPage() {
     setSelectedDocs([]);
   };
   
+  const handleOCR = async (doc: any) => {
+    try {
+      toast.loading("Extracting text...", { id: "ocr" });
+      await triggerOCR({ documentId: doc._id });
+      toast.success("Text extracted for global search!", { id: "ocr" });
+    } catch(err: any) {
+      toast.error(err.message, { id: "ocr" });
+    }
+  };
+
+  const handleArchive = async (docIds: string[]) => {
+    try {
+      for (const id of docIds) await softDeleteDoc({ documentId: id as any });
+      toast.success(`Archived ${docIds.length} document(s)`);
+      setSelectedDocs([]);
+      if (activeSidebarDoc && docIds.includes(activeSidebarDoc._id)) setActiveSidebarDoc(null);
+    } catch(err: any) {
+      toast.error("Failed to archive documents");
+    }
+  };
+
+  const handleRestore = async (docIds: string[]) => {
+    try {
+      for (const id of docIds) await restoreDoc({ documentId: id as any });
+      toast.success(`Restored ${docIds.length} document(s)`);
+      setSelectedDocs([]);
+      if (activeSidebarDoc && docIds.includes(activeSidebarDoc._id)) setActiveSidebarDoc(null);
+    } catch(err: any) {
+      toast.error("Failed to restore documents");
+    }
+  };
+
+  const handleHardDelete = async (docIds: string[]) => {
+    if (!confirm(`Are you sure you want to permanently delete ${docIds.length} document(s)? This cannot be undone.`)) return;
+    try {
+      for (const id of docIds) await hardDeleteDoc({ documentId: id as any });
+      toast.success(`Permanently deleted ${docIds.length} document(s)`);
+      setSelectedDocs([]);
+      if (activeSidebarDoc && docIds.includes(activeSidebarDoc._id)) setActiveSidebarDoc(null);
+    } catch(err: any) {
+      toast.error("Failed to delete documents permanently");
+    }
+  };
+
   const toggleSigner = (userId: string) => {
     setSelectedSignerIds((prev) => prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]);
   };
@@ -215,10 +299,7 @@ export default function StaffDocumentsPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden font-sans bg-background/50 relative">
-      {/* Main Content Area */}
       <div className={`flex-1 flex flex-col transition-all duration-300 w-full ${activeSidebarDoc ? 'mr-[350px] pr-[350px]' : ''}`}>
-        
-        {/* Header & Toolbar */}
         <div className="p-4 sm:p-6 border-b border-border bg-card shadow-xs z-10 flex flex-col gap-4 sticky top-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -226,19 +307,96 @@ export default function StaffDocumentsPage() {
               <p className="text-sm text-muted-foreground mt-1">Advanced paperless document management.</p>
             </div>
             <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setIsTagsModalOpen(true)} className="shadow-xs bg-secondary/50 hover:bg-secondary">
+                <Tags className="w-4 h-4 mr-2" /> Tags
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setIsTemplateModalOpen(true)} className="shadow-xs bg-secondary/50 hover:bg-secondary">
+                <LayoutTemplate className="w-4 h-4 mr-2" /> Use Template
+              </Button>
               <Button size="sm" onClick={openNewUpload} className="shadow-xs hover:shadow-sm">
                 <Upload className="w-4 h-4 mr-2" /> Upload File
               </Button>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-             <div className="relative flex-1 w-full max-w-md">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-               <Input className="pl-9 h-9 text-sm" placeholder="Search across documents..." value={search} onChange={(e) => setSearch(e.target.value)} />
-             </div>
-             <Select value={filterType} onValueChange={setFilterType}>
-               <SelectTrigger className="w-[160px] h-9 text-sm bg-secondary/50">
+          <div className="flex bg-secondary/50 p-1 rounded-lg w-fit">
+            <button 
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "list" ? "bg-background shadow-xs text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              onClick={() => { setViewMode("list"); setSelectedFolder(null); setSelectedSubFolder(null); }}
+            >
+              List View
+            </button>
+            <button 
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "folders" ? "bg-background shadow-xs text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              onClick={() => { setViewMode("folders"); setSelectedSubFolder(null); }}
+            >
+              Folders
+            </button>
+            <button 
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "trash" ? "bg-destructive/10 text-destructive shadow-xs" : "text-muted-foreground hover:text-destructive"}`}
+              onClick={() => { setViewMode("trash"); setSelectedFolder(null); setSelectedSubFolder(null); }}
+            >
+              Trash
+            </button>
+          </div>
+
+          <AdvancedSearch cases={cases} onSearch={setSearchFilters} />
+
+          {viewMode === "folders" && !selectedFolder && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+              <button 
+                onClick={() => setSelectedFolder("general")}
+                className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
+              >
+                <Folder className="w-8 h-8 text-primary/70 group-hover:text-primary transition-colors shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-sm">Firm General</h3>
+                  <p className="text-xs text-muted-foreground">Internal Documents</p>
+                </div>
+              </button>
+              {cases.map((c: any) => (
+                <button 
+                  key={c._id}
+                  onClick={() => setSelectedFolder(c._id)}
+                  className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
+                >
+                  <Folder className="w-8 h-8 text-primary/70 group-hover:text-primary transition-colors shrink-0" />
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm truncate" title={c.title}>{c.caseNumber}</h3>
+                    <p className="text-xs text-muted-foreground truncate" title={c.title}>{c.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {viewMode === "folders" && selectedFolder && !selectedSubFolder && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-right-2">
+              {DOC_TYPES.map(t => (
+                <button 
+                  key={t}
+                  onClick={() => setSelectedSubFolder(t)}
+                  className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
+                >
+                  <Folder className={`w-8 h-8 group-hover:scale-110 transition-transform shrink-0 ${TYPE_COLORS[t]?.split(' ')[0]?.replace('bg-', 'text-').replace('-100', '-500') || 'text-primary'}`} />
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm capitalize">{t}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Sub-Folder</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(viewMode !== "folders" || selectedSubFolder) && (
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+               {viewMode === "folders" && selectedFolder && (
+                 <Button variant="outline" size="sm" onClick={() => setSelectedSubFolder(null)} className="shrink-0 h-9 bg-secondary/50">
+                   &larr; Back to {selectedFolder === "general" ? "Firm General" : "Case"}
+                 </Button>
+               )}
+               <Select value={filterType} onValueChange={setFilterType}>
+                 <SelectTrigger className="w-[160px] h-9 text-sm bg-secondary/50">
                  <Filter className="w-3.5 h-3.5 mr-2" /> <SelectValue placeholder="All Types" />
                </SelectTrigger>
                <SelectContent>
@@ -247,98 +405,156 @@ export default function StaffDocumentsPage() {
                </SelectContent>
              </Select>
              
-             {selectedDocs.length > 0 && (
+             {selectedDocs.length > 0 && viewMode !== "trash" && (
                <div className="flex items-center gap-2 ml-auto animate-in fade-in zoom-in-95">
                  <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-md">{selectedDocs.length} selected</span>
                  <Button variant="outline" size="sm" className="h-9 px-3 bg-secondary/50" onClick={handleBulkDownload}>
                    <Download className="w-3.5 h-3.5 mr-1.5" /> Download Zip
                  </Button>
-                 <Button variant="outline" size="sm" className="h-9 px-3 text-destructive border-destructive/30 hover:bg-destructive/10">
+                 <Button variant="outline" size="sm" className="h-9 px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleArchive(selectedDocs)}>
                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Archive
                  </Button>
                </div>
              )}
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="flex-1 overflow-auto p-4 sm:p-6 pb-24">
-          {paginatedItems.length === 0 ? (
-            <Empty className="bg-card shadow-xs rounded-xl border border-border py-12">
-              <EmptyHeader>
-                <Folder className="w-12 h-12 text-muted-foreground/30 mb-3" />
-                <EmptyTitle>Vault is Empty</EmptyTitle>
-                <EmptyDescription>No documents match your search or filter.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
-              <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="text-[11px] font-semibold text-muted-foreground uppercase bg-secondary/80 border-b border-border tracking-wider">
-                  <tr>
-                    <th className="p-3 w-10 text-center">
-                      <input type="checkbox" className="accent-primary w-3.5 h-3.5" checked={selectedDocs.length > 0 && selectedDocs.length === paginatedItems.length} onChange={selectAll} />
-                    </th>
-                    <th className="p-3">Document Name</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Case Reference</th>
-                    <th className="p-3">Date Modified</th>
-                    <th className="p-3 text-right">Size</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {paginatedItems.map((doc: any) => {
-                    const matchedCase = cases.find((c: any) => c._id === doc.caseId);
-                    const isSelected = selectedDocs.includes(doc._id);
-                    return (
-                      <tr 
-                        key={doc._id} 
-                        className={`hover:bg-secondary/40 transition-colors cursor-pointer group ${activeSidebarDoc?._id === doc._id ? 'bg-primary/5 hover:bg-primary/10' : ''} ${isSelected ? 'bg-secondary' : ''}`}
-                        onClick={() => setActiveSidebarDoc(doc)}
-                      >
-                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <input type="checkbox" className="accent-primary w-3.5 h-3.5" checked={isSelected} onChange={() => toggleDocSelection(doc._id)} />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div className="font-medium text-foreground max-w-[200px] sm:max-w-[300px] lg:max-w-[400px] truncate flex items-center gap-2">
-                              {doc.title}
-                              {doc.isPrivileged && <Lock className="w-3 h-3 text-red-500 shrink-0" />}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant="outline" className={`capitalize text-[10px] font-semibold border ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
-                            {doc.type}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs font-mono">
-                          {matchedCase?.caseNumber || "Firm General"}
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs">
-                          {format(new Date(doc._creationTime), "MMM d, yyyy")}
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs text-right">
-                          {(doc.sizeBytes / 1024).toFixed(0)} KB
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+             
+             {selectedDocs.length > 0 && viewMode === "trash" && (
+               <div className="flex items-center gap-2 ml-auto animate-in fade-in zoom-in-95">
+                 <span className="text-xs font-semibold px-2 py-1 bg-destructive/10 text-destructive rounded-md">{selectedDocs.length} selected</span>
+                 <Button variant="outline" size="sm" className="h-9 px-3 text-emerald-600 border-emerald-600/30 hover:bg-emerald-600/10" onClick={() => handleRestore(selectedDocs)}>
+                   Restore
+                 </Button>
+                 <Button variant="outline" size="sm" className="h-9 px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleHardDelete(selectedDocs)}>
+                   Delete Permanently
+                 </Button>
+               </div>
+             )}
             </div>
           )}
+        </div>
 
-          {totalPages > 1 && (
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} onNextPage={nextPage} onPrevPage={prevPage} className="mt-6" />
-          )}
+        <div className="flex-1 overflow-auto p-4 sm:p-6 pb-24 flex gap-6">
+          <div className="flex-1 min-w-0">
+            {viewMode === "folders" && !selectedFolder ? (
+               <Empty className="bg-card shadow-xs rounded-xl border border-border py-12">
+                 <EmptyHeader>
+                   <Folder className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                   <EmptyTitle>Select a Case Folder</EmptyTitle>
+                   <EmptyDescription>Choose a case folder above to view its document types.</EmptyDescription>
+                 </EmptyHeader>
+               </Empty>
+            ) : viewMode === "folders" && selectedFolder && !selectedSubFolder ? (
+               <Empty className="bg-card shadow-xs rounded-xl border border-border py-12">
+                 <EmptyHeader>
+                   <Folder className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                   <EmptyTitle>Select a Sub-Folder</EmptyTitle>
+                   <EmptyDescription>Choose a document type sub-folder to view its files.</EmptyDescription>
+                 </EmptyHeader>
+               </Empty>
+            ) : paginatedItems.length === 0 ? (
+              <Empty className="bg-card shadow-xs rounded-xl border border-border py-12">
+                <EmptyHeader>
+                  <Folder className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                  <EmptyTitle>Vault is Empty</EmptyTitle>
+                  <EmptyDescription>No documents match your search or filter.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
+                <table className="w-full text-sm text-left whitespace-nowrap">
+                  <thead className="text-[11px] font-semibold text-muted-foreground uppercase bg-secondary/80 border-b border-border tracking-wider">
+                    <tr>
+                      <th className="p-3 w-10 text-center">
+                        <input type="checkbox" className="accent-primary w-3.5 h-3.5" checked={selectedDocs.length > 0 && selectedDocs.length === paginatedItems.length} onChange={selectAll} />
+                      </th>
+                      <th className="p-3">Document Name</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Case Reference</th>
+                      <th className="p-3">Date Modified</th>
+                      <th className="p-3 text-right">Size</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {paginatedItems.map((doc: any) => {
+                      const matchedCase = cases.find((c: any) => c._id === doc.caseId);
+                      const isSelected = selectedDocs.includes(doc._id);
+                      return (
+                        <tr 
+                          key={doc._id} 
+                          className={`hover:bg-secondary/40 transition-colors cursor-pointer group ${activeSidebarDoc?._id === doc._id ? 'bg-primary/5 hover:bg-primary/10' : ''} ${isSelected ? 'bg-secondary' : ''}`}
+                          onClick={() => setActiveSidebarDoc(doc)}
+                        >
+                          <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input type="checkbox" className="accent-primary w-3.5 h-3.5" checked={isSelected} onChange={() => toggleDocSelection(doc._id)} />
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div className="font-medium text-foreground max-w-[200px] sm:max-w-[300px] lg:max-w-[400px] truncate flex items-center gap-2">
+                                {doc.title}
+                                {doc.isPrivileged && <Lock className="w-3 h-3 text-red-500 shrink-0" />}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className={`capitalize text-[10px] font-semibold border ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
+                              {doc.type}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs font-mono">
+                            {matchedCase?.caseNumber || "Firm General"}
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs">
+                            {format(new Date(doc._creationTime), "MMM d, yyyy")}
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs text-right">
+                            {(doc.sizeBytes / 1024).toFixed(0)} KB
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} onNextPage={nextPage} onPrevPage={prevPage} className="mt-6" />}
+          </div>
+          
+          <div className="hidden xl:flex flex-col w-72 shrink-0 gap-4 mt-6">
+            <div className="border rounded-xl bg-background overflow-hidden shadow-xs h-fit sticky top-4">
+              <div className="bg-secondary/50 p-3 border-b border-border/50">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" /> Recently Viewed / Modified
+                </h3>
+              </div>
+              <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
+                {recentDocs.length === 0 ? (
+                   <p className="text-xs text-muted-foreground p-4 text-center">No recent documents.</p>
+                ) : recentDocs.map((doc: any) => (
+                  <button 
+                    key={doc._id}
+                    onClick={() => {
+                      setActiveSidebarDoc(doc);
+                      setIsPreviewOpen(true);
+                    }}
+                    className="w-full text-left p-2 rounded-lg hover:bg-secondary/80 transition-colors group flex gap-3 items-start"
+                  >
+                    <div className={`p-1.5 rounded bg-background shadow-xs border shrink-0 ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{doc.title}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(doc._creationTime), "MMM d, h:mm a")}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right Sidebar - Document Details */}
       <div 
         className={`fixed top-0 right-0 h-full w-[350px] bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-out z-20 overflow-y-auto ${activeSidebarDoc ? "translate-x-0" : "translate-x-full"}`}
       >
@@ -381,11 +597,18 @@ export default function StaffDocumentsPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="space-y-2">
                   <Button className="w-full shadow-xs" onClick={() => setIsPreviewOpen(true)}>
                     <Eye className="w-4 h-4 mr-2" /> Open Previewer
                   </Button>
+                  <Button variant="outline" className="w-full bg-card" onClick={() => setIsShareModalOpen(true)}>
+                    <Link2 className="w-4 h-4 mr-2" /> Share External Link
+                  </Button>
+                  {(doc.mimeType?.includes("pdf") || doc.mimeType?.includes("image")) && !doc.searchableText && (
+                    <Button variant="outline" className="w-full bg-card" onClick={() => handleOCR(doc)}>
+                      <ScanText className="w-4 h-4 mr-2" /> Extract Text (OCR)
+                    </Button>
+                  )}
                   <Button variant="outline" className="w-full bg-card" onClick={() => toast.success("Downloading...")}>
                     <Download className="w-4 h-4 mr-2" /> Download Document
                   </Button>
@@ -394,7 +617,6 @@ export default function StaffDocumentsPage() {
                   </Button>
                 </div>
 
-                {/* Signature Block */}
                 <div className="bg-secondary/20 rounded-xl p-4 border border-border space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                     <PenTool className="w-3.5 h-3.5" /> E-Signature Hub
@@ -413,7 +635,6 @@ export default function StaffDocumentsPage() {
                   )}
                 </div>
 
-                {/* Version History Timeline */}
                 <div className="pt-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2 mb-4">
                     <History className="w-3.5 h-3.5 text-primary" /> Version History
@@ -431,7 +652,7 @@ export default function StaffDocumentsPage() {
                            <p className="text-sm font-medium text-foreground/70">Version {doc.version - 1}</p>
                            <p className="text-[11px] text-muted-foreground mt-0.5">Previous upload</p>
                          </div>
-                         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs border border-border bg-card">Restore</Button>
+                         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs border border-border bg-card" onClick={() => toast.success(`Restoring Version ${doc.version - 1}... (Simulated)`)}>Restore</Button>
                       </div>
                     )}
                   </div>
@@ -442,7 +663,6 @@ export default function StaffDocumentsPage() {
         })()}
       </div>
 
-      {/* In-App Preview Modal */}
       {isPreviewOpen && activeSidebarDoc && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 sm:p-10 animate-in fade-in-20 backdrop-blur-sm">
            <div className="bg-card w-full h-full max-w-6xl rounded-xl shadow-2xl flex flex-col overflow-hidden border border-border scale-in-95">
@@ -460,9 +680,7 @@ export default function StaffDocumentsPage() {
                </div>
              </div>
              <div className="flex-1 bg-muted/40 flex items-center justify-center relative overflow-hidden p-6">
-                {/* Simulated Viewer Canvas */}
                 <div className="w-full max-w-[800px] h-full max-h-[1100px] bg-background shadow-xl border border-border p-12 overflow-y-auto rounded-lg">
-                   {/* Dummy Document Content */}
                    <div className="w-1/3 h-8 bg-secondary/50 rounded-md mb-8"></div>
                    <div className="w-full h-4 bg-secondary/30 rounded-md mb-4"></div>
                    <div className="w-full h-4 bg-secondary/30 rounded-md mb-4"></div>
@@ -487,7 +705,6 @@ export default function StaffDocumentsPage() {
         </div>
       )}
 
-      {/* Upload Modal */}
       {isUploadOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in-20">
           <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4 scale-in-95">
@@ -565,22 +782,17 @@ export default function StaffDocumentsPage() {
         </div>
       )}
 
-      {/* Envelope Modal */}
-      {envelopeDoc && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in-20">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90dvh] overflow-y-auto scale-in-95">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-serif text-xl font-bold">Secure Signature Envelope</h3>
-              <button onClick={() => setEnvelopeDoc(null)} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-secondary cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
+      <Dialog open={!!envelopeDoc} onOpenChange={() => setEnvelopeDoc(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Secure Signature Envelope</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="bg-secondary/30 p-3 rounded-lg flex items-center gap-3 border border-border/50">
               <FileText className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Target Document</p>
-                <p className="text-sm font-semibold">{envelopeDoc.title}</p>
+                <p className="text-sm font-semibold">{envelopeDoc?.title}</p>
               </div>
             </div>
 
@@ -635,16 +847,20 @@ export default function StaffDocumentsPage() {
               </div>
             </div>
             
-            <div className="flex gap-3 pt-4 border-t border-border mt-2">
+            <DialogFooter className="pt-4 border-t border-border mt-2">
               <Button variant="outline" className="flex-1" onClick={() => setEnvelopeDoc(null)}>Cancel</Button>
               <Button className="flex-1 shadow-md shadow-primary/20" onClick={handleCreateAndSendEnvelope} disabled={isEnvelopeBusy || selectedSignerIds.length === 0}>
                 {isEnvelopeBusy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                 Send Envelope
               </Button>
-            </div>
+            </DialogFooter>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
+      
+      <TagManagementModal isOpen={isTagsModalOpen} onClose={() => setIsTagsModalOpen(false)} />
+      <TemplateGeneratorModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} />
+      <DocumentShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} document={activeSidebarDoc} />
     </div>
   );
 }

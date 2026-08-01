@@ -8,6 +8,10 @@ export const STAFF_ROLES: UserRole[] = [
   "partner", "senior_associate", "associate", "paralegal", "intern",
 ];
 
+export function isStaffOrAdmin(role: string) {
+  return STAFF_ROLES.includes(role as any) || role === "admin";
+}
+
 export type Capability =
   | "users.manage"
   | "users.view_directory"

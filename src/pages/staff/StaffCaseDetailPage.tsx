@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { 
-  CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send, PenTool, CheckSquare, 
-  DollarSign, Plus, FolderTree, Scale, FileArchive, ArrowRight, Zap, Users
+  CalendarDays, FileText, Clock, User, ArrowLeft, Loader2, Save, PenTool, CheckSquare, 
+  DollarSign, Plus, FolderTree, Scale, FileArchive, ArrowRight, Zap, Users,
+  Printer, Link as LinkIcon, Bold, Italic, List, Underline, Highlighter, Trash2, Cloud, CloudOff
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -14,6 +15,9 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
+import { PRIORITY_COLORS, formatTaskDue } from "@/lib/task-constants.ts";
+
+type BriefSaveStatus = "idle" | "unsaved" | "saving" | "saved";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -29,17 +33,6 @@ const MISL_CATEGORIES = [
   { id: "orders", label: "Court Orders (Aadesh)" },
   { id: "annexure", label: "Annexures & Exhibits" },
   { id: "misc", label: "Miscellaneous (Others)" },
-];
-
-const SOPS = [
-  {
-    id: "new_case", label: "Litigation Setup (Firad Registration)",
-    tasks: ["Draft Vakalatnama", "Prepare Firad Patra (Petition)", "Collect Client KYC & ID", "Pay Initial Court Dastur"]
-  },
-  {
-    id: "hearing_prep", label: "Hearing Preparation (Bahas Prep)",
-    tasks: ["Review opposing reply (Pratiuttar)", "Draft written arguments/notes", "Compile precedent case laws", "Client Briefing"]
-  }
 ];
 
 export default function StaffCaseDetailPage() {
@@ -59,14 +52,22 @@ export default function StaffCaseDetailPage() {
   const expenses = useQuery(api.expenses.list, caseId ? { caseId: caseId as any } : "skip") || [];
   const createTask = useMutation(api.tasks.createTask);
   const updateTask = useMutation(api.tasks.updateTask);
+  const runSop = useMutation(api.tasks.runSop);
+  const sopTemplates = useQuery(api.tasks.listSopTemplates, {}) || [];
+  const practiceSops = (() => {
+    if (!caseData?.practiceArea) return sopTemplates;
+    const area = String(caseData.practiceArea).toLowerCase();
+    const matched = sopTemplates.filter((s: any) =>
+      s.practiceArea && area.includes(String(s.practiceArea).toLowerCase()),
+    );
+    return matched.length > 0 ? matched : sopTemplates;
+  })();
 
-  const paginatedMsgs = useQuery(
-    api.messages.listMessages,
-    caseId ? { caseId: caseId as any, paginationOpts: { numItems: 100, cursor: null } } : "skip",
-  );
-  const messages = paginatedMsgs?.page || [];
-  const sendMessage = useMutation(api.messages.sendMessage);
-  const markMessagesRead = useMutation(api.messages.markMessagesRead);
+  const briefs = (useQuery((api as any).briefs.list as any, caseId ? { caseId: caseId as any } : "skip") || []) as any[];
+  const createBrief = useMutation((api as any).briefs.create as any);
+  const updateBrief = useMutation((api as any).briefs.update as any);
+  const deleteBrief = useMutation((api as any).briefs.delete as any);
+  const researchNotes = (useQuery((api as any).research.listNotes as any, {}) || []) as any[];
 
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("");
@@ -75,8 +76,6 @@ export default function StaffCaseDetailPage() {
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
-  const [draft, setDraft] = useState("");
-  const [isInternal, setIsInternal] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [isAddingTask, setIsAddingTask] = useState(false);
   
@@ -87,15 +86,16 @@ export default function StaffCaseDetailPage() {
     orders: true,
   });
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (caseId) markMessagesRead({ caseId: caseId as any }).catch(() => {});
-  }, [caseId, markMessagesRead, messages.length]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // Trial Briefs State
+  const [selectedBrief, setSelectedBrief] = useState<any | null>(null);
+  const [briefContent, setBriefContent] = useState("");
+  const [briefTitle, setBriefTitle] = useState("");
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [briefSaveStatus, setBriefSaveStatus] = useState<BriefSaveStatus>("idle");
+  const editorRef = useRef<HTMLDivElement>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadedBriefId = useRef<string | null>(null);
 
   const timeline = useMemo(() => {
     if (!caseData) return [];
@@ -130,14 +130,6 @@ export default function StaffCaseDetailPage() {
     } catch (err: any) { toast.error(err?.message || "Failed to update case."); } finally { setIsSaving(false); }
   };
 
-  const handleSendMessage = async () => {
-    if (!caseId || !draft.trim()) return;
-    try {
-      await sendMessage({ caseId: caseId as any, content: draft.trim(), isInternal, attachmentIds: [] });
-      setDraft("");
-    } catch (err: any) { toast.error(err?.message || "Failed to send message."); }
-  };
-
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseId || !newTaskTitle.trim() || !currentUser) return;
@@ -148,18 +140,183 @@ export default function StaffCaseDetailPage() {
     } catch (err: any) { toast.error(err?.message || "Failed to add task"); } finally { setIsAddingTask(false); }
   };
 
-  const triggerSOP = async (sopId: string) => {
-    const sop = SOPS.find(s => s.id === sopId);
-    if (!sop || !caseId || !currentUser) return;
-    setIsAddingTask(true);
-    let count = 0;
+  const selectBrief = useCallback((brief: any) => {
+    setSelectedBrief(brief);
+    setBriefTitle(brief.title);
+    setBriefContent(brief.content || "");
+    setShowMentionMenu(false);
+    setMentionQuery("");
+    setBriefSaveStatus("idle");
+    loadedBriefId.current = null;
+  }, []);
+
+  const persistBrief = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!selectedBrief || !editorRef.current) return;
+    const content = editorRef.current.innerHTML;
+    setBriefContent(content);
+    setBriefSaveStatus("saving");
     try {
-      for (const t of sop.tasks) {
-        await createTask({ title: t, caseId: caseId as any, assignedTo: currentUser._id as any, priority: "high" });
-        count++;
-      }
-      toast.success(`SOP executed: ${count} tasks added.`);
-    } catch (err: any) { toast.error("Failed to execute full SOP."); } finally { setIsAddingTask(false); }
+      await updateBrief({ id: selectedBrief._id, title: briefTitle, content });
+      setSelectedBrief((prev: any) => prev ? { ...prev, title: briefTitle, content, lastModified: Date.now() } : prev);
+      setBriefSaveStatus("saved");
+      if (!opts?.silent) toast.success("Brief saved");
+    } catch {
+      setBriefSaveStatus("unsaved");
+      toast.error("Failed to save brief");
+    }
+  }, [selectedBrief, briefTitle, updateBrief]);
+
+  const scheduleAutosave = useCallback(() => {
+    setBriefSaveStatus("unsaved");
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      void persistBrief({ silent: true });
+    }, 1200);
+  }, [persistBrief]);
+
+  useEffect(() => {
+    if (!selectedBrief || !editorRef.current) return;
+    if (loadedBriefId.current === selectedBrief._id) return;
+    editorRef.current.innerHTML = selectedBrief.content || "";
+    loadedBriefId.current = selectedBrief._id;
+  }, [selectedBrief]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, []);
+
+  const handleCreateBrief = async () => {
+    if (!caseId || !currentUser) return;
+    try {
+      const newId = await createBrief({
+        caseId: caseId as any,
+        title: "Untitled Hearing Brief",
+        content: "<p></p>",
+        authorId: currentUser._id as any,
+      });
+      selectBrief({
+        _id: newId,
+        caseId,
+        title: "Untitled Hearing Brief",
+        content: "<p></p>",
+        authorId: currentUser._id,
+        lastModified: Date.now(),
+      });
+      toast.success("Brief created");
+    } catch {
+      toast.error("Failed to create brief");
+    }
+  };
+
+  const handleDeleteBrief = async () => {
+    if (!selectedBrief) return;
+    try {
+      await deleteBrief({ id: selectedBrief._id });
+      setSelectedBrief(null);
+      setBriefTitle("");
+      setBriefContent("");
+      loadedBriefId.current = null;
+      setBriefSaveStatus("idle");
+      toast.success("Brief deleted");
+    } catch {
+      toast.error("Failed to delete brief");
+    }
+  };
+
+  const handlePrintBrief = () => {
+    if (editorRef.current) setBriefContent(editorRef.current.innerHTML);
+    window.print();
+  };
+
+  const applyFormat = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    document.execCommand("styleWithCSS", false, "true");
+    const ok = document.execCommand(command, false, value);
+    if (!ok && command === "hiliteColor") {
+      document.execCommand("backColor", false, value);
+    }
+    if (editorRef.current) setBriefContent(editorRef.current.innerHTML);
+    scheduleAutosave();
+  };
+
+  const removeMentionQueryAtCursor = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    if (node.nodeType !== Node.TEXT_NODE || !node.textContent) return;
+    const text = node.textContent;
+    const upToCursor = text.slice(0, range.startOffset);
+    const atIdx = upToCursor.lastIndexOf("@");
+    if (atIdx === -1) return;
+    const del = document.createRange();
+    del.setStart(node, atIdx);
+    del.setEnd(node, range.startOffset);
+    del.deleteContents();
+    sel.removeAllRanges();
+    const after = document.createRange();
+    after.setStart(node, atIdx);
+    after.collapse(true);
+    sel.addRange(after);
+  };
+
+  const insertMention = (title: string, link: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    removeMentionQueryAtCursor();
+    const safeTitle = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    document.execCommand(
+      "insertHTML",
+      false,
+      `<a href="${link}" class="text-primary underline font-semibold bg-primary/10 px-1 rounded" contenteditable="false">@${safeTitle}</a>&nbsp;`,
+    );
+    setBriefContent(editor.innerHTML);
+    setShowMentionMenu(false);
+    setMentionQuery("");
+    scheduleAutosave();
+  };
+
+  const handleEditorInput = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setBriefContent(editor.innerHTML);
+    const text = editor.innerText || "";
+    const words = text.split(/[\s\u00a0]+/);
+    const lastWord = words[words.length - 1] || "";
+    if (lastWord.startsWith("@")) {
+      setShowMentionMenu(true);
+      setMentionQuery(lastWord.slice(1));
+    } else {
+      setShowMentionMenu(false);
+    }
+    scheduleAutosave();
+  };
+
+  const filteredDocs = documents.filter((d: any) =>
+    d.title.toLowerCase().includes(mentionQuery.toLowerCase()),
+  );
+  const filteredPrecedents = researchNotes.filter((n: any) =>
+    n.title.toLowerCase().includes(mentionQuery.toLowerCase()),
+  );
+
+  const triggerSOP = async (templateKey: string) => {
+    if (!caseId || !currentUser) return;
+    setIsAddingTask(true);
+    try {
+      const res = await runSop({
+        templateKey,
+        caseId: caseId as any,
+        assignedTo: currentUser._id as any,
+      });
+      toast.success(`${(res as any).label}: ${(res as any).created} added, ${(res as any).skipped} skipped (already exist).`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to execute SOP.");
+    } finally {
+      setIsAddingTask(false);
+    }
   };
 
   if (caseData === undefined) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -177,78 +334,80 @@ export default function StaffCaseDetailPage() {
   const healthPercent = Math.max(0, Math.min(100, (retainerBalance - totalCost) / retainerBalance * 100));
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => navigate("/staff/cases")}><ArrowLeft className="w-4 h-4" /></Button>
-        <span className="text-xs text-muted-foreground font-mono">LEX-{caseData.caseNumber}</span>
-      </div>
+    <div className="p-4 sm:p-6 space-y-6 font-sans print:p-0 print:space-y-0">
+      <div className="print:hidden space-y-6">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => navigate("/staff/cases")}><ArrowLeft className="w-4 h-4" /></Button>
+          <span className="text-xs text-muted-foreground font-mono">LEX-{caseData.caseNumber}</span>
+        </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge className={`text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[caseData.status] || "bg-gray-100 text-gray-800"}`}>
-              {caseData.status.replace("_", " ")}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] uppercase text-primary/80 border-primary/20 bg-primary/5">{caseData.practiceArea}</Badge>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <Badge className={`text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[caseData.status] || "bg-gray-100 text-gray-800"}`}>
+                {caseData.status.replace("_", " ")}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] uppercase text-primary/80 border-primary/20 bg-primary/5">{caseData.practiceArea}</Badge>
+            </div>
+            <h1 className="font-serif text-3xl font-bold text-foreground tracking-tight">{caseData.title}</h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-3xl leading-relaxed">{caseData.description || "No case description provided."}</p>
           </div>
-          <h1 className="font-serif text-3xl font-bold text-foreground tracking-tight">{caseData.title}</h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-3xl leading-relaxed">{caseData.description || "No case description provided."}</p>
+
+          <div>
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
+                <Button size="sm" onClick={handleUpdateCase} disabled={isSaving}>{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={startEditing}>Edit Details</Button>
+            )}
+          </div>
         </div>
 
-        <div>
-          {isEditing ? (
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleUpdateCase} disabled={isSaving}>{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}</Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="outline" onClick={startEditing}>Edit Details</Button>
-          )}
-        </div>
+        {isEditing ? (
+          <Card className="border-accent/20 bg-accent/5">
+            <CardContent className="p-4 space-y-3">
+              <h4 className="text-sm font-semibold text-primary font-serif">Quick Editor</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><label className="text-xs font-medium">Status</label><select className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden" value={status} onChange={(e) => setStatus(e.target.value)}><option value="inquiry">Inquiry</option><option value="active">Active</option><option value="on_hold">On Hold</option><option value="closed_won">Closed Won</option><option value="closed_lost">Closed Lost</option></select></div>
+                <div className="space-y-1"><label className="text-xs font-medium">Court</label><Input className="bg-background text-xs" value={court} onChange={(e) => setCourt(e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><label className="text-xs font-medium">Judge Name</label><Input className="bg-background text-xs" value={judge} onChange={(e) => setJudge(e.target.value)} /></div>
+                <div className="space-y-1"><label className="text-xs font-medium">Notes / Description</label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Client / Retainer", value: client ? client.fullName : "Unknown", icon: User },
+              { label: "Lead Advocate", value: lawyer ? lawyer.name : "Unassigned", icon: Scale },
+              { label: "Jurisdiction", value: caseData.court || "Not Specified", icon: CalendarDays },
+              { label: "Presiding Judge", value: caseData.judge || "Not Assigned", icon: User },
+            ].map((item) => (
+              <Card key={item.label} className="border-border/60 shadow-xs bg-card/50">
+                <CardContent className="p-4">
+                  <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
+                    <item.icon className="w-3.5 h-3.5" /> {item.label}
+                  </p>
+                  <p className="text-sm font-semibold text-foreground">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-
-      {isEditing ? (
-        <Card className="border-accent/20 bg-accent/5">
-          <CardContent className="p-4 space-y-3">
-            <h4 className="text-sm font-semibold text-primary font-serif">Quick Editor</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><label className="text-xs font-medium">Status</label><select className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden" value={status} onChange={(e) => setStatus(e.target.value)}><option value="inquiry">Inquiry</option><option value="active">Active</option><option value="on_hold">On Hold</option><option value="closed_won">Closed Won</option><option value="closed_lost">Closed Lost</option></select></div>
-              <div className="space-y-1"><label className="text-xs font-medium">Court</label><Input className="bg-background text-xs" value={court} onChange={(e) => setCourt(e.target.value)} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><label className="text-xs font-medium">Judge Name</label><Input className="bg-background text-xs" value={judge} onChange={(e) => setJudge(e.target.value)} /></div>
-              <div className="space-y-1"><label className="text-xs font-medium">Notes / Description</label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Client / Retainer", value: client ? client.fullName : "Unknown", icon: User },
-            { label: "Lead Advocate", value: lawyer ? lawyer.name : "Unassigned", icon: Scale },
-            { label: "Jurisdiction", value: caseData.court || "Not Specified", icon: CalendarDays },
-            { label: "Presiding Judge", value: caseData.judge || "Not Assigned", icon: User },
-          ].map((item) => (
-            <Card key={item.label} className="border-border/60 shadow-xs bg-card/50">
-              <CardContent className="p-4">
-                <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
-                  <item.icon className="w-3.5 h-3.5" /> {item.label}
-                </p>
-                <p className="text-sm font-semibold text-foreground">{item.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
 
       <Tabs defaultValue="tasks">
-        <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1.5 bg-secondary/50 rounded-lg">
+        <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1.5 bg-secondary/50 rounded-lg print:hidden">
           <TabsTrigger value="tasks" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><CheckSquare className="w-3.5 h-3.5 mr-2" />Tasks & SOPs</TabsTrigger>
           <TabsTrigger value="misl" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><FolderTree className="w-3.5 h-3.5 mr-2" />Digital Misl (Files)</TabsTrigger>
           <TabsTrigger value="parties" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Users className="w-3.5 h-3.5 mr-2" />Parties & Counsel</TabsTrigger>
           <TabsTrigger value="financials" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><DollarSign className="w-3.5 h-3.5 mr-2" />Case Ledger</TabsTrigger>
           <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Clock className="w-3.5 h-3.5 mr-2" />Timeline</TabsTrigger>
-          <TabsTrigger value="messages" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><MessageSquare className="w-3.5 h-3.5 mr-2" />Notes</TabsTrigger>
+          <TabsTrigger value="briefs" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><FileText className="w-3.5 h-3.5 mr-2" />Trial Briefs & Memos</TabsTrigger>
         </TabsList>
 
         {/* 1. Tasks & SOPs */}
@@ -270,16 +429,28 @@ export default function StaffCaseDetailPage() {
                     ) : (
                       tasks.map((task: any) => {
                         const assignee = users.find((u: any) => u._id === task.assignedTo);
+                        const dueLabel = formatTaskDue(task);
                         return (
-                          <div key={task._id} className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${task.status === "done" ? 'bg-secondary/40 border-border/50 opacity-60' : 'bg-card hover:border-primary/30'}`}>
+                          <div key={task._id} className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${task.status === "done" || task.status === "cancelled" ? 'bg-secondary/40 border-border/50 opacity-60' : 'bg-card hover:border-primary/30'}`}>
                             <div className="flex items-start gap-3 w-full">
-                              <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" checked={task.status === "done"} onChange={(e) => { updateTask({ taskId: task._id, status: e.target.checked ? "done" : "todo" }).catch(() => toast.error("Failed to update")); }} />
+                              <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                checked={task.status === "done"}
+                                disabled={task.status === "cancelled"}
+                                onChange={(e) => {
+                                  updateTask({
+                                    taskId: task._id,
+                                    status: e.target.checked ? "done" : "in_progress",
+                                  }).catch(() => toast.error("Failed to update"));
+                                }}
+                              />
                               <div className="flex-1">
-                                <p className={cn("text-sm font-semibold", task.status === "done" && "line-through text-muted-foreground")}>{task.title}</p>
+                                <p className={cn("text-sm font-semibold", (task.status === "done" || task.status === "cancelled") && "line-through text-muted-foreground")}>{task.title}</p>
                                 <div className="flex flex-wrap gap-2 items-center mt-1.5">
-                                  {task.dueDate && <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">Due: {task.dueDate}</span>}
+                                  {dueLabel && <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">Due: {dueLabel}</span>}
                                   <Badge variant="outline" className="text-[10px] h-4 py-0 bg-background">{assignee?.name || "Unassigned"}</Badge>
-                                  <Badge className={cn("text-[9px] h-4 py-0 uppercase tracking-wider", task.priority === "urgent" ? "bg-red-100 text-red-800" : task.priority === "high" ? "bg-orange-100 text-orange-800" : task.priority === "medium" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800")}>{task.priority}</Badge>
+                                  <Badge className={cn("text-[9px] h-4 py-0 uppercase tracking-wider", PRIORITY_COLORS[task.priority])}>{task.priority}</Badge>
                                 </div>
                               </div>
                             </div>
@@ -298,14 +469,20 @@ export default function StaffCaseDetailPage() {
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
                   <p className="text-xs text-muted-foreground mb-4">Instantly generate standard tasks for specific case stages.</p>
-                  {SOPS.map(sop => (
-                    <Button key={sop.id} variant="outline" className="w-full justify-start text-left h-auto py-3 bg-background hover:bg-primary/5 hover:text-primary transition-all group border-border" onClick={() => triggerSOP(sop.id)} disabled={isAddingTask}>
-                      <div>
-                        <div className="font-semibold text-sm group-hover:underline">{sop.label}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">{sop.tasks.length} standard tasks</div>
-                      </div>
-                    </Button>
-                  ))}
+                  {practiceSops.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No SOP templates configured.</p>
+                  ) : (
+                    practiceSops.map((sop: any) => (
+                      <Button key={sop._id} variant="outline" className="w-full justify-start text-left h-auto py-3 bg-background hover:bg-primary/5 hover:text-primary transition-all group border-border" onClick={() => triggerSOP(sop.key)} disabled={isAddingTask}>
+                        <div>
+                          <div className="font-semibold text-sm group-hover:underline">{sop.label}</div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                            {sop.taskTitles?.length || 0} tasks · {sop.practiceArea || "general"}
+                          </div>
+                        </div>
+                      </Button>
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -527,49 +704,147 @@ export default function StaffCaseDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* 6. Notes (Messages) */}
-        <TabsContent value="messages" className="mt-6 h-[500px] flex flex-col">
-          <Card className="flex-1 flex flex-col overflow-hidden">
-            <CardHeader className="py-3 border-b border-border bg-secondary/10 shrink-0">
-              <CardTitle className="text-sm font-bold flex items-center gap-2"><MessageSquare className="w-4 h-4 text-primary" /> Case Notes & Communication</CardTitle>
+        {/* 6. Trial Briefs */}
+        <TabsContent value="briefs" className="mt-6 h-[600px] flex gap-4 print:mt-0 print:h-auto print:block">
+          
+          {/* Print Letterhead (Only visible on print) */}
+          <div className="hidden print:block w-full mb-8 border-b-2 border-black pb-4 text-black">
+             <h1 className="text-3xl font-serif font-bold text-center uppercase tracking-widest">Srimar Law</h1>
+             <p className="text-center text-sm font-mono mt-1">Trial Brief & Bench Memo</p>
+             <div className="flex justify-between mt-6 text-sm font-bold">
+               <p>Case: {caseData.caseNumber} — {caseData.title}</p>
+               <p>Date: {new Date().toLocaleDateString()}</p>
+             </div>
+             {briefTitle && <p className="mt-4 text-lg font-serif font-bold text-center">{briefTitle}</p>}
+          </div>
+
+          {/* Left Sidebar: Brief List */}
+          <Card className="w-1/3 flex flex-col overflow-hidden print:hidden border-border bg-card shadow-xs">
+            <CardHeader className="py-3 border-b border-border bg-secondary/10 flex flex-row items-center justify-between shrink-0">
+              <CardTitle className="text-sm font-bold flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Case Briefs</CardTitle>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleCreateBrief}><Plus className="w-4 h-4" /></Button>
             </CardHeader>
-            <CardContent className="flex-1 p-4 overflow-y-auto space-y-4 bg-muted/20">
-              {messages.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center mt-10">No notes yet. Be the first to add one!</p>
+            <CardContent className="flex-1 p-2 overflow-y-auto space-y-1 bg-muted/10">
+              {briefs.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center mt-6">No briefs created yet.</p>
               ) : (
-                [...messages].reverse().map((msg: any) => {
-                  const isMine = msg.senderId === currentUser?._id;
-                  const sender = users.find((u: any) => u._id === msg.senderId) || clients.find((c: any) => c._id === msg.senderId);
-                  return (
-                    <div key={msg._id} className={cn("flex flex-col max-w-[80%]", isMine ? "ml-auto items-end" : "mr-auto items-start")}>
-                      <span className="text-[10px] text-muted-foreground mb-1 font-medium">{sender?.name || sender?.fullName || "Unknown"}</span>
-                      <div className={cn("px-4 py-2 rounded-2xl text-sm shadow-xs", isMine ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card border border-border text-foreground rounded-bl-none")}>
-                        {msg.content}
-                      </div>
-                      {msg.isInternal && <span className="text-[9px] font-bold uppercase text-red-500 mt-1 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Internal Note</span>}
-                    </div>
-                  );
-                })
-              )}
-              <div ref={messagesEndRef} />
-            </CardContent>
-            <div className="p-3 border-t border-border bg-background shrink-0">
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 cursor-pointer">
-                      <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} className="accent-primary" />
-                      Internal Note (Hidden from client)
-                    </label>
+                briefs.map((b) => (
+                  <div 
+                    key={b._id} 
+                    onClick={() => selectBrief(b)}
+                    className={cn("p-3 rounded-lg border cursor-pointer transition-all text-left", selectedBrief?._id === b._id ? "bg-primary/5 border-primary/50 shadow-sm" : "bg-background border-border hover:border-primary/30")}
+                  >
+                    <h4 className="text-xs font-bold font-serif line-clamp-1">{b.title}</h4>
+                    <p className="text-[10px] text-muted-foreground mt-1">{new Date(b.lastModified).toLocaleDateString()}</p>
                   </div>
-                  <textarea className="w-full h-12 rounded-lg border border-input bg-secondary/30 px-3 py-2 text-sm shadow-xs focus-visible:outline-none resize-none placeholder:text-muted-foreground" placeholder="Type a note or message..." value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} />
-                </div>
-                <Button size="icon" className="h-12 w-12 rounded-lg shrink-0 shadow-md shadow-primary/20" disabled={!draft.trim()} onClick={handleSendMessage}>
-                  <Send className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
+                ))
+              )}
+            </CardContent>
           </Card>
+
+          {/* Right Canvas: RichText Editor */}
+          <Card className="flex-1 flex flex-col overflow-visible print:border-none print:shadow-none print:bg-transparent bg-card shadow-xs">
+            {!selectedBrief ? (
+               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground print:hidden">
+                 <PenTool className="w-12 h-12 mb-3 opacity-20" />
+                 <p className="text-sm">Select or create a trial brief to start drafting.</p>
+               </div>
+            ) : (
+               <>
+                 <CardHeader className="py-3 border-b border-border bg-background shrink-0 print:hidden flex flex-row justify-between items-center z-10 gap-3">
+                    <Input
+                      className="font-serif text-lg font-bold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
+                      value={briefTitle}
+                      onChange={(e) => { setBriefTitle(e.target.value); scheduleAutosave(); }}
+                    />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={cn(
+                        "hidden sm:inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide",
+                        briefSaveStatus === "saving" && "text-muted-foreground",
+                        briefSaveStatus === "saved" && "text-emerald-600",
+                        briefSaveStatus === "unsaved" && "text-amber-600",
+                        briefSaveStatus === "idle" && "text-muted-foreground/60",
+                      )}>
+                        {briefSaveStatus === "saving" && <><Loader2 className="w-3 h-3 animate-spin" /> Syncing</>}
+                        {briefSaveStatus === "saved" && <><Cloud className="w-3 h-3" /> Saved</>}
+                        {briefSaveStatus === "unsaved" && <><CloudOff className="w-3 h-3" /> Unsaved</>}
+                        {briefSaveStatus === "idle" && <><Cloud className="w-3 h-3" /> Ready</>}
+                      </span>
+                      <Button variant="outline" size="sm" onClick={handlePrintBrief}><Printer className="w-4 h-4 mr-2" /> Print PDF</Button>
+                      <Button size="sm" onClick={() => void persistBrief()} disabled={briefSaveStatus === "saving"}>
+                        {briefSaveStatus === "saving" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={handleDeleteBrief} title="Delete brief">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                 </CardHeader>
+                 
+                 {/* RichText Toolbar */}
+                 <div className="px-4 py-2 border-b border-border bg-muted/30 flex flex-wrap items-center gap-1 print:hidden">
+                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Bold" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("bold")}><Bold className="w-3.5 h-3.5" /></Button>
+                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Italic" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("italic")}><Italic className="w-3.5 h-3.5" /></Button>
+                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Underline" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("underline")}><Underline className="w-3.5 h-3.5" /></Button>
+                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Bulleted list" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("insertUnorderedList")}><List className="w-3.5 h-3.5" /></Button>
+                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Highlight" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("hiliteColor", "#fef08a")}><Highlighter className="w-3.5 h-3.5" /></Button>
+                   <div className="w-px h-5 bg-border mx-2 self-center" />
+                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onMouseDown={(e) => e.preventDefault()} onClick={() => { editorRef.current?.focus(); document.execCommand("insertText", false, "@"); setShowMentionMenu(true); setMentionQuery(""); }}>
+                     <LinkIcon className="w-3.5 h-3.5 mr-1" /> Mention Docs
+                   </Button>
+                 </div>
+
+                 <CardContent className="flex-1 p-0 relative h-full print:h-auto">
+                    <div className="absolute inset-0 p-8 overflow-y-auto print:static print:p-0 print:overflow-visible">
+                      <div className="max-w-3xl mx-auto h-full relative font-serif text-base leading-loose print:max-w-none">
+                        <div
+                          ref={editorRef}
+                          className="w-full min-h-[400px] outline-none prose prose-sm dark:prose-invert max-w-none print:hidden"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onInput={handleEditorInput}
+                          onBlur={() => {
+                            if (editorRef.current) setBriefContent(editorRef.current.innerHTML);
+                          }}
+                        />
+
+                        <div className="hidden print:block prose prose-sm max-w-none font-serif text-black leading-relaxed" dangerouslySetInnerHTML={{ __html: briefContent || selectedBrief.content }} />
+
+                        {showMentionMenu && (
+                          <div className="absolute top-10 left-10 w-72 bg-background border border-border shadow-xl rounded-lg overflow-hidden z-50 print:hidden">
+                            <div className="bg-primary/5 px-3 py-2 border-b border-border">
+                              <p className="text-[10px] font-bold text-primary uppercase">Link to Evidence or Precedent</p>
+                              {mentionQuery && <p className="text-[10px] text-muted-foreground mt-0.5">Filter: @{mentionQuery}</p>}
+                            </div>
+                            <div className="max-h-56 overflow-y-auto">
+                               {filteredDocs.length > 0 && (
+                                 <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/40">Digital Misl</div>
+                               )}
+                               {filteredDocs.map((doc: any) => (
+                                 <button key={doc._id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertMention(doc.title, `/staff/cases/${caseId}?misl=${doc._id}`)} className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b border-border flex items-center gap-2">
+                                   <FolderTree className="w-3 h-3 text-muted-foreground shrink-0" /> <span className="line-clamp-1">{doc.title}</span>
+                                 </button>
+                               ))}
+                               {filteredPrecedents.length > 0 && (
+                                 <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/40">Research Vault</div>
+                               )}
+                               {filteredPrecedents.map((note: any) => (
+                                 <button key={note._id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertMention(note.title, `/staff/research?note=${note._id}`)} className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b border-border flex items-center gap-2">
+                                   <Scale className="w-3 h-3 text-muted-foreground shrink-0" /> <span className="line-clamp-1">{note.title}</span>
+                                 </button>
+                               ))}
+                               {filteredDocs.length === 0 && filteredPrecedents.length === 0 && (
+                                 <p className="px-3 py-4 text-xs text-muted-foreground text-center">No matching evidence or precedents.</p>
+                               )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                 </CardContent>
+               </>
+            )}
+          </Card>
+
         </TabsContent>
       </Tabs>
     </div>
