@@ -49,8 +49,21 @@ export interface LexClient {
   address?: string;
   companyName?: string;
   registrationNumber?: string;
-  kycStatus: "pending" | "submitted" | "verified";
+  kycStatus: "pending" | "submitted" | "verified" | "rejected";
   kycDocuments?: string[];
+  kycFiles?: Array<{
+    storageId: string;
+    docType: "government_id" | "proof_of_address" | "other";
+    fileName: string;
+    mimeType?: string;
+  }>;
+  kycIdNumber?: string;
+  kycConsentAt?: string;
+  kycConsentVersion?: string;
+  kycRejectionReason?: string;
+  kycSubmittedAt?: string;
+  kycReviewedAt?: string;
+  kycReviewedBy?: string;
   notes?: string;
   isActive: boolean;
   userId?: string;
@@ -270,6 +283,19 @@ export interface LexDocument {
   isPrivileged: boolean;
   version: number;
   parentDocumentId?: string;
+  requiresSignature?: boolean;
+  signatureStatus?: "pending" | "signed";
+  signedAt?: string;
+  intendedSignerUserId?: string;
+  signedByUserId?: string;
+  signatureMethod?: "draw" | "type" | "upload";
+  signatureArtifactStorageId?: string;
+  typedSignatureText?: string;
+  signConsentVersion?: string;
+  signConsentAt?: string;
+  viewedAt?: string;
+  signerUserAgent?: string;
+  sha256?: string;
   _creationTime: number;
 }
 
@@ -277,7 +303,7 @@ export interface LexNotification {
   _id: string;
   userId: string;
   title: string;
-  message: string;
+  body: string;
   type?: string;
   isRead: boolean;
   link?: string;
@@ -334,7 +360,27 @@ const INITIAL_USERS: LexUser[] = [
 
 const INITIAL_CLIENTS: LexClient[] = [
   { _id: "c1", fullName: "Hari Prasad", type: "individual", email: "hari@client.com", phone: "+977 9803098765", address: "Koteshwor, Kathmandu", kycStatus: "verified", isActive: true, notes: "Regular property dispute consultations.", userId: "u3" },
-  { _id: "c2", fullName: "TechVenture Pvt. Ltd.", type: "corporate", email: "legal@techventure.com.np", phone: "+977 01 4412345", address: "Lalitpur", companyName: "TechVenture Pvt. Ltd.", registrationNumber: "REG-9912", kycStatus: "submitted", isActive: true },
+  {
+    _id: "c2",
+    fullName: "TechVenture Pvt. Ltd.",
+    type: "corporate",
+    email: "legal@techventure.com.np",
+    phone: "+977 01 4412345",
+    address: "Lalitpur",
+    companyName: "TechVenture Pvt. Ltd.",
+    registrationNumber: "REG-9912",
+    kycStatus: "submitted",
+    kycIdNumber: "REG-9912",
+    kycConsentVersion: "kyc-consent-v1",
+    kycConsentAt: new Date().toISOString(),
+    kycSubmittedAt: new Date().toISOString(),
+    kycFiles: [
+      { storageId: "mock-kyc-id-c2", docType: "government_id", fileName: "company-registration.pdf" },
+      { storageId: "mock-kyc-addr-c2", docType: "proof_of_address", fileName: "office-utility-bill.pdf" },
+    ],
+    kycDocuments: ["mock-kyc-id-c2", "mock-kyc-addr-c2"],
+    isActive: true,
+  },
   { _id: "c3", fullName: "Shree Ram Builders", type: "corporate", email: "shreerambuilders@ncell.com", phone: "+977 9851099999", address: "Bhaktapur", companyName: "Shree Ram Builders", kycStatus: "pending", isActive: true }
 ];
 
@@ -412,13 +458,31 @@ const INITIAL_DOCUMENTS: LexDocument[] = [
   { _id: "doc1", caseId: "case1", title: "Sharma Appeal Petition", type: "pleading", storageId: "mock-storage-1", mimeType: "application/pdf", sizeBytes: 340000, tags: [], uploadedBy: "u2", isTemplate: false, isPrivileged: false, version: 2, _creationTime: Date.now() - 86400000 * 10 },
   { _id: "doc2", caseId: "case1", title: "Property Title Deed (Exhibit A)", type: "evidence", storageId: "mock-storage-2", mimeType: "image/jpeg", sizeBytes: 2100000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 5 },
   { _id: "doc3", caseId: "case1", title: "Client Retainer Agreement", type: "contract", storageId: "mock-storage-3", mimeType: "application/pdf", sizeBytes: 180000, tags: [], uploadedBy: "u4", isTemplate: false, isPrivileged: true, version: 1, _creationTime: Date.now() - 86400000 * 30 },
-  { _id: "doc4", caseId: "case2", title: "TechVenture Trademark Certificate", type: "evidence", storageId: "mock-storage-4", mimeType: "application/pdf", sizeBytes: 890000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 20 }
+  { _id: "doc4", caseId: "case2", title: "TechVenture Trademark Certificate", type: "evidence", storageId: "mock-storage-4", mimeType: "application/pdf", sizeBytes: 890000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 20 },
+  {
+    _id: "doc5",
+    caseId: "case1",
+    title: "Engagement Letter — Hari Prasad",
+    type: "contract",
+    storageId: "mock-storage-5",
+    mimeType: "application/pdf",
+    sizeBytes: 120000,
+    tags: ["signature"],
+    uploadedBy: "u2",
+    isTemplate: false,
+    isPrivileged: false,
+    version: 1,
+    requiresSignature: true,
+    signatureStatus: "pending",
+    intendedSignerUserId: "u3",
+    _creationTime: Date.now() - 86400000 * 2,
+  },
 ];
 
 const INITIAL_NOTIFICATIONS: LexNotification[] = [
-  { _id: "notif1", userId: "u2", title: "New Assignment", message: "You were assigned to KTM/2081/234", type: "info", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 86400000 },
-  { _id: "notif2", userId: "u1", title: "New Message", message: "Sita Thapa sent a new message in TechVenture case.", type: "alert", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 3600000 },
-  { _id: "notif3", userId: "u3", title: "Hearing Scheduled", message: "Your hearing is scheduled for 15 Mangsir 2083", type: "success", isRead: false, link: "/client/matters", _creationTime: Date.now() - 7200000 },
+  { _id: "notif1", userId: "u2", title: "New Assignment", body: "You were assigned to KTM/2081/234", type: "info", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 86400000 },
+  { _id: "notif2", userId: "u1", title: "New Message", body: "Sita Thapa sent a new message in TechVenture case.", type: "alert", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 3600000 },
+  { _id: "notif3", userId: "u3", title: "Hearing Scheduled", body: "Your hearing is scheduled for 15 Mangsir 2083", type: "success", isRead: false, link: "/client/messages", _creationTime: Date.now() - 7200000 },
 ];
 
 const INITIAL_TEMPLATES: LexTemplate[] = [
@@ -517,7 +581,18 @@ let globalAttendance = [...INITIAL_ATTENDANCE];
 let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
 let globalAuditLog = [...INITIAL_AUDIT_LOG];
 let globalDocuments = [...INITIAL_DOCUMENTS];
+let globalEnvelopes: any[] = [];
+let globalEnvelopeRecipients: any[] = [];
+let globalSigningChallenges: any[] = [];
 let globalNotifications = [...INITIAL_NOTIFICATIONS];
+
+async function mockHashOtp(code: string) {
+  const data = new TextEncoder().encode(`${code}:srimar-esign-otp-v1`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 let globalTemplates = [...INITIAL_TEMPLATES];
 let globalResearchNotes = [...INITIAL_RESEARCH_NOTES];
 let globalIntakeForms: LexIntakeForm[] = [];
@@ -904,7 +979,9 @@ export function useQuery(queryFunc: any, args?: any): any {
 
   // Notifications
   if (queryName.includes("listNotifications")) {
-    return globalNotifications.filter(n => n.userId === args?.userId).sort((a, b) => b._creationTime - a._creationTime);
+    const role = preview ? preview.config.activeRole : "admin";
+    const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
+    return globalNotifications.filter(n => n.userId === me._id).sort((a, b) => b._creationTime - a._creationTime);
   }
 
   // HR Queries
@@ -1054,12 +1131,123 @@ export function useQuery(queryFunc: any, args?: any): any {
     return filtered.sort((a, b) => b._creationTime - a._creationTime).slice(0, 200);
   }
 
-  // listDocuments
+  // listDocuments — clients only see their case docs / intended signatures (mirrors Convex authZ)
   if (queryName.includes("listDocuments")) {
     let filtered = [...globalDocuments];
     if (args?.caseId) filtered = filtered.filter((d) => d.caseId === args.caseId);
     if (args?.isTemplate !== undefined) filtered = filtered.filter((d) => d.isTemplate === args.isTemplate);
+    const role = preview ? preview.config.activeRole : "admin";
+    if (role === "client") {
+      const user = globalUsers.find((u) => u.role === "client") || globalUsers.find((u) => u._id === "u3");
+      const client = globalClients.find((c) => c.userId === user?._id);
+      const caseIds = new Set(globalCases.filter((c) => c.clientId === client?._id).map((c) => c._id));
+      filtered = filtered.filter(
+        (d) =>
+          !d.isTemplate &&
+          ((d.caseId && caseIds.has(d.caseId)) ||
+            d.uploadedBy === user?._id ||
+            (d as any).intendedSignerUserId === user?._id),
+      );
+    }
     return filtered.sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  // getClientKycFileUrls
+  if (queryName.includes("getClientKycFileUrls")) {
+    const client = globalClients.find((c) => c._id === args.clientId);
+    if (!client) return [];
+    const files =
+      client.kycFiles && client.kycFiles.length > 0
+        ? client.kycFiles
+        : (client.kycDocuments || []).map((storageId, i) => ({
+            storageId,
+            docType: "other" as const,
+            fileName: `Document ${i + 1}`,
+          }));
+    return files.map((f) => ({ ...f, url: null }));
+  }
+
+  if (queryName.includes("listPortalSigners")) {
+    return globalUsers
+      .filter((u) => u.isActive && !u.isPending)
+      .map((u) => ({ _id: u._id, name: u.name, email: u.email, role: u.role }));
+  }
+
+  if (queryName.includes("listMyPendingEnvelopeActions")) {
+    const role = preview ? preview.config.activeRole : "admin";
+    const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
+    return globalEnvelopeRecipients
+      .filter((r) => r.userId === user?._id && r.status === "pending")
+      .map((r) => {
+        const envelope = globalEnvelopes.find((e) => e._id === r.envelopeId);
+        if (!envelope || envelope.status !== "sent") return null;
+        if (envelope.expiresAt && new Date(envelope.expiresAt).getTime() < Date.now()) return null;
+        const document = globalDocuments.find((d) => d._id === envelope.documentId);
+        return {
+          recipientId: r._id,
+          envelopeId: envelope._id,
+          envelopeTitle: envelope.title,
+          routing: envelope.routing,
+          expiresAt: envelope.expiresAt,
+          document,
+          order: r.order,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  if (queryName.includes("listEnvelopes")) {
+    const role = preview ? preview.config.activeRole : "admin";
+    if (role === "client") {
+      const user = globalUsers.find((u) => u.role === "client") || globalUsers.find((u) => u._id === "u3");
+      const myEnvIds = new Set(
+        globalEnvelopeRecipients.filter((r) => r.userId === user?._id).map((r) => r.envelopeId),
+      );
+      return globalEnvelopes.filter((e) => myEnvIds.has(e._id));
+    }
+    return args?.status
+      ? globalEnvelopes.filter((e) => e.status === args.status)
+      : [...globalEnvelopes];
+  }
+
+  if (queryName.includes("getEnvelope")) {
+    const envelope = globalEnvelopes.find((e) => e._id === args?.envelopeId);
+    if (!envelope) return null;
+    const recipients = globalEnvelopeRecipients
+      .filter((r) => r.envelopeId === envelope._id)
+      .sort((a, b) => a.order - b.order)
+      .map((r) => {
+        const u = globalUsers.find((x) => x._id === r.userId);
+        return { ...r, userName: u?.name, userEmail: u?.email };
+      });
+    const document = globalDocuments.find((d) => d._id === envelope.documentId);
+    return { envelope, recipients, document };
+  }
+
+  // getSignatureCertificate
+  if (queryName.includes("getSignatureCertificate")) {
+    const doc = globalDocuments.find((d) => d._id === args.documentId) as any;
+    if (!doc || doc.signatureStatus !== "signed") return null;
+    const signer = globalUsers.find((u) => u._id === doc.signedByUserId);
+    return {
+      certificateVersion: "completion-v1",
+      documentId: doc._id,
+      title: doc.title,
+      mimeType: doc.mimeType,
+      signedAt: doc.signedAt,
+      viewedAt: doc.viewedAt,
+      signatureMethod: doc.signatureMethod,
+      typedSignatureText: doc.typedSignatureText,
+      signConsentVersion: doc.signConsentVersion,
+      signConsentAt: doc.signConsentAt,
+      documentSha256: doc.sha256,
+      signerUserAgent: doc.signerUserAgent,
+      signer: signer ? { userId: signer._id, name: signer.name, email: signer.email } : null,
+      documentUrl: doc.storageId?.startsWith("blob:") || doc.storageId?.startsWith("http") ? doc.storageId : null,
+      signatureArtifactUrl: null,
+      disclaimer:
+        "This certificate records an electronic acknowledgment in the Srimar Law portal. It is not a qualified cryptographic certificate under a PKI CA.",
+    };
   }
 
   // getDocument
@@ -1648,7 +1836,7 @@ export function useMutation(mutationFunc: any): any {
         _id: "notif_" + Date.now(),
         userId: "u_1",
         title: "New Appointment Request",
-        message: `${args.clientName} requested an appointment for ${args.practiceArea}.`,
+        body: `${args.clientName} requested an appointment for ${args.practiceArea}.`,
         isRead: false,
         link: "/admin/appointments",
         _creationTime: Date.now()
@@ -1677,7 +1865,7 @@ export function useMutation(mutationFunc: any): any {
             _id: "notif_" + Date.now(),
             userId: "u_3",
             title: "Appointment Confirmed",
-            message: `Your appointment on ${apt.date} at ${apt.timeSlot} has been confirmed.`,
+            body: `Your appointment on ${apt.date} at ${apt.timeSlot} has been confirmed.`,
             isRead: false,
             link: "/client/appointments",
             _creationTime: Date.now()
@@ -1757,22 +1945,371 @@ export function useMutation(mutationFunc: any): any {
     if (mutationName.includes("submitKyc")) {
       const idx = globalClients.findIndex((c: any) => c._id === args.clientId || c.userId === "u3");
       if (idx >= 0) {
+        const files = args.files || [];
+        const now = new Date().toISOString();
         globalClients[idx] = {
           ...globalClients[idx],
           kycStatus: "submitted",
-          kycDocuments: args.documentStorageIds || [],
+          kycFiles: files,
+          kycDocuments: files.map((f: any) => f.storageId),
           address: args.address || globalClients[idx].address,
+          kycIdNumber: args.idNumber,
+          kycConsentAt: now,
+          kycConsentVersion: "kyc-consent-v1",
+          kycSubmittedAt: now,
+          kycRejectionReason: undefined,
         };
       }
       notifyListeners();
       toast.success("KYC submitted");
       return { success: true };
     }
+    if (mutationName.includes("reviewKyc")) {
+      const now = new Date().toISOString();
+      globalClients = globalClients.map((c) => {
+        if (c._id !== args.clientId) return c;
+        if (args.decision === "verified") {
+          return {
+            ...c,
+            kycStatus: "verified" as const,
+            kycRejectionReason: undefined,
+            kycReviewedAt: now,
+            kycReviewedBy: "u1",
+          };
+        }
+        return {
+          ...c,
+          kycStatus: "rejected" as const,
+          kycRejectionReason: args.rejectionReason || "Rejected",
+          kycReviewedAt: now,
+          kycReviewedBy: "u1",
+        };
+      });
+      notifyListeners();
+      toast.success(args.decision === "verified" ? "KYC verified" : "KYC rejected");
+      return { success: true };
+    }
+    if (mutationName.includes("requestSignature")) {
+      const idx = globalDocuments.findIndex((d) => d._id === args.documentId);
+      if (idx < 0) throw new Error("Document not found");
+      const doc = globalDocuments[idx] as any;
+      if (doc.isPrivileged) throw new Error("Internal docs cannot be sent to clients");
+      let signer = args.intendedSignerUserId;
+      if (!signer && doc.caseId) {
+        const c = globalCases.find((x) => x._id === doc.caseId);
+        const client = globalClients.find((cl) => cl._id === c?.clientId);
+        signer = client?.userId;
+      }
+      if (!signer) throw new Error("No signer found — link the document to a case with a portal client");
+      globalDocuments[idx] = {
+        ...doc,
+        requiresSignature: true,
+        signatureStatus: "pending",
+        intendedSignerUserId: signer,
+        signedAt: undefined,
+        signedByUserId: undefined,
+        viewedAt: undefined,
+        sha256: undefined,
+      };
+      globalNotifications.unshift({
+        _id: "notif_sig_" + Date.now(),
+        userId: signer,
+        title: "Document ready to sign",
+        message: `"${doc.title}" requires your electronic acknowledgment.`,
+        type: "document_request",
+        isRead: false,
+        link: "/client/signatures",
+        _creationTime: Date.now(),
+      } as any);
+      notifyListeners();
+      toast.success("Sent for signature");
+      return { success: true, intendedSignerUserId: signer };
+    }
+    if (mutationName.includes("markDocumentViewed")) {
+      const idx = globalDocuments.findIndex((d) => d._id === args.documentId);
+      if (idx >= 0 && !(globalDocuments[idx] as any).viewedAt) {
+        (globalDocuments[idx] as any).viewedAt = new Date().toISOString();
+        notifyListeners();
+      }
+      return { viewedAt: (globalDocuments[idx] as any)?.viewedAt };
+    }
+    if (mutationName.includes("createEnvelope")) {
+      const role = getStoredConfig().activeRole || "admin";
+      const staff = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      const doc = globalDocuments.find((d) => d._id === args.documentId) as any;
+      if (!doc) throw new Error("Document not found");
+      if (doc.isTemplate || doc.isPrivileged) {
+        throw new Error("Cannot create an envelope for template or internal-only documents");
+      }
+      const ids: string[] = args.recipientUserIds || [];
+      if (ids.length === 0) throw new Error("Add at least one signer");
+      const envelopeId = "env_" + Date.now();
+      globalEnvelopes.push({
+        _id: envelopeId,
+        documentId: args.documentId,
+        caseId: doc.caseId,
+        title: args.title || doc.title,
+        status: "draft",
+        routing: args.routing || "sequential",
+        createdBy: staff?._id,
+        expiresAt: args.expiresAt,
+        _creationTime: Date.now(),
+      });
+      ids.forEach((userId: string, i: number) => {
+        globalEnvelopeRecipients.push({
+          _id: `envr_${Date.now()}_${i}`,
+          envelopeId,
+          userId,
+          order: i,
+          status: args.routing === "sequential" && i > 0 ? "awaiting_turn" : "pending",
+        });
+      });
+      notifyListeners();
+      return { envelopeId };
+    }
+
+    if (mutationName.includes("sendEnvelope")) {
+      const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
+      if (!envelope) throw new Error("Envelope not found");
+      if (envelope.status !== "draft" && envelope.status !== "sent") {
+        throw new Error(`Cannot send envelope in status ${envelope.status}`);
+      }
+      const recipients = globalEnvelopeRecipients.filter((r) => r.envelopeId === args.envelopeId);
+      recipients.forEach((r) => {
+        if (envelope.routing === "sequential") {
+          r.status = r.order === 0 ? "pending" : r.status === "signed" ? "signed" : "awaiting_turn";
+        }
+      });
+      const active =
+        envelope.routing === "parallel"
+          ? recipients.filter((r) => r.status !== "signed" && r.status !== "declined")
+          : recipients.filter((r) => r.order === 0);
+      envelope.status = "sent";
+      const docIdx = globalDocuments.findIndex((d) => d._id === envelope.documentId);
+      if (docIdx >= 0) {
+        globalDocuments[docIdx] = {
+          ...globalDocuments[docIdx],
+          requiresSignature: true,
+          signatureStatus: "pending",
+          intendedSignerUserId: active[0]?.userId,
+          signedAt: undefined,
+          signedByUserId: undefined,
+        } as any;
+      }
+      active.forEach((r) => {
+        globalNotifications.unshift({
+          _id: "notif_env_" + Date.now() + r.userId,
+          userId: r.userId,
+          title: "Signature envelope ready",
+          message: `"${envelope.title}" is ready for your signature.`,
+          type: "document_request",
+          isRead: false,
+          link: "/client/signatures",
+          _creationTime: Date.now(),
+        } as any);
+      });
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("voidEnvelope")) {
+      const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
+      if (!envelope) throw new Error("Envelope not found");
+      if (!args.reason?.trim()) throw new Error("Void reason is required");
+      envelope.status = "voided";
+      envelope.voidedAt = new Date().toISOString();
+      envelope.voidReason = args.reason.trim();
+      const docIdx = globalDocuments.findIndex((d) => d._id === envelope.documentId);
+      if (docIdx >= 0) {
+        (globalDocuments[docIdx] as any).requiresSignature = false;
+        (globalDocuments[docIdx] as any).signatureStatus = undefined;
+      }
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("declineEnvelope")) {
+      const role = getStoredConfig().activeRole || "admin";
+      const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
+      if (!envelope || envelope.status !== "sent") throw new Error("Only active envelopes can be declined");
+      if (!args.reason?.trim()) throw new Error("Decline reason is required");
+      const mine = globalEnvelopeRecipients.find(
+        (r) => r.envelopeId === args.envelopeId && r.userId === user?._id,
+      );
+      if (!mine || mine.status !== "pending") {
+        throw new Error("It is not your turn, or you are not a signer on this envelope");
+      }
+      mine.status = "declined";
+      mine.declinedAt = new Date().toISOString();
+      mine.declineReason = args.reason.trim();
+      envelope.status = "declined";
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("remindEnvelope")) {
+      const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
+      if (!envelope || envelope.status !== "sent") throw new Error("Can only remind on sent envelopes");
+      const pending = globalEnvelopeRecipients.filter(
+        (r) => r.envelopeId === args.envelopeId && r.status === "pending",
+      );
+      if (pending.length === 0) throw new Error("No pending signers to remind");
+      const now = new Date().toISOString();
+      pending.forEach((r) => {
+        r.remindedAt = now;
+        globalNotifications.unshift({
+          _id: "notif_remind_" + Date.now() + r.userId,
+          userId: r.userId,
+          title: "Reminder: signature needed",
+          message: `Please sign "${envelope.title}" in the client portal.`,
+          type: "document_request",
+          isRead: false,
+          link: "/client/signatures",
+          _creationTime: Date.now(),
+        } as any);
+      });
+      envelope.lastRemindedAt = now;
+      notifyListeners();
+      return { success: true, reminded: pending.length };
+    }
+
+    if (mutationName.includes("issueSigningOtp")) {
+      const role = getStoredConfig().activeRole || "admin";
+      const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      if (args.envelopeId) {
+        const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
+        if (!envelope || envelope.status !== "sent") {
+          throw new Error("Envelope is not available for signing");
+        }
+        const mine = globalEnvelopeRecipients.find(
+          (r) => r.envelopeId === args.envelopeId && r.userId === user?._id,
+        );
+        if (!mine || mine.status !== "pending") {
+          throw new Error("You are not the active signer for this envelope");
+        }
+      }
+      const code = Math.floor(Math.random() * 1_000_000)
+        .toString()
+        .padStart(6, "0");
+      const codeHash = await mockHashOtp(code);
+      globalSigningChallenges = globalSigningChallenges.filter(
+        (c) => !(c.userId === user?._id && c.documentId === args.documentId),
+      );
+      const challengeId = "otp_" + Date.now();
+      globalSigningChallenges.push({
+        _id: challengeId,
+        userId: user?._id,
+        documentId: args.documentId,
+        envelopeId: args.envelopeId,
+        codeHash,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+      });
+      globalNotifications.unshift({
+        _id: "notif_otp_" + Date.now(),
+        userId: user?._id,
+        title: "Your signing verification code",
+        message: `Your e-sign code is ${code}. It expires in 10 minutes.`,
+        type: "system",
+        isRead: false,
+        link: "/client/signatures",
+        _creationTime: Date.now(),
+      } as any);
+      notifyListeners();
+      return { challengeId, expiresAt: Date.now() + 10 * 60 * 1000, demoCode: code };
+    }
+
+    if (mutationName.includes("verifySigningOtp")) {
+      const role = getStoredConfig().activeRole || "admin";
+      const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
+      const challenge = globalSigningChallenges.find((c) => c._id === args.challengeId);
+      if (!challenge || challenge.userId !== user?._id) throw new Error("Invalid challenge");
+      if (challenge.verifiedAt) return { verified: true, challengeId: args.challengeId };
+      if (challenge.expiresAt < Date.now()) throw new Error("Code expired — request a new one");
+      if (challenge.attempts >= 5) throw new Error("Too many attempts — request a new code");
+      challenge.attempts += 1;
+      const ok = (await mockHashOtp(String(args.code || "").trim())) === challenge.codeHash;
+      if (!ok) throw new Error("Incorrect code");
+      challenge.verifiedAt = Date.now();
+      notifyListeners();
+      return { verified: true, challengeId: args.challengeId };
+    }
+
     if (mutationName.includes("signDocument")) {
       const idx = globalDocuments.findIndex((d) => d._id === args.documentId);
       if (idx >= 0) {
-        (globalDocuments[idx] as any).signatureStatus = "signed";
-        (globalDocuments[idx] as any).signedAt = new Date().toISOString();
+        const doc = globalDocuments[idx] as any;
+        const role = getStoredConfig().activeRole || "admin";
+        const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
+        if (doc.intendedSignerUserId && doc.intendedSignerUserId !== user?._id && role === "client") {
+          throw new Error("You are not the authorized signer for this document");
+        }
+        if (role === "client" && doc.caseId && !doc.intendedSignerUserId) {
+          const client = globalClients.find((c) => c.userId === user?._id);
+          const ownsCase = globalCases.some((c) => c._id === doc.caseId && c.clientId === client?._id);
+          if (!ownsCase) throw new Error("You are not the authorized signer for this document");
+        }
+        if (!args.consentAccepted) throw new Error("Consent is required to sign");
+        if (!doc.viewedAt) throw new Error("Preview the document before signing");
+        const challenge = globalSigningChallenges.find((c) => c._id === args.otpChallengeId);
+        if (!challenge || challenge.userId !== user?._id || !challenge.verifiedAt) {
+          throw new Error("Verify your OTP code before signing");
+        }
+        if (challenge.documentId !== args.documentId) {
+          throw new Error("OTP challenge does not match this document");
+        }
+        const signedAt = new Date().toISOString();
+        doc.signatureStatus = "signed";
+        doc.signedAt = signedAt;
+        doc.signedByUserId = user?._id;
+        doc.signatureMethod = args.signatureMethod;
+        doc.signatureArtifactStorageId = args.signatureArtifactStorageId;
+        doc.typedSignatureText = args.typedSignatureText;
+        doc.signConsentVersion = "esign-consent-v1";
+        doc.signConsentAt = signedAt;
+        doc.signerUserAgent = args.userAgent;
+        doc.sha256 = args.documentSha256;
+
+        if (args.envelopeId) {
+          const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
+          const mine = globalEnvelopeRecipients.find(
+            (r) => r.envelopeId === args.envelopeId && r.userId === user?._id,
+          );
+          if (mine) {
+            mine.status = "signed";
+            mine.signedAt = signedAt;
+          }
+          const siblings = globalEnvelopeRecipients
+            .filter((r) => r.envelopeId === args.envelopeId)
+            .sort((a, b) => a.order - b.order);
+          if (siblings.every((r) => r.status === "signed")) {
+            if (envelope) {
+              envelope.status = "completed";
+              envelope.completedAt = signedAt;
+            }
+          } else if (envelope?.routing === "sequential") {
+            const next = siblings.find((r) => r.status === "awaiting_turn");
+            if (next) {
+              next.status = "pending";
+              doc.signatureStatus = "pending";
+              doc.signedAt = undefined;
+              doc.signedByUserId = undefined;
+              doc.viewedAt = undefined;
+              doc.intendedSignerUserId = next.userId;
+              globalNotifications.unshift({
+                _id: "notif_turn_" + Date.now(),
+                userId: next.userId,
+                title: "Your turn to sign",
+                message: `"${envelope.title}" is ready for your signature.`,
+                type: "document_request",
+                isRead: false,
+                link: "/client/signatures",
+                _creationTime: Date.now(),
+              } as any);
+            }
+          }
+        }
       }
       notifyListeners();
       return { success: true };
@@ -1992,30 +2529,37 @@ export function useMutation(mutationFunc: any): any {
       return newApt._id;
     }
 
-    // clients.submitKyc
+    // clients.submitKyc (duplicate path — keep in sync with handler above)
     if (mutationName.includes("submitKyc")) {
       const client =
         (args.clientId && globalClients.find((c) => c._id === args.clientId)) ||
         globalClients.find((c: any) => c.userId === "u3") ||
         globalClients[0];
       if (!client) throw new Error("No client profile linked to this account");
+      const files = args.files || [];
+      const now = new Date().toISOString();
       globalClients = globalClients.map((c) =>
         c._id === client._id
-          ? { ...c, kycStatus: "submitted", kycDocuments: args.documentStorageIds, address: args.address ?? c.address }
+          ? {
+              ...c,
+              kycStatus: "submitted" as const,
+              kycFiles: files,
+              kycDocuments: files.map((f: any) => f.storageId),
+              address: args.address ?? c.address,
+              kycIdNumber: args.idNumber,
+              kycConsentAt: now,
+              kycConsentVersion: "kyc-consent-v1",
+              kycSubmittedAt: now,
+              kycRejectionReason: undefined,
+            }
           : c,
       );
       notifyListeners();
       return { success: true };
     }
 
-    // documents.signDocument
+    // documents.signDocument (duplicate path — primary handler above)
     if (mutationName.includes("signDocument")) {
-      globalDocuments = globalDocuments.map((d) =>
-        d._id === args.documentId
-          ? { ...d, signatureStatus: "signed", signedAt: new Date().toISOString() }
-          : d,
-      );
-      notifyListeners();
       return { success: true };
     }
 
@@ -2109,7 +2653,7 @@ export function useMutation(mutationFunc: any): any {
       return { success: true };
     }
 
-    // clients.updateClient
+    // clients.updateClient (staff mock toggles KYC; real Convex blocks client self-verify)
     if (mutationName.includes("updateClient")) {
       const { clientId, ...updates } = args;
       globalClients = globalClients.map((c) => {
@@ -2175,7 +2719,7 @@ export function useMutation(mutationFunc: any): any {
           _id: "notif_" + Date.now(),
           userId: theCase.clientId,
           title: "Hearing Updated",
-          message: `The hearing for ${theCase.title} has been updated.`,
+          body: `The hearing for ${theCase.title} has been updated.`,
           type: "alert",
           isRead: false,
           link: "/client/matters",
@@ -2269,7 +2813,7 @@ export function useMutation(mutationFunc: any): any {
             _id: "notif_" + Date.now(),
             userId: theCase.clientId,
             title: "New Message",
-            message: `${senderName} sent you a message regarding ${theCase.title}.`,
+            body: `${senderName} sent you a message regarding ${theCase.title}.`,
             type: "info",
             isRead: false,
             link: "/client/messages",
@@ -2282,7 +2826,7 @@ export function useMutation(mutationFunc: any): any {
             _id: "notif_" + Date.now(),
             userId: theCase.assignedLawyerId,
             title: "New Client Message",
-            message: `${senderName} sent a message regarding ${theCase.title}.`,
+            body: `${senderName} sent a message regarding ${theCase.title}.`,
             type: "info",
             isRead: false,
             link: "/staff/cases",

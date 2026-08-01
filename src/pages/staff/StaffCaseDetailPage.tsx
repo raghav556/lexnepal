@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send } from "lucide-react";
+import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send, PenTool } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -32,6 +32,11 @@ export default function StaffCaseDetailPage() {
   const hearings = useQuery(api.hearings.listHearings, caseId ? { caseId: caseId as any } : "skip") || [];
   const documents = useQuery(api.documents.listDocuments as any, caseId ? { caseId: caseId as any } : "skip") || [];
   const updateCase = useMutation(api.cases.updateCase);
+  const requestSignature = useMutation(api.documents.requestSignature);
+  const createEnvelope = useMutation(api.envelopes.createEnvelope);
+  const sendEnvelope = useMutation(api.envelopes.sendEnvelope);
+  const [requestingDocId, setRequestingDocId] = useState<string | null>(null);
+  const [envelopeDocId, setEnvelopeDocId] = useState<string | null>(null);
 
   const paginatedMsgs = useQuery(
     api.messages.listMessages,
@@ -321,15 +326,87 @@ export default function StaffCaseDetailPage() {
               </p>
             ) : (
               documents.map((doc: any) => (
-                <div key={doc._id} className="p-3 bg-card border rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-8 h-8 text-primary opacity-70" />
-                    <div>
-                      <p className="text-sm font-medium">{doc.title}</p>
+                <div key={doc._id} className="p-3 bg-card border rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="w-8 h-8 text-primary opacity-70 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium break-words">{doc.title}</p>
                       <p className="text-xs text-muted-foreground">{new Date(doc._creationTime).toLocaleString()}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs">{doc.type}</Badge>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-xs">{doc.type}</Badge>
+                    {doc.signatureStatus === "signed" ? (
+                      <Badge className="text-[10px] bg-green-500/10 text-green-700">Signed</Badge>
+                    ) : doc.requiresSignature && doc.signatureStatus === "pending" ? (
+                      <Badge className="text-[10px] bg-yellow-500/10 text-yellow-700">Awaiting sign</Badge>
+                    ) : !doc.isPrivileged ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-8"
+                          disabled={requestingDocId === doc._id}
+                          onClick={async () => {
+                            setRequestingDocId(doc._id);
+                            try {
+                              await requestSignature({ documentId: doc._id });
+                              toast.success("Sent for signature — client notified.");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Could not request signature.");
+                            } finally {
+                              setRequestingDocId(null);
+                            }
+                          }}
+                        >
+                          {requestingDocId === doc._id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <PenTool className="w-3.5 h-3.5 mr-1" /> Sign
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-8"
+                          disabled={envelopeDocId === doc._id}
+                          title="Send multi-signer envelope (case client first)"
+                          onClick={async () => {
+                            const client = clients.find((c: any) => c._id === caseData?.clientId);
+                            if (!client?.userId) {
+                              toast.error("Case client has no portal user linked.");
+                              return;
+                            }
+                            setEnvelopeDocId(doc._id);
+                            try {
+                              const { envelopeId } = await createEnvelope({
+                                documentId: doc._id,
+                                title: doc.title,
+                                routing: "sequential",
+                                recipientUserIds: [client.userId as any],
+                              });
+                              await sendEnvelope({ envelopeId });
+                              toast.success("Envelope sent — client notified.");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Could not create envelope.");
+                            } finally {
+                              setEnvelopeDocId(null);
+                            }
+                          }}
+                        >
+                          {envelopeDocId === doc._id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5 mr-1" /> Envelope
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               ))
             )}

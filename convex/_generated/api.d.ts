@@ -19,6 +19,7 @@ import type * as communications from "../communications.js";
 import type * as conflictChecks from "../conflictChecks.js";
 import type * as court from "../court.js";
 import type * as documents from "../documents.js";
+import type * as envelopes from "../envelopes.js";
 import type * as expenses from "../expenses.js";
 import type * as hearings from "../hearings.js";
 import type * as hr from "../hr.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   conflictChecks: typeof conflictChecks;
   court: typeof court;
   documents: typeof documents;
+  envelopes: typeof envelopes;
   expenses: typeof expenses;
   hearings: typeof hearings;
   hr: typeof hr;

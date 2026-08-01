@@ -23,7 +23,8 @@ export default function ClientMessagesPage() {
     api.messages.listMessages,
     selected ? { caseId: selected as any, paginationOpts: { numItems: 100, cursor: null } } : "skip" as any
   );
-  const messages = paginatedMsgs?.page || [];
+  // Filter out internal staff messages — clients should never see them
+  const messages = (paginatedMsgs?.page || []).filter((msg: any) => !msg.isInternal);
 
   const sendMessage = useMutation(api.messages.sendMessage);
   const markMessagesRead = useMutation(api.messages.markMessagesRead);

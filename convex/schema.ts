@@ -95,14 +95,38 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("submitted"),
       v.literal("verified"),
+      v.literal("rejected"),
     ),
+    /** @deprecated Prefer kycFiles — legacy storage-id-only list */
     kycDocuments: v.optional(v.array(v.string())),
+    kycFiles: v.optional(
+      v.array(
+        v.object({
+          storageId: v.string(),
+          docType: v.union(
+            v.literal("government_id"),
+            v.literal("proof_of_address"),
+            v.literal("other"),
+          ),
+          fileName: v.string(),
+          mimeType: v.optional(v.string()),
+        }),
+      ),
+    ),
+    kycIdNumber: v.optional(v.string()),
+    kycConsentAt: v.optional(v.string()),
+    kycConsentVersion: v.optional(v.string()),
+    kycRejectionReason: v.optional(v.string()),
+    kycSubmittedAt: v.optional(v.string()),
+    kycReviewedAt: v.optional(v.string()),
+    kycReviewedBy: v.optional(v.id("users")),
     notes: v.optional(v.string()),
     isActive: v.boolean(),
   })
     .index("by_name", ["fullName"])
     .index("by_user", ["userId"])
-    .index("by_firm", ["firmId"]),
+    .index("by_firm", ["firmId"])
+    .index("by_kyc_status", ["kycStatus"]),
 
   cases: defineTable({
     firmId: v.optional(v.id("firms")),
@@ -177,10 +201,81 @@ export default defineSchema({
     requiresSignature: v.optional(v.boolean()),
     signatureStatus: v.optional(v.union(v.literal("pending"), v.literal("signed"))),
     signedAt: v.optional(v.string()),
+    /** Only this user may complete the e-sign action (usually the case client). */
+    intendedSignerUserId: v.optional(v.id("users")),
+    signedByUserId: v.optional(v.id("users")),
+    /** P2 e-sign evidence */
+    signatureMethod: v.optional(
+      v.union(v.literal("draw"), v.literal("type"), v.literal("upload")),
+    ),
+    signatureArtifactStorageId: v.optional(v.string()),
+    typedSignatureText: v.optional(v.string()),
+    signConsentVersion: v.optional(v.string()),
+    signConsentAt: v.optional(v.string()),
+    viewedAt: v.optional(v.string()),
+    signerUserAgent: v.optional(v.string()),
   })
     .index("by_case", ["caseId"])
     .index("by_uploader", ["uploadedBy"])
-    .index("by_template", ["isTemplate"]),
+    .index("by_template", ["isTemplate"])
+    .index("by_intended_signer", ["intendedSignerUserId"])
+    .index("by_signature_status", ["signatureStatus"]),
+
+  /** P3 multi-signer envelope wrapping one document */
+  signatureEnvelopes: defineTable({
+    documentId: v.id("documents"),
+    caseId: v.optional(v.id("cases")),
+    title: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("sent"),
+      v.literal("completed"),
+      v.literal("declined"),
+      v.literal("voided"),
+      v.literal("expired"),
+    ),
+    routing: v.union(v.literal("sequential"), v.literal("parallel")),
+    createdBy: v.id("users"),
+    expiresAt: v.optional(v.string()),
+    voidedAt: v.optional(v.string()),
+    voidReason: v.optional(v.string()),
+    completedAt: v.optional(v.string()),
+    lastRemindedAt: v.optional(v.string()),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_status", ["status"])
+    .index("by_case", ["caseId"]),
+
+  signatureRecipients: defineTable({
+    envelopeId: v.id("signatureEnvelopes"),
+    userId: v.id("users"),
+    order: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("awaiting_turn"),
+      v.literal("signed"),
+      v.literal("declined"),
+    ),
+    declinedAt: v.optional(v.string()),
+    declineReason: v.optional(v.string()),
+    signedAt: v.optional(v.string()),
+    remindedAt: v.optional(v.string()),
+  })
+    .index("by_envelope", ["envelopeId"])
+    .index("by_user", ["userId"])
+    .index("by_envelope_user", ["envelopeId", "userId"]),
+
+  /** Short-lived OTP challenges for step-up before e-sign */
+  signingChallenges: defineTable({
+    userId: v.id("users"),
+    documentId: v.id("documents"),
+    envelopeId: v.optional(v.id("signatureEnvelopes")),
+    codeHash: v.string(),
+    expiresAt: v.number(),
+    verifiedAt: v.optional(v.number()),
+    attempts: v.number(),
+  })
+    .index("by_user_document", ["userId", "documentId"]),
 
   tasks: defineTable({
     caseId: v.optional(v.id("cases")),
@@ -362,6 +457,7 @@ export default defineSchema({
       v.literal("message"), v.literal("system"),
     ),
     relatedId: v.optional(v.string()),
+    link: v.optional(v.string()),
     isRead: v.boolean(),
   })
     .index("by_user", ["userId"])

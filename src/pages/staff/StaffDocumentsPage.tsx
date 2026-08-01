@@ -4,13 +4,14 @@ import { Pagination } from "@/components/ui/pagination.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { FileText, Upload, Search, Filter, Download, Loader2, Plus, X, Lock } from "lucide-react";
+import { FileText, Upload, Search, Filter, Download, Loader2, Plus, X, Lock, PenTool, Send } from "lucide-react";
 import { Input } from "@/components/ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
+import { format } from "date-fns";
 
 const TYPE_COLORS: Record<string, string> = {
   pleading:       "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
@@ -43,12 +44,20 @@ function DownloadButton({ storageId }: { storageId: string }) {
 export default function StaffDocumentsPage() {
   const allDocs = useQuery(api.documents.listDocuments, { isTemplate: false }) || [];
   const cases = useQuery(api.cases.listCases, {}) || [];
-  
+  const signers = useQuery(api.envelopes.listPortalSigners, {}) || [];
+  const envelopes = useQuery(api.envelopes.listEnvelopes, {}) || [];
+
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.createDocument);
+  const requestSignature = useMutation(api.documents.requestSignature);
+  const createEnvelope = useMutation(api.envelopes.createEnvelope);
+  const sendEnvelope = useMutation(api.envelopes.sendEnvelope);
+  const voidEnvelope = useMutation(api.envelopes.voidEnvelope);
+  const remindEnvelope = useMutation(api.envelopes.remindEnvelope);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Upload Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -58,9 +67,79 @@ export default function StaffDocumentsPage() {
   const [isPrivileged, setIsPrivileged] = useState<boolean>(false);
   const [parentDocumentId, setParentDocumentId] = useState<string | null>(null);
 
+  // Envelope modal
+  const [envelopeDoc, setEnvelopeDoc] = useState<any>(null);
+  const [envelopeTitle, setEnvelopeTitle] = useState("");
+  const [envelopeRouting, setEnvelopeRouting] = useState<"sequential" | "parallel">("sequential");
+  const [envelopeExpires, setEnvelopeExpires] = useState("");
+  const [selectedSignerIds, setSelectedSignerIds] = useState<string[]>([]);
+  const [isEnvelopeBusy, setIsEnvelopeBusy] = useState(false);
+
   const [search, setSearch] = useState("");
 
   const isLoading = allDocs === undefined || cases === undefined;
+
+  const openEnvelopeModal = (doc: any) => {
+    setEnvelopeDoc(doc);
+    setEnvelopeTitle(doc.title);
+    setEnvelopeRouting("sequential");
+    setEnvelopeExpires("");
+    // Prefer case client if present
+    const matchedCase = cases.find((c: any) => c._id === doc.caseId);
+    const clientSigner = signers.find((s: any) => s.role === "client");
+    const preferred: string[] = [];
+    if (matchedCase) {
+      // case may not expose userId; pick first client as default when available
+      if (clientSigner) preferred.push(clientSigner._id);
+    }
+    setSelectedSignerIds(preferred);
+  };
+
+  const toggleSigner = (userId: string) => {
+    setSelectedSignerIds((prev) => {
+      if (prev.includes(userId)) return prev.filter((id) => id !== userId);
+      return [...prev, userId];
+    });
+  };
+
+  const moveSigner = (userId: string, dir: -1 | 1) => {
+    setSelectedSignerIds((prev) => {
+      const idx = prev.indexOf(userId);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      const swap = idx + dir;
+      if (swap < 0 || swap >= next.length) return prev;
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next;
+    });
+  };
+
+  const handleCreateAndSendEnvelope = async () => {
+    if (!envelopeDoc) return;
+    if (selectedSignerIds.length === 0) {
+      toast.error("Select at least one signer.");
+      return;
+    }
+    setIsEnvelopeBusy(true);
+    try {
+      const { envelopeId } = await createEnvelope({
+        documentId: envelopeDoc._id,
+        title: envelopeTitle.trim() || envelopeDoc.title,
+        routing: envelopeRouting,
+        expiresAt: envelopeExpires
+          ? new Date(envelopeExpires).toISOString()
+          : undefined,
+        recipientUserIds: selectedSignerIds as any,
+      });
+      await sendEnvelope({ envelopeId });
+      toast.success("Envelope sent to signers.");
+      setEnvelopeDoc(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not create envelope.");
+    } finally {
+      setIsEnvelopeBusy(false);
+    }
+  };
 
   const openNewUpload = () => {
     setSelectedFile(null);
@@ -69,6 +148,18 @@ export default function StaffDocumentsPage() {
     setIsPrivileged(false);
     setParentDocumentId(null);
     setIsModalOpen(true);
+  };
+
+  const handleRequestSignature = async (doc: any) => {
+    setRequestingId(doc._id);
+    try {
+      await requestSignature({ documentId: doc._id });
+      toast.success("Sent for signature — client notified.");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not request signature. Link a case with a portal client.");
+    } finally {
+      setRequestingId(null);
+    }
   };
 
   const openVersionUpload = (parentDoc: any) => {
@@ -228,7 +319,41 @@ export default function StaffDocumentsPage() {
                       <span className="text-xs text-muted-foreground">{dateStr}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    {doc.signatureStatus === "signed" ? (
+                      <Badge className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20">Signed</Badge>
+                    ) : doc.requiresSignature && doc.signatureStatus === "pending" ? (
+                      <Badge className="text-[10px] bg-yellow-500/10 text-yellow-700 border-yellow-500/20">Awaiting sign</Badge>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          disabled={!!requestingId || doc.isPrivileged}
+                          title={doc.isPrivileged ? "Internal docs cannot be sent to clients" : "Send for client signature"}
+                          onClick={() => handleRequestSignature(doc)}
+                        >
+                          {requestingId === doc._id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <PenTool className="w-3.5 h-3.5 mr-1" /> Sign
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          disabled={doc.isPrivileged}
+                          title="Multi-signer envelope"
+                          onClick={() => openEnvelopeModal(doc)}
+                        >
+                          <Send className="w-3.5 h-3.5 mr-1" /> Envelope
+                        </Button>
+                      </>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => openVersionUpload(doc)} title="Upload new version">
                       <Plus className="w-4 h-4" /> v{doc.version + 1}
                     </Button>
@@ -249,6 +374,203 @@ export default function StaffDocumentsPage() {
         onPrevPage={prevPage}
         className="mt-6"
       />
+
+      {envelopes.filter((e: any) => e.status === "sent" || e.status === "draft").length > 0 && (
+        <div className="mt-8 space-y-3">
+          <h2 className="font-serif text-lg font-semibold">Active envelopes</h2>
+          {envelopes
+            .filter((e: any) => e.status === "sent" || e.status === "draft")
+            .map((env: any) => (
+              <Card key={env._id}>
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium break-words">{env.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {env.status} · {env.routing}
+                      {env.expiresAt
+                        ? ` · expires ${format(new Date(env.expiresAt), "MMM d, yyyy")}`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {env.status === "draft" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await sendEnvelope({ envelopeId: env._id });
+                            toast.success("Envelope sent.");
+                          } catch (err: any) {
+                            toast.error(err?.message || "Send failed");
+                          }
+                        }}
+                      >
+                        Send
+                      </Button>
+                    )}
+                    {env.status === "sent" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const res = await remindEnvelope({ envelopeId: env._id });
+                            toast.success(`Reminded ${(res as any).reminded || 0} signer(s).`);
+                          } catch (err: any) {
+                            toast.error(err?.message || "Remind failed");
+                          }
+                        }}
+                      >
+                        Remind
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive border-destructive/30"
+                      onClick={async () => {
+                        const reason = window.prompt("Void reason?");
+                        if (!reason?.trim()) return;
+                        try {
+                          await voidEnvelope({ envelopeId: env._id, reason: reason.trim() });
+                          toast.success("Envelope voided.");
+                        } catch (err: any) {
+                          toast.error(err?.message || "Void failed");
+                        }
+                      }}
+                    >
+                      Void
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      )}
+
+      {/* Envelope Modal */}
+      {envelopeDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90dvh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-serif text-lg font-bold">Create signature envelope</h3>
+              <button
+                onClick={() => setEnvelopeDoc(null)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">Document: {envelopeDoc.title}</p>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+                Envelope title
+              </label>
+              <Input value={envelopeTitle} onChange={(e) => setEnvelopeTitle(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+                  Routing
+                </label>
+                <Select
+                  value={envelopeRouting}
+                  onValueChange={(v) => setEnvelopeRouting(v as "sequential" | "parallel")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sequential">Sequential</SelectItem>
+                    <SelectItem value="parallel">Parallel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+                  Expires
+                </label>
+                <Input
+                  type="date"
+                  value={envelopeExpires}
+                  onChange={(e) => setEnvelopeExpires(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">
+                Signers (order = signing order)
+              </label>
+              <div className="space-y-1 max-h-48 overflow-y-auto border rounded-lg p-2">
+                {signers.map((s: any) => {
+                  const selected = selectedSignerIds.includes(s._id);
+                  const order = selectedSignerIds.indexOf(s._id);
+                  return (
+                    <div
+                      key={s._id}
+                      className="flex items-center gap-2 text-sm py-1.5 px-1 rounded hover:bg-muted/40"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleSigner(s._id)}
+                        className="accent-accent"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{s.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {s.role} · {s.email}
+                        </p>
+                      </div>
+                      {selected && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-mono text-muted-foreground">#{order + 1}</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            onClick={() => moveSigner(s._id, -1)}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            onClick={() => moveSigner(s._id, 1)}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setEnvelopeDoc(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleCreateAndSendEnvelope}
+                disabled={isEnvelopeBusy || selectedSignerIds.length === 0}
+              >
+                {isEnvelopeBusy ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 mr-2" />
+                )}
+                Create & Send
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload Modal */}
       {isModalOpen && (

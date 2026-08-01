@@ -197,7 +197,7 @@ export function ChatbotWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-4 sm:right-8 w-[350px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[70vh] bg-background border border-border shadow-2xl rounded-2xl flex flex-col z-50 overflow-hidden"
+            className="fixed bottom-20 right-3 sm:bottom-24 sm:right-8 w-[min(350px,calc(100vw-1.5rem))] h-[min(500px,70vh)] bg-background border border-border shadow-2xl rounded-2xl flex flex-col z-50 overflow-hidden"
           >
             {/* Header */}
             <div className="bg-primary p-4 flex items-center justify-between shadow-sm z-10 relative">
@@ -328,7 +328,7 @@ export function ChatbotWidget() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-2xl flex items-center justify-center hover:bg-primary/90 hover:scale-105 transition-all z-50 overflow-hidden group"
+            className="fixed bottom-4 right-3 sm:bottom-8 sm:right-8 w-12 h-12 sm:w-14 sm:h-14 bg-primary text-primary-foreground rounded-full shadow-2xl flex items-center justify-center hover:bg-primary/90 hover:scale-105 transition-all z-50 overflow-hidden group"
             aria-label="Open Chat"
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-white transition-opacity" />

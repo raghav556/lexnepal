@@ -60,6 +60,7 @@ export const createNotification = mutation({
       v.literal("message"), v.literal("system"),
     ),
     relatedId: v.optional(v.string()),
+    link: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx);

@@ -20,7 +20,7 @@ export function NotificationBell() {
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
 
-  const notifications = useQuery(api.notifications.listNotifications, currentUser ? { userId: currentUser._id as any } : "skip" as any) || [];
+  const notifications = useQuery(api.notifications.listNotifications, currentUser ? {} : "skip" as any) || [];
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
 
@@ -89,7 +89,7 @@ export function NotificationBell() {
                     {!notif.isRead && <span className="w-2 h-2 mt-1 rounded-full bg-primary flex-shrink-0" />}
                   </div>
                   <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {notif.message}
+                    {notif.body}
                   </span>
                   <span className="text-[10px] text-muted-foreground/60 mt-1">
                     {new Date(notif._creationTime).toLocaleString()}

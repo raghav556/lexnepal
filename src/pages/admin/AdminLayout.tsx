@@ -68,12 +68,15 @@ function AdminDesktopSidebar() {
 
   return (
     <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border shrink-0">
-      <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center"><Scale className="w-4 h-4 text-sidebar-primary-foreground" /></div>
-        <div>
-          <div className="font-serif text-sm font-bold text-sidebar-primary-foreground">Srimar Law</div>
-          <div className="text-xs text-sidebar-foreground/60">{t("nav.admin_console")}</div>
+      <div className="px-4 py-5 border-b border-sidebar-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center"><Scale className="w-4 h-4 text-sidebar-primary-foreground" /></div>
+          <div>
+            <div className="font-serif text-sm font-bold text-sidebar-primary-foreground">Srimar Law</div>
+            <div className="text-xs text-sidebar-foreground/60">{t("nav.admin_console")}</div>
+          </div>
         </div>
+        <NotificationBell />
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map((item, idx) => {
@@ -180,14 +183,20 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
 
+  // Skip role-based redirects in dev mode so all dashboards are previewable
+  const isDev = import.meta.env.DEV;
+
   useEffect(() => {
+    if (isDev) return;
     if (currentUser === undefined) return;
     if (currentUser === null) return;
     if (currentUser.role !== "admin") {
       if (currentUser.role === "client") navigate("/client", { replace: true });
       else navigate("/staff", { replace: true });
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, isDev]);
+
+  if (isDev) return <>{children}</>;
 
   if (currentUser === undefined) {
     return (

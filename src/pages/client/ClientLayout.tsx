@@ -42,12 +42,15 @@ function ClientDesktopSidebar() {
 
   return (
     <aside className="hidden md:flex md:w-60 flex-col h-screen sticky top-0 bg-card border-r border-border shrink-0">
-      <div className="px-4 py-5 border-b border-border flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><Scale className="w-4 h-4 text-primary-foreground" /></div>
-        <div>
-          <div className="font-serif text-sm font-bold text-primary">Srimar Law</div>
-          <div className="text-xs text-muted-foreground">Client Portal</div>
+      <div className="px-4 py-5 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><Scale className="w-4 h-4 text-primary-foreground" /></div>
+          <div>
+            <div className="font-serif text-sm font-bold text-primary">Srimar Law</div>
+            <div className="text-xs text-muted-foreground">Client Portal</div>
+          </div>
         </div>
+        <NotificationBell />
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map((item, idx) => {
@@ -143,8 +146,22 @@ function ClientMobileChrome() {
       )}
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around py-2 z-30">
-        {NAV.filter((item) => !item.heading && item.href && item.icon).slice(0, 5).map(({ href, icon: Icon }) => (
-          <Link key={href} to={href!} className={cn("p-2 rounded-lg", isActive(href!) ? "text-accent" : "text-muted-foreground")}>
+        {/* Explicit set so E-Signatures is reachable (not omitted by slice of NAV order) */}
+        {(
+          [
+            { href: "/client", icon: LayoutDashboard },
+            { href: "/client/cases", icon: FolderOpen },
+            { href: "/client/documents", icon: FileText },
+            { href: "/client/signatures", icon: PenTool },
+            { href: "/client/kyc", icon: ShieldCheck },
+          ] as const
+        ).map(({ href, icon: Icon }) => (
+          <Link
+            key={href}
+            to={href}
+            className={cn("p-2 rounded-lg", isActive(href) ? "text-accent" : "text-muted-foreground")}
+            aria-label={href}
+          >
             <Icon className="w-5 h-5" />
           </Link>
         ))}
@@ -157,14 +174,20 @@ function ClientRoleGuard({ children }: { children: React.ReactNode }) {
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
 
+  // Skip role-based redirects in dev mode so all dashboards are previewable
+  const isDev = import.meta.env.DEV;
+
   useEffect(() => {
+    if (isDev) return;
     if (currentUser === undefined) return;
     if (currentUser === null) return;
     if (currentUser.role !== "client") {
       if (currentUser.role === "admin") navigate("/admin", { replace: true });
       else navigate("/staff", { replace: true });
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, isDev]);
+
+  if (isDev) return <>{children}</>;
 
   if (currentUser === undefined) {
     return (
