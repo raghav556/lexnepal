@@ -1589,6 +1589,61 @@ export function useMutation(mutationFunc: any): any {
     };
   }
 
+  // TASKS
+  if (mutationName.includes("tasks.createTask")) {
+    return async (args: any) => {
+      const newTask: LexTask = {
+        _id: `t_${Date.now()}`,
+        title: args.title,
+        description: args.description,
+        caseId: args.caseId,
+        assignedTo: args.assignedTo,
+        createdBy: "u1",
+        status: "todo",
+        priority: args.priority || "medium",
+        dueDate: args.dueDate,
+        isRecurring: false,
+      };
+      globalTasks.push(newTask);
+      notifyListeners();
+      return newTask._id;
+    };
+  }
+  if (mutationName.includes("tasks.updateTask")) {
+    return async (args: any) => {
+      const idx = globalTasks.findIndex(t => t._id === args.taskId);
+      if (idx !== -1) {
+        globalTasks[idx] = { ...globalTasks[idx], ...args };
+        notifyListeners();
+      }
+    };
+  }
+  if (mutationName.includes("tasks.deleteTask")) {
+    return async (args: { taskId: string }) => {
+      globalTasks = globalTasks.filter(t => t._id !== args.taskId);
+      notifyListeners();
+    };
+  }
+
+  // TIME ENTRIES
+  if (mutationName.includes("timeEntries.createTimeEntry")) {
+    return async (args: any) => {
+      const newTe: LexTimeEntry = {
+        _id: `te_${Date.now()}`,
+        caseId: args.caseId,
+        userId: args.userId,
+        description: args.description,
+        minutes: args.minutes,
+        isBillable: args.isBillable,
+        date: args.date,
+        ratePerHour: args.ratePerHour,
+      };
+      globalTimeEntries.push(newTe);
+      notifyListeners();
+      return newTe._id;
+    };
+  }
+
   return async (args: any) => {
     console.log(`Mock Mutation Triggered: ${mutationName}`, args);
 

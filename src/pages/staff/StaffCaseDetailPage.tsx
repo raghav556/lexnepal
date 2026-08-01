@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send, PenTool } from "lucide-react";
+import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send, PenTool, CheckSquare, DollarSign, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -35,6 +35,12 @@ export default function StaffCaseDetailPage() {
   const requestSignature = useMutation(api.documents.requestSignature);
   const createEnvelope = useMutation(api.envelopes.createEnvelope);
   const sendEnvelope = useMutation(api.envelopes.sendEnvelope);
+  
+  const tasks = useQuery(api.tasks.listTasks, caseId ? { caseId: caseId as any } : "skip") || [];
+  const timeEntries = useQuery(api.timeEntries.listTimeEntries, caseId ? { caseId: caseId as any } : "skip") || [];
+  const expenses = useQuery(api.expenses.list, caseId ? { caseId: caseId as any } : "skip") || [];
+  const createTask = useMutation(api.tasks.createTask);
+  const updateTask = useMutation(api.tasks.updateTask);
   const [requestingDocId, setRequestingDocId] = useState<string | null>(null);
   const [envelopeDocId, setEnvelopeDocId] = useState<string | null>(null);
 
@@ -55,6 +61,8 @@ export default function StaffCaseDetailPage() {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [isInternal, setIsInternal] = useState(true);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -142,6 +150,26 @@ export default function StaffCaseDetailPage() {
     }
   };
 
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!caseId || !newTaskTitle.trim() || !currentUser) return;
+    setIsAddingTask(true);
+    try {
+      await createTask({
+        title: newTaskTitle.trim(),
+        caseId: caseId as any,
+        assignedTo: currentUser._id as any,
+        priority: "medium",
+      });
+      setNewTaskTitle("");
+      toast.success("Task added");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add task");
+    } finally {
+      setIsAddingTask(false);
+    }
+  };
+
   if (caseData === undefined) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -163,6 +191,11 @@ export default function StaffCaseDetailPage() {
 
   const client = clients.find((c: any) => c._id === caseData.clientId);
   const lawyer = users.find((u: any) => u._id === caseData.assignedLawyerId);
+
+  const totalWIP = timeEntries.reduce((sum: number, entry: any) => 
+    sum + (entry.isBillable ? (entry.minutes / 60) * entry.ratePerHour : 0), 0);
+  const unbilledExpenses = expenses.filter((e: any) => e.status !== "invoiced" && e.status !== "paid")
+    .reduce((sum: number, e: any) => sum + e.amount, 0);
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
@@ -267,16 +300,140 @@ export default function StaffCaseDetailPage() {
               </CardContent>
             </Card>
           ))}
+          <Card>
+            <CardContent className="p-3 bg-primary/5 h-full rounded-xl">
+              <p className="text-xs text-primary/80 font-medium flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5 text-primary/60" />
+                Financial Summary
+              </p>
+              <div className="mt-1 space-y-1">
+                <p className="text-sm font-bold text-foreground">WIP: Rs. {totalWIP.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">Unbilled Exp: Rs. {unbilledExpenses.toLocaleString()}</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      <Tabs defaultValue="hearings">
-        <TabsList>
-          <TabsTrigger value="hearings"><CalendarDays className="w-3.5 h-3.5 mr-1" />Hearings</TabsTrigger>
-          <TabsTrigger value="documents"><FileText className="w-3.5 h-3.5 mr-1" />Documents</TabsTrigger>
-          <TabsTrigger value="timeline"><Clock className="w-3.5 h-3.5 mr-1" />Timeline</TabsTrigger>
-          <TabsTrigger value="messages"><MessageSquare className="w-3.5 h-3.5 mr-1" />Notes</TabsTrigger>
+      <Tabs defaultValue="tasks">
+        <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
+          <TabsTrigger value="tasks" className="rounded-md data-[state=active]:bg-background"><CheckSquare className="w-3.5 h-3.5 mr-1" />Tasks</TabsTrigger>
+          <TabsTrigger value="financials" className="rounded-md data-[state=active]:bg-background"><DollarSign className="w-3.5 h-3.5 mr-1" />Financials</TabsTrigger>
+          <TabsTrigger value="hearings" className="rounded-md data-[state=active]:bg-background"><CalendarDays className="w-3.5 h-3.5 mr-1" />Hearings</TabsTrigger>
+          <TabsTrigger value="documents" className="rounded-md data-[state=active]:bg-background"><FileText className="w-3.5 h-3.5 mr-1" />Documents</TabsTrigger>
+          <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-background"><Clock className="w-3.5 h-3.5 mr-1" />Timeline</TabsTrigger>
+          <TabsTrigger value="messages" className="rounded-md data-[state=active]:bg-background"><MessageSquare className="w-3.5 h-3.5 mr-1" />Notes</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="tasks" className="mt-4">
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <form onSubmit={handleCreateTask} className="flex gap-2">
+                <Input 
+                  placeholder="Quick add task..." 
+                  value={newTaskTitle} 
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  disabled={isAddingTask}
+                />
+                <Button type="submit" disabled={isAddingTask || !newTaskTitle.trim()}>
+                  {isAddingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 mr-1" /> Add</>}
+                </Button>
+              </form>
+
+              <div className="space-y-2 mt-4">
+                {tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No tasks assigned to this case yet.</p>
+                ) : (
+                  tasks.map((task: any) => {
+                    const assignee = users.find((u: any) => u._id === task.assignedTo);
+                    return (
+                      <div key={task._id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <input 
+                            type="checkbox" 
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={task.status === "done"}
+                            onChange={(e) => {
+                              updateTask({ taskId: task._id, status: e.target.checked ? "done" : "todo" }).catch(() => toast.error("Failed to update"));
+                            }}
+                          />
+                          <div>
+                            <p className={cn("text-sm font-medium", task.status === "done" && "line-through text-muted-foreground")}>{task.title}</p>
+                            <div className="flex gap-2 items-center mt-1">
+                              {task.dueDate && <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">Due: {task.dueDate}</span>}
+                              <Badge variant="outline" className="text-[10px] h-4 py-0 bg-accent/5">
+                                {assignee?.name || "Unassigned"}
+                              </Badge>
+                              <Badge className={cn("text-[10px] h-4 py-0 capitalize", 
+                                task.priority === "urgent" ? "bg-red-100 text-red-800" :
+                                task.priority === "high" ? "bg-orange-100 text-orange-800" :
+                                task.priority === "medium" ? "bg-blue-100 text-blue-800" :
+                                "bg-gray-100 text-gray-800"
+                              )}>{task.priority}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="financials" className="mt-4 space-y-4">
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Time Entries (WIP)</h3>
+              {timeEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No time logged for this case.</p>
+              ) : (
+                <div className="space-y-2">
+                  {timeEntries.map((te: any) => {
+                    const user = users.find((u: any) => u._id === te.userId);
+                    return (
+                      <div key={te._id} className="flex justify-between items-center p-2 border-b last:border-0">
+                        <div>
+                          <p className="text-sm font-medium">{te.description}</p>
+                          <p className="text-xs text-muted-foreground">{user?.name} · {te.date}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold">{te.minutes} mins</p>
+                          {te.isBillable && <p className="text-xs text-green-600">Rs. {((te.minutes / 60) * te.ratePerHour).toLocaleString()}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Case Expenses</h3>
+              {expenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No expenses logged for this case.</p>
+              ) : (
+                <div className="space-y-2">
+                  {expenses.map((exp: any) => (
+                    <div key={exp._id} className="flex justify-between items-center p-2 border-b last:border-0">
+                      <div>
+                        <p className="text-sm font-medium">{exp.description}</p>
+                        <Badge variant="outline" className="text-[10px] uppercase mt-1">{exp.category.replace("_", " ")}</Badge>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">Rs. {exp.amount.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{exp.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="hearings" className="mt-4 space-y-3">
           {hearings.length === 0 ? (
