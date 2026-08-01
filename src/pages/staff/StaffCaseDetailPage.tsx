@@ -1,15 +1,17 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send, PenTool, CheckSquare, DollarSign, Plus } from "lucide-react";
+import { 
+  CalendarDays, FileText, MessageSquare, Clock, User, ArrowLeft, Loader2, Save, Send, PenTool, CheckSquare, 
+  DollarSign, Plus, FolderTree, Scale, FileArchive, ArrowRight, Zap, Users
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { TemplateGeneratorModal } from "@/components/documents/TemplateGeneratorModal.tsx";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -20,6 +22,25 @@ const STATUS_COLORS: Record<string, string> = {
   closed_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   inquiry: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
 };
+
+const MISL_CATEGORIES = [
+  { id: "pleadings", label: "Pleadings (Firad/Pratiuttar)" },
+  { id: "evidence", label: "Evidence (Praman)" },
+  { id: "orders", label: "Court Orders (Aadesh)" },
+  { id: "annexure", label: "Annexures & Exhibits" },
+  { id: "misc", label: "Miscellaneous (Others)" },
+];
+
+const SOPS = [
+  {
+    id: "new_case", label: "Litigation Setup (Firad Registration)",
+    tasks: ["Draft Vakalatnama", "Prepare Firad Patra (Petition)", "Collect Client KYC & ID", "Pay Initial Court Dastur"]
+  },
+  {
+    id: "hearing_prep", label: "Hearing Preparation (Bahas Prep)",
+    tasks: ["Review opposing reply (Pratiuttar)", "Draft written arguments/notes", "Compile precedent case laws", "Client Briefing"]
+  }
+];
 
 export default function StaffCaseDetailPage() {
   const { id: caseId } = useParams<{ id: string }>();
@@ -32,17 +53,12 @@ export default function StaffCaseDetailPage() {
   const hearings = useQuery(api.hearings.listHearings, caseId ? { caseId: caseId as any } : "skip") || [];
   const documents = useQuery(api.documents.listDocuments as any, caseId ? { caseId: caseId as any } : "skip") || [];
   const updateCase = useMutation(api.cases.updateCase);
-  const requestSignature = useMutation(api.documents.requestSignature);
-  const createEnvelope = useMutation(api.envelopes.createEnvelope);
-  const sendEnvelope = useMutation(api.envelopes.sendEnvelope);
   
   const tasks = useQuery(api.tasks.listTasks, caseId ? { caseId: caseId as any } : "skip") || [];
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, caseId ? { caseId: caseId as any } : "skip") || [];
   const expenses = useQuery(api.expenses.list, caseId ? { caseId: caseId as any } : "skip") || [];
   const createTask = useMutation(api.tasks.createTask);
   const updateTask = useMutation(api.tasks.updateTask);
-  const [requestingDocId, setRequestingDocId] = useState<string | null>(null);
-  const [envelopeDocId, setEnvelopeDocId] = useState<string | null>(null);
 
   const paginatedMsgs = useQuery(
     api.messages.listMessages,
@@ -58,17 +74,23 @@ export default function StaffCaseDetailPage() {
   const [judge, setJudge] = useState("");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  
   const [draft, setDraft] = useState("");
   const [isInternal, setIsInternal] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [isAddingTask, setIsAddingTask] = useState(false);
+  
+  // E-Misl State
+  const [expandedMisl, setExpandedMisl] = useState<Record<string, boolean>>({
+    pleadings: true,
+    evidence: true,
+    orders: true,
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (caseId) {
-      markMessagesRead({ caseId: caseId as any }).catch(() => {});
-    }
+    if (caseId) markMessagesRead({ caseId: caseId as any }).catch(() => {});
   }, [caseId, markMessagesRead, messages.length]);
 
   useEffect(() => {
@@ -79,39 +101,20 @@ export default function StaffCaseDetailPage() {
     if (!caseData) return [];
     const events: { key: string; date: string; label: string; detail: string }[] = [];
     if (caseData.filingDate) {
-      events.push({
-        key: "filed",
-        date: caseData.filingDate,
-        label: "Case Registered",
-        detail: caseData.caseNumber,
-      });
+      events.push({ key: "filed", date: caseData.filingDate, label: "Case Registered", detail: caseData.caseNumber });
     }
     for (const h of hearings as any[]) {
-      events.push({
-        key: `h-${h._id}`,
-        date: h.dateGregorian || h.dateBs || "",
-        label: h.purpose || "Hearing",
-        detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}`,
-      });
+      events.push({ key: `h-${h._id}`, date: h.dateGregorian || h.dateBs || "", label: h.purpose || "Hearing", detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}` });
     }
     for (const d of documents as any[]) {
-      events.push({
-        key: `d-${d._id}`,
-        date: d._creationTime ? new Date(d._creationTime).toISOString().slice(0, 10) : "",
-        label: `Document: ${d.title}`,
-        detail: d.type || "Document",
-      });
+      events.push({ key: `d-${d._id}`, date: d._creationTime ? new Date(d._creationTime).toISOString().slice(0, 10) : "", label: `Document: ${d.title}`, detail: d.type || "Document" });
     }
     return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [caseData, hearings, documents]);
 
   const startEditing = () => {
     if (caseData) {
-      setStatus(caseData.status);
-      setCourt(caseData.court || "");
-      setJudge(caseData.judge || "");
-      setNotes(caseData.description || "");
-      setIsEditing(true);
+      setStatus(caseData.status); setCourt(caseData.court || ""); setJudge(caseData.judge || ""); setNotes(caseData.description || ""); setIsEditing(true);
     }
   };
 
@@ -120,34 +123,19 @@ export default function StaffCaseDetailPage() {
     setIsSaving(true);
     try {
       await updateCase({
-        caseId: caseId as any,
-        status: status as any,
-        court: court || undefined,
-        judge: judge || undefined,
-        notes: notes || undefined,
+        caseId: caseId as any, status: status as any, court: court || undefined, judge: judge || undefined, notes: notes || undefined,
       });
       toast.success("Case updated successfully!");
       setIsEditing(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update case.");
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (err: any) { toast.error(err?.message || "Failed to update case."); } finally { setIsSaving(false); }
   };
 
   const handleSendMessage = async () => {
     if (!caseId || !draft.trim()) return;
     try {
-      await sendMessage({
-        caseId: caseId as any,
-        content: draft.trim(),
-        isInternal,
-        attachmentIds: [],
-      });
+      await sendMessage({ caseId: caseId as any, content: draft.trim(), isInternal, attachmentIds: [] });
       setDraft("");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to send message.");
-    }
+    } catch (err: any) { toast.error(err?.message || "Failed to send message."); }
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -155,79 +143,66 @@ export default function StaffCaseDetailPage() {
     if (!caseId || !newTaskTitle.trim() || !currentUser) return;
     setIsAddingTask(true);
     try {
-      await createTask({
-        title: newTaskTitle.trim(),
-        caseId: caseId as any,
-        assignedTo: currentUser._id as any,
-        priority: "medium",
-      });
-      setNewTaskTitle("");
-      toast.success("Task added");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to add task");
-    } finally {
-      setIsAddingTask(false);
-    }
+      await createTask({ title: newTaskTitle.trim(), caseId: caseId as any, assignedTo: currentUser._id as any, priority: "medium" });
+      setNewTaskTitle(""); toast.success("Task added");
+    } catch (err: any) { toast.error(err?.message || "Failed to add task"); } finally { setIsAddingTask(false); }
   };
 
-  if (caseData === undefined) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const triggerSOP = async (sopId: string) => {
+    const sop = SOPS.find(s => s.id === sopId);
+    if (!sop || !caseId || !currentUser) return;
+    setIsAddingTask(true);
+    let count = 0;
+    try {
+      for (const t of sop.tasks) {
+        await createTask({ title: t, caseId: caseId as any, assignedTo: currentUser._id as any, priority: "high" });
+        count++;
+      }
+      toast.success(`SOP executed: ${count} tasks added.`);
+    } catch (err: any) { toast.error("Failed to execute full SOP."); } finally { setIsAddingTask(false); }
+  };
 
-  if (caseData === null) {
-    return (
-      <div className="p-6 text-center">
-        <h2 className="text-lg font-semibold text-destructive">Case Not Found</h2>
-        <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate("/staff/cases")}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Return to Cases
-        </Button>
-      </div>
-    );
-  }
+  if (caseData === undefined) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  if (caseData === null) return <div className="p-6 text-center"><h2 className="text-lg font-semibold text-destructive">Case Not Found</h2><Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate("/staff/cases")}><ArrowLeft className="w-4 h-4 mr-1" /> Return to Cases</Button></div>;
 
   const client = clients.find((c: any) => c._id === caseData.clientId);
   const lawyer = users.find((u: any) => u._id === caseData.assignedLawyerId);
 
-  const totalWIP = timeEntries.reduce((sum: number, entry: any) => 
-    sum + (entry.isBillable ? (entry.minutes / 60) * entry.ratePerHour : 0), 0);
-  const unbilledExpenses = expenses.filter((e: any) => e.status !== "invoiced" && e.status !== "paid")
-    .reduce((sum: number, e: any) => sum + e.amount, 0);
+  // Financial Ledger Data
+  const totalWIP = timeEntries.reduce((sum: number, entry: any) => sum + (entry.isBillable ? (entry.minutes / 60) * entry.ratePerHour : 0), 0);
+  const unbilledExpenses = expenses.filter((e: any) => e.status !== "invoiced" && e.status !== "paid").reduce((sum: number, e: any) => sum + e.amount, 0);
+  // Mock Retainer data (In a real app, this would come from a Trust/Retainer table)
+  const retainerBalance = 150000; 
+  const totalCost = totalWIP + unbilledExpenses;
+  const healthPercent = Math.max(0, Math.min(100, (retainerBalance - totalCost) / retainerBalance * 100));
 
   return (
-    <div className="p-4 sm:p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-6 font-sans">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => navigate("/staff/cases")}>
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <span className="text-xs text-muted-foreground font-mono">{caseData.caseNumber}</span>
+        <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => navigate("/staff/cases")}><ArrowLeft className="w-4 h-4" /></Button>
+        <span className="text-xs text-muted-foreground font-mono">LEX-{caseData.caseNumber}</span>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge className={`text-xs ${STATUS_COLORS[caseData.status] || "bg-gray-100 text-gray-800"}`}>
+            <Badge className={`text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[caseData.status] || "bg-gray-100 text-gray-800"}`}>
               {caseData.status.replace("_", " ")}
             </Badge>
-            <Badge variant="secondary" className="text-xs">{caseData.practiceArea}</Badge>
+            <Badge variant="outline" className="text-[10px] uppercase text-primary/80 border-primary/20 bg-primary/5">{caseData.practiceArea}</Badge>
           </div>
-          <h1 className="font-serif text-xl font-bold text-foreground">{caseData.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1.5">{caseData.description || "No description provided."}</p>
+          <h1 className="font-serif text-3xl font-bold text-foreground tracking-tight">{caseData.title}</h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-3xl leading-relaxed">{caseData.description || "No case description provided."}</p>
         </div>
 
         <div>
           {isEditing ? (
             <div className="flex items-center gap-2">
               <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleUpdateCase} disabled={isSaving}>
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
-              </Button>
+              <Button size="sm" onClick={handleUpdateCase} disabled={isSaving}>{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}</Button>
             </div>
           ) : (
-            <Button size="sm" variant="outline" onClick={startEditing}>Edit Case Details</Button>
+            <Button size="sm" variant="outline" onClick={startEditing}>Edit Details</Button>
           )}
         </div>
       </div>
@@ -237,171 +212,165 @@ export default function StaffCaseDetailPage() {
           <CardContent className="p-4 space-y-3">
             <h4 className="text-sm font-semibold text-primary font-serif">Quick Editor</h4>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Status</label>
-                <select
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="inquiry">Inquiry</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="closed_won">Closed Won</option>
-                  <option value="closed_lost">Closed Lost</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Court</label>
-                <Input
-                  className="bg-background text-xs"
-                  value={court}
-                  onChange={(e) => setCourt(e.target.value)}
-                />
-              </div>
+              <div className="space-y-1"><label className="text-xs font-medium">Status</label><select className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden" value={status} onChange={(e) => setStatus(e.target.value)}><option value="inquiry">Inquiry</option><option value="active">Active</option><option value="on_hold">On Hold</option><option value="closed_won">Closed Won</option><option value="closed_lost">Closed Lost</option></select></div>
+              <div className="space-y-1"><label className="text-xs font-medium">Court</label><Input className="bg-background text-xs" value={court} onChange={(e) => setCourt(e.target.value)} /></div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Judge Name</label>
-                <Input
-                  className="bg-background text-xs"
-                  value={judge}
-                  onChange={(e) => setJudge(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Notes / Description</label>
-                <textarea
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
+              <div className="space-y-1"><label className="text-xs font-medium">Judge Name</label><Input className="bg-background text-xs" value={judge} onChange={(e) => setJudge(e.target.value)} /></div>
+              <div className="space-y-1"><label className="text-xs font-medium">Notes / Description</label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Client", value: client ? client.fullName : "Unknown", icon: User },
-            { label: "Assigned Lawyer", value: lawyer ? lawyer.name : "Unassigned", icon: User },
-            { label: "Court", value: caseData.court || "Not Specified", icon: CalendarDays },
-            { label: "Judge", value: caseData.judge || "Not Assigned", icon: User },
+            { label: "Client / Retainer", value: client ? client.fullName : "Unknown", icon: User },
+            { label: "Lead Advocate", value: lawyer ? lawyer.name : "Unassigned", icon: Scale },
+            { label: "Jurisdiction", value: caseData.court || "Not Specified", icon: CalendarDays },
+            { label: "Presiding Judge", value: caseData.judge || "Not Assigned", icon: User },
           ].map((item) => (
-            <Card key={item.label}>
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <item.icon className="w-3.5 h-3.5 text-muted-foreground/60" />
-                  {item.label}
+            <Card key={item.label} className="border-border/60 shadow-xs bg-card/50">
+              <CardContent className="p-4">
+                <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
+                  <item.icon className="w-3.5 h-3.5" /> {item.label}
                 </p>
-                <p className="text-sm font-medium text-foreground mt-0.5">{item.value}</p>
+                <p className="text-sm font-semibold text-foreground">{item.value}</p>
               </CardContent>
             </Card>
           ))}
-          <Card>
-            <CardContent className="p-3 bg-primary/5 h-full rounded-xl">
-              <p className="text-xs text-primary/80 font-medium flex items-center gap-1">
-                <DollarSign className="w-3.5 h-3.5 text-primary/60" />
-                Financial Summary
-              </p>
-              <div className="mt-1 space-y-1">
-                <p className="text-sm font-bold text-foreground">WIP: Rs. {totalWIP.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Unbilled Exp: Rs. {unbilledExpenses.toLocaleString()}</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 
       <Tabs defaultValue="tasks">
-        <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
-          <TabsTrigger value="tasks" className="rounded-md data-[state=active]:bg-background"><CheckSquare className="w-3.5 h-3.5 mr-1" />Tasks</TabsTrigger>
-          <TabsTrigger value="financials" className="rounded-md data-[state=active]:bg-background"><DollarSign className="w-3.5 h-3.5 mr-1" />Financials</TabsTrigger>
-          <TabsTrigger value="hearings" className="rounded-md data-[state=active]:bg-background"><CalendarDays className="w-3.5 h-3.5 mr-1" />Hearings</TabsTrigger>
-          <TabsTrigger value="documents" className="rounded-md data-[state=active]:bg-background"><FileText className="w-3.5 h-3.5 mr-1" />Documents</TabsTrigger>
-          <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-background"><Clock className="w-3.5 h-3.5 mr-1" />Timeline</TabsTrigger>
-          <TabsTrigger value="messages" className="rounded-md data-[state=active]:bg-background"><MessageSquare className="w-3.5 h-3.5 mr-1" />Notes</TabsTrigger>
+        <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1.5 bg-secondary/50 rounded-lg">
+          <TabsTrigger value="tasks" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><CheckSquare className="w-3.5 h-3.5 mr-2" />Tasks & SOPs</TabsTrigger>
+          <TabsTrigger value="misl" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><FolderTree className="w-3.5 h-3.5 mr-2" />Digital Misl (Files)</TabsTrigger>
+          <TabsTrigger value="parties" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Users className="w-3.5 h-3.5 mr-2" />Parties & Counsel</TabsTrigger>
+          <TabsTrigger value="financials" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><DollarSign className="w-3.5 h-3.5 mr-2" />Case Ledger</TabsTrigger>
+          <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Clock className="w-3.5 h-3.5 mr-2" />Timeline</TabsTrigger>
+          <TabsTrigger value="messages" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><MessageSquare className="w-3.5 h-3.5 mr-2" />Notes</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tasks" className="mt-4">
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <form onSubmit={handleCreateTask} className="flex gap-2">
-                <Input 
-                  placeholder="Quick add task..." 
-                  value={newTaskTitle} 
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  disabled={isAddingTask}
-                />
-                <Button type="submit" disabled={isAddingTask || !newTaskTitle.trim()}>
-                  {isAddingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 mr-1" /> Add</>}
-                </Button>
-              </form>
-
-              <div className="space-y-2 mt-4">
-                {tasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No tasks assigned to this case yet.</p>
-                ) : (
-                  tasks.map((task: any) => {
-                    const assignee = users.find((u: any) => u._id === task.assignedTo);
-                    return (
-                      <div key={task._id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors">
-                        <div className="flex items-start gap-3">
-                          <input 
-                            type="checkbox" 
-                            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            checked={task.status === "done"}
-                            onChange={(e) => {
-                              updateTask({ taskId: task._id, status: e.target.checked ? "done" : "todo" }).catch(() => toast.error("Failed to update"));
-                            }}
-                          />
-                          <div>
-                            <p className={cn("text-sm font-medium", task.status === "done" && "line-through text-muted-foreground")}>{task.title}</p>
-                            <div className="flex gap-2 items-center mt-1">
-                              {task.dueDate && <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">Due: {task.dueDate}</span>}
-                              <Badge variant="outline" className="text-[10px] h-4 py-0 bg-accent/5">
-                                {assignee?.name || "Unassigned"}
-                              </Badge>
-                              <Badge className={cn("text-[10px] h-4 py-0 capitalize", 
-                                task.priority === "urgent" ? "bg-red-100 text-red-800" :
-                                task.priority === "high" ? "bg-orange-100 text-orange-800" :
-                                task.priority === "medium" ? "bg-blue-100 text-blue-800" :
-                                "bg-gray-100 text-gray-800"
-                              )}>{task.priority}</Badge>
+        {/* 1. Tasks & SOPs */}
+        <TabsContent value="tasks" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-4">
+              <Card>
+                <CardHeader className="py-4 border-b border-border bg-secondary/20">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2"><CheckSquare className="w-4 h-4 text-primary" /> Active Tasks</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <form onSubmit={handleCreateTask} className="flex gap-2">
+                    <Input placeholder="Quick add ad-hoc task..." value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} disabled={isAddingTask} className="h-9 text-sm" />
+                    <Button type="submit" size="sm" disabled={isAddingTask || !newTaskTitle.trim()}>{isAddingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 mr-1" /> Add</>}</Button>
+                  </form>
+                  <div className="space-y-2 mt-4">
+                    {tasks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6 bg-secondary/20 rounded border border-dashed border-border">No tasks assigned.</p>
+                    ) : (
+                      tasks.map((task: any) => {
+                        const assignee = users.find((u: any) => u._id === task.assignedTo);
+                        return (
+                          <div key={task._id} className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${task.status === "done" ? 'bg-secondary/40 border-border/50 opacity-60' : 'bg-card hover:border-primary/30'}`}>
+                            <div className="flex items-start gap-3 w-full">
+                              <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" checked={task.status === "done"} onChange={(e) => { updateTask({ taskId: task._id, status: e.target.checked ? "done" : "todo" }).catch(() => toast.error("Failed to update")); }} />
+                              <div className="flex-1">
+                                <p className={cn("text-sm font-semibold", task.status === "done" && "line-through text-muted-foreground")}>{task.title}</p>
+                                <div className="flex flex-wrap gap-2 items-center mt-1.5">
+                                  {task.dueDate && <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">Due: {task.dueDate}</span>}
+                                  <Badge variant="outline" className="text-[10px] h-4 py-0 bg-background">{assignee?.name || "Unassigned"}</Badge>
+                                  <Badge className={cn("text-[9px] h-4 py-0 uppercase tracking-wider", task.priority === "urgent" ? "bg-red-100 text-red-800" : task.priority === "high" ? "bg-orange-100 text-orange-800" : task.priority === "medium" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800")}>{task.priority}</Badge>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <Card className="border-primary/20 shadow-primary/5">
+                <CardHeader className="py-4 border-b border-primary/10 bg-primary/5">
+                  <CardTitle className="text-sm font-bold text-primary flex items-center gap-2"><Zap className="w-4 h-4" /> SOP Automation</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-xs text-muted-foreground mb-4">Instantly generate standard tasks for specific case stages.</p>
+                  {SOPS.map(sop => (
+                    <Button key={sop.id} variant="outline" className="w-full justify-start text-left h-auto py-3 bg-background hover:bg-primary/5 hover:text-primary transition-all group border-border" onClick={() => triggerSOP(sop.id)} disabled={isAddingTask}>
+                      <div>
+                        <div className="font-semibold text-sm group-hover:underline">{sop.label}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">{sop.tasks.length} standard tasks</div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    </Button>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
-        <TabsContent value="financials" className="mt-4 space-y-4">
+        {/* 2. Digital Misl (Files) */}
+        <TabsContent value="misl" className="mt-6">
           <Card>
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Time Entries (WIP)</h3>
-              {timeEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No time logged for this case.</p>
+            <CardHeader className="py-4 border-b border-border flex flex-row items-center justify-between bg-secondary/10">
+              <CardTitle className="text-sm font-bold flex items-center gap-2"><FolderTree className="w-4 h-4 text-primary" /> Digital Misl (E-Brief)</CardTitle>
+              <Button size="sm" variant="outline"><Plus className="w-3.5 h-3.5 mr-1"/> Upload File</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {documents.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+                  <FileArchive className="w-12 h-12 mb-3 opacity-20" />
+                  <p>No documents uploaded to this Misl yet.</p>
+                </div>
               ) : (
-                <div className="space-y-2">
-                  {timeEntries.map((te: any) => {
-                    const user = users.find((u: any) => u._id === te.userId);
+                <div className="divide-y divide-border">
+                  {MISL_CATEGORIES.map(category => {
+                    // For mock purposes, just assign docs arbitrarily to categories based on their type or index
+                    const catDocs = documents.filter((d: any) => {
+                      if (category.id === "pleadings") return d.type?.includes("PDF") || d.title.includes("Agreement");
+                      if (category.id === "evidence") return d.type?.includes("Image");
+                      if (category.id === "orders") return d.title.includes("Court") || d.title.includes("Order");
+                      if (category.id === "misc") return true; // fallback
+                      return false;
+                    });
+                    
+                    if (catDocs.length === 0 && category.id !== "misc") return null;
+
                     return (
-                      <div key={te._id} className="flex justify-between items-center p-2 border-b last:border-0">
-                        <div>
-                          <p className="text-sm font-medium">{te.description}</p>
-                          <p className="text-xs text-muted-foreground">{user?.name} · {te.date}</p>
+                      <div key={category.id} className="group">
+                        <div 
+                          className="flex items-center justify-between p-3 bg-muted/40 cursor-pointer hover:bg-muted/70 transition-colors"
+                          onClick={() => setExpandedMisl(prev => ({ ...prev, [category.id]: !prev[category.id] }))}
+                        >
+                          <h4 className="font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
+                            <FolderTree className="w-3.5 h-3.5 text-muted-foreground" /> {category.label}
+                          </h4>
+                          <Badge variant="secondary" className="text-[10px] h-5">{catDocs.length}</Badge>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold">{te.minutes} mins</p>
-                          {te.isBillable && <p className="text-xs text-green-600">Rs. {((te.minutes / 60) * te.ratePerHour).toLocaleString()}</p>}
-                        </div>
+                        {expandedMisl[category.id] && (
+                          <div className="p-2 space-y-1 bg-card">
+                            {catDocs.length === 0 && <p className="text-xs text-muted-foreground p-2">Empty binder.</p>}
+                            {catDocs.map((doc: any, idx: number) => (
+                              <div key={doc._id} className="flex items-center justify-between p-2 rounded-md hover:bg-secondary/50 border border-transparent hover:border-border transition-all">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
+                                    {(doc.type || "DOC").substring(0, 3)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground cursor-pointer hover:underline">{doc.title}</p>
+                                    <p className="text-[10px] text-muted-foreground font-mono">
+                                      Index: {category.id.substring(0,2).toUpperCase()}-{idx+1} • {new Date(doc._creationTime).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs">View</Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -409,24 +378,147 @@ export default function StaffCaseDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
+        {/* 3. Parties & Counsel */}
+        <TabsContent value="parties" className="mt-6">
           <Card>
+            <CardHeader className="py-4 border-b border-border flex flex-row items-center justify-between bg-secondary/10">
+              <CardTitle className="text-sm font-bold flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Parties Directory</CardTitle>
+              <Button size="sm" variant="outline"><Plus className="w-3.5 h-3.5 mr-1"/> Add Party</Button>
+            </CardHeader>
             <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Case Expenses</h3>
-              {expenses.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No expenses logged for this case.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border border-border rounded-lg p-4 bg-card shadow-xs">
+                  <Badge className="bg-blue-100 text-blue-800 mb-2">Our Client</Badge>
+                  <h3 className="font-bold text-lg">{client?.fullName || "N/A"}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Phone: {client?.phone || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">Email: {client?.email || "N/A"}</p>
+                  <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-muted-foreground">Lead Advocate: {lawyer?.name}</span>
+                  </div>
+                </div>
+
+                <div className="border border-red-200 rounded-lg p-4 bg-red-50/30 shadow-xs">
+                  <Badge className="bg-red-100 text-red-800 mb-2 border-red-200">Opposing Party</Badge>
+                  <h3 className="font-bold text-lg">{caseData.opposingCounsel || "Not Specified"}</h3>
+                  <p className="text-sm text-muted-foreground mt-1 text-red-900/60">Information pending discovery.</p>
+                  <div className="mt-3 pt-3 border-t border-red-100 flex justify-end">
+                    <Button variant="outline" size="sm" className="h-7 text-xs border-red-200 text-red-700 hover:bg-red-100">Edit Opposing</Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 4. Case Ledger (Financials) */}
+        <TabsContent value="financials" className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-card shadow-xs border-border">
+              <CardContent className="p-5">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Retainer Balance</p>
+                <h3 className="text-2xl font-mono font-bold text-foreground">Rs. {retainerBalance.toLocaleString()}</h3>
+                <p className="text-xs text-green-600 mt-1 font-medium flex items-center gap-1">Deposited into Trust</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card shadow-xs border-border">
+              <CardContent className="p-5">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">WIP & Expenses</p>
+                <h3 className="text-2xl font-mono font-bold text-foreground">Rs. {totalCost.toLocaleString()}</h3>
+                <p className="text-xs text-amber-600 mt-1 font-medium flex items-center gap-1">Unbilled Total</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-primary/5 shadow-xs border-primary/20">
+              <CardContent className="p-5">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-xs font-bold text-primary uppercase tracking-wider">Health</p>
+                  <Badge variant="outline" className="text-[10px] bg-background border-primary/20 text-primary">Profitability</Badge>
+                </div>
+                <h3 className="text-2xl font-mono font-bold text-foreground">{healthPercent.toFixed(1)}%</h3>
+                <div className="w-full bg-border h-1.5 mt-2 rounded-full overflow-hidden">
+                  <div className={`h-full ${healthPercent > 20 ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: `${Math.max(healthPercent, 5)}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="py-4 border-b border-border bg-secondary/10">
+                <CardTitle className="text-sm font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Unbilled Time (WIP)</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[300px] overflow-y-auto">
+                {timeEntries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No time logged.</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {timeEntries.map((te: any) => {
+                      const user = users.find((u: any) => u._id === te.userId);
+                      return (
+                        <div key={te._id} className="p-3 hover:bg-secondary/30 flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-semibold">{te.description}</p>
+                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{user?.name} · {te.date}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold">Rs. {te.isBillable ? ((te.minutes / 60) * te.ratePerHour).toFixed(2) : "0.00"}</p>
+                            <p className="text-[10px] text-muted-foreground">{te.minutes}m @ {te.ratePerHour}/hr</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="py-4 border-b border-border bg-secondary/10">
+                <CardTitle className="text-sm font-bold flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Court Fees & Expenses</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[300px] overflow-y-auto">
+                {expenses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No expenses logged.</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {expenses.map((e: any) => (
+                      <div key={e._id} className="p-3 hover:bg-secondary/30 flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-semibold">{e.description}</p>
+                          <Badge variant="outline" className="mt-1 text-[9px] uppercase">{e.category}</Badge>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-foreground">Rs. {e.amount.toLocaleString()}</p>
+                          <Badge className={cn("mt-1 text-[9px] uppercase", e.status === "approved" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800")}>{e.status}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 5. Timeline */}
+        <TabsContent value="timeline" className="mt-6">
+          <Card>
+            <CardHeader className="py-4 border-b border-border bg-secondary/10">
+              <CardTitle className="text-sm font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Case History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {timeline.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center">No timeline events recorded.</p>
               ) : (
-                <div className="space-y-2">
-                  {expenses.map((exp: any) => (
-                    <div key={exp._id} className="flex justify-between items-center p-2 border-b last:border-0">
-                      <div>
-                        <p className="text-sm font-medium">{exp.description}</p>
-                        <Badge variant="outline" className="text-[10px] uppercase mt-1">{exp.category.replace("_", " ")}</Badge>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">Rs. {exp.amount.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{exp.status}</p>
-                      </div>
+                <div className="relative border-l-2 border-primary/20 ml-3 pl-6 space-y-8 py-2">
+                  {timeline.map((event, idx) => (
+                    <div key={`${event.key}-${idx}`} className="relative">
+                      <div className="absolute -left-[31px] w-4 h-4 bg-background border-2 border-primary rounded-full mt-1" />
+                      <p className="text-xs font-mono font-bold text-primary mb-1">{event.date}</p>
+                      <h4 className="text-sm font-bold text-foreground">{event.label}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{event.detail}</p>
                     </div>
                   ))}
                 </div>
@@ -435,230 +527,51 @@ export default function StaffCaseDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="hearings" className="mt-4 space-y-3">
-          {hearings.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8 bg-card rounded-lg border border-dashed border-border">
-              No hearings scheduled for this case yet.
-            </p>
-          ) : (
-            hearings.map((h: any) => (
-              <Card key={h._id}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-accent/10 flex flex-col items-center justify-center text-accent flex-shrink-0">
-                      <span className="text-xs font-bold leading-none">{(h.dateBs || "").split(" ")[0]}</span>
-                      <span className="text-[10px] leading-none opacity-70 mt-0.5">{(h.dateBs || "").split(" ")[1]}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{h.purpose || "Hearing"}</p>
-                      <p className="text-xs text-muted-foreground">{h.court} &mdash; {h.time || "N/A"}</p>
-                      {h.outcome && <p className="text-xs text-emerald-600 mt-1 font-medium italic">Outcome: {h.outcome}</p>}
-                    </div>
-                  </div>
-                  <Badge className={`text-xs capitalize ${
-                    h.status === "completed" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
-                    h.status === "cancelled" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                  }`}>{h.status}</Badge>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-medium">Case Documents</h3>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setIsGeneratorOpen(true)}>
-                <FileText className="w-4 h-4 mr-2" /> Generate from Template
-              </Button>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            {documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8 bg-card rounded-lg border border-dashed border-border">
-                No documents generated or uploaded for this case yet.
-              </p>
-            ) : (
-              documents.map((doc: any) => (
-                <div key={doc._id} className="p-3 bg-card border rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="w-8 h-8 text-primary opacity-70 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium break-words">{doc.title}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(doc._creationTime).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-xs">{doc.type}</Badge>
-                    {doc.signatureStatus === "signed" ? (
-                      <Badge className="text-[10px] bg-green-500/10 text-green-700">Signed</Badge>
-                    ) : doc.requiresSignature && doc.signatureStatus === "pending" ? (
-                      <Badge className="text-[10px] bg-yellow-500/10 text-yellow-700">Awaiting sign</Badge>
-                    ) : !doc.isPrivileged ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-8"
-                          disabled={requestingDocId === doc._id}
-                          onClick={async () => {
-                            setRequestingDocId(doc._id);
-                            try {
-                              await requestSignature({ documentId: doc._id });
-                              toast.success("Sent for signature — client notified.");
-                            } catch (err: any) {
-                              toast.error(err?.message || "Could not request signature.");
-                            } finally {
-                              setRequestingDocId(null);
-                            }
-                          }}
-                        >
-                          {requestingDocId === doc._id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <>
-                              <PenTool className="w-3.5 h-3.5 mr-1" /> Sign
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-8"
-                          disabled={envelopeDocId === doc._id}
-                          title="Send multi-signer envelope (case client first)"
-                          onClick={async () => {
-                            const client = clients.find((c: any) => c._id === caseData?.clientId);
-                            if (!client?.userId) {
-                              toast.error("Case client has no portal user linked.");
-                              return;
-                            }
-                            setEnvelopeDocId(doc._id);
-                            try {
-                              const { envelopeId } = await createEnvelope({
-                                documentId: doc._id,
-                                title: doc.title,
-                                routing: "sequential",
-                                recipientUserIds: [client.userId as any],
-                              });
-                              await sendEnvelope({ envelopeId });
-                              toast.success("Envelope sent — client notified.");
-                            } catch (err: any) {
-                              toast.error(err?.message || "Could not create envelope.");
-                            } finally {
-                              setEnvelopeDocId(null);
-                            }
-                          }}
-                        >
-                          {envelopeDocId === doc._id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <>
-                              <Send className="w-3.5 h-3.5 mr-1" /> Envelope
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="timeline" className="mt-4">
-          <div className="space-y-3 p-4 bg-card border rounded-lg">
-            {timeline.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No timeline events yet.</p>
-            ) : (
-              timeline.map((event, idx) => (
-                <div key={event.key} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-accent mt-1" />
-                    {idx < timeline.length - 1 && <div className="w-0.5 flex-1 bg-border mt-1" />}
-                  </div>
-                  <div className="pb-3">
-                    <p className="text-sm font-medium text-foreground">{event.label}</p>
-                    <p className="text-xs text-muted-foreground">{event.date || "—"} &mdash; {event.detail}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="messages" className="mt-4">
-          <Card>
-            <CardContent className="p-0 flex flex-col h-[420px]">
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No notes or messages for this case yet.
-                  </p>
-                ) : (
-                  messages.map((msg: any) => {
-                    const sender = users.find((u: any) => u._id === msg.senderId);
-                    const isMe = msg.senderId === currentUser?._id;
-                    return (
-                      <div key={msg._id} className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
-                        <div className={cn(
-                          "rounded-lg px-3 py-2 max-w-[85%] text-sm border",
-                          msg.isInternal
-                            ? "bg-muted text-foreground border-border"
-                            : isMe
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-card text-foreground border-border",
-                        )}>
-                          {msg.isInternal && (
-                            <p className="text-[10px] uppercase tracking-wide font-semibold opacity-70 mb-1">Internal</p>
-                          )}
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
-                          <p className="text-[10px] mt-1 opacity-70">
-                            {sender?.name || "Unknown"} · {new Date(msg._creationTime).toLocaleString()}
-                          </p>
-                        </div>
+        {/* 6. Notes (Messages) */}
+        <TabsContent value="messages" className="mt-6 h-[500px] flex flex-col">
+          <Card className="flex-1 flex flex-col overflow-hidden">
+            <CardHeader className="py-3 border-b border-border bg-secondary/10 shrink-0">
+              <CardTitle className="text-sm font-bold flex items-center gap-2"><MessageSquare className="w-4 h-4 text-primary" /> Case Notes & Communication</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-4 overflow-y-auto space-y-4 bg-muted/20">
+              {messages.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center mt-10">No notes yet. Be the first to add one!</p>
+              ) : (
+                [...messages].reverse().map((msg: any) => {
+                  const isMine = msg.senderId === currentUser?._id;
+                  const sender = users.find((u: any) => u._id === msg.senderId) || clients.find((c: any) => c._id === msg.senderId);
+                  return (
+                    <div key={msg._id} className={cn("flex flex-col max-w-[80%]", isMine ? "ml-auto items-end" : "mr-auto items-start")}>
+                      <span className="text-[10px] text-muted-foreground mb-1 font-medium">{sender?.name || sender?.fullName || "Unknown"}</span>
+                      <div className={cn("px-4 py-2 rounded-2xl text-sm shadow-xs", isMine ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card border border-border text-foreground rounded-bl-none")}>
+                        {msg.content}
                       </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-              <div className="border-t p-3 space-y-2">
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} />
-                  Internal note (hidden from client)
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    placeholder={isInternal ? "Add internal note..." : "Message client..."}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSendMessage();
-                    }}
-                  />
-                  <Button size="sm" onClick={handleSendMessage} disabled={!draft.trim()}>
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+                      {msg.isInternal && <span className="text-[9px] font-bold uppercase text-red-500 mt-1 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Internal Note</span>}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
             </CardContent>
+            <div className="p-3 border-t border-border bg-background shrink-0">
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} className="accent-primary" />
+                      Internal Note (Hidden from client)
+                    </label>
+                  </div>
+                  <textarea className="w-full h-12 rounded-lg border border-input bg-secondary/30 px-3 py-2 text-sm shadow-xs focus-visible:outline-none resize-none placeholder:text-muted-foreground" placeholder="Type a note or message..." value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} />
+                </div>
+                <Button size="icon" className="h-12 w-12 rounded-lg shrink-0 shadow-md shadow-primary/20" disabled={!draft.trim()} onClick={handleSendMessage}>
+                  <Send className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {caseId && caseData && (
-        <TemplateGeneratorModal 
-          caseId={caseId} 
-          clientId={caseData.clientId} 
-          open={isGeneratorOpen} 
-          onOpenChange={setIsGeneratorOpen} 
-        />
-      )}
     </div>
   );
 }
