@@ -1,13 +1,17 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { useState, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { CalendarDays, Plus, X, Loader2, Edit2 } from "lucide-react";
+import { Input } from "@/components/ui/input.tsx";
+import { 
+  CalendarDays, Plus, X, Loader2, Edit2, Search, Filter,
+  List as ListIcon, Calendar as CalendarIcon, MapPin, Scale,
+  User, CheckSquare, AlertTriangle, RefreshCw, Clock
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDualDate, gregorianToBs, formatBs } from "@/lib/nepali-calendar.ts";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { Input } from "@/components/ui/input.tsx";
 import { COURTS } from "@/lib/lex-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
 import { getBSDate } from "@/lib/bs-calendar.ts";

@@ -2408,6 +2408,28 @@ export function useMutation(mutationFunc: any): any {
       notifyListeners();
       return { success: true };
     }
+    // court.syncPesi
+    if (mutationName.includes("court.syncPesi")) {
+      const { caseId } = args;
+      const targetCase = globalCases.find((c) => c._id === caseId);
+      if (!targetCase) throw new Error("Case not found");
+
+      const newPesi = {
+        _id: "pesi_" + Date.now(),
+        caseId,
+        courtName: targetCase.court || "Supreme Court",
+        judgeName: "Hon. " + ["Hari Phuyal", "Sapana Pradhan Malla", "Anand Mohan Bhattarai"][Math.floor(Math.random() * 3)],
+        hearingType: ["First Hearing", "Evidence Submission", "Final Hearing", "Interim Order Debate"][Math.floor(Math.random() * 4)],
+        serialNumber: Math.floor(Math.random() * 50) + " (Kha)",
+        status: "scheduled" as const,
+        pesiDate: "16 Bhadra 2081",
+        _creationTime: Date.now(),
+      };
+      
+      globalPesi.push(newPesi);
+      notifyListeners();
+      return newPesi;
+    }
 
     // Chatbots / Leads
     if (mutationName.includes("chatbots.submitLead")) {
