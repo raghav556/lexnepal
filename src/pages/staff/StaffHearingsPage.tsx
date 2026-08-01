@@ -21,6 +21,19 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   adjourned: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  postponed: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  not_reached: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+  bench_disqualified: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+  could_not_present: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  part_heard: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+  continuous: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  procedural_order: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
+  evidence_exam: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
+  final_judgment: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  dismissed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  settled: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  archived: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+  on_hold: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
 };
 
 export default function StaffHearingsPage() {
@@ -444,6 +457,19 @@ export default function StaffHearingsPage() {
                   <option value="completed">Completed</option>
                   <option value="adjourned">Adjourned (Postponed)</option>
                   <option value="cancelled">Cancelled</option>
+                  <option value="postponed">Postponed / Adjourned</option>
+                  <option value="not_reached">Not Reached / Left Over</option>
+                  <option value="bench_disqualified">Cannot Be Heard / Bench Disqualified</option>
+                  <option value="could_not_present">Could Not Be Presented</option>
+                  <option value="part_heard">Part-Heard / Under Consideration</option>
+                  <option value="continuous">Continuous Hearing</option>
+                  <option value="procedural_order">Procedural Order / Direction</option>
+                  <option value="evidence_exam">Evidence Examination</option>
+                  <option value="final_judgment">Decided / Final Judgment</option>
+                  <option value="dismissed">Dismissed</option>
+                  <option value="settled">Settled / Compromised</option>
+                  <option value="archived">Filed Away / Archived</option>
+                  <option value="on_hold">Put on Hold / Stayed</option>
                 </select>
               </div>
 

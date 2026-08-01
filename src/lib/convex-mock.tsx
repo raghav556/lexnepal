@@ -100,7 +100,7 @@ export interface LexHearing {
   outcome?: string;
   nextDateGregorian?: string;
   nextDateBs?: string;
-  status: "scheduled" | "completed" | "adjourned" | "cancelled";
+  status: "scheduled" | "completed" | "adjourned" | "cancelled" | "postponed" | "not_reached" | "bench_disqualified" | "could_not_present" | "part_heard" | "continuous" | "procedural_order" | "evidence_exam" | "final_judgment" | "dismissed" | "settled" | "archived" | "on_hold";
   notes?: string;
 }
 
