@@ -121,28 +121,28 @@ export default function StaffCasesPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-96">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-2 rounded-xl border shadow-xs">
+        <div className="relative w-full sm:w-[400px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="pl-9 bg-transparent border-none shadow-none focus-visible:ring-0 focus-visible:outline-none placeholder:text-muted-foreground/60 h-9"
             placeholder="Search by case number, title, client, or lawyer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex bg-muted/50 p-1 rounded-lg border">
+        <div className="flex bg-muted p-1 rounded-lg border w-full sm:w-auto shrink-0">
           <button
             onClick={() => setViewMode("list")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "list" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex-1 sm:flex-none px-6 py-1.5 text-xs font-semibold tracking-wide rounded-md transition-all duration-200 ${viewMode === "list" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
-            List
+            List View
           </button>
           <button
             onClick={() => setViewMode("board")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "board" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex-1 sm:flex-none px-6 py-1.5 text-xs font-semibold tracking-wide rounded-md transition-all duration-200 ${viewMode === "board" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
-            Board
+            Kanban Board
           </button>
         </div>
       </div>
@@ -161,30 +161,46 @@ export default function StaffCasesPage() {
                 const nextHearingObj = hearings.find((h: any) => h.caseId === c._id && h.status === "scheduled");
 
                 return (
-                  <Card key={c._id} className="hover:shadow-sm transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <span className="text-xs font-mono text-muted-foreground">{c.caseNumber}</span>
-                            <Badge className={`text-xs ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-800"}`}>
-                              {c.status.replace("_", " ")}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">{c.practiceArea}</Badge>
-                          </div>
-                          <Link to={`/staff/cases/${c._id}`} className="font-semibold text-sm text-foreground hover:text-accent transition-colors">
-                            {c.title}
-                          </Link>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Client: {client ? client.fullName : "Unknown"} | Lawyer: {lawyer ? lawyer.name : "Unassigned"}
-                          </p>
-                          {nextHearingObj && (
-                            <div className="flex items-center gap-1 mt-1 text-xs text-accent">
-                              <CalendarDays className="w-3 h-3" />Next hearing: {nextHearingObj.dateBs}
+                  <Card key={c._id} className="group hover:shadow-md hover:border-primary/40 transition-all duration-300 bg-card overflow-hidden">
+                    <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border">{c.caseNumber}</span>
+                          <Badge className={`text-[10px] uppercase tracking-wider font-semibold border ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-800"}`}>
+                            {c.status.replace("_", " ")}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-semibold border-primary/20 text-primary/80 bg-primary/5">{c.practiceArea}</Badge>
+                        </div>
+                        <Link to={`/staff/cases/${c._id}`} className="font-serif font-bold text-lg text-foreground group-hover:text-primary transition-colors block mb-2 leading-tight">
+                          {c.title}
+                        </Link>
+                        
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">
+                              {client ? client.fullName.charAt(0).toUpperCase() : "?"}
                             </div>
-                          )}
+                            <span className="font-medium">{client ? client.fullName : "Unknown"}</span>
+                          </div>
+                          <div className="hidden sm:block w-1 h-1 rounded-full bg-border" />
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-[10px]">
+                              {lawyer ? lawyer.name?.charAt(0).toUpperCase() : "?"}
+                            </div>
+                            <span>{lawyer ? lawyer.name : "Unassigned"}</span>
+                          </div>
                         </div>
                       </div>
+                      
+                      {nextHearingObj && (
+                        <div className="mt-3 sm:mt-0 sm:ml-4 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-5 shrink-0">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0 sm:mb-1.5">Next Hearing</span>
+                          <div className="flex items-center gap-1.5 text-sm font-semibold text-accent bg-accent/10 border border-accent/20 px-3 py-1.5 rounded-lg shadow-xs">
+                            <CalendarDays className="w-4 h-4" />
+                            {nextHearingObj.dateBs}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -202,42 +218,46 @@ export default function StaffCasesPage() {
           />
         </>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
+        <div className="flex gap-5 overflow-x-auto pb-6 pt-2 snap-x -mx-4 px-4 sm:mx-0 sm:px-0">
           {["inquiry", "active", "on_hold", "closed_won", "closed_lost"].map((statusKey) => {
             const columnCases = filteredCases.filter((c: any) => c.status === statusKey);
             return (
-              <div key={statusKey} className="flex-shrink-0 w-80 bg-muted/20 border rounded-xl flex flex-col max-h-[70vh] snap-start">
-                <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-muted/40 backdrop-blur-sm rounded-t-xl z-10">
-                  <h3 className="font-semibold text-sm capitalize">{statusKey.replace("_", " ")}</h3>
-                  <Badge variant="secondary" className="text-xs">{columnCases.length}</Badge>
+              <div key={statusKey} className="flex-shrink-0 w-[320px] bg-muted/20 border border-border/60 rounded-2xl flex flex-col max-h-[75vh] snap-start shadow-xs">
+                <div className="p-4 border-b border-border/50 flex items-center justify-between sticky top-0 bg-card/80 backdrop-blur-md rounded-t-2xl z-10">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-2 h-2 rounded-full shadow-xs ${STATUS_COLORS[statusKey]?.split(' ')[0] || 'bg-gray-500'}`} />
+                    <h3 className="font-semibold text-[13px] uppercase tracking-wider">{statusKey.replace("_", " ")}</h3>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] bg-background shadow-xs px-2">{columnCases.length}</Badge>
                 </div>
-                <div className="p-3 overflow-y-auto space-y-3 flex-1 min-h-[150px]">
+                <div className="p-3 overflow-y-auto space-y-3 flex-1 min-h-[150px] scrollbar-thin scrollbar-thumb-border">
                   {columnCases.map((c: any) => {
                     const client = clients.find((cl: any) => cl._id === c.clientId);
                     return (
-                      <Card key={c._id} className="hover:border-accent/50 transition-colors shadow-xs">
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between mb-2">
-                            <span className="text-[10px] font-mono text-muted-foreground">{c.caseNumber}</span>
-                          </div>
-                          <Link to={`/staff/cases/${c._id}`} className="font-semibold text-sm text-foreground hover:text-accent leading-tight block mb-2 line-clamp-2">
-                            {c.title}
-                          </Link>
-                          <div className="flex items-center justify-between border-t pt-2">
-                            <p className="text-[10px] text-muted-foreground truncate flex-1">
-                              {client ? client.fullName : "Unknown"}
-                            </p>
-                            <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                      <Card key={c._id} className="group hover:border-primary/40 hover:shadow-md transition-all duration-300 bg-card border-border/80">
+                        <CardContent className="p-4 flex flex-col h-full relative">
+                          <div className="flex items-center justify-between mb-2.5">
+                            <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 border px-1.5 py-0.5 rounded">{c.caseNumber}</span>
+                            <Badge variant="outline" className="text-[9px] uppercase tracking-wider font-semibold border-primary/20 text-primary/80 bg-primary/5 px-1.5 py-0">
                               {c.practiceArea}
                             </Badge>
+                          </div>
+                          <Link to={`/staff/cases/${c._id}`} className="font-serif font-bold text-[15px] text-foreground group-hover:text-primary leading-snug block mb-3 line-clamp-3 transition-colors before:absolute before:inset-0">
+                            {c.title}
+                          </Link>
+                          <div className="mt-auto pt-3 border-t border-border/50 flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px] shrink-0">
+                              {client ? client.fullName.charAt(0).toUpperCase() : "?"}
+                            </div>
+                            <span className="truncate font-medium">{client ? client.fullName : "Unknown"}</span>
                           </div>
                         </CardContent>
                       </Card>
                     );
                   })}
                   {columnCases.length === 0 && (
-                    <div className="text-center py-6 text-xs text-muted-foreground border-2 border-dashed rounded-lg opacity-50">
-                      Empty
+                    <div className="flex flex-col items-center justify-center h-28 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl opacity-60 bg-muted/10">
+                      <span className="text-xs font-semibold tracking-wide uppercase">No Cases</span>
                     </div>
                   )}
                 </div>
