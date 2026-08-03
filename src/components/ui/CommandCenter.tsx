@@ -4,8 +4,9 @@ import { X, Send, Lock, MessageCircle, FileText, User, Paperclip, Users, ShieldC
 import { Button } from "./button.tsx";
 import { Input } from "./input.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
+import { useMutation, useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMessages, useMessageCommands } from "../../client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
@@ -50,19 +51,15 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
     }
   }, [isOpen, cases, staffUsers, activeTab, selectedCase, selectedStaff]);
 
-  const paginatedMsgs = useQuery(
-    api.messages.listMessages,
-    currentThreadId ? { caseId: currentThreadId as any, paginationOpts: { numItems: 100, cursor: null } } : "skip" as any
-  );
-  const messages = paginatedMsgs?.page || [];
+  const { data: messagesResponse } = useMessages(currentThreadId || "", true);
+  const messages = messagesResponse?.page || [];
 
-  const sendMessage = useMutation(api.messages.sendMessage);
-  const markMessagesRead = useMutation(api.messages.markMessagesRead);
+  const { sendMessage, markMessagesRead } = useMessageCommands();
 
   // Mark read when thread selected
   useEffect(() => {
     if (currentThreadId && isOpen) {
-      markMessagesRead({ caseId: currentThreadId as any }).catch(() => {});
+      markMessagesRead.mutate({ caseId: currentThreadId });
     }
   }, [currentThreadId, isOpen, markMessagesRead, messages.length]);
 
@@ -78,12 +75,11 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
     e.preventDefault();
     if (!currentThreadId || !draft.trim()) return;
     try {
-      await sendMessage({
-        caseId: currentThreadId as any,
-        content: draft,
-        isInternal: activeTab === "cases" ? isInternal : true, // DMs are inherently internal
-        attachmentIds: [],
-      });
+        await sendMessage.mutateAsync({
+          caseId: currentThreadId,
+          content: draft,
+          isInternal: activeTab === "cases" ? isInternal : true,
+        });
       setDraft("");
     } catch (err) {
       console.error(err);

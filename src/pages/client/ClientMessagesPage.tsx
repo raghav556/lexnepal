@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Send, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useMessages, useMessageCommands } from "@/client/queries/communication";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
@@ -22,15 +21,13 @@ export default function ClientMessagesPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
-  const paginatedMsgs = useQuery(
-    api.messages.listMessages,
-    selected ? { caseId: selected as any, paginationOpts: { numItems: 100, cursor: null } } : "skip" as any
+  const { data: messagesResponse } = useMessages(
+    selected || "",
+    false // isInternal = false for clients
   );
-  // Filter out internal staff messages — clients should never see them
-  const messages = (paginatedMsgs?.page || []).filter((msg: any) => !msg.isInternal);
+  const messages = messagesResponse?.page || [];
 
-  const sendMessage = useMutation(api.messages.sendMessage);
-  const markMessagesRead = useMutation(api.messages.markMessagesRead);
+  const { sendMessage, markMessagesRead } = useMessageCommands();
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -51,18 +48,17 @@ export default function ClientMessagesPage() {
   // Mark read when thread selected
   useEffect(() => {
     if (selected) {
-      markMessagesRead({ caseId: selected as any }).catch(() => {});
+      markMessagesRead.mutate({ caseId: selected });
     }
   }, [selected, markMessagesRead, messages.length]); // trigger on change or new messages count
 
   const handleSendMessage = async () => {
     if (!selected || !draft.trim()) return;
     try {
-      await sendMessage({
-        caseId: selected as any,
+      await sendMessage.mutateAsync({
+        caseId: selected,
         content: draft,
         isInternal: false,
-        attachmentIds: [],
       });
       setDraft("");
     } catch (err: any) {

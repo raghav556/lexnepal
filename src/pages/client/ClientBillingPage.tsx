@@ -5,13 +5,12 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Receipt, Download, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useSystemSettings } from "@/client/queries/identity";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { useInvoices, useInvoiceCommands, useTrustTransactions, useTimeEntries } from "@/client/queries/financial";
 
 const STATUS_COLORS: Record<string, string> = {
   paid: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -24,13 +23,12 @@ export default function ClientBillingPage() {
   const client = useMyClient();
   const clientId = client?._id;
   const cases = useCases(clientId ? { clientId } : {}) || [];
-  const invoices = useQuery(api.invoices.listInvoices, clientId ? { clientId } : "skip") || [];
-  const trustTransactions = useQuery(api.invoices.listTrustTransactions, clientId ? { clientId } : "skip") || [];
-  const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
+  const { data: invoices = [] } = useInvoices(clientId ? { clientId } : {});
+  const { data: trustTransactions = [] } = useTrustTransactions(clientId ? { clientId } : {});
+  const { data: timeEntries = [] } = useTimeEntries({});
   const systemSettings = useSystemSettings();
 
-  const payInvoice = useMutation(api.invoices.payInvoice);
-  const initiateGateway = useMutation(api.invoices.initiateGatewayPayment);
+  const { payInvoice: payInvoiceMutation, initiateGateway: initiateGatewayMutation } = useInvoiceCommands();
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -81,19 +79,19 @@ export default function ClientBillingPage() {
     setIsProcessing(true);
     try {
       if (method === "esewa" || method === "khalti" || method === "connectips") {
-        const init = await initiateGateway({
+        const init = await initiateGatewayMutation.mutateAsync({
           invoiceId: selectedInvoice._id,
           gateway: method,
         });
         // Sandbox: immediately confirm after initiate (merchant redirect would go here)
-        await payInvoice({
+        await payInvoiceMutation.mutateAsync({
           invoiceId: selectedInvoice._id,
           gateway: method,
-          referenceNumber: String(init.paymentId),
+          referenceNumber: String((init as any).paymentId),
           amount: selectedInvoice.total,
         });
       } else {
-        await payInvoice({
+        await payInvoiceMutation.mutateAsync({
           invoiceId: selectedInvoice._id,
           gateway: method,
           referenceNumber: `MANUAL-${Date.now()}`,

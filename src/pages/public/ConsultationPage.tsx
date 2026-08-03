@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useAppointmentCommands } from "@/client/queries/crm";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -86,7 +85,7 @@ export default function ConsultationPage() {
   
   const [submitted, setSubmitted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const createAppointment = useMutation(api.appointments.createAppointment);
+  const { createAppointment } = useAppointmentCommands();
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -95,7 +94,10 @@ export default function ConsultationPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await createAppointment(data);
+      await createAppointment.mutateAsync({
+        ...data,
+        assignedLawyerId: data.assignedLawyerId ? data.assignedLawyerId : undefined,
+      });
       setSelectedDate(data.date);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });

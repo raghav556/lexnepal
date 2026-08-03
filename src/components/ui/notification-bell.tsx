@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bell } from "lucide-react";
 import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useNotifications, useNotificationCommands } from "@/client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { Button } from "./button.tsx";
 import {
@@ -20,16 +21,16 @@ export function NotificationBell() {
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
 
-  const notifications = useQuery(api.notifications.listNotifications, currentUser ? {} : "skip" as any) || [];
-  const markRead = useMutation(api.notifications.markRead);
-  const markAllRead = useMutation(api.notifications.markAllRead);
+  const { data: notificationsResponse } = useNotifications();
+  const notifications = notificationsResponse || [];
+  const { markRead, markAllRead } = useNotificationCommands();
 
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
   const handleNotificationClick = async (notification: any) => {
     if (!notification.isRead) {
       try {
-        await markRead({ notificationId: notification._id as any });
+        await markRead.mutateAsync({ notificationId: notification._id || notification.id });
       } catch (e) {
         console.error(e);
       }
@@ -42,7 +43,7 @@ export function NotificationBell() {
   const handleMarkAllRead = async () => {
     if (!currentUser) return;
     try {
-      await markAllRead();
+      await markAllRead.mutateAsync();
       toast.success("All notifications marked as read");
     } catch (e) {
       toast.error("Failed to mark notifications read");
@@ -80,7 +81,7 @@ export function NotificationBell() {
             <DropdownMenuGroup>
               {notifications.map((notif: any) => (
                 <DropdownMenuItem
-                  key={notif._id}
+                  key={notif._id || notif.id}
                   className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${notif.isRead ? 'opacity-60' : 'bg-primary/5 font-medium'}`}
                   onClick={() => handleNotificationClick(notif)}
                 >
@@ -92,7 +93,7 @@ export function NotificationBell() {
                     {notif.body}
                   </span>
                   <span className="text-[10px] text-muted-foreground/60 mt-1">
-                    {new Date(notif._creationTime).toLocaleString()}
+                    {new Date(notif._creationTime || notif.createdAt).toLocaleString()}
                   </span>
                 </DropdownMenuItem>
               ))}

@@ -6,6 +6,7 @@ import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
+import { useTasks } from "@/client/queries/tasks";
 import { cn } from "@/lib/utils.ts";
 import { formatTaskDue, PRIORITY_COLORS, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
@@ -19,7 +20,7 @@ export default function ClientChecklistPage() {
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
   const cases = useCases(clientId ? { clientId } : {}) || [];
-  const tasks = useQuery(api.tasks.listTasks, {}) || [];
+  const tasks = useTasks() || [];
 
   const caseIds = useMemo(() => new Set(cases.map((c: any) => c._id)), [cases]);
   const checklist = useMemo(

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useCmsCommands, useResources } from "@/client/queries/cms";
-import { useMutation } from "@/client/data/convex-bridge";
-import { api } from "@/convex/_generated/api";
+import { useLeadCommands } from "@/client/queries/crm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,7 +10,7 @@ import { BookOpen, Download, Lock, FileText } from "lucide-react";
 import { toast } from "sonner";
 export default function ResourcesPage() {
   const resources = useResources({}, "public");
-  const createLead = useMutation(api.leads.createLead);
+  const { createLead } = useLeadCommands();
   const { incrementDownload } = useCmsCommands();
   
   const [selectedRes, setSelectedRes] = useState<any>(null);
@@ -38,7 +37,7 @@ export default function ResourcesPage() {
     if (isGated) {
       setIsSubmitting(true);
       try {
-        await createLead({
+        await createLead.mutateAsync({
           fullName: name,
           email: email,
           source: "website",

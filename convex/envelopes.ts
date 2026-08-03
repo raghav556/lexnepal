@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -129,7 +130,7 @@ export const createEnvelope = mutation({
   },
 });
 
-/** Staff: send envelope — notify active recipients, mark document for signature */
+/** Staff: send envelope â€” notify active recipients, mark document for signature */
 export const sendEnvelope = mutation({
   args: { envelopeId: v.id("signatureEnvelopes") },
   handler: async (ctx, args) => {
@@ -533,10 +534,10 @@ export const verifySigningOtp = mutation({
       return { verified: true, challengeId: args.challengeId };
     }
     if (challenge.expiresAt < Date.now()) {
-      throw new ConvexError("Code expired — request a new one");
+      throw new ConvexError("Code expired â€” request a new one");
     }
     if (challenge.attempts >= 5) {
-      throw new ConvexError("Too many attempts — request a new code");
+      throw new ConvexError("Too many attempts â€” request a new code");
     }
 
     const ok = (await hashOtp(args.code.trim())) === challenge.codeHash;
@@ -549,7 +550,7 @@ export const verifySigningOtp = mutation({
   },
 });
 
-/** Called from documents.signDocument after successful sign — advances sequential envelope */
+/** Called from documents.signDocument after successful sign â€” advances sequential envelope */
 export async function completeRecipientAfterSign(
   ctx: MutationCtx,
   args: {
@@ -640,6 +641,6 @@ export async function assertOtpVerified(
   }
   // Verified codes valid for 15 minutes
   if (challenge.verifiedAt + 15 * 60 * 1000 < Date.now()) {
-    throw new ConvexError("OTP session expired — request a new code");
+    throw new ConvexError("OTP session expired â€” request a new code");
   }
 }

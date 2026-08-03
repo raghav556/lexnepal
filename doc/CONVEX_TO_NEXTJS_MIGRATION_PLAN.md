@@ -569,15 +569,27 @@ Local status: `complete_local`. See `doc/migration/PHASE_8_3_MATTERS.md` for the
 
 #### 8.4 Hearings, tasks, SOPs, comments and research
 
-#### 8.5 Time, invoices, payments, trust and expenses
+Local status: `complete_local`. See `doc/migration/PHASE_8_4_WORK_MANAGEMENT.md` for the domain details.
 
-Use database transactions and idempotency keys for all financial commands.
+- [x] **8.5 Time, invoices, payments, trust and expenses**
+  - Use database transactions and idempotency keys for all financial commands.
+  - Refactored frontend to use `useInvoices`, `useTimeEntries`, etc. hooks.
+  - Developed `financial-migration.ts` to migrate records from Convex to Postgres.
 
 #### 8.6 Leads and appointments
 
-#### 8.7 Messages and notifications
+Local status: `complete_local`. See `doc/migration/PHASE_8_6_CRM.md` for the domain details.
 
-Use polling unless genuine realtime requirements justify SSE/WebSockets.
+- [x] **8.6 Leads and appointments**
+  - Use domain-by-domain strangler pattern for the CRM module.
+  - Developed `crm-migration.ts` for database migration.
+  - Replaced Convex components with new React Query hooks `useLeads` and `useAppointments`.
+
+#### Phase 8.7: Messages and notifications (Completed)
+- **Domain:** Chat threads, read receipts, system notifications.
+- **Backend:** `messages`, `notifications` table mappings. Realtime updates fallback to basic polling in the initial migration unless WebSockets are specifically requested.
+- **Frontend:** `CommandCenter`, `ClientMessagesPage`, `notification-bell.tsx`.
+- **References:** `convex/messages.ts`, `convex/notifications.ts`.
 
 #### 8.8 Documents, tags, versions, shares, retention and legal holds
 

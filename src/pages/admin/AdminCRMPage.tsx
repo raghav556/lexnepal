@@ -6,8 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useLeads, useLeadCommands } from "@/client/queries/crm";
 import { Loader2, UserPlus, Phone, Mail, Tag, X, Link as LinkIcon, CheckCircle2, KanbanSquare, AlignJustify, Search } from "lucide-react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -37,11 +36,9 @@ interface ConvertModalState {
 }
 
 export default function AdminCRMPage() {
-  const leads = useQuery(api.leads.listLeads, {}) || [];
-  const users = useStaffDirectory() || [];
-  const updateLead = useMutation(api.leads.updateLead);
-  const convertToClient = useMutation(api.leads.convertToClient);
-  const generateIntakeLink = useMutation(api.leads.generateIntakeLink as any);
+  const { data: leads = [] } = useLeads({});
+  const { data: users = [] } = useStaffDirectory() as any;
+  const { updateLead, convertToClient, generateIntakeLink } = useLeadCommands();
 
   // List by default on phones (avoids page-wide horizontal scroll from kanban columns)
   const [view, setView] = useState<"kanban" | "list">(() =>
@@ -85,9 +82,9 @@ export default function AdminCRMPage() {
 
   const handleStatusChange = async (leadId: string, status: string) => {
     try {
-      await updateLead({ leadId: leadId as any, status: status as any });
+      await updateLead.mutateAsync({ leadId: leadId, status: status });
       toast.success("Pipeline status updated.");
-      if (detailsModal && detailsModal._id === leadId) {
+      if (detailsModal && (detailsModal.id === leadId || detailsModal._id === leadId)) {
         setDetailsModal((prev: any) => ({ ...prev, status }));
       }
     } catch (err: any) {
@@ -97,9 +94,9 @@ export default function AdminCRMPage() {
 
   const handleAssigneeChange = async (leadId: string, assigneeId: string) => {
     try {
-      await updateLead({ leadId: leadId as any, assignedTo: assigneeId === "unassigned" ? undefined : assigneeId as any });
+      await updateLead.mutateAsync({ leadId: leadId, assignedTo: assigneeId === "unassigned" ? undefined : assigneeId });
       toast.success("Lead assignment updated.");
-      if (detailsModal && detailsModal._id === leadId) {
+      if (detailsModal && (detailsModal.id === leadId || detailsModal._id === leadId)) {
         setDetailsModal((prev: any) => ({ ...prev, assignedTo: assigneeId === "unassigned" ? undefined : assigneeId }));
       }
     } catch (err: any) {
@@ -111,7 +108,7 @@ export default function AdminCRMPage() {
     if (!detailsModal) return;
     setSavingDetails(true);
     try {
-      await updateLead({ leadId: detailsModal._id as any, notes: detailsModal.notes });
+      await updateLead.mutateAsync({ leadId: detailsModal.id || detailsModal._id, notes: detailsModal.notes });
       toast.success("Notes saved.");
     } catch (err: any) {
       toast.error(err?.message || "Failed to save notes.");
@@ -122,7 +119,7 @@ export default function AdminCRMPage() {
 
   const handleGenerateLink = async (leadId: string) => {
     try {
-      const token = await generateIntakeLink({ leadId });
+      const token = await generateIntakeLink.mutateAsync({ leadId });
       const url = `${window.location.origin}/intake/${token}`;
       await navigator.clipboard.writeText(url);
       toast.success("Intake link generated and copied to clipboard!");
@@ -142,7 +139,7 @@ export default function AdminCRMPage() {
       if (convertType === "corporate" && convertCompany.trim()) {
         clientArgs.companyName = convertCompany.trim();
       }
-      await convertToClient(clientArgs);
+      await convertToClient.mutateAsync(clientArgs);
       toast.success(`"${convertModal.leadName}" has been converted to a client record.`);
       setConvertModal(null);
       setDetailsModal(null);
@@ -211,7 +208,7 @@ export default function AdminCRMPage() {
           )}
           {lead.assignedTo && (
             <span className="text-[10px] text-muted-foreground ml-auto bg-muted px-1.5 py-0.5 rounded-sm">
-              {staffUsers.find((u: any) => u._id === lead.assignedTo)?.name || "Assigned"}
+              {staffUsers.find((u: any) => u.id === lead.assignedTo || u._id === lead.assignedTo)?.name || "Assigned"}
             </span>
           )}
         </div>
@@ -225,7 +222,7 @@ export default function AdminCRMPage() {
           {lead.status !== "converted" && (
             <Select
               value={lead.status}
-              onValueChange={(val) => handleStatusChange(lead._id, val)}
+              onValueChange={(val) => handleStatusChange(lead.id || lead._id, val)}
             >
               <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs select-trigger">
                 <SelectValue />
@@ -242,7 +239,7 @@ export default function AdminCRMPage() {
               size="sm"
               className="text-xs h-8 gap-1 w-full sm:w-auto"
               variant="outline"
-              onClick={(e) => { e.stopPropagation(); setConvertModal({ leadId: lead._id, leadName: lead.fullName, email: lead.email, phone: lead.phone }); }}
+              onClick={(e) => { e.stopPropagation(); setConvertModal({ leadId: lead.id || lead._id, leadName: lead.fullName, email: lead.email, phone: lead.phone }); }}
             >
               <UserPlus className="w-3 h-3" /> Convert
             </Button>
@@ -334,7 +331,7 @@ export default function AdminCRMPage() {
                         <p className="text-xs text-muted-foreground text-center py-4">No leads</p>
                       ) : (
                         colLeads.map((lead: any) => (
-                          <LeadCard key={lead._id} lead={lead} isKanban={true} />
+                          <LeadCard key={lead.id || lead._id} lead={lead} isKanban={true} />
                         ))
                       )}
                     </div>
@@ -358,7 +355,7 @@ export default function AdminCRMPage() {
                 <p className="text-sm text-muted-foreground text-center py-12">No leads found.</p>
               ) : (
                 paginatedItems.map((lead: any) => (
-                  <LeadCard key={lead._id} lead={lead} isKanban={false} />
+                  <LeadCard key={lead.id || lead._id} lead={lead} isKanban={false} />
                 ))
               )}
             </div>
@@ -435,7 +432,7 @@ export default function AdminCRMPage() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Pipeline Status</p>
                   <Select
                     value={detailsModal.status}
-                    onValueChange={(val) => handleStatusChange(detailsModal._id, val)}
+                    onValueChange={(val) => handleStatusChange(detailsModal.id || detailsModal._id, val)}
                     disabled={detailsModal.status === "converted"}
                   >
                     <SelectTrigger className="w-full">
@@ -453,7 +450,7 @@ export default function AdminCRMPage() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Assigned Staff</p>
                   <Select
                     value={detailsModal.assignedTo || "unassigned"}
-                    onValueChange={(val) => handleAssigneeChange(detailsModal._id, val)}
+                    onValueChange={(val) => handleAssigneeChange(detailsModal.id || detailsModal._id, val)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -461,7 +458,7 @@ export default function AdminCRMPage() {
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {staffUsers.map((u: any) => (
-                        <SelectItem key={u._id} value={u._id}>{u.name}</SelectItem>
+                        <SelectItem key={u.id || u._id} value={u.id || u._id}>{u.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -491,7 +488,7 @@ export default function AdminCRMPage() {
                   <Button 
                     className="w-full gap-2" 
                     variant="outline"
-                    onClick={() => handleGenerateLink(detailsModal._id)}
+                    onClick={() => handleGenerateLink(detailsModal.id || detailsModal._id)}
                   >
                     <LinkIcon className="w-4 h-4" />
                     {detailsModal.intakeToken ? "Copy Existing Intake Link" : "Generate Client Intake Link"}
@@ -499,7 +496,7 @@ export default function AdminCRMPage() {
                   <Button 
                     className="w-full gap-2" 
                     onClick={() => setConvertModal({
-                      leadId: detailsModal._id,
+                      leadId: detailsModal.id || detailsModal._id,
                       leadName: detailsModal.fullName,
                       email: detailsModal.email,
                       phone: detailsModal.phone,

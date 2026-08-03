@@ -6,10 +6,13 @@ import { FolderOpen, FileText, Receipt, MessageSquare, CalendarDays, ArrowRight,
 import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useMyClient } from "@/client/queries/clients";
+import { useConfig } from "../../client/config-provider";
+import { useMessages } from "../../client/queries/communication";
 import { useCases } from "@/client/queries/cases";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
+import { useInvoices } from "@/client/queries/financial";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -24,10 +27,7 @@ export default function ClientDashboard() {
   const clientId = clientRecord?._id;
 
   const cases = useCases(clientId ? { clientId } : {}) || [];
-  const invoices = useQuery(
-    api.invoices.listInvoices,
-    clientId ? { clientId: clientId as any } : "skip",
-  ) || [];
+  const { data: invoices = [] } = useInvoices(clientId ? { clientId: clientId as any } : {});
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const users = useStaffDirectory() || [];
   const documents = useQuery(api.documents.listDocuments, {}) || [];
@@ -46,12 +46,10 @@ export default function ClientDashboard() {
 
   // Lightweight unread estimate: non-internal messages on client cases (best-effort)
   const firstCaseId = cases[0]?._id;
-  const msgs = useQuery(
-    api.messages.listMessages,
-    firstCaseId ? { caseId: firstCaseId as any, paginationOpts: { numItems: 50, cursor: null } } : "skip",
-  );
-  const unreadEstimate = (msgs?.page || []).filter(
-    (m: any) => !m.isInternal && currentUser && !(m.readBy || []).includes(currentUser._id),
+  const { data: msgsResponse } = useMessages(firstCaseId || "", false);
+  const msgs = msgsResponse?.page || [];
+  const unreadEstimate = msgs.filter(
+    (m: any) => !m.isInternal && currentUser && !(m.readBy || []).includes(currentUser._id || currentUser.id),
   ).length;
 
   if (clientRecord === undefined) {
@@ -149,8 +147,8 @@ export default function ClientDashboard() {
                     <span className="text-accent text-xs">{monthPart}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{matchedCase?.title || "Hearing"}</p>
-                    <p className="text-xs text-muted-foreground">{h.court} {h.time ? `— ${h.time}` : ""}</p>
+                     <p className="text-sm font-medium text-foreground">{matchedCase?.title || "Hearing"}</p>
+                     <p className="text-xs text-muted-foreground">{h.court} {h.time ? `— ${h.time}` : ""}</p>
                   </div>
                 </div>
               );

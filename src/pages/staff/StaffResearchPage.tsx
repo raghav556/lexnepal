@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useCases } from "@/client/queries/cases";
+import { useResearchNotes, useResearchCommands } from "@/client/queries/research";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -42,12 +43,10 @@ const MOCK_AI_RESPONSES = [
 ];
 
 export default function StaffResearchPage() {
-  const notes = (useQuery(api.research.listNotes as any, {}) || []) as any[];
+  const notes = useResearchNotes() || [];
   const cases = useCases({}) || [];
   
-  const createNote = useMutation(api.research.createNote as any);
-  const updateNote = useMutation(api.research.updateNote as any);
-  const deleteNote = useMutation(api.research.deleteNote as any);
+  const { createNote, updateNote, deleteNote } = useResearchCommands();
 
   // Vault States
   const [search, setSearch] = useState("");
@@ -165,7 +164,7 @@ export default function StaffResearchPage() {
 
     try {
       if (editingNote) {
-        await updateNote({ id: editingNote._id, ...payload });
+        await updateNote(editingNote._id, payload);
         toast.success("Note updated");
         if (selectedNote?._id === editingNote._id) setSelectedNote({ ...selectedNote, ...payload });
       } else {
@@ -183,7 +182,7 @@ export default function StaffResearchPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this note?")) return;
     try {
-      await deleteNote({ id });
+      await deleteNote(id);
       toast.success("Note deleted");
       if (selectedNote?._id === id) setSelectedNote(null);
     } catch {

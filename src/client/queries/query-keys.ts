@@ -40,6 +40,20 @@ export const queryKeys = {
     comments: (id: string) => ["tasks", "detail", id, "comments"] as const,
     workload: ["tasks", "workload"] as const,
   },
+  hearings: {
+    all: ["hearings"] as const,
+    list: (filters: unknown) => ["hearings", "list", filters] as const,
+    detail: (id: string) => ["hearings", "detail", id] as const,
+  },
+  sop: {
+    all: ["sop-templates"] as const,
+    list: (practiceArea?: string) => ["sop-templates", "list", practiceArea ?? "all"] as const,
+  },
+  research: {
+    all: ["research"] as const,
+    list: ["research", "list"] as const,
+    detail: (id: string) => ["research", "detail", id] as const,
+  },
   cms: {
     all: ["cms"] as const,
     collection: (scope: "public" | "admin", collection: string, filters: unknown) =>
@@ -49,5 +63,19 @@ export const queryKeys = {
     legal: (slug: string) => ["cms", "public", "legal", slug] as const,
     team: ["cms", "public", "team"] as const,
     applications: (filters: unknown) => ["cms", "admin", "applications", filters] as const,
+  },
+  financial: {
+    all: ["financial"] as const,
+    invoices: (filters?: unknown) => ["financial", "invoices", filters] as const,
+    timeEntries: (filters?: unknown) => ["financial", "time-entries", filters] as const,
+    trustTransactions: (filters?: unknown) => ["financial", "trust-transactions", filters] as const,
+    expenses: (filters?: unknown) => ["financial", "expenses", filters] as const,
+    payments: (filters?: unknown) => ["financial", "payments", filters] as const,
+  },
+  crm: {
+    all: ["crm"] as const,
+    leads: (filters?: unknown) => ["crm", "leads", filters] as const,
+    appointments: (filters?: unknown) => ["crm", "appointments", filters] as const,
+    availableSlots: (date: string) => ["crm", "available-slots", date] as const,
   },
 } as const;

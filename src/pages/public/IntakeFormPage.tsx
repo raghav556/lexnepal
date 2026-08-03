@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useIntakeByToken, useLeadCommands } from "@/client/queries/crm";
 import { Scale, CheckCircle2, ShieldCheck, Loader2, Upload, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -12,8 +11,8 @@ import { PRACTICE_AREAS } from "@/lib/lex-constants.ts";
 export default function IntakeFormPage() {
   const { token } = useParams<{ token: string }>();
   
-  const leadData = useQuery(api.leads.getIntakeByToken as any, token ? { token } : "skip") as any;
-  const submitIntake = useMutation(api.leads.submitIntake as any);
+  const { data: leadData, isLoading } = useIntakeByToken(token || "");
+  const { submitIntake } = useLeadCommands();
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +37,7 @@ export default function IntakeFormPage() {
     }
   }, [leadData, fullName]);
 
-  if (leadData === undefined) {
+  if (isLoading || leadData === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -110,8 +109,8 @@ export default function IntakeFormPage() {
       // In a real app, upload files to storage and get IDs. Here we mock it.
       const mockStorageIds = files.map((_, i) => `mock-upload-${Date.now()}-${i}`);
 
-      await submitIntake({
-        token,
+      await submitIntake.mutateAsync({
+        token: token || "",
         fullName,
         email,
         phone,

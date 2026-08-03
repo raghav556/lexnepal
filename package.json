@@ -52,6 +52,9 @@
     "migration:identity:shadow": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/shadow-read-identity.ts",
     "migration:cms": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-cms-export.ts",
     "migration:matters": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-matters-export.ts",
+    "migration:work-management": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-work-management-export.ts",
+    "migration:financial": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-financial-export.ts",
+    "migration:crm": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-crm-export.ts",
     "cms:verify-local": "npm run auth:verify-boundary && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/cms/verify-local.ts",
     "matters:verify-local": "npm run auth:verify-boundary && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/matters/verify-local.ts",
     "test:migration-characterization": "node --test tests/characterization/*.test.mjs"

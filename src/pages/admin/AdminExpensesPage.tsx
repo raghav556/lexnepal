@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -15,6 +13,7 @@ import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
+import { useExpenses, useExpenseStats, useExpenseCommands } from "@/client/queries/financial";
 
 const CATEGORIES: Record<string, string> = {
   office_rent: "Office Rent",
@@ -50,14 +49,12 @@ export default function AdminExpensesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   
-  const expenses = (useQuery(api.expenses.list as any, { category: categoryFilter, status: statusFilter }) || []) as any[];
-  const stats = (useQuery(api.expenses.getStats as any, {}) || {}) as any;
+  const { data: expenses = [] } = useExpenses({ category: categoryFilter, status: statusFilter });
+  const { data: stats = {} } = useExpenseStats();
   const cases = useCases({}) || [];
   const users = (useStaffDirectory() || []) as any[];
 
-  const createExpense = useMutation(api.expenses.create as any);
-  const approveExpense = useMutation(api.expenses.approve as any);
-  const deleteExpense = useMutation(api.expenses.remove as any);
+  const { createExpense: createExpenseMutation, approveExpense: approveExpenseMutation, deleteExpense: deleteExpenseMutation } = useExpenseCommands();
 
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +73,7 @@ export default function AdminExpensesPage() {
     }
     setIsSubmitting(true);
     try {
-      await createExpense({
+      await createExpenseMutation.mutateAsync({
         description: desc,
         amount: parseFloat(amount),
         category,
@@ -96,7 +93,7 @@ export default function AdminExpensesPage() {
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
-      await approveExpense({ id, status, approvedBy: currentUserId });
+      await approveExpenseMutation.mutateAsync({ id, status, approvedBy: currentUserId } as any);
       toast.success(`Expense ${status}`);
     } catch (err: any) {
       toast.error("Failed to update status");
@@ -106,7 +103,7 @@ export default function AdminExpensesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this expense record?")) return;
     try {
-      await deleteExpense({ id });
+      await deleteExpenseMutation.mutateAsync({ id });
       toast.success("Expense deleted");
     } catch (err: any) {
       toast.error("Failed to delete expense");

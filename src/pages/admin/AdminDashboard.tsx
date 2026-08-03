@@ -2,18 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.t
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } from "recharts";
 import { TrendingUp, FolderOpen, Users, DollarSign, Clock, Loader2 } from "lucide-react";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useUsers } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
+import { useInvoices, useTimeEntries } from "@/client/queries/financial";
 
 export default function AdminDashboard() {
   const cases = useCases({}) || [];
   const clients = useClients() || [];
   const users = useUsers() || [];
-  const invoices = useQuery(api.invoices.listInvoices, {}) || [];
-  const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
+  const { data: invoices = [] } = useInvoices({});
+  const { data: timeEntries = [] } = useTimeEntries({});
 
   const isLoading = cases === undefined;
 

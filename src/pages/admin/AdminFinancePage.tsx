@@ -12,6 +12,7 @@ import { useClients } from "@/client/queries/clients";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { useInvoices, useInvoiceCommands, useTrustTransactions, useTrustCommands, useTimeEntries } from "@/client/queries/financial";
 
 const STATUS_COLORS: Record<string, string> = {
   paid: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -21,15 +22,14 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminFinancePage() {
-  const invoices = useQuery(api.invoices.listInvoices, {}) || [];
-  const trustLedger = useQuery(api.invoices.listTrustTransactions, {}) || [];
-  const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
+  const { data: invoices = [] } = useInvoices({});
+  const { data: trustLedger = [] } = useTrustTransactions({});
+  const { data: timeEntries = [] } = useTimeEntries({});
   const cases = useCases({}) || [];
   const clients = useClients() || [];
 
-  const createInvoice = useMutation(api.invoices.createInvoiceFromTimeEntries);
-  const updateStatus = useMutation(api.invoices.updateInvoiceStatus);
-  const createTrust = useMutation(api.invoices.createTrustTransaction);
+  const { createInvoice: createInvoiceMutation, updateStatus: updateStatusMutation } = useInvoiceCommands();
+  const { createTrustTransaction: createTrustMutation } = useTrustCommands();
   const sendEmail = useMutation(api.communications.sendEmail);
 
   const [isDrafting, setIsDrafting] = useState(false);
@@ -37,7 +37,7 @@ export default function AdminFinancePage() {
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const isLoading = invoices === undefined || timeEntries === undefined;
+  const isLoading = false;
 
   const totalRevenue = invoices.filter((i: any) => i.status === "paid").reduce((s: number, i: any) => s + i.total, 0);
   const totalOutstanding = invoices.filter((i: any) => i.status !== "paid" && i.status !== "cancelled").reduce((s: number, i: any) => s + i.total, 0);
@@ -58,7 +58,7 @@ export default function AdminFinancePage() {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 15); // 15 days terms
       
-      await createInvoice({
+      await createInvoiceMutation.mutateAsync({
         caseId: selectedCaseId as any,
         clientId: (selectedCase?.clientId || "") as any,
         dueDate: dueDate.toISOString().split("T")[0],
@@ -90,10 +90,9 @@ export default function AdminFinancePage() {
   const handleStatus = async (invoice: any, status: "sent" | "paid" | "overdue" | "cancelled") => {
     setStatusBusy(invoice._id + status);
     try {
-      await updateStatus({
-        invoiceId: invoice._id,
+      await updateStatusMutation.mutateAsync({
+        id: invoice._id,
         status,
-        paidDate: status === "paid" ? new Date().toISOString().slice(0, 10) : undefined,
       });
       if (status === "sent") {
         const client = clients.find((c: any) => c._id === invoice.clientId);
@@ -123,7 +122,7 @@ export default function AdminFinancePage() {
         trustLedger
           .filter((t: any) => t.clientId === clientId)
           .reduce((s: number, t: any) => s + (t.type === "receipt" ? t.amount : -t.amount), 0) + amount;
-      await createTrust({
+      await createTrustMutation.mutateAsync({
         clientId,
         type: "receipt",
         amount,

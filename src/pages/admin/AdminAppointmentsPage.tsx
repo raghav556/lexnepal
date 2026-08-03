@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useAppointments, useAppointmentCommands } from "@/client/queries/crm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -13,15 +12,12 @@ import { FadeInUp } from "@/components/ui/animations.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
 
 export default function AdminAppointmentsPage() {
-  const appointments = useQuery(api.appointments.listAppointments, {}) || [];
-  const users = useStaffDirectory() || [];
+  const { data: appointments = [] } = useAppointments({});
+  const { data: users = [] } = useStaffDirectory() as any;
   
   const lawyers = users.filter((u: any) => ["partner", "associate", "senior_associate"].includes(u.role));
   
-  const createAppointment = useMutation(api.appointments.createAppointment);
-  const updateStatus = useMutation(api.appointments.updateAppointmentStatus);
-  const assignLawyer = useMutation(api.appointments.assignLawyerToAppointment);
-  const rescheduleAppointment = useMutation(api.appointments.rescheduleAppointment);
+  const { createAppointment, updateStatus, assignLawyer, rescheduleAppointment } = useAppointmentCommands();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [filter, setFilter] = useState("all");
@@ -53,8 +49,8 @@ export default function AdminAppointmentsPage() {
     const link = window.prompt("Enter meeting link (leave empty for none):");
     if (link === null) return;
     try {
-      await updateStatus({
-        id: id as any,
+      await updateStatus.mutateAsync({
+        appointmentId: id,
         status,
         meetingLink: link.trim() || undefined,
       });
@@ -66,7 +62,7 @@ export default function AdminAppointmentsPage() {
 
   const handleStatusUpdate = async (id: string, status: "confirmed" | "completed" | "cancelled") => {
     try {
-      await updateStatus({ id: id as any, status });
+      await updateStatus.mutateAsync({ appointmentId: id, status });
       toast.success(`Appointment marked as ${status}.`);
     } catch {
       toast.error("Failed to update status.");
@@ -75,7 +71,7 @@ export default function AdminAppointmentsPage() {
 
   const handleAssign = async (id: string, lawyerId: string) => {
     try {
-      await assignLawyer({ id: id as any, assignedLawyerId: lawyerId as any });
+      await assignLawyer.mutateAsync({ appointmentId: id, lawyerId });
       toast.success("Lawyer assigned.");
     } catch {
       toast.error("Failed to assign lawyer.");
@@ -85,9 +81,9 @@ export default function AdminAppointmentsPage() {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createAppointment({
+      await createAppointment.mutateAsync({
         ...createData,
-        assignedLawyerId: createData.assignedLawyerId ? createData.assignedLawyerId as any : undefined,
+        assignedLawyerId: createData.assignedLawyerId ? createData.assignedLawyerId : undefined,
       });
       toast.success("Appointment booked successfully.");
       setIsCreateOpen(false);
@@ -101,8 +97,8 @@ export default function AdminAppointmentsPage() {
     e.preventDefault();
     if (!rescheduleData) return;
     try {
-      await rescheduleAppointment({
-        id: rescheduleData.id as any,
+      await rescheduleAppointment.mutateAsync({
+        appointmentId: rescheduleData.id,
         date: rescheduleData.date,
         timeSlot: rescheduleData.timeSlot,
       });
@@ -210,7 +206,7 @@ export default function AdminAppointmentsPage() {
                           </div>
                           <div className="space-y-1">
                             {dayApts.slice(0, 3).map((apt: any) => (
-                              <div key={apt._id} className={`text-xs p-1 rounded truncate border ${apt.status === 'confirmed' ? 'bg-green-500/10 text-green-700 border-green-500/20' : apt.status === 'pending' ? 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20' : 'bg-muted text-muted-foreground'}`}>
+                              <div key={apt.id || apt._id} className={`text-xs p-1 rounded truncate border ${apt.status === 'confirmed' ? 'bg-green-500/10 text-green-700 border-green-500/20' : apt.status === 'pending' ? 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20' : 'bg-muted text-muted-foreground'}`}>
                                 {apt.timeSlot} - {apt.clientName ? apt.clientName.split(' ')[0] : 'Client'}
                               </div>
                             ))}
@@ -236,7 +232,7 @@ export default function AdminAppointmentsPage() {
             </div>
           ) : (
             filteredAppointments.map((apt: any) => (
-              <FadeInUp key={apt._id}>
+              <FadeInUp key={apt.id || apt._id}>
                 <Card className={`overflow-hidden border transition-colors ${apt.status === 'cancelled' ? 'opacity-70 bg-muted/30 border-dashed' : 'border-border'}`}>
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
@@ -300,7 +296,7 @@ export default function AdminAppointmentsPage() {
                           <div className="flex items-center gap-2">
                             <Select 
                               value={apt.assignedLawyerId || ""}
-                              onValueChange={(val) => handleAssign(apt._id, val)}
+                              onValueChange={(val) => handleAssign(apt.id || apt._id, val)}
                               disabled={apt.status === "cancelled" || apt.status === "completed"}
                             >
                               <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
@@ -308,7 +304,7 @@ export default function AdminAppointmentsPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 {lawyers.map((l: any) => (
-                                  <SelectItem key={l._id} value={l._id}>{l.name} ({l.role.replace("_", " ")})</SelectItem>
+                                  <SelectItem key={l.id || l._id} value={l.id || l._id}>{l.name} ({l.role.replace("_", " ")})</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -316,20 +312,20 @@ export default function AdminAppointmentsPage() {
                           
                           <div className="flex flex-wrap items-center gap-2">
                             {apt.status !== "cancelled" && apt.status !== "completed" && (
-                              <Button variant="outline" size="sm" onClick={() => setRescheduleData({ id: apt._id, date: apt.date, timeSlot: apt.timeSlot })}>
+                              <Button variant="outline" size="sm" onClick={() => setRescheduleData({ id: apt.id || apt._id, date: apt.date, timeSlot: apt.timeSlot })}>
                                 <Edit className="w-4 h-4 mr-2" /> Reschedule
                               </Button>
                             )}
 
                             {apt.status === "pending" && (
                               <>
-                                <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleStatusUpdate(apt._id, "cancelled")}>
+                                <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleStatusUpdate(apt.id || apt._id, "cancelled")}>
                                   <XCircle className="w-4 h-4 mr-2" /> Cancel
                                 </Button>
-                                <Button size="sm" onClick={() => handleAddMeetingLink(apt._id, "confirmed")}>
+                                <Button size="sm" onClick={() => handleAddMeetingLink(apt.id || apt._id, "confirmed")}>
                                   <Video className="w-4 h-4 mr-2" /> Add Video Link
                                 </Button>
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleStatusUpdate(apt._id, "confirmed")}>
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleStatusUpdate(apt.id || apt._id, "confirmed")}>
                                   <CheckCircle className="w-4 h-4 mr-2" /> Confirm (In-Person)
                                 </Button>
                               </>
@@ -337,15 +333,15 @@ export default function AdminAppointmentsPage() {
 
                             {apt.status === "confirmed" && (
                               <>
-                                <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleStatusUpdate(apt._id, "cancelled")}>
+                                <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleStatusUpdate(apt.id || apt._id, "cancelled")}>
                                   <XCircle className="w-4 h-4 mr-2" /> Cancel
                                 </Button>
                                 {!apt.meetingLink && (
-                                  <Button size="sm" onClick={() => handleAddMeetingLink(apt._id, "confirmed")}>
+                                  <Button size="sm" onClick={() => handleAddMeetingLink(apt.id || apt._id, "confirmed")}>
                                     <Video className="w-4 h-4 mr-2" /> Add Video Link
                                   </Button>
                                 )}
-                                <Button variant="secondary" size="sm" onClick={() => handleStatusUpdate(apt._id, "completed")}>
+                                <Button variant="secondary" size="sm" onClick={() => handleStatusUpdate(apt.id || apt._id, "completed")}>
                                   Mark Completed
                                 </Button>
                               </>
@@ -409,7 +405,7 @@ export default function AdminAppointmentsPage() {
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={createData.assignedLawyerId} onChange={e => setCreateData({...createData, assignedLawyerId: e.target.value})}>
                 <option value="">Do not assign yet</option>
                 {lawyers.map((l: any) => (
-                  <option key={l._id} value={l._id}>{l.name}</option>
+                  <option key={l.id || l._id} value={l.id || l._id}>{l.name}</option>
                 ))}
               </select>
             </div>

@@ -142,6 +142,12 @@ export const confidentialityEnum = pgEnum("confidentiality_level", [
   "confidential",
   "privileged",
 ]);
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+]);
 export const signatureStatusEnum = pgEnum("signature_status", ["pending", "signed"]);
 export const signatureMethodEnum = pgEnum("signature_method", ["draw", "type", "upload"]);
 export const envelopeStatusEnum = pgEnum("envelope_status", [
@@ -233,12 +239,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "message",
   "system",
 ]);
-export const appointmentStatusEnum = pgEnum("appointment_status", [
-  "pending",
-  "confirmed",
-  "completed",
-  "cancelled",
-]);
+
 export const expenseCategoryEnum = pgEnum("expense_category", [
   "office_rent",
   "utilities",
@@ -1485,6 +1486,30 @@ export const leads = pgTable(
     index("leads_firm_assigned_idx").on(table.firmId, table.assignedTo),
   ],
 );
+export const appointments = pgTable(
+  "appointments",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    clientName: text("client_name").notNull(),
+    clientEmail: text("client_email"),
+    clientPhone: text("client_phone").notNull(),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    practiceArea: text("practice_area").notNull(),
+    date: date("date").notNull(),
+    timeSlot: text("time_slot").notNull(),
+    notes: text("notes"),
+    status: appointmentStatusEnum("status").default("pending").notNull(),
+    assignedLawyerId: uuid("assigned_lawyer_id").references(() => users.id, { onDelete: "set null" }),
+    meetingLink: text("meeting_link"),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    index("appointments_firm_date_idx").on(table.firmId, table.date),
+    index("appointments_firm_status_idx").on(table.firmId, table.status),
+    index("appointments_firm_assigned_idx").on(table.firmId, table.assignedLawyerId),
+  ],
+);
 export const attendance = pgTable(
   "attendance",
   {
@@ -1572,36 +1597,7 @@ export const notifications = pgTable(
     index("notifications_firm_created_idx").on(table.firmId, table.createdAt),
   ],
 );
-export const appointments = pgTable(
-  "appointments",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    clientName: text("client_name").notNull(),
-    clientEmail: text("client_email"),
-    clientPhone: text("client_phone").notNull(),
-    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
-    practiceArea: text("practice_area").notNull(),
-    appointmentDate: date("appointment_date").notNull(),
-    timeSlot: text("time_slot").notNull(),
-    notes: text("notes"),
-    status: appointmentStatusEnum("status").default("pending").notNull(),
-    assignedLawyerId: uuid("assigned_lawyer_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    meetingLink: text("meeting_link"),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    index("appointments_firm_date_idx").on(table.firmId, table.appointmentDate),
-    index("appointments_firm_status_idx").on(table.firmId, table.status),
-    index("appointments_firm_lawyer_date_idx").on(
-      table.firmId,
-      table.assignedLawyerId,
-      table.appointmentDate,
-    ),
-  ],
-);
+
 export const sessions = pgTable(
   "sessions",
   {

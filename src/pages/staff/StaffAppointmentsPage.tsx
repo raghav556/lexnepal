@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useAppointments, useAppointmentCommands } from "@/client/queries/crm";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -10,11 +9,11 @@ import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 export default function StaffAppointmentsPage() {
   const user = useCurrentUser();
-  const allAppointments = useQuery(api.appointments.listAppointments, {}) || [];
+  const { data: allAppointments = [] } = useAppointments({});
   
   // Filter for appointments assigned to the logged-in staff member
-  const appointments = allAppointments.filter((a: any) => a.assignedLawyerId === user?._id);
-  const updateStatus = useMutation(api.appointments.updateAppointmentStatus);
+  const appointments = allAppointments.filter((a: any) => a.assignedLawyerId === user?.id || a.assignedLawyerId === (user as any)?._id);
+  const { updateStatus } = useAppointmentCommands();
 
   const [filter, setFilter] = useState("all");
 
@@ -26,11 +25,11 @@ export default function StaffAppointmentsPage() {
     const link = window.prompt("Enter meeting link (leave empty for none):");
     if (link === null) return;
     try {
-      await updateStatus({
-        id: id as any,
+      await updateStatus.mutateAsync({
+        appointmentId: id,
         status: "confirmed",
         meetingLink: link.trim() || undefined,
-      } as any);
+      });
       toast.success(link.trim() ? "Meeting link saved and appointment confirmed." : "Appointment confirmed.");
     } catch {
       toast.error("Failed to save meeting link.");
@@ -39,7 +38,7 @@ export default function StaffAppointmentsPage() {
 
   const handleConfirm = async (id: string) => {
     try {
-      await updateStatus({ id: id as any, status: "confirmed" });
+      await updateStatus.mutateAsync({ appointmentId: id, status: "confirmed" });
       toast.success("Appointment confirmed.");
     } catch {
       toast.error("Failed to confirm.");
@@ -67,7 +66,7 @@ export default function StaffAppointmentsPage() {
           </div>
         ) : (
           filteredAppointments.map((apt: any) => (
-            <Card key={apt._id} className="overflow-hidden hover:border-accent transition-colors">
+            <Card key={apt.id || apt._id} className="overflow-hidden hover:border-accent transition-colors">
               <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row">
                   <div className="bg-secondary/50 p-6 md:w-56 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
@@ -99,13 +98,13 @@ export default function StaffAppointmentsPage() {
 
                     <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border mt-2">
                       {apt.status === "pending" && (
-                        <Button size="sm" variant="outline" className="gap-2" onClick={() => handleConfirm(apt._id)}>
+                        <Button size="sm" variant="outline" className="gap-2" onClick={() => handleConfirm(apt.id || apt._id)}>
                           <CheckCircle className="w-4 h-4" /> Confirm
                         </Button>
                       )}
 
                       {!apt.meetingLink ? (
-                        <Button size="sm" className="gap-2" onClick={() => handleAddMeetingLink(apt._id)}>
+                        <Button size="sm" className="gap-2" onClick={() => handleAddMeetingLink(apt.id || apt._id)}>
                           <Video className="w-4 h-4" /> Add Meeting Link
                         </Button>
                       ) : (

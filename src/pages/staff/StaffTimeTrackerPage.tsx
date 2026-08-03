@@ -5,16 +5,14 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Clock, Play, Square, Plus, Trash2, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
+import { useTimeEntries, useTimeEntryCommands } from "@/client/queries/financial";
 import { useCases } from "@/client/queries/cases";
 import { Input } from "@/components/ui/input.tsx";
 
 export default function StaffTimeTrackerPage() {
-  const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
+  const { data: timeEntries = [] } = useTimeEntries({});
   const cases = useCases({}) || [];
-  const createTimeEntry = useMutation(api.timeEntries.createTimeEntry);
-  const deleteTimeEntry = useMutation(api.timeEntries.deleteTimeEntry);
+  const { createTimeEntry: createTimeEntryMutation, deleteTimeEntry: deleteTimeEntryMutation } = useTimeEntryCommands();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -70,7 +68,7 @@ export default function StaffTimeTrackerPage() {
     const mins = Math.max(1, Math.round(elapsedSeconds / 60));
     setRunning(false);
     try {
-      await createTimeEntry({
+      await createTimeEntryMutation.mutateAsync({
         caseId: timerCaseId as any,
         description: timerDesc,
         minutes: mins,
@@ -94,7 +92,7 @@ export default function StaffTimeTrackerPage() {
     }
     setIsSubmitting(true);
     try {
-      await createTimeEntry({
+      await createTimeEntryMutation.mutateAsync({
         caseId: caseId as any,
         description,
         minutes: Number(minutes),
@@ -119,7 +117,7 @@ export default function StaffTimeTrackerPage() {
   const handleDeleteEntry = async (entryId: any) => {
     if (!confirm("Are you sure you want to delete this time entry?")) return;
     try {
-      await deleteTimeEntry({ entryId });
+      await deleteTimeEntryMutation.mutateAsync({ id: entryId });
       toast.success("Time entry deleted.");
     } catch (err: any) {
       toast.error(err?.message || "Failed to delete entry.");

@@ -103,3 +103,36 @@ export interface ListTasksInput {
   caseId?: string;
   assignedTo?: string;
 }
+
+export interface HearingDto {
+  _id: string;
+  firmId?: string;
+  caseId: string;
+  court: string;
+  judge?: string | null;
+  dateGregorian: string;
+  dateBs: string;
+  time?: string | null;
+  purpose?: string | null;
+  outcome?: string | null;
+  nextDateGregorian?: string | null;
+  nextDateBs?: string | null;
+  status: string;
+  notes?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ListHearingsInput {
+  caseId?: string;
+}
+
+export interface ResearchDto {
+  _id: string;
+  firmId?: string;
+  title: string;
+  category: string;
+  tags: string[];
+  content: string;
+  authorId: string;
+  [key: string]: unknown;
+}
