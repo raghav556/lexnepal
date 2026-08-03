@@ -1,13 +1,14 @@
 import React from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useNews } from "@/client/queries/cms";
 import { RevealText, FadeInUp, HoverGlowCard } from "@/components/ui/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Newspaper, Trophy, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 
 export default function NewsPage() {
-  const news = useQuery(api.cms.listNewsAndAwards, {});
+  const news = useNews({}, "public");
 
   const getIcon = (type: string) => {
     switch (type) {

@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { Scale, Shield, Users, Target, Award, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsSettings } from "@/client/queries/cms";
 
 const ICON_MAP: Record<string, any> = {
   Scale, Shield, Users, Target, Award
@@ -27,7 +26,7 @@ const DEFAULT_TIMELINE = [
 const sectionPad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 
 export default function AboutPage() {
-  const settings = useQuery(api.cms.getSettings) || {};
+  const settings = useCmsSettings("public") || {};
   const data = settings.about_page || {};
 
   const heroTitle = data.hero?.title || "Modernizing Legal Practice in Nepal";

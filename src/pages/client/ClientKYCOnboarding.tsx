@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, ShieldCheck, CheckCircle2, XCircle, Clock, FileText } from "lucide-react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useClientCommands, useMyClient } from "@/client/queries/clients";
 import { toast } from "sonner";
 import { RevealText, FadeInUp } from "@/components/ui/animations";
 import { cn } from "@/lib/utils.ts";
@@ -40,7 +39,9 @@ function StatusTimeline({ status }: { status: string }) {
         return (
           <React.Fragment key={s.key}>
             {i > 0 && (
-              <div className={cn("h-0.5 flex-1 min-w-[0.5rem]", done ? "bg-accent" : "bg-border")} />
+              <div
+                className={cn("h-0.5 flex-1 min-w-[0.5rem]", done ? "bg-accent" : "bg-border")}
+              />
             )}
             <div
               className={cn(
@@ -71,9 +72,9 @@ function StatusTimeline({ status }: { status: string }) {
 }
 
 export default function ClientKYCOnboarding() {
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const submitKyc = useMutation(api.clients.submitKyc);
+  const clientRecord = useMyClient();
+  const clientCommands = useClientCommands();
+  const submitKyc = clientCommands.submitKyc;
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -90,21 +91,7 @@ export default function ClientKYCOnboarding() {
   const status = clientRecord?.kycStatus;
 
   const uploadFile = async (file: File, docType: DocType): Promise<UploadedFile> => {
-    const postUrl = await generateUploadUrl();
-    let storageId = "";
-    if (postUrl === "mock-upload-url") {
-      storageId = `mock-kyc-${docType}-${Date.now()}-${file.name}`;
-    } else {
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-      if (!result.ok) throw new Error(`Upload failed: ${result.statusText}`);
-      const json = await result.json();
-      storageId = json.storageId;
-    }
-    return { name: file.name, storageId, docType, mimeType: file.type || undefined };
+    return clientCommands.uploadKycFile(file, docType);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,10 +103,7 @@ export default function ClientKYCOnboarding() {
       for (const file of files) {
         uploaded.push(await uploadFile(file, activeDocType));
       }
-      setUploadedFiles((prev) => [
-        ...prev.filter((f) => f.docType !== activeDocType),
-        ...uploaded,
-      ]);
+      setUploadedFiles((prev) => [...prev.filter((f) => f.docType !== activeDocType), ...uploaded]);
       toast.success(
         activeDocType === "government_id"
           ? "Government ID uploaded."
@@ -228,11 +212,9 @@ export default function ClientKYCOnboarding() {
       {showStatusCard && (
         <Card className="py-0 gap-0 overflow-hidden">
           <CardContent className="p-4 sm:p-8 space-y-6">
-            <StatusTimeline
-              status={justSubmitted ? "submitted" : status || "pending"}
-            />
+            <StatusTimeline status={justSubmitted ? "submitted" : status || "pending"} />
             <div className="text-center space-y-3">
-              {(status === "verified") && (
+              {status === "verified" && (
                 <>
                   <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
                   <p className="font-semibold">KYC verified</p>
@@ -370,7 +352,9 @@ export default function ClientKYCOnboarding() {
                             ) : (
                               <Upload className="w-8 h-8 text-muted-foreground mb-3" />
                             )}
-                            <h4 className="font-semibold mb-1 text-sm sm:text-base">{zone.title}</h4>
+                            <h4 className="font-semibold mb-1 text-sm sm:text-base">
+                              {zone.title}
+                            </h4>
                             <p className="text-xs text-muted-foreground mb-3 break-words">
                               {file ? file.name : zone.hint}
                             </p>
@@ -428,8 +412,8 @@ export default function ClientKYCOnboarding() {
                         onChange={(e) => setConsentAccepted(e.target.checked)}
                       />
                       <span className="text-muted-foreground leading-relaxed">
-                        I confirm these documents are mine (or I am authorized to submit them), and I
-                        consent to Srimar Law storing them for identity verification and AML
+                        I confirm these documents are mine (or I am authorized to submit them), and
+                        I consent to Srimar Law storing them for identity verification and AML
                         compliance (consent version kyc-consent-v1).
                       </span>
                     </label>
@@ -454,7 +438,10 @@ export default function ClientKYCOnboarding() {
                       <h4 className="font-semibold text-sm">Review before submit</h4>
                       <ul className="space-y-2">
                         {uploadedFiles.map((file) => (
-                          <li key={file.storageId} className="flex items-start gap-2 text-sm min-w-0">
+                          <li
+                            key={file.storageId}
+                            className="flex items-start gap-2 text-sm min-w-0"
+                          >
                             <FileText className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                             <span className="break-words min-w-0">
                               <span className="font-medium">

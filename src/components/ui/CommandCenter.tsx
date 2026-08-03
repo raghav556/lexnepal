@@ -4,20 +4,22 @@ import { X, Send, Lock, MessageCircle, FileText, User, Paperclip, Users, ShieldC
 import { Button } from "./button.tsx";
 import { Input } from "./input.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
+import { useCases } from "@/client/queries/cases";
 
 export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const currentUser = useCurrentUser();
-  const allCases = useQuery(api.cases.listCases, {}) || [];
+  const allCases = useCases({}) || [];
   
   // Security/Privacy Filter: Admins see all cases. Lawyers only see cases assigned to them.
   const cases = currentUser?.role === "admin" 
     ? allCases 
     : allCases.filter((c: any) => c.assignedLawyerId === currentUser?._id);
 
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const users = useStaffDirectory() || [];
   const STAFF_ROLES = ["admin", "partner", "associate", "paralegal"];
   const staffUsers = users.filter((u: any) => STAFF_ROLES.includes(u.role) && u._id !== currentUser?._id);
   

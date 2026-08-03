@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { Authenticated, Unauthenticated, AuthLoading } from "@/client/data/convex-bridge.ts";
 import { User as UserIcon, AlertTriangle, Activity, FileText, Settings, Shield, LogOut, Menu, X, Loader2, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, ChevronUp, Navigation, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
@@ -40,6 +40,7 @@ const NAV: NavItem[] = [
   { label: "Careers", i18nKey: "nav.careers", href: "/admin/cms/careers", icon: Briefcase },
   { label: "Resources", i18nKey: "nav.resources", href: "/admin/cms/resources", icon: FileText },
   { label: "About Page", i18nKey: "nav.about_page", href: "/admin/cms/about", icon: FileText },
+  { label: "Legal & Newsletter", href: "/admin/cms/governance", icon: Shield },
 
   { heading: "System" },
   { label: "Doc Generator", i18nKey: "nav.doc_generator", href: "/admin/document-generator", icon: FileText },

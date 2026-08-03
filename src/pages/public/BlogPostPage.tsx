@@ -1,7 +1,6 @@
 import { motion, useScroll, useSpring } from "motion/react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useBlogPost, useBlogPosts } from "@/client/queries/cms";
 import { ArrowLeft, Calendar, User, Clock, BookOpen, Share2, Facebook, Twitter, Linkedin, Mail, ArrowRight, Scale, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -17,8 +16,8 @@ function estimateReadTime(text?: string) {
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const post = useQuery(api.cms.getBlogPostBySlug as any, { slug });
-  const allPosts = useQuery(api.cms.listBlogPosts, { status: "published" }) || [];
+  const post = useBlogPost(slug ?? "");
+  const allPosts = useBlogPosts({ status: "published" }, "public") || [];
   
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {

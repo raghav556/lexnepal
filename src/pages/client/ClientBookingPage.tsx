@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { Calendar as CalendarIcon, Clock, Video, Phone, Users, CheckCircle2, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -11,12 +13,9 @@ function formatDate(date: Date) {
 }
 
 export default function ClientBookingPage() {
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useQuery(
-    api.cases.listCases,
-    clientId ? { clientId: clientId as any } : "skip",
-  ) || [];
+  const cases = useCases(clientId ? { clientId } : {}) || [];
 
   const assignedLawyerId = useMemo(() => {
     const active = cases.find((c: any) => c.status === "active") || cases[0];

@@ -4,20 +4,28 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { toast } from "sonner";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
-import { Loader2, Link2, Copy, CheckCircle2 } from "lucide-react";
+import { Loader2, Link2, Copy, CheckCircle2, Ban } from "lucide-react";
 
 export function DocumentShareModal({ isOpen, onClose, document }: { isOpen: boolean, onClose: () => void, document: any }) {
   const [expiresIn, setExpiresIn] = useState<string>("7d");
   const [password, setPassword] = useState("");
+  const [allowDownload, setAllowDownload] = useState(true);
+  const [maxDownloads, setMaxDownloads] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   
   const createShareLink = useMutation(api.documents.createShareLink);
+  const revokeShareLink = useMutation(api.documents.revokeShareLink);
+  const shares = useQuery(api.documents.listShareLinks, document ? { documentId: document._id } : "skip") || [];
 
   const handleGenerate = async () => {
     if (!document) return;
+    if (password && password.length < 10) {
+      toast.error("Share passwords must be at least 10 characters.");
+      return;
+    }
     setIsGenerating(true);
     try {
       const now = new Date();
@@ -28,7 +36,9 @@ export function DocumentShareModal({ isOpen, onClose, document }: { isOpen: bool
       const token = await createShareLink({
         documentId: document._id,
         expiresAt: expiresIn !== "never" ? now.toISOString() : undefined,
-        passwordHash: password ? password : undefined, // Plaintext for prototype
+        password: password || undefined,
+        allowDownload,
+        maxDownloads: maxDownloads ? Number(maxDownloads) : undefined,
       });
       
       const link = `${window.location.origin}/share/${token}`;
@@ -52,6 +62,8 @@ export function DocumentShareModal({ isOpen, onClose, document }: { isOpen: bool
     setShareLink(null);
     setPassword("");
     setExpiresIn("7d");
+    setAllowDownload(true);
+    setMaxDownloads("");
     onClose();
   };
 
@@ -90,6 +102,16 @@ export function DocumentShareModal({ isOpen, onClose, document }: { isOpen: bool
                 </Select>
               </div>
 
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={allowDownload} onChange={(event) => setAllowDownload(event.target.checked)} />
+                Allow recipients to download the file
+              </label>
+
+              <div>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Maximum Downloads (Optional)</label>
+                <Input type="number" min="1" max="10000" placeholder="Unlimited" value={maxDownloads} onChange={(event) => setMaxDownloads(event.target.value)} />
+              </div>
+
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Protect with Password (Optional)</label>
                 <Input 
@@ -107,7 +129,7 @@ export function DocumentShareModal({ isOpen, onClose, document }: { isOpen: bool
                 <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold">Link Ready!</p>
-                  <p className="text-xs mt-1">Anyone with this link can view and download the document.</p>
+                  <p className="text-xs mt-1">Anyone with this link can view the document{allowDownload ? " and download it" : ""}.</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -124,6 +146,21 @@ export function DocumentShareModal({ isOpen, onClose, document }: { isOpen: bool
             </div>
           )}
         </div>
+
+        {shares.some((share: any) => share.isActive) && (
+          <div className="space-y-2 border-t pt-4">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Active Links</p>
+            {shares.filter((share: any) => share.isActive).map((share: any) => (
+              <div key={share._id} className="flex items-center justify-between rounded-lg border p-2 text-xs">
+                <span>{share.expiresAt ? `Expires ${new Date(share.expiresAt).toLocaleDateString()}` : "Never expires"} · {share.downloadsCount} downloads</span>
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={async () => {
+                  await revokeShareLink({ shareId: share._id });
+                  toast.success("Share link revoked.");
+                }}><Ban className="w-3.5 h-3.5 mr-1" /> Revoke</Button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <DialogFooter className="pt-4 border-t border-border mt-2">
           {!shareLink ? (

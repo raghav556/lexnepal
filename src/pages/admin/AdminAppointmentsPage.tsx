@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -10,10 +10,11 @@ import { Calendar as CalendarIcon, Clock, Video, UserPlus, CheckCircle, XCircle,
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
+import { useStaffDirectory } from "@/client/queries/identity";
 
 export default function AdminAppointmentsPage() {
   const appointments = useQuery(api.appointments.listAppointments, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const users = useStaffDirectory() || [];
   
   const lawyers = users.filter((u: any) => ["partner", "associate", "senior_associate"].includes(u.role));
   

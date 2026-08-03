@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
+import { useCases } from "@/client/queries/cases";
 
 const CATEGORIES: Record<string, string> = {
   office_rent: "Office Rent",
@@ -50,8 +52,8 @@ export default function AdminExpensesPage() {
   
   const expenses = (useQuery(api.expenses.list as any, { category: categoryFilter, status: statusFilter }) || []) as any[];
   const stats = (useQuery(api.expenses.getStats as any, {}) || {}) as any;
-  const cases = (useQuery(api.cases.listCases as any, {}) || []) as any[];
-  const users = (useQuery(api.users.listStaffDirectory as any, {}) || []) as any[];
+  const cases = useCases({}) || [];
+  const users = (useStaffDirectory() || []) as any[];
 
   const createExpense = useMutation(api.expenses.create as any);
   const approveExpense = useMutation(api.expenses.approve as any);

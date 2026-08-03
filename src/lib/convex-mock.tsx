@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
-export { ConvexReactClient } from "./convex-client-stub.ts";
+export { ConvexReactClient } from "./convex-client-stub";
 import { getFunctionName } from "convex/server";
 // Types matching Convex schema
 export interface LexUser {
@@ -100,7 +100,24 @@ export interface LexHearing {
   outcome?: string;
   nextDateGregorian?: string;
   nextDateBs?: string;
-  status: "scheduled" | "completed" | "adjourned" | "cancelled" | "postponed" | "not_reached" | "bench_disqualified" | "could_not_present" | "part_heard" | "continuous" | "procedural_order" | "evidence_exam" | "final_judgment" | "dismissed" | "settled" | "archived" | "on_hold";
+  status:
+    | "scheduled"
+    | "completed"
+    | "adjourned"
+    | "cancelled"
+    | "postponed"
+    | "not_reached"
+    | "bench_disqualified"
+    | "could_not_present"
+    | "part_heard"
+    | "continuous"
+    | "procedural_order"
+    | "evidence_exam"
+    | "final_judgment"
+    | "dismissed"
+    | "settled"
+    | "archived"
+    | "on_hold";
   notes?: string;
 }
 
@@ -255,7 +272,16 @@ export interface LexAppointment {
 export interface LexExpense {
   _id: string;
   description: string;
-  category: "office_rent" | "utilities" | "court_fees" | "courier" | "printing" | "travel" | "supplies" | "software" | "other";
+  category:
+    | "office_rent"
+    | "utilities"
+    | "court_fees"
+    | "courier"
+    | "printing"
+    | "travel"
+    | "supplies"
+    | "software"
+    | "other";
   amount: number;
   caseId?: string;
   receiptId?: string;
@@ -313,7 +339,15 @@ export interface LexDocument {
   _id: string;
   caseId?: string;
   title: string;
-  type: "pleading" | "affidavit" | "contract" | "poa" | "correspondence" | "evidence" | "template" | "other";
+  type:
+    | "pleading"
+    | "affidavit"
+    | "contract"
+    | "poa"
+    | "correspondence"
+    | "evidence"
+    | "template"
+    | "other";
   storageId: string;
   mimeType: string;
   sizeBytes: number;
@@ -336,6 +370,10 @@ export interface LexDocument {
   viewedAt?: string;
   signerUserAgent?: string;
   sha256?: string;
+  uploadStatus?: "quarantined" | "scanning" | "clean" | "rejected";
+  isDeleted?: boolean;
+  isOnLegalHold?: boolean;
+  retentionUntil?: string;
   _creationTime: number;
 }
 
@@ -362,7 +400,13 @@ export interface LexTemplate {
 export interface LexResearchNote {
   _id: string;
   title: string;
-  category: "supreme_court" | "high_court" | "district_court" | "commentary" | "procedure" | "template_research";
+  category:
+    | "supreme_court"
+    | "high_court"
+    | "district_court"
+    | "commentary"
+    | "procedure"
+    | "template_research";
   tags: string[];
   content: string;
   authorId: string;
@@ -370,37 +414,109 @@ export interface LexResearchNote {
 }
 
 const INITIAL_USERS: LexUser[] = [
-  { 
-    _id: "u1", name: "Ramesh Badal", email: "ramesh@srimarlaw.com.np", role: "partner", isActive: true, isPublicFacing: true, phone: "+977-9860520520", barCouncilNumber: "NPC-001234", barCouncilExpiry: "2083-05-15",
-    avatarUrl: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=256&h=256&auto=format&fit=crop",
+  {
+    _id: "u1",
+    name: "Ramesh Badal",
+    email: "ramesh@srimarlaw.com.np",
+    role: "partner",
+    isActive: true,
+    isPublicFacing: true,
+    phone: "+977-9860520520",
+    barCouncilNumber: "NPC-001234",
+    barCouncilExpiry: "2083-05-15",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=256&h=256&auto=format&fit=crop",
     bio: "Ramesh Badal is a Senior Lawyer and the Former Attorney General of Nepal. With unparalleled expertise in constitutional and corporate law, he leads Srimar Law's high-stakes litigation.",
-    linkedinUrl: "https://linkedin.com", twitterUrl: "https://twitter.com", publicEmail: "ramesh@srimarlaw.com.np"
+    linkedinUrl: "https://linkedin.com",
+    twitterUrl: "https://twitter.com",
+    publicEmail: "ramesh@srimarlaw.com.np",
   },
-  { 
-    _id: "u2", name: "Sangit Dhungana", email: "sangit@srimarlaw.com.np", role: "associate", isActive: true, isPublicFacing: true, phone: "+977-9860520520", barCouncilNumber: "NPC-005678", barCouncilExpiry: "2082-12-30",
-    avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&h=256&auto=format&fit=crop",
+  {
+    _id: "u2",
+    name: "Sangit Dhungana",
+    email: "sangit@srimarlaw.com.np",
+    role: "associate",
+    isActive: true,
+    isPublicFacing: true,
+    phone: "+977-9860520520",
+    barCouncilNumber: "NPC-005678",
+    barCouncilExpiry: "2082-12-30",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&h=256&auto=format&fit=crop",
     bio: "Sangit Dhungana is a dedicated Associate Lawyer at Srimar Law, specializing in corporate compliance, dispute resolution, and civil litigation.",
-    linkedinUrl: "https://linkedin.com", publicEmail: "sangit@srimarlaw.com.np"
+    linkedinUrl: "https://linkedin.com",
+    publicEmail: "sangit@srimarlaw.com.np",
   },
-  { 
-    _id: "u6", name: "Rajan Sharma", email: "rajan@srimarlaw.com.np", role: "associate", isActive: true, isPublicFacing: true, phone: "+977 9801122334", barCouncilNumber: "NPC-008910", barCouncilExpiry: "2084-01-10",
-    avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256&h=256&auto=format&fit=crop",
+  {
+    _id: "u6",
+    name: "Rajan Sharma",
+    email: "rajan@srimarlaw.com.np",
+    role: "associate",
+    isActive: true,
+    isPublicFacing: true,
+    phone: "+977 9801122334",
+    barCouncilNumber: "NPC-008910",
+    barCouncilExpiry: "2084-01-10",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256&h=256&auto=format&fit=crop",
     bio: "Rajan specializes in intellectual property and tech law. He advises Nepal's leading startups on regulatory compliance and data protection frameworks.",
-    linkedinUrl: "https://linkedin.com", twitterUrl: "https://twitter.com"
+    linkedinUrl: "https://linkedin.com",
+    twitterUrl: "https://twitter.com",
   },
-  { 
-    _id: "u7", name: "Priya Gurung", email: "priya@srimarlaw.com.np", role: "associate", isActive: true, isPublicFacing: true, phone: "+977 9811223344", barCouncilNumber: "NPC-009988", barCouncilExpiry: "2085-02-15",
-    avatarUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=256&h=256&auto=format&fit=crop",
+  {
+    _id: "u7",
+    name: "Priya Gurung",
+    email: "priya@srimarlaw.com.np",
+    role: "associate",
+    isActive: true,
+    isPublicFacing: true,
+    phone: "+977 9811223344",
+    barCouncilNumber: "NPC-009988",
+    barCouncilExpiry: "2085-02-15",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=256&h=256&auto=format&fit=crop",
     bio: "Priya is a dedicated advocate focusing on family law and dispute resolution. She is known for her empathetic approach and fierce courtroom advocacy.",
-    publicEmail: "priya@srimarlaw.com.np"
+    publicEmail: "priya@srimarlaw.com.np",
   },
-  { _id: "u3", name: "Hari Prasad", email: "hari@client.com", role: "client", isActive: true, phone: "+977 9803098765" },
-  { _id: "u4", name: "Gita Nepal", email: "gita@admin.com", role: "admin", isActive: true, phone: "+977 9812345678" },
-  { _id: "u5", name: "Krishna Aryal", email: "krishna@intern.com", role: "intern", isActive: true, phone: "+977 9860112233" }
+  {
+    _id: "u3",
+    name: "Hari Prasad",
+    email: "hari@client.com",
+    role: "client",
+    isActive: true,
+    phone: "+977 9803098765",
+  },
+  {
+    _id: "u4",
+    name: "Gita Nepal",
+    email: "gita@admin.com",
+    role: "admin",
+    isActive: true,
+    phone: "+977 9812345678",
+  },
+  {
+    _id: "u5",
+    name: "Krishna Aryal",
+    email: "krishna@intern.com",
+    role: "intern",
+    isActive: true,
+    phone: "+977 9860112233",
+  },
 ];
 
 const INITIAL_CLIENTS: LexClient[] = [
-  { _id: "c1", fullName: "Hari Prasad", type: "individual", email: "hari@client.com", phone: "+977 9803098765", address: "Koteshwor, Kathmandu", kycStatus: "verified", isActive: true, notes: "Regular property dispute consultations.", userId: "u3" },
+  {
+    _id: "c1",
+    fullName: "Hari Prasad",
+    type: "individual",
+    email: "hari@client.com",
+    phone: "+977 9803098765",
+    address: "Koteshwor, Kathmandu",
+    kycStatus: "verified",
+    isActive: true,
+    notes: "Regular property dispute consultations.",
+    userId: "u3",
+  },
   {
     _id: "c2",
     fullName: "TechVenture Pvt. Ltd.",
@@ -416,32 +532,170 @@ const INITIAL_CLIENTS: LexClient[] = [
     kycConsentAt: new Date().toISOString(),
     kycSubmittedAt: new Date().toISOString(),
     kycFiles: [
-      { storageId: "mock-kyc-id-c2", docType: "government_id", fileName: "company-registration.pdf" },
-      { storageId: "mock-kyc-addr-c2", docType: "proof_of_address", fileName: "office-utility-bill.pdf" },
+      {
+        storageId: "mock-kyc-id-c2",
+        docType: "government_id",
+        fileName: "company-registration.pdf",
+      },
+      {
+        storageId: "mock-kyc-addr-c2",
+        docType: "proof_of_address",
+        fileName: "office-utility-bill.pdf",
+      },
     ],
     kycDocuments: ["mock-kyc-id-c2", "mock-kyc-addr-c2"],
     isActive: true,
   },
-  { _id: "c3", fullName: "Shree Ram Builders", type: "corporate", email: "shreerambuilders@ncell.com", phone: "+977 9851099999", address: "Bhaktapur", companyName: "Shree Ram Builders", kycStatus: "pending", isActive: true }
+  {
+    _id: "c3",
+    fullName: "Shree Ram Builders",
+    type: "corporate",
+    email: "shreerambuilders@ncell.com",
+    phone: "+977 9851099999",
+    address: "Bhaktapur",
+    companyName: "Shree Ram Builders",
+    kycStatus: "pending",
+    isActive: true,
+  },
 ];
 
 const INITIAL_CASES: LexCase[] = [
-  { _id: "case1", caseNumber: "KTM/2081/234", title: "Property Dispute \u2014 Bhaktapur Plot 234", practiceArea: "Property Law", status: "active", clientId: "c1", assignedLawyerId: "u2", teamMemberIds: ["u2", "u1"], court: "District Court ΓÇö Kathmandu", filingDate: "2026-01-10", conflictChecked: true },
-  { _id: "case2", caseNumber: "PAT/2081/582", title: "Company Registration \u2014 TechVenture Pvt. Ltd.", practiceArea: "Corporate Law", status: "active", clientId: "c2", assignedLawyerId: "u1", teamMemberIds: ["u1"], court: "High Court ΓÇö Patan", filingDate: "2026-02-15", conflictChecked: true },
-  { _id: "case3", caseNumber: "KTM/2081/999", title: "Sharma vs. Kathmandu Municipality", practiceArea: "Civil Litigation", status: "on_hold", clientId: "c1", assignedLawyerId: "u2", teamMemberIds: ["u2"], court: "Supreme Court of Nepal", filingDate: "2026-03-01", conflictChecked: true }
+  {
+    _id: "case1",
+    caseNumber: "KTM/2081/234",
+    title: "Property Dispute \u2014 Bhaktapur Plot 234",
+    practiceArea: "Property Law",
+    status: "active",
+    clientId: "c1",
+    assignedLawyerId: "u2",
+    teamMemberIds: ["u2", "u1"],
+    court: "District Court ΓÇö Kathmandu",
+    filingDate: "2026-01-10",
+    conflictChecked: true,
+  },
+  {
+    _id: "case2",
+    caseNumber: "PAT/2081/582",
+    title: "Company Registration \u2014 TechVenture Pvt. Ltd.",
+    practiceArea: "Corporate Law",
+    status: "active",
+    clientId: "c2",
+    assignedLawyerId: "u1",
+    teamMemberIds: ["u1"],
+    court: "High Court ΓÇö Patan",
+    filingDate: "2026-02-15",
+    conflictChecked: true,
+  },
+  {
+    _id: "case3",
+    caseNumber: "KTM/2081/999",
+    title: "Sharma vs. Kathmandu Municipality",
+    practiceArea: "Civil Litigation",
+    status: "on_hold",
+    clientId: "c1",
+    assignedLawyerId: "u2",
+    teamMemberIds: ["u2"],
+    court: "Supreme Court of Nepal",
+    filingDate: "2026-03-01",
+    conflictChecked: true,
+  },
 ];
 
 const INITIAL_HEARINGS: LexHearing[] = [
-  { _id: "h1", caseId: "case3", court: "Supreme Court of Nepal", dateGregorian: "2026-11-28", dateBs: "15 Mangsir 2083", time: "10:00 AM", purpose: "Final Hearing", status: "scheduled", notes: "Ensure all primary files are in order." },
-  { _id: "h2", caseId: "case2", court: "High Court ΓÇö Patan", dateGregorian: "2026-11-28", dateBs: "15 Mangsir 2083", time: "02:00 PM", purpose: "Interim Order Debate", status: "scheduled" },
-  { _id: "h3", caseId: "case1", court: "District Court ΓÇö Kathmandu", dateGregorian: "2026-11-29", dateBs: "16 Mangsir 2083", time: "11:00 AM", purpose: "Evidence Submission", status: "scheduled" }
+  {
+    _id: "h1",
+    caseId: "case3",
+    court: "Supreme Court of Nepal",
+    dateGregorian: "2026-11-28",
+    dateBs: "15 Mangsir 2083",
+    time: "10:00 AM",
+    purpose: "Final Hearing",
+    status: "scheduled",
+    notes: "Ensure all primary files are in order.",
+  },
+  {
+    _id: "h2",
+    caseId: "case2",
+    court: "High Court ΓÇö Patan",
+    dateGregorian: "2026-11-28",
+    dateBs: "15 Mangsir 2083",
+    time: "02:00 PM",
+    purpose: "Interim Order Debate",
+    status: "scheduled",
+  },
+  {
+    _id: "h3",
+    caseId: "case1",
+    court: "District Court ΓÇö Kathmandu",
+    dateGregorian: "2026-11-29",
+    dateBs: "16 Mangsir 2083",
+    time: "11:00 AM",
+    purpose: "Evidence Submission",
+    status: "scheduled",
+  },
 ];
 
 const INITIAL_TASKS: LexTask[] = [
-  { _id: "t1", caseId: "case1", title: "File bail application \u2014 Gurung case", assignedTo: "u2", createdBy: "u1", status: "todo", priority: "urgent", category: "court", dueDate: "2026-07-30", dueDateBs: "15 Shrawan 2083", isRecurring: false, clientVisible: false, watchers: [] },
-  { _id: "t2", caseId: "case2", title: "Review MOA draft before client meeting", assignedTo: "u2", createdBy: "u1", status: "in_progress", priority: "high", category: "client", dueDate: "2026-07-31", dueDateBs: "16 Shrawan 2083", isRecurring: false, clientVisible: true, watchers: [] },
-  { _id: "t3", caseId: "case2", title: "Submit trademark registration docs", assignedTo: "u1", createdBy: "u1", status: "todo", priority: "medium", category: "filing", dueDate: "2026-08-02", dueDateBs: "18 Shrawan 2083", isRecurring: false, clientVisible: true, watchers: [] },
-  { _id: "t4", caseId: "case1", title: "Provide citizenship copy for filing", assignedTo: "u2", createdBy: "u1", status: "todo", priority: "medium", category: "client", dueDate: "2026-08-05", dueDateBs: "21 Shrawan 2083", isRecurring: false, clientVisible: true, watchers: [] },
+  {
+    _id: "t1",
+    caseId: "case1",
+    title: "File bail application \u2014 Gurung case",
+    assignedTo: "u2",
+    createdBy: "u1",
+    status: "todo",
+    priority: "urgent",
+    category: "court",
+    dueDate: "2026-07-30",
+    dueDateBs: "15 Shrawan 2083",
+    isRecurring: false,
+    clientVisible: false,
+    watchers: [],
+  },
+  {
+    _id: "t2",
+    caseId: "case2",
+    title: "Review MOA draft before client meeting",
+    assignedTo: "u2",
+    createdBy: "u1",
+    status: "in_progress",
+    priority: "high",
+    category: "client",
+    dueDate: "2026-07-31",
+    dueDateBs: "16 Shrawan 2083",
+    isRecurring: false,
+    clientVisible: true,
+    watchers: [],
+  },
+  {
+    _id: "t3",
+    caseId: "case2",
+    title: "Submit trademark registration docs",
+    assignedTo: "u1",
+    createdBy: "u1",
+    status: "todo",
+    priority: "medium",
+    category: "filing",
+    dueDate: "2026-08-02",
+    dueDateBs: "18 Shrawan 2083",
+    isRecurring: false,
+    clientVisible: true,
+    watchers: [],
+  },
+  {
+    _id: "t4",
+    caseId: "case1",
+    title: "Provide citizenship copy for filing",
+    assignedTo: "u2",
+    createdBy: "u1",
+    status: "todo",
+    priority: "medium",
+    category: "client",
+    dueDate: "2026-08-05",
+    dueDateBs: "21 Shrawan 2083",
+    isRecurring: false,
+    clientVisible: true,
+    watchers: [],
+  },
 ];
 
 const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
@@ -449,7 +703,12 @@ const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
     _id: "sop1",
     key: "new_case",
     label: "Litigation Setup (Firad Registration)",
-    taskTitles: ["Draft Vakalatnama", "Prepare Firad Patra (Petition)", "Collect Client KYC & ID", "Pay Initial Court Dastur"],
+    taskTitles: [
+      "Draft Vakalatnama",
+      "Prepare Firad Patra (Petition)",
+      "Collect Client KYC & ID",
+      "Pay Initial Court Dastur",
+    ],
     defaultPriority: "high",
     practiceArea: "litigation",
   },
@@ -457,7 +716,12 @@ const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
     _id: "sop2",
     key: "hearing_prep",
     label: "Hearing Preparation (Bahas Prep)",
-    taskTitles: ["Review opposing reply (Pratiuttar)", "Draft written arguments/notes", "Compile precedent case laws", "Client Briefing"],
+    taskTitles: [
+      "Review opposing reply (Pratiuttar)",
+      "Draft written arguments/notes",
+      "Compile precedent case laws",
+      "Client Briefing",
+    ],
     defaultPriority: "high",
     practiceArea: "litigation",
   },
@@ -465,7 +729,12 @@ const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
     _id: "sop3",
     key: "company_incorporation",
     label: "Company Incorporation (ORC)",
-    taskTitles: ["Draft MOA/AOA", "Name reservation at ORC", "PAN registration follow-up", "Share certificates issuance"],
+    taskTitles: [
+      "Draft MOA/AOA",
+      "Name reservation at ORC",
+      "PAN registration follow-up",
+      "Share certificates issuance",
+    ],
     defaultPriority: "high",
     practiceArea: "corporate",
   },
@@ -473,7 +742,12 @@ const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
     _id: "sop4",
     key: "property_due_diligence",
     label: "Property Due Diligence",
-    taskTitles: ["Title search (Malpot)", "Check encumbrances", "Survey / boundary verification", "Draft sale deed review"],
+    taskTitles: [
+      "Title search (Malpot)",
+      "Check encumbrances",
+      "Survey / boundary verification",
+      "Draft sale deed review",
+    ],
     defaultPriority: "medium",
     practiceArea: "property",
   },
@@ -481,7 +755,12 @@ const INITIAL_SOP_TEMPLATES: LexSopTemplate[] = [
     _id: "sop5",
     key: "family_divorce",
     label: "Family — Divorce / Partition Prep",
-    taskTitles: ["Collect marriage / citizenship docs", "Draft petition", "Asset inventory checklist", "Client counseling note"],
+    taskTitles: [
+      "Collect marriage / citizenship docs",
+      "Draft petition",
+      "Asset inventory checklist",
+      "Client counseling note",
+    ],
     defaultPriority: "medium",
     practiceArea: "family",
   },
@@ -496,66 +775,380 @@ const HEARING_PREP_TITLES_MOCK = [
 ];
 
 const INITIAL_TIME_ENTRIES: LexTimeEntry[] = [
-  { _id: "time1", caseId: "case1", userId: "u2", description: "Property Dispute draft preparation & filing", minutes: 120, isBillable: true, date: "2026-07-29", ratePerHour: 1500 },
-  { _id: "time2", caseId: "case2", userId: "u1", description: "Initial client meeting & structure discussion", minutes: 60, isBillable: true, date: "2026-07-29", ratePerHour: 2000 }
+  {
+    _id: "time1",
+    caseId: "case1",
+    userId: "u2",
+    description: "Property Dispute draft preparation & filing",
+    minutes: 120,
+    isBillable: true,
+    date: "2026-07-29",
+    ratePerHour: 1500,
+  },
+  {
+    _id: "time2",
+    caseId: "case2",
+    userId: "u1",
+    description: "Initial client meeting & structure discussion",
+    minutes: 60,
+    isBillable: true,
+    date: "2026-07-29",
+    ratePerHour: 2000,
+  },
 ];
 
 const INITIAL_INVOICES: LexInvoice[] = [
-  { _id: "inv1", invoiceNumber: "INV-2081-001", caseId: "case1", clientId: "c1", subtotal: 13274, vatAmount: 1726, total: 15000, issuedDate: "2026-07-15", dueDate: "2026-07-30", status: "sent", notes: "Services for property title search." },
-  { _id: "inv2", invoiceNumber: "INV-2081-002", caseId: "case2", clientId: "c2", subtotal: 22124, vatAmount: 2876, total: 25000, issuedDate: "2026-06-20", dueDate: "2026-07-05", status: "paid", notes: "MOA/AOA drafting & registration fees.", paidDate: "2026-07-01" }
+  {
+    _id: "inv1",
+    invoiceNumber: "INV-2081-001",
+    caseId: "case1",
+    clientId: "c1",
+    subtotal: 13274,
+    vatAmount: 1726,
+    total: 15000,
+    issuedDate: "2026-07-15",
+    dueDate: "2026-07-30",
+    status: "sent",
+    notes: "Services for property title search.",
+  },
+  {
+    _id: "inv2",
+    invoiceNumber: "INV-2081-002",
+    caseId: "case2",
+    clientId: "c2",
+    subtotal: 22124,
+    vatAmount: 2876,
+    total: 25000,
+    issuedDate: "2026-06-20",
+    dueDate: "2026-07-05",
+    status: "paid",
+    notes: "MOA/AOA drafting & registration fees.",
+    paidDate: "2026-07-01",
+  },
 ];
 
 const INITIAL_TRUST_TRANSACTIONS: LexTrustTransaction[] = [
-  { _id: "tt1", clientId: "c1", caseId: "case1", type: "receipt", amount: 50000, description: "Initial Retainer Deposit", date: "2026-07-10", balance: 50000, approvedBy: "u4" },
-  { _id: "tt2", clientId: "c1", caseId: "case1", type: "disbursement", amount: 10000, description: "Court Filing Fees disbursement", date: "2026-07-12", balance: 40000, approvedBy: "u4" },
-  { _id: "tt3", clientId: "c1", caseId: "case1", type: "disbursement", amount: 15000, description: "Release escrow payment for INV-2081-001", date: "2026-07-30", balance: 25000, approvedBy: "u4" }
+  {
+    _id: "tt1",
+    clientId: "c1",
+    caseId: "case1",
+    type: "receipt",
+    amount: 50000,
+    description: "Initial Retainer Deposit",
+    date: "2026-07-10",
+    balance: 50000,
+    approvedBy: "u4",
+  },
+  {
+    _id: "tt2",
+    clientId: "c1",
+    caseId: "case1",
+    type: "disbursement",
+    amount: 10000,
+    description: "Court Filing Fees disbursement",
+    date: "2026-07-12",
+    balance: 40000,
+    approvedBy: "u4",
+  },
+  {
+    _id: "tt3",
+    clientId: "c1",
+    caseId: "case1",
+    type: "disbursement",
+    amount: 15000,
+    description: "Release escrow payment for INV-2081-001",
+    date: "2026-07-30",
+    balance: 25000,
+    approvedBy: "u4",
+  },
 ];
 
 const INITIAL_MESSAGES: LexMessage[] = [
-  { _id: "m1", caseId: "case1", senderId: "u2", content: "Your hearing date has been confirmed for 15 Mangsir 2083.", isInternal: false, attachmentIds: [], readBy: ["u2"], _creationTime: Date.now() - 7200000 },
-  { _id: "m2", caseId: "case1", senderId: "u3", content: "Thank you. Do I need to present any evidence?", isInternal: false, attachmentIds: [], readBy: ["u3"], _creationTime: Date.now() - 3600000 },
-  { _id: "m3", caseId: "case1", senderId: "u2", content: "Yes, please bring the original land certificate and the latest tax receipts.", isInternal: false, attachmentIds: [], readBy: ["u2"], _creationTime: Date.now() - 1800000 },
-  { _id: "m4", caseId: "case2", senderId: "u1", content: "We are reviewing your draft articles of association today.", isInternal: false, attachmentIds: [], readBy: ["u1"], _creationTime: Date.now() - 86400000 }
+  {
+    _id: "m1",
+    caseId: "case1",
+    senderId: "u2",
+    content: "Your hearing date has been confirmed for 15 Mangsir 2083.",
+    isInternal: false,
+    attachmentIds: [],
+    readBy: ["u2"],
+    _creationTime: Date.now() - 7200000,
+  },
+  {
+    _id: "m2",
+    caseId: "case1",
+    senderId: "u3",
+    content: "Thank you. Do I need to present any evidence?",
+    isInternal: false,
+    attachmentIds: [],
+    readBy: ["u3"],
+    _creationTime: Date.now() - 3600000,
+  },
+  {
+    _id: "m3",
+    caseId: "case1",
+    senderId: "u2",
+    content: "Yes, please bring the original land certificate and the latest tax receipts.",
+    isInternal: false,
+    attachmentIds: [],
+    readBy: ["u2"],
+    _creationTime: Date.now() - 1800000,
+  },
+  {
+    _id: "m4",
+    caseId: "case2",
+    senderId: "u1",
+    content: "We are reviewing your draft articles of association today.",
+    isInternal: false,
+    attachmentIds: [],
+    readBy: ["u1"],
+    _creationTime: Date.now() - 86400000,
+  },
 ];
 
 const INITIAL_BRIEFS: LexBrief[] = [
-  { _id: "b1", caseId: "case1", title: "Bahas Note - Property Partition", content: "<p><strong>Key Argument:</strong> The partition deed was executed but not registered.</p><p>As per <strong>NKP 2078</strong>, registration within 6 months is mandatory.</p>", authorId: "u2", sharedWith: ["u1"], _creationTime: Date.now() - 86400000 * 2, lastModified: Date.now() - 86400000 },
+  {
+    _id: "b1",
+    caseId: "case1",
+    title: "Bahas Note - Property Partition",
+    content:
+      "<p><strong>Key Argument:</strong> The partition deed was executed but not registered.</p><p>As per <strong>NKP 2078</strong>, registration within 6 months is mandatory.</p>",
+    authorId: "u2",
+    sharedWith: ["u1"],
+    _creationTime: Date.now() - 86400000 * 2,
+    lastModified: Date.now() - 86400000,
+  },
 ];
 
 const INITIAL_LEADS: LexLead[] = [
-  { _id: "lead1", fullName: "Rajan Karki", phone: "+977 9841234567", practiceAreaInterest: "Property Law", source: "website", status: "new", _creationTime: Date.now() - 86400000 * 2 },
-  { _id: "lead2", fullName: "Srijana Thapa", phone: "+977 9851234567", email: "srijana@email.com", practiceAreaInterest: "Family Law", source: "referral", status: "contacted", intakeToken: "mock-token-123", intakeSubmitted: false, _creationTime: Date.now() - 86400000 * 3 },
-  { _id: "lead3", fullName: "Himalaya Trading Pvt. Ltd.", phone: "+977 01 4321234", email: "legal@himalaya.com", practiceAreaInterest: "Corporate Law", source: "website", status: "consultation_scheduled", assignedTo: "u1", _creationTime: Date.now() - 86400000 * 5 },
-  { _id: "lead4", fullName: "Gopal Bhandari", phone: "+977 9806543210", practiceAreaInterest: "Criminal Law", source: "walk_in", status: "converted", convertedClientId: "c1", _creationTime: Date.now() - 86400000 * 8 },
-  { _id: "lead5", fullName: "Sunita Gurung", phone: "+977 9812223334", practiceAreaInterest: "Immigration", source: "social", status: "lost", notes: "Client chose another firm", _creationTime: Date.now() - 86400000 * 10 }
+  {
+    _id: "lead1",
+    fullName: "Rajan Karki",
+    phone: "+977 9841234567",
+    practiceAreaInterest: "Property Law",
+    source: "website",
+    status: "new",
+    _creationTime: Date.now() - 86400000 * 2,
+  },
+  {
+    _id: "lead2",
+    fullName: "Srijana Thapa",
+    phone: "+977 9851234567",
+    email: "srijana@email.com",
+    practiceAreaInterest: "Family Law",
+    source: "referral",
+    status: "contacted",
+    intakeToken: "mock-token-123",
+    intakeSubmitted: false,
+    _creationTime: Date.now() - 86400000 * 3,
+  },
+  {
+    _id: "lead3",
+    fullName: "Himalaya Trading Pvt. Ltd.",
+    phone: "+977 01 4321234",
+    email: "legal@himalaya.com",
+    practiceAreaInterest: "Corporate Law",
+    source: "website",
+    status: "consultation_scheduled",
+    assignedTo: "u1",
+    _creationTime: Date.now() - 86400000 * 5,
+  },
+  {
+    _id: "lead4",
+    fullName: "Gopal Bhandari",
+    phone: "+977 9806543210",
+    practiceAreaInterest: "Criminal Law",
+    source: "walk_in",
+    status: "converted",
+    convertedClientId: "c1",
+    _creationTime: Date.now() - 86400000 * 8,
+  },
+  {
+    _id: "lead5",
+    fullName: "Sunita Gurung",
+    phone: "+977 9812223334",
+    practiceAreaInterest: "Immigration",
+    source: "social",
+    status: "lost",
+    notes: "Client chose another firm",
+    _creationTime: Date.now() - 86400000 * 10,
+  },
 ];
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const INITIAL_ATTENDANCE: LexAttendance[] = [
-  { _id: "att1", userId: "u1", date: TODAY, clockIn: "9:02 AM", clockOut: "6:15 PM", status: "present" },
-  { _id: "att2", userId: "u2", date: TODAY, clockIn: "9:30 AM", clockOut: "6:00 PM", status: "present" },
-  { _id: "att3", userId: "u5", date: TODAY, clockIn: undefined, clockOut: undefined, status: "leave" }
+  {
+    _id: "att1",
+    userId: "u1",
+    date: TODAY,
+    clockIn: "9:02 AM",
+    clockOut: "6:15 PM",
+    status: "present",
+  },
+  {
+    _id: "att2",
+    userId: "u2",
+    date: TODAY,
+    clockIn: "9:30 AM",
+    clockOut: "6:00 PM",
+    status: "present",
+  },
+  {
+    _id: "att3",
+    userId: "u5",
+    date: TODAY,
+    clockIn: undefined,
+    clockOut: undefined,
+    status: "leave",
+  },
 ];
 
 const INITIAL_LEAVE_REQUESTS: LexLeaveRequest[] = [
-  { _id: "lr1", userId: "u2", type: "sick", fromDate: "2026-07-28", toDate: "2026-07-30", reason: "Medical leave ΓÇö fever", status: "approved", reviewedBy: "u4" },
-  { _id: "lr2", userId: "u5", type: "annual", fromDate: "2026-08-03", toDate: "2026-08-05", reason: "Family event", status: "pending" }
+  {
+    _id: "lr1",
+    userId: "u2",
+    type: "sick",
+    fromDate: "2026-07-28",
+    toDate: "2026-07-30",
+    reason: "Medical leave ΓÇö fever",
+    status: "approved",
+    reviewedBy: "u4",
+  },
+  {
+    _id: "lr2",
+    userId: "u5",
+    type: "annual",
+    fromDate: "2026-08-03",
+    toDate: "2026-08-05",
+    reason: "Family event",
+    status: "pending",
+  },
 ];
 
 const INITIAL_AUDIT_LOG: LexAuditLog[] = [
-  { _id: "al1", userId: "u2", action: "VIEW", resource: "documents", resourceId: "DOC-001", details: "Viewed: Property Title Deed ΓÇö Plot 234", ipAddress: "192.168.1.14", _creationTime: Date.now() - 3600000 * 2 },
-  { _id: "al2", userId: "u1", action: "CREATE", resource: "cases", resourceId: "KTM/2081/234", details: "Created new case: Property Dispute ΓÇö Bhaktapur Plot 234", ipAddress: "192.168.1.10", _creationTime: Date.now() - 3600000 * 4 },
-  { _id: "al3", userId: "u4", action: "UPDATE", resource: "users", resourceId: "u5", details: "Changed role: intern ΓåÆ paralegal", ipAddress: "192.168.1.1", _creationTime: Date.now() - 3600000 * 8 },
-  { _id: "al4", userId: "u1", action: "SEND", resource: "invoices", resourceId: "INV-2081-001", details: "Sent invoice INV-2081-001 to Hari Prasad", ipAddress: "192.168.1.10", _creationTime: Date.now() - 86400000 },
-  { _id: "al5", userId: "u2", action: "UPLOAD", resource: "documents", resourceId: "DOC-089", details: "Uploaded: Court Notice ΓÇö Hearing 15 Mangsir", ipAddress: "192.168.1.14", _creationTime: Date.now() - 86400000 * 2 },
-  { _id: "al6", userId: "u4", action: "DELETE", resource: "leads", resourceId: "lead5", details: "Marked lead Sunita Gurung as lost", ipAddress: "192.168.1.1", _creationTime: Date.now() - 86400000 * 3 }
+  {
+    _id: "al1",
+    userId: "u2",
+    action: "VIEW",
+    resource: "documents",
+    resourceId: "DOC-001",
+    details: "Viewed: Property Title Deed ΓÇö Plot 234",
+    ipAddress: "192.168.1.14",
+    _creationTime: Date.now() - 3600000 * 2,
+  },
+  {
+    _id: "al2",
+    userId: "u1",
+    action: "CREATE",
+    resource: "cases",
+    resourceId: "KTM/2081/234",
+    details: "Created new case: Property Dispute ΓÇö Bhaktapur Plot 234",
+    ipAddress: "192.168.1.10",
+    _creationTime: Date.now() - 3600000 * 4,
+  },
+  {
+    _id: "al3",
+    userId: "u4",
+    action: "UPDATE",
+    resource: "users",
+    resourceId: "u5",
+    details: "Changed role: intern ΓåÆ paralegal",
+    ipAddress: "192.168.1.1",
+    _creationTime: Date.now() - 3600000 * 8,
+  },
+  {
+    _id: "al4",
+    userId: "u1",
+    action: "SEND",
+    resource: "invoices",
+    resourceId: "INV-2081-001",
+    details: "Sent invoice INV-2081-001 to Hari Prasad",
+    ipAddress: "192.168.1.10",
+    _creationTime: Date.now() - 86400000,
+  },
+  {
+    _id: "al5",
+    userId: "u2",
+    action: "UPLOAD",
+    resource: "documents",
+    resourceId: "DOC-089",
+    details: "Uploaded: Court Notice ΓÇö Hearing 15 Mangsir",
+    ipAddress: "192.168.1.14",
+    _creationTime: Date.now() - 86400000 * 2,
+  },
+  {
+    _id: "al6",
+    userId: "u4",
+    action: "DELETE",
+    resource: "leads",
+    resourceId: "lead5",
+    details: "Marked lead Sunita Gurung as lost",
+    ipAddress: "192.168.1.1",
+    _creationTime: Date.now() - 86400000 * 3,
+  },
 ];
 
 const INITIAL_DOCUMENTS: LexDocument[] = [
-  { _id: "doc1", caseId: "case1", title: "Sharma Appeal Petition", type: "pleading", storageId: "mock-storage-1", mimeType: "application/pdf", sizeBytes: 340000, tags: [], uploadedBy: "u2", isTemplate: false, isPrivileged: false, version: 2, _creationTime: Date.now() - 86400000 * 10 },
-  { _id: "doc2", caseId: "case1", title: "Property Title Deed (Exhibit A)", type: "evidence", storageId: "mock-storage-2", mimeType: "image/jpeg", sizeBytes: 2100000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 5 },
-  { _id: "doc3", caseId: "case1", title: "Client Retainer Agreement", type: "contract", storageId: "mock-storage-3", mimeType: "application/pdf", sizeBytes: 180000, tags: [], uploadedBy: "u4", isTemplate: false, isPrivileged: true, version: 1, _creationTime: Date.now() - 86400000 * 30 },
-  { _id: "doc4", caseId: "case2", title: "TechVenture Trademark Certificate", type: "evidence", storageId: "mock-storage-4", mimeType: "application/pdf", sizeBytes: 890000, tags: [], uploadedBy: "u1", isTemplate: false, isPrivileged: false, version: 1, _creationTime: Date.now() - 86400000 * 20 },
+  {
+    _id: "doc1",
+    caseId: "case1",
+    title: "Sharma Appeal Petition",
+    type: "pleading",
+    storageId: "mock-storage-1",
+    mimeType: "application/pdf",
+    sizeBytes: 340000,
+    tags: [],
+    uploadedBy: "u2",
+    isTemplate: false,
+    isPrivileged: false,
+    version: 2,
+    _creationTime: Date.now() - 86400000 * 10,
+  },
+  {
+    _id: "doc2",
+    caseId: "case1",
+    title: "Property Title Deed (Exhibit A)",
+    type: "evidence",
+    storageId: "mock-storage-2",
+    mimeType: "image/jpeg",
+    sizeBytes: 2100000,
+    tags: [],
+    uploadedBy: "u1",
+    isTemplate: false,
+    isPrivileged: false,
+    version: 1,
+    _creationTime: Date.now() - 86400000 * 5,
+  },
+  {
+    _id: "doc3",
+    caseId: "case1",
+    title: "Client Retainer Agreement",
+    type: "contract",
+    storageId: "mock-storage-3",
+    mimeType: "application/pdf",
+    sizeBytes: 180000,
+    tags: [],
+    uploadedBy: "u4",
+    isTemplate: false,
+    isPrivileged: true,
+    version: 1,
+    _creationTime: Date.now() - 86400000 * 30,
+  },
+  {
+    _id: "doc4",
+    caseId: "case2",
+    title: "TechVenture Trademark Certificate",
+    type: "evidence",
+    storageId: "mock-storage-4",
+    mimeType: "application/pdf",
+    sizeBytes: 890000,
+    tags: [],
+    uploadedBy: "u1",
+    isTemplate: false,
+    isPrivileged: false,
+    version: 1,
+    _creationTime: Date.now() - 86400000 * 20,
+  },
   {
     _id: "doc5",
     caseId: "case1",
@@ -577,9 +1170,36 @@ const INITIAL_DOCUMENTS: LexDocument[] = [
 ];
 
 const INITIAL_NOTIFICATIONS: LexNotification[] = [
-  { _id: "notif1", userId: "u2", title: "New Assignment", body: "You were assigned to KTM/2081/234", type: "info", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 86400000 },
-  { _id: "notif2", userId: "u1", title: "New Message", body: "Sita Thapa sent a new message in TechVenture case.", type: "alert", isRead: false, link: "/staff/cases", _creationTime: Date.now() - 3600000 },
-  { _id: "notif3", userId: "u3", title: "Hearing Scheduled", body: "Your hearing is scheduled for 15 Mangsir 2083", type: "success", isRead: false, link: "/client/messages", _creationTime: Date.now() - 7200000 },
+  {
+    _id: "notif1",
+    userId: "u2",
+    title: "New Assignment",
+    body: "You were assigned to KTM/2081/234",
+    type: "info",
+    isRead: false,
+    link: "/staff/cases",
+    _creationTime: Date.now() - 86400000,
+  },
+  {
+    _id: "notif2",
+    userId: "u1",
+    title: "New Message",
+    body: "Sita Thapa sent a new message in TechVenture case.",
+    type: "alert",
+    isRead: false,
+    link: "/staff/cases",
+    _creationTime: Date.now() - 3600000,
+  },
+  {
+    _id: "notif3",
+    userId: "u3",
+    title: "Hearing Scheduled",
+    body: "Your hearing is scheduled for 15 Mangsir 2083",
+    type: "success",
+    isRead: false,
+    link: "/client/messages",
+    _creationTime: Date.now() - 7200000,
+  },
 ];
 
 const INITIAL_TEMPLATES: LexTemplate[] = [
@@ -587,16 +1207,18 @@ const INITIAL_TEMPLATES: LexTemplate[] = [
     _id: "tmpl1",
     title: "Standard Retainer Agreement",
     type: "retainer",
-    content: "RETAINER AGREEMENT\n\nThis Agreement is made on {{TODAY_DATE}} between Srimar Law and {{CLIENT_NAME}} (Client).\n\nThe Client engages the Law Firm to represent them in the matter of: {{CASE_TITLE}} (Case No: {{CASE_NUMBER}}).\n\nThe matter is currently at {{COURT_NAME}} before Hon. Judge {{JUDGE_NAME}}.\n\nSignatures:\n\n___________________\n{{CLIENT_NAME}}\n\n___________________\nSrimar Law",
+    content:
+      "RETAINER AGREEMENT\n\nThis Agreement is made on {{TODAY_DATE}} between Srimar Law and {{CLIENT_NAME}} (Client).\n\nThe Client engages the Law Firm to represent them in the matter of: {{CASE_TITLE}} (Case No: {{CASE_NUMBER}}).\n\nThe matter is currently at {{COURT_NAME}} before Hon. Judge {{JUDGE_NAME}}.\n\nSignatures:\n\n___________________\n{{CLIENT_NAME}}\n\n___________________\nSrimar Law",
     _creationTime: Date.now() - 100000,
   },
   {
     _id: "tmpl2",
     title: "Simple Power of Attorney",
     type: "general",
-    content: "POWER OF ATTORNEY (WAKALATNAMA)\n\nI, {{CLIENT_NAME}}, hereby authorize Srimar Law and its lawyers to act on my behalf in the matter of {{CASE_TITLE}} before {{COURT_NAME}}.\n\nDate: {{TODAY_DATE}}\nSignature:\n___________________",
+    content:
+      "POWER OF ATTORNEY (WAKALATNAMA)\n\nI, {{CLIENT_NAME}}, hereby authorize Srimar Law and its lawyers to act on my behalf in the matter of {{CASE_TITLE}} before {{COURT_NAME}}.\n\nDate: {{TODAY_DATE}}\nSignature:\n___________________",
     _creationTime: Date.now() - 50000,
-  }
+  },
 ];
 
 const INITIAL_RESEARCH_NOTES: LexResearchNote[] = [
@@ -605,62 +1227,168 @@ const INITIAL_RESEARCH_NOTES: LexResearchNote[] = [
     title: "Supreme Court on Adverse Possession — NKP 2078/12",
     category: "supreme_court",
     tags: ["adverse possession", "property", "limitation"],
-    content: "The Supreme Court in NKP 2078, Issue 12 held that adverse possession claims require uninterrupted, open, and hostile possession for a statutory period of 12 years under the Muluki Civil Code. The claimant must also demonstrate that the original owner had full knowledge and did not act. Relevant section: Civil Code Section 96.",
+    content:
+      "The Supreme Court in NKP 2078, Issue 12 held that adverse possession claims require uninterrupted, open, and hostile possession for a statutory period of 12 years under the Muluki Civil Code. The claimant must also demonstrate that the original owner had full knowledge and did not act. Relevant section: Civil Code Section 96.",
     authorId: "u1",
-    _creationTime: Date.now() - 86400000 * 30
+    _creationTime: Date.now() - 86400000 * 30,
   },
   {
     _id: "rn2",
     title: "Company Registration Process — ORC 2079 Amendment",
     category: "procedure",
     tags: ["company", "ORC", "registration", "corporate"],
-    content: "Following the Office of Company Registrar 2079 Amendment, all private limited companies must now submit a digital copy of the MOA/AOA along with the physical filing. PAN registration at IRD must be completed within 30 days of ORC approval. Contact: ORC Tripureshwor, 01-4228890.",
+    content:
+      "Following the Office of Company Registrar 2079 Amendment, all private limited companies must now submit a digital copy of the MOA/AOA along with the physical filing. PAN registration at IRD must be completed within 30 days of ORC approval. Contact: ORC Tripureshwor, 01-4228890.",
     authorId: "u1",
-    _creationTime: Date.now() - 86400000 * 20
+    _creationTime: Date.now() - 86400000 * 20,
   },
   {
     _id: "rn3",
     title: "High Court — Patan: Interim Stay in Property Disputes",
     category: "high_court",
     tags: ["interim stay", "property", "injunction", "Patan HC"],
-    content: "Patan HC has consistently required three conditions for interim stay in property disputes: (1) Prima facie case established, (2) Balance of convenience in petitioner's favour, (3) Irreparable harm if stay not granted. Supporting precedent: Rajan Shrestha v. Municipality (2079). Filing fee: NPR 500 application, NPR 2000 for urgent listing.",
+    content:
+      "Patan HC has consistently required three conditions for interim stay in property disputes: (1) Prima facie case established, (2) Balance of convenience in petitioner's favour, (3) Irreparable harm if stay not granted. Supporting precedent: Rajan Shrestha v. Municipality (2079). Filing fee: NPR 500 application, NPR 2000 for urgent listing.",
     authorId: "u2",
-    _creationTime: Date.now() - 86400000 * 15
+    _creationTime: Date.now() - 86400000 * 15,
   },
   {
     _id: "rn4",
     title: "Labour Court Procedure — Wrongful Termination Claims",
     category: "procedure",
     tags: ["labour", "wrongful termination", "Labour Act 2074"],
-    content: "Under the Labour Act 2074, an employee disputing termination must file with the Labour Office within 35 days. If unresolved within 30 days at the Labour Office, the matter proceeds to the Labour Court. Key documentation: Appointment letter, termination notice, payslips for last 3 months, and any written warnings. Compensation formula: 1 month salary per year of service (up to 12 months).",
+    content:
+      "Under the Labour Act 2074, an employee disputing termination must file with the Labour Office within 35 days. If unresolved within 30 days at the Labour Office, the matter proceeds to the Labour Court. Key documentation: Appointment letter, termination notice, payslips for last 3 months, and any written warnings. Compensation formula: 1 month salary per year of service (up to 12 months).",
     authorId: "u2",
-    _creationTime: Date.now() - 86400000 * 8
+    _creationTime: Date.now() - 86400000 * 8,
   },
   {
     _id: "rn5",
     title: "E-Signature Validity under Electronic Transactions Act 2063",
     category: "commentary",
     tags: ["e-signature", "digital signature", "ETA 2063", "contracts"],
-    content: "Under Nepal's Electronic Transactions Act 2063, digitally signed documents using government-issued digital certificates are legally valid and enforceable. However, documents requiring physical appearance (like property deeds, wills, and powers of attorney) still require physical presence and notarization. E-signatures from private platforms do not yet have formal statutory recognition.",
+    content:
+      "Under Nepal's Electronic Transactions Act 2063, digitally signed documents using government-issued digital certificates are legally valid and enforceable. However, documents requiring physical appearance (like property deeds, wills, and powers of attorney) still require physical presence and notarization. E-signatures from private platforms do not yet have formal statutory recognition.",
     authorId: "u1",
-    _creationTime: Date.now() - 86400000 * 3
-  }
+    _creationTime: Date.now() - 86400000 * 3,
+  },
 ];
 
 const INITIAL_EXPENSES: LexExpense[] = [
-  { _id: "exp1", description: "Office Rent — Babarmahal", category: "office_rent", amount: 85000, date: TODAY, submittedBy: "u3", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 30 },
-  { _id: "exp2", description: "Supreme Court Filing Fee — Case CASE-2081-001", category: "court_fees", amount: 5000, caseId: "case1", date: TODAY, submittedBy: "u2", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 20 },
-  { _id: "exp3", description: "Document Courier — Blue Dart", category: "courier", amount: 1200, caseId: "case2", date: TODAY, submittedBy: "u3", status: "pending", _creationTime: Date.now() - 86400000 * 5 },
-  { _id: "exp4", description: "Internet & Electricity — Shrawan", category: "utilities", amount: 6500, date: TODAY, submittedBy: "u3", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 15 },
-  { _id: "exp5", description: "Printing & Photocopying — 500 pages", category: "printing", amount: 2500, caseId: "case1", date: TODAY, submittedBy: "u4", status: "pending", _creationTime: Date.now() - 86400000 * 2 },
-  { _id: "exp6", description: "Travel to High Court Patan", category: "travel", amount: 3000, caseId: "case3", date: TODAY, submittedBy: "u2", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 10 },
-  { _id: "exp7", description: "Legal Research Software License", category: "software", amount: 15000, date: TODAY, submittedBy: "u1", status: "approved", approvedBy: "u1", _creationTime: Date.now() - 86400000 * 45 },
-  { _id: "exp8", description: "Office Stationery — Notepad, Pens, Binders", category: "supplies", amount: 1800, date: TODAY, submittedBy: "u3", status: "pending", _creationTime: Date.now() - 86400000 },
+  {
+    _id: "exp1",
+    description: "Office Rent — Babarmahal",
+    category: "office_rent",
+    amount: 85000,
+    date: TODAY,
+    submittedBy: "u3",
+    status: "approved",
+    approvedBy: "u1",
+    _creationTime: Date.now() - 86400000 * 30,
+  },
+  {
+    _id: "exp2",
+    description: "Supreme Court Filing Fee — Case CASE-2081-001",
+    category: "court_fees",
+    amount: 5000,
+    caseId: "case1",
+    date: TODAY,
+    submittedBy: "u2",
+    status: "approved",
+    approvedBy: "u1",
+    _creationTime: Date.now() - 86400000 * 20,
+  },
+  {
+    _id: "exp3",
+    description: "Document Courier — Blue Dart",
+    category: "courier",
+    amount: 1200,
+    caseId: "case2",
+    date: TODAY,
+    submittedBy: "u3",
+    status: "pending",
+    _creationTime: Date.now() - 86400000 * 5,
+  },
+  {
+    _id: "exp4",
+    description: "Internet & Electricity — Shrawan",
+    category: "utilities",
+    amount: 6500,
+    date: TODAY,
+    submittedBy: "u3",
+    status: "approved",
+    approvedBy: "u1",
+    _creationTime: Date.now() - 86400000 * 15,
+  },
+  {
+    _id: "exp5",
+    description: "Printing & Photocopying — 500 pages",
+    category: "printing",
+    amount: 2500,
+    caseId: "case1",
+    date: TODAY,
+    submittedBy: "u4",
+    status: "pending",
+    _creationTime: Date.now() - 86400000 * 2,
+  },
+  {
+    _id: "exp6",
+    description: "Travel to High Court Patan",
+    category: "travel",
+    amount: 3000,
+    caseId: "case3",
+    date: TODAY,
+    submittedBy: "u2",
+    status: "approved",
+    approvedBy: "u1",
+    _creationTime: Date.now() - 86400000 * 10,
+  },
+  {
+    _id: "exp7",
+    description: "Legal Research Software License",
+    category: "software",
+    amount: 15000,
+    date: TODAY,
+    submittedBy: "u1",
+    status: "approved",
+    approvedBy: "u1",
+    _creationTime: Date.now() - 86400000 * 45,
+  },
+  {
+    _id: "exp8",
+    description: "Office Stationery — Notepad, Pens, Binders",
+    category: "supplies",
+    amount: 1800,
+    date: TODAY,
+    submittedBy: "u3",
+    status: "pending",
+    _creationTime: Date.now() - 86400000,
+  },
 ];
 
 const INITIAL_PESI: LexCauseList[] = [
-  { _id: "pesi1", caseId: "case1", courtName: "Supreme Court", judgeName: "Hon. Sapana Pradhan Malla, Hon. Kumar Regmi", hearingType: "Final Hearing", serialNumber: "12 (Kha)", status: "scheduled", pesiDate: "15 Bhadra 2081", _creationTime: Date.now() },
-  { _id: "pesi2", caseId: "case3", courtName: "High Court Patan", judgeName: "Hon. Neeta Gautam Dixit", hearingType: "Interim Order Discussion", serialNumber: "3 (Ka)", status: "scheduled", pesiDate: "16 Bhadra 2081", _creationTime: Date.now() },
+  {
+    _id: "pesi1",
+    caseId: "case1",
+    courtName: "Supreme Court",
+    judgeName: "Hon. Sapana Pradhan Malla, Hon. Kumar Regmi",
+    hearingType: "Final Hearing",
+    serialNumber: "12 (Kha)",
+    status: "scheduled",
+    pesiDate: "15 Bhadra 2081",
+    _creationTime: Date.now(),
+  },
+  {
+    _id: "pesi2",
+    caseId: "case3",
+    courtName: "High Court Patan",
+    judgeName: "Hon. Neeta Gautam Dixit",
+    hearingType: "Interim Order Discussion",
+    serialNumber: "3 (Ka)",
+    status: "scheduled",
+    pesiDate: "16 Bhadra 2081",
+    _creationTime: Date.now(),
+  },
 ];
 
 // Global in-memory simulation databases
@@ -681,6 +1409,7 @@ let globalAttendance = [...INITIAL_ATTENDANCE];
 let globalLeaveRequests = [...INITIAL_LEAVE_REQUESTS];
 let globalAuditLog = [...INITIAL_AUDIT_LOG];
 let globalDocuments = [...INITIAL_DOCUMENTS];
+let globalDocumentShares: any[] = [];
 let globalEnvelopes: any[] = [];
 let globalEnvelopeRecipients: any[] = [];
 let globalSigningChallenges: any[] = [];
@@ -711,7 +1440,16 @@ let globalTemplates = [...INITIAL_TEMPLATES];
 let globalResearchNotes = [...INITIAL_RESEARCH_NOTES];
 let globalIntakeForms: LexIntakeForm[] = [];
 let globalAppointments: any[] = [
-  { _id: "apt1", clientId: "c1", lawyerId: "u2", date: TODAY, time: "11:00 AM", type: "in_person", status: "scheduled", _creationTime: Date.now() - 86400000 },
+  {
+    _id: "apt1",
+    clientId: "c1",
+    lawyerId: "u2",
+    date: TODAY,
+    time: "11:00 AM",
+    type: "in_person",
+    status: "scheduled",
+    _creationTime: Date.now() - 86400000,
+  },
 ];
 let globalExpenses = [...INITIAL_EXPENSES];
 let globalPesi = [...INITIAL_PESI];
@@ -731,7 +1469,8 @@ let globalSettings = {
   faviconUrl: "",
   heroImageUrl: "",
   primaryColor: "#3b0764", // default deep navy/purple
-  seoMetaDescription: "Srimar Law is Nepal's Premier Legal Practice providing corporate, civil, and criminal defense.",
+  seoMetaDescription:
+    "Srimar Law is Nepal's Premier Legal Practice providing corporate, civil, and criminal defense.",
   seoTitleFormat: "Srimar Law | %s",
   googleAnalyticsId: "",
   mobileAppBannerVisible: true,
@@ -743,44 +1482,117 @@ let globalSettings = {
     smsProvider: "none", // sparrow, aakash, twilio, none
     smsKeys: { token: "", accountSid: "", authToken: "" },
     activePayments: ["bank_transfer"] as string[], // esewa, khalti, bank_transfer
-    paymentKeys: { esewaMerchantId: "", khaltiSecretKey: "", bankName: "", accountName: "", accountNumber: "", branch: "" },
+    paymentKeys: {
+      esewaMerchantId: "",
+      khaltiSecretKey: "",
+      bankName: "",
+      accountName: "",
+      accountNumber: "",
+      branch: "",
+    },
     videoProvider: "google_meet", // google_meet, zoom, manual
-    videoKeys: { clientId: "", clientSecret: "" }
-  }
+    videoKeys: { clientId: "", clientSecret: "" },
+  },
 };
 
 let globalTestimonials: any[] = [
-  { _id: "t1", name: "Rajesh Shrestha", company: "Shrestha Group of Companies", text: "Srimar Law handled our corporate restructuring with exceptional expertise. The client portal made staying updated effortless.", rating: 5, isApproved: true, _creationTime: Date.now() - 864000000 },
-  { _id: "t2", name: "Priya Karmacharya", company: "Individual Client", text: "They resolved my property dispute in record time. Transparent billing and constant communication set them apart.", rating: 5, isApproved: true, _creationTime: Date.now() - 864000000 },
-  { _id: "t3", name: "Bikash Maharjan", company: "Tech Startup Founder", text: "Our IP registration was seamless. The team's understanding of Nepal's legal landscape is unmatched.", rating: 5, isApproved: true, _creationTime: Date.now() - 864000000 }
+  {
+    _id: "t1",
+    name: "Rajesh Shrestha",
+    company: "Shrestha Group of Companies",
+    text: "Srimar Law handled our corporate restructuring with exceptional expertise. The client portal made staying updated effortless.",
+    rating: 5,
+    isApproved: true,
+    _creationTime: Date.now() - 864000000,
+  },
+  {
+    _id: "t2",
+    name: "Priya Karmacharya",
+    company: "Individual Client",
+    text: "They resolved my property dispute in record time. Transparent billing and constant communication set them apart.",
+    rating: 5,
+    isApproved: true,
+    _creationTime: Date.now() - 864000000,
+  },
+  {
+    _id: "t3",
+    name: "Bikash Maharjan",
+    company: "Tech Startup Founder",
+    text: "Our IP registration was seamless. The team's understanding of Nepal's legal landscape is unmatched.",
+    rating: 5,
+    isApproved: true,
+    _creationTime: Date.now() - 864000000,
+  },
 ];
 
 let globalPracticeAreas: any[] = [
-  { _id: "pa1", title: "Corporate Law", slug: "corporate-law", iconName: "Building2", description: "Company registration, mergers, and corporate governance.", isActive: true, _creationTime: Date.now() - 864000000 },
-  { _id: "pa2", title: "Criminal Defense", slug: "criminal-defense", iconName: "Shield", description: "Expert defense in criminal proceedings.", isActive: true, _creationTime: Date.now() - 864000000 },
-  { _id: "pa3", title: "Civil Litigation", slug: "civil-litigation", iconName: "Scale", description: "Property disputes, contracts, and tort claims.", isActive: true, _creationTime: Date.now() - 864000000  },
+  {
+    _id: "pa1",
+    title: "Corporate Law",
+    slug: "corporate-law",
+    iconName: "Building2",
+    description: "Company registration, mergers, and corporate governance.",
+    isActive: true,
+    _creationTime: Date.now() - 864000000,
+  },
+  {
+    _id: "pa2",
+    title: "Criminal Defense",
+    slug: "criminal-defense",
+    iconName: "Shield",
+    description: "Expert defense in criminal proceedings.",
+    isActive: true,
+    _creationTime: Date.now() - 864000000,
+  },
+  {
+    _id: "pa3",
+    title: "Civil Litigation",
+    slug: "civil-litigation",
+    iconName: "Scale",
+    description: "Property disputes, contracts, and tort claims.",
+    isActive: true,
+    _creationTime: Date.now() - 864000000,
+  },
 ];
 
 let globalSessions: LexSession[] = [
-  { _id: "sess_1", userId: "u1", device: "Windows 11 PC", browser: "Chrome", ipAddress: "192.168.1.12", lastActive: new Date().toISOString(), isCurrent: true },
-  { _id: "sess_2", userId: "u1", device: "iPhone 14 Pro", browser: "Safari", ipAddress: "103.10.20.5", lastActive: new Date(Date.now() - 3600000).toISOString(), isCurrent: false },
+  {
+    _id: "sess_1",
+    userId: "u1",
+    device: "Windows 11 PC",
+    browser: "Chrome",
+    ipAddress: "192.168.1.12",
+    lastActive: new Date().toISOString(),
+    isCurrent: true,
+  },
+  {
+    _id: "sess_2",
+    userId: "u1",
+    device: "iPhone 14 Pro",
+    browser: "Safari",
+    ipAddress: "103.10.20.5",
+    lastActive: new Date(Date.now() - 3600000).toISOString(),
+    isCurrent: false,
+  },
 ];
 
-
 let globalBlogPosts: any[] = [
-  { 
-    _id: "bp1", 
-    title: "Understanding Nepal's New Civil Code", 
-    slug: "civil-code-nepal", 
-    excerpt: "A quick guide to the Muluki Ain updates. Learn how these changes affect business contracts and family law in Nepal.", 
-    content: "<h2>The Muluki Civil Code</h2><p>Nepal's Civil Code represents a monumental shift in the legal landscape...</p><h3>Key Changes to Contract Law</h3><p>Contracts now require more stringent verification...</p>", 
-    status: "published", 
-    author: "Srimar Law Team", 
+  {
+    _id: "bp1",
+    title: "Understanding Nepal's New Civil Code",
+    slug: "civil-code-nepal",
+    excerpt:
+      "A quick guide to the Muluki Ain updates. Learn how these changes affect business contracts and family law in Nepal.",
+    content:
+      "<h2>The Muluki Civil Code</h2><p>Nepal's Civil Code represents a monumental shift in the legal landscape...</p><h3>Key Changes to Contract Law</h3><p>Contracts now require more stringent verification...</p>",
+    status: "published",
+    author: "Srimar Law Team",
     category: "Civil Law",
-    coverImageUrl: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=1200&auto=format&fit=crop",
-    publishDate: new Date(Date.now() - 864000000).toISOString(), 
-    _creationTime: Date.now() - 864000000 
-  }
+    coverImageUrl:
+      "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=1200&auto=format&fit=crop",
+    publishDate: new Date(Date.now() - 864000000).toISOString(),
+    _creationTime: Date.now() - 864000000,
+  },
 ];
 
 let globalSystemSettings = {
@@ -789,7 +1601,7 @@ let globalSystemSettings = {
   invoicePaymentTerms: "14",
   defaultLanguage: "en",
   clientPortalEnabled: true,
-  onlineBookingEnabled: true
+  onlineBookingEnabled: true,
 };
 
 const listeners = new Set<() => void>();
@@ -838,9 +1650,7 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
   }, [config]);
 
   return (
-    <PreviewContext.Provider value={{ config, setConfig }}>
-      {children}
-    </PreviewContext.Provider>
+    <PreviewContext.Provider value={{ config, setConfig }}>{children}</PreviewContext.Provider>
   );
 }
 
@@ -853,10 +1663,20 @@ const ConvexAuthContext = createContext<{
 } | null>(null);
 
 export function ConvexProvider({ client, children }: { client: any; children: React.ReactNode }) {
-  return <ConvexProviderWithAuth client={client} useAuth={useMockAuth}>{children}</ConvexProviderWithAuth>;
+  return (
+    <ConvexProviderWithAuth client={client} useAuth={useMockAuth}>
+      {children}
+    </ConvexProviderWithAuth>
+  );
 }
 
-export function ConvexProviderWithAuth({ children }: { client: any; useAuth: any; children: React.ReactNode }) {
+export function ConvexProviderWithAuth({
+  children,
+}: {
+  client: any;
+  useAuth: any;
+  children: React.ReactNode;
+}) {
   const preview = useContext(PreviewContext);
   const isAuthenticated = preview ? preview.config.isAuthenticated : true;
 
@@ -945,15 +1765,60 @@ export function useQuery(queryFunc: any, args?: any): any {
   }
 
   if (queryName.includes("getRolePermissions")) {
-    return (globalSettings as any).rolePermissions || {
-      admin: ["users.manage", "users.view_directory", "cases.view_all", "cases.manage", "finance.manage", "hr.manage", "cms.manage", "audit.view", "settings.manage"],
-      partner: ["users.view_directory", "cases.view_all", "cases.manage", "finance.manage", "hr.manage", "audit.view"],
-      senior_associate: ["users.view_directory", "cases.view_all", "cases.manage"],
-      associate: ["users.view_directory", "cases.manage"],
-      paralegal: ["users.view_directory", "cases.manage"],
-      intern: ["users.view_directory"],
-      client: [],
-    };
+    return (
+      (globalSettings as any).rolePermissions || {
+        admin: [
+          "users.manage",
+          "users.view_directory",
+          "cases.view_all",
+          "cases.manage",
+          "finance.manage",
+          "hr.manage",
+          "cms.manage",
+          "audit.view",
+          "settings.manage",
+          "documents.read",
+          "documents.upload",
+          "documents.share",
+          "documents.delete",
+          "records.dispose",
+          "legalHold.manage",
+        ],
+        partner: [
+          "users.view_directory",
+          "cases.view_all",
+          "cases.manage",
+          "finance.manage",
+          "hr.manage",
+          "audit.view",
+          "documents.read",
+          "documents.upload",
+          "documents.share",
+          "documents.delete",
+          "records.dispose",
+          "legalHold.manage",
+        ],
+        senior_associate: [
+          "users.view_directory",
+          "cases.view_all",
+          "cases.manage",
+          "documents.read",
+          "documents.upload",
+          "documents.share",
+          "documents.delete",
+        ],
+        associate: [
+          "users.view_directory",
+          "cases.manage",
+          "documents.read",
+          "documents.upload",
+          "documents.share",
+        ],
+        paralegal: ["users.view_directory", "cases.manage", "documents.read", "documents.upload"],
+        intern: ["users.view_directory", "documents.read"],
+        client: ["documents.read", "documents.upload"],
+      }
+    );
   }
 
   if (queryName.includes("getUserActivity")) {
@@ -996,29 +1861,87 @@ export function useQuery(queryFunc: any, args?: any): any {
   }
   if (queryName.includes("listCareers")) {
     const jobs = (globalThis as any).__lexCareers || [
-      { _id: "job1", title: "Associate Lawyer", department: "Litigation", location: "Kathmandu", type: "full_time", description: "Litigation associate role.", requirements: ["NPC license", "2+ years"], isActive: true, postedDate: new Date().toISOString() },
+      {
+        _id: "job1",
+        title: "Associate Lawyer",
+        department: "Litigation",
+        location: "Kathmandu",
+        type: "full_time",
+        description: "Litigation associate role.",
+        requirements: ["NPC license", "2+ years"],
+        isActive: true,
+        postedDate: new Date().toISOString(),
+      },
     ];
     if (args?.isActive !== undefined) return jobs.filter((j: any) => j.isActive === args.isActive);
     return jobs;
   }
   if (queryName.includes("listResources")) {
-    return (globalThis as any).__lexResources || [
-      { _id: "res1", title: "Guide to Company Registration in Nepal", description: "Step-by-step ORC process.", category: "Corporate", fileUrl: "https://example.com/guide.pdf", isGated: true, downloads: 12, publishedDate: new Date().toISOString() },
-    ];
+    return (
+      (globalThis as any).__lexResources || [
+        {
+          _id: "res1",
+          title: "Guide to Company Registration in Nepal",
+          description: "Step-by-step ORC process.",
+          category: "Corporate",
+          fileUrl: "https://example.com/guide.pdf",
+          isGated: true,
+          downloads: 12,
+          publishedDate: new Date().toISOString(),
+        },
+      ]
+    );
   }
   if (queryName.includes("listNewsAndAwards")) {
-    return (globalThis as any).__lexNews || [
-      { _id: "news1", title: "Firm Recognized for Corporate Excellence", excerpt: "Award recognition.", content: "Full story.", date: new Date().toISOString().slice(0, 10), type: "award" },
-    ];
+    return (
+      (globalThis as any).__lexNews || [
+        {
+          _id: "news1",
+          title: "Firm Recognized for Corporate Excellence",
+          excerpt: "Award recognition.",
+          content: "Full story.",
+          date: new Date().toISOString().slice(0, 10),
+          type: "award",
+        },
+      ]
+    );
   }
   if (queryName.includes("listNavigationLinks")) {
     const links = (globalThis as any).__lexNav || [
       { _id: "n1", label: "Home", url: "/", location: "header", order: 1, isActive: true },
-      { _id: "n2", label: "About Us", url: "/about-us", location: "header", order: 2, isActive: true },
-      { _id: "n3", label: "Practice Areas", url: "/practice-areas", location: "header", order: 3, isActive: true },
-      { _id: "n4", label: "Our Team", url: "/lawyers", location: "header", order: 4, isActive: true },
+      {
+        _id: "n2",
+        label: "About Us",
+        url: "/about-us",
+        location: "header",
+        order: 2,
+        isActive: true,
+      },
+      {
+        _id: "n3",
+        label: "Practice Areas",
+        url: "/practice-areas",
+        location: "header",
+        order: 3,
+        isActive: true,
+      },
+      {
+        _id: "n4",
+        label: "Our Team",
+        url: "/lawyers",
+        location: "header",
+        order: 4,
+        isActive: true,
+      },
       { _id: "n5", label: "Blog", url: "/blog", location: "header", order: 5, isActive: true },
-      { _id: "n6", label: "Contact", url: "/contact", location: "header", order: 6, isActive: true },
+      {
+        _id: "n6",
+        label: "Contact",
+        url: "/contact",
+        location: "header",
+        order: 6,
+        isActive: true,
+      },
     ];
     if (args?.location) return links.filter((l: any) => l.location === args.location);
     return links;
@@ -1028,8 +1951,18 @@ export function useQuery(queryFunc: any, args?: any): any {
   }
   if (queryName.includes("getLegalPage")) {
     const pages: any = {
-      "privacy-policy": { slug: "privacy-policy", title: "Privacy Policy", content: "# Privacy Policy\n\nWe respect your privacy.", updatedAt: new Date().toISOString() },
-      terms: { slug: "terms", title: "Terms of Service", content: "# Terms of Service\n\nGoverning law: Nepal.", updatedAt: new Date().toISOString() },
+      "privacy-policy": {
+        slug: "privacy-policy",
+        title: "Privacy Policy",
+        content: "# Privacy Policy\n\nWe respect your privacy.",
+        updatedAt: new Date().toISOString(),
+      },
+      terms: {
+        slug: "terms",
+        title: "Terms of Service",
+        content: "# Terms of Service\n\nGoverning law: Nepal.",
+        updatedAt: new Date().toISOString(),
+      },
     };
     return pages[args?.slug] || null;
   }
@@ -1065,7 +1998,17 @@ export function useQuery(queryFunc: any, args?: any): any {
         const pf = Math.round(gross * 0.1);
         const ssf = Math.round(gross * 0.0333);
         const tax = Math.round(Math.max(0, gross - pf) > 200000 ? (gross - pf - 200000) * 0.1 : 0);
-        return { userId: u._id, name: u.name, role: u.role, gross, pf, pfEmployer: pf, ssf, tax, net: gross - pf - tax };
+        return {
+          userId: u._id,
+          name: u.name,
+          role: u.role,
+          gross,
+          pf,
+          pfEmployer: pf,
+          ssf,
+          tax,
+          net: gross - pf - tax,
+        };
       });
   }
   if (queryName.includes("listAvailableSlots")) {
@@ -1075,15 +2018,21 @@ export function useQuery(queryFunc: any, args?: any): any {
     return { available: false, message: "Automated Pesi sync is not connected.", items: [] };
   }
   if (queryName.includes("getSystemSettings")) {
-    return globalSystemSettings || {
-      defaultHourlyRate: "5000",
-      vatRate: "13",
-      invoicePaymentTerms: "14",
-      defaultLanguage: "en",
-      clientPortalEnabled: true,
-      onlineBookingEnabled: true,
-      integrations: { smsProvider: "none", activePayments: ["bank_transfer"], emailProvider: "none" },
-    };
+    return (
+      globalSystemSettings || {
+        defaultHourlyRate: "5000",
+        vatRate: "13",
+        invoicePaymentTerms: "14",
+        defaultLanguage: "en",
+        clientPortalEnabled: true,
+        onlineBookingEnabled: true,
+        integrations: {
+          smsProvider: "none",
+          activePayments: ["bank_transfer"],
+          emailProvider: "none",
+        },
+      }
+    );
   }
 
   // Appointments
@@ -1095,12 +2044,14 @@ export function useQuery(queryFunc: any, args?: any): any {
   if (queryName.includes("listNotifications")) {
     const role = preview ? preview.config.activeRole : "admin";
     const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
-    return globalNotifications.filter(n => n.userId === me._id).sort((a, b) => b._creationTime - a._creationTime);
+    return globalNotifications
+      .filter((n) => n.userId === me._id)
+      .sort((a, b) => b._creationTime - a._creationTime);
   }
 
   // HR Queries
   if (queryName.includes("listAttendance")) {
-    return globalAttendance.filter(a => a.date === args?.date);
+    return globalAttendance.filter((a) => a.date === args?.date);
   }
   if (queryName.includes("listLeaveRequests")) {
     return globalLeaveRequests;
@@ -1184,15 +2135,20 @@ export function useQuery(queryFunc: any, args?: any): any {
     const open = globalTasks.filter(
       (t) => !t.archivedAt && !t.parentTaskId && t.status !== "done" && t.status !== "cancelled",
     );
-    const map: Record<string, { assignedTo: string; total: number; urgent: number; overdue: number }> = {};
+    const map: Record<
+      string,
+      { assignedTo: string; total: number; urgent: number; overdue: number }
+    > = {};
     for (const t of open) {
-      if (!map[t.assignedTo]) map[t.assignedTo] = { assignedTo: t.assignedTo, total: 0, urgent: 0, overdue: 0 };
+      if (!map[t.assignedTo])
+        map[t.assignedTo] = { assignedTo: t.assignedTo, total: 0, urgent: 0, overdue: 0 };
       map[t.assignedTo].total++;
       if (t.priority === "urgent" || t.priority === "high") map[t.assignedTo].urgent++;
       if (t.dueDate) {
         const due = new Date(t.dueDate);
         due.setHours(0, 0, 0, 0);
-        if (!Number.isNaN(due.getTime()) && due.getTime() < today.getTime()) map[t.assignedTo].overdue++;
+        if (!Number.isNaN(due.getTime()) && due.getTime() < today.getTime())
+          map[t.assignedTo].overdue++;
       }
     }
     return Object.values(map).sort((a, b) => b.total - a.total);
@@ -1226,7 +2182,9 @@ export function useQuery(queryFunc: any, args?: any): any {
   if (queryName.includes("listInvoices")) {
     let filtered = [...globalInvoices];
     if (args?.clientId) filtered = filtered.filter((i) => i.clientId === args.clientId);
-    return filtered.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
+    return filtered.sort(
+      (a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime(),
+    );
   }
 
   // listTrustTransactions
@@ -1286,13 +2244,20 @@ export function useQuery(queryFunc: any, args?: any): any {
   // listDocuments — clients only see their case docs / intended signatures (mirrors Convex authZ)
   if (queryName.includes("listDocuments")) {
     let filtered = [...globalDocuments];
+    filtered = filtered.filter((d) =>
+      args?.inTrash ? d.isDeleted === true : d.isDeleted !== true,
+    );
     if (args?.caseId) filtered = filtered.filter((d) => d.caseId === args.caseId);
-    if (args?.isTemplate !== undefined) filtered = filtered.filter((d) => d.isTemplate === args.isTemplate);
+    if (args?.isTemplate !== undefined)
+      filtered = filtered.filter((d) => d.isTemplate === args.isTemplate);
     const role = preview ? preview.config.activeRole : "admin";
     if (role === "client") {
-      const user = globalUsers.find((u) => u.role === "client") || globalUsers.find((u) => u._id === "u3");
+      const user =
+        globalUsers.find((u) => u.role === "client") || globalUsers.find((u) => u._id === "u3");
       const client = globalClients.find((c) => c.userId === user?._id);
-      const caseIds = new Set(globalCases.filter((c) => c.clientId === client?._id).map((c) => c._id));
+      const caseIds = new Set(
+        globalCases.filter((c) => c.clientId === client?._id).map((c) => c._id),
+      );
       filtered = filtered.filter(
         (d) =>
           !d.isTemplate &&
@@ -1302,6 +2267,10 @@ export function useQuery(queryFunc: any, args?: any): any {
       );
     }
     return filtered.sort((a, b) => b._creationTime - a._creationTime);
+  }
+
+  if (queryName.includes("listShareLinks")) {
+    return globalDocumentShares.filter((share) => share.documentId === args?.documentId);
   }
 
   // getClientKycFileUrls
@@ -1351,7 +2320,8 @@ export function useQuery(queryFunc: any, args?: any): any {
   if (queryName.includes("listEnvelopes")) {
     const role = preview ? preview.config.activeRole : "admin";
     if (role === "client") {
-      const user = globalUsers.find((u) => u.role === "client") || globalUsers.find((u) => u._id === "u3");
+      const user =
+        globalUsers.find((u) => u.role === "client") || globalUsers.find((u) => u._id === "u3");
       const myEnvIds = new Set(
         globalEnvelopeRecipients.filter((r) => r.userId === user?._id).map((r) => r.envelopeId),
       );
@@ -1395,7 +2365,10 @@ export function useQuery(queryFunc: any, args?: any): any {
       documentSha256: doc.sha256,
       signerUserAgent: doc.signerUserAgent,
       signer: signer ? { userId: signer._id, name: signer.name, email: signer.email } : null,
-      documentUrl: doc.storageId?.startsWith("blob:") || doc.storageId?.startsWith("http") ? doc.storageId : null,
+      documentUrl:
+        doc.storageId?.startsWith("blob:") || doc.storageId?.startsWith("http")
+          ? doc.storageId
+          : null,
       signatureArtifactUrl: null,
       disclaimer:
         "This certificate records an electronic acknowledgment in the Srimar Law portal. It is not a qualified cryptographic certificate under a PKI CA.",
@@ -1404,7 +2377,7 @@ export function useQuery(queryFunc: any, args?: any): any {
 
   // getDocument
   if (queryName.includes("documents.getDocument")) {
-    return globalDocuments.find(d => d._id === args.documentId) || null;
+    return globalDocuments.find((d) => d._id === args.documentId) || null;
   }
 
   // listTemplates
@@ -1421,7 +2394,7 @@ export function useQuery(queryFunc: any, args?: any): any {
   if (queryName.includes("briefs.list")) {
     const cid = args?.caseId;
     let filtered = [...globalBriefs];
-    if (cid) filtered = filtered.filter(b => b.caseId === cid);
+    if (cid) filtered = filtered.filter((b) => b.caseId === cid);
     return filtered.sort((a, b) => b.lastModified - a.lastModified);
   }
 
@@ -1429,24 +2402,46 @@ export function useQuery(queryFunc: any, args?: any): any {
   if (queryName.includes("cases.checkConflict")) {
     const q = (args?.query || "").toLowerCase().trim();
     if (!q || q.length < 2) return [];
-    const hits: Array<{ type: string; name: string; reason: string; caseId?: string; caseNumber?: string }> = [];
+    const hits: Array<{
+      type: string;
+      name: string;
+      reason: string;
+      caseId?: string;
+      caseNumber?: string;
+    }> = [];
 
     // Search clients
     globalClients.forEach((c) => {
       const nameMatch = c.fullName.toLowerCase().includes(q);
       const companyMatch = c.companyName?.toLowerCase().includes(q);
       if (nameMatch || companyMatch) {
-        hits.push({ type: "Existing Client", name: c.fullName, reason: nameMatch ? "Name match" : "Company name match" });
+        hits.push({
+          type: "Existing Client",
+          name: c.fullName,
+          reason: nameMatch ? "Name match" : "Company name match",
+        });
       }
     });
 
     // Search cases — title and opposing counsel
     globalCases.forEach((cas) => {
       if (cas.title.toLowerCase().includes(q)) {
-        hits.push({ type: "Existing Case", name: cas.title, reason: "Case title match", caseId: cas._id, caseNumber: cas.caseNumber });
+        hits.push({
+          type: "Existing Case",
+          name: cas.title,
+          reason: "Case title match",
+          caseId: cas._id,
+          caseNumber: cas.caseNumber,
+        });
       }
       if (cas.opposingCounsel?.toLowerCase().includes(q)) {
-        hits.push({ type: "Opposing Counsel", name: cas.opposingCounsel, reason: `Opposing counsel in case ${cas.caseNumber}`, caseId: cas._id, caseNumber: cas.caseNumber });
+        hits.push({
+          type: "Opposing Counsel",
+          name: cas.opposingCounsel,
+          reason: `Opposing counsel in case ${cas.caseNumber}`,
+          caseId: cas._id,
+          caseNumber: cas.caseNumber,
+        });
       }
     });
 
@@ -1455,58 +2450,85 @@ export function useQuery(queryFunc: any, args?: any): any {
 
   // leads.getIntakeByToken
   if (queryName.includes("leads.getIntakeByToken")) {
-    const lead = globalLeads.find(l => l.intakeToken === args?.token);
+    const lead = globalLeads.find((l) => l.intakeToken === args?.token);
     if (!lead) return null;
     return { lead };
   }
 
   // appointments.listClientAppointments
   if (queryName.includes("appointments.listClientAppointments")) {
-    const clientId = args?.clientId || getStoredConfig().activeRole === "client" ? globalClients[0]._id : undefined;
-    return globalAppointments.filter(a => a.clientId === clientId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const clientId =
+      args?.clientId || getStoredConfig().activeRole === "client"
+        ? globalClients[0]._id
+        : undefined;
+    return globalAppointments
+      .filter((a) => a.clientId === clientId)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 
   // expenses.list
   if (queryName.includes("expenses.list")) {
     let filtered = [...globalExpenses];
-    if (args?.category && args.category !== "all") filtered = filtered.filter(e => e.category === args.category);
-    if (args?.status && args.status !== "all") filtered = filtered.filter(e => e.status === args.status);
-    if (args?.caseId) filtered = filtered.filter(e => e.caseId === args.caseId);
+    if (args?.category && args.category !== "all")
+      filtered = filtered.filter((e) => e.category === args.category);
+    if (args?.status && args.status !== "all")
+      filtered = filtered.filter((e) => e.status === args.status);
+    if (args?.caseId) filtered = filtered.filter((e) => e.caseId === args.caseId);
     return filtered.sort((a, b) => b._creationTime - a._creationTime);
   }
 
   // expenses.getStats
   if (queryName.includes("expenses.getStats")) {
     const total = globalExpenses.reduce((s, e) => s + e.amount, 0);
-    const approved = globalExpenses.filter(e => e.status === "approved").reduce((s, e) => s + e.amount, 0);
-    const pending = globalExpenses.filter(e => e.status === "pending").reduce((s, e) => s + e.amount, 0);
-    const caseLinked = globalExpenses.filter(e => !!e.caseId).reduce((s, e) => s + e.amount, 0);
+    const approved = globalExpenses
+      .filter((e) => e.status === "approved")
+      .reduce((s, e) => s + e.amount, 0);
+    const pending = globalExpenses
+      .filter((e) => e.status === "pending")
+      .reduce((s, e) => s + e.amount, 0);
+    const caseLinked = globalExpenses.filter((e) => !!e.caseId).reduce((s, e) => s + e.amount, 0);
     const byCategory: Record<string, number> = {};
-    globalExpenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
-    return { total, approved, pending, caseLinked, byCategory, count: globalExpenses.length, pendingCount: globalExpenses.filter(e => e.status === "pending").length };
+    globalExpenses.forEach((e) => {
+      byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+    });
+    return {
+      total,
+      approved,
+      pending,
+      caseLinked,
+      byCategory,
+      count: globalExpenses.length,
+      pendingCount: globalExpenses.filter((e) => e.status === "pending").length,
+    };
   }
 
   // analytics.getDashboardData
   if (queryName.includes("analytics.getDashboardData")) {
     // Revenue by practice area
     const revenueByPractice: Record<string, number> = {};
-    globalInvoices.filter(i => i.status === "paid").forEach(inv => {
-      const c = globalCases.find(cs => cs._id === inv.caseId);
-      const pa = c?.practiceArea || "Other";
-      revenueByPractice[pa] = (revenueByPractice[pa] || 0) + inv.total;
-    });
+    globalInvoices
+      .filter((i) => i.status === "paid")
+      .forEach((inv) => {
+        const c = globalCases.find((cs) => cs._id === inv.caseId);
+        const pa = c?.practiceArea || "Other";
+        revenueByPractice[pa] = (revenueByPractice[pa] || 0) + inv.total;
+      });
 
     // Billable hours by associate
     const hoursByAssociate: Record<string, number> = {};
-    globalTimeEntries.filter(t => t.isBillable).forEach(te => {
-      const u = globalUsers.find(us => us._id === te.userId);
-      const name = u?.name || te.userId;
-      hoursByAssociate[name] = (hoursByAssociate[name] || 0) + ((te as any).minutes / 60);
-    });
+    globalTimeEntries
+      .filter((t) => t.isBillable)
+      .forEach((te) => {
+        const u = globalUsers.find((us) => us._id === te.userId);
+        const name = u?.name || te.userId;
+        hoursByAssociate[name] = (hoursByAssociate[name] || 0) + (te as any).minutes / 60;
+      });
 
     // Case status distribution
     const casesByStatus: Record<string, number> = {};
-    globalCases.forEach(c => { casesByStatus[c.status] = (casesByStatus[c.status] || 0) + 1; });
+    globalCases.forEach((c) => {
+      casesByStatus[c.status] = (casesByStatus[c.status] || 0) + 1;
+    });
 
     // Monthly revenue (simulate 6 months)
     const monthlyRevenue = [
@@ -1519,12 +2541,14 @@ export function useQuery(queryFunc: any, args?: any): any {
     ];
 
     // Key metrics
-    const totalRevenue = globalInvoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
+    const totalRevenue = globalInvoices
+      .filter((i) => i.status === "paid")
+      .reduce((s, i) => s + i.total, 0);
     const totalBilled = globalInvoices.reduce((s, i) => s + i.total, 0);
     const realizationRate = totalBilled > 0 ? Math.round((totalRevenue / totalBilled) * 100) : 0;
     const avgCaseValue = globalCases.length > 0 ? Math.round(totalRevenue / globalCases.length) : 0;
     const totalClients = globalClients.length;
-    const activeClients = globalClients.filter(c => (c as any).isActive).length;
+    const activeClients = globalClients.filter((c) => (c as any).isActive).length;
     const retentionRate = totalClients > 0 ? Math.round((activeClients / totalClients) * 100) : 0;
 
     return {
@@ -1537,7 +2561,7 @@ export function useQuery(queryFunc: any, args?: any): any {
       avgCaseValue,
       retentionRate,
       totalCases: globalCases.length,
-      activeCases: globalCases.filter(c => c.status === "active").length,
+      activeCases: globalCases.filter((c) => c.status === "active").length,
       totalExpenses: globalExpenses.reduce((s, e) => s + e.amount, 0),
     };
   }
@@ -1546,7 +2570,8 @@ export function useQuery(queryFunc: any, args?: any): any {
   if (queryName.includes("court.getPesi")) {
     return {
       available: false,
-      message: "Automated Pesi sync is not connected. Enter hearings manually or import when available.",
+      message:
+        "Automated Pesi sync is not connected. Enter hearings manually or import when available.",
       items: args?.caseId ? globalPesi.filter((p) => p.caseId === args.caseId) : [...globalPesi],
     };
   }
@@ -1559,7 +2584,7 @@ export function useQuery(queryFunc: any, args?: any): any {
   // cms.listPracticeAreas
   if (queryName.includes("cms.listPracticeAreas")) {
     if (args?.isActive) {
-      return globalPracticeAreas.filter(pa => pa.isActive);
+      return globalPracticeAreas.filter((pa) => pa.isActive);
     }
     return [...globalPracticeAreas];
   }
@@ -1571,7 +2596,7 @@ export function useQuery(queryFunc: any, args?: any): any {
 
   // cms.getBlogPostBySlug
   if (queryName.includes("cms.getBlogPostBySlug")) {
-    return globalBlogPosts.find(bp => bp.slug === args?.slug) || null;
+    return globalBlogPosts.find((bp) => bp.slug === args?.slug) || null;
   }
 
   // settings.getSystemSettings
@@ -1582,14 +2607,18 @@ export function useQuery(queryFunc: any, args?: any): any {
   // cms.listTestimonials
   if (queryName.includes("cms.listTestimonials")) {
     if (args?.isApproved) {
-      return globalTestimonials.filter(t => t.isApproved);
+      return globalTestimonials.filter((t) => t.isApproved);
     }
     return [...globalTestimonials];
   }
 
   // cms.listPublicTeam
   if (queryName.includes("cms.listPublicTeam")) {
-    return globalUsers.filter(u => u.isPublicFacing && (u.role === "partner" || u.role === "senior_associate" || u.role === "associate"));
+    return globalUsers.filter(
+      (u) =>
+        u.isPublicFacing &&
+        (u.role === "partner" || u.role === "senior_associate" || u.role === "associate"),
+    );
   }
 
   // getFileUrl
@@ -1597,7 +2626,9 @@ export function useQuery(queryFunc: any, args?: any): any {
     // In our mock, if the storageId looks like a blob URL (created via URL.createObjectURL),
     // we return it directly so the browser can download/open it.
     // For initial seed documents ("mock-storage-X"), we just return a fake string.
-    return args?.storageId?.startsWith("blob:") ? args.storageId : `https://mock-file-storage.local/${args?.storageId}`;
+    return args?.storageId?.startsWith("blob:")
+      ? args.storageId
+      : `https://mock-file-storage.local/${args?.storageId}`;
   }
 
   // Analytics Dashboard Data
@@ -1613,13 +2644,13 @@ export function useQuery(queryFunc: any, args?: any): any {
         "Civil Litigation": 600000,
         "Family Law": 450000,
         "Real Estate": 350000,
-        "Criminal Defense": 200000
+        "Criminal Defense": 200000,
       },
       hoursByAssociate: {
         "Aarav Sharma": 145,
         "Priya Thapa": 132,
         "Bishal Karki": 118,
-        "Sita Rai": 95
+        "Sita Rai": 95,
       },
       monthlyRevenue: [
         { month: "Jan", revenue: 320000 },
@@ -1627,14 +2658,14 @@ export function useQuery(queryFunc: any, args?: any): any {
         { month: "Mar", revenue: 410000 },
         { month: "Apr", revenue: 390000 },
         { month: "May", revenue: 460000 },
-        { month: "Jun", revenue: 490000 }
+        { month: "Jun", revenue: 490000 },
       ],
       casesByStatus: {
         active: 65,
         closed: 40,
         pending_hearing: 10,
-        appealed: 5
-      }
+        appealed: 5,
+      },
     };
   }
 
@@ -1667,7 +2698,7 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("templates.updateTemplate")) {
     return async (args: any) => {
-      const idx = globalTemplates.findIndex(t => t._id === args.id);
+      const idx = globalTemplates.findIndex((t) => t._id === args.id);
       if (idx !== -1) {
         globalTemplates[idx] = { ...globalTemplates[idx], ...args };
         notifyListeners();
@@ -1676,7 +2707,7 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("templates.deleteTemplate")) {
     return async (args: { id: string }) => {
-      globalTemplates = globalTemplates.filter(t => t._id !== args.id);
+      globalTemplates = globalTemplates.filter((t) => t._id !== args.id);
       notifyListeners();
     };
   }
@@ -1702,7 +2733,7 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("research.updateNote")) {
     return async (args: any) => {
-      const idx = globalResearchNotes.findIndex(n => n._id === args.id);
+      const idx = globalResearchNotes.findIndex((n) => n._id === args.id);
       if (idx !== -1) {
         globalResearchNotes[idx] = { ...globalResearchNotes[idx], ...args };
         notifyListeners();
@@ -1711,7 +2742,7 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("research.deleteNote")) {
     return async (args: { id: string }) => {
-      globalResearchNotes = globalResearchNotes.filter(n => n._id !== args.id);
+      globalResearchNotes = globalResearchNotes.filter((n) => n._id !== args.id);
       notifyListeners();
     };
   }
@@ -1736,7 +2767,7 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("briefs.update")) {
     return async (args: any) => {
-      const idx = globalBriefs.findIndex(b => b._id === args.id);
+      const idx = globalBriefs.findIndex((b) => b._id === args.id);
       if (idx !== -1) {
         const { id: _id, ...rest } = args;
         globalBriefs[idx] = { ...globalBriefs[idx], ...rest, lastModified: Date.now() };
@@ -1746,7 +2777,7 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("briefs.delete")) {
     return async (args: { id: string }) => {
-      globalBriefs = globalBriefs.filter(b => b._id !== args.id);
+      globalBriefs = globalBriefs.filter((b) => b._id !== args.id);
       notifyListeners();
     };
   }
@@ -1772,22 +2803,29 @@ export function useMutation(mutationFunc: any): any {
   }
   if (mutationName.includes("expenses.approve")) {
     return async (args: any) => {
-      const idx = globalExpenses.findIndex(e => e._id === args.id);
+      const idx = globalExpenses.findIndex((e) => e._id === args.id);
       if (idx !== -1) {
-        globalExpenses[idx] = { ...globalExpenses[idx], status: args.status, approvedBy: args.approvedBy };
+        globalExpenses[idx] = {
+          ...globalExpenses[idx],
+          status: args.status,
+          approvedBy: args.approvedBy,
+        };
         notifyListeners();
       }
     };
   }
   if (mutationName.includes("expenses.delete") || mutationName.includes("expenses.remove")) {
     return async (args: { id: string }) => {
-      globalExpenses = globalExpenses.filter(e => e._id !== args.id);
+      globalExpenses = globalExpenses.filter((e) => e._id !== args.id);
       notifyListeners();
     };
   }
 
   // TASKS
-  if (mutationName.includes("tasks.createTask") || (mutationName.endsWith("createTask") && mutationName.includes("task"))) {
+  if (
+    mutationName.includes("tasks.createTask") ||
+    (mutationName.endsWith("createTask") && mutationName.includes("task"))
+  ) {
     return async (args: any) => {
       const recurring = !!(args.isRecurring && args.recurrenceRule);
       const newTask: LexTask = {
@@ -1813,7 +2851,12 @@ export function useMutation(mutationFunc: any): any {
       };
       globalTasks.push(newTask);
       if (args.assignedTo && args.assignedTo !== "u1") {
-        mockNotifyTask(args.assignedTo, "New task assigned", `"${args.title}" was assigned to you.`, newTask._id);
+        mockNotifyTask(
+          args.assignedTo,
+          "New task assigned",
+          `"${args.title}" was assigned to you.`,
+          newTask._id,
+        );
       }
       notifyListeners();
       return newTask._id;
@@ -1824,7 +2867,11 @@ export function useMutation(mutationFunc: any): any {
     return async (args: { taskId: string }) => {
       const idx = globalTasks.findIndex((t) => t._id === args.taskId);
       if (idx !== -1) {
-        globalTasks[idx] = { ...globalTasks[idx], archivedAt: new Date().toISOString(), status: "cancelled" };
+        globalTasks[idx] = {
+          ...globalTasks[idx],
+          archivedAt: new Date().toISOString(),
+          status: "cancelled",
+        };
         notifyListeners();
       }
     };
@@ -1841,9 +2888,12 @@ export function useMutation(mutationFunc: any): any {
       }
     };
   }
-  if (mutationName.includes("tasks.updateTask") || (mutationName.endsWith("updateTask") && mutationName.includes("task"))) {
+  if (
+    mutationName.includes("tasks.updateTask") ||
+    (mutationName.endsWith("updateTask") && mutationName.includes("task"))
+  ) {
     return async (args: any) => {
-      const idx = globalTasks.findIndex(t => t._id === args.taskId);
+      const idx = globalTasks.findIndex((t) => t._id === args.taskId);
       if (idx === -1) return;
       const { taskId: _taskId, ...raw } = args;
       const updates: Record<string, unknown> = {};
@@ -1861,21 +2911,34 @@ export function useMutation(mutationFunc: any): any {
       globalTasks[idx] = { ...prev, ...updates } as LexTask;
       if (updates.caseId === undefined && "caseId" in updates) delete globalTasks[idx].caseId;
       if (updates.dueDate === undefined && "dueDate" in updates) delete globalTasks[idx].dueDate;
-      if (updates.dueDateBs === undefined && "dueDateBs" in updates) delete globalTasks[idx].dueDateBs;
-      if (updates.description === undefined && "description" in updates) delete globalTasks[idx].description;
-      if (updates.completedAt === undefined && "completedAt" in updates) delete globalTasks[idx].completedAt;
-      if (updates.hearingId === undefined && "hearingId" in updates) delete globalTasks[idx].hearingId;
-      if (updates.documentId === undefined && "documentId" in updates) delete globalTasks[idx].documentId;
+      if (updates.dueDateBs === undefined && "dueDateBs" in updates)
+        delete globalTasks[idx].dueDateBs;
+      if (updates.description === undefined && "description" in updates)
+        delete globalTasks[idx].description;
+      if (updates.completedAt === undefined && "completedAt" in updates)
+        delete globalTasks[idx].completedAt;
+      if (updates.hearingId === undefined && "hearingId" in updates)
+        delete globalTasks[idx].hearingId;
+      if (updates.documentId === undefined && "documentId" in updates)
+        delete globalTasks[idx].documentId;
       if (raw.assignedTo && raw.assignedTo !== prev.assignedTo) {
-        mockNotifyTask(raw.assignedTo, "Task reassigned to you", `"${globalTasks[idx].title}" was reassigned to you.`, prev._id);
+        mockNotifyTask(
+          raw.assignedTo,
+          "Task reassigned to you",
+          `"${globalTasks[idx].title}" was reassigned to you.`,
+          prev._id,
+        );
       }
       notifyListeners();
     };
   }
-  if (mutationName.includes("tasks.deleteTask") || (mutationName.endsWith("deleteTask") && mutationName.includes("task"))) {
+  if (
+    mutationName.includes("tasks.deleteTask") ||
+    (mutationName.endsWith("deleteTask") && mutationName.includes("task"))
+  ) {
     return async (args: { taskId: string }) => {
       globalTaskComments = globalTaskComments.filter((c) => c.taskId !== args.taskId);
-      globalTasks = globalTasks.filter(t => t._id !== args.taskId);
+      globalTasks = globalTasks.filter((t) => t._id !== args.taskId);
       notifyListeners();
     };
   }
@@ -1885,7 +2948,9 @@ export function useMutation(mutationFunc: any): any {
       const template = globalSopTemplates.find((t) => t.key === args.templateKey);
       if (!template) throw new Error("SOP template not found");
       const existingTitles = new Set(
-        globalTasks.filter((t) => t.caseId === args.caseId).map((t) => t.title.trim().toLowerCase()),
+        globalTasks
+          .filter((t) => t.caseId === args.caseId)
+          .map((t) => t.title.trim().toLowerCase()),
       );
       const assignee = args.assignedTo || "u1";
       let created = 0;
@@ -1924,7 +2989,9 @@ export function useMutation(mutationFunc: any): any {
       const caseDoc = globalCases.find((c) => c._id === hearing.caseId);
       const assignee = args.assignedTo || caseDoc?.assignedLawyerId || "u1";
       const existingTitles = new Set(
-        globalTasks.filter((t) => t.hearingId === args.hearingId).map((t) => t.title.trim().toLowerCase()),
+        globalTasks
+          .filter((t) => t.hearingId === args.hearingId)
+          .map((t) => t.title.trim().toLowerCase()),
       );
       let created = 0;
       let skipped = 0;
@@ -1972,7 +3039,10 @@ export function useMutation(mutationFunc: any): any {
     };
   }
 
-  if (mutationName.includes("scanOverdueReminders") || mutationName.includes("sendOverdueReminders")) {
+  if (
+    mutationName.includes("scanOverdueReminders") ||
+    mutationName.includes("sendOverdueReminders")
+  ) {
     return async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -1985,7 +3055,8 @@ export function useMutation(mutationFunc: any): any {
         if (due.getTime() > today.getTime()) continue;
         if (task.lastDueReminderAt) {
           const last = new Date(task.lastDueReminderAt);
-          if (!Number.isNaN(last.getTime()) && last.toDateString() === new Date().toDateString()) continue;
+          if (!Number.isNaN(last.getTime()) && last.toDateString() === new Date().toDateString())
+            continue;
         }
         mockNotifyTask(
           task.assignedTo,
@@ -2039,8 +3110,12 @@ export function useMutation(mutationFunc: any): any {
     // users.createUser
     if (mutationName.includes("createUser")) {
       const sendInvite = args.invite !== false;
-      const activationToken = sendInvite ? "setup_" + Math.random().toString(36).substring(2, 15) : undefined;
-      const inviteExpiresAt = sendInvite ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined;
+      const activationToken = sendInvite
+        ? "setup_" + Math.random().toString(36).substring(2, 15)
+        : undefined;
+      const inviteExpiresAt = sendInvite
+        ? new Date(Date.now() + 7 * 86400000).toISOString()
+        : undefined;
       const id = "u_" + Date.now();
       const newUser: LexUser = {
         _id: id,
@@ -2078,7 +3153,13 @@ export function useMutation(mutationFunc: any): any {
       const expires = new Date(Date.now() + 7 * 86400000).toISOString();
       globalUsers = globalUsers.map((u) =>
         u._id === args.userId
-          ? { ...u, activationToken: token, isPending: true, isActive: false, inviteExpiresAt: expires }
+          ? {
+              ...u,
+              activationToken: token,
+              isPending: true,
+              isActive: false,
+              inviteExpiresAt: expires,
+            }
           : u,
       );
       notifyListeners();
@@ -2087,9 +3168,7 @@ export function useMutation(mutationFunc: any): any {
 
     // users.archiveUser
     if (mutationName.includes("archiveUser")) {
-      globalUsers = globalUsers.map((u) =>
-        u._id === args.userId ? { ...u, isActive: false } : u,
-      );
+      globalUsers = globalUsers.map((u) => (u._id === args.userId ? { ...u, isActive: false } : u));
       globalSessions = globalSessions.filter((s) => s.userId !== args.userId);
       notifyListeners();
       return { success: true, mode: "soft" };
@@ -2107,11 +3186,21 @@ export function useMutation(mutationFunc: any): any {
         } else if (args.action === "reactivate" && !user.isPending) {
           globalUsers = globalUsers.map((u) => (u._id === userId ? { ...u, isActive: true } : u));
           count++;
-        } else if (args.action === "resend_invite" && user.email && (user.isPending || !user.isActive)) {
+        } else if (
+          args.action === "resend_invite" &&
+          user.email &&
+          (user.isPending || !user.isActive)
+        ) {
           const token = "setup_" + Math.random().toString(36).substring(2, 15);
           globalUsers = globalUsers.map((u) =>
             u._id === userId
-              ? { ...u, activationToken: token, isPending: true, isActive: false, inviteExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString() }
+              ? {
+                  ...u,
+                  activationToken: token,
+                  isPending: true,
+                  isActive: false,
+                  inviteExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+                }
               : u,
           );
           count++;
@@ -2132,9 +3221,7 @@ export function useMutation(mutationFunc: any): any {
     if (mutationName.includes("updateOwnProfile")) {
       const role = getStoredConfig().activeRole;
       const me = globalUsers.find((u) => u.role === role) || globalUsers[0];
-      globalUsers = globalUsers.map((u) =>
-        u._id === me._id ? { ...u, ...args } : u,
-      );
+      globalUsers = globalUsers.map((u) => (u._id === me._id ? { ...u, ...args } : u));
       notifyListeners();
       return { success: true };
     }
@@ -2227,18 +3314,28 @@ export function useMutation(mutationFunc: any): any {
     // HR Mutations
     if (mutationName.includes("reviewLeaveRequest")) {
       const { leaveRequestId, status } = args;
-      const leave = globalLeaveRequests.find(l => l._id === leaveRequestId);
-      if (leave) { leave.status = status; }
+      const leave = globalLeaveRequests.find((l) => l._id === leaveRequestId);
+      if (leave) {
+        leave.status = status;
+      }
       notifyListeners();
       return { success: true };
     }
     if (mutationName.includes("upsertAttendance")) {
       const { userId, date, status } = args;
-      const existingIndex = globalAttendance.findIndex(a => a.userId === userId && a.date === date);
+      const existingIndex = globalAttendance.findIndex(
+        (a) => a.userId === userId && a.date === date,
+      );
       if (existingIndex > -1) {
         globalAttendance[existingIndex].status = status;
       } else {
-        globalAttendance.push({ _id: "att_" + Date.now(), userId, date, status, clockIn: "09:00 AM" });
+        globalAttendance.push({
+          _id: "att_" + Date.now(),
+          userId,
+          date,
+          status,
+          clockIn: "09:00 AM",
+        });
       }
       notifyListeners();
       return { success: true };
@@ -2253,9 +3350,14 @@ export function useMutation(mutationFunc: any): any {
 
     // Appointments & Mock Email Triggers
     if (mutationName.includes("createAppointment")) {
-      const newItem = { _id: "apt_" + Date.now(), _creationTime: Date.now(), status: "pending", ...args };
+      const newItem = {
+        _id: "apt_" + Date.now(),
+        _creationTime: Date.now(),
+        status: "pending",
+        ...args,
+      };
       globalAppointments.push(newItem);
-      
+
       // Simulate Email/SMS sent to user
       toast("📧 Mock Email/SMS Sent", {
         description: `To ${args.clientName}: Your appointment request for ${args.date} at ${args.timeSlot} has been received and is pending review.`,
@@ -2270,7 +3372,7 @@ export function useMutation(mutationFunc: any): any {
         body: `${args.clientName} requested an appointment for ${args.practiceArea}.`,
         isRead: false,
         link: "/admin/appointments",
-        _creationTime: Date.now()
+        _creationTime: Date.now(),
       });
 
       notifyListeners();
@@ -2279,15 +3381,15 @@ export function useMutation(mutationFunc: any): any {
 
     if (mutationName.includes("updateAppointmentStatus")) {
       const { id, status, meetingLink } = args;
-      const aptIndex = globalAppointments.findIndex(a => a._id === id);
+      const aptIndex = globalAppointments.findIndex((a) => a._id === id);
       if (aptIndex > -1) {
         globalAppointments[aptIndex] = { ...globalAppointments[aptIndex], status, meetingLink };
-        
+
         if (status === "confirmed") {
           const apt = globalAppointments[aptIndex];
           // Simulate Email/SMS to user
           toast("📧 Mock Email/SMS Sent", {
-            description: `To ${apt.clientName}: Your appointment is CONFIRMED for ${apt.date} at ${apt.timeSlot}.${meetingLink ? ' Link: ' + meetingLink : ''}`,
+            description: `To ${apt.clientName}: Your appointment is CONFIRMED for ${apt.date} at ${apt.timeSlot}.${meetingLink ? " Link: " + meetingLink : ""}`,
             duration: 8000,
           });
 
@@ -2299,7 +3401,7 @@ export function useMutation(mutationFunc: any): any {
             body: `Your appointment on ${apt.date} at ${apt.timeSlot} has been confirmed.`,
             isRead: false,
             link: "/client/appointments",
-            _creationTime: Date.now()
+            _creationTime: Date.now(),
           });
         }
       }
@@ -2309,27 +3411,31 @@ export function useMutation(mutationFunc: any): any {
 
     if (mutationName.includes("assignLawyerToAppointment")) {
       const { id, assignedLawyerId } = args;
-      const apt = globalAppointments.find(a => a._id === id);
-      if (apt) { apt.assignedLawyerId = assignedLawyerId; }
+      const apt = globalAppointments.find((a) => a._id === id);
+      if (apt) {
+        apt.assignedLawyerId = assignedLawyerId;
+      }
       notifyListeners();
       return { success: true };
     }
 
     // Notifications
     if (mutationName.includes("notifications.markRead")) {
-      const notif = globalNotifications.find(n => n._id === args.notificationId);
-      if (notif) { notif.isRead = true; }
+      const notif = globalNotifications.find((n) => n._id === args.notificationId);
+      if (notif) {
+        notif.isRead = true;
+      }
       notifyListeners();
       return { success: true };
     }
 
     if (mutationName.includes("notifications.markAllRead")) {
       // mark all for current user? in mock we mark all true
-      globalNotifications.forEach(n => n.isRead = true);
+      globalNotifications.forEach((n) => (n.isRead = true));
       notifyListeners();
       return { success: true };
     }
-    
+
     // Testimonials
     if (mutationName.includes("createTestimonial")) {
       const newItem = { _id: "t_" + Date.now(), _creationTime: Date.now(), ...args };
@@ -2339,12 +3445,12 @@ export function useMutation(mutationFunc: any): any {
     }
     if (mutationName.includes("updateTestimonial")) {
       const { id, ...updates } = args;
-      globalTestimonials = globalTestimonials.map(t => t._id === id ? { ...t, ...updates } : t);
+      globalTestimonials = globalTestimonials.map((t) => (t._id === id ? { ...t, ...updates } : t));
       notifyListeners();
       return { success: true };
     }
     if (mutationName.includes("deleteTestimonial")) {
-      globalTestimonials = globalTestimonials.filter(t => t._id !== args.id);
+      globalTestimonials = globalTestimonials.filter((t) => t._id !== args.id);
       notifyListeners();
       return { success: true };
     }
@@ -2366,7 +3472,12 @@ export function useMutation(mutationFunc: any): any {
       toast.success("Saved");
       return "cms_" + Date.now();
     }
-    if (mutationName.includes("updateResource") || mutationName.includes("updateNewsAndAward") || mutationName.includes("deleteResource") || mutationName.includes("deleteNewsAndAward")) {
+    if (
+      mutationName.includes("updateResource") ||
+      mutationName.includes("updateNewsAndAward") ||
+      mutationName.includes("deleteResource") ||
+      mutationName.includes("deleteNewsAndAward")
+    ) {
       notifyListeners();
       return { success: true };
     }
@@ -2431,7 +3542,8 @@ export function useMutation(mutationFunc: any): any {
         const client = globalClients.find((cl) => cl._id === c?.clientId);
         signer = client?.userId;
       }
-      if (!signer) throw new Error("No signer found — link the document to a case with a portal client");
+      if (!signer)
+        throw new Error("No signer found — link the document to a case with a portal client");
       globalDocuments[idx] = {
         ...doc,
         requiresSignature: true,
@@ -2563,7 +3675,8 @@ export function useMutation(mutationFunc: any): any {
       const role = getStoredConfig().activeRole || "admin";
       const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
       const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
-      if (!envelope || envelope.status !== "sent") throw new Error("Only active envelopes can be declined");
+      if (!envelope || envelope.status !== "sent")
+        throw new Error("Only active envelopes can be declined");
       if (!args.reason?.trim()) throw new Error("Decline reason is required");
       const mine = globalEnvelopeRecipients.find(
         (r) => r.envelopeId === args.envelopeId && r.userId === user?._id,
@@ -2581,7 +3694,8 @@ export function useMutation(mutationFunc: any): any {
 
     if (mutationName.includes("remindEnvelope")) {
       const envelope = globalEnvelopes.find((e) => e._id === args.envelopeId);
-      if (!envelope || envelope.status !== "sent") throw new Error("Can only remind on sent envelopes");
+      if (!envelope || envelope.status !== "sent")
+        throw new Error("Can only remind on sent envelopes");
       const pending = globalEnvelopeRecipients.filter(
         (r) => r.envelopeId === args.envelopeId && r.status === "pending",
       );
@@ -2673,12 +3787,18 @@ export function useMutation(mutationFunc: any): any {
         const doc = globalDocuments[idx] as any;
         const role = getStoredConfig().activeRole || "admin";
         const user = globalUsers.find((u) => u.role === role) || globalUsers[0];
-        if (doc.intendedSignerUserId && doc.intendedSignerUserId !== user?._id && role === "client") {
+        if (
+          doc.intendedSignerUserId &&
+          doc.intendedSignerUserId !== user?._id &&
+          role === "client"
+        ) {
           throw new Error("You are not the authorized signer for this document");
         }
         if (role === "client" && doc.caseId && !doc.intendedSignerUserId) {
           const client = globalClients.find((c) => c.userId === user?._id);
-          const ownsCase = globalCases.some((c) => c._id === doc.caseId && c.clientId === client?._id);
+          const ownsCase = globalCases.some(
+            (c) => c._id === doc.caseId && c.clientId === client?._id,
+          );
           if (!ownsCase) throw new Error("You are not the authorized signer for this document");
         }
         if (!args.consentAccepted) throw new Error("Consent is required to sign");
@@ -2766,20 +3886,34 @@ export function useMutation(mutationFunc: any): any {
       return id;
     }
     if (mutationName.includes("initiateGatewayPayment")) {
-      return { paymentId: "pay_" + Date.now(), gateway: args.gateway, amount: 0, nextStep: "redirect_or_confirm" };
+      return {
+        paymentId: "pay_" + Date.now(),
+        gateway: args.gateway,
+        amount: 0,
+        nextStep: "redirect_or_confirm",
+      };
     }
-    if (mutationName.includes("sendEmail") || mutationName.includes("sendSms") || mutationName.includes("sendHearingReminder")) {
-      toast.success("Message queued", { description: "Logged for delivery (configure provider in Settings)." });
+    if (
+      mutationName.includes("sendEmail") ||
+      mutationName.includes("sendSms") ||
+      mutationName.includes("sendHearingReminder")
+    ) {
+      toast.success("Message queued", {
+        description: "Logged for delivery (configure provider in Settings).",
+      });
       return { success: true, delivered: false };
     }
     if (mutationName.includes("setBaseSalary")) {
       globalUsers = globalUsers.map((u) =>
-        u._id === args.userId ? { ...u, baseSalary: args.baseSalary } as any : u,
+        u._id === args.userId ? ({ ...u, baseSalary: args.baseSalary } as any) : u,
       );
       notifyListeners();
       return { success: true };
     }
-    if (mutationName.includes("expenses.remove") || (mutationName.includes("expenses.") && mutationName.includes("remove"))) {
+    if (
+      mutationName.includes("expenses.remove") ||
+      (mutationName.includes("expenses.") && mutationName.includes("remove"))
+    ) {
       globalExpenses = globalExpenses.filter((e) => e._id !== args.id);
       notifyListeners();
       return { success: true };
@@ -2794,14 +3928,23 @@ export function useMutation(mutationFunc: any): any {
         _id: "pesi_" + Date.now(),
         caseId,
         courtName: targetCase.court || "Supreme Court",
-        judgeName: "Hon. " + ["Hari Phuyal", "Sapana Pradhan Malla", "Anand Mohan Bhattarai"][Math.floor(Math.random() * 3)],
-        hearingType: ["First Hearing", "Evidence Submission", "Final Hearing", "Interim Order Debate"][Math.floor(Math.random() * 4)],
+        judgeName:
+          "Hon. " +
+          ["Hari Phuyal", "Sapana Pradhan Malla", "Anand Mohan Bhattarai"][
+            Math.floor(Math.random() * 3)
+          ],
+        hearingType: [
+          "First Hearing",
+          "Evidence Submission",
+          "Final Hearing",
+          "Interim Order Debate",
+        ][Math.floor(Math.random() * 4)],
         serialNumber: Math.floor(Math.random() * 50) + " (Kha)",
         status: "scheduled" as const,
         pesiDate: "16 Bhadra 2081",
         _creationTime: Date.now(),
       };
-      
+
       globalPesi.push(newPesi);
       notifyListeners();
       return newPesi;
@@ -2809,16 +3952,16 @@ export function useMutation(mutationFunc: any): any {
 
     // Chatbots / Leads
     if (mutationName.includes("chatbots.submitLead")) {
-      const newItem = { 
-        _id: "lead_" + Date.now(), 
-        _creationTime: Date.now(), 
+      const newItem = {
+        _id: "lead_" + Date.now(),
+        _creationTime: Date.now(),
         status: "new",
         source: "website",
-        ...args 
+        ...args,
       };
       globalLeads.unshift(newItem);
       notifyListeners();
-      
+
       toast.success("Lead captured!", {
         description: `New lead from ${args.fullName} via Chatbot.`,
       });
@@ -2834,12 +3977,14 @@ export function useMutation(mutationFunc: any): any {
     }
     if (mutationName.includes("updatePracticeArea")) {
       const { id, ...updates } = args;
-      globalPracticeAreas = globalPracticeAreas.map(t => t._id === id ? { ...t, ...updates } : t);
+      globalPracticeAreas = globalPracticeAreas.map((t) =>
+        t._id === id ? { ...t, ...updates } : t,
+      );
       notifyListeners();
       return { success: true };
     }
     if (mutationName.includes("deletePracticeArea")) {
-      globalPracticeAreas = globalPracticeAreas.filter(t => t._id !== args.id);
+      globalPracticeAreas = globalPracticeAreas.filter((t) => t._id !== args.id);
       notifyListeners();
       return { success: true };
     }
@@ -2853,12 +3998,12 @@ export function useMutation(mutationFunc: any): any {
     }
     if (mutationName.includes("updateBlogPost")) {
       const { id, ...updates } = args;
-      globalBlogPosts = globalBlogPosts.map(t => t._id === id ? { ...t, ...updates } : t);
+      globalBlogPosts = globalBlogPosts.map((t) => (t._id === id ? { ...t, ...updates } : t));
       notifyListeners();
       return { success: true };
     }
     if (mutationName.includes("deleteBlogPost")) {
-      globalBlogPosts = globalBlogPosts.filter(t => t._id !== args.id);
+      globalBlogPosts = globalBlogPosts.filter((t) => t._id !== args.id);
       notifyListeners();
       return { success: true };
     }
@@ -2879,7 +4024,8 @@ export function useMutation(mutationFunc: any): any {
     // users.changePassword
     if (mutationName.includes("changePassword")) {
       const { currentPassword, newPassword } = args;
-      if (!newPassword || newPassword.length < 8) throw new Error("Password must be at least 8 characters");
+      if (!newPassword || newPassword.length < 8)
+        throw new Error("Password must be at least 8 characters");
       if (currentPassword === undefined) throw new Error("Current password is required");
       return { success: true, message: "Password updated." };
     }
@@ -2901,7 +4047,7 @@ export function useMutation(mutationFunc: any): any {
     // users.revokeSession
     if (mutationName.includes("revokeSession")) {
       const { sessionId } = args;
-      globalSessions = globalSessions.filter(s => s._id !== sessionId);
+      globalSessions = globalSessions.filter((s) => s._id !== sessionId);
       notifyListeners();
       return { success: true };
     }
@@ -2925,7 +4071,7 @@ export function useMutation(mutationFunc: any): any {
 
     // leads.generateIntakeLink
     if (mutationName.includes("generateIntakeLink")) {
-      const idx = globalLeads.findIndex(l => l._id === args.leadId);
+      const idx = globalLeads.findIndex((l) => l._id === args.leadId);
       if (idx !== -1) {
         const token = `intake_${Math.random().toString(36).substr(2, 9)}`;
         globalLeads[idx] = { ...globalLeads[idx], intakeToken: token, intakeSubmitted: false };
@@ -2937,7 +4083,7 @@ export function useMutation(mutationFunc: any): any {
 
     // leads.submitIntake
     if (mutationName.includes("submitIntake")) {
-      const idx = globalLeads.findIndex(l => l.intakeToken === args.token);
+      const idx = globalLeads.findIndex((l) => l.intakeToken === args.token);
       if (idx !== -1) {
         const lead = globalLeads[idx];
         const newIntake: LexIntakeForm = {
@@ -2954,7 +4100,13 @@ export function useMutation(mutationFunc: any): any {
           submittedAt: Date.now(),
         };
         globalIntakeForms.push(newIntake);
-        globalLeads[idx] = { ...lead, intakeSubmitted: true, fullName: args.fullName, email: args.email, phone: args.phone };
+        globalLeads[idx] = {
+          ...lead,
+          intakeSubmitted: true,
+          fullName: args.fullName,
+          email: args.email,
+          phone: args.phone,
+        };
         notifyListeners();
         return { success: true };
       }
@@ -3056,7 +4208,9 @@ export function useMutation(mutationFunc: any): any {
       return { success: true };
     }
     if (mutationName.includes("deleteNewsAndAward")) {
-      (globalThis as any).__lexNews = (((globalThis as any).__lexNews) || []).filter((n: any) => n._id !== args.id);
+      (globalThis as any).__lexNews = ((globalThis as any).__lexNews || []).filter(
+        (n: any) => n._id !== args.id,
+      );
       notifyListeners();
       return { success: true };
     }
@@ -3078,7 +4232,9 @@ export function useMutation(mutationFunc: any): any {
       return { success: true };
     }
     if (mutationName.includes("deleteResource")) {
-      (globalThis as any).__lexResources = (((globalThis as any).__lexResources) || []).filter((r: any) => r._id !== args.id);
+      (globalThis as any).__lexResources = ((globalThis as any).__lexResources || []).filter(
+        (r: any) => r._id !== args.id,
+      );
       notifyListeners();
       return { success: true };
     }
@@ -3089,7 +4245,7 @@ export function useMutation(mutationFunc: any): any {
         _id: "c_" + Date.now(),
         kycStatus: "pending",
         isActive: true,
-        ...args
+        ...args,
       };
       globalClients.push(newClient);
       notifyListeners();
@@ -3098,9 +4254,13 @@ export function useMutation(mutationFunc: any): any {
 
     // cases.markConflictChecked
     if (mutationName.includes("markConflictChecked")) {
-      const idx = globalCases.findIndex(c => c._id === args.caseId);
+      const idx = globalCases.findIndex((c) => c._id === args.caseId);
       if (idx !== -1) {
-        globalCases[idx] = { ...globalCases[idx], conflictChecked: true, conflictClearedBy: args.clearedBy };
+        globalCases[idx] = {
+          ...globalCases[idx],
+          conflictChecked: true,
+          conflictClearedBy: args.clearedBy,
+        };
         notifyListeners();
       }
       return { success: true };
@@ -3125,7 +4285,7 @@ export function useMutation(mutationFunc: any): any {
         _id: "case_" + Date.now(),
         status: "active",
         conflictChecked: true,
-        ...args
+        ...args,
       };
       globalCases.push(newCase);
       notifyListeners();
@@ -3150,7 +4310,7 @@ export function useMutation(mutationFunc: any): any {
       const newHearing: LexHearing = {
         _id: "h_" + Date.now(),
         status: "scheduled",
-        ...args
+        ...args,
       };
       globalHearings.push(newHearing);
       notifyListeners();
@@ -3160,13 +4320,13 @@ export function useMutation(mutationFunc: any): any {
     // hearings.updateHearing
     if (mutationName.includes("updateHearing")) {
       const { hearingId, ...updates } = args;
-      const hIndex = globalHearings.findIndex(h => h._id === hearingId);
+      const hIndex = globalHearings.findIndex((h) => h._id === hearingId);
       if (hIndex === -1) return { success: false };
 
       globalHearings[hIndex] = { ...globalHearings[hIndex], ...updates };
 
       // Notification trigger: Alert client when hearing is modified
-      const theCase = globalCases.find(c => c._id === globalHearings[hIndex].caseId);
+      const theCase = globalCases.find((c) => c._id === globalHearings[hIndex].caseId);
       if (theCase) {
         globalNotifications.push({
           _id: "notif_" + Date.now(),
@@ -3176,7 +4336,7 @@ export function useMutation(mutationFunc: any): any {
           type: "alert",
           isRead: false,
           link: "/client/matters",
-          _creationTime: Date.now()
+          _creationTime: Date.now(),
         });
       }
 
@@ -3189,7 +4349,7 @@ export function useMutation(mutationFunc: any): any {
       const newEntry: LexTimeEntry = {
         _id: "time_" + Date.now(),
         userId: "u2",
-        ...args
+        ...args,
       };
       globalTimeEntries.push(newEntry);
       notifyListeners();
@@ -3219,12 +4379,12 @@ export function useMutation(mutationFunc: any): any {
       globalMessages.push(newMsg);
 
       // Notification Trigger
-      const theCase = globalCases.find(c => c._id === args.caseId);
+      const theCase = globalCases.find((c) => c._id === args.caseId);
       if (theCase) {
-        const sender = globalUsers.find(u => u._id === args.senderId);
-        const senderClient = globalClients.find(c => c._id === args.senderId);
-        const senderName = sender ? sender.name : (senderClient ? senderClient.fullName : "Someone");
-        
+        const sender = globalUsers.find((u) => u._id === args.senderId);
+        const senderClient = globalClients.find((c) => c._id === args.senderId);
+        const senderName = sender ? sender.name : senderClient ? senderClient.fullName : "Someone";
+
         // If staff sent a message, alert the client (unless it's internal)
         if (sender && !args.isInternal) {
           globalNotifications.push({
@@ -3235,9 +4395,9 @@ export function useMutation(mutationFunc: any): any {
             type: "info",
             isRead: false,
             link: "/client/messages",
-            _creationTime: Date.now()
+            _creationTime: Date.now(),
           });
-        } 
+        }
         // If client sent a message, alert the assigned lawyer
         else if (senderClient) {
           globalNotifications.push({
@@ -3248,7 +4408,7 @@ export function useMutation(mutationFunc: any): any {
             type: "info",
             isRead: false,
             link: "/staff/cases",
-            _creationTime: Date.now()
+            _creationTime: Date.now(),
           });
         }
       }
@@ -3274,7 +4434,7 @@ export function useMutation(mutationFunc: any): any {
     // leads.updateLead
     if (mutationName.includes("updateLead")) {
       const { leadId, ...updates } = args;
-      globalLeads = globalLeads.map((l) => l._id === leadId ? { ...l, ...updates } : l);
+      globalLeads = globalLeads.map((l) => (l._id === leadId ? { ...l, ...updates } : l));
       notifyListeners();
       return { success: true };
     }
@@ -3297,7 +4457,9 @@ export function useMutation(mutationFunc: any): any {
       };
       globalClients.push(newClient);
       globalLeads = globalLeads.map((l) =>
-        l._id === leadId ? { ...l, status: "converted" as const, convertedClientId: newClientId } : l
+        l._id === leadId
+          ? { ...l, status: "converted" as const, convertedClientId: newClientId }
+          : l,
       );
       // Write audit log entry
       const config = getStoredConfig();
@@ -3322,7 +4484,7 @@ export function useMutation(mutationFunc: any): any {
       const existing = globalAttendance.find((a) => a.userId === userId && a.date === date);
       if (existing) {
         globalAttendance = globalAttendance.map((a) =>
-          a.userId === userId && a.date === date ? { ...a, ...rest } : a
+          a.userId === userId && a.date === date ? { ...a, ...rest } : a,
         );
       } else {
         globalAttendance.push({ _id: "att_" + Date.now(), userId, date, ...rest });
@@ -3352,7 +4514,7 @@ export function useMutation(mutationFunc: any): any {
       const config = getStoredConfig();
       const reviewer = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
       globalLeaveRequests = globalLeaveRequests.map((lr) =>
-        lr._id === leaveRequestId ? { ...lr, status, reviewedBy: reviewer._id } : lr
+        lr._id === leaveRequestId ? { ...lr, status, reviewedBy: reviewer._id } : lr,
       );
       notifyListeners();
       return { success: true };
@@ -3378,11 +4540,71 @@ export function useMutation(mutationFunc: any): any {
       return "mock-upload-url";
     }
 
+    if (mutationName.includes("migrateLegacySecurityBoundary")) {
+      return { success: true, updated: 0 };
+    }
+
+    if (mutationName.includes("createShareLink")) {
+      const token = `share_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      globalDocumentShares.push({
+        _id: `share_record_${Date.now()}`,
+        documentId: args.documentId,
+        token,
+        expiresAt: args.expiresAt,
+        password: args.password,
+        allowDownload: args.allowDownload !== false,
+        maxDownloads: args.maxDownloads,
+        downloadsCount: 0,
+        isActive: true,
+      });
+      notifyListeners();
+      return token;
+    }
+
+    if (mutationName.includes("getSharedDocument")) {
+      const share = globalDocumentShares.find((item) => item.token === args.token && item.isActive);
+      if (!share || (share.expiresAt && Date.parse(share.expiresAt) <= Date.now()))
+        throw new Error("This share link is invalid or expired");
+      if (share.password && share.password !== args.password) return { isPasswordRequired: true };
+      const doc = globalDocuments.find((item) => item._id === share.documentId);
+      if (!doc || doc.isDeleted) throw new Error("Document is unavailable");
+      return {
+        isPasswordRequired: false,
+        title: doc.title,
+        type: doc.type,
+        mimeType: doc.mimeType,
+        sizeBytes: doc.sizeBytes,
+        allowDownload: share.allowDownload,
+      };
+    }
+
+    if (mutationName.includes("downloadSharedDocument")) {
+      const share = globalDocumentShares.find((item) => item.token === args.token && item.isActive);
+      if (!share || (share.expiresAt && Date.parse(share.expiresAt) <= Date.now()))
+        throw new Error("This share link is invalid or expired");
+      if (share.password && share.password !== args.password) return { isPasswordRequired: true };
+      if (!share.allowDownload) throw new Error("Downloads are disabled for this share");
+      if (share.maxDownloads && share.downloadsCount >= share.maxDownloads)
+        throw new Error("Download limit reached");
+      const doc = globalDocuments.find((item) => item._id === share.documentId);
+      if (!doc) throw new Error("Document is unavailable");
+      share.downloadsCount += 1;
+      notifyListeners();
+      return { isPasswordRequired: false, url: doc.storageId };
+    }
+
+    if (mutationName.includes("revokeShareLink")) {
+      const share = globalDocumentShares.find((item) => item._id === args.shareId);
+      if (share) share.isActive = false;
+      notifyListeners();
+      return { success: true };
+    }
+
     // documents.createDocument
     if (mutationName.includes("createDocument")) {
       const config = getStoredConfig();
       const user = globalUsers.find((u) => u.role === config.activeRole) || globalUsers[0];
-      
+
       // Calculate version (if parentDocumentId provided, increment its version)
       let nextVersion = 1;
       if (args.parentDocumentId) {
@@ -3397,11 +4619,59 @@ export function useMutation(mutationFunc: any): any {
         _creationTime: Date.now(),
         uploadedBy: user._id,
         version: nextVersion,
+        uploadStatus: "clean",
         ...args,
       };
       globalDocuments.push(newDoc);
       notifyListeners();
       return newDoc._id;
+    }
+
+    if (mutationName.includes("trashDocument")) {
+      const doc = globalDocuments.find((item) => item._id === args.documentId);
+      if (doc?.isOnLegalHold) throw new Error("Legal hold blocks deletion");
+      if (doc) doc.isDeleted = true;
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("restoreDocument")) {
+      const doc = globalDocuments.find((item) => item._id === args.documentId);
+      if (doc) doc.isDeleted = false;
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("setLegalHold")) {
+      const doc = globalDocuments.find((item) => item._id === args.documentId) as any;
+      if (doc) {
+        doc.isOnLegalHold = args.enabled;
+        doc.legalHoldReason = args.reason;
+      }
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("setRetention")) {
+      const doc = globalDocuments.find((item) => item._id === args.documentId) as any;
+      if (doc) {
+        doc.retentionPolicy = args.policy;
+        doc.retentionUntil = args.retentionUntil;
+      }
+      notifyListeners();
+      return { success: true };
+    }
+
+    if (mutationName.includes("hardDeleteDocument")) {
+      const doc = globalDocuments.find((item) => item._id === args.documentId);
+      if (
+        doc?.isOnLegalHold ||
+        (doc?.retentionUntil && Date.parse(doc.retentionUntil) > Date.now())
+      )
+        throw new Error("Retention or legal hold blocks deletion");
+      globalDocuments = globalDocuments.filter((item) => item._id !== args.documentId);
+      notifyListeners();
+      return { success: true };
     }
 
     // documents.deleteDocument
@@ -3414,7 +4684,9 @@ export function useMutation(mutationFunc: any): any {
     // invoices.createInvoiceFromTimeEntries
     if (mutationName.includes("createInvoiceFromTimeEntries")) {
       const { caseId, clientId, dueDate, notes } = args;
-      const unbilled = globalTimeEntries.filter((t) => t.caseId === caseId && t.isBillable && !t.invoiceId);
+      const unbilled = globalTimeEntries.filter(
+        (t) => t.caseId === caseId && t.isBillable && !t.invoiceId,
+      );
       if (unbilled.length === 0) return { success: false, message: "No unbilled entries found." };
 
       const subtotal = unbilled.reduce((sum, t) => sum + (t.minutes / 60) * t.ratePerHour, 0);
@@ -3424,7 +4696,11 @@ export function useMutation(mutationFunc: any): any {
       const newInvoiceId = "inv_" + Date.now();
       const newInvoice: LexInvoice = {
         _id: newInvoiceId,
-        invoiceNumber: "INV-" + new Date().getFullYear() + "-" + String(globalInvoices.length + 1).padStart(3, "0"),
+        invoiceNumber:
+          "INV-" +
+          new Date().getFullYear() +
+          "-" +
+          String(globalInvoices.length + 1).padStart(3, "0"),
         caseId,
         clientId,
         subtotal,
@@ -3439,8 +4715,8 @@ export function useMutation(mutationFunc: any): any {
       globalInvoices.push(newInvoice);
 
       // Mark time entries as billed
-      globalTimeEntries = globalTimeEntries.map((t) => 
-        (t.caseId === caseId && t.isBillable && !t.invoiceId) ? { ...t, invoiceId: newInvoiceId } : t
+      globalTimeEntries = globalTimeEntries.map((t) =>
+        t.caseId === caseId && t.isBillable && !t.invoiceId ? { ...t, invoiceId: newInvoiceId } : t,
       );
 
       notifyListeners();
@@ -3454,12 +4730,16 @@ export function useMutation(mutationFunc: any): any {
       if (invoiceIndex === -1) return { success: false };
 
       const invoice = globalInvoices[invoiceIndex];
-      globalInvoices[invoiceIndex] = { ...invoice, status: "paid", paidDate: new Date().toISOString().split("T")[0] };
+      globalInvoices[invoiceIndex] = {
+        ...invoice,
+        status: "paid",
+        paidDate: new Date().toISOString().split("T")[0],
+      };
 
       // Record Trust Transaction
-      const lastTx = globalTrustTransactions.filter(t => t.clientId === invoice.clientId).pop();
+      const lastTx = globalTrustTransactions.filter((t) => t.clientId === invoice.clientId).pop();
       const newBalance = (lastTx?.balance || 0) + invoice.total;
-      
+
       globalTrustTransactions.push({
         _id: "tt_" + Date.now(),
         clientId: invoice.clientId,
@@ -3469,7 +4749,7 @@ export function useMutation(mutationFunc: any): any {
         description: `Payment via ${paymentMethod} for ${invoice.invoiceNumber}`,
         date: new Date().toISOString().split("T")[0],
         balance: newBalance,
-        approvedBy: "System"
+        approvedBy: "System",
       });
 
       notifyListeners();
@@ -3491,7 +4771,7 @@ export function useMutation(mutationFunc: any): any {
     if (mutationName.includes("markAllRead")) {
       const { userId } = args;
       globalNotifications = globalNotifications.map((n) =>
-        n.userId === userId ? { ...n, isRead: true } : n
+        n.userId === userId ? { ...n, isRead: true } : n,
       );
       notifyListeners();
       return { success: true };
@@ -3514,14 +4794,16 @@ export function useMutation(mutationFunc: any): any {
 
     // cms.updatePracticeArea
     if (mutationName.includes("cms.updatePracticeArea")) {
-      globalPracticeAreas = globalPracticeAreas.map(pa => pa._id === args.id ? { ...pa, ...args } : pa);
+      globalPracticeAreas = globalPracticeAreas.map((pa) =>
+        pa._id === args.id ? { ...pa, ...args } : pa,
+      );
       notifyListeners();
       return { success: true };
     }
 
     // cms.deletePracticeArea
     if (mutationName.includes("cms.deletePracticeArea")) {
-      globalPracticeAreas = globalPracticeAreas.filter(pa => pa._id !== args.id);
+      globalPracticeAreas = globalPracticeAreas.filter((pa) => pa._id !== args.id);
       notifyListeners();
       return { success: true };
     }
@@ -3536,14 +4818,14 @@ export function useMutation(mutationFunc: any): any {
 
     // cms.updateBlogPost
     if (mutationName.includes("cms.updateBlogPost")) {
-      globalBlogPosts = globalBlogPosts.map(bp => bp._id === args.id ? { ...bp, ...args } : bp);
+      globalBlogPosts = globalBlogPosts.map((bp) => (bp._id === args.id ? { ...bp, ...args } : bp));
       notifyListeners();
       return { success: true };
     }
 
     // cms.deleteBlogPost
     if (mutationName.includes("cms.deleteBlogPost")) {
-      globalBlogPosts = globalBlogPosts.filter(bp => bp._id !== args.id);
+      globalBlogPosts = globalBlogPosts.filter((bp) => bp._id !== args.id);
       notifyListeners();
       return { success: true };
     }
@@ -3565,21 +4847,23 @@ export function useMutation(mutationFunc: any): any {
 
     // cms.updateTestimonial
     if (mutationName.includes("cms.updateTestimonial")) {
-      globalTestimonials = globalTestimonials.map(t => t._id === args.id ? { ...t, ...args } : t);
+      globalTestimonials = globalTestimonials.map((t) =>
+        t._id === args.id ? { ...t, ...args } : t,
+      );
       notifyListeners();
       return { success: true };
     }
 
     // cms.deleteTestimonial
     if (mutationName.includes("cms.deleteTestimonial")) {
-      globalTestimonials = globalTestimonials.filter(t => t._id !== args.id);
+      globalTestimonials = globalTestimonials.filter((t) => t._id !== args.id);
       notifyListeners();
       return { success: true };
     }
 
     // cms.updateTeamMember
     if (mutationName.includes("cms.updateTeamMember")) {
-      globalUsers = globalUsers.map(u => u._id === args.id ? { ...u, ...args } : u);
+      globalUsers = globalUsers.map((u) => (u._id === args.id ? { ...u, ...args } : u));
       notifyListeners();
       return { success: true };
     }
@@ -3670,7 +4954,9 @@ function PreviewControlPanel({
 
             {/* Quick Navigation */}
             <div className="flex flex-col gap-1.5 border-t border-border pt-3">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Navigation</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Quick Navigation
+              </span>
               <div className="grid grid-cols-2 gap-1.5">
                 <a
                   href="/"
@@ -3681,7 +4967,9 @@ function PreviewControlPanel({
                 <button
                   onClick={() => {
                     setConfig((prev) => ({ ...prev, activeRole: "client" }));
-                    setTimeout(() => { window.location.href = "/client"; }, 50);
+                    setTimeout(() => {
+                      window.location.href = "/client";
+                    }, 50);
                   }}
                   className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border cursor-pointer"
                 >
@@ -3690,7 +4978,9 @@ function PreviewControlPanel({
                 <button
                   onClick={() => {
                     setConfig((prev) => ({ ...prev, activeRole: "partner" }));
-                    setTimeout(() => { window.location.href = "/staff"; }, 50);
+                    setTimeout(() => {
+                      window.location.href = "/staff";
+                    }, 50);
                   }}
                   className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border cursor-pointer"
                 >
@@ -3699,7 +4989,9 @@ function PreviewControlPanel({
                 <button
                   onClick={() => {
                     setConfig((prev) => ({ ...prev, activeRole: "admin" }));
-                    setTimeout(() => { window.location.href = "/admin"; }, 50);
+                    setTimeout(() => {
+                      window.location.href = "/admin";
+                    }, 50);
                   }}
                   className="px-2.5 py-1.5 rounded-md text-xs text-center font-medium bg-secondary hover:bg-secondary/80 border border-border cursor-pointer"
                 >

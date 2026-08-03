@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "convex/react";
+import { useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -9,19 +9,29 @@ import { FileText, Download, Lock, Loader2, AlertTriangle, ShieldCheck } from "l
 export default function SharedDocumentPage() {
   const { token } = useParams<{ token: string }>();
   const [password, setPassword] = useState("");
-  const [submittedPassword, setSubmittedPassword] = useState<string | undefined>(undefined);
-  
-  // Note: if query throws an error (e.g. password required), we can catch it or rely on error boundaries.
-  // Convex React queries will suspend or throw depending on the error.
-  // For this prototype, if it's unauthorized, it will throw an error to the boundary. We can safely handle it via state.
-  const document = useQuery(api.documents.getSharedDocument, { 
-    token: token!, 
-    password: submittedPassword 
-  });
+  const [document, setDocument] = useState<any>(undefined);
+  const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const getSharedDocument = useMutation(api.documents.getSharedDocument);
+  const downloadSharedDocument = useMutation(api.documents.downloadSharedDocument);
+
+  const loadDocument = async (submittedPassword?: string) => {
+    if (!token) return;
+    setError(null);
+    try {
+      setDocument(await getSharedDocument({ token, password: submittedPassword }));
+    } catch (err: any) {
+      setError(err?.message || "This share is unavailable.");
+      setDocument(null);
+    }
+  };
+
+  useEffect(() => { void loadDocument(); }, [token]);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmittedPassword(password);
+    setDocument(undefined);
+    void loadDocument(password);
   };
 
   if (document === undefined) {
@@ -36,19 +46,18 @@ export default function SharedDocumentPage() {
   }
 
   // Check if it's an error object or null (based on how Convex error is handled)
-  if (document === null || (document as any).error) {
+  if (document === null || error) {
     return (
       <div className="min-h-screen bg-secondary/10 flex items-center justify-center p-4">
         <div className="bg-card w-full max-w-md p-8 rounded-2xl shadow-xl text-center border border-border">
            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
            <h2 className="text-xl font-bold mb-2 text-foreground">Link Invalid or Expired</h2>
-           <p className="text-sm text-muted-foreground">The document you are trying to access is no longer available or the link has expired.</p>
+           <p className="text-sm text-muted-foreground">{error || "The document you are trying to access is no longer available."}</p>
         </div>
       </div>
     );
   }
 
-  // If the query returns a specific error message about password
   if ((document as any).isPasswordRequired) {
     return (
       <div className="min-h-screen bg-secondary/10 flex items-center justify-center p-4">
@@ -103,10 +112,27 @@ export default function SharedDocumentPage() {
 
            <Button 
              className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform"
-             onClick={() => window.open(document.url, "_blank")}
+             disabled={!document.allowDownload || isDownloading}
+             onClick={async () => {
+               if (!token) return;
+               setIsDownloading(true);
+               try {
+                 const result = await downloadSharedDocument({ token, password: password || undefined });
+                 if (result.isPasswordRequired) {
+                   setDocument(result);
+                   return;
+                 }
+                 if (result.url) window.open(result.url, "_blank", "noopener,noreferrer");
+               } catch (err: any) {
+                 setError(err?.message || "Download failed.");
+                 setDocument(null);
+               } finally {
+                 setIsDownloading(false);
+               }
+             }}
            >
-             <Download className="w-6 h-6 mr-3" />
-             Download Securely
+             {isDownloading ? <Loader2 className="w-6 h-6 mr-3 animate-spin" /> : <Download className="w-6 h-6 mr-3" />}
+             {document.allowDownload ? "Download Securely" : "Download Disabled"}
            </Button>
 
            <p className="text-xs text-center text-muted-foreground mt-6 font-medium">

@@ -4,8 +4,9 @@ import { RevealText, FadeInUp, HoverGlowCard, PREMIUM_EASE } from "@/components/
 import { ArrowRight, Shield, Clock, Award, Users, Phone, MapPin, ChevronDown, MessageSquare, FileCheck, Gavel, Briefcase, Scale, Building2, Smartphone, Download } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useBlogPosts, useCmsSettings, usePracticeAreas, usePublicTeam, useTestimonials } from "@/client/queries/cms";
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 
@@ -102,11 +103,11 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function HomePage() {
-  const settings = useQuery(api.cms.getSettings);
-  const practiceAreas = useQuery(api.cms.listPracticeAreas, { isActive: true }) || [];
-  const testimonials = useQuery(api.cms.listTestimonials, { isApproved: true }) || [];
-  const publicTeam = useQuery(api.cms.listPublicTeam) || [];
-  const allPosts = useQuery(api.cms.listBlogPosts, { status: "published" }) || [];
+  const settings = useCmsSettings("public");
+  const practiceAreas = usePracticeAreas({ isActive: true }, "public") || [];
+  const testimonials = useTestimonials({ isApproved: true }, "public") || [];
+  const publicTeam = usePublicTeam() || [];
+  const allPosts = useBlogPosts({ status: "published" }, "public") || [];
   const recentPosts = allPosts.slice(0, 3);
 
   // Auto-scrolling testimonial carousel state

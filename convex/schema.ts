@@ -65,7 +65,7 @@ export default defineSchema({
     firmId: v.optional(v.id("firms")),
     key: v.string(),
     value: v.any(),
-  }).index("by_key", ["key"]),
+  }).index("by_key", ["key"]).index("by_firm_key", ["firmId", "key"]),
 
   conflictChecks: defineTable({
     searchQuery: v.string(),
@@ -244,6 +244,17 @@ export default defineSchema({
     retentionPolicy: v.optional(v.string()),
     dateBs: v.optional(v.string()),              // Bikram Sambat date
     isOnLegalHold: v.optional(v.boolean()),
+    legalHoldReason: v.optional(v.string()),
+    legalHoldSetAt: v.optional(v.string()),
+    legalHoldSetBy: v.optional(v.id("users")),
+    retentionUntil: v.optional(v.string()),
+    uploadStatus: v.optional(v.union(
+      v.literal("quarantined"), v.literal("scanning"),
+      v.literal("clean"), v.literal("rejected"),
+    )),
+    scanProvider: v.optional(v.string()),
+    scanCompletedAt: v.optional(v.string()),
+    scanDetails: v.optional(v.string()),
     confidentialityLevel: v.optional(v.union(
       v.literal("public"), v.literal("internal"), 
       v.literal("confidential"), v.literal("privileged"),
@@ -273,31 +284,52 @@ export default defineSchema({
   .index("by_intended_signer", ["intendedSignerUserId"])
   .index("by_signature_status", ["signatureStatus"])
   .index("by_deleted", ["isDeleted"])
+  .index("by_firm", ["firmId"])
+  .index("by_firm_deleted", ["firmId", "isDeleted"])
   .searchIndex("search_text", {
     searchField: "searchableText",
-    filterFields: ["caseId", "type", "isDeleted", "isPrivileged", "confidentialityLevel"]
+    filterFields: ["firmId", "caseId", "type", "isDeleted", "isPrivileged", "confidentialityLevel"]
   }),
 
   documentTags: defineTable({
     name: v.string(),
     color: v.optional(v.string()), // hex code or tailwind class
     firmId: v.optional(v.id("firms")),
-  }).index("by_name", ["name"]),
+  }).index("by_name", ["name"]).index("by_firm", ["firmId"]).index("by_firm_name", ["firmId", "name"]),
 
   documentShares: defineTable({
+    firmId: v.optional(v.id("firms")),
     documentId: v.id("documents"),
     token: v.string(),
-    passwordHash: v.optional(v.string()), // Simple hashed password or plaintext for prototype
+    passwordHash: v.optional(v.string()), // PBKDF2 encoded value
     expiresAt: v.optional(v.string()), // ISO string
     createdBy: v.id("users"),
     downloadsCount: v.number(),
     isActive: v.boolean(),
+    allowDownload: v.optional(v.boolean()),
+    maxDownloads: v.optional(v.number()),
+    failedAttempts: v.optional(v.number()),
+    lockedUntil: v.optional(v.number()),
+    lastAccessAt: v.optional(v.string()),
+    revokedAt: v.optional(v.string()),
+    revokedBy: v.optional(v.id("users")),
   })
     .index("by_document", ["documentId"])
-    .index("by_token", ["token"]),
+    .index("by_token", ["token"])
+    .index("by_firm", ["firmId"]),
+
+  documentUploadRateLimits: defineTable({
+    firmId: v.optional(v.id("firms")),
+    userId: v.id("users"),
+    windowStartedAt: v.number(),
+    count: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_firm", ["firmId"]),
 
   /** P3 multi-signer envelope wrapping one document */
   signatureEnvelopes: defineTable({
+    firmId: v.optional(v.id("firms")),
     documentId: v.id("documents"),
     caseId: v.optional(v.id("cases")),
     title: v.string(),
@@ -319,9 +351,11 @@ export default defineSchema({
   })
     .index("by_document", ["documentId"])
     .index("by_status", ["status"])
-    .index("by_case", ["caseId"]),
+    .index("by_case", ["caseId"])
+    .index("by_firm", ["firmId"]),
 
   signatureRecipients: defineTable({
+    firmId: v.optional(v.id("firms")),
     envelopeId: v.id("signatureEnvelopes"),
     userId: v.id("users"),
     order: v.number(),
@@ -338,10 +372,12 @@ export default defineSchema({
   })
     .index("by_envelope", ["envelopeId"])
     .index("by_user", ["userId"])
-    .index("by_envelope_user", ["envelopeId", "userId"]),
+    .index("by_envelope_user", ["envelopeId", "userId"])
+    .index("by_firm", ["firmId"]),
 
   /** Short-lived OTP challenges for step-up before e-sign */
   signingChallenges: defineTable({
+    firmId: v.optional(v.id("firms")),
     userId: v.id("users"),
     documentId: v.id("documents"),
     envelopeId: v.optional(v.id("signatureEnvelopes")),
@@ -350,7 +386,8 @@ export default defineSchema({
     verifiedAt: v.optional(v.number()),
     attempts: v.number(),
   })
-    .index("by_user_document", ["userId", "documentId"]),
+    .index("by_user_document", ["userId", "documentId"])
+    .index("by_firm", ["firmId"]),
 
   tasks: defineTable({
     firmId: v.optional(v.id("firms")),
@@ -556,6 +593,7 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   auditLog: defineTable({
+    firmId: v.optional(v.id("firms")),
     userId: v.id("users"),
     action: v.string(),
     resource: v.string(),
@@ -564,7 +602,8 @@ export default defineSchema({
     ipAddress: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
-    .index("by_resource", ["resource"]),
+    .index("by_resource", ["resource"])
+    .index("by_firm", ["firmId"]),
 
   notifications: defineTable({
     userId: v.id("users"),

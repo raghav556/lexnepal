@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, useTestimonials } from "@/client/queries/cms";
 import { Plus, Edit, Trash2, Eye, EyeOff, Quote } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog.tsx";
 import { toast } from "sonner";
@@ -11,10 +10,11 @@ import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 
 export default function AdminCMSTestimonials() {
-  const testimonials = useQuery(api.cms.listTestimonials, {}) || [];
-  const createTestimonial = useMutation(api.cms.createTestimonial);
-  const updateTestimonial = useMutation(api.cms.updateTestimonial);
-  const deleteTestimonial = useMutation(api.cms.deleteTestimonial);
+  const testimonials = useTestimonials({}, "admin") || [];
+  const cms = useCmsCommands();
+  const createTestimonial = (body: any) => cms.create("testimonials", body);
+  const updateTestimonial = ({ id, ...body }: any) => cms.update("testimonials", id, body);
+  const deleteTestimonial = ({ id }: any) => cms.remove("testimonials", id);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCareers, useCmsCommands, useJobApplications } from "@/client/queries/cms";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -12,13 +11,13 @@ import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 
 export default function AdminCMSCareers() {
-  const careers = useQuery(api.cms.listCareers, {}) || [];
-  const applications = useQuery(api.cms.listJobApplications, {}) || [];
-
-  const createJob = useMutation(api.cms.createCareer);
-  const updateJob = useMutation(api.cms.updateCareer);
-  const deleteJob = useMutation(api.cms.deleteCareer);
-  const updateAppStatus = useMutation(api.cms.updateJobApplicationStatus);
+  const careers = useCareers({}, "admin") || [];
+  const applications = useJobApplications({}) || [];
+  const cms = useCmsCommands();
+  const createJob = (body: any) => cms.create("careers", body);
+  const updateJob = ({ id, ...body }: any) => cms.update("careers", id, body);
+  const deleteJob = ({ id }: any) => cms.remove("careers", id);
+  const updateAppStatus = ({ id, status }: any) => cms.updateApplicationStatus(id, status);
 
   const [activeTab, setActiveTab] = useState("jobs");
   

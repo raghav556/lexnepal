@@ -1,0 +1,1194 @@
+[
+  {
+    "table": "appointments",
+    "index": "appointments_firm_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,appointment_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped appointments chronological or reminder query"
+  },
+  {
+    "table": "appointments",
+    "index": "appointments_firm_lawyer_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,assigned_lawyer_id,appointment_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped appointments lookup by responsible user"
+  },
+  {
+    "table": "appointments",
+    "index": "appointments_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped appointments status queue or filter"
+  },
+  {
+    "table": "attendance",
+    "index": "attendance_firm_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,attendance_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped attendance chronological or reminder query"
+  },
+  {
+    "table": "attendance",
+    "index": "attendance_firm_user_date_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id,attendance_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce attendance business or tenant uniqueness"
+  },
+  {
+    "table": "audit_log",
+    "index": "audit_log_firm_request_id_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id, request_id",
+    "migration": "drizzle/0005_audit_request_context.sql",
+    "queryPattern": "Documented operational lookup for audit_log"
+  },
+  {
+    "table": "audit_log",
+    "index": "audit_log_firm_resource_created_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,resource,created_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped audit_log chronological or reminder query"
+  },
+  {
+    "table": "audit_log",
+    "index": "audit_log_firm_user_created_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id,created_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped audit_log lookup by responsible user"
+  },
+  {
+    "table": "auth_accounts",
+    "index": "auth_accounts_provider_account_unique",
+    "unique": true,
+    "columnsOrExpression": "provider_id, account_id",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Enforce auth_accounts business or tenant uniqueness"
+  },
+  {
+    "table": "auth_accounts",
+    "index": "auth_accounts_user_idx",
+    "unique": false,
+    "columnsOrExpression": "user_id",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Firm-scoped auth_accounts lookup by responsible user"
+  },
+  {
+    "table": "auth_rate_limits",
+    "index": "auth_rate_limits_key_unique",
+    "unique": true,
+    "columnsOrExpression": "key",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Enforce auth_rate_limits business or tenant uniqueness"
+  },
+  {
+    "table": "auth_sessions",
+    "index": "auth_sessions_expiry_idx",
+    "unique": false,
+    "columnsOrExpression": "expires_at",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Firm-scoped auth_sessions chronological or reminder query"
+  },
+  {
+    "table": "auth_sessions",
+    "index": "auth_sessions_token_unique",
+    "unique": true,
+    "columnsOrExpression": "token",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Enforce auth_sessions business or tenant uniqueness"
+  },
+  {
+    "table": "auth_sessions",
+    "index": "auth_sessions_user_idx",
+    "unique": false,
+    "columnsOrExpression": "user_id",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Firm-scoped auth_sessions lookup by responsible user"
+  },
+  {
+    "table": "auth_two_factors",
+    "index": "auth_two_factors_user_unique",
+    "unique": true,
+    "columnsOrExpression": "user_id",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Enforce auth_two_factors business or tenant uniqueness"
+  },
+  {
+    "table": "auth_users",
+    "index": "auth_users_email_unique",
+    "unique": true,
+    "columnsOrExpression": "email",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Enforce auth_users business or tenant uniqueness"
+  },
+  {
+    "table": "auth_users",
+    "index": "auth_users_lexnepal_user_unique",
+    "unique": true,
+    "columnsOrExpression": "lexnepal_user_id",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Enforce auth_users business or tenant uniqueness"
+  },
+  {
+    "table": "auth_verifications",
+    "index": "auth_verifications_identifier_idx",
+    "unique": false,
+    "columnsOrExpression": "identifier",
+    "migration": "drizzle/0006_local_identity_authority.sql",
+    "queryPattern": "Documented operational lookup for auth_verifications"
+  },
+  {
+    "table": "avatar_upload_intents",
+    "index": "avatar_upload_intents_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id, status, expires_at",
+    "migration": "drizzle/0007_avatar_quarantine_pipeline.sql",
+    "queryPattern": "Firm-scoped avatar_upload_intents status queue or filter"
+  },
+  {
+    "table": "avatar_upload_intents",
+    "index": "avatar_upload_intents_quarantine_key_unique",
+    "unique": true,
+    "columnsOrExpression": "quarantine_key",
+    "migration": "drizzle/0007_avatar_quarantine_pipeline.sql",
+    "queryPattern": "Enforce avatar_upload_intents business or tenant uniqueness"
+  },
+  {
+    "table": "avatar_upload_intents",
+    "index": "avatar_upload_intents_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id, user_id",
+    "migration": "drizzle/0007_avatar_quarantine_pipeline.sql",
+    "queryPattern": "Firm-scoped avatar_upload_intents lookup by responsible user"
+  },
+  {
+    "table": "blog_posts",
+    "index": "blog_posts_firm_slug_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,slug",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce blog_posts business or tenant uniqueness"
+  },
+  {
+    "table": "blog_posts",
+    "index": "blog_posts_firm_status_publish_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status,publish_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped blog_posts status queue or filter"
+  },
+  {
+    "table": "career_requirements",
+    "index": "career_requirements_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,career_id,position",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce career_requirements business or tenant uniqueness"
+  },
+  {
+    "table": "careers",
+    "index": "careers_firm_active_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,is_active",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped careers status queue or filter"
+  },
+  {
+    "table": "case_team_members",
+    "index": "case_team_members_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,case_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce case_team_members business or tenant uniqueness"
+  },
+  {
+    "table": "case_team_members",
+    "index": "case_team_members_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped case_team_members lookup by case"
+  },
+  {
+    "table": "cases",
+    "index": "cases_firm_case_number_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,case_number",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce cases business or tenant uniqueness"
+  },
+  {
+    "table": "cases",
+    "index": "cases_firm_client_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped cases lookup by case"
+  },
+  {
+    "table": "cases",
+    "index": "cases_firm_lawyer_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,assigned_lawyer_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped cases lookup by case"
+  },
+  {
+    "table": "cases",
+    "index": "cases_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped cases lookup by case"
+  },
+  {
+    "table": "client_kyc_files",
+    "index": "client_kyc_files_client_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped client_kyc_files lookup by client"
+  },
+  {
+    "table": "client_kyc_files",
+    "index": "client_kyc_files_storage_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,storage_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce client_kyc_files business or tenant uniqueness"
+  },
+  {
+    "table": "clients",
+    "index": "clients_firm_kyc_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,kyc_status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped clients status queue or filter"
+  },
+  {
+    "table": "clients",
+    "index": "clients_firm_name_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,full_name",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped clients lookup by client"
+  },
+  {
+    "table": "clients",
+    "index": "clients_firm_user_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce clients business or tenant uniqueness"
+  },
+  {
+    "table": "cms_settings",
+    "index": "cms_settings_firm_key_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,key",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce cms_settings business or tenant uniqueness"
+  },
+  {
+    "table": "conflict_checks",
+    "index": "conflict_checks_firm_checked_at_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,checked_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for conflict_checks"
+  },
+  {
+    "table": "conflict_checks",
+    "index": "conflict_checks_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped conflict_checks status queue or filter"
+  },
+  {
+    "table": "document_scan_jobs",
+    "index": "document_scan_jobs_available_idx",
+    "unique": false,
+    "columnsOrExpression": "status,available_at",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Firm-scoped document_scan_jobs lookup by document"
+  },
+  {
+    "table": "document_scan_jobs",
+    "index": "document_scan_jobs_intent_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,upload_intent_id",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Enforce document_scan_jobs business or tenant uniqueness"
+  },
+  {
+    "table": "document_shares",
+    "index": "document_shares_active_expiry_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,is_active,expires_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped document_shares status queue or filter"
+  },
+  {
+    "table": "document_shares",
+    "index": "document_shares_firm_document_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,document_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped document_shares lookup by document"
+  },
+  {
+    "table": "document_shares",
+    "index": "document_shares_token_unique",
+    "unique": true,
+    "columnsOrExpression": "token",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce document_shares business or tenant uniqueness"
+  },
+  {
+    "table": "document_tag_assignments",
+    "index": "document_tag_assignments_tag_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,tag_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped document_tag_assignments lookup by document"
+  },
+  {
+    "table": "document_tag_assignments",
+    "index": "document_tag_assignments_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,document_id,tag_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce document_tag_assignments business or tenant uniqueness"
+  },
+  {
+    "table": "document_tags",
+    "index": "document_tags_firm_name_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,name",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce document_tags business or tenant uniqueness"
+  },
+  {
+    "table": "document_templates",
+    "index": "document_templates_firm_title_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,title",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce document_templates business or tenant uniqueness"
+  },
+  {
+    "table": "document_templates",
+    "index": "document_templates_firm_type_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,type",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped document_templates lookup by document"
+  },
+  {
+    "table": "document_upload_intents",
+    "index": "document_upload_intents_creator_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,created_by",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Firm-scoped document_upload_intents lookup by document"
+  },
+  {
+    "table": "document_upload_intents",
+    "index": "document_upload_intents_firm_status_expiry_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status,expires_at",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Firm-scoped document_upload_intents status queue or filter"
+  },
+  {
+    "table": "document_upload_intents",
+    "index": "document_upload_intents_quarantine_key_unique",
+    "unique": true,
+    "columnsOrExpression": "quarantine_key",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Enforce document_upload_intents business or tenant uniqueness"
+  },
+  {
+    "table": "document_upload_rate_limits",
+    "index": "document_upload_rate_limits_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped document_upload_rate_limits lookup by responsible user"
+  },
+  {
+    "table": "document_upload_rate_limits",
+    "index": "document_upload_rate_limits_window_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id,window_started_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce document_upload_rate_limits business or tenant uniqueness"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by case"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_deleted_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,deleted_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_number_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,document_number",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce documents business or tenant uniqueness"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_parent_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,parent_document_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_signature_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,intended_signer_user_id,signature_status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_storage_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,storage_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce documents business or tenant uniqueness"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_template_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,is_template",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_type_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,type",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_firm_uploader_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,uploaded_by",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_parent_version_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,parent_document_id,version",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce documents business or tenant uniqueness"
+  },
+  {
+    "table": "documents",
+    "index": "documents_search_vector_idx",
+    "unique": false,
+    "columnsOrExpression": "to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(searchable_text, ''))",
+    "migration": "drizzle/0001_tenant_integrity_and_checks.sql",
+    "queryPattern": "Full-text document discovery by title description and extracted text"
+  },
+  {
+    "table": "expenses",
+    "index": "expenses_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped expenses lookup by case"
+  },
+  {
+    "table": "expenses",
+    "index": "expenses_firm_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,expense_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped expenses chronological or reminder query"
+  },
+  {
+    "table": "expenses",
+    "index": "expenses_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped expenses status queue or filter"
+  },
+  {
+    "table": "firm_settings",
+    "index": "firm_settings_firm_key_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,key",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce firm_settings business or tenant uniqueness"
+  },
+  {
+    "table": "firms",
+    "index": "firms_slug_unique",
+    "unique": true,
+    "columnsOrExpression": "slug",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce firms business or tenant uniqueness"
+  },
+  {
+    "table": "hearings",
+    "index": "hearings_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped hearings lookup by case"
+  },
+  {
+    "table": "hearings",
+    "index": "hearings_firm_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,date_gregorian",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped hearings chronological or reminder query"
+  },
+  {
+    "table": "invoice_line_items",
+    "index": "invoice_line_items_firm_invoice_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,invoice_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for invoice_line_items"
+  },
+  {
+    "table": "invoices",
+    "index": "invoices_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped invoices lookup by case"
+  },
+  {
+    "table": "invoices",
+    "index": "invoices_firm_client_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped invoices lookup by client"
+  },
+  {
+    "table": "invoices",
+    "index": "invoices_firm_number_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,invoice_number",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce invoices business or tenant uniqueness"
+  },
+  {
+    "table": "invoices",
+    "index": "invoices_firm_status_due_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status,due_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped invoices status queue or filter"
+  },
+  {
+    "table": "job_applications",
+    "index": "job_applications_firm_job_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,job_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for job_applications"
+  },
+  {
+    "table": "job_applications",
+    "index": "job_applications_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped job_applications status queue or filter"
+  },
+  {
+    "table": "leads",
+    "index": "leads_firm_assigned_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,assigned_to",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for leads"
+  },
+  {
+    "table": "leads",
+    "index": "leads_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped leads status queue or filter"
+  },
+  {
+    "table": "leads",
+    "index": "leads_intake_token_unique",
+    "unique": true,
+    "columnsOrExpression": "intake_token",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce leads business or tenant uniqueness"
+  },
+  {
+    "table": "leave_requests",
+    "index": "leave_requests_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped leave_requests status queue or filter"
+  },
+  {
+    "table": "leave_requests",
+    "index": "leave_requests_firm_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped leave_requests lookup by responsible user"
+  },
+  {
+    "table": "legal_pages",
+    "index": "legal_pages_firm_slug_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,slug",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce legal_pages business or tenant uniqueness"
+  },
+  {
+    "table": "message_attachments",
+    "index": "message_attachments_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,message_id,position",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce message_attachments business or tenant uniqueness"
+  },
+  {
+    "table": "message_reads",
+    "index": "message_reads_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,message_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce message_reads business or tenant uniqueness"
+  },
+  {
+    "table": "message_reads",
+    "index": "message_reads_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped message_reads lookup by responsible user"
+  },
+  {
+    "table": "messages",
+    "index": "messages_firm_case_created_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id,created_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped messages lookup by case"
+  },
+  {
+    "table": "messages",
+    "index": "messages_firm_sender_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,sender_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for messages"
+  },
+  {
+    "table": "navigation",
+    "index": "navigation_firm_location_order_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,location,display_order",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce navigation business or tenant uniqueness"
+  },
+  {
+    "table": "navigation",
+    "index": "navigation_firm_parent_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,parent_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped navigation hierarchy traversal"
+  },
+  {
+    "table": "news_and_awards",
+    "index": "news_and_awards_firm_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,publication_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped news_and_awards chronological or reminder query"
+  },
+  {
+    "table": "news_and_awards",
+    "index": "news_and_awards_firm_type_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,type",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped news_and_awards classification filter"
+  },
+  {
+    "table": "newsletter_subscribers",
+    "index": "newsletter_subscribers_firm_email_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,email",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce newsletter_subscribers business or tenant uniqueness"
+  },
+  {
+    "table": "notifications",
+    "index": "notifications_firm_created_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,created_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped notifications chronological or reminder query"
+  },
+  {
+    "table": "notifications",
+    "index": "notifications_firm_user_read_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id,is_read",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped notifications lookup by responsible user"
+  },
+  {
+    "table": "payments",
+    "index": "payments_firm_client_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped payments lookup by client"
+  },
+  {
+    "table": "payments",
+    "index": "payments_firm_gateway_reference_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,gateway,reference_number",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce payments business or tenant uniqueness"
+  },
+  {
+    "table": "payments",
+    "index": "payments_firm_invoice_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,invoice_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for payments"
+  },
+  {
+    "table": "practice_areas",
+    "index": "practice_areas_firm_slug_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,slug",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce practice_areas business or tenant uniqueness"
+  },
+  {
+    "table": "research_note_tags",
+    "index": "research_note_tags_firm_tag_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,tag",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for research_note_tags"
+  },
+  {
+    "table": "research_note_tags",
+    "index": "research_note_tags_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,research_note_id,tag",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce research_note_tags business or tenant uniqueness"
+  },
+  {
+    "table": "research_notes",
+    "index": "research_notes_firm_author_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,author_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped research_notes lookup by responsible user"
+  },
+  {
+    "table": "research_notes",
+    "index": "research_notes_firm_category_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,category",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped research_notes classification filter"
+  },
+  {
+    "table": "resources",
+    "index": "resources_firm_category_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,category",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped resources classification filter"
+  },
+  {
+    "table": "sessions",
+    "index": "sessions_expiry_idx",
+    "unique": false,
+    "columnsOrExpression": "expires_at",
+    "migration": "drizzle/0002_authentication_sessions.sql",
+    "queryPattern": "Firm-scoped sessions chronological or reminder query"
+  },
+  {
+    "table": "sessions",
+    "index": "sessions_firm_user_active_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id,last_active",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped sessions lookup by responsible user"
+  },
+  {
+    "table": "sessions",
+    "index": "sessions_token_hash_unique",
+    "unique": true,
+    "columnsOrExpression": "token_hash",
+    "migration": "drizzle/0002_authentication_sessions.sql",
+    "queryPattern": "Enforce sessions business or tenant uniqueness"
+  },
+  {
+    "table": "signature_envelopes",
+    "index": "signature_envelopes_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped signature_envelopes lookup by case"
+  },
+  {
+    "table": "signature_envelopes",
+    "index": "signature_envelopes_firm_document_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,document_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped signature_envelopes lookup by document"
+  },
+  {
+    "table": "signature_envelopes",
+    "index": "signature_envelopes_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped signature_envelopes status queue or filter"
+  },
+  {
+    "table": "signature_recipients",
+    "index": "signature_recipients_envelope_order_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,envelope_id,routing_order",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce signature_recipients business or tenant uniqueness"
+  },
+  {
+    "table": "signature_recipients",
+    "index": "signature_recipients_envelope_user_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,envelope_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce signature_recipients business or tenant uniqueness"
+  },
+  {
+    "table": "signature_recipients",
+    "index": "signature_recipients_user_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped signature_recipients lookup by responsible user"
+  },
+  {
+    "table": "signing_challenges",
+    "index": "signing_challenges_expiry_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,expires_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped signing_challenges chronological or reminder query"
+  },
+  {
+    "table": "signing_challenges",
+    "index": "signing_challenges_user_document_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id,document_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped signing_challenges lookup by responsible user"
+  },
+  {
+    "table": "sop_template_tasks",
+    "index": "sop_template_tasks_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,sop_template_id,position",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce sop_template_tasks business or tenant uniqueness"
+  },
+  {
+    "table": "sop_templates",
+    "index": "sop_templates_firm_key_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,key",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce sop_templates business or tenant uniqueness"
+  },
+  {
+    "table": "sop_templates",
+    "index": "sop_templates_firm_practice_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,practice_area",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped sop_templates classification filter"
+  },
+  {
+    "table": "storage_migration_items",
+    "index": "storage_migration_items_destination_unique",
+    "unique": true,
+    "columnsOrExpression": "destination_key",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Enforce storage_migration_items business or tenant uniqueness"
+  },
+  {
+    "table": "storage_migration_items",
+    "index": "storage_migration_items_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Firm-scoped storage_migration_items status queue or filter"
+  },
+  {
+    "table": "storage_migration_items",
+    "index": "storage_migration_items_legacy_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,legacy_storage_id",
+    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "queryPattern": "Enforce storage_migration_items business or tenant uniqueness"
+  },
+  {
+    "table": "task_comments",
+    "index": "task_comments_firm_task_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,task_id,created_at",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for task_comments"
+  },
+  {
+    "table": "task_watchers",
+    "index": "task_watchers_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,task_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce task_watchers business or tenant uniqueness"
+  },
+  {
+    "table": "task_watchers",
+    "index": "task_watchers_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped task_watchers lookup by responsible user"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_firm_assignee_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,assigned_to",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped tasks lookup by responsible user"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped tasks lookup by case"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_firm_due_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,due_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped tasks chronological or reminder query"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_firm_hearing_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,hearing_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for tasks"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_firm_parent_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,parent_task_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped tasks hierarchy traversal"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped tasks status queue or filter"
+  },
+  {
+    "table": "template_variables",
+    "index": "template_variables_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,template_id,position",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce template_variables business or tenant uniqueness"
+  },
+  {
+    "table": "template_variables",
+    "index": "template_variables_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,template_id,variable",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce template_variables business or tenant uniqueness"
+  },
+  {
+    "table": "templates",
+    "index": "templates_firm_category_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,category",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped templates classification filter"
+  },
+  {
+    "table": "templates",
+    "index": "templates_firm_title_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,title",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce templates business or tenant uniqueness"
+  },
+  {
+    "table": "testimonials",
+    "index": "testimonials_firm_approved_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,is_approved",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped testimonials status queue or filter"
+  },
+  {
+    "table": "time_entries",
+    "index": "time_entries_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped time_entries lookup by case"
+  },
+  {
+    "table": "time_entries",
+    "index": "time_entries_firm_invoice_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,invoice_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Documented operational lookup for time_entries"
+  },
+  {
+    "table": "time_entries",
+    "index": "time_entries_firm_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped time_entries lookup by responsible user"
+  },
+  {
+    "table": "trust_transactions",
+    "index": "trust_transactions_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped trust_transactions lookup by case"
+  },
+  {
+    "table": "trust_transactions",
+    "index": "trust_transactions_firm_client_date_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id,transaction_date",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped trust_transactions chronological or reminder query"
+  },
+  {
+    "table": "user_educations",
+    "index": "user_educations_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id,position",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce user_educations business or tenant uniqueness"
+  },
+  {
+    "table": "user_notable_cases",
+    "index": "user_notable_cases_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id,position",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce user_notable_cases business or tenant uniqueness"
+  },
+  {
+    "table": "user_practice_areas",
+    "index": "user_practice_areas_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id,practice_area",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce user_practice_areas business or tenant uniqueness"
+  },
+  {
+    "table": "users",
+    "index": "users_activation_token_unique",
+    "unique": true,
+    "columnsOrExpression": "activation_token",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce users business or tenant uniqueness"
+  },
+  {
+    "table": "users",
+    "index": "users_firm_email_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,email",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce users business or tenant uniqueness"
+  },
+  {
+    "table": "users",
+    "index": "users_firm_role_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,role",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Firm-scoped users lookup by responsible user"
+  },
+  {
+    "table": "users",
+    "index": "users_token_identifier_unique",
+    "unique": true,
+    "columnsOrExpression": "token_identifier",
+    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "queryPattern": "Enforce users business or tenant uniqueness"
+  }
+]

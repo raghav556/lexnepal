@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { requireAuth, requireRole, STAFF_ROLES } from "./lib/roles";
+import { requireAuth, requirePermission, requireFirmId, STAFF_ROLES } from "./lib/roles";
 import { notifyUser } from "./lib/notify";
 
 async function hashOtp(code: string): Promise<string> {
@@ -45,8 +45,9 @@ function isStaff(role: string) {
 export const listPortalSigners = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, [...STAFF_ROLES, "admin"]);
-    const users = await ctx.db.query("users").collect();
+    const staff = await requirePermission(ctx, "documents.share");
+    const firmId = await requireFirmId(ctx, staff);
+    const users = await ctx.db.query("users").withIndex("by_firm", (q) => q.eq("firmId", firmId)).collect();
     return users
       .filter((u) => u.isActive && !u.isPending)
       .map((u) => ({
@@ -68,9 +69,13 @@ export const createEnvelope = mutation({
     recipientUserIds: v.array(v.id("users")),
   },
   handler: async (ctx, args) => {
-    const staff = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
+    const staff = await requirePermission(ctx, "documents.share");
+    const firmId = await requireFirmId(ctx, staff);
     const doc = await ctx.db.get(args.documentId);
-    if (!doc) throw new ConvexError("Document not found");
+    if (!doc || doc.firmId !== firmId) throw new ConvexError("Document not found");
+    if (doc.uploadStatus === "quarantined" || doc.uploadStatus === "scanning" || doc.uploadStatus === "rejected") {
+      throw new ConvexError("Only security-cleared documents can be sent for signature");
+    }
     if (doc.isTemplate || doc.isPrivileged) {
       throw new ConvexError("Cannot create an envelope for template or internal-only documents");
     }
@@ -83,6 +88,7 @@ export const createEnvelope = mutation({
     }
 
     const envelopeId = await ctx.db.insert("signatureEnvelopes", {
+      firmId,
       documentId: args.documentId,
       caseId: doc.caseId,
       title: args.title || doc.title,
@@ -98,7 +104,11 @@ export const createEnvelope = mutation({
       if (!user || !user.isActive) {
         throw new ConvexError(`Signer not found or inactive: ${userId}`);
       }
+      if (user.firmId !== firmId || user.isPending) {
+        throw new ConvexError("Every signer must be an active member of the same firm");
+      }
       await ctx.db.insert("signatureRecipients", {
+        firmId,
         envelopeId,
         userId,
         order: i,
@@ -108,6 +118,7 @@ export const createEnvelope = mutation({
 
     await ctx.db.insert("auditLog", {
       userId: staff._id,
+      firmId,
       action: "envelope.created",
       resource: "signatureEnvelopes",
       resourceId: envelopeId,
@@ -122,9 +133,10 @@ export const createEnvelope = mutation({
 export const sendEnvelope = mutation({
   args: { envelopeId: v.id("signatureEnvelopes") },
   handler: async (ctx, args) => {
-    const staff = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
+    const staff = await requirePermission(ctx, "documents.share");
+    const firmId = await requireFirmId(ctx, staff);
     let envelope = await ctx.db.get(args.envelopeId);
-    if (!envelope) throw new ConvexError("Envelope not found");
+    if (!envelope || envelope.firmId !== firmId) throw new ConvexError("Envelope not found");
     if (envelope.status !== "draft" && envelope.status !== "sent") {
       throw new ConvexError(`Cannot send envelope in status ${envelope.status}`);
     }
@@ -175,6 +187,7 @@ export const sendEnvelope = mutation({
 
     await ctx.db.insert("auditLog", {
       userId: staff._id,
+      firmId,
       action: "envelope.sent",
       resource: "signatureEnvelopes",
       resourceId: args.envelopeId,
@@ -191,9 +204,10 @@ export const voidEnvelope = mutation({
     reason: v.string(),
   },
   handler: async (ctx, args) => {
-    const staff = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
+    const staff = await requirePermission(ctx, "documents.share");
+    const firmId = await requireFirmId(ctx, staff);
     const envelope = await ctx.db.get(args.envelopeId);
-    if (!envelope) throw new ConvexError("Envelope not found");
+    if (!envelope || envelope.firmId !== firmId) throw new ConvexError("Envelope not found");
     if (envelope.status === "completed" || envelope.status === "voided") {
       throw new ConvexError("Envelope cannot be voided");
     }
@@ -211,6 +225,7 @@ export const voidEnvelope = mutation({
     });
     await ctx.db.insert("auditLog", {
       userId: staff._id,
+      firmId,
       action: "envelope.voided",
       resource: "signatureEnvelopes",
       resourceId: args.envelopeId,
@@ -227,8 +242,9 @@ export const declineEnvelope = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
+    const firmId = await requireFirmId(ctx, user);
     let envelope = await ctx.db.get(args.envelopeId);
-    if (!envelope) throw new ConvexError("Envelope not found");
+    if (!envelope || envelope.firmId !== firmId) throw new ConvexError("Envelope not found");
     envelope = await expireIfNeeded(ctx, envelope);
     if (envelope.status !== "sent") {
       throw new ConvexError("Only active envelopes can be declined");
@@ -258,6 +274,7 @@ export const declineEnvelope = mutation({
 
     await ctx.db.insert("auditLog", {
       userId: user._id,
+      firmId,
       action: "envelope.declined",
       resource: "signatureEnvelopes",
       resourceId: args.envelopeId,
@@ -280,9 +297,10 @@ export const declineEnvelope = mutation({
 export const remindEnvelope = mutation({
   args: { envelopeId: v.id("signatureEnvelopes") },
   handler: async (ctx, args) => {
-    const staff = await requireRole(ctx, [...STAFF_ROLES, "admin"]);
+    const staff = await requirePermission(ctx, "documents.share");
+    const firmId = await requireFirmId(ctx, staff);
     let envelope = await ctx.db.get(args.envelopeId);
-    if (!envelope) throw new ConvexError("Envelope not found");
+    if (!envelope || envelope.firmId !== firmId) throw new ConvexError("Envelope not found");
     envelope = await expireIfNeeded(ctx, envelope);
     if (envelope.status !== "sent") {
       throw new ConvexError("Can only remind on sent envelopes");
@@ -308,6 +326,7 @@ export const remindEnvelope = mutation({
     await ctx.db.patch(args.envelopeId, { lastRemindedAt: now });
     await ctx.db.insert("auditLog", {
       userId: staff._id,
+      firmId,
       action: "envelope.reminded",
       resource: "signatureEnvelopes",
       resourceId: args.envelopeId,
@@ -332,8 +351,9 @@ export const listEnvelopes = query({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
+    const firmId = await requireFirmId(ctx, user);
     if (isStaff(user.role)) {
-      const all = await ctx.db.query("signatureEnvelopes").collect();
+      const all = await ctx.db.query("signatureEnvelopes").withIndex("by_firm", (q) => q.eq("firmId", firmId)).collect();
       return args.status ? all.filter((e) => e.status === args.status) : all;
     }
     // Clients: envelopes where they are a recipient
@@ -344,7 +364,7 @@ export const listEnvelopes = query({
     const envelopes: Doc<"signatureEnvelopes">[] = [];
     for (const r of myRecipients) {
       const env = await ctx.db.get(r.envelopeId);
-      if (!env) continue;
+      if (!env || env.firmId !== firmId) continue;
       if (args.status && env.status !== args.status) continue;
       envelopes.push(env);
     }
@@ -356,8 +376,10 @@ export const getEnvelope = query({
   args: { envelopeId: v.id("signatureEnvelopes") },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
+    const firmId = await requireFirmId(ctx, user);
     const envelope = await ctx.db.get(args.envelopeId);
     if (!envelope) return null;
+    if (envelope.firmId !== firmId) throw new ConvexError({ code: "FORBIDDEN", message: "Access denied" });
 
     const recipients = await ctx.db
       .query("signatureRecipients")
@@ -390,6 +412,7 @@ export const listMyPendingEnvelopeActions = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuth(ctx);
+    const firmId = await requireFirmId(ctx, user);
     const myRecipients = await ctx.db
       .query("signatureRecipients")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -407,7 +430,7 @@ export const listMyPendingEnvelopeActions = query({
     for (const r of myRecipients) {
       if (r.status !== "pending") continue;
       const envelope = await ctx.db.get(r.envelopeId);
-      if (!envelope || envelope.status !== "sent") continue;
+      if (!envelope || envelope.firmId !== firmId || envelope.status !== "sent") continue;
       if (envelope.expiresAt && new Date(envelope.expiresAt).getTime() < Date.now()) continue;
       const doc = await ctx.db.get(envelope.documentId);
       actions.push({
@@ -432,12 +455,13 @@ export const issueSigningOtp = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
+    const firmId = await requireFirmId(ctx, user);
     const doc = await ctx.db.get(args.documentId);
-    if (!doc) throw new ConvexError("Document not found");
+    if (!doc || doc.firmId !== firmId) throw new ConvexError("Document not found");
 
     if (args.envelopeId) {
       const envelope = await ctx.db.get(args.envelopeId);
-      if (!envelope || envelope.status !== "sent") {
+      if (!envelope || envelope.firmId !== firmId || envelope.status !== "sent") {
         throw new ConvexError("Envelope is not available for signing");
       }
       if (envelope.expiresAt && new Date(envelope.expiresAt).getTime() < Date.now()) {
@@ -467,6 +491,7 @@ export const issueSigningOtp = mutation({
     }
 
     const challengeId = await ctx.db.insert("signingChallenges", {
+      firmId,
       userId: user._id,
       documentId: args.documentId,
       envelopeId: args.envelopeId,
@@ -499,8 +524,9 @@ export const verifySigningOtp = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
+    const firmId = await requireFirmId(ctx, user);
     const challenge = await ctx.db.get(args.challengeId);
-    if (!challenge || challenge.userId !== user._id) {
+    if (!challenge || challenge.userId !== user._id || challenge.firmId !== firmId) {
       throw new ConvexError("Invalid challenge");
     }
     if (challenge.verifiedAt) {

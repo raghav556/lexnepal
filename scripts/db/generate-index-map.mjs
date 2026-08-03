@@ -1,0 +1,97 @@
+import fs from "node:fs";
+import path from "node:path";
+
+const migrationFiles = fs
+  .readdirSync("drizzle")
+  .filter((file) => file.endsWith(".sql"))
+  .sort()
+  .map((file) => path.join("drizzle", file));
+
+function purposeFor(index) {
+  if (index.name === "documents_search_vector_idx")
+    return "Full-text document discovery by title description and extracted text";
+  if (index.unique) return `Enforce ${index.table} business or tenant uniqueness`;
+  const name = index.name;
+  if (name.includes("case")) return `Firm-scoped ${index.table} lookup by case`;
+  if (
+    name.includes("user") ||
+    name.includes("assignee") ||
+    name.includes("lawyer") ||
+    name.includes("author")
+  )
+    return `Firm-scoped ${index.table} lookup by responsible user`;
+  if (
+    name.includes("status") ||
+    name.includes("approved") ||
+    name.includes("active") ||
+    name.includes("read")
+  )
+    return `Firm-scoped ${index.table} status queue or filter`;
+  if (
+    name.includes("date") ||
+    name.includes("due") ||
+    name.includes("created") ||
+    name.includes("expiry")
+  )
+    return `Firm-scoped ${index.table} chronological or reminder query`;
+  if (name.includes("document")) return `Firm-scoped ${index.table} lookup by document`;
+  if (name.includes("client")) return `Firm-scoped ${index.table} lookup by client`;
+  if (name.includes("parent")) return `Firm-scoped ${index.table} hierarchy traversal`;
+  if (
+    name.includes("category") ||
+    name.includes("type") ||
+    name.includes("practice") ||
+    name.includes("role")
+  )
+    return `Firm-scoped ${index.table} classification filter`;
+  return `Documented operational lookup for ${index.table}`;
+}
+
+const indexes = [];
+for (const file of migrationFiles) {
+  const sql = fs.readFileSync(file, "utf8");
+  for (const statement of sql.split("--> statement-breakpoint")) {
+    const match = statement.match(
+      /CREATE\s+(UNIQUE\s+)?INDEX\s+"?([a-zA-Z0-9_]+)"?\s+ON\s+(?:public\.)?"?([a-zA-Z0-9_]+)"?\s+USING\s+[a-zA-Z0-9_]+\s*\(([\s\S]*?)\)(?:\s+WHERE[\s\S]*)?;?\s*$/i,
+    );
+    if (!match) continue;
+    const index = {
+      table: match[3],
+      index: match[2],
+      unique: Boolean(match[1]),
+      columnsOrExpression: match[4].replace(/\s+/g, " ").replaceAll('"', "").trim(),
+      migration: file.replaceAll("\\", "/"),
+    };
+    indexes.push({ ...index, queryPattern: purposeFor({ ...index, name: index.index }) });
+  }
+}
+
+indexes.sort((a, b) => `${a.table}.${a.index}`.localeCompare(`${b.table}.${b.index}`));
+fs.mkdirSync("doc/migration", { recursive: true });
+fs.writeFileSync("db/index-manifest.json", `${JSON.stringify(indexes, null, 2)}\n`);
+
+const headers = [
+  "Table",
+  "Index",
+  "Unique",
+  "Columns/expression",
+  "Documented query pattern",
+  "Migration",
+];
+const quote = (value) => {
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+const rows = indexes.map((index) => [
+  index.table,
+  index.index,
+  index.unique ? "yes" : "no",
+  index.columnsOrExpression,
+  index.queryPattern,
+  index.migration,
+]);
+fs.writeFileSync(
+  "doc/migration/index-query-map.csv",
+  `${[headers, ...rows].map((row) => row.map(quote).join(",")).join("\n")}\n`,
+);
+console.log(`Documented ${indexes.length} explicit PostgreSQL indexes.`);

@@ -1,0 +1,47 @@
+name: Next.js foundation CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: next-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      APP_VERSION: ci
+      GIT_SHA: ${{ github.sha }}
+      LOG_LEVEL: error
+      READINESS_REQUIRE_DATABASE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run audit:production
+      - run: npm run migration:inventory
+      - run: npm run db:index-map
+      - name: Verify generated inventory is committed
+        run: git diff --exit-code -- doc/migration db/index-manifest.json
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run test:migration-characterization
+      - run: npm run db:check
+      - run: npm run db:integrity
+      - run: npm run db:test
+      - run: npm run build
+      - run: npm run build:legacy

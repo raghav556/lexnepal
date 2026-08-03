@@ -1,4 +1,4 @@
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { 
   BarChart3, TrendingUp, PieChart, Clock, Users, Banknote, Briefcase, Activity

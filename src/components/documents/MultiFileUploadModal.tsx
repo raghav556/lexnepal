@@ -9,7 +9,8 @@ import { useDropzone } from "react-dropzone";
 import { Loader2, UploadCloud, X, File, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api.js";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/client/data/convex-bridge.ts";
+import { useCases } from "@/client/queries/cases";
 import { extractTextFromFile } from "@/utils/textExtractor.ts";
 
 const ALLOWED_TYPES = {
@@ -63,7 +64,7 @@ export function MultiFileUploadModal({
   parentDocumentId?: string | null;
   initialCaseId?: string;
 }) {
-  const cases = useQuery(api.cases.listCases, {}) || [];
+  const cases = useCases({}) || [];
   
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.createDocument);

@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { Loader2, UserPlus, Phone, Mail, Tag, X, Link as LinkIcon, CheckCircle2, KanbanSquare, AlignJustify, Search } from "lucide-react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
+import { useStaffDirectory } from "@/client/queries/identity";
 
 const STATUS_COLORS: Record<string, string> = {
   new:                    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
@@ -37,7 +38,7 @@ interface ConvertModalState {
 
 export default function AdminCRMPage() {
   const leads = useQuery(api.leads.listLeads, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const users = useStaffDirectory() || [];
   const updateLead = useMutation(api.leads.updateLead);
   const convertToClient = useMutation(api.leads.convertToClient);
   const generateIntakeLink = useMutation(api.leads.generateIntakeLink as any);

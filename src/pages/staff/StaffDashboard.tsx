@@ -3,16 +3,18 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { FolderOpen, CalendarDays, CheckSquare, Clock, AlertTriangle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { PRIORITY_COLORS } from "@/lib/task-constants.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
+import { useCases } from "@/client/queries/cases";
 
 export default function StaffDashboard() {
-  const cases = useQuery(api.cases.listCases, {}) || [];
+  const cases = useCases({}) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const tasks = useQuery(api.tasks.listTasks, {}) || [];
   const workload = useQuery(api.tasks.listWorkload, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const users = useStaffDirectory() || [];
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
 
   // Compute stats dynamically

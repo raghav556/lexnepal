@@ -1,12 +1,23 @@
 import React, { useState, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Search, ShieldAlert, CheckCircle2, User, FileText, AlertTriangle, Download, XCircle, Clock } from "lucide-react";
+import {
+  Search,
+  ShieldAlert,
+  CheckCircle2,
+  User,
+  FileText,
+  AlertTriangle,
+  Download,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 import { toast } from "sonner";
+import { useConflictCommands, useRecentConflictChecks } from "@/client/queries/cases";
+import { useCases } from "@/client/queries/cases";
+import { useClients } from "@/client/queries/clients";
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "cleared") {
@@ -36,19 +47,19 @@ export default function AdminConflictChecker() {
   const [isSearching, setIsSearching] = useState(false);
   const [activeCheckId, setActiveCheckId] = useState<string | null>(null);
 
-  const clients = useQuery(api.clients.listClients, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
+  const conflictCommands = useConflictCommands();
+  const recentChecks = useRecentConflictChecks() || [];
+  const clients = useClients() || [];
+  const cases = useCases({}) || [];
 
-  const logSearch = useMutation(api.conflictChecks.logSearch);
-  const updateStatus = useMutation(api.conflictChecks.updateStatus);
-  const recentChecks = useQuery(api.conflictChecks.listRecentChecks, {}) || [];
-
-  const [results, setResults] = useState<{
-    type: string;
-    name: string;
-    context: string;
-    match: string;
-  }[]>([]);
+  const [results, setResults] = useState<
+    {
+      type: string;
+      name: string;
+      context: string;
+      match: string;
+    }[]
+  >([]);
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -60,62 +71,68 @@ export default function AdminConflictChecker() {
     setHasSearched(true);
     setActiveCheckId(null);
 
-    const q = searchQuery.toLowerCase();
-    const hits: any[] = [];
-
-    for (const client of clients) {
-      if (client.fullName.toLowerCase().includes(q) || (client.companyName && client.companyName.toLowerCase().includes(q))) {
-        hits.push({
-          type: "Client",
-          name: client.fullName,
-          context: client.type === "corporate" ? `Corporate Client: ${client.companyName}` : "Individual Client",
-          match: "Name/Company match",
-        });
-      }
-    }
-
-    for (const c of cases) {
-      if (c.opposingCounsel && c.opposingCounsel.toLowerCase().includes(q)) {
-        hits.push({
-          type: "Opposing Counsel",
-          name: c.opposingCounsel,
-          context: `Case: ${c.title} (${c.caseNumber})`,
-          match: "Opposing Counsel match",
-        });
-      }
-      if (c.title.toLowerCase().includes(q)) {
-        hits.push({
-          type: "Case Party",
-          name: c.title,
-          context: `Case: ${c.caseNumber}`,
-          match: "Case Title match",
-        });
-      }
-    }
-
-    setResults(hits);
-    setIsSearching(false);
-
     try {
-      const checkId = await logSearch({
-        searchQuery: searchQuery,
-        hitsCount: hits.length,
-        runByName: "Admin User",
-      });
-      setActiveCheckId(checkId);
+      const query = searchQuery.trim();
+      const lower = query.toLowerCase();
+      const legacyHits = [
+        ...clients
+          .filter(
+            (client) =>
+              client.fullName.toLowerCase().includes(lower) ||
+              client.companyName?.toLowerCase().includes(lower),
+          )
+          .map((client) => ({
+            type: "Existing Client",
+            id: client._id,
+            name: client.fullName,
+            reason: client.companyName || client.email || "Client name match",
+          })),
+        ...cases
+          .filter(
+            (matter) =>
+              matter.title.toLowerCase().includes(lower) ||
+              String(matter.opposingCounsel || "")
+                .toLowerCase()
+                .includes(lower),
+          )
+          .map((matter) => ({
+            type: String(matter.opposingCounsel || "")
+              .toLowerCase()
+              .includes(lower)
+              ? "Opposing Counsel"
+              : "Existing Case",
+            id: matter._id,
+            name: String(matter.opposingCounsel || matter.title),
+            reason: String(matter.opposingCounsel || matter.caseNumber),
+            caseId: matter._id,
+            caseNumber: matter.caseNumber,
+          })),
+      ];
+      const outcome = await conflictCommands.search(query, legacyHits);
+      setResults(
+        outcome.hits.map((hit) => ({
+          type: hit.type,
+          name: hit.name,
+          context: hit.caseNumber ? `Case: ${hit.caseNumber}` : hit.reason,
+          match: hit.reason,
+        })),
+      );
+      setActiveCheckId(outcome.checkId);
     } catch (error) {
-      console.error("Failed to log search", error);
+      toast.error("Conflict search failed.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
   const handleClear = async () => {
     if (!activeCheckId) return;
     try {
-      await updateStatus({
-        checkId: activeCheckId as any,
-        status: "cleared",
-        notes: "Manually reviewed and cleared by attorney.",
-      });
+      await conflictCommands.updateStatus(
+        activeCheckId,
+        "cleared",
+        "Manually reviewed and cleared by attorney.",
+      );
       toast.success("Conflict check cleared successfully.");
     } catch {
       toast.error("Failed to clear conflict check.");
@@ -125,11 +142,7 @@ export default function AdminConflictChecker() {
   const handleReject = async () => {
     if (!activeCheckId) return;
     try {
-      await updateStatus({
-        checkId: activeCheckId as any,
-        status: "conflict",
-        notes: "Marked as a conflict.",
-      });
+      await conflictCommands.updateStatus(activeCheckId, "conflict", "Marked as a conflict.");
       toast.error("Matter flagged as a conflict. Do not proceed.");
     } catch {
       toast.error("Failed to update check.");
@@ -141,9 +154,14 @@ export default function AdminConflictChecker() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6 sm:space-y-8 w-full min-w-0" ref={reportRef}>
+    <div
+      className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6 sm:space-y-8 w-full min-w-0"
+      ref={reportRef}
+    >
       <div className="print:hidden min-w-0">
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">Conflict Checker</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">
+          Conflict Checker
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Search clients, opposing counsel, and cases before accepting a new matter.
         </p>
@@ -153,9 +171,15 @@ export default function AdminConflictChecker() {
         <h1 className="text-2xl font-bold text-black">Conflict Clearance Report</h1>
         <p className="text-sm text-gray-600">Generated on {new Date().toLocaleString()}</p>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div><strong>Search Query:</strong> {searchQuery}</div>
-          <div><strong>Hits Found:</strong> {results.length}</div>
-          <div><strong>Run By:</strong> Authorized Personnel</div>
+          <div>
+            <strong>Search Query:</strong> {searchQuery}
+          </div>
+          <div>
+            <strong>Hits Found:</strong> {results.length}
+          </div>
+          <div>
+            <strong>Run By:</strong> Authorized Personnel
+          </div>
         </div>
       </div>
 
@@ -178,7 +202,11 @@ export default function AdminConflictChecker() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button type="submit" disabled={isSearching} className="h-11 sm:h-12 px-6 sm:px-8 bg-accent hover:bg-accent/90 w-full sm:w-auto shrink-0">
+            <Button
+              type="submit"
+              disabled={isSearching}
+              className="h-11 sm:h-12 px-6 sm:px-8 bg-accent hover:bg-accent/90 w-full sm:w-auto shrink-0"
+            >
               {isSearching ? "Searching..." : "Check Conflicts"}
             </Button>
           </form>
@@ -196,12 +224,18 @@ export default function AdminConflictChecker() {
             {results.length === 0 ? (
               <div className="bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-900/50 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center text-center print:border-black print:bg-white">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mb-4 print:text-black" />
-                <h3 className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-400 mb-2 print:text-black">No Conflicts Found</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-400 mb-2 print:text-black">
+                  No Conflicts Found
+                </h3>
                 <p className="text-sm sm:text-base text-green-600/80 dark:text-green-400/80 print:text-black">
-                  There are no records of this individual or entity in our database. It is safe to proceed.
+                  There are no records of this individual or entity in our database. It is safe to
+                  proceed.
                 </p>
                 <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 print:hidden w-full sm:w-auto">
-                  <Button onClick={handleDownloadReport} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                  <Button
+                    onClick={handleDownloadReport}
+                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                  >
                     <Download className="w-4 h-4 mr-2" /> Download Clearance Report
                   </Button>
                 </div>
@@ -212,17 +246,27 @@ export default function AdminConflictChecker() {
                   <div className="flex items-start gap-3 min-w-0">
                     <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0 print:text-black" />
                     <div className="min-w-0">
-                      <h4 className="font-bold text-red-700 dark:text-red-400 print:text-black">Potential Conflicts Detected</h4>
+                      <h4 className="font-bold text-red-700 dark:text-red-400 print:text-black">
+                        Potential Conflicts Detected
+                      </h4>
                       <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1 print:text-black">
-                        We found {results.length} record(s) matching your search. Please review the details below.
+                        We found {results.length} record(s) matching your search. Please review the
+                        details below.
                       </p>
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 print:hidden">
-                    <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto" onClick={handleReject}>
+                    <Button
+                      variant="outline"
+                      className="border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto"
+                      onClick={handleReject}
+                    >
                       <XCircle className="w-4 h-4 mr-2" /> Mark as Conflict
                     </Button>
-                    <Button onClick={handleClear} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
+                    <Button
+                      onClick={handleClear}
+                      className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                    >
                       <CheckCircle2 className="w-4 h-4 mr-2" /> Clear Conflict
                     </Button>
                   </div>
@@ -230,23 +274,38 @@ export default function AdminConflictChecker() {
 
                 <div className="grid grid-cols-1 gap-4">
                   {results.map((res, i) => (
-                    <Card key={i} className="border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden print:border-gray-300 print:shadow-none min-w-0">
+                    <Card
+                      key={i}
+                      className="border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden print:border-gray-300 print:shadow-none min-w-0"
+                    >
                       <div className="flex min-w-0">
                         <div className="w-2 bg-red-500 shrink-0 print:bg-black" />
                         <div className="p-4 flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
                           <div className="flex items-start sm:items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-full bg-secondary print:bg-gray-200 flex items-center justify-center shrink-0">
-                              {res.type === "Client" ? <User className="w-5 h-5 text-muted-foreground print:text-black" /> : <FileText className="w-5 h-5 text-muted-foreground print:text-black" />}
+                              {res.type === "Client" ? (
+                                <User className="w-5 h-5 text-muted-foreground print:text-black" />
+                              ) : (
+                                <FileText className="w-5 h-5 text-muted-foreground print:text-black" />
+                              )}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-base sm:text-lg text-foreground print:text-black break-words">{res.name}</p>
+                              <p className="font-bold text-base sm:text-lg text-foreground print:text-black break-words">
+                                {res.name}
+                              </p>
                               <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <span className="text-xs font-semibold uppercase bg-secondary print:border print:border-black print:bg-white px-2 py-0.5 rounded text-foreground print:text-black">{res.type}</span>
-                                <span className="text-sm text-muted-foreground print:text-gray-700 break-words">{res.context}</span>
+                                <span className="text-xs font-semibold uppercase bg-secondary print:border print:border-black print:bg-white px-2 py-0.5 rounded text-foreground print:text-black">
+                                  {res.type}
+                                </span>
+                                <span className="text-sm text-muted-foreground print:text-gray-700 break-words">
+                                  {res.context}
+                                </span>
                               </div>
                             </div>
                           </div>
-                          <p className="text-sm text-muted-foreground print:text-gray-700 italic md:text-right shrink-0">Match via: {res.match}</p>
+                          <p className="text-sm text-muted-foreground print:text-gray-700 italic md:text-right shrink-0">
+                            Match via: {res.match}
+                          </p>
                         </div>
                       </div>
                     </Card>
@@ -254,7 +313,11 @@ export default function AdminConflictChecker() {
                 </div>
 
                 <div className="pt-2 print:hidden">
-                  <Button variant="outline" onClick={handleDownloadReport} className="w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadReport}
+                    className="w-full sm:w-auto"
+                  >
                     <Download className="w-4 h-4 mr-2" /> Download Report
                   </Button>
                 </div>
@@ -291,7 +354,9 @@ export default function AdminConflictChecker() {
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>{new Date(check.timestamp).toLocaleString()}</span>
-                      <span>{check.hitsCount} hit{check.hitsCount === 1 ? "" : "s"}</span>
+                      <span>
+                        {check.hitsCount} hit{check.hitsCount === 1 ? "" : "s"}
+                      </span>
                       <span className="truncate">{check.runByName}</span>
                     </div>
                   </CardContent>
@@ -325,7 +390,9 @@ export default function AdminConflictChecker() {
                         <td className="px-4 lg:px-6 py-3">
                           <StatusBadge status={check.status} />
                         </td>
-                        <td className="px-4 lg:px-6 py-3 text-muted-foreground">{check.runByName}</td>
+                        <td className="px-4 lg:px-6 py-3 text-muted-foreground">
+                          {check.runByName}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

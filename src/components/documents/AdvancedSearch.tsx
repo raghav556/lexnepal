@@ -10,7 +10,7 @@ const DOC_TYPES = ["pleading", "affidavit", "contract", "poa", "correspondence",
 
 interface AdvancedSearchProps {
   cases: any[];
-  onSearch: (filters: { query: string; caseId?: string; type?: string; tag?: string }) => void;
+  onSearch: (filters: { query: string; caseId?: string; type?: string; tag?: string; generalOnly?: boolean }) => void;
 }
 
 export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
@@ -22,7 +22,8 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
   const handleSearch = () => {
     onSearch({
       query: query.trim(),
-      caseId: caseId === "all" ? undefined : caseId,
+      caseId: caseId === "all" || caseId === "general" ? undefined : caseId,
+      generalOnly: caseId === "general" || undefined,
       type: type === "all" ? undefined : type,
       tag: tag.trim() || undefined
     });

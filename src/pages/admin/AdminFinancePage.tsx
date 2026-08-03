@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button.tsx";
 import { Receipt, Download, Plus, Loader2 } from "lucide-react";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCases } from "@/client/queries/cases";
+import { useClients } from "@/client/queries/clients";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
@@ -22,8 +24,8 @@ export default function AdminFinancePage() {
   const invoices = useQuery(api.invoices.listInvoices, {}) || [];
   const trustLedger = useQuery(api.invoices.listTrustTransactions, {}) || [];
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
-  const clients = useQuery(api.clients.listClients, {}) || [];
+  const cases = useCases({}) || [];
+  const clients = useClients() || [];
 
   const createInvoice = useMutation(api.invoices.createInvoiceFromTimeEntries);
   const updateStatus = useMutation(api.invoices.updateInvoiceStatus);

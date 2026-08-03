@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, useCmsSettings } from "@/client/queries/cms";
 import { Save, Globe, Phone, Mail, MapPin, Image as ImageIcon, Palette, Search, Smartphone, AlertCircle, Shield, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
@@ -49,8 +48,8 @@ const PREDEFINED_COLORS = [
 ];
 
 export default function AdminCMSDashboard() {
-  const settings = useQuery(api.cms.getSettings);
-  const updateSettings = useMutation(api.cms.updateSettings);
+  const settings = useCmsSettings("admin");
+  const { updateSettings } = useCmsCommands();
 
   const [formData, setFormData] = useState({
     firmName: "", tagline: "", email: "", phone: "", address: "",
@@ -491,7 +490,7 @@ export default function AdminCMSDashboard() {
                       </div>
                       <div className="grid gap-2">
                         <label className="text-sm font-semibold">Live Chat Widget Script (HTML/JS)</label>
-                        <textarea className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.liveChatWidgetScript} onChange={(e) => setFormData({ ...formData, liveChatWidgetScript: e.target.value })} placeholder="<script>...</script>" />
+                        <textarea disabled className="flex min-h-[100px] w-full rounded-md border border-input bg-muted px-3 py-2 text-sm font-mono opacity-70" value="Arbitrary scripts are disabled by the CMS security policy." readOnly />
                       </div>
                     </div>
                   </CardContent>

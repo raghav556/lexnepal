@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button.tsx";
 import { FileText, Download, Upload, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
 
@@ -36,9 +38,9 @@ function DownloadButton({ storageId }: { storageId: string }) {
 
 export default function ClientDocumentsPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
+  const cases = useCases(clientId ? { clientId } : {}) || [];
   const allDocs = useQuery(api.documents.listDocuments, {}) || [];
   
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
@@ -61,6 +63,10 @@ export default function ClientDocumentsPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Files cannot exceed 50 MB.");
+      return;
+    }
     
     // Default to the first active case for client uploads (in a real app, they'd pick the case first)
     const activeCase = cases.find((c: any) => c.status === "active") || cases[0];
@@ -102,7 +108,7 @@ export default function ClientDocumentsPage() {
         isPrivileged: false, // Clients upload non-privileged docs by definition
       });
 
-      toast.success("Document uploaded successfully.");
+      toast.success("Document uploaded and quarantined for security scanning.");
     } catch (err: any) {
       toast.error(err.message || "Failed to upload document.");
     } finally {
@@ -121,6 +127,7 @@ export default function ClientDocumentsPage() {
         </Button>
         <input 
           type="file" 
+          accept=".pdf,.doc,.docx,.xlsx,.pptx,.jpg,.jpeg,.png,.tif,.tiff,.txt"
           className="hidden" 
           ref={fileInputRef} 
           onChange={handleFileChange}

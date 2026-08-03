@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, usePracticeAreas } from "@/client/queries/cms";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
@@ -20,10 +19,11 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function AdminCMSPracticeAreas() {
-  const practiceAreas = useQuery(api.cms.listPracticeAreas, {}) || [];
-  const createPA = useMutation(api.cms.createPracticeArea);
-  const updatePA = useMutation(api.cms.updatePracticeArea);
-  const deletePA = useMutation(api.cms.deletePracticeArea);
+  const practiceAreas = usePracticeAreas({}, "admin") || [];
+  const cms = useCmsCommands();
+  const createPA = (body: any) => cms.create("practice-areas", body);
+  const updatePA = ({ id, ...body }: any) => cms.update("practice-areas", id, body);
+  const deletePA = ({ id }: any) => cms.remove("practice-areas", id);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

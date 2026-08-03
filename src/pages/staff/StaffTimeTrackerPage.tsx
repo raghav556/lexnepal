@@ -5,13 +5,14 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Clock, Play, Square, Plus, Trash2, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCases } from "@/client/queries/cases";
 import { Input } from "@/components/ui/input.tsx";
 
 export default function StaffTimeTrackerPage() {
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
+  const cases = useCases({}) || [];
   const createTimeEntry = useMutation(api.timeEntries.createTimeEntry);
   const deleteTimeEntry = useMutation(api.timeEntries.deleteTimeEntry);
 

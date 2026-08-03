@@ -5,8 +5,11 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Receipt, Download, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
+import { useSystemSettings } from "@/client/queries/identity";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 
@@ -18,13 +21,13 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ClientBillingPage() {
-  const client = useQuery(api.clients.getMyClientRecord, {});
+  const client = useMyClient();
   const clientId = client?._id;
-  const cases = useQuery(api.cases.listCases, clientId ? { clientId } : "skip") || [];
+  const cases = useCases(clientId ? { clientId } : {}) || [];
   const invoices = useQuery(api.invoices.listInvoices, clientId ? { clientId } : "skip") || [];
   const trustTransactions = useQuery(api.invoices.listTrustTransactions, clientId ? { clientId } : "skip") || [];
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
-  const systemSettings = useQuery(api.settings.getSystemSettings);
+  const systemSettings = useSystemSettings();
 
   const payInvoice = useMutation(api.invoices.payInvoice);
   const initiateGateway = useMutation(api.invoices.initiateGatewayPayment);
@@ -59,7 +62,8 @@ export default function ClientBillingPage() {
   );
 
   const activePayments: string[] =
-    systemSettings?.integrations?.activePayments || ["bank_transfer", "esewa", "khalti"];
+    (systemSettings as typeof systemSettings & { integrations?: { activePayments?: string[] } })
+      ?.integrations?.activePayments || ["bank_transfer", "esewa", "khalti"];
 
   const handleDownloadPDF = (invoice: any) => {
     try {

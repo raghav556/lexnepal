@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCmsSettings } from "@/client/queries/cms";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
@@ -36,7 +37,7 @@ const pad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const createLead = useMutation(api.leads.createLead);
-  const settings = useQuery(api.cms.getSettings);
+  const settings = useCmsSettings("public");
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),

@@ -1,0 +1,14 @@
+Convex table,Convex array/object field,Target table,Target representation,Tenant rule,Status
+users,education,user_educations,ordered rows,firm_id NOT NULL and same-firm FK,implemented
+users,practiceAreas,user_practice_areas,unique rows,firm_id NOT NULL and same-firm FK,implemented
+users,notableCases,user_notable_cases,ordered rows,firm_id NOT NULL and same-firm FK,implemented
+clients,kycDocuments/kycFiles,client_kyc_files,typed file rows,firm_id NOT NULL and same-firm FK,implemented
+cases,teamMemberIds,case_team_members,case/user join rows,firm_id NOT NULL and same-firm FKs,implemented
+templates,variables,template_variables,ordered unique rows,firm_id NOT NULL and same-firm FK,implemented
+documents,tags,document_tag_assignments,document/tag join rows,firm_id NOT NULL and same-firm FKs,implemented
+tasks,watchers,task_watchers,task/user join rows,firm_id NOT NULL and same-firm FKs,implemented
+sopTemplates,taskTitles,sop_template_tasks,ordered rows,firm_id NOT NULL and same-firm FK,implemented
+messages,attachmentIds,message_attachments,ordered file rows,firm_id NOT NULL and same-firm FK,implemented
+messages,readBy,message_reads,message/user rows with read_at,firm_id NOT NULL and same-firm FKs,implemented
+researchNotes,tags,research_note_tags,unique rows,firm_id NOT NULL and same-firm FK,implemented
+careers,requirements,career_requirements,ordered rows,firm_id NOT NULL and same-firm FK,implemented

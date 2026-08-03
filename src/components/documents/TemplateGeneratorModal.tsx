@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button.tsx";
 import { Loader2, FileSignature, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCase, useCases } from "@/client/queries/cases";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { generatePdfFromHtml } from "@/lib/pdfGenerator.ts";
 
 export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const cases = useQuery(api.cases.listCases, {}) || [];
+  const cases = useCases({}) || [];
   const templates = useQuery(api.templates.listTemplates, {}) || [];
   
   const createDocument = useMutation(api.documents.createDocument);
@@ -19,10 +20,7 @@ export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; o
   const [selectedCase, setSelectedCase] = useState<string>("general");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const selectedCaseData = useQuery(
-    api.cases.getCaseWithDetails, 
-    selectedCase !== "general" ? { caseId: selectedCase as any } : "skip"
-  );
+  const selectedCaseData = useCase(selectedCase !== "general" ? selectedCase : null, true);
 
   const toggleTemplate = (id: string) => {
     const next = new Set(selectedTemplates);

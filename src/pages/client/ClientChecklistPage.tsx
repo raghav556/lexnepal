@@ -2,8 +2,10 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { CheckSquare, Circle, Loader2, ClipboardList } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { cn } from "@/lib/utils.ts";
 import { formatTaskDue, PRIORITY_COLORS, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
@@ -14,12 +16,9 @@ import { useI18n } from "@/lib/i18n-context.tsx";
  */
 export default function ClientChecklistPage() {
   const { t } = useI18n();
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useQuery(
-    api.cases.listCases,
-    clientId ? { clientId: clientId as any } : "skip",
-  ) || [];
+  const cases = useCases(clientId ? { clientId } : {}) || [];
   const tasks = useQuery(api.tasks.listTasks, {}) || [];
 
   const caseIds = useMemo(() => new Set(cases.map((c: any) => c._id)), [cases]);

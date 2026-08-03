@@ -8,10 +8,13 @@ import { Link } from "react-router-dom";
 import { Plus, Search, CalendarDays, X, Loader2, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCases, useCreateCase } from "@/client/queries/cases";
+import { useClients } from "@/client/queries/clients";
 import { PRACTICE_AREAS, COURTS } from "@/lib/lex-constants.ts";
 import { ConflictCheckerModal } from "@/components/cases/ConflictCheckerModal.tsx";
+import { useStaffDirectory } from "@/client/queries/identity";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -22,11 +25,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function StaffCasesPage() {
-  const cases = useQuery(api.cases.listCases, {}) || [];
-  const clients = useQuery(api.clients.listClients, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const cases = useCases({}) || [];
+  const clients = useClients() || [];
+  const users = useStaffDirectory() || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
-  const createCase = useMutation(api.cases.createCase);
+  const createCase = useCreateCase();
 
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -93,15 +96,8 @@ export default function StaffCasesPage() {
     );
   });
 
-  const {
-    paginatedItems,
-    currentPage,
-    totalPages,
-    goToPage,
-    nextPage,
-    prevPage,
-    resetPagination
-  } = usePagination(filteredCases, 10);
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } =
+    usePagination(filteredCases, 10);
 
   useEffect(() => {
     resetPagination();
@@ -158,29 +154,48 @@ export default function StaffCasesPage() {
               paginatedItems.map((c: any) => {
                 const client = clients.find((cl: any) => cl._id === c.clientId);
                 const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
-                const nextHearingObj = hearings.find((h: any) => h.caseId === c._id && h.status === "scheduled");
+                const nextHearingObj = hearings.find(
+                  (h: any) => h.caseId === c._id && h.status === "scheduled",
+                );
 
                 return (
-                  <Card key={c._id} className="group hover:shadow-md hover:border-primary/40 transition-all duration-300 bg-card overflow-hidden">
+                  <Card
+                    key={c._id}
+                    className="group hover:shadow-md hover:border-primary/40 transition-all duration-300 bg-card overflow-hidden"
+                  >
                     <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border">{c.caseNumber}</span>
-                          <Badge className={`text-[10px] uppercase tracking-wider font-semibold border ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-800"}`}>
+                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border">
+                            {c.caseNumber}
+                          </span>
+                          <Badge
+                            className={`text-[10px] uppercase tracking-wider font-semibold border ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-800"}`}
+                          >
                             {c.status.replace("_", " ")}
                           </Badge>
-                          <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-semibold border-primary/20 text-primary/80 bg-primary/5">{c.practiceArea}</Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] uppercase tracking-wider font-semibold border-primary/20 text-primary/80 bg-primary/5"
+                          >
+                            {c.practiceArea}
+                          </Badge>
                         </div>
-                        <Link to={`/staff/cases/${c._id}`} className="font-serif font-bold text-lg text-foreground group-hover:text-primary transition-colors block mb-2 leading-tight">
+                        <Link
+                          to={`/staff/cases/${c._id}`}
+                          className="font-serif font-bold text-lg text-foreground group-hover:text-primary transition-colors block mb-2 leading-tight"
+                        >
                           {c.title}
                         </Link>
-                        
+
                         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">
                               {client ? client.fullName.charAt(0).toUpperCase() : "?"}
                             </div>
-                            <span className="font-medium">{client ? client.fullName : "Unknown"}</span>
+                            <span className="font-medium">
+                              {client ? client.fullName : "Unknown"}
+                            </span>
                           </div>
                           <div className="hidden sm:block w-1 h-1 rounded-full bg-border" />
                           <div className="flex items-center gap-2">
@@ -191,10 +206,12 @@ export default function StaffCasesPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {nextHearingObj && (
                         <div className="mt-3 sm:mt-0 sm:ml-4 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-5 shrink-0">
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0 sm:mb-1.5">Next Hearing</span>
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0 sm:mb-1.5">
+                            Next Hearing
+                          </span>
                           <div className="flex items-center gap-1.5 text-sm font-semibold text-accent bg-accent/10 border border-accent/20 px-3 py-1.5 rounded-lg shadow-xs">
                             <CalendarDays className="w-4 h-4" />
                             {nextHearingObj.dateBs}
@@ -208,7 +225,7 @@ export default function StaffCasesPage() {
             )}
           </div>
 
-          <Pagination 
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={goToPage}
@@ -222,34 +239,56 @@ export default function StaffCasesPage() {
           {["inquiry", "active", "on_hold", "closed_won", "closed_lost"].map((statusKey) => {
             const columnCases = filteredCases.filter((c: any) => c.status === statusKey);
             return (
-              <div key={statusKey} className="flex-shrink-0 w-[320px] bg-muted/20 border border-border/60 rounded-2xl flex flex-col max-h-[75vh] snap-start shadow-xs">
+              <div
+                key={statusKey}
+                className="flex-shrink-0 w-[320px] bg-muted/20 border border-border/60 rounded-2xl flex flex-col max-h-[75vh] snap-start shadow-xs"
+              >
                 <div className="p-4 border-b border-border/50 flex items-center justify-between sticky top-0 bg-card/80 backdrop-blur-md rounded-t-2xl z-10">
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-2 h-2 rounded-full shadow-xs ${STATUS_COLORS[statusKey]?.split(' ')[0] || 'bg-gray-500'}`} />
-                    <h3 className="font-semibold text-[13px] uppercase tracking-wider">{statusKey.replace("_", " ")}</h3>
+                    <div
+                      className={`w-2 h-2 rounded-full shadow-xs ${STATUS_COLORS[statusKey]?.split(" ")[0] || "bg-gray-500"}`}
+                    />
+                    <h3 className="font-semibold text-[13px] uppercase tracking-wider">
+                      {statusKey.replace("_", " ")}
+                    </h3>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] bg-background shadow-xs px-2">{columnCases.length}</Badge>
+                  <Badge variant="secondary" className="text-[10px] bg-background shadow-xs px-2">
+                    {columnCases.length}
+                  </Badge>
                 </div>
                 <div className="p-3 overflow-y-auto space-y-3 flex-1 min-h-[150px] scrollbar-thin scrollbar-thumb-border">
                   {columnCases.map((c: any) => {
                     const client = clients.find((cl: any) => cl._id === c.clientId);
                     return (
-                      <Card key={c._id} className="group hover:border-primary/40 hover:shadow-md transition-all duration-300 bg-card border-border/80">
+                      <Card
+                        key={c._id}
+                        className="group hover:border-primary/40 hover:shadow-md transition-all duration-300 bg-card border-border/80"
+                      >
                         <CardContent className="p-4 flex flex-col h-full relative">
                           <div className="flex items-center justify-between mb-2.5">
-                            <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 border px-1.5 py-0.5 rounded">{c.caseNumber}</span>
-                            <Badge variant="outline" className="text-[9px] uppercase tracking-wider font-semibold border-primary/20 text-primary/80 bg-primary/5 px-1.5 py-0">
+                            <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 border px-1.5 py-0.5 rounded">
+                              {c.caseNumber}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] uppercase tracking-wider font-semibold border-primary/20 text-primary/80 bg-primary/5 px-1.5 py-0"
+                            >
                               {c.practiceArea}
                             </Badge>
                           </div>
-                          <Link to={`/staff/cases/${c._id}`} className="font-serif font-bold text-[15px] text-foreground group-hover:text-primary leading-snug block mb-3 line-clamp-3 transition-colors before:absolute before:inset-0">
+                          <Link
+                            to={`/staff/cases/${c._id}`}
+                            className="font-serif font-bold text-[15px] text-foreground group-hover:text-primary leading-snug block mb-3 line-clamp-3 transition-colors before:absolute before:inset-0"
+                          >
                             {c.title}
                           </Link>
                           <div className="mt-auto pt-3 border-t border-border/50 flex items-center gap-2 text-xs text-muted-foreground">
                             <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px] shrink-0">
                               {client ? client.fullName.charAt(0).toUpperCase() : "?"}
                             </div>
-                            <span className="truncate font-medium">{client ? client.fullName : "Unknown"}</span>
+                            <span className="truncate font-medium">
+                              {client ? client.fullName : "Unknown"}
+                            </span>
                           </div>
                         </CardContent>
                       </Card>
@@ -257,7 +296,9 @@ export default function StaffCasesPage() {
                   })}
                   {columnCases.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-28 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl opacity-60 bg-muted/10">
-                      <span className="text-xs font-semibold tracking-wide uppercase">No Cases</span>
+                      <span className="text-xs font-semibold tracking-wide uppercase">
+                        No Cases
+                      </span>
                     </div>
                   )}
                 </div>
@@ -273,14 +314,19 @@ export default function StaffCasesPage() {
           <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-auto flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-serif font-bold text-lg text-primary">Create New Case</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateCase} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Case Number <span className="text-destructive">*</span></label>
+                <label className="text-xs font-medium text-foreground">
+                  Case Number <span className="text-destructive">*</span>
+                </label>
                 <Input
                   required
                   placeholder="KTM/2083/123"
@@ -290,7 +336,9 @@ export default function StaffCasesPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Case Title <span className="text-destructive">*</span></label>
+                <label className="text-xs font-medium text-foreground">
+                  Case Title <span className="text-destructive">*</span>
+                </label>
                 <Input
                   required
                   placeholder="Sharma Land Dispute Case"
@@ -301,7 +349,9 @@ export default function StaffCasesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Client <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-foreground">
+                    Client <span className="text-destructive">*</span>
+                  </label>
                   <select
                     required
                     className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
@@ -310,13 +360,17 @@ export default function StaffCasesPage() {
                   >
                     <option value="">Select Client</option>
                     {clients.map((cl: any) => (
-                      <option key={cl._id} value={cl._id}>{cl.fullName}</option>
+                      <option key={cl._id} value={cl._id}>
+                        {cl.fullName}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Assigned Lawyer <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-foreground">
+                    Assigned Lawyer <span className="text-destructive">*</span>
+                  </label>
                   <select
                     required
                     className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
@@ -327,7 +381,9 @@ export default function StaffCasesPage() {
                     {users
                       .filter((u: any) => u.role !== "client")
                       .map((u: any) => (
-                        <option key={u._id} value={u._id}>{u.name || u.email}</option>
+                        <option key={u._id} value={u._id}>
+                          {u.name || u.email}
+                        </option>
                       ))}
                   </select>
                 </div>
@@ -342,7 +398,9 @@ export default function StaffCasesPage() {
                     onChange={(e) => setPracticeArea(e.target.value)}
                   >
                     {PRACTICE_AREAS.map((pa) => (
-                      <option key={pa} value={pa}>{pa}</option>
+                      <option key={pa} value={pa}>
+                        {pa}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -355,7 +413,9 @@ export default function StaffCasesPage() {
                     onChange={(e) => setCourt(e.target.value)}
                   >
                     {COURTS.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -381,7 +441,12 @@ export default function StaffCasesPage() {
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-border">
-                <Button type="button" variant="secondary" size="sm" onClick={() => setShowCreateModal(false)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowCreateModal(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" size="sm" disabled={isSubmitting}>
@@ -394,10 +459,7 @@ export default function StaffCasesPage() {
       )}
 
       {/* Conflict Checker Modal */}
-      <ConflictCheckerModal
-        open={showConflictChecker}
-        onOpenChange={setShowConflictChecker}
-      />
+      <ConflictCheckerModal open={showConflictChecker} onOpenChange={setShowConflictChecker} />
     </div>
   );
 }

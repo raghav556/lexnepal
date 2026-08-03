@@ -1,6 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useLegalPage } from "@/client/queries/cms";
 import ReactMarkdown from "react-markdown";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 
@@ -49,7 +48,7 @@ export default function LegalPage() {
   const pathSlug = location.pathname.replace(/^\//, "").split("/")[0];
   const validSlug = (pathSlug === "terms" ? "terms" : "privacy-policy") as "privacy-policy" | "terms";
 
-  const page = useQuery(api.cms.getLegalPage, { slug: validSlug });
+  const page = useLegalPage(validSlug);
   const fallback = FALLBACK[validSlug];
   const title = page?.title || fallback.title;
   const content = page?.content || fallback.content;

@@ -18,8 +18,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useClientCommands, useClients, useKycFiles } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { cn } from "@/lib/utils.ts";
 
 const KYC_BADGE: Record<string, string> = {
@@ -30,10 +30,12 @@ const KYC_BADGE: Record<string, string> = {
 };
 
 export default function StaffClientsPage() {
-  const clients = useQuery(api.clients.listClients, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
-  const createClient = useMutation(api.clients.createClient);
-  const reviewKyc = useMutation(api.clients.reviewKyc);
+  const clients = useClients() || [];
+  const cases = useCases({}) || [];
+  const clientCommands = useClientCommands();
+  const createClient = clientCommands.create;
+  const reviewKyc = ({ clientId, decision, rejectionReason }: any) =>
+    clientCommands.reviewKyc(clientId, decision, rejectionReason);
 
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -51,10 +53,7 @@ export default function StaffClientsPage() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const kycFiles = useQuery(
-    api.clients.getClientKycFileUrls,
-    reviewClientId ? { clientId: reviewClientId as any } : "skip",
-  );
+  const kycFiles = useKycFiles(reviewClientId);
 
   const reviewClient = clients.find((c: any) => c._id === reviewClientId);
 
@@ -181,8 +180,12 @@ export default function StaffClientsPage() {
                         {c.type === "corporate" ? "Corporate" : "Individual"}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{c.email || "No email"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{c.phone || "No phone"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.email || "No email"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.phone || "No phone"}
+                    </p>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
                         className={cn(
@@ -311,7 +314,9 @@ export default function StaffClientsPage() {
               {reviewClient.kycStatus === "submitted" && (
                 <div className="space-y-3 pt-2 border-t border-border">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium">Rejection reason (required to reject)</label>
+                    <label className="text-xs font-medium">
+                      Rejection reason (required to reject)
+                    </label>
                     <Textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
@@ -333,7 +338,11 @@ export default function StaffClientsPage() {
                       onClick={() => handleReview("verified")}
                       className="bg-accent hover:bg-accent/90"
                     >
-                      {isReviewing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve & verify"}
+                      {isReviewing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Approve & verify"
+                      )}
                     </Button>
                   </div>
                 </div>

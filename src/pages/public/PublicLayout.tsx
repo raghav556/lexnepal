@@ -5,8 +5,8 @@ import { Menu, X, Scale, Phone, Mail, ArrowRight, Facebook, Linkedin, Instagram,
 import { Button } from "@/components/ui/button.tsx";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { ChatbotWidget } from "@/components/ui/ChatbotWidget.tsx";
-import { Authenticated, Unauthenticated, useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { Authenticated, Unauthenticated } from "@/client/data/convex-bridge.ts";
+import { useCmsCommands, useCmsSettings, useNavigation } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
 
@@ -20,9 +20,9 @@ const NAV_LINKS = [
 ];
 
 export default function PublicLayout() {
-  const settings = useQuery(api.cms.getSettings);
-  const headerNav = useQuery(api.cms.listNavigationLinks, { location: "header" });
-  const subscribeNewsletter = useMutation(api.cms.subscribeNewsletter);
+  const settings = useCmsSettings("public");
+  const headerNav = useNavigation({ location: "header" }, "public");
+  const { subscribe: subscribeNewsletter } = useCmsCommands();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
@@ -48,7 +48,7 @@ export default function PublicLayout() {
     }
     setIsSubscribing(true);
     try {
-      const result = await subscribeNewsletter({ email });
+      const result = await subscribeNewsletter(email) as { alreadySubscribed?: boolean };
       toast.success(result?.alreadySubscribed ? "You are already subscribed." : "Thanks for subscribing!");
       setNewsletterEmail("");
     } catch {

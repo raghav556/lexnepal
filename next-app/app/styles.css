@@ -1,0 +1,40 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  background: #0b1020;
+  color: #e8edf7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.foundation-shell {
+  width: min(720px, calc(100% - 40px));
+  margin: 12vh auto;
+  padding: 40px;
+  border: 1px solid #27324c;
+  border-radius: 18px;
+  background: #111a30;
+}
+
+.foundation-shell h1 {
+  margin-top: 8px;
+}
+
+.foundation-shell a {
+  color: #8cb4ff;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #91a0bc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

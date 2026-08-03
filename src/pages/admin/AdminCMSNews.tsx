@@ -3,8 +3,7 @@ import { Card } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, useNews } from "@/client/queries/cms";
 import { Plus, Edit, Trash2, Search, CheckCircle2, Newspaper } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog.tsx";
 import { toast } from "sonner";
@@ -12,10 +11,11 @@ import { toast } from "sonner";
 type NewsType = "award" | "press_release" | "firm_news";
 
 export default function AdminCMSNews() {
-  const news = useQuery(api.cms.listNewsAndAwards, {}) || [];
-  const createNews = useMutation(api.cms.createNewsAndAward);
-  const updateNews = useMutation(api.cms.updateNewsAndAward);
-  const deleteNews = useMutation(api.cms.deleteNewsAndAward);
+  const news = useNews({}, "admin") || [];
+  const cms = useCmsCommands();
+  const createNews = (body: any) => cms.create("news", body);
+  const updateNews = ({ id, ...body }: any) => cms.update("news", id, body);
+  const deleteNews = ({ id }: any) => cms.remove("news", id);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);

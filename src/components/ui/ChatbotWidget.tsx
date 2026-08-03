@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, X, Send, User, Bot, Loader2, ArrowRight, Scale } from "lucide-react";
 import { Button } from "./button.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useMutation } from "convex/react";
+import { useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { Link } from "react-router-dom";
 

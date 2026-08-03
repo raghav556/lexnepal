@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.t
 import { Clock, CalendarOff, DollarSign, Loader2, CheckCircle, XCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useUsers } from "@/client/queries/identity";
 
 const STATUS_COLORS: Record<string, string> = {
   present:  "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -21,7 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AdminHRPage() {
   const today = new Date().toISOString().slice(0, 10);
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const users = useUsers() || [];
   const attendance = useQuery(api.hr.listAttendance, { date: today }) || [];
   const leaveRequests = useQuery(api.hr.listLeaveRequests, {}) || [];
   const payroll = useQuery(api.hr.generatePayroll, {}) || [];

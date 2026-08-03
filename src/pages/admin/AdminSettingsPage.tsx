@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useIdentityCommands, useRolePermissions, useSystemSettings } from "@/client/queries/identity";
 import { Save, Settings, CreditCard, Globe, Layers, Blocks, MessageSquare, Wallet, Video, UploadCloud, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
@@ -13,13 +14,23 @@ import { ROLE_LABELS } from "@/lib/lex-constants.ts";
 const ALL_CAPABILITIES = [
   "users.manage",
   "users.view_directory",
+  "clients.view_all",
+  "clients.manage",
+  "kyc.review",
   "cases.view_all",
   "cases.manage",
+  "conflicts.manage",
   "finance.manage",
   "hr.manage",
   "cms.manage",
   "audit.view",
   "settings.manage",
+  "documents.read",
+  "documents.upload",
+  "documents.share",
+  "documents.delete",
+  "records.dispose",
+  "legalHold.manage",
 ] as const;
 
 const MATRIX_ROLES = [
@@ -27,12 +38,13 @@ const MATRIX_ROLES = [
 ] as const;
 
 export default function AdminSettingsPage() {
-  const settings = useQuery(api.settings.getSystemSettings);
-  const updateSettings = useMutation(api.settings.updateSystemSettings);
-  const rolePermissions = useQuery(api.users.getRolePermissions, {});
-  const saveRolePermissions = useMutation(api.users.saveRolePermissions);
+  const settings = useSystemSettings();
+  const { updateSettings, updateRolePermissions } = useIdentityCommands();
+  const rolePermissions = useRolePermissions();
+  const migrateDocumentSecurity = useMutation(api.documents.migrateLegacySecurityBoundary);
   const [permMatrix, setPermMatrix] = useState<Record<string, string[]>>({});
   const [savingPerms, setSavingPerms] = useState(false);
+  const [migratingDocuments, setMigratingDocuments] = useState(false);
 
   useEffect(() => {
     if (rolePermissions) setPermMatrix(rolePermissions as Record<string, string[]>);
@@ -65,7 +77,7 @@ export default function AdminSettingsPage() {
         defaultLanguage: settings.defaultLanguage || "en",
         clientPortalEnabled: settings.clientPortalEnabled ?? true,
         onlineBookingEnabled: settings.onlineBookingEnabled ?? true,
-        integrations: settings.integrations || formData.integrations
+        integrations: (settings as typeof settings & { integrations?: typeof formData.integrations }).integrations || formData.integrations
       });
     }
   }, [JSON.stringify(settings)]);
@@ -581,7 +593,7 @@ export default function AdminSettingsPage() {
                         ...permMatrix,
                         admin: [...ALL_CAPABILITIES],
                       };
-                      await saveRolePermissions({ permissions: withAdmin });
+                      await updateRolePermissions(withAdmin as any);
                       toast.success("Role permissions saved.");
                     } catch {
                       toast.error("Failed to save permissions.");
@@ -594,6 +606,30 @@ export default function AdminSettingsPage() {
                   {savingPerms ? "Saving…" : "Save Permissions"}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Legacy Document Security Migration</CardTitle>
+              <CardDescription>
+                One-time migration for an existing single-firm installation. It assigns tenant IDs, marks existing documents as trusted legacy files, and revokes legacy public links that used plaintext passwords.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" disabled={migratingDocuments} onClick={async () => {
+                if (!window.confirm("Run the one-time document security migration? Legacy public links will be revoked.")) return;
+                setMigratingDocuments(true);
+                try {
+                  const result = await migrateDocumentSecurity({});
+                  toast.success(`Security migration complete: ${result.updated} records updated.`);
+                } catch (err: any) {
+                  toast.error(err?.message || "Security migration failed.");
+                } finally {
+                  setMigratingDocuments(false);
+                }
+              }}>
+                <Shield className="w-4 h-4 mr-2" /> {migratingDocuments ? "Migrating…" : "Migrate Legacy Documents"}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { useState, useEffect } from "react";
 import { Pagination } from "@/components/ui/pagination.tsx";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { usePublicTeam } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 
 const getLawyerDetails = (user: any) => {
@@ -40,7 +39,7 @@ const ROLE_FILTER = [
 const pad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 
 export default function LawyerDirectoryPage() {
-  const publicTeam = useQuery(api.cms.listPublicTeam, {}) || [];
+  const publicTeam = usePublicTeam() || [];
   const lawyers = publicTeam.filter(
     (u: any) => u.role === "partner" || u.role === "associate" || u.role === "senior_associate"
   );

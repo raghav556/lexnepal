@@ -1,0 +1,150 @@
+Table,Index,Unique,Columns/expression,Documented query pattern,Migration
+appointments,appointments_firm_date_idx,no,"firm_id,appointment_date",Firm-scoped appointments chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+appointments,appointments_firm_lawyer_date_idx,no,"firm_id,assigned_lawyer_id,appointment_date",Firm-scoped appointments lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+appointments,appointments_firm_status_idx,no,"firm_id,status",Firm-scoped appointments status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+attendance,attendance_firm_date_idx,no,"firm_id,attendance_date",Firm-scoped attendance chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+attendance,attendance_firm_user_date_unique,yes,"firm_id,user_id,attendance_date",Enforce attendance business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+audit_log,audit_log_firm_request_id_idx,no,"firm_id, request_id",Documented operational lookup for audit_log,drizzle/0005_audit_request_context.sql
+audit_log,audit_log_firm_resource_created_idx,no,"firm_id,resource,created_at",Firm-scoped audit_log chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+audit_log,audit_log_firm_user_created_idx,no,"firm_id,user_id,created_at",Firm-scoped audit_log lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+auth_accounts,auth_accounts_provider_account_unique,yes,"provider_id, account_id",Enforce auth_accounts business or tenant uniqueness,drizzle/0006_local_identity_authority.sql
+auth_accounts,auth_accounts_user_idx,no,user_id,Firm-scoped auth_accounts lookup by responsible user,drizzle/0006_local_identity_authority.sql
+auth_rate_limits,auth_rate_limits_key_unique,yes,key,Enforce auth_rate_limits business or tenant uniqueness,drizzle/0006_local_identity_authority.sql
+auth_sessions,auth_sessions_expiry_idx,no,expires_at,Firm-scoped auth_sessions chronological or reminder query,drizzle/0006_local_identity_authority.sql
+auth_sessions,auth_sessions_token_unique,yes,token,Enforce auth_sessions business or tenant uniqueness,drizzle/0006_local_identity_authority.sql
+auth_sessions,auth_sessions_user_idx,no,user_id,Firm-scoped auth_sessions lookup by responsible user,drizzle/0006_local_identity_authority.sql
+auth_two_factors,auth_two_factors_user_unique,yes,user_id,Enforce auth_two_factors business or tenant uniqueness,drizzle/0006_local_identity_authority.sql
+auth_users,auth_users_email_unique,yes,email,Enforce auth_users business or tenant uniqueness,drizzle/0006_local_identity_authority.sql
+auth_users,auth_users_lexnepal_user_unique,yes,lexnepal_user_id,Enforce auth_users business or tenant uniqueness,drizzle/0006_local_identity_authority.sql
+auth_verifications,auth_verifications_identifier_idx,no,identifier,Documented operational lookup for auth_verifications,drizzle/0006_local_identity_authority.sql
+avatar_upload_intents,avatar_upload_intents_firm_status_idx,no,"firm_id, status, expires_at",Firm-scoped avatar_upload_intents status queue or filter,drizzle/0007_avatar_quarantine_pipeline.sql
+avatar_upload_intents,avatar_upload_intents_quarantine_key_unique,yes,quarantine_key,Enforce avatar_upload_intents business or tenant uniqueness,drizzle/0007_avatar_quarantine_pipeline.sql
+avatar_upload_intents,avatar_upload_intents_user_idx,no,"firm_id, user_id",Firm-scoped avatar_upload_intents lookup by responsible user,drizzle/0007_avatar_quarantine_pipeline.sql
+blog_posts,blog_posts_firm_slug_unique,yes,"firm_id,slug",Enforce blog_posts business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+blog_posts,blog_posts_firm_status_publish_idx,no,"firm_id,status,publish_date",Firm-scoped blog_posts status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+career_requirements,career_requirements_position_unique,yes,"firm_id,career_id,position",Enforce career_requirements business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+careers,careers_firm_active_idx,no,"firm_id,is_active",Firm-scoped careers status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+case_team_members,case_team_members_unique,yes,"firm_id,case_id,user_id",Enforce case_team_members business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+case_team_members,case_team_members_user_idx,no,"firm_id,user_id",Firm-scoped case_team_members lookup by case,drizzle/0000_initial_postgresql_schema.sql
+cases,cases_firm_case_number_unique,yes,"firm_id,case_number",Enforce cases business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+cases,cases_firm_client_idx,no,"firm_id,client_id",Firm-scoped cases lookup by case,drizzle/0000_initial_postgresql_schema.sql
+cases,cases_firm_lawyer_idx,no,"firm_id,assigned_lawyer_id",Firm-scoped cases lookup by case,drizzle/0000_initial_postgresql_schema.sql
+cases,cases_firm_status_idx,no,"firm_id,status",Firm-scoped cases lookup by case,drizzle/0000_initial_postgresql_schema.sql
+client_kyc_files,client_kyc_files_client_idx,no,"firm_id,client_id",Firm-scoped client_kyc_files lookup by client,drizzle/0000_initial_postgresql_schema.sql
+client_kyc_files,client_kyc_files_storage_unique,yes,"firm_id,storage_id",Enforce client_kyc_files business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+clients,clients_firm_kyc_status_idx,no,"firm_id,kyc_status",Firm-scoped clients status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+clients,clients_firm_name_idx,no,"firm_id,full_name",Firm-scoped clients lookup by client,drizzle/0000_initial_postgresql_schema.sql
+clients,clients_firm_user_unique,yes,"firm_id,user_id",Enforce clients business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+cms_settings,cms_settings_firm_key_unique,yes,"firm_id,key",Enforce cms_settings business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+conflict_checks,conflict_checks_firm_checked_at_idx,no,"firm_id,checked_at",Documented operational lookup for conflict_checks,drizzle/0000_initial_postgresql_schema.sql
+conflict_checks,conflict_checks_firm_status_idx,no,"firm_id,status",Firm-scoped conflict_checks status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+document_scan_jobs,document_scan_jobs_available_idx,no,"status,available_at",Firm-scoped document_scan_jobs lookup by document,drizzle/0003_document_storage_pipeline.sql
+document_scan_jobs,document_scan_jobs_intent_unique,yes,"firm_id,upload_intent_id",Enforce document_scan_jobs business or tenant uniqueness,drizzle/0003_document_storage_pipeline.sql
+document_shares,document_shares_active_expiry_idx,no,"firm_id,is_active,expires_at",Firm-scoped document_shares status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+document_shares,document_shares_firm_document_idx,no,"firm_id,document_id",Firm-scoped document_shares lookup by document,drizzle/0000_initial_postgresql_schema.sql
+document_shares,document_shares_token_unique,yes,token,Enforce document_shares business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+document_tag_assignments,document_tag_assignments_tag_idx,no,"firm_id,tag_id",Firm-scoped document_tag_assignments lookup by document,drizzle/0000_initial_postgresql_schema.sql
+document_tag_assignments,document_tag_assignments_unique,yes,"firm_id,document_id,tag_id",Enforce document_tag_assignments business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+document_tags,document_tags_firm_name_unique,yes,"firm_id,name",Enforce document_tags business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+document_templates,document_templates_firm_title_unique,yes,"firm_id,title",Enforce document_templates business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+document_templates,document_templates_firm_type_idx,no,"firm_id,type",Firm-scoped document_templates lookup by document,drizzle/0000_initial_postgresql_schema.sql
+document_upload_intents,document_upload_intents_creator_idx,no,"firm_id,created_by",Firm-scoped document_upload_intents lookup by document,drizzle/0003_document_storage_pipeline.sql
+document_upload_intents,document_upload_intents_firm_status_expiry_idx,no,"firm_id,status,expires_at",Firm-scoped document_upload_intents status queue or filter,drizzle/0003_document_storage_pipeline.sql
+document_upload_intents,document_upload_intents_quarantine_key_unique,yes,quarantine_key,Enforce document_upload_intents business or tenant uniqueness,drizzle/0003_document_storage_pipeline.sql
+document_upload_rate_limits,document_upload_rate_limits_user_idx,no,"firm_id,user_id",Firm-scoped document_upload_rate_limits lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+document_upload_rate_limits,document_upload_rate_limits_window_unique,yes,"firm_id,user_id,window_started_at",Enforce document_upload_rate_limits business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_case_idx,no,"firm_id,case_id",Firm-scoped documents lookup by case,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_deleted_idx,no,"firm_id,deleted_at",Firm-scoped documents lookup by document,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_number_unique,yes,"firm_id,document_number",Enforce documents business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_parent_idx,no,"firm_id,parent_document_id",Firm-scoped documents lookup by document,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_signature_idx,no,"firm_id,intended_signer_user_id,signature_status",Firm-scoped documents lookup by document,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_storage_unique,yes,"firm_id,storage_id",Enforce documents business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_template_idx,no,"firm_id,is_template",Firm-scoped documents lookup by document,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_type_idx,no,"firm_id,type",Firm-scoped documents lookup by document,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_firm_uploader_idx,no,"firm_id,uploaded_by",Firm-scoped documents lookup by document,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_parent_version_unique,yes,"firm_id,parent_document_id,version",Enforce documents business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+documents,documents_search_vector_idx,no,"to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(searchable_text, ''))",Full-text document discovery by title description and extracted text,drizzle/0001_tenant_integrity_and_checks.sql
+expenses,expenses_firm_case_idx,no,"firm_id,case_id",Firm-scoped expenses lookup by case,drizzle/0000_initial_postgresql_schema.sql
+expenses,expenses_firm_date_idx,no,"firm_id,expense_date",Firm-scoped expenses chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+expenses,expenses_firm_status_idx,no,"firm_id,status",Firm-scoped expenses status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+firm_settings,firm_settings_firm_key_unique,yes,"firm_id,key",Enforce firm_settings business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+firms,firms_slug_unique,yes,slug,Enforce firms business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+hearings,hearings_firm_case_idx,no,"firm_id,case_id",Firm-scoped hearings lookup by case,drizzle/0000_initial_postgresql_schema.sql
+hearings,hearings_firm_date_idx,no,"firm_id,date_gregorian",Firm-scoped hearings chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+invoice_line_items,invoice_line_items_firm_invoice_idx,no,"firm_id,invoice_id",Documented operational lookup for invoice_line_items,drizzle/0000_initial_postgresql_schema.sql
+invoices,invoices_firm_case_idx,no,"firm_id,case_id",Firm-scoped invoices lookup by case,drizzle/0000_initial_postgresql_schema.sql
+invoices,invoices_firm_client_idx,no,"firm_id,client_id",Firm-scoped invoices lookup by client,drizzle/0000_initial_postgresql_schema.sql
+invoices,invoices_firm_number_unique,yes,"firm_id,invoice_number",Enforce invoices business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+invoices,invoices_firm_status_due_idx,no,"firm_id,status,due_date",Firm-scoped invoices status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+job_applications,job_applications_firm_job_idx,no,"firm_id,job_id",Documented operational lookup for job_applications,drizzle/0000_initial_postgresql_schema.sql
+job_applications,job_applications_firm_status_idx,no,"firm_id,status",Firm-scoped job_applications status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+leads,leads_firm_assigned_idx,no,"firm_id,assigned_to",Documented operational lookup for leads,drizzle/0000_initial_postgresql_schema.sql
+leads,leads_firm_status_idx,no,"firm_id,status",Firm-scoped leads status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+leads,leads_intake_token_unique,yes,intake_token,Enforce leads business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+leave_requests,leave_requests_firm_status_idx,no,"firm_id,status",Firm-scoped leave_requests status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+leave_requests,leave_requests_firm_user_idx,no,"firm_id,user_id",Firm-scoped leave_requests lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+legal_pages,legal_pages_firm_slug_unique,yes,"firm_id,slug",Enforce legal_pages business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+message_attachments,message_attachments_position_unique,yes,"firm_id,message_id,position",Enforce message_attachments business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+message_reads,message_reads_unique,yes,"firm_id,message_id,user_id",Enforce message_reads business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+message_reads,message_reads_user_idx,no,"firm_id,user_id",Firm-scoped message_reads lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+messages,messages_firm_case_created_idx,no,"firm_id,case_id,created_at",Firm-scoped messages lookup by case,drizzle/0000_initial_postgresql_schema.sql
+messages,messages_firm_sender_idx,no,"firm_id,sender_id",Documented operational lookup for messages,drizzle/0000_initial_postgresql_schema.sql
+navigation,navigation_firm_location_order_unique,yes,"firm_id,location,display_order",Enforce navigation business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+navigation,navigation_firm_parent_idx,no,"firm_id,parent_id",Firm-scoped navigation hierarchy traversal,drizzle/0000_initial_postgresql_schema.sql
+news_and_awards,news_and_awards_firm_date_idx,no,"firm_id,publication_date",Firm-scoped news_and_awards chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+news_and_awards,news_and_awards_firm_type_idx,no,"firm_id,type",Firm-scoped news_and_awards classification filter,drizzle/0000_initial_postgresql_schema.sql
+newsletter_subscribers,newsletter_subscribers_firm_email_unique,yes,"firm_id,email",Enforce newsletter_subscribers business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+notifications,notifications_firm_created_idx,no,"firm_id,created_at",Firm-scoped notifications chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+notifications,notifications_firm_user_read_idx,no,"firm_id,user_id,is_read",Firm-scoped notifications lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+payments,payments_firm_client_idx,no,"firm_id,client_id",Firm-scoped payments lookup by client,drizzle/0000_initial_postgresql_schema.sql
+payments,payments_firm_gateway_reference_unique,yes,"firm_id,gateway,reference_number",Enforce payments business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+payments,payments_firm_invoice_idx,no,"firm_id,invoice_id",Documented operational lookup for payments,drizzle/0000_initial_postgresql_schema.sql
+practice_areas,practice_areas_firm_slug_unique,yes,"firm_id,slug",Enforce practice_areas business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+research_note_tags,research_note_tags_firm_tag_idx,no,"firm_id,tag",Documented operational lookup for research_note_tags,drizzle/0000_initial_postgresql_schema.sql
+research_note_tags,research_note_tags_unique,yes,"firm_id,research_note_id,tag",Enforce research_note_tags business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+research_notes,research_notes_firm_author_idx,no,"firm_id,author_id",Firm-scoped research_notes lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+research_notes,research_notes_firm_category_idx,no,"firm_id,category",Firm-scoped research_notes classification filter,drizzle/0000_initial_postgresql_schema.sql
+resources,resources_firm_category_idx,no,"firm_id,category",Firm-scoped resources classification filter,drizzle/0000_initial_postgresql_schema.sql
+sessions,sessions_expiry_idx,no,expires_at,Firm-scoped sessions chronological or reminder query,drizzle/0002_authentication_sessions.sql
+sessions,sessions_firm_user_active_idx,no,"firm_id,user_id,last_active",Firm-scoped sessions lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+sessions,sessions_token_hash_unique,yes,token_hash,Enforce sessions business or tenant uniqueness,drizzle/0002_authentication_sessions.sql
+signature_envelopes,signature_envelopes_firm_case_idx,no,"firm_id,case_id",Firm-scoped signature_envelopes lookup by case,drizzle/0000_initial_postgresql_schema.sql
+signature_envelopes,signature_envelopes_firm_document_idx,no,"firm_id,document_id",Firm-scoped signature_envelopes lookup by document,drizzle/0000_initial_postgresql_schema.sql
+signature_envelopes,signature_envelopes_firm_status_idx,no,"firm_id,status",Firm-scoped signature_envelopes status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+signature_recipients,signature_recipients_envelope_order_unique,yes,"firm_id,envelope_id,routing_order",Enforce signature_recipients business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+signature_recipients,signature_recipients_envelope_user_unique,yes,"firm_id,envelope_id,user_id",Enforce signature_recipients business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+signature_recipients,signature_recipients_user_status_idx,no,"firm_id,user_id,status",Firm-scoped signature_recipients lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+signing_challenges,signing_challenges_expiry_idx,no,"firm_id,expires_at",Firm-scoped signing_challenges chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+signing_challenges,signing_challenges_user_document_idx,no,"firm_id,user_id,document_id",Firm-scoped signing_challenges lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+sop_template_tasks,sop_template_tasks_position_unique,yes,"firm_id,sop_template_id,position",Enforce sop_template_tasks business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+sop_templates,sop_templates_firm_key_unique,yes,"firm_id,key",Enforce sop_templates business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+sop_templates,sop_templates_firm_practice_idx,no,"firm_id,practice_area",Firm-scoped sop_templates classification filter,drizzle/0000_initial_postgresql_schema.sql
+storage_migration_items,storage_migration_items_destination_unique,yes,destination_key,Enforce storage_migration_items business or tenant uniqueness,drizzle/0003_document_storage_pipeline.sql
+storage_migration_items,storage_migration_items_firm_status_idx,no,"firm_id,status",Firm-scoped storage_migration_items status queue or filter,drizzle/0003_document_storage_pipeline.sql
+storage_migration_items,storage_migration_items_legacy_unique,yes,"firm_id,legacy_storage_id",Enforce storage_migration_items business or tenant uniqueness,drizzle/0003_document_storage_pipeline.sql
+task_comments,task_comments_firm_task_idx,no,"firm_id,task_id,created_at",Documented operational lookup for task_comments,drizzle/0000_initial_postgresql_schema.sql
+task_watchers,task_watchers_unique,yes,"firm_id,task_id,user_id",Enforce task_watchers business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+task_watchers,task_watchers_user_idx,no,"firm_id,user_id",Firm-scoped task_watchers lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+tasks,tasks_firm_assignee_idx,no,"firm_id,assigned_to",Firm-scoped tasks lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+tasks,tasks_firm_case_idx,no,"firm_id,case_id",Firm-scoped tasks lookup by case,drizzle/0000_initial_postgresql_schema.sql
+tasks,tasks_firm_due_idx,no,"firm_id,due_date",Firm-scoped tasks chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+tasks,tasks_firm_hearing_idx,no,"firm_id,hearing_id",Documented operational lookup for tasks,drizzle/0000_initial_postgresql_schema.sql
+tasks,tasks_firm_parent_idx,no,"firm_id,parent_task_id",Firm-scoped tasks hierarchy traversal,drizzle/0000_initial_postgresql_schema.sql
+tasks,tasks_firm_status_idx,no,"firm_id,status",Firm-scoped tasks status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+template_variables,template_variables_position_unique,yes,"firm_id,template_id,position",Enforce template_variables business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+template_variables,template_variables_unique,yes,"firm_id,template_id,variable",Enforce template_variables business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+templates,templates_firm_category_idx,no,"firm_id,category",Firm-scoped templates classification filter,drizzle/0000_initial_postgresql_schema.sql
+templates,templates_firm_title_unique,yes,"firm_id,title",Enforce templates business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+testimonials,testimonials_firm_approved_idx,no,"firm_id,is_approved",Firm-scoped testimonials status queue or filter,drizzle/0000_initial_postgresql_schema.sql
+time_entries,time_entries_firm_case_idx,no,"firm_id,case_id",Firm-scoped time_entries lookup by case,drizzle/0000_initial_postgresql_schema.sql
+time_entries,time_entries_firm_invoice_idx,no,"firm_id,invoice_id",Documented operational lookup for time_entries,drizzle/0000_initial_postgresql_schema.sql
+time_entries,time_entries_firm_user_idx,no,"firm_id,user_id",Firm-scoped time_entries lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+trust_transactions,trust_transactions_firm_case_idx,no,"firm_id,case_id",Firm-scoped trust_transactions lookup by case,drizzle/0000_initial_postgresql_schema.sql
+trust_transactions,trust_transactions_firm_client_date_idx,no,"firm_id,client_id,transaction_date",Firm-scoped trust_transactions chronological or reminder query,drizzle/0000_initial_postgresql_schema.sql
+user_educations,user_educations_position_unique,yes,"firm_id,user_id,position",Enforce user_educations business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+user_notable_cases,user_notable_cases_position_unique,yes,"firm_id,user_id,position",Enforce user_notable_cases business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+user_practice_areas,user_practice_areas_unique,yes,"firm_id,user_id,practice_area",Enforce user_practice_areas business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+users,users_activation_token_unique,yes,activation_token,Enforce users business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+users,users_firm_email_unique,yes,"firm_id,email",Enforce users business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
+users,users_firm_role_idx,no,"firm_id,role",Firm-scoped users lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+users,users_token_identifier_unique,yes,token_identifier,Enforce users business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql

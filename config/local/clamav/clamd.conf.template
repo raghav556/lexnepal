@@ -1,0 +1,15 @@
+LogFile "__CLAMD_LOG__"
+LogTime yes
+LogRotate yes
+LogFileMaxSize 5M
+DatabaseDirectory "__DATABASE_DIRECTORY__"
+TCPSocket 3310
+TCPAddr 127.0.0.1
+EnableShutdownCommand no
+StreamMaxLength 60M
+MaxFileSize 60M
+MaxScanSize 100M
+MaxThreads 4
+ReadTimeout 120
+CommandReadTimeout 30
+SendBufTimeout 120

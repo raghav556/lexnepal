@@ -3,6 +3,8 @@ import { DefaultProviders } from "./components/providers/default.tsx";
 import { I18nProvider } from "./lib/i18n-context.tsx";
 import AuthCallback from "./pages/auth/Callback.tsx";
 import AccountSetupPage from "./pages/auth/AccountSetupPage.tsx";
+import SignInPage from "./pages/auth/SignInPage.tsx";
+import MfaEnrollmentPage from "./pages/auth/MfaEnrollmentPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 import PublicLayout from "./pages/public/PublicLayout.tsx";
@@ -68,16 +70,16 @@ import AdminCMSCareers from "./pages/admin/AdminCMSCareers.tsx";
 import AdminCMSResources from "./pages/admin/AdminCMSResources.tsx";
 import AdminCMSNews from "./pages/admin/AdminCMSNews.tsx";
 import AdminCMSAbout from "./pages/admin/AdminCMSAbout.tsx";
+import AdminCMSGovernance from "./pages/admin/AdminCMSGovernance.tsx";
 
 import SharedProfilePage from "./pages/shared/SharedProfilePage.tsx";
 import SharedDocumentPage from "./pages/public/SharedDocumentPage.tsx";
 
 import { useEffect } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsSettings } from "@/client/queries/cms";
 
 function ThemeAndSEOEngine() {
-  const settings = useQuery(api.cms.getSettings);
+  const settings = useCmsSettings("public");
   
   useEffect(() => {
     if (settings) {
@@ -116,6 +118,9 @@ export default function App() {
           <Routes>
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/setup-account" element={<AccountSetupPage />} />
+          <Route path="/reset-password" element={<AccountSetupPage />} />
+            <Route path="/sign-in" element={<SignInPage />} />
+            <Route path="/mfa-enroll" element={<MfaEnrollmentPage />} />
           <Route path="/intake/:token" element={<IntakeFormPage />} />
           <Route path="/share/:token" element={<SharedDocumentPage />} />
 
@@ -184,6 +189,7 @@ export default function App() {
               <Route path="careers" element={<AdminCMSCareers />} />
               <Route path="resources" element={<AdminCMSResources />} />
               <Route path="about" element={<AdminCMSAbout />} />
+              <Route path="governance" element={<AdminCMSGovernance />} />
             </Route>
             <Route path="conflict-checker" element={<AdminConflictChecker />} />
             <Route path="document-generator" element={<AdminDocumentGenerator />} />

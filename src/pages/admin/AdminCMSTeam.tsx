@@ -3,18 +3,13 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsTeamIdentityBridge } from "@/client/queries/identity";
 import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
 
 export default function AdminCMSTeam() {
-  const users = useQuery(api.users.listUsers, {}) || [];
-  const createUser = useMutation(api.users.createUser);
-  const updateTeamMember = useMutation(api.users.updateProfile);
-  const deleteUser = useMutation(api.users.deleteUser);
-  const togglePublicStatus = useMutation(api.users.togglePublicStatus);
+  const { users, createUser, updateTeamMember, deleteUser, togglePublicStatus } = useCmsTeamIdentityBridge();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");

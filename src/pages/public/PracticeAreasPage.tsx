@@ -3,8 +3,9 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
 import { ArrowRight, Briefcase, Scale, Shield, Building2, ChevronDown, BookOpen } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { usePracticeAreas } from "@/client/queries/cms";
 import { useState } from "react";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -65,7 +66,7 @@ function FAQAccordionItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function PracticeAreasPage() {
-  const practiceAreas = useQuery(api.cms.listPracticeAreas, { isActive: true }) || [];
+  const practiceAreas = usePracticeAreas({ isActive: true }, "public") || [];
 
   return (
     <div className="w-full min-w-0 overflow-x-clip">

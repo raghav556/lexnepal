@@ -1,6 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { usePublicTeam } from "@/client/queries/cms";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +10,7 @@ export default function PublicLawyerProfilePage() {
   const { id } = useParams<{ id: string }>();
   
   // Fetch team
-  const team = useQuery(api.cms.listPublicTeam);
+  const team = usePublicTeam();
   
   if (team === undefined) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading profile...</div>;

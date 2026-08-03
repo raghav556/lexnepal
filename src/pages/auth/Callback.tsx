@@ -1,8 +1,7 @@
 import { useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthCallback } from "@usehercules/auth/react";
-import { useConvexAuth, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useLegacyIdentityCallback } from "@/client/queries/identity";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import type { UserRole } from "@/convex/users.ts";
@@ -15,8 +14,7 @@ function getPortalForRole(role: UserRole): string {
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
-  const updateCurrentUser = useMutation(api.users.updateCurrentUser);
+  const { isBackendAuthenticated: isConvexAuthenticated, sync: updateCurrentUser } = useLegacyIdentityCallback();
   // Store the role returned by updateCurrentUser so we can redirect correctly
   const roleRef = useRef<UserRole | null>(null);
 
@@ -34,10 +32,7 @@ export default function AuthCallback() {
     }
   }, [navigate]);
 
-  const navigateHome = useCallback(
-    () => navigate("/", { replace: true }),
-    [navigate],
-  );
+  const navigateHome = useCallback(() => navigate("/", { replace: true }), [navigate]);
 
   const { status, error, retry } = useAuthCallback({
     isBackendAuthenticated: isConvexAuthenticated,

@@ -1,0 +1,69 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1785619969004,
+      "tag": "0000_initial_postgresql_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785620019818,
+      "tag": "0001_tenant_integrity_and_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785621208380,
+      "tag": "0002_authentication_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785642556596,
+      "tag": "0003_document_storage_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785650400000,
+      "tag": "0004_durable_jobs_and_schedules",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785654000000,
+      "tag": "0005_audit_request_context",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785658594156,
+      "tag": "0006_local_identity_authority",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785661800000,
+      "tag": "0007_avatar_quarantine_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785668400000,
+      "tag": "0008_matters_kyc_security",
+      "breakpoints": true
+    }
+  ]
+}

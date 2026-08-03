@@ -7,8 +7,9 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Pagination } from "@/components/ui/pagination.tsx";
 
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useBlogPosts } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 
 function estimateReadTime(text?: string) {
@@ -30,7 +31,7 @@ const CATEGORIES = [
 const pad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 
 export default function BlogPage() {
-  const posts = useQuery(api.cms.listBlogPosts, { status: "published" }) || [];
+  const posts = useBlogPosts({ status: "published" }, "public") || [];
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 

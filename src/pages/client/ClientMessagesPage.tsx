@@ -4,17 +4,20 @@ import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Send, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
 
 export default function ClientMessagesPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useQuery(api.cases.listCases, clientId ? { clientId: clientId as any } : "skip") || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const users = useStaffDirectory() || [];
 
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState("");

@@ -1,16 +1,19 @@
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
 import type { Doc } from "@/convex/_generated/dataModel.d.ts";
+import { useCurrentIdentityUser } from "@/client/queries/identity";
 
 export type LexUser = Doc<"users">;
 export type UserRole = LexUser["role"];
 
 export const STAFF_ROLES: UserRole[] = [
-  "partner", "senior_associate", "associate", "paralegal", "intern",
+  "partner",
+  "senior_associate",
+  "associate",
+  "paralegal",
+  "intern",
 ];
 
 export function useCurrentUser(): LexUser | null | undefined {
-  return useQuery(api.users.getCurrentUser, {});
+  return useCurrentIdentityUser() as LexUser | null | undefined;
 }
 
 export function getPortalForRole(role: UserRole): "/client" | "/staff" | "/admin" {

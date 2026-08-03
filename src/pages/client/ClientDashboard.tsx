@@ -3,10 +3,13 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
 import { FolderOpen, FileText, Receipt, MessageSquare, CalendarDays, ArrowRight, Loader2 } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -17,19 +20,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ClientDashboard() {
   const currentUser = useCurrentUser();
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
+  const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
 
-  const cases = useQuery(
-    api.cases.listCases,
-    clientId ? { clientId: clientId as any } : "skip",
-  ) || [];
+  const cases = useCases(clientId ? { clientId } : {}) || [];
   const invoices = useQuery(
     api.invoices.listInvoices,
     clientId ? { clientId: clientId as any } : "skip",
   ) || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const users = useStaffDirectory() || [];
   const documents = useQuery(api.documents.listDocuments, {}) || [];
 
   const caseIds = new Set(cases.map((c: any) => c._id));

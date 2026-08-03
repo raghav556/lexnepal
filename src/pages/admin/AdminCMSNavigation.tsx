@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, useCmsSettings, useNavigation } from "@/client/queries/cms";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -12,14 +11,14 @@ import { FadeInUp } from "@/components/ui/animations.tsx";
 type LinkLocation = "header" | "footer_col_1" | "footer_col_2";
 
 export default function AdminCMSNavigation() {
-  const links = useQuery(api.cms.listNavigationLinks, {});
-  const settings = useQuery(api.cms.getSettings);
-  
-  const createLink = useMutation(api.cms.createNavigationLink);
-  const updateLink = useMutation(api.cms.updateNavigationLink);
-  const deleteLink = useMutation(api.cms.deleteNavigationLink);
-  const reorderLinks = useMutation(api.cms.reorderNavigationLinks);
-  const updateSettings = useMutation(api.cms.updateSettings);
+  const links = useNavigation({}, "admin");
+  const settings = useCmsSettings("admin");
+  const cms = useCmsCommands();
+  const createLink = (body: any) => cms.create("navigation", body);
+  const updateLink = ({ id, ...body }: any) => cms.update("navigation", id, body);
+  const deleteLink = ({ id }: any) => cms.remove("navigation", id);
+  const reorderLinks = (body: any) => cms.reorder(body);
+  const updateSettings = (body: any) => cms.updateSettings(body);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

@@ -1,0 +1,65 @@
+{
+  "algorithm": "sha256",
+  "migrations": [
+    {
+      "file": "drizzle/0000_initial_postgresql_schema.sql",
+      "sha256": "d59ed3fe551c8cff0c3b291de056997d98a5e88f43998de01ff3db8913c6c864"
+    },
+    {
+      "file": "drizzle/0001_tenant_integrity_and_checks.sql",
+      "sha256": "a6d77db7e4e426768d7d456815e20f5f49ae94846b8ddbeb8f327797e6722738"
+    },
+    {
+      "file": "drizzle/0002_authentication_sessions.sql",
+      "sha256": "66ea600f26df185f35b6ef94f7c11061f41e2fdac7ac3a877da6bbac1b8b1674"
+    },
+    {
+      "file": "drizzle/0003_document_storage_pipeline.sql",
+      "sha256": "982ccd4d09c388113c4b419a6f9ca384088484e935da896e0cb4b1b04dc500b6"
+    },
+    {
+      "file": "drizzle/0004_durable_jobs_and_schedules.sql",
+      "sha256": "6de9a7ea1078fbe4529b6675b3a32eff4d330fb164d6239ffdbdd8845dd674b2"
+    },
+    {
+      "file": "drizzle/0005_audit_request_context.sql",
+      "sha256": "8d92c60576696d5c447acdb23e05020a5178968fe7b07ab3c8714c9f1582d218"
+    },
+    {
+      "file": "drizzle/0006_local_identity_authority.sql",
+      "sha256": "e8508fccce798f39c48e1305a3578252e70314c28d30abed954f644a5897efbf"
+    },
+    {
+      "file": "drizzle/0007_avatar_quarantine_pipeline.sql",
+      "sha256": "1fa3d76412c04b0e686313a5af9d4194dc608377ef55e892d892827aabe8f15b"
+    },
+    {
+      "file": "drizzle/0008_matters_kyc_security.sql",
+      "sha256": "c39116421351b993778233a9857cc29b5116a5bf9d8bb88c16441fbe0c7fdd42"
+    },
+    {
+      "file": "drizzle/down/0001_initial_schema.down.sql",
+      "sha256": "4367363f78813d4ec20f09e454d8f772d84a70b1fb55db528ef273896421b766"
+    },
+    {
+      "file": "drizzle/down/0004_durable_jobs_and_schedules.down.sql",
+      "sha256": "5848cd88b8a4cbbedd69abdc2125e5a3a1560b588e5fdce88767ffa43f9ddeee"
+    },
+    {
+      "file": "drizzle/down/0005_audit_request_context.down.sql",
+      "sha256": "ce97f0ec9211a604ed730d7b33827d9e3ab58e0f077a6d6bc3d0fe9978c21f6f"
+    },
+    {
+      "file": "drizzle/down/0006_local_identity_authority.down.sql",
+      "sha256": "e6d82624ddcd5dd013df8a5fcb841394a8f778415b3e8270da50fa48b4ec9c0a"
+    },
+    {
+      "file": "drizzle/down/0007_avatar_quarantine_pipeline.down.sql",
+      "sha256": "fe20d76a363d66a86158e9d2342b9898db7a645fd1b40ae575a63042f0fbc8e8"
+    },
+    {
+      "file": "drizzle/down/0008_matters_kyc_security.down.sql",
+      "sha256": "cb2ce1949f6ef3aa67165ad0a3b363d7fbd799aa016ff07727a3cdef40de1a74"
+    }
+  ]
+}

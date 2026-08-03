@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCurrentIdentityUser, useOwnAuditEvents, useProfileCommands, useSessions } from "@/client/queries/identity";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -11,22 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { User, Shield, MonitorSmartphone, Database, Upload, Trash2, KeyRound, ShieldAlert, MonitorX, Laptop, Smartphone, Download, ActivitySquare } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
-import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
 export default function SharedProfilePage() {
-  const user = useQuery(api.users.getCurrentUser, {});
-
-  const sessions = useQuery(api.users.listMySessions, {});
-  const auditLog = useQuery(api.users.getMyAuditLog, {});
-
-  const revokeSession = useMutation(api.users.revokeSession);
-  const updateOwnProfile = useMutation(api.users.updateOwnProfile);
-  const changePassword = useMutation(api.users.changePassword);
-  const generateAvatarUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
-  const setAvatarFromStorage = useMutation(api.users.setAvatarFromStorage);
-  const beginTotpEnrollment = useMutation(api.users.beginTotpEnrollment);
-  const confirmTotpEnrollment = useMutation(api.users.confirmTotpEnrollment);
-  const disableTotp = useMutation(api.users.disableTotp);
+  const user = useCurrentIdentityUser();
+  const sessions = useSessions(user?.id);
+  const auditLog = useOwnAuditEvents();
+  const { revokeSession, updateProfile, changePassword, uploadAvatar, removeAvatar, beginTotp, confirmTotp, disableTotp } = useProfileCommands();
 
   const [profileForm, setProfileForm] = useState({ name: "", phone: "", bio: "" });
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
@@ -48,7 +37,7 @@ export default function SharedProfilePage() {
 
   const handleSaveProfile = async () => {
     try {
-      await updateOwnProfile({
+      await updateProfile({
         name: profileForm.name,
         phone: profileForm.phone || undefined,
         bio: profileForm.bio || undefined,
@@ -70,7 +59,7 @@ export default function SharedProfilePage() {
       return;
     }
     try {
-      await changePassword({ currentPassword: passwordForm.current, newPassword: passwordForm.newPass });
+      await changePassword(passwordForm.current, passwordForm.newPass);
       toast.success("Password changed successfully!");
       setPasswordForm({ current: "", newPass: "", confirm: "" });
     } catch (err: any) {
@@ -79,8 +68,10 @@ export default function SharedProfilePage() {
   };
 
   const handleBegin2FA = async () => {
+    const password = window.prompt("Enter your current password to enable MFA:");
+    if (!password) return;
     try {
-      const result = await beginTotpEnrollment({});
+      const result = await beginTotp(password);
       setTotpEnrollment(result);
       setTotpCode("");
       setTotpDialogOpen(true);
@@ -91,7 +82,7 @@ export default function SharedProfilePage() {
 
   const handleConfirm2FA = async () => {
     try {
-      await confirmTotpEnrollment({ code: totpCode });
+      await confirmTotp(totpCode);
       toast.success("Two-Factor Authentication enabled!");
       setTotpDialogOpen(false);
       setTotpEnrollment(null);
@@ -101,10 +92,10 @@ export default function SharedProfilePage() {
   };
 
   const handleDisable2FA = async () => {
-    const code = window.prompt("Enter your authenticator code to disable 2FA:");
-    if (!code) return;
+    const password = window.prompt("Enter your current password to disable MFA:");
+    if (!password) return;
     try {
-      await disableTotp({ code });
+      await disableTotp(password);
       toast.success("Two-Factor Authentication disabled");
     } catch {
       toast.error("Invalid authenticator code");
@@ -115,16 +106,8 @@ export default function SharedProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     try {
-      const uploadUrl = await generateAvatarUploadUrl({});
-      let storageId: string;
-      if (typeof uploadUrl === "string" && uploadUrl.startsWith("mock-upload-url")) {
-        storageId = uploadUrl.replace("mock-upload-url-", "mock_");
-      } else {
-        const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
-        ({ storageId } = await res.json());
-      }
-      await setAvatarFromStorage({ storageId });
-      toast.success("Avatar updated");
+      await uploadAvatar(file);
+      toast.success("Avatar uploaded and queued for malware scanning");
     } catch {
       toast.error("Failed to upload avatar");
     }
@@ -132,7 +115,7 @@ export default function SharedProfilePage() {
 
   const handleRemoveAvatar = async () => {
     try {
-      await updateOwnProfile({ avatar: "" });
+      await removeAvatar();
       toast.success("Avatar removed");
     } catch {
       toast.error("Failed to remove avatar");
@@ -141,7 +124,7 @@ export default function SharedProfilePage() {
 
   const handleRevokeSession = async (sessionId: string) => {
     try {
-      await revokeSession({ sessionId: sessionId as Id<"sessions"> });
+      await revokeSession(sessionId);
       toast.success("Session revoked successfully");
     } catch {
       toast.error("Failed to revoke session");
@@ -158,7 +141,7 @@ export default function SharedProfilePage() {
         role: user.role,
         bio: user.bio,
         barCouncilNumber: user.barCouncilNumber,
-        practiceAreas: user.practiceAreas,
+        practiceAreas: (user as typeof user & { practiceAreas?: string[] }).practiceAreas,
         lastLoginAt: user.lastLoginAt,
       },
       exportedAt: new Date().toISOString(),
@@ -325,9 +308,10 @@ export default function SharedProfilePage() {
                 <Button
                   variant={user.twoFactorEnabled ? "destructive" : "default"}
                   onClick={user.twoFactorEnabled ? handleDisable2FA : handleBegin2FA}
+                  disabled={user.twoFactorEnabled && user.twoFactorRequired}
                   className="shrink-0"
                 >
-                  {user.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+                  {user.twoFactorEnabled && user.twoFactorRequired ? "Required by policy" : user.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
                 </Button>
               </CardContent>
             </Card>

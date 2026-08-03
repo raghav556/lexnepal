@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, useResources } from "@/client/queries/cms";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +10,11 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 export default function AdminCMSResources() {
-  const resources = useQuery(api.cms.listResources, {}) || [];
-  const createResource = useMutation(api.cms.createResource);
-  const updateResource = useMutation(api.cms.updateResource);
-  const deleteResource = useMutation(api.cms.deleteResource);
+  const resources = useResources({}, "admin") || [];
+  const cms = useCmsCommands();
+  const createResource = (body: any) => cms.create("resources", body);
+  const updateResource = ({ id, ...body }: any) => cms.update("resources", id, body);
+  const deleteResource = ({ id }: any) => cms.remove("resources", id);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

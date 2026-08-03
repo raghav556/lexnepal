@@ -11,9 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.t
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCase, useCaseCommands } from "@/client/queries/cases";
+import { useClients } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
 import { cn } from "@/lib/utils.ts";
 import { PRIORITY_COLORS, formatTaskDue } from "@/lib/task-constants.ts";
 
@@ -40,12 +43,13 @@ export default function StaffCaseDetailPage() {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
 
-  const caseData = useQuery(api.cases.getCase, caseId ? { caseId: caseId as any } : "skip");
-  const clients = useQuery(api.clients.listClients, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const caseData = useCase(caseId || null);
+  const clients = useClients() || [];
+  const users = useStaffDirectory() || [];
   const hearings = useQuery(api.hearings.listHearings, caseId ? { caseId: caseId as any } : "skip") || [];
   const documents = useQuery(api.documents.listDocuments as any, caseId ? { caseId: caseId as any } : "skip") || [];
-  const updateCase = useMutation(api.cases.updateCase);
+  const { update: updateCaseAdapter } = useCaseCommands();
+  const updateCase = ({ caseId: targetCaseId, ...input }: any) => updateCaseAdapter(targetCaseId, input);
   
   const tasks = useQuery(api.tasks.listTasks, caseId ? { caseId: caseId as any } : "skip") || [];
   const timeEntries = useQuery(api.timeEntries.listTimeEntries, caseId ? { caseId: caseId as any } : "skip") || [];

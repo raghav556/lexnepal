@@ -3,8 +3,7 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Shield, User, FileText, DollarSign, Search, Loader2 } from "lucide-react";
 import type { ElementType } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useAuditEvents, useUsers } from "@/client/queries/identity";
 
 const ACTION_COLORS: Record<string, string> = {
   VIEW:    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
@@ -37,12 +36,8 @@ export default function AdminAuditPage() {
   const [resourceFilter, setResourceFilter] = useState<string>("all");
 
   // Fetch audit log — resource filter sent to query for index use when specific
-  const auditLog = useQuery(
-    api.auditLog.listAuditLog,
-    resourceFilter !== "all" ? { resource: resourceFilter } : {}
-  ) || [];
-
-  const users = useQuery(api.users.listUsers, {}) || [];
+  const auditLog = useAuditEvents(resourceFilter !== "all" ? { resource: resourceFilter } : {}) || [];
+  const users = useUsers() || [];
 
   const isLoading = auditLog === undefined;
 

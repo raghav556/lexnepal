@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Loader2, Trash, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api.js";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 
 export function TagManagementModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const tags = useQuery(api.tags.listTags) || [];

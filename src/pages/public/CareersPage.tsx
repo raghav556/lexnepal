@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCareers, useCmsCommands } from "@/client/queries/cms";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,8 +10,8 @@ import { Briefcase, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CareersPage() {
-  const jobs = useQuery(api.cms.listCareers, { isActive: true });
-  const createApplication = useMutation(api.cms.createJobApplication);
+  const jobs = useCareers({ isActive: true }, "public");
+  const { apply: createApplication } = useCmsCommands();
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({

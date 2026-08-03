@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
-import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import { useAuditEvents, useIdentityCommands, useSessions, useUsers } from "@/client/queries/identity";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -54,14 +52,8 @@ function exportUsersCsv(users: any[]) {
 }
 
 export default function AdminUsersPage() {
-  const users = useQuery(api.users.listUsers, {});
-  const updateUser = useMutation(api.users.updateUser);
-  const createUser = useMutation(api.users.createUser);
-  const resendInvitation = useMutation(api.users.resendInvitation);
-  const sendPasswordReset = useMutation(api.users.sendPasswordReset);
-  const archiveUser = useMutation(api.users.archiveUser);
-  const bulkUpdateUsers = useMutation(api.users.bulkUpdateUsers);
-  const revokeAllSessions = useMutation(api.users.revokeAllSessions);
+  const users = useUsers();
+  const { updateUser, createUser, resendInvitation, sendPasswordReset, archiveUser, revokeAllSessions, resetMfa } = useIdentityCommands();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftRole, setDraftRole] = useState<UserRole>("client");
@@ -81,14 +73,8 @@ export default function AdminUsersPage() {
   });
   const [savingProfile, setSavingProfile] = useState(false);
 
-  const userActivity = useQuery(
-    api.users.getUserActivity,
-    selectedUser ? { userId: selectedUser._id as Id<"users"> } : "skip",
-  );
-  const userSessions = useQuery(
-    api.users.listSessions,
-    selectedUser ? { userId: selectedUser._id as Id<"users"> } : "skip",
-  );
+  const userActivity = useAuditEvents(selectedUser ? { userId: selectedUser._id } : {});
+  const userSessions = useSessions(selectedUser?._id);
 
   useEffect(() => {
     if (selectedUser) {
@@ -114,11 +100,11 @@ export default function AdminUsersPage() {
     setEditingId(null);
   };
 
-  const saveRole = async (e: React.MouseEvent, userId: Id<"users">) => {
+  const saveRole = async (e: React.MouseEvent, userId: string) => {
     e.stopPropagation();
     setSaving(true);
     try {
-      await updateUser({ userId, role: draftRole });
+      await updateUser(userId, { role: draftRole });
       toast.success("Role updated successfully");
       setEditingId(null);
     } catch {
@@ -134,22 +120,16 @@ export default function AdminUsersPage() {
       return;
     }
     try {
-      const result = await createUser({
+      await createUser({
         name: createForm.name,
         email: createForm.email,
         role: createForm.role,
+        isPublicFacing: false,
+        invite: true,
         phone: createForm.phone || undefined,
         barCouncilNumber: createForm.barCouncilNumber || undefined,
       });
-      if (result.activationToken) {
-        const setupUrl = `${window.location.origin}/setup-account?token=${result.activationToken}`;
-        toast.success("User invited successfully!", {
-          duration: 10000,
-          description: `Setup link (expires ${result.inviteExpiresAt ? new Date(result.inviteExpiresAt).toLocaleDateString() : "in 7 days"}): ${setupUrl}`,
-        });
-      } else {
-        toast.success("User created successfully");
-      }
+      toast.success("Invitation queued. Open local Mailpit to retrieve it.");
       setIsCreateOpen(false);
       setCreateForm({ name: "", email: "", role: "client", phone: "", barCouncilNumber: "" });
     } catch {
@@ -159,12 +139,8 @@ export default function AdminUsersPage() {
 
   const handleResendInvitation = async (user: any) => {
     try {
-      const result = await resendInvitation({ userId: user._id });
-      const setupUrl = `${window.location.origin}/setup-account?token=${result.activationToken}`;
-      toast.success(`Invitation resent to ${user.email}`, {
-        duration: 10000,
-        description: `Setup link: ${setupUrl}`,
-      });
+      await resendInvitation(user._id);
+      toast.success(`Invitation resent to ${user.email}`);
     } catch {
       toast.error("Failed to resend invitation");
     }
@@ -178,14 +154,12 @@ export default function AdminUsersPage() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      await updateUser({
-        userId: selectedUser._id,
+      await updateUser(selectedUser._id, {
         name: editForm.name,
         email: editForm.email,
         phone: editForm.phone || undefined,
         barCouncilNumber: editForm.barCouncilNumber || undefined,
         barCouncilExpiry: editForm.barCouncilExpiry || undefined,
-        practiceAreas,
       });
       setSelectedUser({
         ...selectedUser,
@@ -202,7 +176,7 @@ export default function AdminUsersPage() {
 
   const toggleUserStatus = async (user: any) => {
     try {
-      await updateUser({ userId: user._id, isActive: !user.isActive });
+      await updateUser(user._id, { isActive: !user.isActive });
       toast.success(`User ${!user.isActive ? "reactivated" : "suspended"} successfully`);
       if (selectedUser && selectedUser._id === user._id) {
         setSelectedUser({ ...selectedUser, isActive: !user.isActive });
@@ -214,7 +188,7 @@ export default function AdminUsersPage() {
 
   const handleSendPasswordReset = async (user: any) => {
     try {
-      await sendPasswordReset({ userId: user._id });
+      await sendPasswordReset(user._id);
       toast.success(`Password reset link sent to ${user.email}`);
     } catch {
       toast.error("Failed to send password reset");
@@ -225,7 +199,7 @@ export default function AdminUsersPage() {
     if (!selectedUser) return;
     if (!window.confirm(`Archive ${selectedUser.name}? They will lose access.`)) return;
     try {
-      await archiveUser({ userId: selectedUser._id });
+      await archiveUser(selectedUser._id);
       toast.success("User archived");
       setSelectedUser(null);
     } catch {
@@ -236,19 +210,28 @@ export default function AdminUsersPage() {
   const handleRevokeAllSessions = async () => {
     if (!selectedUser) return;
     try {
-      const result = await revokeAllSessions({ userId: selectedUser._id });
-      toast.success(`Revoked ${result.count} session(s)`);
+      const result = await revokeAllSessions(selectedUser._id) as { revoked?: number; count?: number };
+      toast.success(`Revoked ${result.revoked ?? result.count ?? 0} session(s)`);
     } catch {
       toast.error("Failed to revoke sessions");
     }
   };
 
+  const handleResetMfa = async () => {
+    if (!selectedUser || !window.confirm(`Reset MFA for ${selectedUser.name}? All sessions will be revoked.`)) return;
+    try {
+      await resetMfa(selectedUser._id);
+      toast.success("MFA reset; the user must enroll again at next sign-in");
+      setSelectedUser({ ...selectedUser, twoFactorEnabled: false });
+    } catch { toast.error("Failed to reset MFA"); }
+  };
+
   const handleBulkAction = async (action: "suspend" | "resend_invite") => {
-    const userIds = Array.from(selectedIds) as Id<"users">[];
+    const userIds = Array.from(selectedIds);
     if (userIds.length === 0) return;
     try {
-      const result = await bulkUpdateUsers({ userIds, action });
-      toast.success(`Updated ${result.count} user(s)`);
+      await Promise.all(userIds.map((userId) => action === "suspend" ? updateUser(userId, { isActive: false }) : resendInvitation(userId)));
+      toast.success(`Updated ${userIds.length} user(s)`);
       setSelectedIds(new Set());
     } catch {
       toast.error("Bulk action failed");
@@ -547,6 +530,7 @@ export default function AdminUsersPage() {
                       <Badge variant="secondary" className="text-[10px]">Disabled</Badge>
                     )}
                   </div>
+                  {selectedUser.twoFactorEnabled && <Button variant="outline" size="sm" onClick={handleResetMfa}><ShieldCheck className="w-4 h-4 mr-2" /> Reset MFA & Sessions</Button>}
                   {(userSessions?.length ?? 0) > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">{userSessions!.length} active session(s)</p>
@@ -568,7 +552,7 @@ export default function AdminUsersPage() {
                       <div key={log._id} className="flex items-start gap-3 text-sm">
                         <History className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                         <div>
-                          <span className="text-muted-foreground">{new Date(log._creationTime).toLocaleString()}:</span>{" "}
+                          <span className="text-muted-foreground">{new Date(log.createdAt).toLocaleString()}:</span>{" "}
                           {log.action}{log.details ? ` — ${log.details}` : ""}
                         </div>
                       </div>

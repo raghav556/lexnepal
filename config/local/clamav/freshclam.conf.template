@@ -1,0 +1,8 @@
+DatabaseDirectory "__DATABASE_DIRECTORY__"
+UpdateLogFile "__FRESHCLAM_LOG__"
+LogTime yes
+LogRotate yes
+LogFileMaxSize 5M
+DatabaseMirror database.clamav.net
+MaxAttempts 3
+Checks 12

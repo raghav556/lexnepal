@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button.tsx";
 import { Plus, X, Trash2, Loader2, Save, Bell, Clock, MessageSquare, Archive } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useTasks, useUpdateTask } from "@/client/queries/tasks";
+import { useCases } from "@/client/queries/cases";
 import { Input } from "@/components/ui/input.tsx";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
 import { TaskCard } from "@/components/tasks/TaskCard.tsx";
 import { DueDateFields } from "@/components/tasks/DueDateFields.tsx";
 import { TaskCalendarView } from "@/components/tasks/TaskCalendarView.tsx";
+import { useStaffDirectory } from "@/client/queries/identity";
 import { TaskWorkloadView } from "@/components/tasks/TaskWorkloadView.tsx";
 import {
   PRIORITY_COLORS,
@@ -40,15 +43,15 @@ export default function StaffTasksPage() {
   const currentUser = useCurrentUser();
   const [view, setView] = useState<ViewMode>("kanban");
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
-  const tasks = useQuery(api.tasks.listTasks, { includeArchived: showArchivedOnly || undefined }) || [];
+  const tasks = useTasks({ includeArchived: showArchivedOnly || undefined }) || [];
   const workload = useQuery(api.tasks.listWorkload, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const cases = useCases({}) || [];
+  const users = useStaffDirectory() || [];
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
   const documents = useQuery(api.documents.listDocuments as any, {}) || [];
 
   const createTask = useMutation(api.tasks.createTask);
-  const updateTask = useMutation(api.tasks.updateTask);
+  const updateTask = useUpdateTask();
   const archiveTask = useMutation(api.tasks.archiveTask);
   const restoreTask = useMutation(api.tasks.restoreTask);
   const deleteTask = useMutation(api.tasks.deleteTask);
@@ -79,39 +82,60 @@ export default function StaffTasksPage() {
     if (filterPriority) list = list.filter((t: any) => t.priority === filterPriority);
     if (filterCase) list = list.filter((t: any) => t.caseId === filterCase);
     if (filterStatus) list = list.filter((t: any) => t.status === filterStatus);
-    else if (!showCancelledColumn && !showArchivedOnly) list = list.filter((t: any) => t.status !== "cancelled");
+    else if (!showCancelledColumn && !showArchivedOnly)
+      list = list.filter((t: any) => t.status !== "cancelled");
     if (filterOverdue) list = list.filter((t: any) => isTaskOverdue(t));
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter((t: any) => {
         const matchedCase = cases.find((c: any) => c._id === t.caseId);
-        const hay = `${t.title} ${t.description || ""} ${matchedCase?.caseNumber || ""} ${matchedCase?.title || ""}`.toLowerCase();
+        const hay =
+          `${t.title} ${t.description || ""} ${matchedCase?.caseNumber || ""} ${matchedCase?.title || ""}`.toLowerCase();
         return hay.includes(q);
       });
     }
     return list;
   }, [
-    tasks, scope, currentUser?._id, filterAssignee, filterPriority, filterCase,
-    filterStatus, filterOverdue, searchQuery, showCancelledColumn, showArchivedOnly, cases,
+    tasks,
+    scope,
+    currentUser?._id,
+    filterAssignee,
+    filterPriority,
+    filterCase,
+    filterStatus,
+    filterOverdue,
+    searchQuery,
+    showCancelledColumn,
+    showArchivedOnly,
+    cases,
   ]);
 
-  const {
-    paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination,
-  } = usePagination(filteredTasks, 12);
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } =
+    usePagination(filteredTasks, 12);
 
   useEffect(() => {
     resetPagination();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, scope, filterAssignee, filterPriority, filterCase, filterStatus, filterOverdue, searchQuery, showCancelledColumn, showArchivedOnly]);
+  }, [
+    view,
+    scope,
+    filterAssignee,
+    filterPriority,
+    filterCase,
+    filterStatus,
+    filterOverdue,
+    searchQuery,
+    showCancelledColumn,
+    showArchivedOnly,
+  ]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  const comments = useQuery(
-    api.tasks.listComments,
-    selectedTask?._id ? { taskId: selectedTask._id } : "skip",
-  ) || [];
+  const comments =
+    useQuery(api.tasks.listComments, selectedTask?._id ? { taskId: selectedTask._id } : "skip") ||
+    [];
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -146,13 +170,16 @@ export default function StaffTasksPage() {
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
-  const subtasks = useQuery(
-    api.tasks.listTasks,
-    selectedTask?._id ? { parentTaskId: selectedTask._id } : "skip",
-  ) || [];
+  const subtasks =
+    useQuery(
+      api.tasks.listTasks,
+      selectedTask?._id ? { parentTaskId: selectedTask._id } : "skip",
+    ) || [];
 
   const staffUsers = users.filter((u: any) => u.role !== "client");
-  const activeCases = cases.filter((c: any) => c.status === "active" || c.status === "on_hold" || c.status === "inquiry");
+  const activeCases = cases.filter(
+    (c: any) => c.status === "active" || c.status === "on_hold" || c.status === "inquiry",
+  );
   const caseHearings = hearings.filter((h: any) => !editCaseId || h.caseId === editCaseId);
   const caseDocs = documents.filter((d: any) => !editCaseId || d.caseId === editCaseId);
 
@@ -421,9 +448,10 @@ export default function StaffTasksPage() {
     }
   };
 
-  const kanbanColumns = showCancelledColumn || filterStatus === "cancelled"
-    ? [...COLUMNS, { key: "cancelled" as TaskStatus, label: "Cancelled" }]
-    : COLUMNS;
+  const kanbanColumns =
+    showCancelledColumn || filterStatus === "cancelled"
+      ? [...COLUMNS, { key: "cancelled" as TaskStatus, label: "Cancelled" }]
+      : COLUMNS;
 
   const clearFilters = () => {
     setScope("mine");
@@ -448,14 +476,48 @@ export default function StaffTasksPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={handleScanOverdue} disabled={scanning}>
-            {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4 mr-1" />}
+            {scanning ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Bell className="w-4 h-4 mr-1" />
+            )}
             {t("tasks.due_scan")}
           </Button>
-          <Button variant={view === "kanban" ? "default" : "secondary"} size="sm" onClick={() => setView("kanban")}>{t("tasks.view_kanban")}</Button>
-          <Button variant={view === "list" ? "default" : "secondary"} size="sm" onClick={() => setView("list")}>{t("tasks.view_list")}</Button>
-          <Button variant={view === "calendar" ? "default" : "secondary"} size="sm" onClick={() => setView("calendar")}>{t("tasks.view_calendar")}</Button>
-          <Button variant={view === "workload" ? "default" : "secondary"} size="sm" onClick={() => setView("workload")}>{t("tasks.view_workload")}</Button>
-          <Button size="sm" onClick={() => { resetCreateForm(); setShowCreateModal(true); }}>
+          <Button
+            variant={view === "kanban" ? "default" : "secondary"}
+            size="sm"
+            onClick={() => setView("kanban")}
+          >
+            {t("tasks.view_kanban")}
+          </Button>
+          <Button
+            variant={view === "list" ? "default" : "secondary"}
+            size="sm"
+            onClick={() => setView("list")}
+          >
+            {t("tasks.view_list")}
+          </Button>
+          <Button
+            variant={view === "calendar" ? "default" : "secondary"}
+            size="sm"
+            onClick={() => setView("calendar")}
+          >
+            {t("tasks.view_calendar")}
+          </Button>
+          <Button
+            variant={view === "workload" ? "default" : "secondary"}
+            size="sm"
+            onClick={() => setView("workload")}
+          >
+            {t("tasks.view_workload")}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              resetCreateForm();
+              setShowCreateModal(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-1" /> {t("tasks.new")}
           </Button>
         </div>
@@ -463,41 +525,107 @@ export default function StaffTasksPage() {
 
       <div className="flex flex-col lg:flex-row gap-2 lg:items-end bg-secondary/20 border border-border/50 rounded-xl p-3">
         <div className="flex gap-1 shrink-0">
-          <Button size="sm" variant={scope === "mine" ? "default" : "secondary"} onClick={() => setScope("mine")}>My Tasks</Button>
-          <Button size="sm" variant={scope === "all" ? "default" : "secondary"} onClick={() => setScope("all")}>All</Button>
+          <Button
+            size="sm"
+            variant={scope === "mine" ? "default" : "secondary"}
+            onClick={() => setScope("mine")}
+          >
+            My Tasks
+          </Button>
+          <Button
+            size="sm"
+            variant={scope === "all" ? "default" : "secondary"}
+            onClick={() => setScope("all")}
+          >
+            All
+          </Button>
         </div>
-        <Input className="h-9 text-xs lg:max-w-[200px]" placeholder="Search title, case…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-xs" value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}>
+        <Input
+          className="h-9 text-xs lg:max-w-[200px]"
+          placeholder="Search title, case…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+          value={filterAssignee}
+          onChange={(e) => setFilterAssignee(e.target.value)}
+        >
           <option value="">All assignees</option>
-          {staffUsers.map((u: any) => <option key={u._id} value={u._id}>{u.name || u.email}</option>)}
+          {staffUsers.map((u: any) => (
+            <option key={u._id} value={u._id}>
+              {u.name || u.email}
+            </option>
+          ))}
         </select>
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-xs" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+          value={filterPriority}
+          onChange={(e) => setFilterPriority(e.target.value)}
+        >
           <option value="">All priorities</option>
           <option value="urgent">Urgent</option>
           <option value="high">High</option>
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-xs" value={filterCase} onChange={(e) => setFilterCase(e.target.value)}>
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+          value={filterCase}
+          onChange={(e) => setFilterCase(e.target.value)}
+        >
           <option value="">All cases</option>
-          {cases.map((c: any) => <option key={c._id} value={c._id}>[{c.caseNumber}] {c.title}</option>)}
-        </select>
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-xs" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="">All statuses</option>
-          {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((s) => (
-            <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>
+          {cases.map((c: any) => (
+            <option key={c._id} value={c._id}>
+              [{c.caseNumber}] {c.title}
+            </option>
           ))}
         </select>
-        <Button size="sm" variant={filterOverdue ? "destructive" : "secondary"} onClick={() => setFilterOverdue((v) => !v)}>Overdue</Button>
-        <Button size="sm" variant={showCancelledColumn ? "default" : "secondary"} onClick={() => setShowCancelledColumn((v) => !v)}>Cancelled</Button>
-        <Button size="sm" variant={showArchivedOnly ? "default" : "secondary"} onClick={() => setShowArchivedOnly((v) => !v)}>
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((s) => (
+            <option key={s} value={s}>
+              {TASK_STATUS_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        <Button
+          size="sm"
+          variant={filterOverdue ? "destructive" : "secondary"}
+          onClick={() => setFilterOverdue((v) => !v)}
+        >
+          Overdue
+        </Button>
+        <Button
+          size="sm"
+          variant={showCancelledColumn ? "default" : "secondary"}
+          onClick={() => setShowCancelledColumn((v) => !v)}
+        >
+          Cancelled
+        </Button>
+        <Button
+          size="sm"
+          variant={showArchivedOnly ? "default" : "secondary"}
+          onClick={() => setShowArchivedOnly((v) => !v)}
+        >
           <Archive className="w-3.5 h-3.5 mr-1" /> Archived
         </Button>
-        <Button size="sm" variant="ghost" onClick={clearFilters}>Reset</Button>
+        <Button size="sm" variant="ghost" onClick={clearFilters}>
+          Reset
+        </Button>
       </div>
 
       {view === "kanban" && (
-        <div className={cn("grid grid-cols-1 gap-4", kanbanColumns.length === 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3")}>
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-4",
+            kanbanColumns.length === 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3",
+          )}
+        >
           {kanbanColumns.map((col) => {
             const colTasks = filteredTasks.filter((t: any) => t.status === col.key);
             return (
@@ -507,17 +635,24 @@ export default function StaffTasksPage() {
                   "space-y-3 bg-secondary/20 p-3 rounded-xl border border-border/40 transition-colors",
                   dragOverCol === col.key && "border-primary bg-primary/5",
                 )}
-                onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverCol(col.key);
+                }}
                 onDragLeave={() => setDragOverCol((c) => (c === col.key ? null : c))}
                 onDrop={(e) => handleDropOnColumn(col.key, e)}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-foreground capitalize">{col.label}</h3>
-                  <Badge variant="secondary" className="text-xs">{colTasks.length}</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {colTasks.length}
+                  </Badge>
                 </div>
                 <div className="space-y-2 max-h-[70vh] overflow-y-auto min-h-[80px]">
                   {colTasks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-8">Drop tasks here</p>
+                    <p className="text-xs text-muted-foreground text-center py-8">
+                      Drop tasks here
+                    </p>
                   ) : (
                     colTasks.map((task: any) => (
                       <TaskCard
@@ -542,7 +677,9 @@ export default function StaffTasksPage() {
       {view === "list" && (
         <div className="space-y-2">
           {paginatedItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No tasks match these filters.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No tasks match these filters.
+            </p>
           ) : (
             paginatedItems.map((task: any) => (
               <TaskCard
@@ -566,9 +703,7 @@ export default function StaffTasksPage() {
         </div>
       )}
 
-      {view === "calendar" && (
-        <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} />
-      )}
+      {view === "calendar" && <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} />}
 
       {view === "workload" && (
         <TaskWorkloadView
@@ -587,38 +722,74 @@ export default function StaffTasksPage() {
           <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-auto flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-serif font-bold text-lg text-primary">Create New Task</h3>
-              <button type="button" onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleCreateTask} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium">Task Title <span className="text-destructive">*</span></label>
-                <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Draft client appeal document" />
+                <label className="text-xs font-medium">
+                  Task Title <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Draft client appeal document"
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium">Description</label>
-                <textarea className="w-full rounded-md border border-input bg-input px-3 py-2 text-xs min-h-[60px]" value={description} onChange={(e) => setDescription(e.target.value)} />
+                <textarea
+                  className="w-full rounded-md border border-input bg-input px-3 py-2 text-xs min-h-[60px]"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Assignee *</label>
-                  <select required className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
+                  <select
+                    required
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                  >
                     <option value="">Choose Staff</option>
-                    {staffUsers.map((u: any) => <option key={u._id} value={u._id}>{u.name || u.email}</option>)}
+                    {staffUsers.map((u: any) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name || u.email}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Related Case</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={caseId} onChange={(e) => setCaseId(e.target.value)}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={caseId}
+                    onChange={(e) => setCaseId(e.target.value)}
+                  >
                     <option value="">No Case</option>
-                    {activeCases.map((c: any) => <option key={c._id} value={c._id}>[{c.caseNumber}] {c.title}</option>)}
+                    {activeCases.map((c: any) => (
+                      <option key={c._id} value={c._id}>
+                        [{c.caseNumber}] {c.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium">Priority</label>
-                <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
+                <select
+                  className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
@@ -629,11 +800,21 @@ export default function StaffTasksPage() {
                 idPrefix="create-due"
                 dueDate={dueDate}
                 dueDateBs={dueDateBs}
-                onDueDateChange={(ad, bs) => { setDueDate(ad); setDueDateBs(bs); }}
+                onDueDateChange={(ad, bs) => {
+                  setDueDate(ad);
+                  setDueDateBs(bs);
+                }}
                 onDueDateBsChange={setDueDateBs}
               />
               <div className="flex justify-end gap-3 pt-3 border-t border-border">
-                <Button type="button" variant="secondary" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" size="sm" disabled={isSubmitting}>
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Task"}
                 </Button>
@@ -648,7 +829,11 @@ export default function StaffTasksPage() {
           <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-auto flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-serif font-bold text-lg text-primary">Edit Task</h3>
-              <button type="button" onClick={() => setShowDetailModal(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setShowDetailModal(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -660,39 +845,72 @@ export default function StaffTasksPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium">Description</label>
-                <textarea className="w-full rounded-md border border-input bg-input px-3 py-2 text-xs min-h-[60px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+                <textarea
+                  className="w-full rounded-md border border-input bg-input px-3 py-2 text-xs min-h-[60px]"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Assignee *</label>
-                  <select required className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editAssignedTo} onChange={(e) => setEditAssignedTo(e.target.value)}>
-                    {staffUsers.map((u: any) => <option key={u._id} value={u._id}>{u.name || u.email}</option>)}
+                  <select
+                    required
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editAssignedTo}
+                    onChange={(e) => setEditAssignedTo(e.target.value)}
+                  >
+                    {staffUsers.map((u: any) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name || u.email}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Case</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editCaseId} onChange={(e) => setEditCaseId(e.target.value)}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editCaseId}
+                    onChange={(e) => setEditCaseId(e.target.value)}
+                  >
                     <option value="">No Case</option>
-                    {cases.map((c: any) => <option key={c._id} value={c._id}>[{c.caseNumber}] {c.title}</option>)}
+                    {cases.map((c: any) => (
+                      <option key={c._id} value={c._id}>
+                        [{c.caseNumber}] {c.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Linked Hearing</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editHearingId} onChange={(e) => setEditHearingId(e.target.value)}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editHearingId}
+                    onChange={(e) => setEditHearingId(e.target.value)}
+                  >
                     <option value="">None</option>
                     {caseHearings.map((h: any) => (
-                      <option key={h._id} value={h._id}>{h.dateBs || h.dateGregorian} · {h.court}</option>
+                      <option key={h._id} value={h._id}>
+                        {h.dateBs || h.dateGregorian} · {h.court}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Linked Document</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editDocumentId} onChange={(e) => setEditDocumentId(e.target.value)}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editDocumentId}
+                    onChange={(e) => setEditDocumentId(e.target.value)}
+                  >
                     <option value="">None</option>
                     {caseDocs.map((d: any) => (
-                      <option key={d._id} value={d._id}>{d.title}</option>
+                      <option key={d._id} value={d._id}>
+                        {d.title}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -700,7 +918,11 @@ export default function StaffTasksPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Priority</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editPriority} onChange={(e) => setEditPriority(e.target.value as TaskPriority)}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editPriority}
+                    onChange={(e) => setEditPriority(e.target.value as TaskPriority)}
+                  >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -709,9 +931,15 @@ export default function StaffTasksPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Status</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editStatus} onChange={(e) => setEditStatus(e.target.value as TaskStatus)}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as TaskStatus)}
+                  >
                     {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((s) => (
-                      <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>
+                      <option key={s} value={s}>
+                        {TASK_STATUS_LABELS[s]}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -720,17 +948,26 @@ export default function StaffTasksPage() {
                 idPrefix="edit-due"
                 dueDate={editDueDate}
                 dueDateBs={editDueDateBs}
-                onDueDateChange={(ad, bs) => { setEditDueDate(ad); setEditDueDateBs(bs); }}
+                onDueDateChange={(ad, bs) => {
+                  setEditDueDate(ad);
+                  setEditDueDateBs(bs);
+                }}
                 onDueDateBsChange={setEditDueDateBs}
               />
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Category</label>
-                  <select className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs" value={editCategory} onChange={(e) => setEditCategory(e.target.value as TaskCategory | "")}>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-input px-3 text-xs"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value as TaskCategory | "")}
+                  >
                     <option value="">None</option>
                     {(Object.keys(TASK_CATEGORY_LABELS) as TaskCategory[]).map((c) => (
-                      <option key={c} value={c}>{TASK_CATEGORY_LABELS[c]}</option>
+                      <option key={c} value={c}>
+                        {TASK_CATEGORY_LABELS[c]}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -754,36 +991,50 @@ export default function StaffTasksPage() {
               </div>
 
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" className="accent-primary" checked={editClientVisible} onChange={(e) => setEditClientVisible(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  className="accent-primary"
+                  checked={editClientVisible}
+                  onChange={(e) => setEditClientVisible(e.target.checked)}
+                />
                 Visible on client checklist portal
               </label>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium">Reminder (AD)</label>
-                <Input type="date" value={editReminderAt} onChange={(e) => setEditReminderAt(e.target.value)} />
+                <Input
+                  type="date"
+                  value={editReminderAt}
+                  onChange={(e) => setEditReminderAt(e.target.value)}
+                />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium">Watchers</label>
                 <div className="max-h-24 overflow-y-auto border border-border rounded-md p-2 space-y-1">
-                  {staffUsers.filter((u: any) => u._id !== editAssignedTo).map((u: any) => {
-                    const checked = editWatchers.includes(u._id);
-                    return (
-                      <label key={u._id} className="flex items-center gap-2 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="accent-primary"
-                          checked={checked}
-                          onChange={() => {
-                            setEditWatchers((prev) =>
-                              checked ? prev.filter((id) => id !== u._id) : [...prev, u._id],
-                            );
-                          }}
-                        />
-                        {u.name || u.email}
-                      </label>
-                    );
-                  })}
+                  {staffUsers
+                    .filter((u: any) => u._id !== editAssignedTo)
+                    .map((u: any) => {
+                      const checked = editWatchers.includes(u._id);
+                      return (
+                        <label
+                          key={u._id}
+                          className="flex items-center gap-2 text-xs cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={checked}
+                            onChange={() => {
+                              setEditWatchers((prev) =>
+                                checked ? prev.filter((id) => id !== u._id) : [...prev, u._id],
+                              );
+                            }}
+                          />
+                          {u.name || u.email}
+                        </label>
+                      );
+                    })}
                   {staffUsers.filter((u: any) => u._id !== editAssignedTo).length === 0 && (
                     <p className="text-[10px] text-muted-foreground">No other staff to watch.</p>
                   )}
@@ -793,22 +1044,53 @@ export default function StaffTasksPage() {
               <div className="flex justify-between items-center pt-3 border-t border-border gap-2 flex-wrap">
                 <div className="flex gap-2">
                   {selectedTask.archivedAt ? (
-                    <Button type="button" variant="outline" size="sm" onClick={() => handleRestoreTask(selectedTask._id)} className="gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRestoreTask(selectedTask._id)}
+                      className="gap-1"
+                    >
                       Restore
                     </Button>
                   ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={() => handleArchiveTask(selectedTask._id)} className="gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleArchiveTask(selectedTask._id)}
+                      className="gap-1"
+                    >
                       <Archive className="w-3.5 h-3.5" /> Archive
                     </Button>
                   )}
-                  <Button type="button" variant="destructive" size="sm" onClick={() => handleHardDelete(selectedTask._id)} className="gap-1">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleHardDelete(selectedTask._id)}
+                    className="gap-1"
+                  >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
                   </Button>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" variant="secondary" size="sm" onClick={() => setShowDetailModal(false)}>Close</Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowDetailModal(false)}
+                  >
+                    Close
+                  </Button>
                   <Button type="submit" size="sm" disabled={isSavingEdit}>
-                    {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-3.5 h-3.5 mr-1" /> Save</>}
+                    {isSavingEdit ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5 mr-1" /> Save
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -816,7 +1098,9 @@ export default function StaffTasksPage() {
 
             {/* Subtasks */}
             <div className="border border-border rounded-lg p-3 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Subtasks</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Subtasks
+              </p>
               <div className="space-y-1 max-h-28 overflow-y-auto">
                 {subtasks.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No subtasks.</p>
@@ -834,14 +1118,34 @@ export default function StaffTasksPage() {
                           }).catch(() => toast.error("Failed to update subtask"));
                         }}
                       />
-                      <span className={st.status === "done" ? "line-through text-muted-foreground" : ""}>{st.title}</span>
+                      <span
+                        className={st.status === "done" ? "line-through text-muted-foreground" : ""}
+                      >
+                        {st.title}
+                      </span>
                     </label>
                   ))
                 )}
               </div>
               <div className="flex gap-2">
-                <Input className="h-8 text-xs" placeholder="Add subtask…" value={subtaskTitle} onChange={(e) => setSubtaskTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleAddSubtask(); } }} />
-                <Button size="sm" variant="secondary" disabled={isAddingSubtask || !subtaskTitle.trim()} onClick={handleAddSubtask}>
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="Add subtask…"
+                  value={subtaskTitle}
+                  onChange={(e) => setSubtaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleAddSubtask();
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={isAddingSubtask || !subtaskTitle.trim()}
+                  onClick={handleAddSubtask}
+                >
                   {isAddingSubtask ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
                 </Button>
               </div>
@@ -853,12 +1157,27 @@ export default function StaffTasksPage() {
                 <Clock className="w-3.5 h-3.5" /> Log time from task
               </p>
               <div className="flex gap-2">
-                <Input className="h-8 text-xs w-24" type="number" min={1} value={logMinutes} onChange={(e) => setLogMinutes(e.target.value)} />
-                <Button size="sm" variant="outline" disabled={isLoggingTime || !editCaseId} onClick={handleLogTime}>
+                <Input
+                  className="h-8 text-xs w-24"
+                  type="number"
+                  min={1}
+                  value={logMinutes}
+                  onChange={(e) => setLogMinutes(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isLoggingTime || !editCaseId}
+                  onClick={handleLogTime}
+                >
                   {isLoggingTime ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Log minutes"}
                 </Button>
               </div>
-              {!editCaseId && <p className="text-[10px] text-muted-foreground">Link a case to enable time logging.</p>}
+              {!editCaseId && (
+                <p className="text-[10px] text-muted-foreground">
+                  Link a case to enable time logging.
+                </p>
+              )}
             </div>
 
             {/* Comments */}
@@ -875,7 +1194,9 @@ export default function StaffTasksPage() {
                     return (
                       <div key={c._id} className="text-xs bg-secondary/30 rounded px-2 py-1.5">
                         <span className="font-semibold">{author?.name || "Staff"}</span>
-                        <span className="text-muted-foreground ml-2">{new Date(c._creationTime).toLocaleString()}</span>
+                        <span className="text-muted-foreground ml-2">
+                          {new Date(c._creationTime).toLocaleString()}
+                        </span>
                         <p className="mt-0.5 text-foreground">{c.content}</p>
                       </div>
                     );
@@ -883,16 +1204,36 @@ export default function StaffTasksPage() {
                 )}
               </div>
               <div className="flex gap-2">
-                <Input className="h-8 text-xs" placeholder="Add a note…" value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleAddComment(); } }} />
-                <Button size="sm" variant="secondary" disabled={isCommenting || !commentText.trim()} onClick={handleAddComment}>
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="Add a note…"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleAddComment();
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={isCommenting || !commentText.trim()}
+                  onClick={handleAddComment}
+                >
                   {isCommenting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Post"}
                 </Button>
               </div>
             </div>
 
             <div className="text-[10px] text-muted-foreground flex gap-2 items-center">
-              <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[editPriority]}`}>{editPriority}</Badge>
-              {selectedTask.completedAt && <span>Completed: {new Date(selectedTask.completedAt).toLocaleString()}</span>}
+              <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[editPriority]}`}>
+                {editPriority}
+              </Badge>
+              {selectedTask.completedAt && (
+                <span>Completed: {new Date(selectedTask.completedAt).toLocaleString()}</span>
+              )}
             </div>
           </div>
         </div>

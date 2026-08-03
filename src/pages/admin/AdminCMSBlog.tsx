@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useBlogPosts, useCmsCommands } from "@/client/queries/cms";
 import { Plus, Edit, Trash2, Search, CheckCircle2, Clock, Globe, Eye, Code, FileText, Settings, Layout } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
@@ -14,10 +13,11 @@ import { FadeInUp } from "@/components/ui/animations.tsx";
 import ReactMarkdown from 'react-markdown';
 
 export default function AdminCMSBlog() {
-  const posts = useQuery(api.cms.listBlogPosts, {}) || [];
-  const createPost = useMutation(api.cms.createBlogPost);
-  const updatePost = useMutation(api.cms.updateBlogPost);
-  const deletePost = useMutation(api.cms.deleteBlogPost);
+  const posts = useBlogPosts({}, "admin") || [];
+  const cms = useCmsCommands();
+  const createPost = (body: any) => cms.create("blog-posts", body);
+  const updatePost = ({ id, ...body }: any) => cms.update("blog-posts", id, body);
+  const deletePost = ({ id }: any) => cms.remove("blog-posts", id);
   const user = useCurrentUser();
 
   const [searchTerm, setSearchTerm] = useState("");

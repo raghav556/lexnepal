@@ -21,26 +21,54 @@ export type Capability =
   | "hr.manage"
   | "cms.manage"
   | "audit.view"
-  | "settings.manage";
+  | "settings.manage"
+  | "documents.read"
+  | "documents.upload"
+  | "documents.share"
+  | "documents.delete"
+  | "records.dispose"
+  | "legalHold.manage";
 
 /** Default role → capability matrix (overridable via firmSettings key rolePermissions) */
 export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Capability[]> = {
   admin: [
     "users.manage", "users.view_directory", "cases.view_all", "cases.manage",
     "finance.manage", "hr.manage", "cms.manage", "audit.view", "settings.manage",
+    "documents.read", "documents.upload", "documents.share", "documents.delete",
+    "records.dispose", "legalHold.manage",
   ],
   partner: [
     "users.view_directory", "cases.view_all", "cases.manage",
-    "finance.manage", "hr.manage", "audit.view",
+    "finance.manage", "hr.manage", "audit.view", "documents.read", "documents.upload",
+    "documents.share", "documents.delete", "records.dispose", "legalHold.manage",
   ],
   senior_associate: [
-    "users.view_directory", "cases.view_all", "cases.manage",
+    "users.view_directory", "cases.view_all", "cases.manage", "documents.read",
+    "documents.upload", "documents.share", "documents.delete",
   ],
-  associate: ["users.view_directory", "cases.manage"],
-  paralegal: ["users.view_directory", "cases.manage"],
-  intern: ["users.view_directory"],
-  client: [],
+  associate: ["users.view_directory", "cases.manage", "documents.read", "documents.upload", "documents.share"],
+  paralegal: ["users.view_directory", "cases.manage", "documents.read", "documents.upload"],
+  intern: ["users.view_directory", "documents.read"],
+  client: ["documents.read", "documents.upload"],
 };
+
+/**
+ * Resolve the caller's tenant. Legacy single-firm installations can continue
+ * operating while their users are backfilled; an unassigned user is rejected
+ * as soon as more than one firm exists.
+ */
+export async function requireFirmId(
+  ctx: QueryCtx | MutationCtx,
+  user: Doc<"users">,
+): Promise<Doc<"firms">["_id"]> {
+  if (user.firmId) return user.firmId;
+  const firms = (await ctx.db.query("firms").collect()).filter((firm) => firm.isActive);
+  if (firms.length === 1) return firms[0]._id;
+  throw new ConvexError({
+    code: "FIRM_REQUIRED",
+    message: "Your account is not assigned to a firm. Ask an administrator to complete tenant setup.",
+  });
+}
 
 async function getUserByIdentity(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -83,9 +111,10 @@ export async function requirePermission(
   const user = await getUserByIdentity(ctx);
   if (user.role === "admin") return user;
 
+  const firmId = await requireFirmId(ctx, user);
   const override = await ctx.db
     .query("firmSettings")
-    .withIndex("by_key", (q) => q.eq("key", "rolePermissions"))
+    .withIndex("by_firm_key", (q) => q.eq("firmId", firmId).eq("key", "rolePermissions"))
     .first();
   const matrix = (override?.value as Record<string, Capability[]> | undefined) || DEFAULT_ROLE_PERMISSIONS;
   const caps = matrix[user.role] || DEFAULT_ROLE_PERMISSIONS[user.role] || [];

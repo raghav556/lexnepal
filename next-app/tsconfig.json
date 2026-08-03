@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "proxy.ts",
+    "instrumentation.ts",
+    "next.config.ts",
+    "../src/server/**/*.ts",
+    "../src/shared/**/*.ts",
+    "../src/client/**/*.ts"
+  ],
+  "exclude": ["../node_modules", "../src/pages", "../src/components", "../src/lib", "../convex"]
+}

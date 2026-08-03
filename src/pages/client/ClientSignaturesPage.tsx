@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useMyClient } from "@/client/queries/clients";
+import { useCases } from "@/client/queries/cases";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -190,12 +192,8 @@ function SignedDownload({ documentId }: { documentId: string }) {
 }
 
 export default function ClientSignaturesPage() {
-  const clientRecord = useQuery(api.clients.getMyClientRecord, {});
-  const cases =
-    useQuery(
-      api.cases.listCases,
-      clientRecord?._id ? { clientId: clientRecord._id as any } : "skip",
-    ) || [];
+  const clientRecord = useMyClient();
+  const cases = useCases(clientRecord?._id ? { clientId: clientRecord._id } : {}) || [];
   const documents = useQuery(api.documents.listDocuments, {}) || [];
   const signDocument = useMutation(api.documents.signDocument);
   const markViewed = useMutation(api.documents.markDocumentViewed);

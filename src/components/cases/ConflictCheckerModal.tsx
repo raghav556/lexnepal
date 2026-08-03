@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
+import { useCaseCommands, useConflictSearch } from "@/client/queries/cases";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -21,7 +26,7 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isMarking, setIsMarking] = useState(false);
 
-  const markConflictChecked = useMutation(api.cases.markConflictChecked as any);
+  const { markConflict: markConflictChecked } = useCaseCommands();
 
   // Debounce the search query by 300ms
   useEffect(() => {
@@ -31,10 +36,7 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
     return () => clearTimeout(timer);
   }, [query]);
 
-  const hits = useQuery(
-    api.cases.checkConflict as any,
-    debouncedQuery.length >= 2 ? { query: debouncedQuery } : "skip"
-  ) as Array<{ type: string; name: string; reason: string; caseId?: string; caseNumber?: string }> | undefined;
+  const hits = useConflictSearch(debouncedQuery);
 
   const hasConflicts = hits && hits.length > 0;
   const searched = debouncedQuery.length >= 2;
@@ -43,7 +45,7 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
     if (!caseId) return;
     setIsMarking(true);
     try {
-      await markConflictChecked({ caseId, cleared: true });
+      await markConflictChecked(caseId, true);
       toast.success(`Conflict check cleared for case ${caseNumber || caseId}`);
       onOpenChange(false);
     } catch (err: any) {
@@ -77,8 +79,8 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
 
         <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">
-            Search by client name, opposing party, or related entity to detect any existing relationships
-            before accepting a new case engagement.
+            Search by client name, opposing party, or related entity to detect any existing
+            relationships before accepting a new case engagement.
           </p>
 
           {/* Search Input */}
@@ -105,9 +107,12 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
             <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">No conflicts found</p>
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                  No conflicts found
+                </p>
                 <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-                  "{debouncedQuery}" does not match any existing clients, cases, or opposing parties.
+                  "{debouncedQuery}" does not match any existing clients, cases, or opposing
+                  parties.
                 </p>
               </div>
             </div>
@@ -133,23 +138,35 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
               <table className="w-full text-sm">
                 <thead className="bg-muted/60">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Matched Name</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reason</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Case #</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Matched Name
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Reason
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Case #
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {hits!.map((hit, i) => (
                     <tr key={i} className="hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2.5">
-                        <Badge className={`text-xs ${typeColors[hit.type] || "bg-gray-100 text-gray-700"}`}>
+                        <Badge
+                          className={`text-xs ${typeColors[hit.type] || "bg-gray-100 text-gray-700"}`}
+                        >
                           {hit.type}
                         </Badge>
                       </td>
                       <td className="px-3 py-2.5 font-medium text-foreground">{hit.name}</td>
                       <td className="px-3 py-2.5 text-muted-foreground text-xs">{hit.reason}</td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{hit.caseNumber || "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
+                        {hit.caseNumber || "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -166,10 +183,16 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleClose}>Close</Button>
+          <Button variant="outline" onClick={handleClose}>
+            Close
+          </Button>
           {caseId && searched && !hasConflicts && (
             <Button onClick={handleMarkCleared} disabled={isMarking} className="gap-2">
-              {isMarking ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {isMarking ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
               Mark Conflict-Cleared for Case
             </Button>
           )}

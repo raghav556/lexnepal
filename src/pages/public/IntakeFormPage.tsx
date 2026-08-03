@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { Scale, CheckCircle2, ShieldCheck, Loader2, Upload, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
+import { useCmsCommands, useResources } from "@/client/queries/cms";
+import { useMutation } from "@/client/data/convex-bridge";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,9 +10,9 @@ import { RevealText, FadeInUp, HoverGlowCard } from "@/components/ui/animations"
 import { BookOpen, Download, Lock, FileText } from "lucide-react";
 import { toast } from "sonner";
 export default function ResourcesPage() {
-  const resources = useQuery(api.cms.listResources, {});
+  const resources = useResources({}, "public");
   const createLead = useMutation(api.leads.createLead);
-  const incrementDownload = useMutation(api.cms.incrementResourceDownload);
+  const { incrementDownload } = useCmsCommands();
   
   const [selectedRes, setSelectedRes] = useState<any>(null);
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export default function ResourcesPage() {
 
   const openFile = async (res: any) => {
     try {
-      await incrementDownload({ id: res._id });
+      await incrementDownload(res._id);
     } catch {
       // non-blocking
     }

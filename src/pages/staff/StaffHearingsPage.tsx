@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDualDate, gregorianToBs, formatBs } from "@/lib/nepali-calendar.ts";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { COURTS } from "@/lib/lex-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
 import { getBSDate } from "@/lib/bs-calendar.ts";
+import { useStaffDirectory } from "@/client/queries/identity";
+import { useCases } from "@/client/queries/cases";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -41,8 +43,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function StaffHearingsPage() {
   const { t, language } = useI18n();
   const hearings = useQuery(api.hearings.listHearings, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
-  const users = useQuery(api.users.listStaffDirectory, {}) || [];
+  const cases = useCases({}) || [];
+  const users = useStaffDirectory() || [];
   const pesiResult = useQuery(api.court.getPesi, {});
   const pesiList = Array.isArray(pesiResult) ? pesiResult : ((pesiResult as any)?.items || []);
   

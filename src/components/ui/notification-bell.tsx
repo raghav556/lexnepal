@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { Button } from "./button.tsx";

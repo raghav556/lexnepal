@@ -1,0 +1,11 @@
+{
+  "firmId": "00000000-0000-4000-8000-000000000001",
+  "files": [
+    {
+      "storageId": "legacy-convex-storage-id",
+      "path": "files/legacy-convex-storage-id.pdf",
+      "mimeType": "application/pdf",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  ]
+}

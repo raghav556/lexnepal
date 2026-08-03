@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCases } from "@/client/queries/cases";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -42,7 +43,7 @@ const MOCK_AI_RESPONSES = [
 
 export default function StaffResearchPage() {
   const notes = (useQuery(api.research.listNotes as any, {}) || []) as any[];
-  const cases = (useQuery(api.cases.listCases as any, {}) || []) as any[];
+  const cases = useCases({}) || [];
   
   const createNote = useMutation(api.research.createNote as any);
   const updateNote = useMutation(api.research.updateNote as any);

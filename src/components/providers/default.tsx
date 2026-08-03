@@ -1,5 +1,6 @@
 ﻿import type { ReactNode, ComponentType } from "react";
-import * as ConvexReact from "convex/react";
+import * as ConvexReact from "@/client/data/convex-bridge.ts";
+import { DataProvider } from "@/client/data/provider";
 import { Toaster } from "sonner";
 
 const useMock = import.meta.env.VITE_USE_MOCK === "true";
@@ -16,8 +17,10 @@ export function DefaultProviders({ children }: { children: ReactNode }) {
   return (
     <PreviewProvider>
       <ConvexProvider client={convex}>
-        {children}
-        <Toaster richColors position="top-right" />
+        <DataProvider>
+          {children}
+          <Toaster richColors position="top-right" />
+        </DataProvider>
       </ConvexProvider>
     </PreviewProvider>
   );

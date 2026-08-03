@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel.d.ts";
-import { requireAuth, requireRole, writeUserAudit, DEFAULT_ROLE_PERMISSIONS, STAFF_ROLES } from "./lib/roles";
+import { requireAuth, requireRole, requireFirmId, writeUserAudit, DEFAULT_ROLE_PERMISSIONS, STAFF_ROLES } from "./lib/roles";
 import { generateTotpSecret, buildOtpAuthUri, verifyTotp, hashPassword } from "./lib/totp";
 
 export type UserRole = Doc<"users">["role"];
@@ -51,17 +51,24 @@ async function ensureClientLinked(
   name: string,
   email?: string,
   phone?: string,
+  firmId?: Id<"firms">,
 ) {
   const existing = await ctx.db
     .query("clients")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .first();
-  if (existing) return existing._id;
+  if (existing) {
+    if (!existing.firmId && firmId) await ctx.db.patch(existing._id, { firmId });
+    return existing._id;
+  }
   if (email) {
     const byEmail = await ctx.db.query("clients").collect();
     const match = byEmail.find((c: Doc<"clients">) => c.email === email);
     if (match) {
-      await ctx.db.patch(match._id, { userId });
+      if (match.firmId && firmId && match.firmId !== firmId) {
+        throw new ConvexError("Client email belongs to another firm");
+      }
+      await ctx.db.patch(match._id, { userId, firmId: match.firmId || firmId });
       return match._id;
     }
   }
@@ -73,6 +80,7 @@ async function ensureClientLinked(
     userId,
     kycStatus: "pending",
     isActive: true,
+    firmId,
   });
 }
 
@@ -120,12 +128,15 @@ export const updateCurrentUser = mutation({
         });
         user = await ctx.db.get(invited._id);
         if (user && user.role === "client") {
-          await ensureClientLinked(ctx, user._id, user.name || "Client", user.email, user.phone);
+          await ensureClientLinked(ctx, user._id, user.name || "Client", user.email, user.phone, user.firmId);
         }
       }
     }
 
     if (!user) {
+      const activeFirms = (await ctx.db.query("firms").collect()).filter((firm) => firm.isActive);
+      if (activeFirms.length !== 1) throw new ConvexError("A firm assignment is required before creating a portal account");
+      const firmId = activeFirms[0]._id;
       const id = await ctx.db.insert("users", {
         name: identity.name,
         email: identity.email,
@@ -133,8 +144,9 @@ export const updateCurrentUser = mutation({
         role: "client",
         isActive: true,
         lastLoginAt: new Date().toISOString(),
+        firmId,
       });
-      await ensureClientLinked(ctx, id, identity.name || "Client", identity.email);
+      await ensureClientLinked(ctx, id, identity.name || "Client", identity.email, undefined, firmId);
       await ctx.db.insert("sessions", {
         userId: id,
         device: "Web",
@@ -255,10 +267,11 @@ export const getUserActivity = query({
 export const getRolePermissions = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ["admin"]);
+    const admin = await requireRole(ctx, ["admin"]);
+    const firmId = await requireFirmId(ctx, admin);
     const override = await ctx.db
       .query("firmSettings")
-      .withIndex("by_key", (q) => q.eq("key", "rolePermissions"))
+      .withIndex("by_firm_key", (q) => q.eq("firmId", firmId).eq("key", "rolePermissions"))
       .first();
     return (override?.value as typeof DEFAULT_ROLE_PERMISSIONS) || DEFAULT_ROLE_PERMISSIONS;
   },
@@ -268,14 +281,15 @@ export const saveRolePermissions = mutation({
   args: { permissions: v.any() },
   handler: async (ctx, args) => {
     const admin = await requireRole(ctx, ["admin"]);
+    const firmId = await requireFirmId(ctx, admin);
     const existing = await ctx.db
       .query("firmSettings")
-      .withIndex("by_key", (q) => q.eq("key", "rolePermissions"))
+      .withIndex("by_firm_key", (q) => q.eq("firmId", firmId).eq("key", "rolePermissions"))
       .first();
     if (existing) {
       await ctx.db.patch(existing._id, { value: args.permissions });
     } else {
-      await ctx.db.insert("firmSettings", { key: "rolePermissions", value: args.permissions });
+      await ctx.db.insert("firmSettings", { firmId, key: "rolePermissions", value: args.permissions });
     }
     await writeUserAudit(ctx, admin._id, "users.permissions_update", "rolePermissions", "Role permission matrix updated");
     return { success: true };
@@ -299,6 +313,7 @@ export const createUser = mutation({
   },
   handler: async (ctx, args) => {
     const admin = await requireRole(ctx, ["admin"]);
+    const firmId = await requireFirmId(ctx, admin);
     const sendInvite = args.invite !== false;
     const now = new Date();
     const token = sendInvite ? makeInviteToken() : undefined;
@@ -332,10 +347,11 @@ export const createUser = mutation({
       invitedBy: sendInvite ? admin._id : undefined,
       inviteExpiresAt: sendInvite ? new Date(now.getTime() + INVITE_TTL_MS).toISOString() : undefined,
       twoFactorRequired: args.role === "admin" || args.role === "partner" ? true : undefined,
+      firmId,
     });
 
     if (args.role === "client") {
-      await ensureClientLinked(ctx, id, args.name, args.email, args.phone);
+      await ensureClientLinked(ctx, id, args.name, args.email, args.phone, firmId);
     }
 
     if (sendInvite && args.email && token) {
@@ -703,7 +719,7 @@ export const activateAccount = mutation({
     await ctx.db.patch(user._id, patch);
 
     if (user.role === "client") {
-      await ensureClientLinked(ctx, user._id, (args.name || user.name) || "Client", user.email, user.phone);
+      await ensureClientLinked(ctx, user._id, (args.name || user.name) || "Client", user.email, user.phone, user.firmId);
     }
 
     // System actor for unauthenticated activate — use the user themselves

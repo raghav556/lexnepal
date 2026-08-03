@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
+import { useCases } from "@/client/queries/cases";
+import { useClients } from "@/client/queries/clients";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Download, Settings, ChevronRight } from "lucide-react";
@@ -15,8 +17,8 @@ function mergeTemplate(content: string, vars: Record<string, string>) {
 export default function AdminDocumentGenerator() {
   const docTemplates = useQuery(api.templates.listTemplates as any, {}) || [];
   const fileTemplates = (useQuery(api.documents.listDocuments, { isTemplate: true }) || []) as any[];
-  const clients = useQuery(api.clients.listClients, {}) || [];
-  const cases = useQuery(api.cases.listCases, {}) || [];
+  const clients = useClients() || [];
+  const cases = useCases({}) || [];
   const createDocument = useMutation(api.documents.createDocument);
 
   const templates = useMemo(() => {
