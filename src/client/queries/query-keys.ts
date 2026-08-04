@@ -78,4 +78,7 @@ export const queryKeys = {
     appointments: (filters?: unknown) => ["crm", "appointments", filters] as const,
     availableSlots: (date: string) => ["crm", "available-slots", date] as const,
   },
+  envelopes: {
+    all: ["envelopes"] as const,
+  },
 } as const;

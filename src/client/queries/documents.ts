@@ -99,3 +99,72 @@ export function useCreateDocument(): (input: Record<string, unknown>) => Promise
     [backend, convexMutation, nextMutation, queryClient],
   );
 }
+
+export function useUpdateDocument(): (input: { id: string; updates: Record<string, unknown> }) => Promise<unknown> {
+  const backend = useDomainBackend("documents");
+  const queryClient = useQueryClient();
+  const convexMutation = useConvexMutation(api.documents.updateDocument);
+  const nextMutation = useTanstackMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Record<string, unknown> }) =>
+      apiClient.request("/api/v1/documents/" + id, { method: "PATCH", body: updates }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents.all }),
+  });
+  return useCallback(
+    async (input) => {
+      try {
+        const result = backend === "convex" ? await convexMutation(input) : await nextMutation.mutateAsync(input);
+        if (backend === "convex") await queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+        return result;
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
+    [backend, convexMutation, nextMutation, queryClient],
+  );
+}
+
+export function useSetLegalHold(): (input: { documentId: string; reason: string }) => Promise<unknown> {
+  const backend = useDomainBackend("documents");
+  const queryClient = useQueryClient();
+  const convexMutation = useConvexMutation(api.documentSecurity.setLegalHold);
+  const nextMutation = useTanstackMutation({
+    mutationFn: ({ documentId, reason }: { documentId: string; reason: string }) =>
+      apiClient.request("/api/v1/documents/" + documentId, { method: "PATCH", body: { isOnLegalHold: true, legalHoldReason: reason } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents.all }),
+  });
+  return useCallback(
+    async (input) => {
+      try {
+        const result = backend === "convex" ? await convexMutation(input) : await nextMutation.mutateAsync(input);
+        if (backend === "convex") await queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+        return result;
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
+    [backend, convexMutation, nextMutation, queryClient],
+  );
+}
+
+export function useShareDocument(): (input: { documentId: string; shareData: Record<string, unknown> }) => Promise<unknown> {
+  const backend = useDomainBackend("documents");
+  const queryClient = useQueryClient();
+  const convexMutation = useConvexMutation(api.documents.createShare); // Or wherever it lives in convex
+  const nextMutation = useTanstackMutation({
+    mutationFn: ({ documentId, shareData }: { documentId: string; shareData: Record<string, unknown> }) =>
+      apiClient.request("/api/v1/documents/" + documentId + "/share", { method: "POST", body: shareData }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents.all }),
+  });
+  return useCallback(
+    async (input) => {
+      try {
+        const result = backend === "convex" ? await convexMutation(input) : await nextMutation.mutateAsync(input);
+        if (backend === "convex") await queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+        return result;
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
+    [backend, convexMutation, nextMutation, queryClient],
+  );
+}

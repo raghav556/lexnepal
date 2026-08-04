@@ -591,13 +591,19 @@ Local status: `complete_local`. See `doc/migration/PHASE_8_6_CRM.md` for the dom
 - **Frontend:** `CommandCenter`, `ClientMessagesPage`, `notification-bell.tsx`.
 - **References:** `convex/messages.ts`, `convex/notifications.ts`.
 
-#### 8.8 Documents, tags, versions, shares, retention and legal holds
+#### Phase 8.8 Documents, tags, versions, shares, retention and legal holds (Completed)
 
-Depends on users, firms, cases, storage, jobs, search and audit.
+- **Domain:** Document management, file uploads, sharing, legal holds, tag assignment.
+- **Backend:** `documents`, `documentTags`, `documentTagAssignments`, `documentShares` table mappings.
+- **Frontend:** Hooks in `src/client/queries/documents.ts`.
+- **References:** `convex/documents.ts`, `convex/documentSecurity.ts`.
 
-#### 8.9 Signature envelopes, recipients, OTP and certificates
+#### Phase 8.9 Signature envelopes, recipients, OTP and certificates (Completed)
 
-Depends on documents, users and notifications.
+- **Domain:** Signature workflow, envelopes routing, and OTP challenges.
+- **Backend:** `signatureEnvelopes`, `signatureRecipients`, `signingChallenges`.
+- **Frontend:** Hooks in `src/client/queries/envelopes.ts`.
+- **References:** `convex/envelopes.ts`.
 
 #### 8.10 Analytics and dashboards
 

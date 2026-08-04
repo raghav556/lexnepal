@@ -13,6 +13,7 @@ export const BACKEND_DOMAINS = [
   "hr",
   "research",
   "leads",
+  "envelopes",
 ] as const;
 
 export type BackendDomain = (typeof BACKEND_DOMAINS)[number];
@@ -34,6 +35,7 @@ const flagNames: Record<BackendDomain, string> = {
   hr: "BACKEND_HR",
   research: "BACKEND_RESEARCH",
   leads: "BACKEND_LEADS",
+  envelopes: "BACKEND_ENVELOPES",
 };
 
 export function resolveBackendFlags(environment: Record<string, string | undefined>): BackendFlags {
