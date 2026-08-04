@@ -660,9 +660,9 @@ Invalid data must be written to `data-exceptions.csv`; it must never be silently
 
 ### Exit gate
 
-- [ ] A production-like snapshot migrates successfully.
-- [ ] Running the migration twice produces the same result.
-- [ ] Reconciliation has zero unexplained differences.
+- [x] A production-like snapshot migrates successfully.
+- [x] Running the migration twice produces the same result.
+- [x] Reconciliation has zero unexplained differences.
 
 ## Phase 10 — shadow, contract and security testing
 

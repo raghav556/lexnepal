@@ -47,6 +47,7 @@
     "auth:provision-local": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/auth/provision-local-users.ts",
     "auth:verify-avatar": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/auth/verify-avatar-pipeline.ts",
     "auth:verify-boundary": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/auth/verify-local-boundary.ts",
+    "migration": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/cli.ts",
     "migration:inventory": "node scripts/migration/generate-convex-inventory.mjs",
     "migration:identity": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-identity-export.ts",
     "migration:identity:shadow": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/shadow-read-identity.ts",

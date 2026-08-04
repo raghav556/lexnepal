@@ -1,0 +1,2 @@
+{"_id":"id1","firmId":"firm1","name":"Alice","email":"alice@example.com","role":"admin","isActive":true}
+{"_id":"id2","firmId":"firm1","name":"Bob","email":"bob@example.com","role":"associate","isActive":true}
