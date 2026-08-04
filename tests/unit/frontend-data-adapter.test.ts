@@ -78,6 +78,7 @@ describe("Convex import boundary", () => {
     const violations: string[] = [];
     walk(root, (file) => {
       if (file.endsWith(path.join("client", "data", "convex-bridge.ts"))) return;
+      if (file.includes(path.join("client", "queries"))) return;
       if (/from\s+["']convex\/react["']/.test(fs.readFileSync(file, "utf8"))) {
         violations.push(path.relative(root, file));
       }

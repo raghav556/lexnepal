@@ -1,3 +1,4 @@
+import 'server-only';
 import { eq } from "drizzle-orm";
 import { getDatabase } from "../db/client";
 import { cases, invoices, clients, timeEntries, leads, expenses, users } from "../db/schema";

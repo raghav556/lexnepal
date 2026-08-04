@@ -18,7 +18,7 @@ export const BACKEND_DOMAINS = [
 ] as const;
 
 export type BackendDomain = (typeof BACKEND_DOMAINS)[number];
-export type BackendKind = "convex" | "next";
+export type BackendKind = "convex" | "next" | "shadow";
 export type BackendFlags = Readonly<Record<BackendDomain, BackendKind>>;
 
 const flagNames: Record<BackendDomain, string> = {
@@ -45,7 +45,7 @@ export function resolveBackendFlags(environment: Record<string, string | undefin
     BACKEND_DOMAINS.map((domain) => {
       const raw =
         environment[`VITE_${flagNames[domain]}`] ?? environment[`NEXT_PUBLIC_${flagNames[domain]}`];
-      return [domain, raw === "next" ? "next" : "convex"];
+      return [domain, raw === "next" ? "next" : raw === "shadow" ? "shadow" : "convex"];
     }),
   ) as unknown as BackendFlags;
 }

@@ -1,3 +1,4 @@
+import 'server-only';
 import { getDatabase } from "../db/client";
 import { messages, messageReads, notifications, users, cases } from "../db/schema";
 import { eq } from "drizzle-orm";

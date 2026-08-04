@@ -691,10 +691,10 @@ Invalid data must be written to `data-exceptions.csv`; it must never be silently
 
 ### Exit gate
 
-- [ ] No unexplained contract differences.
-- [ ] No cross-tenant leakage.
-- [ ] Performance meets agreed thresholds.
-- [ ] Failure and retry behavior is proven.
+- [x] No unexplained contract differences.
+- [x] No cross-tenant leakage.
+- [x] Performance meets agreed thresholds.
+- [x] Failure and retry behavior is proven.
 
 ## Phase 11 — migrate the Vite/React frontend to Next.js
 
