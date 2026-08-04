@@ -81,4 +81,7 @@ export const queryKeys = {
   envelopes: {
     all: ["envelopes"] as const,
   },
+  analytics: {
+    dashboard: ["analytics", "dashboard"] as const,
+  },
 } as const;

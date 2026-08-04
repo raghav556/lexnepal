@@ -605,18 +605,18 @@ Local status: `complete_local`. See `doc/migration/PHASE_8_6_CRM.md` for the dom
 - **Frontend:** Hooks in `src/client/queries/envelopes.ts`.
 - **References:** `convex/envelopes.ts`.
 
-#### 8.10 Analytics and dashboards
+#### Phase 8.10 Analytics and dashboards (Completed)
 
 Migrate last because analytics depends on almost every domain.
 
 ### Exit gate per domain
 
-- [ ] Every domain endpoint has a parity decision.
-- [ ] Every frontend caller uses the adapter.
-- [ ] Contract tests pass.
-- [ ] Migration and reconciliation pass.
-- [ ] Rollback is tested.
-- [ ] Convex writes for the domain can be disabled.
+- [x] Every domain endpoint has a parity decision.
+- [x] Every frontend caller uses the adapter.
+- [x] Contract tests pass.
+- [x] Migration and reconciliation pass.
+- [x] Rollback is tested.
+- [x] Convex writes for the domain can be disabled.
 
 ## Phase 9 — build repeatable data migration tooling
 
