@@ -1,7 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useNotifications, useNotificationCommands } from "@/client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { Button } from "./button.tsx";
@@ -14,18 +12,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./dropdown-menu.tsx";
-import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export function NotificationBell() {
   const currentUser = useCurrentUser();
-  const navigate = useNavigate();
+  // Keep SSR and first client paint identical — auth/query data is client-only.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: notificationsResponse } = useNotifications();
   const notifications = notificationsResponse || [];
+
   const { markRead, markAllRead } = useNotificationCommands();
 
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+  const ready = mounted && !!currentUser;
 
   const handleNotificationClick = async (notification: any) => {
     if (!notification.isRead) {
@@ -36,7 +39,7 @@ export function NotificationBell() {
       }
     }
     if (notification.link) {
-      navigate(notification.link);
+      window.location.href = notification.link;
     }
   };
 
@@ -50,7 +53,13 @@ export function NotificationBell() {
     }
   };
 
-  if (!currentUser) return null;
+  if (!ready) {
+    return (
+      <Button variant="ghost" size="icon" className="relative" disabled aria-hidden>
+        <Bell className="w-5 h-5 text-muted-foreground" />
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -92,7 +101,7 @@ export function NotificationBell() {
                   <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                     {notif.body}
                   </span>
-                  <span className="text-[10px] text-muted-foreground/60 mt-1">
+                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground/60 mt-1">
                     {new Date(notif._creationTime || notif.createdAt).toLocaleString()}
                   </span>
                 </DropdownMenuItem>

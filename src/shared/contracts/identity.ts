@@ -115,6 +115,8 @@ export interface UserDto {
   twoFactorEnabled: boolean;
   twoFactorRequired: boolean;
   lastLoginAt: string | null;
+  /** Monthly base salary in NPR; used by HR payroll. */
+  baseSalary: number | null;
   createdAt: string;
   updatedAt: string;
 }

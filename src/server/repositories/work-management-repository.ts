@@ -42,7 +42,7 @@ export class PostgresWorkManagementRepository {
       .from(hearings)
       .where(and(...predicates))
       .orderBy(asc(hearings.dateGregorian));
-    return rows.map(toDto);
+    return rows.map(toHearingDto);
   }
 
   async getHearing(firmId: string, hearingId: string) {
@@ -51,7 +51,7 @@ export class PostgresWorkManagementRepository {
       .from(hearings)
       .where(and(eq(hearings.id, hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)))
       .limit(1);
-    return row ? toDto(row) : null;
+    return row ? toHearingDto(row) : null;
   }
 
   async createHearing(firmId: string, input: HearingCreateInput, audit: AuditContext) {
@@ -61,7 +61,7 @@ export class PostgresWorkManagementRepository {
         .values({ firmId, ...normalizeEmpty(input), status: "scheduled" })
         .returning();
       await writeAudit(tx, audit, "hearing.created", "hearings", row.id, row.court);
-      return toDto(row);
+      return toHearingDto(row);
     });
   }
 
@@ -74,7 +74,7 @@ export class PostgresWorkManagementRepository {
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Hearing was not found", 404);
       await writeAudit(tx, audit, "hearing.updated", "hearings", row.id, null);
-      return toDto(row);
+      return toHearingDto(row);
     });
   }
 
@@ -86,6 +86,7 @@ export class PostgresWorkManagementRepository {
     if (filters.assignedTo) predicates.push(eq(tasks.assignedTo, filters.assignedTo));
     if (filters.status) predicates.push(eq(tasks.status, filters.status));
     if (filters.hearingId) predicates.push(eq(tasks.hearingId, filters.hearingId));
+    if (filters.parentTaskId) predicates.push(eq(tasks.parentTaskId, filters.parentTaskId));
     if (!filters.includeArchived) predicates.push(isNull(tasks.archivedAt));
     const rows = await database
       .select()
@@ -466,6 +467,53 @@ export class PostgresWorkManagementRepository {
       if (!c) throw new AppError("VALIDATION_FAILED", "Case must belong to the same firm", 400);
     }
   }
+
+  async scanOverdueReminders(firmId: string, audit: AuditContext) {
+    const now = audit.occurredAt;
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const due = await database
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.firmId, firmId),
+          inArray(tasks.status, ["todo", "in_progress"]),
+          isNull(tasks.deletedAt),
+          isNull(tasks.archivedAt),
+        ),
+      )
+      .limit(1000);
+    let sent = 0;
+    for (const task of due) {
+      if (!task.dueDate) continue;
+      const dueDate = new Date(task.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      if (dueDate.getTime() > todayStart.getTime()) continue;
+      if (task.lastDueReminderAt) {
+        const last = new Date(task.lastDueReminderAt);
+        if (!Number.isNaN(last.valueOf()) && last.toDateString() === now.toDateString()) continue;
+      }
+      await database.transaction(async (tx) => {
+        await tx.insert(notifications).values({
+          firmId,
+          userId: task.assignedTo,
+          title: "Task due / overdue",
+          body: `"${task.title}" is due or overdue (${task.dueDateBs || task.dueDate.toISOString().slice(0, 10)}).`,
+          type: "task_due",
+          relatedId: task.id,
+          link: `/staff/tasks?task=${task.id}`,
+        });
+        await tx
+          .update(tasks)
+          .set({ lastDueReminderAt: now, updatedAt: now })
+          .where(eq(tasks.id, task.id));
+        await writeAudit(tx, audit, "task.overdue_reminder", "tasks", task.id, null);
+      });
+      sent += 1;
+    }
+    return { sent };
+  }
 }
 
 type Transaction = Parameters<Parameters<ReturnType<typeof getDatabase>["transaction"]>[0]>[0];
@@ -509,5 +557,12 @@ function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
   delete output.legacyConvexId;
   delete output.deletedAt;
   return output;
+}
+
+function toHearingDto(row: typeof hearings.$inferSelect) {
+  const dto = toDto(row as unknown as Record<string, unknown>);
+  const rawTime = row.hearingTime == null ? null : String(row.hearingTime);
+  const time = rawTime ? rawTime.slice(0, 5) : null;
+  return { ...dto, hearingTime: time, time };
 }
 

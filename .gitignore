@@ -8,3 +8,9 @@ coverage
 .env
 .env.*
 !.env.example
+
+.migration-state.json
+.migration-reports/
+logs/migration-*.log
+exports/
+*.tmp

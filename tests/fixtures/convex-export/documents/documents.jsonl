@@ -1,1 +1,1 @@
-{"_id":"convex-document-a","firmId":"convex-firm-a","caseId":"convex-case-a","uploadedBy":"convex-user-a","storageId":"convex-storage-document","mimeType":"application/pdf"}
+{"_id":"convex-document-a","_creationTime":1785628800000,"firmId":"convex-firm-a","uploadedBy":"convex_identity_user_1","storageId":"convex-storage-document","mimeType":"application/pdf","title":"Fixture document","type":"other","status":"draft","sizeBytes":12}

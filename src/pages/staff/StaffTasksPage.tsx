@@ -6,9 +6,15 @@ import { Button } from "@/components/ui/button.tsx";
 import { Plus, X, Trash2, Loader2, Save, Bell, Clock, MessageSquare, Archive } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
-import { useTasks, useUpdateTask } from "@/client/queries/tasks";
+import {
+  useTasks,
+  useUpdateTask,
+  useTaskCommands,
+  useTaskComments,
+  useTaskWorkload,
+} from "@/client/queries/tasks";
+import { useTimeEntryCommands } from "@/client/queries/financial";
+import { useHearings } from "@/client/queries/hearings";
 import { useCases } from "@/client/queries/cases";
 import { Input } from "@/components/ui/input.tsx";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
@@ -17,6 +23,7 @@ import { TaskCard } from "@/components/tasks/TaskCard.tsx";
 import { DueDateFields } from "@/components/tasks/DueDateFields.tsx";
 import { TaskCalendarView } from "@/components/tasks/TaskCalendarView.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
+import { useDocuments } from "@/client/queries/documents";
 import { TaskWorkloadView } from "@/components/tasks/TaskWorkloadView.tsx";
 import {
   PRIORITY_COLORS,
@@ -44,20 +51,22 @@ export default function StaffTasksPage() {
   const [view, setView] = useState<ViewMode>("kanban");
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const tasks = useTasks({ includeArchived: showArchivedOnly || undefined }) || [];
-  const workload = useQuery(api.tasks.listWorkload, {}) || [];
+  const workload = useTaskWorkload() || [];
   const cases = useCases({}) || [];
   const users = useStaffDirectory() || [];
-  const hearings = useQuery(api.hearings.listHearings, {}) || [];
-  const documents = useQuery(api.documents.listDocuments as any, {}) || [];
+  const hearings = useHearings({}) || [];
+  const documents = useDocuments({}) || [];
 
-  const createTask = useMutation(api.tasks.createTask);
+  const {
+    createTask,
+    archiveTask,
+    restoreTask,
+    deleteTask,
+    addComment,
+    scanOverdueReminders,
+  } = useTaskCommands();
   const updateTask = useUpdateTask();
-  const archiveTask = useMutation(api.tasks.archiveTask);
-  const restoreTask = useMutation(api.tasks.restoreTask);
-  const deleteTask = useMutation(api.tasks.deleteTask);
-  const addComment = useMutation(api.tasks.addComment);
-  const scanOverdue = useMutation(api.tasks.scanOverdueReminders);
-  const createTimeEntry = useMutation(api.timeEntries.createTimeEntry);
+  const { createTimeEntry: createTimeEntryMutation } = useTimeEntryCommands();
 
   const [scope, setScope] = useState<ScopeFilter>("mine");
   const [filterAssignee, setFilterAssignee] = useState("");
@@ -133,9 +142,7 @@ export default function StaffTasksPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  const comments =
-    useQuery(api.tasks.listComments, selectedTask?._id ? { taskId: selectedTask._id } : "skip") ||
-    [];
+  const comments = useTaskComments(selectedTask?._id ? String(selectedTask._id) : null) || [];
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -171,10 +178,7 @@ export default function StaffTasksPage() {
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
   const subtasks =
-    useQuery(
-      api.tasks.listTasks,
-      selectedTask?._id ? { parentTaskId: selectedTask._id } : "skip",
-    ) || [];
+    useTasks(selectedTask?._id ? { parentTaskId: String(selectedTask._id) } : "skip") || [];
 
   const staffUsers = users.filter((u: any) => u.role !== "client");
   const activeCases = cases.filter(
@@ -260,7 +264,7 @@ export default function StaffTasksPage() {
   const handleArchiveTask = async (taskId: any) => {
     if (!confirm("Archive this task? It can be restored later from the Archived filter.")) return;
     try {
-      await archiveTask({ taskId });
+      await archiveTask(String(taskId));
       toast.success("Task archived.");
       setShowDetailModal(false);
       setSelectedTask(null);
@@ -271,7 +275,7 @@ export default function StaffTasksPage() {
 
   const handleRestoreTask = async (taskId: any) => {
     try {
-      await restoreTask({ taskId });
+      await restoreTask(String(taskId));
       toast.success("Task restored.");
       setShowDetailModal(false);
       setSelectedTask(null);
@@ -284,7 +288,7 @@ export default function StaffTasksPage() {
   const handleHardDelete = async (taskId: any) => {
     if (!confirm("Permanently delete this task and its subtasks/comments?")) return;
     try {
-      await deleteTask({ taskId });
+      await deleteTask(String(taskId));
       toast.success("Task permanently deleted.");
       setShowDetailModal(false);
       setSelectedTask(null);
@@ -398,7 +402,7 @@ export default function StaffTasksPage() {
     if (!selectedTask || !commentText.trim()) return;
     setIsCommenting(true);
     try {
-      await addComment({ taskId: selectedTask._id, content: commentText.trim() });
+      await addComment(String(selectedTask._id), commentText.trim());
       setCommentText("");
       toast.success("Comment added");
     } catch (err: any) {
@@ -420,7 +424,7 @@ export default function StaffTasksPage() {
     }
     setIsLoggingTime(true);
     try {
-      await createTimeEntry({
+      await createTimeEntryMutation.mutateAsync({
         caseId: selectedTask.caseId as any,
         description: `Task: ${selectedTask.title}`,
         minutes,
@@ -439,7 +443,7 @@ export default function StaffTasksPage() {
   const handleScanOverdue = async () => {
     setScanning(true);
     try {
-      const res = await scanOverdue({});
+      const res = await scanOverdueReminders();
       toast.success(`Sent ${(res as any)?.sent ?? 0} overdue reminder(s)`);
     } catch (err: any) {
       toast.error(err?.message || "Failed to scan overdue tasks");

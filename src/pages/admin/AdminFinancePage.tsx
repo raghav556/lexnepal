@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button.tsx";
 import { Receipt, Download, Plus, Loader2 } from "lucide-react";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { useInvoices, useInvoiceCommands, useTrustTransactions, useTrustCommands, useTimeEntries } from "@/client/queries/financial";
+import { useEmailCommands } from "@/client/queries/communication";
 
 const STATUS_COLORS: Record<string, string> = {
   paid: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -30,7 +29,7 @@ export default function AdminFinancePage() {
 
   const { createInvoice: createInvoiceMutation, updateStatus: updateStatusMutation } = useInvoiceCommands();
   const { createTrustTransaction: createTrustMutation } = useTrustCommands();
-  const sendEmail = useMutation(api.communications.sendEmail);
+  const { sendEmail } = useEmailCommands();
 
   const [isDrafting, setIsDrafting] = useState(false);
   const [statusBusy, setStatusBusy] = useState<string | null>(null);
@@ -97,7 +96,7 @@ export default function AdminFinancePage() {
       if (status === "sent") {
         const client = clients.find((c: any) => c._id === invoice.clientId);
         if (client?.email) {
-          await sendEmail({
+          await sendEmail.mutateAsync({
             to: client.email,
             subject: `Invoice ${invoice.invoiceNumber}`,
             body: `Dear ${client.fullName},\n\nPlease find invoice ${invoice.invoiceNumber} for ${formatNPR(invoice.total)}. Due: ${invoice.dueDate}.\n\nSrimar Law`,

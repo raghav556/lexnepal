@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   hearingCreateSchema,
   taskCreateSchema,
+  taskListSchema,
   researchCreateSchema,
 } from "../../src/shared/contracts/work-management";
 
@@ -23,18 +24,34 @@ describe("Work Management input contracts", () => {
     expect(hearingCreateSchema.safeParse({ ...validHearing, hearingTime: "10:30 AM" }).success).toBe(false);
   });
 
-  it("validates task creation limits", () => {
+  it("validates task creation limits and date-only due dates", () => {
     const validTask = {
       title: "File appeal",
       assignedTo: "123e4567-e89b-12d3-a456-426614174000",
       priority: "high",
       category: "court",
+      dueDate: "2026-10-10",
     };
     
-    expect(taskCreateSchema.safeParse(validTask).success).toBe(true);
+    const parsed = taskCreateSchema.safeParse(validTask);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.dueDate).toBe("2026-10-10T00:00:00.000Z");
+    }
     
     // Invalid priority
     expect(taskCreateSchema.safeParse({ ...validTask, priority: "very-high" }).success).toBe(false);
+  });
+
+  it("accepts parentTaskId on task list filters", () => {
+    const parsed = taskListSchema.safeParse({
+      parentTaskId: "123e4567-e89b-12d3-a456-426614174000",
+      includeArchived: "true",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.includeArchived).toBe(true);
+    }
   });
 
   it("validates research tags limit", () => {

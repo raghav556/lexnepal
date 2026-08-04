@@ -1,9 +1,9 @@
-﻿import { Button } from "@/components/ui/button.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { LogIn } from "lucide-react";
 
-const useMock = import.meta.env.VITE_USE_MOCK === "true";
-const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY as string | undefined;
-const clientId = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID as string | undefined;
+const useMock = (typeof process !== "undefined" ? process.env.VITE_USE_MOCK : import.meta.env.VITE_USE_MOCK) === "true";
+const authority = (typeof process !== "undefined" ? process.env.VITE_HERCULES_OIDC_AUTHORITY : import.meta.env.VITE_HERCULES_OIDC_AUTHORITY) as string | undefined;
+const clientId = (typeof process !== "undefined" ? process.env.VITE_HERCULES_OIDC_CLIENT_ID : import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID) as string | undefined;
 
 /**
  * Sign-in button.
@@ -25,7 +25,7 @@ export function SignInButton() {
     }
 
     const redirectUri =
-      (import.meta.env.VITE_AUTH_REDIRECT_URI as string | undefined) ||
+      ((typeof process !== "undefined" ? process.env.VITE_AUTH_REDIRECT_URI : import.meta.env.VITE_AUTH_REDIRECT_URI) as string | undefined) ||
       `${window.location.origin}/auth/callback`;
     const params = new URLSearchParams({
       client_id: clientId,
@@ -43,3 +43,4 @@ export function SignInButton() {
     </Button>
   );
 }
+

@@ -1,21 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Loader2, FileSignature, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useCase, useCases } from "@/client/queries/cases";
+import { useUploadDocument } from "@/client/queries/documents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { generatePdfFromHtml } from "@/lib/pdfGenerator.ts";
 
 export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const cases = useCases({}) || [];
   const templates = useQuery(api.templates.listTemplates, {}) || [];
-  
-  const createDocument = useMutation(api.documents.createDocument);
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  
+  const uploadDocument = useUploadDocument();
+
   const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
   const [selectedCase, setSelectedCase] = useState<string>("general");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,26 +59,14 @@ export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; o
         // 2. Generate PDF
         toast.info(`Generating ${template.title}...`);
         const file = await generatePdfFromHtml(htmlContent, `${template.title}.pdf`);
-        
-        // 3. Upload to Storage
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-        if (!result.ok) throw new Error(`Failed to upload ${template.title}`);
-        const { storageId } = await result.json();
 
-        // 4. Save Document
-        await createDocument({
+        // 3. Quarantine upload → scan → promote
+        await uploadDocument({
+          file,
           title: `Generated: ${template.title}`,
-          type: "other", // Could map to template category if we update the type enum
-          storageId,
-          mimeType: "application/pdf",
-          sizeBytes: file.size,
+          type: "other",
           tags: ["auto-generated", template.category],
-          caseId: selectedCase === "general" ? undefined : selectedCase as any,
+          caseId: selectedCase === "general" ? undefined : selectedCase,
           isTemplate: false,
           isPrivileged: false,
         });

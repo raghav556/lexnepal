@@ -6,9 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.t
 import { Clock, CalendarOff, DollarSign, Loader2, CheckCircle, XCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useUsers } from "@/client/queries/identity";
+import {
+  useAttendance,
+  useHrCommands,
+  useLeaveRequests,
+  usePayroll,
+} from "@/client/queries/hr";
 
 const STATUS_COLORS: Record<string, string> = {
   present:  "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -20,33 +24,34 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
+function userKey(u: { id?: string; _id?: string }) {
+  return u.id ?? u._id ?? "";
+}
+
 export default function AdminHRPage() {
   const today = new Date().toISOString().slice(0, 10);
-  const users = useUsers() || [];
-  const attendance = useQuery(api.hr.listAttendance, { date: today }) || [];
-  const leaveRequests = useQuery(api.hr.listLeaveRequests, {}) || [];
-  const payroll = useQuery(api.hr.generatePayroll, {}) || [];
-
-  const reviewLeave = useMutation(api.hr.reviewLeaveRequest);
-  const upsertAttendance = useMutation(api.hr.upsertAttendance);
-  const setBaseSalary = useMutation(api.hr.setBaseSalary);
+  const users = useUsers();
+  const attendance = useAttendance({ date: today }) ?? [];
+  const leaveRequests = useLeaveRequests({}) ?? [];
+  const payroll = usePayroll() ?? [];
+  const { reviewLeaveRequest, upsertAttendance, setBaseSalary } = useHrCommands();
 
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const isLoading = users === undefined;
-  const staffUsers = users.filter((u: any) => u.role !== "client");
+  const staffUsers = (users || []).filter((u) => u.role !== "client");
 
   const getUserName = (userId: string) => {
-    return users.find((u: any) => u._id === userId)?.name || userId;
+    return (users || []).find((u) => userKey(u) === userId)?.name || userId;
   };
 
   const handleLeaveReview = async (leaveRequestId: string, status: "approved" | "rejected") => {
     setProcessingId(leaveRequestId);
     try {
-      await reviewLeave({ leaveRequestId: leaveRequestId as any, status });
+      await reviewLeaveRequest.mutateAsync({ leaveRequestId, status });
       toast.success(`Leave ${status} successfully.`);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update leave.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update leave.");
     } finally {
       setProcessingId(null);
     }
@@ -54,43 +59,43 @@ export default function AdminHRPage() {
 
   const handleMarkPresent = async (userId: string) => {
     try {
-      await upsertAttendance({
-        userId: userId as any,
+      await upsertAttendance.mutateAsync({
+        userId,
         date: today,
         clockIn: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "present",
       });
       toast.success("Attendance recorded.");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to record attendance.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to record attendance.");
     }
   };
 
   const handleMarkAbsent = async (userId: string) => {
     try {
-      await upsertAttendance({
-        userId: userId as any,
+      await upsertAttendance.mutateAsync({
+        userId,
         date: today,
         status: "absent",
       });
       toast.success("Marked as absent.");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to mark absent.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to mark absent.");
     }
   };
 
   const handleClockOut = async (userId: string, clockIn: string) => {
     try {
-      await upsertAttendance({
-        userId: userId as any,
+      await upsertAttendance.mutateAsync({
+        userId,
         date: today,
         clockIn,
         clockOut: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "present",
       });
       toast.success("Clocked out successfully.");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to clock out.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to clock out.");
     }
   };
 
@@ -102,9 +107,9 @@ export default function AdminHRPage() {
     );
   }
 
-  const presentCount = attendance.filter((a: any) => a.status === "present").length;
-  const leaveCount = attendance.filter((a: any) => a.status === "leave").length;
-  const pendingLeaves = leaveRequests.filter((l: any) => l.status === "pending").length;
+  const presentCount = attendance.filter((a) => a.status === "present").length;
+  const leaveCount = attendance.filter((a) => a.status === "leave").length;
+  const pendingLeaves = leaveRequests.filter((l) => l.status === "pending").length;
 
   const kpiCards = [
     { label: "Total Staff", value: staffUsers.length, icon: Users, tone: "bg-primary/10 text-primary" },
@@ -161,7 +166,6 @@ export default function AdminHRPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Attendance — full-width stacked staff cards (no nested list inside cramped card body) */}
         <TabsContent value="attendance" className="mt-0 space-y-3 min-w-0">
           <p className="text-sm font-medium text-foreground">
             Today — <span className="text-muted-foreground font-normal">{todayLabel}</span>
@@ -175,10 +179,11 @@ export default function AdminHRPage() {
             </Card>
           ) : (
             <div className="space-y-2 w-full min-w-0">
-              {staffUsers.map((u: any) => {
-                const record = attendance.find((a: any) => a.userId === u._id);
+              {staffUsers.map((u) => {
+                const uid = userKey(u);
+                const record = attendance.find((a) => a.userId === uid);
                 return (
-                  <Card key={u._id} className="w-full min-w-0 overflow-hidden">
+                  <Card key={uid} className="w-full min-w-0 overflow-hidden">
                     <CardContent className="p-3 sm:p-4 space-y-3">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{u.name}</p>
@@ -204,7 +209,7 @@ export default function AdminHRPage() {
                                 size="sm"
                                 variant="outline"
                                 className="text-xs h-8 flex-1 sm:flex-none"
-                                onClick={() => handleClockOut(u._id, record.clockIn)}
+                                onClick={() => handleClockOut(uid, record.clockIn!)}
                               >
                                 Clock Out
                               </Button>
@@ -216,7 +221,7 @@ export default function AdminHRPage() {
                               size="sm"
                               variant="outline"
                               className="text-xs h-9 w-full sm:w-auto text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
-                              onClick={() => handleMarkPresent(u._id)}
+                              onClick={() => handleMarkPresent(uid)}
                             >
                               Mark Present
                             </Button>
@@ -224,7 +229,7 @@ export default function AdminHRPage() {
                               size="sm"
                               variant="outline"
                               className="text-xs h-9 w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                              onClick={() => handleMarkAbsent(u._id)}
+                              onClick={() => handleMarkAbsent(uid)}
                             >
                               Absent
                             </Button>
@@ -239,7 +244,6 @@ export default function AdminHRPage() {
           )}
         </TabsContent>
 
-        {/* Leave */}
         <TabsContent value="leave" className="mt-0 min-w-0">
           {leaveRequests.length === 0 ? (
             <Card>
@@ -249,48 +253,50 @@ export default function AdminHRPage() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {leaveRequests.map((l: any) => (
-                <Card key={l._id} className="min-w-0 overflow-hidden">
-                  <CardContent className="p-3 sm:p-4 space-y-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground">{getUserName(l.userId)}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {l.type} leave — {l.fromDate} to {l.toDate}
-                        </p>
-                        {l.reason && <p className="text-xs text-muted-foreground mt-1 break-words">{l.reason}</p>}
+              {leaveRequests.map((l) => {
+                const lid = l.id ?? l._id;
+                return (
+                  <Card key={lid} className="min-w-0 overflow-hidden">
+                    <CardContent className="p-3 sm:p-4 space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{getUserName(l.userId)}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {l.type} leave — {l.fromDate} to {l.toDate}
+                          </p>
+                          {l.reason && <p className="text-xs text-muted-foreground mt-1 break-words">{l.reason}</p>}
+                        </div>
+                        <Badge className={`text-xs shrink-0 ${STATUS_COLORS[l.status]}`}>{l.status}</Badge>
                       </div>
-                      <Badge className={`text-xs shrink-0 ${STATUS_COLORS[l.status]}`}>{l.status}</Badge>
-                    </div>
-                    {l.status === "pending" && (
-                      <div className="grid grid-cols-2 gap-2 sm:flex sm:w-auto">
-                        <Button
-                          size="sm"
-                          className="text-xs h-9 gap-1 w-full sm:w-auto"
-                          disabled={processingId === l._id}
-                          onClick={() => handleLeaveReview(l._id, "approved")}
-                        >
-                          <CheckCircle className="w-3 h-3" /> Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="text-xs h-9 gap-1 w-full sm:w-auto"
-                          disabled={processingId === l._id}
-                          onClick={() => handleLeaveReview(l._id, "rejected")}
-                        >
-                          <XCircle className="w-3 h-3" /> Reject
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      {l.status === "pending" && (
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:w-auto">
+                          <Button
+                            size="sm"
+                            className="text-xs h-9 gap-1 w-full sm:w-auto"
+                            disabled={processingId === lid}
+                            onClick={() => handleLeaveReview(lid, "approved")}
+                          >
+                            <CheckCircle className="w-3 h-3" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="text-xs h-9 gap-1 w-full sm:w-auto"
+                            disabled={processingId === lid}
+                            onClick={() => handleLeaveReview(lid, "rejected")}
+                          >
+                            <XCircle className="w-3 h-3" /> Reject
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
 
-        {/* Payroll */}
         <TabsContent value="payroll" className="mt-0 space-y-4 min-w-0">
           <Card className="min-w-0 overflow-hidden">
             <CardHeader className="pb-3 px-3 sm:px-6">
@@ -306,9 +312,8 @@ export default function AdminHRPage() {
                 </p>
               ) : (
                 <>
-                  {/* Mobile cards */}
                   <div className="md:hidden space-y-3">
-                    {payroll.map((p: any) => (
+                    {payroll.map((p) => (
                       <div key={p.userId} className="rounded-lg border border-border p-3 space-y-2 min-w-0">
                         <div>
                           <p className="text-sm font-semibold text-foreground">{p.name}</p>
@@ -330,7 +335,6 @@ export default function AdminHRPage() {
                     ))}
                   </div>
 
-                  {/* Desktop table */}
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm min-w-[560px]">
                       <thead>
@@ -344,7 +348,7 @@ export default function AdminHRPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {payroll.map((p: any) => (
+                        {payroll.map((p) => (
                           <tr key={p.userId}>
                             <td className="py-3 pr-4">
                               <p className="font-medium text-foreground">{p.name}</p>
@@ -370,37 +374,40 @@ export default function AdminHRPage() {
               <CardTitle className="text-sm font-semibold font-serif">Set Base Salary (NPR / month)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 px-3 sm:px-6 pb-4">
-              {staffUsers.map((u: any) => (
-                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border rounded-lg min-w-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{u.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{u.role?.replace(/_/g, " ")}</p>
+              {staffUsers.map((u) => {
+                const uid = userKey(u);
+                return (
+                  <div key={uid} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border rounded-lg min-w-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{u.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{u.role?.replace(/_/g, " ")}</p>
+                    </div>
+                    <form
+                      className="flex items-center gap-2 w-full sm:w-auto"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const fd = new FormData(e.currentTarget);
+                        const baseSalary = Number(fd.get("salary"));
+                        try {
+                          await setBaseSalary.mutateAsync({ userId: uid, baseSalary });
+                          toast.success(`Salary updated for ${u.name}`);
+                        } catch (err: unknown) {
+                          toast.error(err instanceof Error ? err.message : "Failed to set salary");
+                        }
+                      }}
+                    >
+                      <input
+                        name="salary"
+                        type="number"
+                        defaultValue={u.baseSalary ?? ""}
+                        placeholder="0"
+                        className="flex-1 sm:flex-none sm:w-28 h-9 rounded-md border border-input bg-background px-2 text-sm min-w-0"
+                      />
+                      <Button type="submit" size="sm" variant="outline" className="h-9 text-xs shrink-0">Save</Button>
+                    </form>
                   </div>
-                  <form
-                    className="flex items-center gap-2 w-full sm:w-auto"
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const fd = new FormData(e.currentTarget);
-                      const baseSalary = Number(fd.get("salary"));
-                      try {
-                        await setBaseSalary({ userId: u._id, baseSalary });
-                        toast.success(`Salary updated for ${u.name}`);
-                      } catch (err: any) {
-                        toast.error(err?.message || "Failed to set salary");
-                      }
-                    }}
-                  >
-                    <input
-                      name="salary"
-                      type="number"
-                      defaultValue={u.baseSalary || ""}
-                      placeholder="0"
-                      className="flex-1 sm:flex-none sm:w-28 h-9 rounded-md border border-input bg-background px-2 text-sm min-w-0"
-                    />
-                    <Button type="submit" size="sm" variant="outline" className="h-9 text-xs shrink-0">Save</Button>
-                  </form>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>

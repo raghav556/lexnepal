@@ -1,22 +1,9 @@
-import { NextResponse } from "next/server";
-import { EnvelopeRepository } from "@/server/repositories/envelope-repository";
 import { requireSession } from "@/server/auth/runtime";
-import { requireFirmContext } from "@/server/policies/authorization";
-import { AppError } from "@/shared/errors/api-error";
+import { withApiHandler } from "@/server/http/handler";
+import { jsonResponse } from "@/server/http/response";
+import { getEnvelopeService } from "@/server/services/envelope-service";
 
-export async function GET(request: Request) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-    const signers = await EnvelopeRepository.listPortalSigners(firmId);
-    return NextResponse.json(signers);
-  } catch (error: any) {
-    if (error instanceof AppError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
-
-
+export const GET = withApiHandler("/api/v1/envelopes/signers", async ({ request }) => {
+  const principal = await requireSession(request);
+  return jsonResponse({ data: await getEnvelopeService().listSigners(principal) });
+});

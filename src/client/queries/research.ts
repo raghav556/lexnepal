@@ -25,7 +25,6 @@ export function useResearchNotes(): ResearchDto[] | undefined {
       apiClient.request<ResearchDto[]>("/api/v1/research", { signal }),
     enabled: backend === "next",
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 
@@ -37,7 +36,6 @@ export function useResearchNote(noteId: string | null): ResearchDto | undefined 
       apiClient.request<ResearchDto>(`/api/v1/research/${noteId}`, { signal }),
     enabled: backend === "next" && Boolean(noteId),
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "next" ? next.data : undefined;
 }
 

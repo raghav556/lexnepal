@@ -21,7 +21,6 @@ export function useClients(): ClientDto[] | undefined {
     queryFn: ({ signal }) => apiClient.request<ClientDto[]>("/api/v1/clients", { signal }),
     enabled: backend === "next",
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 
@@ -36,7 +35,6 @@ export function useMyClient(): ClientDto | null | undefined {
     queryFn: ({ signal }) => apiClient.request<ClientDto | null>("/api/v1/clients/me", { signal }),
     enabled: backend === "next",
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 
@@ -52,7 +50,6 @@ export function useKycFiles(clientId: string | null) {
       apiClient.request<any[]>(`/api/v1/clients/${clientId}/kyc-files`, { signal }),
     enabled: backend === "next" && Boolean(clientId),
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 

@@ -11,13 +11,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDualDate, gregorianToBs, formatBs } from "@/lib/nepali-calendar.ts";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { COURTS } from "@/lib/lex-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
 import { getBSDate } from "@/lib/bs-calendar.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
+import { useHearings, useHearingCommands } from "@/client/queries/hearings";
+import { useTasks, useTaskCommands, useUpdateTask } from "@/client/queries/tasks";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -42,17 +44,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function StaffHearingsPage() {
   const { t, language } = useI18n();
-  const hearings = useQuery(api.hearings.listHearings, {}) || [];
+  const hearings = useHearings({}) || [];
   const cases = useCases({}) || [];
   const users = useStaffDirectory() || [];
   const pesiResult = useQuery(api.court.getPesi, {});
   const pesiList = Array.isArray(pesiResult) ? pesiResult : ((pesiResult as any)?.items || []);
   
-  const createHearing = useMutation(api.hearings.createHearing);
-  const updateHearing = useMutation(api.hearings.updateHearing);
-  const createHearingPrepTasks = useMutation(api.tasks.createHearingPrepTasks);
-  const updateTask = useMutation(api.tasks.updateTask);
-  const allTasks = useQuery(api.tasks.listTasks, {}) || [];
+  const { createHearing, updateHearing } = useHearingCommands();
+  const { createHearingPrepTasks } = useTaskCommands();
+  const updateTask = useUpdateTask();
+  const allTasks = useTasks({}) || [];
   const [prepLoadingId, setPrepLoadingId] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -116,7 +117,7 @@ export default function StaffHearingsPage() {
   const handleGeneratePrepTasks = async (hearingId: string) => {
     setPrepLoadingId(hearingId);
     try {
-      const res = await createHearingPrepTasks({ hearingId: hearingId as any });
+      const res = await createHearingPrepTasks(hearingId);
       toast.success(`Prep pack: ${(res as any).created} created, ${(res as any).skipped} already linked.`);
     } catch (err: any) {
       toast.error(err?.message || "Failed to generate prep tasks.");
@@ -147,8 +148,8 @@ export default function StaffHearingsPage() {
     if (!selectedHearingId) return;
     setIsUpdating(true);
     try {
-      await updateHearing({
-        hearingId: selectedHearingId as any, status: status as any, outcome: outcome || undefined,
+      await updateHearing(String(selectedHearingId), {
+        status: status as any, outcome: outcome || undefined,
         nextDateGregorian: nextDateGregorian || undefined, nextDateBs: nextDateBs || undefined, notes: updateNotes || undefined,
       });
       toast.success("Hearing status updated!");

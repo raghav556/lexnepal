@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import "./styles.css";
+import "../../src/index.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -17,3 +17,4 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     </html>
   );
 }
+

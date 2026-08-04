@@ -1,71 +1,26 @@
-import { NextResponse } from "next/server";
-import { CommunicationRepository } from "@/server/repositories/communication-repository";
+/* Legacy unversioned paths — thin proxies onto CommunicationService.
+ * Prefer /api/v1/messages and /api/v1/notifications from new clients. */
 import { requireSession } from "@/server/auth/runtime";
-import { requireFirmContext } from "@/server/policies/authorization";
+import { buildAuditContext } from "@/server/audit/context";
+import { withApiHandler } from "@/server/http/handler";
+import { jsonResponse } from "@/server/http/response";
+import { getCommunicationService } from "@/server/services/communication-service";
+import { messageCreateSchema, messageListSchema } from "@/shared/contracts/communication";
 
-export async function GET(request: Request) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-    
-    const { searchParams } = new URL(request.url);
-    const caseId = searchParams.get("caseId");
-    
-    if (!caseId) {
-      return NextResponse.json({ error: "caseId is required" }, { status: 400 });
-    }
+export const GET = withApiHandler("/api/communication/messages", async ({ request }) => {
+  const principal = await requireSession(request);
+  const input = messageListSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
+  const data = await getCommunicationService().listMessages(principal, input);
+  return jsonResponse(data.page);
+});
 
-    // Role check if the user is a client
-    let includeInternal = true;
-    if (session.user.role === "client") {
-      includeInternal = false;
-    }
-
-    const messages = await CommunicationRepository.listMessages(firmId, caseId, 50, includeInternal);
-    
-    return NextResponse.json(messages);
-  } catch (error: any) {
-    console.error("Messages API Error:", error);
-    if (error.message.includes("Not authenticated")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-    const body = await request.json();
-
-    const { caseId, content, isInternal } = body;
-    if (!caseId || !content) {
-      return NextResponse.json({ error: "caseId and content are required" }, { status: 400 });
-    }
-
-    // Role check for internal messages
-    if (isInternal && session.user.role === "client") {
-      return NextResponse.json({ error: "Only staff may send internal messages" }, { status: 403 });
-    }
-
-    const messageId = await CommunicationRepository.createMessage(firmId, {
-      caseId,
-      senderId: session.user.id,
-      content,
-      isInternal: Boolean(isInternal),
-    });
-
-    // We should ideally generate a notification for the other party (client <-> lawyer)
-    // For now, we replicate Convex behavior directly if we can, 
-    // but the task only requires basic message insert parity. In a real app we'd dispatch a job.
-
-    return NextResponse.json({ id: messageId });
-  } catch (error: any) {
-    console.error("Messages API Error:", error);
-    if (error.message.includes("Not authenticated")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
+export const POST = withApiHandler("/api/communication/messages", async ({ request, requestId }) => {
+  const principal = await requireSession(request);
+  const input = messageCreateSchema.parse(await request.json());
+  const row = await getCommunicationService().sendMessage(
+    principal,
+    input,
+    buildAuditContext(request, requestId, principal),
+  );
+  return jsonResponse({ id: row._id }, { status: 201 });
+});

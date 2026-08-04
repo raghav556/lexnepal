@@ -1,22 +1,17 @@
-import { NextResponse } from "next/server";
-import { EnvelopeRepository } from "@/server/repositories/envelope-repository";
 import { requireSession } from "@/server/auth/runtime";
-import { requireFirmContext } from "@/server/policies/authorization";
-import { AppError } from "@/shared/errors/api-error";
+import { withApiHandler } from "@/server/http/handler";
+import { jsonResponse } from "@/server/http/response";
+import { getEnvelopeService } from "@/server/services/envelope-service";
+import { envelopeVoidSchema, uuidSchema } from "@/shared/contracts/envelopes";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-    const body = await request.json();
-    
-    const updated = await EnvelopeRepository.voidEnvelope(firmId, params.id, body.reason || "Voided by user");
-    return NextResponse.json(updated);
-  } catch (error: any) {
-    if (error instanceof AppError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
+function idFrom(request: Request) {
+  return uuidSchema.parse(new URL(request.url).pathname.split("/").filter(Boolean).at(-2));
 }
+
+export const POST = withApiHandler("/api/v1/envelopes/:id/void", async ({ request }) => {
+  const principal = await requireSession(request);
+  const input = envelopeVoidSchema.parse(await request.json().catch(() => ({})));
+  return jsonResponse({
+    data: await getEnvelopeService().void(principal, idFrom(request), input),
+  });
+});

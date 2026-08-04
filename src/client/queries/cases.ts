@@ -26,7 +26,6 @@ export function useCases(filters: ListCasesInput = {}): CaseDto[] | undefined {
       apiClient.request<CaseDto[]>("/api/v1/cases", { query: { ...filters }, signal }),
     enabled: backend === "next",
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 export function useCase(caseId: string | null, details = false): any {
@@ -44,7 +43,6 @@ export function useCase(caseId: string | null, details = false): any {
       }),
     enabled: backend === "next" && Boolean(caseId),
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 export function useCreateCase(): (input: Record<string, unknown>) => Promise<unknown> {

@@ -176,7 +176,7 @@ function ClientRoleGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   // Skip role-based redirects in dev mode so all dashboards are previewable
-  const isDev = import.meta.env.DEV;
+  const isDev = (typeof process !== "undefined" ? process.env.DEV : import.meta.env.DEV);
 
   useEffect(() => {
     if (isDev) return;
@@ -239,3 +239,4 @@ export default function ClientLayout() {
     </div>
   );
 }
+

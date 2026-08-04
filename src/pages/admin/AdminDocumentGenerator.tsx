@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@/client/data/convex-bridge.ts";
+import { useQuery } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
+import { useDocuments, useUploadDocument } from "@/client/queries/documents";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Download, Settings, ChevronRight } from "lucide-react";
@@ -16,10 +17,10 @@ function mergeTemplate(content: string, vars: Record<string, string>) {
 
 export default function AdminDocumentGenerator() {
   const docTemplates = useQuery(api.templates.listTemplates as any, {}) || [];
-  const fileTemplates = (useQuery(api.documents.listDocuments, { isTemplate: true }) || []) as any[];
+  const fileTemplates = (useDocuments({ isTemplate: true }) || []) as any[];
   const clients = useClients() || [];
   const cases = useCases({}) || [];
-  const createDocument = useMutation(api.documents.createDocument);
+  const uploadDocument = useUploadDocument();
 
   const templates = useMemo(() => {
     const fromModule = (docTemplates as any[]).map((t) => ({
@@ -66,20 +67,21 @@ export default function AdminDocumentGenerator() {
       const text = mergeTemplate(selectedTemplate.content || "", vars);
       setMergedText(text);
 
-      const doc = new jsPDF();
-      const lines = doc.splitTextToSize(text, 180);
-      doc.setFont("times", "normal");
-      doc.setFontSize(11);
-      doc.text(lines, 15, 20);
-      doc.save(`${selectedTemplate.title.replace(/\s+/g, "_")}_${matter?.caseNumber || "draft"}.pdf`);
+      const pdf = new jsPDF();
+      const lines = pdf.splitTextToSize(text, 180);
+      pdf.setFont("times", "normal");
+      pdf.setFontSize(11);
+      pdf.text(lines, 15, 20);
+      const fileName = `${selectedTemplate.title.replace(/\s+/g, "_")}_${matter?.caseNumber || "draft"}.pdf`;
+      pdf.save(fileName);
+      const blob = pdf.output("blob");
+      const file = new File([blob], fileName, { type: "application/pdf" });
 
-      await createDocument({
-        caseId: selectedCase as any,
+      await uploadDocument({
+        file,
+        caseId: selectedCase,
         title: `${selectedTemplate.title} — ${client?.fullName || "Client"}`,
         type: "other",
-        storageId: `generated_${Date.now()}`,
-        mimeType: "application/pdf",
-        sizeBytes: text.length,
         tags: ["generated", selectedTemplate.type || "template"],
         isTemplate: false,
         isPrivileged: false,

@@ -1,165 +1,290 @@
-import 'server-only';
-import { getDatabase } from "../db/client";
-import { messages, messageReads, notifications, users, cases } from "../db/schema";
-import { eq } from "drizzle-orm";
-export function parseJsonl<T>(content: string): T[] {
-  if (!content) return [];
-  return content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => JSON.parse(line));
+/* eslint-disable @typescript-eslint/no-explicit-any -- migration input is untrusted heterogeneous legacy JSON */
+import "server-only";
+import fs from "node:fs/promises";
+import path from "node:path";
+import JSZip from "jszip";
+import { inArray } from "drizzle-orm";
+import { getDatabase } from "@/server/db/client";
+import { cases, firms, messageReads, messages, notifications, users } from "@/server/db/schema";
+
+type Value = Record<string, unknown>;
+const tables = ["messages", "notifications"] as const;
+
+export interface CommunicationMigrationReport {
+  source: Record<string, number>;
+  migrated: Record<string, number>;
+  exceptions: Array<{ table: string; id?: string; reason: string }>;
+  reconciliation: { passed: boolean; checks: Record<string, { source: number; target: number }> };
 }
 
-interface LegacyMessage {
-  _id: string;
-  _creationTime: number;
-  caseId: string;
-  senderId: string;
-  content: string;
-  isInternal: boolean;
-  readBy: string[];
-}
+export async function migrateCommunicationExport(input: {
+  exportPath: string;
+  firmMap: Record<string, string>;
+  orphanFirmId?: string;
+}): Promise<CommunicationMigrationReport> {
+  const reader = await createReader(input.exportPath);
+  const records = new Map<string, Value[]>();
+  for (const table of tables) records.set(table, await reader.readTable(table));
+  const database = getDatabase();
+  const targetFirmIds = [
+    ...new Set([
+      ...Object.values(input.firmMap),
+      ...(input.orphanFirmId ? [input.orphanFirmId] : []),
+    ]),
+  ];
+  const firmRows = targetFirmIds.length
+    ? await database.select({ id: firms.id }).from(firms).where(inArray(firms.id, targetFirmIds))
+    : [];
+  if (firmRows.length !== targetFirmIds.length) {
+    throw new Error("Firm map contains an unknown target firm");
+  }
 
-interface LegacyNotification {
-  _id: string;
-  _creationTime: number;
-  userId: string;
-  title: string;
-  body: string;
-  type: any;
-  relatedId?: string;
-  link?: string;
-  isRead: boolean;
-}
+  const userRows = await database
+    .select({ id: users.id, firmId: users.firmId, legacyId: users.legacyConvexId })
+    .from(users);
+  const userMap = new Map(
+    userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
+  );
+  const caseRows = await database
+    .select({ id: cases.id, firmId: cases.firmId, legacyId: cases.legacyConvexId })
+    .from(cases);
+  const caseMap = new Map(
+    caseRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
+  );
 
-export async function migrateCommunicationExport(messagesJsonl: string, notificationsJsonl: string) {
-  const db = await getDatabase();
+  const migrated = Object.fromEntries(tables.map((table) => [table, 0]));
+  const exceptions: CommunicationMigrationReport["exceptions"] = [];
 
-  const legacyMessages = parseJsonl<LegacyMessage>(messagesJsonl);
-  const legacyNotifications = parseJsonl<LegacyNotification>(notificationsJsonl);
+  await database.transaction(async (tx) => {
+    for (const record of records.get("messages") ?? []) {
+      const legacyId = asString(record._id);
+      try {
+        if (!legacyId) throw new Error("Missing legacy ID");
+        const matter = record.caseId ? caseMap.get(asString(record.caseId) ?? "") : undefined;
+        const sender = record.senderId ? userMap.get(asString(record.senderId) ?? "") : undefined;
+        if (!matter) throw new Error("Message case could not be mapped");
+        if (!sender) throw new Error("Message sender could not be mapped");
+        if (matter.firmId !== sender.firmId) {
+          throw new Error("Message case and sender belong to different firms");
+        }
+        const firmId = resolveFirm(record, input, matter.firmId);
+        const content = asString(record.content) ?? "";
+        const isInternal = asBoolean(record.isInternal, false);
+        const createdAt = toDate(record._creationTime) ?? new Date();
 
-  console.log(`Parsed ${legacyMessages.length} messages and ${legacyNotifications.length} notifications`);
+        const [msg] = await tx
+          .insert(messages)
+          .values({
+            legacyConvexId: legacyId,
+            firmId,
+            caseId: matter.id,
+            senderId: sender.id,
+            content,
+            isInternal,
+            createdAt,
+            updatedAt: createdAt,
+          })
+          .onConflictDoUpdate({
+            target: messages.legacyConvexId,
+            set: {
+              firmId,
+              caseId: matter.id,
+              senderId: sender.id,
+              content,
+              isInternal,
+              updatedAt: new Date(),
+            },
+          })
+          .returning({ id: messages.id });
 
-  // Build ID mappings
-  const userRows = await db.select({ id: users.id, legacyConvexId: users.legacyConvexId, firmId: users.firmId }).from(users);
-  const userMap = new Map<string, { id: string; firmId: string }>();
-  userRows.forEach((u) => {
-    if (u.legacyConvexId) userMap.set(u.legacyConvexId, { id: u.id, firmId: u.firmId });
-  });
-
-  const caseRows = await db.select({ id: cases.id, legacyConvexId: cases.legacyConvexId, firmId: cases.firmId }).from(cases);
-  const caseMap = new Map<string, { id: string; firmId: string }>();
-  caseRows.forEach((c) => {
-    if (c.legacyConvexId) caseMap.set(c.legacyConvexId, { id: c.id, firmId: c.firmId });
-  });
-
-  // Safe fallback if we can't find a user (should not happen in real migration if users migrated first)
-  const fallbackUser = userRows[0];
-  const fallbackFirmId = fallbackUser?.firmId || "default-firm-id";
-  const fallbackUserId = fallbackUser?.id || "default-user-id";
-
-  const asString = (val: any) => (typeof val === "string" ? val : undefined);
-
-  let mCount = 0;
-  for (const record of legacyMessages) {
-    const legacyId = asString(record._id);
-    if (!legacyId) continue;
-
-    const legacyCaseId = asString(record.caseId);
-    const legacySenderId = asString(record.senderId);
-
-    const mappedCase = legacyCaseId ? caseMap.get(legacyCaseId) : null;
-    const mappedSender = legacySenderId ? userMap.get(legacySenderId) : null;
-
-    const firmId = mappedCase?.firmId || mappedSender?.firmId || fallbackFirmId;
-    const caseId = mappedCase?.id || "default-case-id"; // In reality we should skip if no case, but maintaining parity
-    const senderId = mappedSender?.id || fallbackUserId;
-
-    await db.transaction(async (tx) => {
-      // Upsert message
-      const [msg] = await tx
-        .insert(messages)
-        .values({
-          legacyConvexId: legacyId,
-          firmId,
-          caseId,
-          senderId,
-          content: asString(record.content) || "",
-          isInternal: Boolean(record.isInternal),
-          createdAt: new Date(record._creationTime || Date.now()),
-          updatedAt: new Date(record._creationTime || Date.now()),
-        })
-        .onConflictDoUpdate({
-          target: messages.legacyConvexId,
-          set: {
-            content: asString(record.content) || "",
-            isInternal: Boolean(record.isInternal),
-          },
-        })
-        .returning({ id: messages.id });
-
-      // Upsert reads
-      if (Array.isArray(record.readBy)) {
-        for (const readById of record.readBy) {
-          const mappedReader = userMap.get(asString(readById) || "");
-          if (mappedReader) {
+        if (Array.isArray(record.readBy)) {
+          for (const readerId of record.readBy) {
+            const mapped = userMap.get(asString(readerId) ?? "");
+            if (!mapped || mapped.firmId !== firmId) continue;
             await tx
               .insert(messageReads)
               .values({
                 firmId,
-                messageId: msg.id,
-                userId: mappedReader.id,
-                readAt: new Date(record._creationTime || Date.now()),
+                messageId: msg!.id,
+                userId: mapped.id,
+                readAt: createdAt,
               })
-              .onConflictDoNothing({ target: [messageReads.firmId, messageReads.messageId, messageReads.userId] });
+              .onConflictDoNothing({
+                target: [messageReads.firmId, messageReads.messageId, messageReads.userId],
+              });
           }
         }
+        migrated.messages += 1;
+      } catch (error) {
+        exceptions.push({ table: "messages", id: legacyId, reason: message(error) });
       }
-    });
+    }
 
-    mCount++;
-    if (mCount % 50 === 0) console.log(`Migrated ${mCount} messages...`);
+    for (const record of records.get("notifications") ?? []) {
+      const legacyId = asString(record._id);
+      try {
+        if (!legacyId) throw new Error("Missing legacy ID");
+        const owner = record.userId ? userMap.get(asString(record.userId) ?? "") : undefined;
+        if (!owner) throw new Error("Notification user could not be mapped");
+        const firmId = resolveFirm(record, input, owner.firmId);
+        const title = asString(record.title) ?? "Notification";
+        const body = asString(record.body) ?? "";
+        const type = enumValue(
+          record.type,
+          [
+            "hearing_reminder",
+            "task_due",
+            "invoice_sent",
+            "payment_received",
+            "document_request",
+            "message",
+            "system",
+          ] as const,
+          "system",
+        );
+        const relatedId = asString(record.relatedId);
+        const link = asString(record.link);
+        const isRead = asBoolean(record.isRead, false);
+        const createdAt = toDate(record._creationTime) ?? new Date();
+
+        await tx
+          .insert(notifications)
+          .values({
+            legacyConvexId: legacyId,
+            firmId,
+            userId: owner.id,
+            title,
+            body,
+            type,
+            relatedId,
+            link,
+            isRead,
+            createdAt,
+            updatedAt: createdAt,
+          })
+          .onConflictDoUpdate({
+            target: notifications.legacyConvexId,
+            set: {
+              firmId,
+              userId: owner.id,
+              title,
+              body,
+              type,
+              relatedId,
+              link,
+              isRead,
+              updatedAt: new Date(),
+            },
+          });
+        migrated.notifications += 1;
+      } catch (error) {
+        exceptions.push({ table: "notifications", id: legacyId, reason: message(error) });
+      }
+    }
+  });
+
+  const checks: Record<string, { source: number; target: number }> = {};
+  for (const [name, table] of [
+    ["messages", messages],
+    ["notifications", notifications],
+  ] as const) {
+    const ids = (records.get(name) ?? [])
+      .map((row) => asString(row._id))
+      .filter(Boolean) as string[];
+    const target = ids.length
+      ? (
+          await database
+            .select({ id: table.id })
+            .from(table as any)
+            .where(inArray((table as any).legacyConvexId, ids))
+        ).length
+      : 0;
+    checks[name] = { source: records.get(name)?.length ?? 0, target };
   }
 
-  let nCount = 0;
-  for (const record of legacyNotifications) {
-    const legacyId = asString(record._id);
-    if (!legacyId) continue;
+  return {
+    source: Object.fromEntries([...records].map(([name, rows]) => [name, rows.length])),
+    migrated,
+    exceptions,
+    reconciliation: {
+      passed:
+        exceptions.length === 0 &&
+        Object.values(checks).every((check) => check.source === check.target),
+      checks,
+    },
+  };
+}
 
-    const legacyUserId = asString(record.userId);
-    const mappedUser = legacyUserId ? userMap.get(legacyUserId) : null;
-
-    const firmId = mappedUser?.firmId || fallbackFirmId;
-    const userId = mappedUser?.id || fallbackUserId;
-
-    await db
-      .insert(notifications)
-      .values({
-        legacyConvexId: legacyId,
-        firmId,
-        userId,
-        title: asString(record.title) || "Notification",
-        body: asString(record.body) || "",
-        type: (asString(record.type) as any) || "system",
-        relatedId: asString(record.relatedId),
-        link: asString(record.link),
-        isRead: Boolean(record.isRead),
-        createdAt: new Date(record._creationTime || Date.now()),
-        updatedAt: new Date(record._creationTime || Date.now()),
-      })
-      .onConflictDoUpdate({
-        target: notifications.legacyConvexId,
-        set: {
-          title: asString(record.title) || "Notification",
-          body: asString(record.body) || "",
-          isRead: Boolean(record.isRead),
-        },
-      });
-
-    nCount++;
-    if (nCount % 50 === 0) console.log(`Migrated ${nCount} notifications...`);
+function resolveFirm(
+  record: Value,
+  input: { firmMap: Record<string, string>; orphanFirmId?: string },
+  relatedFirmId?: string,
+) {
+  const legacyFirmId = asString(record.firmId);
+  const mapped = legacyFirmId ? input.firmMap[legacyFirmId] : undefined;
+  const firmId = mapped ?? relatedFirmId ?? input.orphanFirmId;
+  if (!firmId) {
+    throw new Error("Firm ownership is missing; supply an explicit firm map/orphan firm");
   }
-
-  return { messages: mCount, notifications: nCount };
+  if (mapped && relatedFirmId && mapped !== relatedFirmId) {
+    throw new Error("Firm ownership conflicts with a related record");
+  }
+  return firmId;
+}
+function asString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+function asBoolean(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
+}
+function toDate(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? null : date;
+}
+function enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return typeof value === "string" && allowed.includes(value as T) ? (value as T) : fallback;
+}
+function message(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown migration error";
+}
+async function createReader(exportPath: string) {
+  const stat = await fs.stat(exportPath);
+  if (stat.isDirectory()) {
+    return {
+      readTable: async (table: string) => {
+        for (const candidate of [
+          path.join(exportPath, table, "documents.jsonl"),
+          path.join(exportPath, `${table}.jsonl`),
+          path.join(exportPath, `${table}.json`),
+        ]) {
+          try {
+            return parseRows(await fs.readFile(candidate, "utf8"));
+          } catch (error: any) {
+            if (error?.code !== "ENOENT") throw error;
+          }
+        }
+        return [];
+      },
+    };
+  }
+  const zip = await JSZip.loadAsync(await fs.readFile(exportPath));
+  return {
+    readTable: async (table: string) => {
+      const entry =
+        zip.file(`${table}/documents.jsonl`) ??
+        zip.file(`${table}.jsonl`) ??
+        zip.file(`${table}.json`);
+      return entry ? parseRows(await entry.async("string")) : [];
+    },
+  };
+}
+function parseRows(text: string): Value[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[")) return JSON.parse(trimmed) as Value[];
+  return trimmed
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Value);
 }

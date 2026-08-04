@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import {
-  useMutation as useTanstackMutation,
   useQuery as useTanstackQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -15,18 +14,45 @@ import { useDomainBackend } from "@/client/data/provider";
 import { queryKeys } from "@/client/queries/query-keys";
 import type { ListTasksInput, TaskDto } from "@/shared/contracts/domains";
 
-export function useTasks(filters: ListTasksInput = {}): TaskDto[] | undefined {
+function normalizeTaskWriteInput(input: Record<string, unknown>) {
+  const next: Record<string, unknown> = { ...input };
+  delete next.taskId;
+  delete next.id;
+  if (next.caseId === "" || next.caseId == null) delete next.caseId;
+  if (next.hearingId === "" || next.hearingId == null) delete next.hearingId;
+  if (next.documentId === "" || next.documentId == null) delete next.documentId;
+  if (next.parentTaskId === "" || next.parentTaskId == null) delete next.parentTaskId;
+  if (next.category === "") delete next.category;
+  if (next.recurrenceRule === "") delete next.recurrenceRule;
+  if (next.dueDate === "") delete next.dueDate;
+  if (next.reminderAt === "") delete next.reminderAt;
+  return next;
+}
+
+export function useTasks(
+  filters: ListTasksInput | "skip" = {},
+): TaskDto[] | undefined {
   const backend = useDomainBackend("tasks");
-  const convex = useConvexQuery(api.tasks.listTasks, backend === "convex" ? filters : "skip") as
-    | TaskDto[]
-    | undefined;
+  const activeFilters = filters === "skip" ? {} : filters;
+  const convex = useConvexQuery(
+    api.tasks.listTasks,
+    backend === "convex" && filters !== "skip" ? activeFilters : "skip",
+  ) as TaskDto[] | undefined;
   const next = useTanstackQuery({
-    queryKey: queryKeys.tasks.list(filters),
+    queryKey: queryKeys.tasks.list(activeFilters),
     queryFn: ({ signal }) =>
-      apiClient.request<TaskDto[]>("/api/v1/tasks", { query: { ...filters }, signal }),
-    enabled: backend === "next",
+      apiClient.request<TaskDto[]>("/api/v1/tasks", {
+        query: {
+          ...activeFilters,
+          includeArchived:
+            activeFilters.includeArchived === undefined
+              ? undefined
+              : String(activeFilters.includeArchived),
+        },
+        signal,
+      }),
+    enabled: backend === "next" && filters !== "skip",
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "convex" ? convex : next.data;
 }
 
@@ -38,7 +64,6 @@ export function useTask(taskId: string | null): TaskDto | undefined {
       apiClient.request<TaskDto>(`/api/v1/tasks/${taskId}`, { signal }),
     enabled: backend === "next" && Boolean(taskId),
   });
-  if (backend === "next" && next.error) throw normalizeApiError(next.error);
   return backend === "next" ? next.data : undefined;
 }
 
@@ -81,15 +106,17 @@ export function useTaskCommands() {
   const convexComment = useConvexMutation(api.tasks.addComment);
   const convexSop = useConvexMutation(api.tasks.runSop);
   const convexHearingPrep = useConvexMutation(api.tasks.createHearingPrepTasks);
+  const convexScanOverdue = useConvexMutation(api.tasks.scanOverdueReminders);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
 
   return {
     async createTask(input: Record<string, unknown>) {
       try {
+        const body = normalizeTaskWriteInput(input);
         const result =
           backend === "convex"
-            ? await convexCreate(input)
-            : await apiClient.request("/api/v1/tasks", { method: "POST", body: input });
+            ? await convexCreate(body)
+            : await apiClient.request("/api/v1/tasks", { method: "POST", body });
         await invalidate();
         return result;
       } catch (error) {
@@ -98,10 +125,11 @@ export function useTaskCommands() {
     },
     async updateTask(taskId: string, input: Record<string, unknown>) {
       try {
+        const body = normalizeTaskWriteInput(input);
         const result =
           backend === "convex"
-            ? await convexUpdate({ taskId, ...input })
-            : await apiClient.request(`/api/v1/tasks/${taskId}`, { method: "PATCH", body: input });
+            ? await convexUpdate({ taskId, ...body })
+            : await apiClient.request(`/api/v1/tasks/${taskId}`, { method: "PATCH", body });
         await invalidate();
         return result;
       } catch (error) {
@@ -189,6 +217,19 @@ export function useTaskCommands() {
         throw normalizeApiError(error);
       }
     },
+    async scanOverdueReminders() {
+      try {
+        const result =
+          backend === "convex"
+            ? await convexScanOverdue({})
+            : await apiClient.request<{ sent: number }>("/api/v1/tasks/overdue-reminders", {
+                method: "POST",
+              });
+        return result;
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
   };
 }
 
@@ -210,7 +251,6 @@ export function useSopTemplates(practiceArea?: string): unknown[] | undefined {
   return backend === "convex" ? convex : next.data;
 }
 
-// keep legacy hook for backward compat
 export function useUpdateTask(): (input: Record<string, unknown>) => Promise<unknown> {
   const commands = useTaskCommands();
   return useCallback(
@@ -220,4 +260,9 @@ export function useUpdateTask(): (input: Record<string, unknown>) => Promise<unk
     },
     [commands],
   );
+}
+
+export function useCreateTask(): (input: Record<string, unknown>) => Promise<unknown> {
+  const commands = useTaskCommands();
+  return useCallback((input: Record<string, unknown>) => commands.createTask(input), [commands]);
 }

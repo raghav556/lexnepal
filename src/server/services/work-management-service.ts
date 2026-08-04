@@ -170,6 +170,11 @@ export class WorkManagementService {
     requireCapability(principal, "cases.manage");
     return repository.deleteResearchNote(requireFirmContext(principal).firmId, noteId, audit);
   }
+
+  async scanOverdueReminders(principal: AuthPrincipal, audit: AuditContext) {
+    requireCapability(principal, "cases.manage");
+    return repository.scanOverdueReminders(requireFirmContext(principal).firmId, audit);
+  }
 }
 
 let service: WorkManagementService | undefined;

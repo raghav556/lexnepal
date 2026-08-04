@@ -84,4 +84,10 @@ export const queryKeys = {
   analytics: {
     dashboard: ["analytics", "dashboard"] as const,
   },
+  hr: {
+    all: ["hr"] as const,
+    attendance: (filters?: unknown) => ["hr", "attendance", filters] as const,
+    leaveRequests: (filters?: unknown) => ["hr", "leave-requests", filters] as const,
+    payroll: ["hr", "payroll"] as const,
+  },
 } as const;

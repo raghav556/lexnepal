@@ -1,30 +1,9 @@
-import { NextResponse } from "next/server";
 import { requireSession } from "@/server/auth/runtime";
-import { requireFirmContext } from "@/server/policies/authorization";
-import { AnalyticsRepository } from "@/server/repositories/analytics-repository";
-import { AppError } from "@/shared/errors/api-error";
+import { withApiHandler } from "@/server/http/handler";
+import { jsonResponse } from "@/server/http/response";
+import { getAnalyticsService } from "@/server/services/analytics-service";
 
-export async function GET(request: Request) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-
-    // Require admin or partner role for analytics dashboard as per Convex parity
-    if (!session.user || !["admin", "partner"].includes(session.user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const data = await AnalyticsRepository.getDashboardData(firmId);
-    return NextResponse.json(data);
-  } catch (error: any) {
-    if (error instanceof AppError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    // Also handle generic forbidden/unauthorized exceptions from requireRole if they throw custom errors
-    if (error.message && (error.message.includes("role") || error.message.includes("permission"))) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    console.error("Dashboard analytics error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
+export const GET = withApiHandler("/api/v1/analytics/dashboard", async ({ request }) => {
+  const principal = await requireSession(request);
+  return jsonResponse({ data: await getAnalyticsService().getDashboard(principal) });
+});

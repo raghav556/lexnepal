@@ -1,279 +1,457 @@
 import "server-only";
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { and, desc, eq } from "drizzle-orm";
-import { getDatabase } from "../db/client";
-import { leads, appointments, users, clients } from "../db/schema";
+import { and, asc, eq, ne, type SQL } from "drizzle-orm";
+import type { AuditContext } from "@/server/audit/context";
+import { getDatabase } from "@/server/db/client";
+import {
+  appointments,
+  auditLog,
+  clients,
+  firms,
+  leads,
+  notifications,
+} from "@/server/db/schema";
+import type {
+  AppointmentAssignInput,
+  AppointmentBookInput,
+  AppointmentCreateInput,
+  AppointmentListInput,
+  AppointmentRescheduleInput,
+  AppointmentSlotsInput,
+  AppointmentStatusUpdateInput,
+  IntakeSubmitInput,
+  LeadConvertInput,
+  LeadCreateInput,
+  LeadListInput,
+  LeadUpdateInput,
+} from "@/shared/contracts/crm";
+import { AppError } from "@/shared/errors/api-error";
 
+const database = getDatabase();
+
+/** Match Convex `listAvailableSlots` base slots. */
+export const DEFAULT_APPOINTMENT_SLOTS = [
+  "10:00 AM",
+  "11:00 AM",
+  "01:30 PM",
+  "03:00 PM",
+  "04:30 PM",
+] as const;
+
+function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
+  const output: Record<string, unknown> = { ...row, _id: row.id };
+  for (const [key, value] of Object.entries(output)) {
+    if (value instanceof Date) {
+      output[key] = key === "date" ? value.toISOString().slice(0, 10) : value.toISOString();
+    }
+  }
+  if (typeof output.date === "string" && output.date.length > 10) {
+    output.date = output.date.slice(0, 10);
+  }
+  delete output.firmId;
+  delete output.legacyConvexId;
+  delete output.deletedAt;
+  return output as T & { _id: string };
+}
+
+async function writeAudit(
+  tx: Parameters<Parameters<typeof database.transaction>[0]>[0],
+  audit: AuditContext,
+  action: string,
+  resource: string,
+  resourceId: string,
+  details?: string,
+) {
+  await tx.insert(auditLog).values({
+    firmId: audit.firmId,
+    userId: audit.actorId,
+    action,
+    resource,
+    resourceId,
+    details: details ?? null,
+    ipAddress: audit.ipAddress,
+    requestId: audit.requestId,
+  });
+}
 
 export class CrmRepository {
-  // --- Leads ---
-  async listLeads(firmId: string, filters?: { status?: string; assignedTo?: string }) {
-    const db = getDatabase();
-    let query = db.select().from(leads).where(eq(leads.firmId, firmId));
-    
-    if (filters?.status) {
-      query = db.select().from(leads).where(and(eq(leads.firmId, firmId), eq(leads.status, filters.status as any)));
-    }
-    if (filters?.assignedTo) {
-      query = db.select().from(leads).where(and(eq(leads.firmId, firmId), eq(leads.assignedTo, filters.assignedTo)));
-    }
-    
-    return await query.orderBy(desc(leads.createdAt));
+  async resolveFirmIdBySlug(slug: string): Promise<string | null> {
+    const [row] = await database
+      .select({ id: firms.id })
+      .from(firms)
+      .where(eq(firms.slug, slug))
+      .limit(1);
+    return row?.id ?? null;
   }
 
-  async createLead(
-    firmId: string,
-    data: {
-      fullName: string;
-      email?: string;
-      phone?: string;
-      source: string;
-      practiceAreaInterest?: string;
-      message?: string;
-      assignedTo?: string;
-      notes?: string;
-    }
-  ) {
-    const db = getDatabase();
-    const [row] = await db
+  async listLeads(firmId: string, filters: LeadListInput = {}) {
+    const conditions: SQL[] = [eq(leads.firmId, firmId)];
+    if (filters.status) conditions.push(eq(leads.status, filters.status));
+    if (filters.assignedTo) conditions.push(eq(leads.assignedTo, filters.assignedTo));
+    const rows = await database
+      .select()
+      .from(leads)
+      .where(and(...conditions))
+      .orderBy(asc(leads.createdAt));
+    return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
+  }
+
+  async createLead(firmId: string, data: LeadCreateInput, audit?: AuditContext) {
+    const [row] = await database
       .insert(leads)
       .values({
         firmId,
         fullName: data.fullName,
-        email: data.email,
-        phone: data.phone,
-        source: data.source as any,
-        practiceAreaInterest: data.practiceAreaInterest,
-        message: data.message,
-        assignedTo: data.assignedTo,
-        notes: data.notes,
+        email: data.email ?? null,
+        phone: data.phone ?? null,
+        source: data.source,
+        practiceAreaInterest: data.practiceAreaInterest ?? null,
+        message: data.message ?? null,
+        assignedTo: data.assignedTo ?? null,
+        notes: data.notes ?? null,
         status: "new",
       })
       .returning();
-    return row;
+    if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create lead", 500);
+    if (audit) {
+      await database.insert(auditLog).values({
+        firmId: audit.firmId,
+        userId: audit.actorId,
+        action: "lead.created",
+        resource: "leads",
+        resourceId: row.id,
+        details: data.source,
+        ipAddress: audit.ipAddress,
+        requestId: audit.requestId,
+      });
+    }
+    return toDto(row as unknown as Record<string, unknown>);
   }
 
-  async updateLead(
-    firmId: string,
-    leadId: string,
-    data: {
-      status?: string;
-      assignedTo?: string;
-      notes?: string;
-    }
-  ) {
-    const db = getDatabase();
-    const updates: Partial<typeof leads.$inferInsert> = {};
-    if (data.status) updates.status = data.status as any;
-    if (data.assignedTo) updates.assignedTo = data.assignedTo;
-    if (data.notes) updates.notes = data.notes;
-    updates.updatedAt = new Date();
+  async updateLead(firmId: string, leadId: string, data: LeadUpdateInput, audit: AuditContext) {
+    const updates: Partial<typeof leads.$inferInsert> = { updatedAt: new Date() };
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.assignedTo !== undefined) updates.assignedTo = data.assignedTo;
+    if (data.notes !== undefined) updates.notes = data.notes;
 
-    const [row] = await db
+    const [row] = await database
       .update(leads)
       .set(updates)
       .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)))
       .returning();
-    return row;
+    if (!row) throw new AppError("NOT_FOUND", "Lead was not found", 404);
+    await database.insert(auditLog).values({
+      firmId: audit.firmId,
+      userId: audit.actorId,
+      action: "lead.updated",
+      resource: "leads",
+      resourceId: leadId,
+      ipAddress: audit.ipAddress,
+      requestId: audit.requestId,
+    });
+    return toDto(row as unknown as Record<string, unknown>);
   }
 
-  async convertToClient(firmId: string, leadId: string) {
-    const db = getDatabase();
-    return await db.transaction(async (tx) => {
-      const [lead] = await tx.select().from(leads).where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)));
-      if (!lead) throw new Error("Lead not found");
-      if (lead.convertedClientId) throw new Error("Lead already converted");
+  async convertToClient(
+    firmId: string,
+    leadId: string,
+    input: LeadConvertInput,
+    audit: AuditContext,
+  ) {
+    return database.transaction(async (tx) => {
+      const [lead] = await tx
+        .select()
+        .from(leads)
+        .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)));
+      if (!lead) throw new AppError("NOT_FOUND", "Lead was not found", 404);
+      if (lead.convertedClientId) {
+        throw new AppError("CONFLICT", "Lead already converted", 409);
+      }
 
-      const [client] = await tx.insert(clients).values({
-        firmId,
-        type: "individual",
-        fullName: lead.fullName,
-        email: lead.email,
-        phone: lead.phone,
-      }).returning();
+      const [client] = await tx
+        .insert(clients)
+        .values({
+          firmId,
+          type: input.type,
+          fullName: lead.fullName,
+          email: lead.email,
+          phone: lead.phone,
+          companyName: input.type === "corporate" ? input.companyName ?? null : null,
+          kycStatus: "pending",
+          isActive: true,
+          notes: "Converted from lead",
+        })
+        .returning();
+      if (!client) throw new AppError("INTERNAL_ERROR", "Failed to create client", 500);
 
-      await tx.update(leads).set({
-        status: "converted",
-        convertedClientId: client!.id,
-        updatedAt: new Date(),
-      }).where(eq(leads.id, leadId));
+      await tx
+        .update(leads)
+        .set({
+          status: "converted",
+          convertedClientId: client.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(leads.id, leadId));
 
-      return client;
+      await writeAudit(tx, audit, "lead.converted", "leads", leadId, client.id);
+      return { clientId: client.id, _id: client.id };
     });
   }
 
-  async generateIntakeLink(firmId: string, leadId: string) {
-    const db = getDatabase();
-    const token = crypto.randomUUID();
-    await db.update(leads).set({
-      intakeToken: token,
-      updatedAt: new Date(),
-    }).where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)));
-    return token;
+  async generateIntakeLink(firmId: string, leadId: string, audit: AuditContext) {
+    const token = `intake_${crypto.randomUUID().replace(/-/g, "")}`;
+    const [row] = await database
+      .update(leads)
+      .set({ intakeToken: token, intakeSubmitted: false, updatedAt: new Date() })
+      .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)))
+      .returning();
+    if (!row) throw new AppError("NOT_FOUND", "Lead was not found", 404);
+    await database.insert(auditLog).values({
+      firmId: audit.firmId,
+      userId: audit.actorId,
+      action: "lead.intake_link",
+      resource: "leads",
+      resourceId: leadId,
+      ipAddress: audit.ipAddress,
+      requestId: audit.requestId,
+    });
+    return { token, url: `/intake/${token}` };
   }
 
   async getIntakeByToken(token: string) {
-    const db = getDatabase();
-    const [lead] = await db.select().from(leads).where(eq(leads.intakeToken, token));
-    return lead;
+    const [lead] = await database.select().from(leads).where(eq(leads.intakeToken, token)).limit(1);
+    if (!lead) return null;
+    return {
+      lead: {
+        _id: lead.id,
+        id: lead.id,
+        fullName: lead.fullName,
+        email: lead.email,
+        phone: lead.phone,
+        practiceAreaInterest: lead.practiceAreaInterest,
+        intakeSubmitted: lead.intakeSubmitted ?? false,
+      },
+    };
   }
 
-  async submitIntake(token: string, payload: any) {
-    const db = getDatabase();
-    const [lead] = await db.select().from(leads).where(eq(leads.intakeToken, token));
-    if (!lead) throw new Error("Invalid token");
+  async submitIntake(token: string, payload: IntakeSubmitInput) {
+    const [lead] = await database.select().from(leads).where(eq(leads.intakeToken, token)).limit(1);
+    if (!lead) throw new AppError("NOT_FOUND", "Invalid or expired intake link", 404);
+    if (lead.intakeSubmitted) throw new AppError("CONFLICT", "Intake already submitted", 409);
 
-    await db.update(leads).set({
-      notes: (lead.notes ? lead.notes + "\n\n" : "") + "Intake form submitted:\n" + JSON.stringify(payload, null, 2),
-      intakeSubmitted: true,
-      updatedAt: new Date(),
-    }).where(eq(leads.id, lead.id));
+    const notes = [
+      lead.notes,
+      payload.address ? `Address: ${payload.address}` : null,
+      payload.citizenshipNo ? `Citizenship: ${payload.citizenshipNo}` : null,
+      payload.documentStorageIds?.length
+        ? `Docs: ${payload.documentStorageIds.join(", ")}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const [row] = await database
+      .update(leads)
+      .set({
+        fullName: payload.fullName,
+        phone: payload.phone,
+        email: payload.email ?? lead.email,
+        practiceAreaInterest: payload.practiceArea || lead.practiceAreaInterest,
+        message: payload.caseDescription || lead.message,
+        notes: notes || null,
+        intakeSubmitted: true,
+        status: "contacted",
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, lead.id))
+      .returning();
+
+    return { success: true as const, leadId: row!.id, _id: row!.id };
   }
 
-  // --- Appointments ---
-  async listAppointments(firmId: string, filters?: { status?: string; assignedLawyerId?: string }) {
-    const db = getDatabase();
-    let query = db.select().from(appointments).where(eq(appointments.firmId, firmId));
-    
-    if (filters?.status) {
-      query = db.select().from(appointments).where(and(eq(appointments.firmId, firmId), eq(appointments.status, filters.status as any)));
+  async listAppointments(firmId: string, filters: AppointmentListInput = {}) {
+    const conditions: SQL[] = [eq(appointments.firmId, firmId)];
+    if (filters.status) conditions.push(eq(appointments.status, filters.status));
+    if (filters.assignedLawyerId) {
+      conditions.push(eq(appointments.assignedLawyerId, filters.assignedLawyerId));
     }
-    if (filters?.assignedLawyerId) {
-      query = db.select().from(appointments).where(and(eq(appointments.firmId, firmId), eq(appointments.assignedLawyerId, filters.assignedLawyerId)));
-    }
-    
-    return await query.orderBy(desc(appointments.date));
+    const rows = await database
+      .select()
+      .from(appointments)
+      .where(and(...conditions))
+      .orderBy(asc(appointments.date));
+    return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
   }
 
-  async listAvailableSlots(firmId: string, date: string) {
-    // Basic implementation that returns default slots and filters out confirmed ones
-    const allSlots = [
-      "09:00 AM", "10:00 AM", "11:00 AM",
-      "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
+  async listAvailableSlots(firmId: string, input: AppointmentSlotsInput) {
+    const conditions: SQL[] = [
+      eq(appointments.firmId, firmId),
+      eq(appointments.date, input.date),
+      ne(appointments.status, "cancelled"),
     ];
-    const db = getDatabase();
-    const booked = await db.select().from(appointments).where(
-      and(
-        eq(appointments.firmId, firmId),
-        eq(appointments.date, date),
-        eq(appointments.status, "confirmed")
-      )
-    );
-    const bookedSlots = new Set(booked.map(a => a.timeSlot));
-    return allSlots.filter(slot => !bookedSlots.has(slot));
+    if (input.assignedLawyerId) {
+      conditions.push(eq(appointments.assignedLawyerId, input.assignedLawyerId));
+    }
+    const booked = await database
+      .select({ timeSlot: appointments.timeSlot })
+      .from(appointments)
+      .where(and(...conditions));
+    const taken = new Set(booked.map((row) => row.timeSlot));
+    return DEFAULT_APPOINTMENT_SLOTS.filter((slot) => !taken.has(slot));
   }
 
-  async createAppointment(
-    firmId: string,
-    data: {
-      clientName: string;
-      clientEmail?: string;
-      clientPhone: string;
-      practiceArea: string;
-      date: string;
-      timeSlot: string;
-      notes?: string;
-      assignedLawyerId?: string;
-    }
-  ) {
-    const db = getDatabase();
-    const [row] = await db
+  async createAppointment(firmId: string, data: AppointmentCreateInput, audit?: AuditContext) {
+    const [row] = await database
       .insert(appointments)
       .values({
         firmId,
         clientName: data.clientName,
-        clientEmail: data.clientEmail,
+        clientEmail: data.clientEmail || null,
         clientPhone: data.clientPhone,
+        clientId: data.clientId ?? null,
         practiceArea: data.practiceArea,
         date: data.date,
         timeSlot: data.timeSlot,
-        notes: data.notes,
-        assignedLawyerId: data.assignedLawyerId,
+        notes: data.notes ?? null,
+        assignedLawyerId: data.assignedLawyerId ?? null,
         status: "pending",
       })
       .returning();
-    return row;
+    if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create appointment", 500);
+    if (audit) {
+      await database.insert(auditLog).values({
+        firmId: audit.firmId,
+        userId: audit.actorId,
+        action: "appointment.created",
+        resource: "appointments",
+        resourceId: row.id,
+        ipAddress: audit.ipAddress,
+        requestId: audit.requestId,
+      });
+    }
+    return toDto(row as unknown as Record<string, unknown>);
   }
 
-  async bookConsultation(
-    firmId: string,
-    clientId: string,
-    data: {
-      date: string;
-      timeSlot: string;
-      practiceArea: string;
-      notes?: string;
-    }
-  ) {
-    const db = getDatabase();
-    const [client] = await db.select().from(clients).where(eq(clients.id, clientId));
-    if (!client) throw new Error("Client not found");
-
-    const [row] = await db
-      .insert(appointments)
-      .values({
+  async bookConsultation(firmId: string, data: AppointmentBookInput, audit: AuditContext) {
+    if (data.clientId) {
+      const [client] = await database
+        .select()
+        .from(clients)
+        .where(and(eq(clients.id, data.clientId), eq(clients.firmId, firmId)))
+        .limit(1);
+      if (!client) throw new AppError("NOT_FOUND", "Client was not found", 404);
+      return this.createAppointment(
         firmId,
-        clientId,
-        clientName: client.fullName,
-        clientEmail: client.email,
-        clientPhone: client.phone || "",
-        practiceArea: data.practiceArea,
-        date: data.date,
-        timeSlot: data.timeSlot,
-        notes: data.notes,
-        status: "pending",
-      })
-      .returning();
-    return row;
+        {
+          ...data,
+          clientName: data.clientName || client.fullName,
+          clientEmail: data.clientEmail ?? client.email,
+          clientPhone: data.clientPhone || client.phone || "N/A",
+          clientId: client.id,
+        },
+        audit,
+      );
+    }
+    return this.createAppointment(firmId, data, audit);
   }
 
   async updateAppointmentStatus(
     firmId: string,
     appointmentId: string,
-    status: string,
-    meetingLink?: string
+    input: AppointmentStatusUpdateInput,
+    audit: AuditContext,
   ) {
-    const db = getDatabase();
-    const updates: Partial<typeof appointments.$inferInsert> = {
-      status: status as any,
-      updatedAt: new Date(),
-    };
-    if (meetingLink !== undefined) updates.meetingLink = meetingLink;
+    return database.transaction(async (tx) => {
+      const updates: Partial<typeof appointments.$inferInsert> = {
+        status: input.status,
+        updatedAt: new Date(),
+      };
+      if (input.meetingLink !== undefined) updates.meetingLink = input.meetingLink;
 
-    const [row] = await db
-      .update(appointments)
-      .set(updates)
-      .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
-      .returning();
-    return row;
+      const [row] = await tx
+        .update(appointments)
+        .set(updates)
+        .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
+        .returning();
+      if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
+
+      if (input.status === "confirmed" && row.assignedLawyerId) {
+        await tx.insert(notifications).values({
+          firmId,
+          userId: row.assignedLawyerId,
+          title: "Appointment confirmed",
+          body: `${row.clientName} — ${row.date} ${row.timeSlot}`,
+          type: "system",
+          relatedId: row.id,
+          link: `/admin/appointments`,
+        });
+      }
+      if (input.status === "confirmed" && row.clientEmail) {
+        await writeAudit(
+          tx,
+          audit,
+          "comms.email",
+          "appointment",
+          row.id,
+          JSON.stringify({
+            to: row.clientEmail,
+            subject: "Consultation confirmed",
+            meetingLink: input.meetingLink || row.meetingLink,
+          }),
+        );
+      }
+
+      await writeAudit(tx, audit, "appointment.status", "appointments", row.id, input.status);
+      return { success: true as const, ...toDto(row as unknown as Record<string, unknown>) };
+    });
   }
 
-  async assignLawyerToAppointment(
+  async assignLawyer(
     firmId: string,
     appointmentId: string,
-    lawyerId: string
+    input: AppointmentAssignInput,
+    audit: AuditContext,
   ) {
-    const db = getDatabase();
-    const [row] = await db
+    const [row] = await database
       .update(appointments)
-      .set({ assignedLawyerId: lawyerId, updatedAt: new Date() })
+      .set({ assignedLawyerId: input.assignedLawyerId, updatedAt: new Date() })
       .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
       .returning();
-    return row;
+    if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
+    await database.insert(auditLog).values({
+      firmId: audit.firmId,
+      userId: audit.actorId,
+      action: "appointment.assigned",
+      resource: "appointments",
+      resourceId: appointmentId,
+      details: input.assignedLawyerId,
+      ipAddress: audit.ipAddress,
+      requestId: audit.requestId,
+    });
+    return { success: true as const, ...toDto(row as unknown as Record<string, unknown>) };
   }
 
   async rescheduleAppointment(
     firmId: string,
     appointmentId: string,
-    date: string,
-    timeSlot: string
+    input: AppointmentRescheduleInput,
+    audit: AuditContext,
   ) {
-    const db = getDatabase();
-    const [row] = await db
+    const [row] = await database
       .update(appointments)
-      .set({ date, timeSlot, updatedAt: new Date() })
+      .set({ date: input.date, timeSlot: input.timeSlot, updatedAt: new Date() })
       .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
       .returning();
-    return row;
+    if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
+    await database.insert(auditLog).values({
+      firmId: audit.firmId,
+      userId: audit.actorId,
+      action: "appointment.rescheduled",
+      resource: "appointments",
+      resourceId: appointmentId,
+      details: `${input.date} ${input.timeSlot}`,
+      ipAddress: audit.ipAddress,
+      requestId: audit.requestId,
+    });
+    return { success: true as const, ...toDto(row as unknown as Record<string, unknown>) };
   }
 }

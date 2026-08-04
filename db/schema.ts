@@ -1496,7 +1496,7 @@ export const appointments = pgTable(
     clientPhone: text("client_phone").notNull(),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     practiceArea: text("practice_area").notNull(),
-    date: date("date").notNull(),
+    date: date("appointment_date").notNull(),
     timeSlot: text("time_slot").notNull(),
     notes: text("notes"),
     status: appointmentStatusEnum("status").default("pending").notNull(),

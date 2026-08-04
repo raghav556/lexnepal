@@ -1,32 +1,18 @@
+import fs from "node:fs/promises";
+import { closeDatabase } from "../../src/server/db/client";
 import { migrateCommunicationExport } from "../../src/server/services/communication-migration";
-import * as fs from "fs";
-import * as path from "path";
-import JSZip from "jszip";
 
-async function main() {
-  const exportZipPath = process.argv[2];
-  if (!exportZipPath) {
-    console.error("Usage: npm run migration:communication <path-to-export.zip>");
-    process.exit(1);
-  }
-
-  const zipFile = fs.readFileSync(path.resolve(exportZipPath));
-  const zip = await JSZip.loadAsync(zipFile);
-
-  const messagesFile = zip.file("messages.jsonl");
-  const notificationsFile = zip.file("notifications.jsonl");
-
-  const messagesJsonl = messagesFile ? await messagesFile.async("string") : "";
-  const notificationsJsonl = notificationsFile ? await notificationsFile.async("string") : "";
-
-  console.log("Starting communication migration (messages & notifications)...");
-  try {
-    const results = await migrateCommunicationExport(messagesJsonl, notificationsJsonl);
-    console.log(`Migration complete. Messages: ${results.messages}, Notifications: ${results.notifications}`);
-  } catch (error) {
-    console.error("Migration failed:", error);
-    process.exit(1);
-  }
+const [exportPath, firmMapPath, orphanFirmId] = process.argv.slice(2);
+if (!exportPath || !firmMapPath) {
+  throw new Error(
+    "Usage: npm run migration:communication -- <convex-export-dir-or-zip> <firm-map.json> [orphan-firm-uuid]",
+  );
 }
-
-main();
+try {
+  const firmMap = JSON.parse(await fs.readFile(firmMapPath, "utf8")) as Record<string, string>;
+  const report = await migrateCommunicationExport({ exportPath, firmMap, orphanFirmId });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (!report.reconciliation.passed) process.exitCode = 1;
+} finally {
+  await closeDatabase();
+}

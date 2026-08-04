@@ -3,9 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, X, Send, User, Bot, Loader2, ArrowRight, Scale } from "lucide-react";
 import { Button } from "./button.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { Link } from "react-router-dom";
+import { useLeadCommands } from "@/client/queries/crm";
 
 type Message = {
   id: string;
@@ -81,7 +80,7 @@ export function ChatbotWidget() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const submitLead = useMutation(api.chatbots?.submitLead || (() => {})); // safe fallback for mock
+  const { createLead } = useLeadCommands();
 
   // Lead capture state
   const [leadName, setLeadName] = useState("");
@@ -169,12 +168,12 @@ export function ChatbotWidget() {
     
     setSubmittingLead(true);
     try {
-      // @ts-ignore - mock function will handle it
-      await submitLead({
+      await createLead.mutateAsync({
         fullName: leadName,
-        email: leadContact.includes('@') ? leadContact : undefined,
-        phone: !leadContact.includes('@') ? leadContact : undefined,
-        practiceAreaInterest: "General Inquiry (Via Chatbot)"
+        email: leadContact.includes("@") ? leadContact : undefined,
+        phone: !leadContact.includes("@") ? leadContact : undefined,
+        practiceAreaInterest: "General Inquiry (Via Chatbot)",
+        source: "website",
       });
       
       setMessages(prev => [

@@ -1,0 +1,2 @@
+{"_id":"convex_time_a","_creationTime":1785628900000,"firmId":"convex_firm_a","caseId":"convex_case_a","userId":"convex_identity_user_1","description":"Fixture research time","minutes":90,"isBillable":true,"date":"2026-08-02","ratePerHour":5000}
+{"_id":"convex_time_b","_creationTime":1785628950000,"firmId":"convex_firm_a","caseId":"convex_case_a","userId":"convex_identity_user_1","description":"Fixture billed time","minutes":60,"isBillable":true,"date":"2026-07-20","ratePerHour":5000,"invoiceId":"convex_invoice_a"}

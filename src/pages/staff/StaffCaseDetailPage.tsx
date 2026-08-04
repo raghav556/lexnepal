@@ -17,6 +17,11 @@ import { useCase, useCaseCommands } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
+import { useHearings } from "@/client/queries/hearings";
+import { useDocuments } from "@/client/queries/documents";
+import { useTasks, useTaskCommands, useSopTemplates, useUpdateTask } from "@/client/queries/tasks";
+import { useResearchNotes } from "@/client/queries/research";
+import { useTimeEntries, useExpenses } from "@/client/queries/financial";
 import { cn } from "@/lib/utils.ts";
 import { PRIORITY_COLORS, formatTaskDue } from "@/lib/task-constants.ts";
 
@@ -46,18 +51,17 @@ export default function StaffCaseDetailPage() {
   const caseData = useCase(caseId || null);
   const clients = useClients() || [];
   const users = useStaffDirectory() || [];
-  const hearings = useQuery(api.hearings.listHearings, caseId ? { caseId: caseId as any } : "skip") || [];
-  const documents = useQuery(api.documents.listDocuments as any, caseId ? { caseId: caseId as any } : "skip") || [];
+  const hearings = useHearings(caseId ? { caseId } : "skip") || [];
+  const documents = useDocuments(caseId ? { caseId } : {}) || [];
   const { update: updateCaseAdapter } = useCaseCommands();
   const updateCase = ({ caseId: targetCaseId, ...input }: any) => updateCaseAdapter(targetCaseId, input);
   
-  const tasks = useQuery(api.tasks.listTasks, caseId ? { caseId: caseId as any } : "skip") || [];
-  const timeEntries = useQuery(api.timeEntries.listTimeEntries, caseId ? { caseId: caseId as any } : "skip") || [];
-  const expenses = useQuery(api.expenses.list, caseId ? { caseId: caseId as any } : "skip") || [];
-  const createTask = useMutation(api.tasks.createTask);
-  const updateTask = useMutation(api.tasks.updateTask);
-  const runSop = useMutation(api.tasks.runSop);
-  const sopTemplates = useQuery(api.tasks.listSopTemplates, {}) || [];
+  const tasks = useTasks(caseId ? { caseId } : "skip") || [];
+  const { data: timeEntries = [] } = useTimeEntries(caseId ? { caseId } : {});
+  const { data: expenses = [] } = useExpenses(caseId ? { caseId } : {});
+  const { createTask, runSop } = useTaskCommands();
+  const updateTask = useUpdateTask();
+  const sopTemplates = useSopTemplates() || [];
   const practiceSops = (() => {
     if (!caseData?.practiceArea) return sopTemplates;
     const area = String(caseData.practiceArea).toLowerCase();
@@ -71,7 +75,7 @@ export default function StaffCaseDetailPage() {
   const createBrief = useMutation((api as any).briefs.create as any);
   const updateBrief = useMutation((api as any).briefs.update as any);
   const deleteBrief = useMutation((api as any).briefs.delete as any);
-  const researchNotes = (useQuery((api as any).research.listNotes as any, {}) || []) as any[];
+  const researchNotes = useResearchNotes() || [];
 
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("");
@@ -310,11 +314,11 @@ export default function StaffCaseDetailPage() {
     if (!caseId || !currentUser) return;
     setIsAddingTask(true);
     try {
-      const res = await runSop({
+      const res = await runSop(
         templateKey,
-        caseId: caseId as any,
-        assignedTo: currentUser._id as any,
-      });
+        caseId,
+        currentUser._id,
+      );
       toast.success(`${(res as any).label}: ${(res as any).created} added, ${(res as any).skipped} skipped (already exist).`);
     } catch (err: any) {
       toast.error(err?.message || "Failed to execute SOP.");

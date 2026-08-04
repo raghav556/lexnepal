@@ -23,6 +23,17 @@ describe("frontend backend routing", () => {
     expect(switched.cms).toBe("convex");
   });
 
+  it("forces Convex for every domain while VITE_USE_MOCK is enabled", () => {
+    const mocked = resolveBackendFlags({
+      VITE_USE_MOCK: "true",
+      VITE_BACKEND_DOCUMENTS: "next",
+      VITE_BACKEND_CASES: "next",
+      VITE_BACKEND_IDENTITY: "next",
+      NEXT_PUBLIC_BACKEND_TASKS: "next",
+    });
+    expect(BACKEND_DOMAINS.every((domain) => mocked[domain] === "convex")).toBe(true);
+  });
+
   it("uses stable domain query-key namespaces", () => {
     expect(queryKeys.documents.list({ inTrash: false })).toEqual([
       "documents",

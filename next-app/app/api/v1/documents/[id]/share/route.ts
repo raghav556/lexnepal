@@ -1,21 +1,32 @@
-import { NextResponse } from "next/server";
 import { requireSession } from "@/server/auth/runtime";
-import { requireFirmContext } from "@/server/policies/authorization";
-import { DocumentRepository } from "@/server/repositories/document-repository";
+import { withApiHandler } from "@/server/http/handler";
+import { jsonResponse } from "@/server/http/response";
+import { getDocumentService } from "@/server/services/document-service";
+import { documentShareCreateSchema, uuidSchema } from "@/shared/contracts/documents";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-    const body = await request.json();
-
-    const share = await DocumentRepository.createShare(firmId, params.id, body, session.user.id);
-    return NextResponse.json(share);
-  } catch (error: any) {
-    console.error("Share Document API Error:", error);
-    if (error.message.includes("Not authenticated")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
-  }
+function idFrom(request: Request) {
+  return uuidSchema.parse(new URL(request.url).pathname.split("/").filter(Boolean).at(-2));
 }
+
+export const GET = withApiHandler("/api/v1/documents/:id/share", async ({ request }) => {
+  const principal = await requireSession(request);
+  return jsonResponse({ data: await getDocumentService().listShares(principal, idFrom(request)) });
+});
+
+export const POST = withApiHandler("/api/v1/documents/:id/share", async ({ request }) => {
+  const principal = await requireSession(request);
+  const input = documentShareCreateSchema.parse(await request.json().catch(() => ({})));
+  return jsonResponse(
+    { data: await getDocumentService().createShare(principal, idFrom(request), input) },
+    { status: 201 },
+  );
+});
+
+export const DELETE = withApiHandler("/api/v1/documents/:id/share", async ({ request }) => {
+  const principal = await requireSession(request);
+  const documentId = idFrom(request);
+  const shareId = uuidSchema.parse(new URL(request.url).searchParams.get("shareId"));
+  return jsonResponse({
+    data: await getDocumentService().revokeShare(principal, documentId, shareId),
+  });
+});

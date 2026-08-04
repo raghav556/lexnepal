@@ -1,40 +1,45 @@
 # Phase 8.6: CRM (Leads & Appointments) Migration
 
-## Overview
-This document outlines the migration of the CRM module, specifically dealing with leads and appointments, from the legacy Convex backend to the new Drizzle/Postgres database. It uses the domain-by-domain strangler pattern approach.
+## Current status
 
-## Data Model Changes
+Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through `VITE_BACKEND_LEADS=next` and `VITE_BACKEND_APPOINTMENTS=next`. Convex branches remain inside typed adapters for rollback. Production cutover still requires an immutable export, approved firm map and production reconciliation.
 
-### Leads Table
-- Mapped from `leads` table in Convex.
-- Schema includes `fullName`, `email`, `phone`, `source`, `practiceAreaInterest`, `message`, `status`, `assignedTo`, `convertedClientId`, `notes`, `intakeToken`, and `intakeSubmitted`.
-- Enum used for lead source and status.
+## Domains covered
 
-### Appointments Table
-- Mapped from `appointments` table in Convex.
-- Schema includes `clientName`, `clientEmail`, `clientPhone`, `clientId`, `assignedLawyerId`, `practiceArea`, `date`, `timeSlot`, `notes`, `status`, and `meetingLink`.
+- Leads (create/list/update, convert to client, intake link + submit)
+- Appointments (list, public/staff create, book consultation, status, assign, reschedule, available slots)
+- Public website capture (contact/resources/chatbot) via `/api/v1/public/leads` and `/api/v1/public/appointments`
 
-## Backend Updates
-- `crm-repository.ts` created with CRUD operations for Leads and Appointments.
-- Implemented `migrateCrmExport` logic for robust ID mapping, conflict resolution, and data migration, using the same pattern as Matters.
-- `migration:crm` script added to run the export logic from CLI.
+## Implemented vertical slice
 
-## Client Updates
-- Created new React Query hooks in `src/client/queries/crm.ts`:
-  - `useLeads()` and `useLeadCommands()`
-  - `useAppointments()` and `useAppointmentCommands()`
-- Modified frontend pages to abstract over Convex and use the standard dual-backend toggle logic:
-  - `StaffAppointmentsPage.tsx`
-  - `AdminAppointmentsPage.tsx`
-  - `AdminCRMPage.tsx`
-  - `ClientBookingPage.tsx`
-  - `IntakeFormPage.tsx`
-  - `ResourcesPage.tsx`
-  - `ContactPage.tsx`
-  - `ConsultationPage.tsx`
+- Zod contracts in `src/shared/contracts/crm.ts`
+- Extended existing `CrmRepository` (no second repository): AND filters, `_id` DTOs, convert type/company, intake parity, Convex-matching slots
+- `CrmService` with staff/`clients.manage` authorization and `PUBLIC_FIRM_SLUG` for public writes
+- Versioned Route Handlers under `/api/v1/leads`, `/api/v1/appointments`, and `/api/v1/public/...` (not `/api/crm`)
+- Frontend adapters use `apiClient`; ChatbotWidget uses lead adapter (no direct Convex CRM writes)
+- Idempotent importer with real reconciliation checks; lead source enum normalized to schema (`walk_in`, etc.)
+- Local verify: `npm run crm:verify-local`
 
-## Status
-- **Schema**: Done
-- **Backend**: Done
-- **Frontend**: Done
-- **Verification**: Ready for characterization tests.
+## Local commands
+
+```powershell
+npm run migration:identity -- tests/fixtures/convex-identity-export tests/fixtures/convex-identity-firm-map.json
+npm run migration:matters -- tests/fixtures/convex-matters-export tests/fixtures/convex-identity-firm-map.json 61000000-0000-4000-8000-000000000001
+npm run migration:crm -- tests/fixtures/convex-crm-export tests/fixtures/convex-identity-firm-map.json
+npm run crm:verify-local
+```
+
+## Local exit gate
+
+- [x] Service + Route Handlers exist for leads and appointments (including public + intake).
+- [x] Frontend pages use CRM adapters (admin/staff/client/public); chatbot uses adapter.
+- [x] Migration double-run reconcile passes on local fixture.
+- [x] Contract tests cover lead/appointment/intake inputs.
+- [x] Local leads + appointments backend flags are `next`.
+- [x] Convex authority restored only by flipping `VITE_BACKEND_LEADS` / `VITE_BACKEND_APPOINTMENTS` to `convex`.
+
+## Production gates
+
+- Confirm role matrix grants `clients.manage` for convert/assign to intended roles.
+- Rehearse intake token uniqueness and public firm slug against production-like volumes.
+- Switch CRM flags only after website lead/booking soak plan is approved.

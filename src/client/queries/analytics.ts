@@ -1,37 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { anyApi as api } from "convex/server";
-import { useDomainBackend } from "@/client/data/provider";
+import { useQuery as useConvexQuery } from "@/client/data/convex-bridge";
 import { apiClient } from "@/client/api/client";
+import { useDomainBackend } from "@/client/data/provider";
 import { queryKeys } from "@/client/queries/query-keys";
-import { useQuery as useConvexQuery } from "convex/react";
-import { useShadowRead } from "@/client/data/shadow-reader";
+import type { AnalyticsDashboardDto } from "@/shared/contracts/analytics";
 
-export function useDashboardData() {
+export function useDashboardData(): AnalyticsDashboardDto | undefined {
   const backend = useDomainBackend("analytics");
-  
-  // NOTE: Assuming the Convex api shape matches what we found earlier
-  // If api.analytics doesn't exist on the client side perfectly typed, we can cast it
-  const convexData = useConvexQuery((api as any).analytics.getDashboardData);
-  
-  const nextData = useQuery({
-    queryKey: queryKeys.analytics?.dashboard || ["analytics", "dashboard"],
-    queryFn: () => apiClient.request("/api/v1/analytics/dashboard"),
-    enabled: backend === "next" || backend === "shadow",
+  const convex = useConvexQuery(
+    (api as any).analytics.getDashboardData,
+    backend === "convex" ? {} : "skip",
+  ) as AnalyticsDashboardDto | undefined;
+  const next = useTanstackQuery({
+    queryKey: queryKeys.analytics.dashboard,
+    queryFn: ({ signal }) =>
+      apiClient.request<AnalyticsDashboardDto>("/api/v1/analytics/dashboard", { signal }),
+    enabled: backend === "next",
   });
-
-  useShadowRead(
-    "analytics",
-    "/api/v1/analytics/dashboard",
-    backend,
-    convexData,
-    nextData.data,
-    nextData.isLoading,
-    nextData.error
-  );
-
-  return {
-    data: backend === "next" ? nextData.data : convexData,
-    isLoading: backend === "next" ? nextData.isLoading : convexData === undefined,
-    error: backend === "next" ? nextData.error : null,
-  };
+  return backend === "convex" ? convex : next.data;
 }

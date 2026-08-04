@@ -102,6 +102,9 @@ export interface ListTasksInput {
   includeArchived?: boolean;
   caseId?: string;
   assignedTo?: string;
+  parentTaskId?: string;
+  hearingId?: string;
+  status?: string;
 }
 
 export interface HearingDto {

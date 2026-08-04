@@ -1,51 +1,47 @@
 # Phase 8.5: Financial Domain Migration
 
-## Overview
-This phase handles the migration of financial, billing, and trust accounting features from Convex to Next.js + Drizzle. This involves migrating invoices, time entries, trust transactions, and expenses.
+## Current status
 
-## What Was Done
+Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through `VITE_BACKEND_FINANCE=next`. Convex branches remain inside typed adapters for rollback. Production cutover still requires an immutable export, approved firm map and production reconciliation.
 
-### 1. Database Schema
-Financial tables are defined in `db/schema.ts` (using Next.js + Drizzle):
-- `invoices`
-- `invoiceLineItems`
-- `timeEntries`
-- `payments`
-- `trustTransactions`
-- `expenses`
+## Domains covered
 
-### 2. Financial Repository
-Created `src/server/repositories/financial-repository.ts` as the server-side single point of truth for financial mutations. This strictly enforces wrapping financial operations (such as payments and trust top-ups) within database transactions to maintain consistency.
+- Invoices + line items (create from unbilled time)
+- Time entries
+- Trust transactions
+- Expenses + stats
+- Payments (mark paid + gateway initiate)
 
-### 3. Frontend Hooks (Convex Bridge)
-Created `src/client/queries/financial.ts` containing the dual-backend domain hooks:
-- `useInvoices`, `useInvoiceCommands`
-- `useTimeEntries`, `useTimeEntryCommands`
-- `useTrustTransactions`, `useTrustCommands`
-- `useExpenses`, `useExpenseCommands`
-- `useExpenseStats`
+## Implemented vertical slice
 
-### 4. Component Refactoring
-Refactored all frontend components that read or write financial data to use the domain-specific hooks instead of direct Convex API calls. Components refactored include:
-- `src/pages/staff/StaffTimeTrackerPage.tsx`
-- `src/pages/staff/StaffTasksPage.tsx`
-- `src/pages/staff/StaffDashboard.tsx`
-- `src/pages/staff/StaffCaseDetailPage.tsx`
-- `src/pages/client/ClientDashboard.tsx`
-- `src/pages/client/ClientBillingPage.tsx`
-- `src/pages/admin/AdminFinancePage.tsx`
-- `src/pages/admin/AdminExpensesPage.tsx`
-- `src/pages/admin/AdminDashboard.tsx`
+- Zod contracts in `src/shared/contracts/financial.ts`
+- `PostgresFinancialRepository` with transactional mutations via `runFinancialTransaction`
+- `FinancialService` with `finance.manage` / `cases.manage` authorization and client-owned invoice payment
+- Versioned Route Handlers under `/api/v1/financial/...`
+- Frontend adapters use `apiClient` (no raw fetch; no direct page Convex finance calls)
+- Idempotent importer with real reconciliation checks
+- Local verify: `npm run financial:verify-local`
 
-### 5. Migration Tools
-- Implemented `src/server/services/financial-migration.ts` to extract `invoices`, `timeEntries`, `trustTransactions`, and `expenses` from Convex export zips and insert them into Postgres.
-- Added `scripts/migration/migrate-financial-export.ts` CLI wrapper.
-- Exposed as `npm run migration:financial`.
+## Local commands
 
-## Key Invariants Maintained
-- **Idempotency & Transactions**: Ensuring financial mutations inside Postgres run inside `.transaction()` blocks.
-- **Client/Case resolution**: Financial entries explicitly connect to `cases` and `clients`. The migration scripts correctly map these through `legacyConvexId`.
+```powershell
+npm run migration:identity -- tests/fixtures/convex-identity-export tests/fixtures/convex-identity-firm-map.json
+npm run migration:matters -- tests/fixtures/convex-matters-export tests/fixtures/convex-identity-firm-map.json 61000000-0000-4000-8000-000000000001
+npm run migration:financial -- tests/fixtures/convex-financial-export tests/fixtures/convex-identity-firm-map.json
+npm run financial:verify-local
+```
 
-## Next Steps
-- Verify the migration script on a real export (`npm run migration:financial`).
-- Switch backend to "nextjs" in configuration when fully validated.
+## Local exit gate
+
+- [x] Service + Route Handlers exist for invoices, time, trust, expenses, payments.
+- [x] Frontend pages use finance adapters (staff/admin/client).
+- [x] Migration double-run reconcile passes on local fixture.
+- [x] Contract tests cover invoice/time/trust/expense inputs.
+- [x] Local finance backend flag is `next`.
+- [x] Convex authority restored only by flipping `VITE_BACKEND_FINANCE=convex`.
+
+## Production gates
+
+- Confirm role matrix grants `finance.manage` to intended roles.
+- Rehearse VAT/total math against production-like volumes.
+- Switch finance flag only after billing/signature soak plan is approved.

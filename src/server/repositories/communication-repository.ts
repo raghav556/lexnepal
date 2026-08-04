@@ -1,151 +1,237 @@
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
-import { getDatabase } from "../db/client";
+import type { AuditContext } from "@/server/audit/context";
+import { getDatabase } from "@/server/db/client";
 import {
-  messages,
+  auditLog,
+  cases,
+  clients,
+  messageAttachments,
   messageReads,
+  messages,
   notifications,
   users,
-} from "../db/schema";
-import { randomUUID } from "crypto";
+} from "@/server/db/schema";
+import type { MessageCreateInput, MessageListInput } from "@/shared/contracts/communication";
+import { AppError } from "@/shared/errors/api-error";
+
+const database = getDatabase();
+
+function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
+  const output: Record<string, unknown> = { ...row, _id: row.id };
+  for (const [key, value] of Object.entries(output)) {
+    if (value instanceof Date) output[key] = value.toISOString();
+  }
+  delete output.firmId;
+  delete output.legacyConvexId;
+  delete output.deletedAt;
+  return output as T & { _id: string };
+}
 
 export class CommunicationRepository {
-  // --- Messages ---
-  static async listMessages(firmId: string, caseId: string, limit = 50, includeInternal = true) {
-    const db = await getDatabase();
-    
-    const conditions = [
-      eq(messages.firmId, firmId),
-      eq(messages.caseId, caseId),
-    ];
-    
-    if (!includeInternal) {
-      conditions.push(eq(messages.isInternal, false));
-    }
+  async listMessages(firmId: string, input: MessageListInput & { includeInternal: boolean }) {
+    const conditions = [eq(messages.firmId, firmId), eq(messages.caseId, input.caseId)];
+    if (!input.includeInternal) conditions.push(eq(messages.isInternal, false));
 
-    const rows = await db
+    const rows = await database
       .select({
         message: messages,
-        sender: users,
+        senderName: users.name,
+        senderEmail: users.email,
       })
       .from(messages)
       .leftJoin(users, eq(messages.senderId, users.id))
       .where(and(...conditions))
       .orderBy(desc(messages.createdAt))
-      .limit(limit);
+      .limit(input.limit ?? 50);
 
-    return rows.map((row) => ({
-      ...row.message,
-      senderName: row.sender?.name || row.sender?.email || "Unknown",
-    }));
+    return rows
+      .map((row) =>
+        toDto({
+          ...(row.message as unknown as Record<string, unknown>),
+          senderName: row.senderName || row.senderEmail || "Unknown",
+        }),
+      )
+      .reverse();
   }
 
-  static async createMessage(
+  async createMessage(
     firmId: string,
-    data: { caseId: string; senderId: string; content: string; isInternal: boolean }
+    sender: { id: string; name: string; role: string },
+    input: MessageCreateInput,
+    audit: AuditContext,
   ) {
-    const db = await getDatabase();
-    return await db.transaction(async (tx) => {
-      const msgId = randomUUID();
-      await tx.insert(messages).values({
-        id: msgId,
-        firmId,
-        caseId: data.caseId,
-        senderId: data.senderId,
-        content: data.content,
-        isInternal: data.isInternal,
-      });
+    return database.transaction(async (tx) => {
+      const [matter] = await tx
+        .select()
+        .from(cases)
+        .where(and(eq(cases.id, input.caseId), eq(cases.firmId, firmId)))
+        .limit(1);
+      if (!matter) throw new AppError("NOT_FOUND", "Case was not found", 404);
+
+      const [row] = await tx
+        .insert(messages)
+        .values({
+          firmId,
+          caseId: input.caseId,
+          senderId: sender.id,
+          content: input.content,
+          isInternal: input.isInternal,
+        })
+        .returning();
+      if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create message", 500);
 
       await tx.insert(messageReads).values({
-        id: randomUUID(),
         firmId,
-        messageId: msgId,
-        userId: data.senderId,
+        messageId: row.id,
+        userId: sender.id,
       });
 
-      return msgId;
+      for (const [index, storageId] of (input.attachmentIds ?? []).entries()) {
+        await tx.insert(messageAttachments).values({
+          firmId,
+          messageId: row.id,
+          storageId,
+          position: index,
+        });
+      }
+
+      if (!input.isInternal) {
+        const isStaff = sender.role !== "client";
+        if (isStaff) {
+          const [client] = await tx
+            .select()
+            .from(clients)
+            .where(and(eq(clients.id, matter.clientId), eq(clients.firmId, firmId)))
+            .limit(1);
+          if (client?.userId) {
+            await tx.insert(notifications).values({
+              firmId,
+              userId: client.userId,
+              title: "New Message",
+              body: `${sender.name} sent you a message regarding ${matter.title}.`,
+              type: "message",
+              relatedId: matter.id,
+              link: "/client/messages",
+            });
+          }
+        } else if (matter.assignedLawyerId) {
+          await tx.insert(notifications).values({
+            firmId,
+            userId: matter.assignedLawyerId,
+            title: "New Client Message",
+            body: `${sender.name} sent a message regarding ${matter.title}.`,
+            type: "message",
+            relatedId: matter.id,
+            link: `/staff/cases/${matter.id}`,
+          });
+        }
+      }
+
+      await tx.insert(auditLog).values({
+        firmId: audit.firmId,
+        userId: audit.actorId,
+        action: "message.created",
+        resource: "messages",
+        resourceId: row.id,
+        details: input.caseId,
+        ipAddress: audit.ipAddress,
+        requestId: audit.requestId,
+        createdAt: audit.occurredAt,
+        updatedAt: audit.occurredAt,
+      });
+
+      return toDto(row as unknown as Record<string, unknown>);
     });
   }
 
-  static async markMessagesRead(firmId: string, caseId: string, userId: string) {
-    const db = await getDatabase();
-    
-    const caseMessages = await db
+  async markMessagesRead(firmId: string, caseId: string, userId: string) {
+    const caseMessages = await database
       .select({ id: messages.id })
       .from(messages)
       .where(and(eq(messages.firmId, firmId), eq(messages.caseId, caseId)));
+    if (caseMessages.length === 0) return { success: true as const, marked: 0 };
 
-    if (caseMessages.length === 0) return;
-
-    const readRecords = caseMessages.map((m) => ({
-      id: randomUUID(),
-      firmId,
-      messageId: m.id,
-      userId,
-    }));
-
-    await db
+    await database
       .insert(messageReads)
-      .values(readRecords)
-      .onConflictDoNothing({ target: [messageReads.firmId, messageReads.messageId, messageReads.userId] });
+      .values(
+        caseMessages.map((message) => ({
+          firmId,
+          messageId: message.id,
+          userId,
+        })),
+      )
+      .onConflictDoNothing({
+        target: [messageReads.firmId, messageReads.messageId, messageReads.userId],
+      });
+    return { success: true as const, marked: caseMessages.length };
   }
 
-  // --- Notifications ---
-  static async listNotifications(firmId: string, userId: string, limit = 50) {
-    const db = await getDatabase();
-    return await db
+  async listNotifications(firmId: string, userId: string, limit = 50) {
+    const rows = await database
       .select()
       .from(notifications)
       .where(and(eq(notifications.firmId, firmId), eq(notifications.userId, userId)))
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
+    return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
   }
 
-  static async markNotificationRead(firmId: string, notificationId: string, userId: string) {
-    const db = await getDatabase();
-    await db
+  async markNotificationRead(firmId: string, notificationId: string, userId: string) {
+    const [row] = await database
       .update(notifications)
-      .set({ isRead: true })
+      .set({ isRead: true, updatedAt: new Date() })
       .where(
         and(
           eq(notifications.firmId, firmId),
           eq(notifications.id, notificationId),
-          eq(notifications.userId, userId)
-        )
-      );
+          eq(notifications.userId, userId),
+        ),
+      )
+      .returning();
+    if (!row) throw new AppError("NOT_FOUND", "Notification was not found", 404);
+    return { success: true as const, ...toDto(row as unknown as Record<string, unknown>) };
   }
 
-  static async markAllNotificationsRead(firmId: string, userId: string) {
-    const db = await getDatabase();
-    await db
+  async markAllNotificationsRead(firmId: string, userId: string) {
+    await database
       .update(notifications)
-      .set({ isRead: true })
+      .set({ isRead: true, updatedAt: new Date() })
       .where(
         and(
           eq(notifications.firmId, firmId),
           eq(notifications.userId, userId),
-          eq(notifications.isRead, false)
-        )
+          eq(notifications.isRead, false),
+        ),
       );
+    return { success: true as const };
   }
 
-  static async createNotification(
+  async createNotification(
     firmId: string,
-    data: { userId: string; title: string; body: string; type: any; relatedId?: string; link?: string }
+    data: {
+      userId: string;
+      title: string;
+      body: string;
+      type: "hearing_reminder" | "task_due" | "invoice_sent" | "payment_received" | "document_request" | "message" | "system";
+      relatedId?: string | null;
+      link?: string | null;
+    },
   ) {
-    const db = await getDatabase();
-    const id = randomUUID();
-    await db.insert(notifications).values({
-      id,
-      firmId,
-      userId: data.userId,
-      title: data.title,
-      body: data.body,
-      type: data.type,
-      relatedId: data.relatedId,
-      link: data.link,
-      isRead: false,
-    });
-    return id;
+    const [row] = await database
+      .insert(notifications)
+      .values({
+        firmId,
+        userId: data.userId,
+        title: data.title,
+        body: data.body,
+        type: data.type,
+        relatedId: data.relatedId ?? null,
+        link: data.link ?? null,
+        isRead: false,
+      })
+      .returning();
+    if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create notification", 500);
+    return toDto(row as unknown as Record<string, unknown>);
   }
 }

@@ -3,19 +3,20 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { FolderOpen, CalendarDays, CheckSquare, Clock, AlertTriangle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
-import { useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { PRIORITY_COLORS } from "@/lib/task-constants.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
+import { useHearings } from "@/client/queries/hearings";
+import { useTasks, useTaskWorkload } from "@/client/queries/tasks";
+import { useTimeEntries } from "@/client/queries/financial";
 
 export default function StaffDashboard() {
   const cases = useCases({}) || [];
-  const hearings = useQuery(api.hearings.listHearings, {}) || [];
-  const tasks = useQuery(api.tasks.listTasks, {}) || [];
-  const workload = useQuery(api.tasks.listWorkload, {}) || [];
+  const hearings = useHearings({}) || [];
+  const tasks = useTasks({}) || [];
+  const workload = useTaskWorkload() || [];
   const users = useStaffDirectory() || [];
-  const timeEntries = useQuery(api.timeEntries.listTimeEntries, {}) || [];
+  const { data: timeEntries = [] } = useTimeEntries({});
 
   // Compute stats dynamically
   const activeCasesCount = cases.filter((c: any) => c.status === "active").length;

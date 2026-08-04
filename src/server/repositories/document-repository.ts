@@ -1,169 +1,172 @@
 import "server-only";
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "../db/client";
-import { documents, documentTags, documentTagAssignments, documentShares, users } from "../db/schema";
+import {
+  documents,
+  documentTags,
+  documentTagAssignments,
+  documentShares,
+} from "../db/schema";
 import { AppError } from "@/shared/errors/api-error";
 import type { DocumentDto } from "@/shared/contracts/domains";
+import type { DocumentSearchInput } from "@/shared/contracts/documents";
+
+function toDocumentDto(
+  row: {
+    id: string;
+    firmId: string;
+    caseId: string | null;
+    title: string;
+    description: string | null;
+    type: string;
+    storageId: string;
+    mimeType: string;
+    sizeBytes: number;
+    uploadedBy: string | null;
+    isTemplate: boolean;
+    isPrivileged: boolean;
+    confidentialityLevel: string;
+    deletedAt: Date | null;
+    status: string;
+    legacyConvexId: string | null;
+    isOnLegalHold?: boolean;
+    legalHoldReason?: string | null;
+    retentionPolicy?: string | null;
+  },
+  tags: string[] = [],
+): DocumentDto {
+  return {
+    _id: row.id,
+    id: row.id,
+    firmId: row.firmId,
+    caseId: row.caseId || undefined,
+    title: row.title,
+    description: row.description || undefined,
+    type: row.type,
+    storageId: row.storageId,
+    mimeType: row.mimeType,
+    sizeBytes: row.sizeBytes,
+    uploadedBy: row.uploadedBy || "",
+    isTemplate: row.isTemplate,
+    isPrivileged: row.isPrivileged,
+    confidentialityLevel: row.confidentialityLevel,
+    isDeleted: !!row.deletedAt,
+    tags,
+    status: row.status,
+    legacyConvexId: row.legacyConvexId || undefined,
+    isOnLegalHold: row.isOnLegalHold,
+    legalHoldReason: row.legalHoldReason,
+    retentionPolicy: row.retentionPolicy,
+  };
+}
 
 export class DocumentRepository {
-  static async listDocuments(firmId: string, filters: { caseId?: string; isTemplate?: boolean; inTrash?: boolean }, limit = 50) {
+  static async listDocuments(
+    firmId: string,
+    filters: { caseId?: string; isTemplate?: boolean; inTrash?: boolean },
+    limit = 50,
+  ) {
     const db = getDatabase();
-    
     const conditions = [eq(documents.firmId, firmId)];
-    
-    if (filters.caseId) {
-      conditions.push(eq(documents.caseId, filters.caseId));
-    }
-    
+    if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
     if (filters.isTemplate !== undefined) {
       conditions.push(eq(documents.isTemplate, filters.isTemplate));
     }
+    if (filters.inTrash) conditions.push(sql`${documents.deletedAt} IS NOT NULL`);
+    else conditions.push(isNull(documents.deletedAt));
 
-    if (filters.inTrash) {
-      conditions.push(sql`${documents.deletedAt} IS NOT NULL`);
-    } else {
-      conditions.push(isNull(documents.deletedAt));
-    }
-
-    const results = await db.select({
-      id: documents.id,
-      firmId: documents.firmId,
-      caseId: documents.caseId,
-      title: documents.title,
-      description: documents.description,
-      type: documents.type,
-      storageId: documents.storageId,
-      mimeType: documents.mimeType,
-      sizeBytes: documents.sizeBytes,
-      uploadedBy: documents.uploadedBy,
-      isTemplate: documents.isTemplate,
-      isPrivileged: documents.isPrivileged,
-      confidentialityLevel: documents.confidentialityLevel,
-      deletedAt: documents.deletedAt,
-      status: documents.status,
-      legacyConvexId: documents.legacyConvexId,
-    }).from(documents)
+    const results = await db
+      .select()
+      .from(documents)
       .where(and(...conditions))
       .orderBy(desc(documents.createdAt))
       .limit(limit);
 
-    // Fetch tags for these documents
     if (results.length === 0) return [];
-    
-    const docIds = results.map(r => r.id);
-    const tagsAssignments = await db.select({
-      documentId: documentTagAssignments.documentId,
-      tagId: documentTags.id,
-      tagName: documentTags.name
-    }).from(documentTagAssignments)
-      .innerJoin(documentTags, eq(documentTags.id, documentTagAssignments.tagId))
-      .where(inArray(documentTagAssignments.documentId, docIds));
-      
-    const tagsByDoc = tagsAssignments.reduce((acc, row) => {
-      if (!acc[row.documentId]) acc[row.documentId] = [];
-      acc[row.documentId].push(row.tagName);
-      return acc;
-    }, {} as Record<string, string[]>);
+    const tagsByDoc = await this.loadTags(results.map((row) => row.id));
+    return results.map((row) => toDocumentDto(row, tagsByDoc[row.id] || []));
+  }
 
-    return results.map(row => ({
-      _id: row.legacyConvexId || row.id,
-      firmId: row.firmId,
-      caseId: row.caseId || undefined,
-      title: row.title,
-      description: row.description || undefined,
-      type: row.type,
-      storageId: row.storageId,
-      mimeType: row.mimeType,
-      sizeBytes: row.sizeBytes,
-      uploadedBy: row.uploadedBy,
-      isTemplate: row.isTemplate,
-      isPrivileged: row.isPrivileged,
-      confidentialityLevel: row.confidentialityLevel,
-      isDeleted: !!row.deletedAt,
-      tags: tagsByDoc[row.id] || [],
-      status: row.status,
-    } as DocumentDto));
+  static async listRecent(firmId: string, limit = 5) {
+    return this.listDocuments(firmId, { isTemplate: false, inTrash: false }, limit);
+  }
+
+  static async searchDocuments(firmId: string, filters: DocumentSearchInput) {
+    const db = getDatabase();
+    const conditions = [
+      eq(documents.firmId, firmId),
+      isNull(documents.deletedAt),
+      ilike(documents.title, `%${filters.query}%`),
+    ];
+    if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
+    if (filters.type) conditions.push(eq(documents.type, filters.type as any));
+    if (filters.generalOnly) conditions.push(sql`${documents.caseId} IS NULL`);
+
+    const results = await db
+      .select()
+      .from(documents)
+      .where(and(...conditions))
+      .orderBy(desc(documents.createdAt))
+      .limit(100);
+
+    const tagsByDoc = await this.loadTags(results.map((row) => row.id));
+    let rows = results;
+    if (filters.tag) {
+      const needle = filters.tag.toLowerCase();
+      rows = results.filter((row) =>
+        (tagsByDoc[row.id] || []).some((tag) => tag.toLowerCase() === needle),
+      );
+    }
+    return rows.map((row) => toDocumentDto(row, tagsByDoc[row.id] || []));
   }
 
   static async getDocumentById(firmId: string, id: string) {
     const db = getDatabase();
-    
-    // Support querying by either native UUID or legacy convex ID
-    const isLegacy = !id.includes("-");
-    const whereClause = isLegacy 
-      ? and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id))
-      : and(eq(documents.firmId, firmId), eq(documents.id, id));
-
+    const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+    const whereClause = isUuid
+      ? and(eq(documents.firmId, firmId), eq(documents.id, id))
+      : and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id));
     const [row] = await db.select().from(documents).where(whereClause);
     if (!row) return null;
-
-    const tagsAssignments = await db.select({
-      tagName: documentTags.name
-    }).from(documentTagAssignments)
-      .innerJoin(documentTags, eq(documentTags.id, documentTagAssignments.tagId))
-      .where(eq(documentTagAssignments.documentId, row.id));
-
-    return {
-      _id: row.legacyConvexId || row.id,
-      firmId: row.firmId,
-      caseId: row.caseId || undefined,
-      title: row.title,
-      description: row.description || undefined,
-      type: row.type,
-      storageId: row.storageId,
-      mimeType: row.mimeType,
-      sizeBytes: row.sizeBytes,
-      uploadedBy: row.uploadedBy,
-      isTemplate: row.isTemplate,
-      isPrivileged: row.isPrivileged,
-      confidentialityLevel: row.confidentialityLevel,
-      isDeleted: !!row.deletedAt,
-      tags: tagsAssignments.map(t => t.tagName),
-      status: row.status,
-      // specific fields for legal hold
-      isOnLegalHold: row.isOnLegalHold,
-      legalHoldReason: row.legalHoldReason,
-      retentionPolicy: row.retentionPolicy,
-    } as DocumentDto;
+    const tagsByDoc = await this.loadTags([row.id]);
+    return toDocumentDto(row, tagsByDoc[row.id] || []);
   }
 
   static async createDocument(firmId: string, data: any, userId: string) {
     const db = getDatabase();
-    
-    // In a real flow, this would take the upload intent and move it to a document.
-    // For migration parity, we insert directly here.
-    
-    // Use transaction if we need to add tags
     return await db.transaction(async (tx) => {
-      // 1. Insert document
-      const [newDoc] = await tx.insert(documents).values({
-        firmId,
-        caseId: data.caseId || null,
-        title: data.title,
-        documentNumber: `DOC-${Date.now()}`,
-        description: data.description || null,
-        type: data.type || "other",
-        storageId: data.storageId,
-        mimeType: data.mimeType || "application/octet-stream",
-        sizeBytes: data.sizeBytes || 0,
-        uploadedBy: userId,
-        isTemplate: data.isTemplate || false,
-        isPrivileged: data.isPrivileged || false,
-        confidentialityLevel: data.confidentialityLevel || "internal",
-        status: "active",
-      } as any).returning();
+      const [newDoc] = await tx
+        .insert(documents)
+        .values({
+          firmId,
+          caseId: data.caseId || null,
+          title: data.title,
+          documentNumber: `DOC-${Date.now()}`,
+          description: data.description || null,
+          type: data.type || "other",
+          storageId: data.storageId,
+          mimeType: data.mimeType || "application/octet-stream",
+          sizeBytes: data.sizeBytes || 0,
+          uploadedBy: userId,
+          isTemplate: data.isTemplate || false,
+          isPrivileged: data.isPrivileged || false,
+          confidentialityLevel: data.confidentialityLevel || "internal",
+          status: "active",
+          uploadStatus: data.uploadStatus || "clean",
+        } as any)
+        .returning();
 
-      // 2. Add tags if any
       if (data.tags && data.tags.length > 0) {
         for (const tagName of data.tags) {
-          // Find or create tag
-          let [tag] = await tx.select().from(documentTags).where(and(eq(documentTags.firmId, firmId), eq(documentTags.name, tagName)));
+          let [tag] = await tx
+            .select()
+            .from(documentTags)
+            .where(and(eq(documentTags.firmId, firmId), eq(documentTags.name, tagName)));
           if (!tag) {
-            [tag] = await tx.insert(documentTags).values({
-              firmId,
-              name: tagName,
-              color: "#cccccc",
-            }).returning();
+            [tag] = await tx
+              .insert(documentTags)
+              .values({ firmId, name: tagName, color: "#cccccc" })
+              .returning();
           }
           await tx.insert(documentTagAssignments).values({
             firmId,
@@ -172,77 +175,176 @@ export class DocumentRepository {
           });
         }
       }
-
-      return newDoc;
+      return toDocumentDto(newDoc as any, data.tags || []);
     });
   }
 
   static async updateDocumentMetadata(firmId: string, id: string, updates: any) {
     const db = getDatabase();
-    const isLegacy = !id.includes("-");
-    const whereClause = isLegacy 
-      ? and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id))
-      : and(eq(documents.firmId, firmId), eq(documents.id, id));
-
-    return await db.update(documents).set({
-      ...updates,
-      updatedAt: new Date(),
-    }).where(whereClause).returning();
+    const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+    const whereClause = isUuid
+      ? and(eq(documents.firmId, firmId), eq(documents.id, id))
+      : and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id));
+    return await db
+      .update(documents)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(whereClause)
+      .returning();
   }
 
   static async setLegalHold(firmId: string, id: string, reason: string, userId: string) {
-    const db = getDatabase();
-    const isLegacy = !id.includes("-");
-    const whereClause = isLegacy 
-      ? and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id))
-      : and(eq(documents.firmId, firmId), eq(documents.id, id));
-
-    return await db.update(documents).set({
+    const [row] = await this.updateDocumentMetadata(firmId, id, {
       isOnLegalHold: true,
       legalHoldReason: reason,
       legalHoldSetAt: new Date(),
       legalHoldSetBy: userId,
-      updatedAt: new Date(),
-    }).where(whereClause).returning();
+    });
+    return row ? this.getDocumentById(firmId, row.id) : null;
   }
 
   static async releaseLegalHold(firmId: string, id: string) {
-    const db = getDatabase();
-    const isLegacy = !id.includes("-");
-    const whereClause = isLegacy 
-      ? and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id))
-      : and(eq(documents.firmId, firmId), eq(documents.id, id));
-
-    return await db.update(documents).set({
+    const [row] = await this.updateDocumentMetadata(firmId, id, {
       isOnLegalHold: false,
       legalHoldReason: null,
       legalHoldSetAt: null,
       legalHoldSetBy: null,
-      updatedAt: new Date(),
-    }).where(whereClause).returning();
+    });
+    return row ? this.getDocumentById(firmId, row.id) : null;
+  }
+
+  static async hardDelete(firmId: string, id: string) {
+    const db = getDatabase();
+    const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+    const whereClause = isUuid
+      ? and(eq(documents.firmId, firmId), eq(documents.id, id))
+      : and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id));
+    await db.delete(documents).where(whereClause);
   }
 
   static async createShare(firmId: string, documentId: string, shareData: any, createdBy: string) {
+    const { hashSharePassword } = await import("@/server/security/share-password");
     const db = getDatabase();
-    
-    const isLegacy = !documentId.includes("-");
-    let docIdToUse = documentId;
-    if (isLegacy) {
-      const [doc] = await db.select().from(documents).where(and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, documentId)));
-      if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
-      docIdToUse = doc.id;
+    const doc = await this.getDocumentById(firmId, documentId);
+    if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
+    if ((doc as { isPrivileged?: boolean }).isPrivileged) {
+      throw new AppError("FORBIDDEN", "Privileged documents cannot be shared through public links", 403);
     }
-
+    if ((doc as { isOnLegalHold?: boolean }).isOnLegalHold) {
+      throw new AppError("FORBIDDEN", "Documents on legal hold cannot be publicly shared", 403);
+    }
+    if ((doc as { deletedAt?: Date | null }).deletedAt) {
+      throw new AppError("CONFLICT", "Deleted documents cannot be shared", 409);
+    }
     const token = crypto.randomUUID();
+    const password = typeof shareData.password === "string" ? shareData.password : undefined;
+    const [share] = await db
+      .insert(documentShares)
+      .values({
+        firmId,
+        documentId: String(doc.id ?? doc._id),
+        token,
+        passwordHash: password ? hashSharePassword(password) : null,
+        expiresAt: shareData.expiresAt ? new Date(shareData.expiresAt) : null,
+        allowDownload: shareData.allowDownload !== false,
+        maxDownloads: shareData.maxDownloads ?? null,
+        createdBy,
+        isActive: true,
+        downloadsCount: 0,
+        failedAttempts: 0,
+      })
+      .returning();
+    return { ...share, _id: share!.id, token, url: `/share/${token}` };
+  }
 
-    const [share] = await db.insert(documentShares).values({
-      firmId,
-      documentId: docIdToUse,
-      token,
-      expiresAt: shareData.expiresAt ? new Date(shareData.expiresAt) : null,
-      createdBy,
-    }).returning();
-    
-    return share;
+  static async listShares(firmId: string, documentId: string) {
+    const db = getDatabase();
+    const doc = await this.getDocumentById(firmId, documentId);
+    if (!doc) return [];
+    const rows = await db
+      .select()
+      .from(documentShares)
+      .where(
+        and(
+          eq(documentShares.firmId, firmId),
+          eq(documentShares.documentId, String(doc.id ?? doc._id)),
+        ),
+      )
+      .orderBy(desc(documentShares.createdAt));
+    return rows.map((row) => ({
+      ...row,
+      _id: row.id,
+      url: `/share/${row.token}`,
+    }));
+  }
+
+  static async revokeShare(firmId: string, documentId: string, shareId: string, revokedBy?: string) {
+    const db = getDatabase();
+    const doc = await this.getDocumentById(firmId, documentId);
+    if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
+    const [row] = await db
+      .update(documentShares)
+      .set({
+        isActive: false,
+        revokedAt: new Date(),
+        revokedBy: revokedBy ?? null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(documentShares.firmId, firmId),
+          eq(documentShares.documentId, String(doc.id ?? doc._id)),
+          eq(documentShares.id, shareId),
+        ),
+      )
+      .returning();
+    if (!row) throw new AppError("NOT_FOUND", "Share not found", 404);
+    return { success: true as const };
+  }
+
+  static async findShareByToken(token: string) {
+    const db = getDatabase();
+    const [share] = await db
+      .select()
+      .from(documentShares)
+      .where(eq(documentShares.token, token))
+      .limit(1);
+    return share ?? null;
+  }
+
+  static async patchShare(
+    shareId: string,
+    patch: Partial<{
+      failedAttempts: number;
+      lockedUntil: Date | null;
+      lastAccessAt: Date;
+      downloadsCount: number;
+    }>,
+  ) {
+    const db = getDatabase();
+    await db
+      .update(documentShares)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(documentShares.id, shareId));
+  }
+
+  private static async loadTags(docIds: string[]) {
+    if (docIds.length === 0) return {} as Record<string, string[]>;
+    const db = getDatabase();
+    const tagsAssignments = await db
+      .select({
+        documentId: documentTagAssignments.documentId,
+        tagName: documentTags.name,
+      })
+      .from(documentTagAssignments)
+      .innerJoin(documentTags, eq(documentTags.id, documentTagAssignments.tagId))
+      .where(inArray(documentTagAssignments.documentId, docIds));
+    return tagsAssignments.reduce(
+      (acc, row) => {
+        if (!acc[row.documentId]) acc[row.documentId] = [];
+        acc[row.documentId].push(row.tagName);
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
   }
 }

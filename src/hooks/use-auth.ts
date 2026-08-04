@@ -21,7 +21,7 @@ interface AuthState {
   signout: () => Promise<void>;
 }
 
-const useMock = import.meta.env.VITE_USE_MOCK === "true";
+const useMock = (typeof process !== "undefined" ? process.env.VITE_USE_MOCK : import.meta.env.VITE_USE_MOCK) === "true";
 
 export function useAuth(): AuthState {
   const backend = useDomainBackend("identity");
@@ -76,3 +76,4 @@ export function useAuth(): AuthState {
     },
   };
 }
+

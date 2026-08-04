@@ -1,0 +1,2 @@
+﻿{"_id":"convex_lead_a","_creationTime":1785628800000,"firmId":"convex_firm_a","fullName":"CRM Fixture Lead","email":"crm-lead@example.invalid","phone":"+977-9800000099","source":"website","practiceAreaInterest":"Corporate Law","message":"Need company registration help","status":"new","notes":"Fixture lead"}
+{"_id":"convex_lead_b","_creationTime":1785715200000,"firmId":"convex_firm_a","fullName":"Walk-In Lead","phone":"+977-9800000088","source":"walk_in","status":"contacted","assignedTo":"convex_identity_user_1"}

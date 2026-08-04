@@ -1,35 +1,65 @@
 # Phase 8.4: Work Management Migration
 
-This document details the completion of Phase 8.4 of the Convex to Next.js/PostgreSQL migration, focusing on the Work Management domains (Hearings, Tasks, SOPs, Comments, and Research).
+## Current status
 
-## Domains Migrated
+Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through:
+
+- `VITE_BACKEND_TASKS=next`
+- `VITE_BACKEND_HEARINGS=next`
+- `VITE_BACKEND_RESEARCH=next`
+
+Convex branches remain inside the typed adapters for rollback only. Production cutover still requires an immutable export, approved firm map and production reconciliation.
+
+## Domains covered
+
 - **Hearings**: `hearings`
 - **Tasks**: `tasks`, `taskComments`, `taskWatchers`
 - **SOPs**: `sopTemplates`, `sopTemplateTasks`
 - **Research Notes**: `researchNotes`, `researchNoteTags`
 
-## Backend Changes
-- Created `src/server/repositories/work-management-repository.ts` to implement data access using Drizzle ORM against the PostgreSQL database.
-- Implemented transactional mutations and queries with proper tenant (`firmId`) scoping.
+## Implemented vertical slice
 
-## Frontend Changes
-- Created query and mutation hooks using `useDomainBackend`:
-  - `src/client/queries/hearings.ts`: `useHearings`, `useHearingCommands`
-  - `src/client/queries/tasks.ts`: `useTasks`, `useTaskCommands`, `useTaskComments`, `useTaskWorkload`
-  - `src/client/queries/research.ts`: `useResearchNotes`, `useResearchCommands`
-- Integrated these hooks into:
-  - `StaffHearingsPage.tsx`
-  - `StaffTasksPage.tsx`
-  - `StaffDashboard.tsx`
-  - `StaffCaseDetailPage.tsx`
-  - `ClientChecklistPage.tsx`
-  - `StaffResearchPage.tsx`
+- Zod contracts, PostgreSQL repository, work-management service and versioned Route Handlers under `/api/v1/tasks`, `/api/v1/hearings`, `/api/v1/research`, `/api/v1/sop-templates`.
+- Manual overdue reminder scan at `POST /api/v1/tasks/overdue-reminders` (parity with Convex `scanOverdueReminders`).
+- Hearing DTOs expose both `hearingTime` and compatibility alias `time`.
+- Task create/update accepts date-only `dueDate` values and normalizes them to ISO datetimes.
+- Task list supports `parentTaskId` for subtask reads.
+- Frontend pages use domain adapters only (no direct `api.tasks` / `api.hearings` / `api.research` in React pages).
+- Idempotent Convex importer including task watchers, with double-run reconcile.
 
-## Data Migration
-- Created the core migration service: `src/server/services/work-management-migration.ts`
-- Created the CLI script: `scripts/migration/migrate-work-management-export.ts`
-- Added the `migration:work-management` script to `package.json`.
+## Frontend consumers switched
 
-## Next Steps
-- Verify the migration script against a real Convex export when available (`npm run migration:work-management -- <path-to-export> <path-to-firm-map> [orphan-firm-id]`).
-- Run full regression testing on the migrated frontend views to ensure no regressions in functionality.
+- `StaffTasksPage.tsx`
+- `StaffHearingsPage.tsx`
+- `StaffDashboard.tsx`
+- `StaffCaseDetailPage.tsx`
+- `StaffCasesPage.tsx`
+- `StaffResearchPage.tsx` (already on adapters)
+- `ClientChecklistPage.tsx` (already on adapters)
+- `ClientDashboard.tsx`
+- `ClientCasesPage.tsx`
+
+## Local commands
+
+```powershell
+npm run migration:identity -- tests/fixtures/convex-identity-export tests/fixtures/convex-identity-firm-map.json
+npm run migration:matters -- tests/fixtures/convex-matters-export tests/fixtures/convex-identity-firm-map.json 61000000-0000-4000-8000-000000000001
+npm run migration:work-management -- tests/fixtures/convex-work-management-export tests/fixtures/convex-identity-firm-map.json
+npm run work-management:verify-local
+```
+
+## Local exit gate
+
+- [x] Schema/repository/service/API exist for hearings, tasks, SOPs, comments and research.
+- [x] Every direct page consumer uses the domain adapter.
+- [x] Overdue reminder scan works on Next.js.
+- [x] Migration is idempotent and reconciliation passes on the local fixture.
+- [x] Contract tests cover hearing/task/research input rules.
+- [x] Local tasks/hearings/research backend flags are `next`.
+- [x] Convex authority can be restored by flipping the three flags back to `convex`.
+
+## Production gates
+
+- Run immutable export import twice and attach reconciliation evidence.
+- Confirm staff capability matrix includes `cases.view_all` / `cases.manage` for intended roles.
+- Switch the three flags together in one controlled release after soak.

@@ -1,29 +1,16 @@
-import { NextResponse } from "next/server";
-import { CommunicationRepository } from "@/server/repositories/communication-repository";
 import { requireSession } from "@/server/auth/runtime";
-import { requireFirmContext } from "@/server/policies/authorization";
+import { withApiHandler } from "@/server/http/handler";
+import { jsonResponse } from "@/server/http/response";
+import { getCommunicationService } from "@/server/services/communication-service";
+import { uuidSchema } from "@/shared/contracts/communication";
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await requireSession(request);
-    const { firmId } = requireFirmContext(session);
-    const notificationId = params.id;
-
-    if (!notificationId) {
-      return NextResponse.json({ error: "notificationId is required" }, { status: 400 });
-    }
-
-    await CommunicationRepository.markNotificationRead(firmId, notificationId, session.user.id);
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("Notifications API Error:", error);
-    if (error.message.includes("Not authenticated")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
+function idFrom(request: Request) {
+  return uuidSchema.parse(new URL(request.url).pathname.split("/").filter(Boolean).at(-1));
 }
+
+export const PATCH = withApiHandler("/api/communication/notifications/:id", async ({ request }) => {
+  const principal = await requireSession(request);
+  return jsonResponse(
+    await getCommunicationService().markNotificationRead(principal, idFrom(request)),
+  );
+});

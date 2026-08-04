@@ -1,25 +1,22 @@
-import { migrateEnvelopes, migrateSignatureRecipients } from "../../src/server/services/envelope-migration";
+import { migrateEnvelopeExport } from "../../src/server/services/envelope-migration";
+import fs from "node:fs/promises";
 import path from "node:path";
-import fs from "node:fs";
 
-async function main() {
-  const exportsDir = path.join(process.cwd(), "exports");
-  
-  const envPath = path.join(exportsDir, "signatureEnvelopes.jsonl");
-  if (fs.existsSync(envPath)) {
-    await migrateEnvelopes(envPath);
-  } else {
-    console.log("signatureEnvelopes.jsonl not found in exports");
-  }
-
-  const recPath = path.join(exportsDir, "signatureRecipients.jsonl");
-  if (fs.existsSync(recPath)) {
-    await migrateSignatureRecipients(recPath);
-  } else {
-    console.log("signatureRecipients.jsonl not found in exports");
-  }
-
-  console.log("Envelopes migration completed successfully!");
+const [exportPath, firmMapPath, orphanFirmId] = process.argv.slice(2);
+if (!exportPath || !firmMapPath) {
+  throw new Error(
+    "Usage: npm run migration:envelopes -- <export-path> <firm-map.json> [orphanFirmId]",
+  );
 }
 
-main().catch(console.error);
+const firmMap = JSON.parse(await fs.readFile(path.resolve(firmMapPath), "utf8")) as Record<
+  string,
+  string
+>;
+const report = await migrateEnvelopeExport({
+  exportPath: path.resolve(exportPath),
+  firmMap,
+  orphanFirmId,
+});
+process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+if (!report.reconciliation.passed) process.exitCode = 1;

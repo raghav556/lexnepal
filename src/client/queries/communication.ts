@@ -1,60 +1,79 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "./query-keys";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { anyApi as api } from "convex/server";
+import {
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "@/client/data/convex-bridge";
+import { apiClient } from "@/client/api/client";
+import { normalizeApiError } from "@/client/api/errors";
 import { useDomainBackend } from "@/client/data/provider";
-import { useCurrentIdentityUser } from "./identity";
-import { api } from "@/convex/_generated/api.js";
-// @ts-ignore
-import { useConvex } from "convex/react";
+import { useCurrentIdentityUser } from "@/client/queries/identity";
+import { queryKeys } from "@/client/queries/query-keys";
 
-// --- Messages ---
 export function useMessages(caseId: string, isInternal?: boolean) {
   const backend = useDomainBackend("messages");
-  const convex = useConvex();
-
-  return useQuery({
+  const convex = useConvexQuery(
+    api.messages.listMessages as any,
+    backend === "convex" && caseId
+      ? ({ caseId, isInternal, paginationOpts: { numItems: 50, cursor: null } } as any)
+      : "skip",
+  );
+  const next = useQuery({
     queryKey: [...queryKeys.cases.detail(caseId), "messages", isInternal],
-    queryFn: async () => {
-      if (backend === "convex") {
-        return await convex.query(api.messages.listMessages as any, { 
-          caseId: caseId as any, 
-          isInternal,
-          paginationOpts: { numItems: 50, cursor: null }
-        });
-      } else {
-        const res = await fetch(`/api/communication/messages?caseId=${caseId}`);
-        if (!res.ok) throw new Error("Failed to fetch messages");
-        const data = await res.json();
-        return { page: data, isDone: true, continueCursor: "" };
-      }
-    },
-    enabled: !!caseId,
-    refetchInterval: 5000, // Poll every 5 seconds per instructions
+    queryFn: ({ signal }) =>
+      apiClient.request<{ page: any[]; isDone: boolean; continueCursor: string }>(
+        "/api/v1/messages",
+        {
+          query: {
+            caseId,
+            isInternal: isInternal === undefined ? undefined : String(isInternal),
+          },
+          signal,
+        },
+      ),
+    enabled: backend === "next" && !!caseId,
+    refetchInterval: 5000,
   });
+  return {
+    data: backend === "convex" ? convex : next.data,
+    isLoading: backend === "next" ? next.isLoading : convex === undefined,
+  };
 }
 
 export function useMessageCommands() {
   const backend = useDomainBackend("messages");
-  const convex = useConvex();
   const queryClient = useQueryClient();
+  const convexSend = useConvexMutation(api.messages.sendMessage as any);
+  const convexMarkRead = useConvexMutation(api.messages.markMessagesRead as any);
 
   const sendMessage = useMutation({
-    mutationFn: async (args: { caseId: string; content: string; isInternal: boolean; attachmentIds?: string[] }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.messages.sendMessage as any, {
-          caseId: args.caseId as any,
-          content: args.content,
-          isInternal: args.isInternal,
-          attachmentIds: args.attachmentIds || [],
-        });
-      } else {
-        const res = await fetch("/api/communication/messages", {
+    mutationFn: async (args: {
+      caseId: string;
+      content: string;
+      isInternal: boolean;
+      attachmentIds?: string[];
+    }) => {
+      try {
+        if (backend === "convex") {
+          return await convexSend({
+            caseId: args.caseId,
+            content: args.content,
+            isInternal: args.isInternal,
+            attachmentIds: args.attachmentIds || [],
+          });
+        }
+        return await apiClient.request("/api/v1/messages", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(args),
+          body: {
+            caseId: args.caseId,
+            content: args.content,
+            isInternal: args.isInternal,
+            attachmentIds: args.attachmentIds,
+          },
         });
-        if (!res.ok) throw new Error("Failed to send message");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
     onSuccess: (_, variables) => {
@@ -64,16 +83,14 @@ export function useMessageCommands() {
 
   const markMessagesRead = useMutation({
     mutationFn: async (args: { caseId: string }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.messages.markMessagesRead as any, { caseId: args.caseId as any });
-      } else {
-        const res = await fetch("/api/communication/messages/read", {
+      try {
+        if (backend === "convex") return await convexMarkRead({ caseId: args.caseId });
+        return await apiClient.request("/api/v1/messages/read", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(args),
+          body: { caseId: args.caseId },
         });
-        if (!res.ok) throw new Error("Failed to mark messages as read");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
     onSuccess: (_, variables) => {
@@ -84,67 +101,88 @@ export function useMessageCommands() {
   return { sendMessage, markMessagesRead };
 }
 
-// --- Notifications ---
 export function useNotifications() {
   const backend = useDomainBackend("notifications");
-  const convex = useConvex();
   const currentUser = useCurrentIdentityUser();
-
-  return useQuery({
+  const convex = useConvexQuery(
+    api.notifications.listNotifications as any,
+    backend === "convex" && currentUser?.id ? {} : "skip",
+  );
+  const next = useQuery({
     queryKey: ["notifications", currentUser?.id],
-    queryFn: async () => {
-      if (backend === "convex") {
-        return await convex.query(api.notifications.listNotifications as any, {});
-      } else {
-        const res = await fetch("/api/communication/notifications");
-        if (!res.ok) throw new Error("Failed to fetch notifications");
-        return res.json();
-      }
-    },
-    enabled: !!currentUser?.id,
-    refetchInterval: 10000, // Poll every 10 seconds per instructions
+    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/notifications", { signal }),
+    enabled: backend === "next" && !!currentUser?.id,
+    refetchInterval: 10_000,
   });
+  return {
+    data: (backend === "convex" ? convex : next.data) ?? [],
+    isLoading: backend === "next" ? next.isLoading : convex === undefined,
+  };
 }
 
 export function useNotificationCommands() {
   const backend = useDomainBackend("notifications");
-  const convex = useConvex();
   const queryClient = useQueryClient();
   const currentUser = useCurrentIdentityUser();
+  const convexMarkRead = useConvexMutation(api.notifications.markRead as any);
+  const convexMarkAll = useConvexMutation(api.notifications.markAllRead as any);
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["notifications", currentUser?.id] });
 
   const markRead = useMutation({
     mutationFn: async (args: { notificationId: string }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.notifications.markRead as any, { notificationId: args.notificationId as any });
-      } else {
-        const res = await fetch(`/api/communication/notifications/${args.notificationId}`, {
+      try {
+        if (backend === "convex") {
+          return await convexMarkRead({ notificationId: args.notificationId });
+        }
+        return await apiClient.request(`/api/v1/notifications/${args.notificationId}`, {
           method: "PATCH",
+          body: {},
         });
-        if (!res.ok) throw new Error("Failed to mark read");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", currentUser?.id] });
-    },
+    onSuccess: invalidate,
   });
 
   const markAllRead = useMutation({
     mutationFn: async () => {
-      if (backend === "convex") {
-        return await convex.mutation(api.notifications.markAllRead as any, {});
-      } else {
-        const res = await fetch("/api/communication/notifications", {
-          method: "PATCH",
-        });
-        if (!res.ok) throw new Error("Failed to mark all read");
-        return res.json();
+      try {
+        if (backend === "convex") return await convexMarkAll({});
+        return await apiClient.request("/api/v1/notifications", { method: "PATCH", body: {} });
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", currentUser?.id] });
-    },
+    onSuccess: invalidate,
   });
 
   return { markRead, markAllRead };
+}
+
+export function useEmailCommands() {
+  const backend = useDomainBackend("messages");
+  const convexSend = useConvexMutation(api.communications.sendEmail as any);
+
+  const sendEmail = useMutation({
+    mutationFn: async (args: {
+      to: string;
+      subject: string;
+      body: string;
+      relatedId?: string;
+    }) => {
+      try {
+        if (backend === "convex") return await convexSend(args);
+        return await apiClient.request("/api/v1/communications/email", {
+          method: "POST",
+          body: args,
+        });
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
+  });
+
+  return { sendEmail };
 }

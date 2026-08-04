@@ -3,25 +3,20 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
-import { and, eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import {
+  cases,
+  clients,
+  expenses,
   invoices,
   timeEntries,
   trustTransactions,
-  expenses,
   users,
-  cases,
-  clients,
 } from "@/server/db/schema";
 
 type Value = Record<string, unknown>;
-const tables = [
-  "invoices",
-  "timeEntries",
-  "trustTransactions",
-  "expenses",
-] as const;
+const tables = ["invoices", "timeEntries", "trustTransactions", "expenses"] as const;
 
 export interface FinancialMigrationReport {
   source: Record<string, number>;
@@ -40,27 +35,20 @@ export async function migrateFinancialExport(input: {
   for (const table of tables) {
     try {
       records.set(table, await reader.readTable(table));
-    } catch (e: any) {
+    } catch {
       records.set(table, []);
     }
   }
 
   const database = getDatabase();
-  
   const userRows = await database
     .select({ id: users.id, firmId: users.firmId, legacyId: users.legacyConvexId })
     .from(users);
-  const userMap = new Map(
-    userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
-  );
-  
+  const userMap = new Map(userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]));
   const caseRows = await database
     .select({ id: cases.id, firmId: cases.firmId, legacyId: cases.legacyConvexId })
     .from(cases);
-  const caseMap = new Map(
-    caseRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
-  );
-
+  const caseMap = new Map(caseRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]));
   const clientRows = await database
     .select({ id: clients.id, firmId: clients.firmId, legacyId: clients.legacyConvexId })
     .from(clients);
@@ -70,23 +58,18 @@ export async function migrateFinancialExport(input: {
 
   const migrated = Object.fromEntries(tables.map((table) => [table, 0]));
   const exceptions: FinancialMigrationReport["exceptions"] = [];
-  
   const invoiceMap = new Map<string, { id: string; firmId: string }>();
 
   await database.transaction(async (tx) => {
-    // 1. Invoices
     for (const record of records.get("invoices") ?? []) {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
         const caseRecord = caseMap.get(asString(record.caseId) ?? "");
         if (!caseRecord) throw new Error("Case missing");
-        
         const clientRecord = clientMap.get(asString(record.clientId) ?? "");
         if (!clientRecord) throw new Error("Client missing");
-        
         const firmId = resolveFirm(record, input, caseRecord.firmId);
-        
         const [row] = await tx
           .insert(invoices)
           .values({
@@ -94,234 +77,294 @@ export async function migrateFinancialExport(input: {
             firmId,
             clientId: clientRecord.id,
             caseId: caseRecord.id,
-            invoiceNumber: asString(record.invoiceNumber) ?? `INV-${Date.now()}`,
-            subtotal: asString(record.subtotal) ?? "0",
-            taxTotal: asString(record.taxTotal) ?? "0",
-            total: asString(record.total) ?? "0",
-            status: (asString(record.status) as any) || "draft",
-            issueDate: dateOnly(record.issueDate) ?? new Date().toISOString().split('T')[0]!,
-            dueDate: dateOnly(record.dueDate) ?? new Date().toISOString().split('T')[0]!,
-            notes: asString(record.notes),
-            terms: asString(record.terms),
+            invoiceNumber: asString(record.invoiceNumber) ?? `INV-${legacyId.slice(-6)}`,
+            subtotal: String(record.subtotal ?? 0),
+            vatAmount: String(record.vatAmount ?? record.taxTotal ?? 0),
+            total: String(record.total ?? 0),
+            status: enumValue(
+              record.status,
+              ["draft", "sent", "paid", "overdue", "cancelled"] as const,
+              "draft",
+            ),
+            issuedDate:
+              dateOnly(record.issuedDate) ??
+              dateOnly(record.issueDate) ??
+              new Date().toISOString().slice(0, 10),
+            dueDate: dateOnly(record.dueDate) ?? new Date().toISOString().slice(0, 10),
             paidDate: dateOnly(record.paidDate),
-            createdAt: asDate(record._creationTime) ?? new Date(),
-            updatedAt: asDate(record._creationTime) ?? new Date(),
-          } as any)
+            notes: asString(record.notes),
+            createdAt: toDate(record._creationTime) ?? new Date(),
+          })
+          .onConflictDoUpdate({
+            target: invoices.legacyConvexId,
+            set: {
+              firmId,
+              status: enumValue(
+                record.status,
+                ["draft", "sent", "paid", "overdue", "cancelled"] as const,
+                "draft",
+              ),
+              updatedAt: new Date(),
+            },
+          })
           .returning({ id: invoices.id, firmId: invoices.firmId });
-          
-        invoiceMap.set(legacyId, row!);
-        migrated.invoices++;
-      } catch (e: any) {
-        exceptions.push({ table: "invoices", id: legacyId, reason: e.message });
+        invoiceMap.set(legacyId, row);
+        migrated.invoices += 1;
+      } catch (error) {
+        exceptions.push({ table: "invoices", id: legacyId, reason: message(error) });
       }
     }
 
-    // 2. Time Entries
     for (const record of records.get("timeEntries") ?? []) {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
         const caseRecord = caseMap.get(asString(record.caseId) ?? "");
         if (!caseRecord) throw new Error("Case missing");
-        
         const userRecord = userMap.get(asString(record.userId) ?? "");
         if (!userRecord) throw new Error("User missing");
-
         const firmId = resolveFirm(record, input, caseRecord.firmId);
-        
         const invoiceRef = asString(record.invoiceId);
-        const mappedInvoiceId = invoiceRef ? invoiceMap.get(invoiceRef)?.id : undefined;
-
-        await tx.insert(timeEntries).values({
-          legacyConvexId: legacyId,
-          firmId,
-          caseId: caseRecord.id,
-          userId: userRecord.id,
-          description: asString(record.description) ?? "Time entry",
-          minutes: typeof record.minutes === "number" ? record.minutes : 0,
-          isBillable: typeof record.isBillable === "boolean" ? record.isBillable : true,
-          entryDate: dateOnly(record.entryDate) ?? new Date().toISOString().split('T')[0]!,
-          ratePerHour: asString(record.ratePerHour) ?? "0",
-          invoiceId: mappedInvoiceId,
-          createdAt: asDate(record._creationTime) ?? new Date(),
-          updatedAt: asDate(record._creationTime) ?? new Date(),
-        });
-        migrated.timeEntries++;
-      } catch (e: any) {
-        exceptions.push({ table: "timeEntries", id: legacyId, reason: e.message });
+        await tx
+          .insert(timeEntries)
+          .values({
+            legacyConvexId: legacyId,
+            firmId,
+            caseId: caseRecord.id,
+            userId: userRecord.id,
+            description: asString(record.description) ?? "Time entry",
+            minutes: typeof record.minutes === "number" ? record.minutes : 0,
+            isBillable: typeof record.isBillable === "boolean" ? record.isBillable : true,
+            entryDate:
+              dateOnly(record.entryDate) ??
+              dateOnly(record.date) ??
+              new Date().toISOString().slice(0, 10),
+            ratePerHour: String(record.ratePerHour ?? 0),
+            invoiceId: invoiceRef ? invoiceMap.get(invoiceRef)?.id : undefined,
+            createdAt: toDate(record._creationTime) ?? new Date(),
+          })
+          .onConflictDoUpdate({
+            target: timeEntries.legacyConvexId,
+            set: {
+              firmId,
+              description: asString(record.description) ?? "Time entry",
+              updatedAt: new Date(),
+            },
+          });
+        migrated.timeEntries += 1;
+      } catch (error) {
+        exceptions.push({ table: "timeEntries", id: legacyId, reason: message(error) });
       }
     }
 
-    // 3. Trust Transactions
     for (const record of records.get("trustTransactions") ?? []) {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
         const clientRecord = clientMap.get(asString(record.clientId) ?? "");
         if (!clientRecord) throw new Error("Client missing");
-
         const firmId = resolveFirm(record, input, clientRecord.firmId);
-        
-        let mappedCaseId: string | undefined;
-        const cId = asString(record.caseId);
-        if (cId) mappedCaseId = caseMap.get(cId)?.id;
-
-        const userRecord = userMap.get(asString(record.approvedBy) ?? "") ?? userRows[0];
-
-        await tx.insert(trustTransactions).values({
-          legacyConvexId: legacyId,
-          firmId,
-          clientId: clientRecord.id,
-          caseId: mappedCaseId,
-          description: asString(record.description) ?? "Trust Transaction",
-          type: (asString(record.type) as any) || "receipt",
-          amount: asString(record.amount) ?? "0",
-          transactionDate: dateOnly(record.date) ?? new Date().toISOString().split('T')[0]!,
-          referenceId: asString(record.referenceId),
-          recordedBy: userRecord.id,
-          createdAt: new Date((record._creationTime as number) || Date.now()),
-          updatedAt: asDate(record._creationTime) ?? new Date(),
-        } as any);
-        migrated.trustTransactions++;
-      } catch (e: any) {
-        exceptions.push({ table: "trustTransactions", id: legacyId, reason: e.message });
+        const caseId = asString(record.caseId);
+        const approver =
+          userMap.get(asString(record.approvedBy) ?? "") ??
+          userMap.get(asString(record.recordedBy) ?? "") ??
+          userRows.find((row) => row.firmId === firmId);
+        if (!approver) throw new Error("Approver missing");
+        await tx
+          .insert(trustTransactions)
+          .values({
+            legacyConvexId: legacyId,
+            firmId,
+            clientId: clientRecord.id,
+            caseId: caseId ? caseMap.get(caseId)?.id : undefined,
+            type: enumValue(record.type, ["receipt", "disbursement"] as const, "receipt"),
+            amount: String(record.amount ?? 0),
+            description: asString(record.description) ?? "Trust transaction",
+            transactionDate: dateOnly(record.date) ?? new Date().toISOString().slice(0, 10),
+            balance: String(record.balance ?? record.amount ?? 0),
+            approvedBy: approver.id,
+            createdAt: toDate(record._creationTime) ?? new Date(),
+          })
+          .onConflictDoUpdate({
+            target: trustTransactions.legacyConvexId,
+            set: {
+              firmId,
+              description: asString(record.description) ?? "Trust transaction",
+              updatedAt: new Date(),
+            },
+          });
+        migrated.trustTransactions += 1;
+      } catch (error) {
+        exceptions.push({ table: "trustTransactions", id: legacyId, reason: message(error) });
       }
     }
 
-    // 4. Expenses
     for (const record of records.get("expenses") ?? []) {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
-        let mappedCaseId: string | undefined;
-        const cId = asString(record.caseId);
-        if (cId) mappedCaseId = caseMap.get(cId)?.id;
-
-        const userRecord = userMap.get(asString(record.submittedBy) ?? "");
-        if (!userRecord) throw new Error("Submitter missing");
-
-        const firmId = resolveFirm(record, input, userRecord.firmId);
-        
-        let approvedById: string | undefined;
-        const aId = asString(record.approvedBy);
-        if (aId) approvedById = userMap.get(aId)?.id;
-
-        let mappedInvoiceId: string | undefined;
-        const invId = asString(record.invoiceId);
-        if (invId) mappedInvoiceId = invoiceMap.get(invId)?.id;
-
-        await tx.insert(expenses).values({
-          legacyConvexId: legacyId,
-          firmId,
-          description: asString(record.description) ?? "Expense",
-          category: (asEnum(record.category, ["office_rent", "utilities", "court_fees", "courier", "printing", "travel", "software", "supplies", "other"]) ?? "other") as any,
-          amount: asString(record.amount) ?? "0",
-          caseId: mappedCaseId,
-          receiptId: asString(record.receiptId),
-          expenseDate: dateOnly(record.date) ?? new Date().toISOString().split('T')[0]!,
-          submittedBy: userRecord.id,
-          status: (asEnum(record.status, ["pending", "approved", "rejected", "reimbursed"]) ?? "pending") as any,
-          approvedBy: approvedById,
-          invoiceId: mappedInvoiceId,
-          createdAt: new Date((record._creationTime as number) || Date.now()),
-          updatedAt: asDate(record._creationTime) ?? new Date(),
-        } as any);
-        migrated.expenses++;
-      } catch (e: any) {
-        exceptions.push({ table: "expenses", id: legacyId, reason: e.message });
+        const submitter = userMap.get(asString(record.submittedBy) ?? "");
+        if (!submitter) throw new Error("Submitter missing");
+        const firmId = resolveFirm(record, input, submitter.firmId);
+        const caseId = asString(record.caseId);
+        const approvedBy = asString(record.approvedBy);
+        const invoiceRef = asString(record.invoiceId);
+        await tx
+          .insert(expenses)
+          .values({
+            legacyConvexId: legacyId,
+            firmId,
+            description: asString(record.description) ?? "Expense",
+            category: enumValue(
+              record.category,
+              [
+                "office_rent",
+                "utilities",
+                "court_fees",
+                "courier",
+                "printing",
+                "travel",
+                "supplies",
+                "software",
+                "other",
+              ] as const,
+              "other",
+            ),
+            amount: String(record.amount ?? 0),
+            caseId: caseId ? caseMap.get(caseId)?.id : undefined,
+            receiptId: asString(record.receiptId),
+            expenseDate: dateOnly(record.date) ?? new Date().toISOString().slice(0, 10),
+            submittedBy: submitter.id,
+            status: enumValue(record.status, ["pending", "approved", "rejected"] as const, "pending"),
+            approvedBy: approvedBy ? userMap.get(approvedBy)?.id : undefined,
+            invoiceId: invoiceRef ? invoiceMap.get(invoiceRef)?.id : undefined,
+            createdAt: toDate(record._creationTime) ?? new Date(),
+          })
+          .onConflictDoUpdate({
+            target: expenses.legacyConvexId,
+            set: {
+              firmId,
+              description: asString(record.description) ?? "Expense",
+              updatedAt: new Date(),
+            },
+          });
+        migrated.expenses += 1;
+      } catch (error) {
+        exceptions.push({ table: "expenses", id: legacyId, reason: message(error) });
       }
     }
   });
 
+  const checks: Record<string, { source: number; target: number }> = {};
+  for (const [name, table] of [
+    ["invoices", invoices],
+    ["timeEntries", timeEntries],
+    ["trustTransactions", trustTransactions],
+    ["expenses", expenses],
+  ] as const) {
+    const ids = (records.get(name) ?? [])
+      .map((row) => asString(row._id))
+      .filter(Boolean) as string[];
+    const target = ids.length
+      ? (
+          await database
+            .select({ id: table.id })
+            .from(table)
+            .where(inArray(table.legacyConvexId, ids))
+        ).length
+      : 0;
+    checks[name] = { source: records.get(name)?.length ?? 0, target };
+  }
+
   return {
-    source: Object.fromEntries(tables.map((t) => [t, records.get(t)?.length ?? 0])),
+    source: Object.fromEntries([...records].map(([name, rows]) => [name, rows.length])),
     migrated,
     exceptions,
-    reconciliation: { passed: true, checks: {} },
+    reconciliation: {
+      passed:
+        exceptions.length === 0 &&
+        Object.values(checks).every((check) => check.source === check.target),
+      checks,
+    },
   };
 }
 
-// -- Helpers --
-
-function asString(val: unknown): string | undefined {
-  if (val == null) return undefined;
-  return String(val);
-}
-
-function asDate(val: unknown): Date | undefined {
-  if (typeof val === "number") return new Date(val);
-  if (typeof val === "string") return new Date(val);
-  return undefined;
-}
-
-function dateOnly(val: unknown): string | undefined {
-  const d = asDate(val);
-  if (!d) return undefined;
-  return d.toISOString().split("T")[0];
-}
-
-function asEnum<T extends string>(val: unknown, allowed: T[]): T | undefined {
-  const str = asString(val);
-  if (allowed.includes(str as T)) return str as T;
-  return undefined;
-}
-
 function resolveFirm(
-  record: any,
+  record: Value,
   input: { firmMap: Record<string, string>; orphanFirmId?: string },
-  parentFirmId?: string,
-): string {
-  const recFirmId = asString(record.firmId);
-  if (recFirmId && input.firmMap[recFirmId]) return input.firmMap[recFirmId]!;
-  if (parentFirmId) return parentFirmId;
-  if (input.orphanFirmId) return input.orphanFirmId;
-  throw new Error("Cannot resolve firm ID");
+  relatedFirmId?: string,
+) {
+  const legacyFirmId = asString(record.firmId);
+  const mapped = legacyFirmId ? input.firmMap[legacyFirmId] : undefined;
+  const firmId = mapped ?? relatedFirmId ?? input.orphanFirmId;
+  if (!firmId) throw new Error("Firm ownership is missing");
+  if (mapped && relatedFirmId && mapped !== relatedFirmId) {
+    throw new Error("Firm ownership conflicts with a related record");
+  }
+  return firmId;
 }
 
-async function createReader(filePath: string) {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".zip") {
-    const buf = await fs.readFile(filePath);
-    const zip = await JSZip.loadAsync(buf);
+function asString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+function toDate(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? null : date;
+}
+function dateOnly(value: unknown) {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = toDate(value);
+  return date ? date.toISOString().slice(0, 10) : null;
+}
+function enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return typeof value === "string" && allowed.includes(value as T) ? (value as T) : fallback;
+}
+function message(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown migration error";
+}
+
+async function createReader(exportPath: string) {
+  const stat = await fs.stat(exportPath);
+  if (stat.isDirectory()) {
     return {
-      async readTable(name: string) {
-        let file = zip.file(`${name}.jsonl`) || zip.file(`${name}.json`);
-        if (!file) {
-          const matching = Object.keys(zip.files).find(
-            (k) => k.endsWith(`/${name}.jsonl`) || k.endsWith(`/${name}.json`),
-          );
-          if (matching) file = zip.file(matching);
+      readTable: async (table: string) => {
+        for (const candidate of [
+          path.join(exportPath, table, "documents.jsonl"),
+          path.join(exportPath, `${table}.jsonl`),
+          path.join(exportPath, `${table}.json`),
+        ]) {
+          try {
+            return parseRows(await fs.readFile(candidate, "utf8"));
+          } catch {
+            // try next candidate
+          }
         }
-        if (!file) return [];
-        const content = await file.async("string");
-        return parseJsonl(content);
+        return [];
       },
     };
   }
-  const isDir = (await fs.stat(filePath)).isDirectory();
-  if (isDir) {
-    return {
-      async readTable(name: string) {
-        try {
-          const content = await fs.readFile(path.join(filePath, `${name}.jsonl`), "utf8");
-          return parseJsonl(content);
-        } catch {
-          const content = await fs.readFile(path.join(filePath, `${name}.json`), "utf8");
-          return JSON.parse(content);
-        }
-      },
-    };
-  }
-  throw new Error("Unsupported format");
+  const buffer = await fs.readFile(exportPath);
+  const zip = await JSZip.loadAsync(buffer);
+  return {
+    readTable: async (table: string) => {
+      const file =
+        zip.file(`${table}/documents.jsonl`) ||
+        zip.file(`${table}.jsonl`) ||
+        zip.file(`${table}.json`);
+      if (!file) return [];
+      return parseRows(await file.async("string"));
+    },
+  };
 }
 
-function parseJsonl(content: string): Value[] {
-  return content
+function parseRows(content: string): Value[] {
+  const trimmed = content.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[")) return JSON.parse(trimmed) as Value[];
+  return trimmed
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => JSON.parse(line));
+    .map((line) => JSON.parse(line) as Value);
 }

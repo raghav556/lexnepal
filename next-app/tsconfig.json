@@ -3,11 +3,11 @@
   "compilerOptions": {
     "baseUrl": "..",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"], "@/convex/*": ["./convex/*"], "@usehercules/auth/react": ["./src/lib/hercules-react-shim.ts"]
     }
   },
   "include": [
-    "next-env.d.ts",
+    "next-env.d.ts", "types.d.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "app/**/*.ts",
@@ -19,5 +19,5 @@
     "../src/shared/**/*.ts",
     "../src/client/**/*.ts"
   ],
-  "exclude": ["../node_modules", "../src/pages", "../src/components", "../src/lib", "../convex"]
+  "exclude": ["../node_modules", "../src/pages", "../src/components", "../src/lib"]
 }

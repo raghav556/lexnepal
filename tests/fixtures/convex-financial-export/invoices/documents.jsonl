@@ -1,0 +1,1 @@
+{"_id":"convex_invoice_a","_creationTime":1785628800000,"firmId":"convex_firm_a","invoiceNumber":"INV-FIX001","caseId":"convex_case_a","clientId":"convex_client_a","status":"sent","subtotal":10000,"vatAmount":1300,"total":11300,"issuedDate":"2026-08-01","dueDate":"2026-08-16","notes":"Fixture invoice"}

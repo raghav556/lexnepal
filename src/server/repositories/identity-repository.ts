@@ -495,6 +495,7 @@ function toUserDto(user: typeof users.$inferSelect): UserDto {
     twoFactorEnabled: user.twoFactorEnabled,
     twoFactorRequired: user.twoFactorRequired,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+    baseSalary: user.baseSalary != null ? Number(user.baseSalary) : null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

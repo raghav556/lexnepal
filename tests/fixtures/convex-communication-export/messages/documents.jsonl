@@ -1,0 +1,2 @@
+﻿{"_id":"convex_msg_a","_creationTime":1785628800000,"firmId":"convex_firm_a","caseId":"convex_case_a","senderId":"convex_identity_user_1","content":"Fixture staff message about the matter","isInternal":false,"readBy":["convex_identity_user_1"]}
+{"_id":"convex_msg_b","_creationTime":1785715200000,"firmId":"convex_firm_a","caseId":"convex_case_a","senderId":"convex_identity_user_1","content":"Internal note for staff only","isInternal":true,"readBy":["convex_identity_user_1"]}

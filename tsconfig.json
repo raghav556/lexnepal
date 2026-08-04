@@ -1,5 +1,5 @@
 {
-  "compilerOptions": {
+  "compilerOptions": { "allowImportingTsExtensions": true, 
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -48,10 +48,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "convex",
-    "src/pages",
-    "src/components",
-    "src/hooks",
-    "src/lib"
+    "convex"
   ]
 }

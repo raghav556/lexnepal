@@ -1,10 +1,10 @@
-﻿import type { ReactNode, ComponentType } from "react";
+import type { ReactNode, ComponentType } from "react";
 import * as ConvexReact from "@/client/data/convex-bridge.ts";
 import { DataProvider } from "@/client/data/provider";
 import { Toaster } from "sonner";
 
-const useMock = import.meta.env.VITE_USE_MOCK === "true";
-const convexUrl = (import.meta.env.VITE_CONVEX_URL as string | undefined) || "";
+const useMock = (typeof process !== "undefined" ? process.env.VITE_USE_MOCK : import.meta.env.VITE_USE_MOCK) === "true";
+const convexUrl = ((typeof process !== "undefined" ? process.env.VITE_CONVEX_URL : import.meta.env.VITE_CONVEX_URL) as string | undefined) || "";
 
 const { ConvexProvider, ConvexReactClient } = ConvexReact;
 const PreviewProvider =
@@ -25,3 +25,4 @@ export function DefaultProviders({ children }: { children: ReactNode }) {
     </PreviewProvider>
   );
 }
+

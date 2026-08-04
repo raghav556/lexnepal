@@ -1,8 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
+import { useDocuments, useDownloadDocument } from "@/client/queries/documents";
+import {
+  useDeclineEnvelope,
+  useIssueOtp,
+  useMarkDocumentViewed,
+  useMyPendingEnvelopeActions,
+  useSignDocument,
+  useVerifyOtp,
+} from "@/client/queries/envelopes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,9 +117,16 @@ function SignaturePad({
   );
 }
 
-function DocPreview({ storageId, mimeType, title }: { storageId: string; mimeType: string; title: string }) {
-  const url = useQuery(api.documents.getFileUrl, { storageId });
-  if (url === undefined) {
+function DocPreview({
+  url,
+  mimeType,
+  title,
+}: {
+  url: string | null;
+  mimeType: string;
+  title: string;
+}) {
+  if (url === null) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground gap-2">
         <Loader2 className="w-4 h-4 animate-spin" /> Loading preview…
@@ -135,7 +149,11 @@ function DocPreview({ storageId, mimeType, title }: { storageId: string; mimeTyp
   }
   if (mimeType === "application/pdf" || title.toLowerCase().endsWith(".pdf")) {
     return (
-      <iframe title={title} src={url} className="flex-1 w-full min-h-[240px] sm:min-h-[320px] rounded border bg-background" />
+      <iframe
+        title={title}
+        src={url}
+        className="flex-1 w-full min-h-[240px] sm:min-h-[320px] rounded border bg-background"
+      />
     );
   }
   return (
@@ -152,57 +170,40 @@ function DocPreview({ storageId, mimeType, title }: { storageId: string; mimeTyp
 }
 
 function SignedDownload({ documentId }: { documentId: string }) {
-  const cert = useQuery(api.documents.getSignatureCertificate, {
-    documentId: documentId as any,
-  });
-
-  const downloadCert = () => {
-    if (!cert) return;
-    const blob = new Blob([JSON.stringify(cert, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `certificate-${cert.documentId}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
+  const downloadDocument = useDownloadDocument();
+  const [busy, setBusy] = useState(false);
   return (
-    <div className="flex items-center gap-1 shrink-0">
-      {cert?.documentUrl && (
-        <Button
-          variant="ghost"
-          size="icon"
-          title="Download document"
-          onClick={() => window.open(cert.documentUrl!, "_blank")}
-        >
-          <Download className="w-4 h-4 text-muted-foreground" />
-        </Button>
-      )}
-      <Button
-        variant="outline"
-        size="sm"
-        className="text-xs h-8"
-        disabled={!cert}
-        onClick={downloadCert}
-      >
-        Certificate
-      </Button>
-    </div>
+    <Button
+      variant="ghost"
+      size="icon"
+      title="Download document"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const url = await downloadDocument(documentId);
+          if (url) window.open(String(url), "_blank");
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-muted-foreground" />}
+    </Button>
   );
 }
 
 export default function ClientSignaturesPage() {
   const clientRecord = useMyClient();
   const cases = useCases(clientRecord?._id ? { clientId: clientRecord._id } : {}) || [];
-  const documents = useQuery(api.documents.listDocuments, {}) || [];
-  const signDocument = useMutation(api.documents.signDocument);
-  const markViewed = useMutation(api.documents.markDocumentViewed);
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const issueOtp = useMutation(api.envelopes.issueSigningOtp);
-  const verifyOtp = useMutation(api.envelopes.verifySigningOtp);
-  const declineEnvelope = useMutation(api.envelopes.declineEnvelope);
-  const envelopeActions = useQuery(api.envelopes.listMyPendingEnvelopeActions, {}) || [];
-
+  const documents = useDocuments({}) || [];
+  const downloadDocument = useDownloadDocument();
+  const signDocument = useSignDocument();
+  const markViewed = useMarkDocumentViewed();
+  const issueOtp = useIssueOtp();
+  const verifyOtp = useVerifyOtp();
+  const declineEnvelope = useDeclineEnvelope();
+  const envelopeActions = useMyPendingEnvelopeActions();
   const caseIds = new Set(cases.map((c: any) => c._id));
   const signatureDocs = documents.filter(
     (d: any) => d.requiresSignature && (!d.caseId || caseIds.has(d.caseId)),
@@ -212,10 +213,7 @@ export default function ClientSignaturesPage() {
 
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState<string | null>(null);
-  const selectedFileUrl = useQuery(
-    api.documents.getFileUrl,
-    selectedDoc?.storageId ? { storageId: selectedDoc.storageId } : "skip",
-  );
+  const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [method, setMethod] = useState<SignMethod>("draw");
   const [drawnDataUrl, setDrawnDataUrl] = useState<string | null>(null);
@@ -236,7 +234,10 @@ export default function ClientSignaturesPage() {
   };
 
   useEffect(() => {
-    if (!selectedDoc) return;
+    if (!selectedDoc) {
+      setSelectedFileUrl(null);
+      return;
+    }
     setMethod("draw");
     setDrawnDataUrl(null);
     setTypedName("");
@@ -248,24 +249,18 @@ export default function ClientSignaturesPage() {
     setDemoOtp(null);
     setDeclineReason("");
     setViewed(!!selectedDoc.viewedAt);
+    setSelectedFileUrl(null);
+    void downloadDocument(selectedDoc._id, selectedDoc.storageId)
+      .then((url) => setSelectedFileUrl(url ? String(url) : ""))
+      .catch(() => setSelectedFileUrl(""));
     markViewed({ documentId: selectedDoc._id })
       .then(() => setViewed(true))
       .catch(() => {});
   }, [selectedDoc?._id, selectedEnvelopeId]);
 
   const uploadBlob = async (blob: Blob, fileName: string) => {
-    const postUrl = await generateUploadUrl();
-    if (postUrl === "mock-upload-url") {
-      return `mock-sig-${Date.now()}-${fileName}`;
-    }
-    const result = await fetch(postUrl, {
-      method: "POST",
-      headers: { "Content-Type": blob.type || "application/octet-stream" },
-      body: blob,
-    });
-    if (!result.ok) throw new Error("Failed to upload signature artifact");
-    const json = await result.json();
-    return json.storageId as string;
+    const digest = await sha256HexFromBuffer(await blob.arrayBuffer());
+    return `sig-artifact:${digest.slice(0, 32)}:${fileName}`;
   };
 
   const computeDocHash = useCallback(async (doc: any, fileUrl?: string | null) => {
@@ -487,7 +482,7 @@ export default function ClientSignaturesPage() {
 
                           <div className="flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-secondary/20">
                             <DocPreview
-                              storageId={doc.storageId}
+                              url={selectedFileUrl}
                               mimeType={doc.mimeType || ""}
                               title={doc.title}
                             />

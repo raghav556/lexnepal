@@ -1,14 +1,28 @@
 import fs from "node:fs/promises";
-import path from "node:path";
+import { appendExceptionsCsv } from "./report-writer";
+import {
+  ensureApprovedExceptionsPlaceholder,
+  loadApprovedExceptions,
+  partitionExceptions,
+} from "./exceptions-ledger";
 
 export interface ReconcileException {
   domain: string;
   table: string;
   id?: string;
-  type: "MISSING_ID" | "EXTRA_ID" | "ROW_COUNT_MISMATCH" | "FK_VIOLATION" | "FIRM_MISSING" | "NULLABILITY_VIOLATION" | "UNIQUE_VIOLATION" | "FINANCIAL_MISMATCH" | "OTHER";
+  type:
+    | "MISSING_ID"
+    | "EXTRA_ID"
+    | "ROW_COUNT_MISMATCH"
+    | "FK_VIOLATION"
+    | "FIRM_MISSING"
+    | "NULLABILITY_VIOLATION"
+    | "UNIQUE_VIOLATION"
+    | "FINANCIAL_MISMATCH"
+    | "OTHER";
   reason: string;
-  sourceValue?: any;
-  targetValue?: any;
+  sourceValue?: unknown;
+  targetValue?: unknown;
 }
 
 export class Reconciler {
@@ -30,23 +44,25 @@ export class Reconciler {
     return this.exceptions;
   }
 
-  async writeExceptions() {
-    if (this.exceptions.length === 0) return;
-
-    const csvPath = path.resolve(process.cwd(), "data-exceptions.csv");
-    let content = "";
-    
-    // Write header if file doesn't exist
-    const exists = await fs.access(csvPath).then(() => true).catch(() => false);
-    if (!exists) {
-      content += "domain,table,id,type,reason,sourceValue,targetValue\n";
-    }
-
-    for (const ex of this.exceptions) {
-      content += `"${ex.domain}","${ex.table}","${ex.id || ""}","${ex.type}","${ex.reason.replace(/"/g, '""')}","${JSON.stringify(ex.sourceValue || "").replace(/"/g, '""')}","${JSON.stringify(ex.targetValue || "").replace(/"/g, '""')}"\n`;
-    }
-
-    await fs.appendFile(csvPath, content);
+  /**
+   * Always append every exception to data-exceptions.csv (never silently drop).
+   * Returns partition against approved-exceptions.csv for exit-gate decisions.
+   */
+  async writeExceptions(): Promise<{
+    written: number;
+    approved: number;
+    unexplained: number;
+  }> {
+    await ensureApprovedExceptionsPlaceholder();
+    // Raw ledger: every exception is recorded, including ones later marked approved.
+    await appendExceptionsCsv(this.exceptions);
+    const approvedRows = await loadApprovedExceptions();
+    const partitioned = partitionExceptions(this.exceptions, approvedRows);
+    return {
+      written: this.exceptions.length,
+      approved: partitioned.approved.length,
+      unexplained: partitioned.unexplained.length,
+    };
   }
 
   checkRowCount(table: string, sourceCount: number, targetCount: number) {
@@ -60,4 +76,20 @@ export class Reconciler {
       });
     }
   }
+}
+
+/** Ensure the exceptions CSV exists (header only) for operators. */
+export async function ensureExceptionsCsvPlaceholder() {
+  const { EXCEPTIONS_CSV, DOC_MIGRATION_DIR } = await import("./types");
+  await fs.mkdir(DOC_MIGRATION_DIR, { recursive: true });
+  try {
+    await fs.access(EXCEPTIONS_CSV);
+  } catch {
+    await fs.writeFile(
+      EXCEPTIONS_CSV,
+      "domain,table,id,type,reason,sourceValue,targetValue,recordedAt\n",
+      "utf8",
+    );
+  }
+  await ensureApprovedExceptionsPlaceholder();
 }

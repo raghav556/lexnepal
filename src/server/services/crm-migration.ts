@@ -59,36 +59,62 @@ export async function migrateCrmExport(input: {
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
         const assignedUser = record.assignedTo ? userMap.get(asString(record.assignedTo) ?? "") : undefined;
+        const converted = record.convertedClientId
+          ? clientMap.get(asString(record.convertedClientId) ?? "")
+          : undefined;
         // fallback to orphanFirmId if neither available, though Convex leads usually don't have firmId
-        const firmId = resolveFirm(record, input, assignedUser?.firmId);
+        const firmId = resolveFirm(record, input, assignedUser?.firmId ?? converted?.firmId);
+
+        const source = normalizeLeadSource(record.source);
+        const fullName = asString(record.fullName) ?? "Migrated Lead";
+        const email = asString(record.email);
+        const phone = asString(record.phone);
+        const practiceAreaInterest = asString(record.practiceAreaInterest);
+        const message = asString(record.message);
+        const status = enumValue(
+          record.status,
+          ["new", "contacted", "consultation_scheduled", "converted", "lost"] as const,
+          "new",
+        );
+        const notes = asString(record.notes);
+        const intakeToken = asString(record.intakeToken);
+        const intakeSubmitted = asBoolean(record.intakeSubmitted, false);
         
         await tx
           .insert(leads)
           .values({
             legacyConvexId: legacyId,
             firmId,
-            fullName: asString(record.fullName) ?? "Migrated Lead",
-            email: asString(record.email),
-            phone: asString(record.phone),
-            source: enumValue(record.source, ["website", "referral", "walk-in", "other"] as const, "website") as any,
-            practiceAreaInterest: asString(record.practiceAreaInterest),
-            message: asString(record.message),
-            status: enumValue(
-              record.status,
-              ["new", "contacted", "consultation_scheduled", "converted", "lost"] as const,
-              "new",
-            ),
+            fullName,
+            email,
+            phone,
+            source,
+            practiceAreaInterest,
+            message,
+            status,
             assignedTo: assignedUser?.id,
-            notes: asString(record.notes),
-            intakeToken: asString(record.intakeToken),
-            intakeSubmitted: asBoolean(record.intakeSubmitted, false),
+            convertedClientId: converted?.id,
+            notes,
+            intakeToken,
+            intakeSubmitted,
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
           .onConflictDoUpdate({
             target: leads.legacyConvexId,
             set: {
               firmId,
-              fullName: asString(record.fullName) ?? "Migrated Lead",
+              fullName,
+              email,
+              phone,
+              source,
+              practiceAreaInterest,
+              message,
+              status,
+              assignedTo: assignedUser?.id,
+              convertedClientId: converted?.id,
+              notes,
+              intakeToken,
+              intakeSubmitted,
               updatedAt: new Date(),
             },
           });
@@ -111,33 +137,53 @@ export async function migrateCrmExport(input: {
         
         const firmId = resolveFirm(record, input, client?.firmId ?? lawyer?.firmId);
 
+        const clientName = asString(record.clientName) ?? "Migrated Client";
+        const clientEmail = asString(record.clientEmail);
+        const clientPhone = asString(record.clientPhone) ?? "000000000";
+        const practiceArea = asString(record.practiceArea) ?? "Other";
+        const date = asString(record.date) ?? new Date().toISOString().slice(0, 10);
+        const timeSlot = asString(record.timeSlot) ?? "00:00";
+        const notes = asString(record.notes);
+        const status = enumValue(
+          record.status,
+          ["pending", "confirmed", "completed", "cancelled"] as const,
+          "pending",
+        );
+        const meetingLink = asString(record.meetingLink);
+
         await tx
           .insert(appointments)
           .values({
             legacyConvexId: legacyId,
             firmId,
-            clientName: asString(record.clientName) ?? "Migrated Client",
-            clientEmail: asString(record.clientEmail),
-            clientPhone: asString(record.clientPhone) ?? "000000000",
+            clientName,
+            clientEmail,
+            clientPhone,
             clientId: client?.id,
             assignedLawyerId: lawyer?.id,
-            practiceArea: asString(record.practiceArea) ?? "Other",
-            date: asString(record.date) ?? new Date().toISOString().slice(0, 10),
-            timeSlot: asString(record.timeSlot) ?? "00:00",
-            notes: asString(record.notes),
-            status: enumValue(
-              record.status,
-              ["pending", "confirmed", "completed", "cancelled"] as const,
-              "pending",
-            ),
-            meetingLink: asString(record.meetingLink),
+            practiceArea,
+            date,
+            timeSlot,
+            notes,
+            status,
+            meetingLink,
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
           .onConflictDoUpdate({
             target: appointments.legacyConvexId,
             set: {
               firmId,
-              clientName: asString(record.clientName) ?? "Migrated Client",
+              clientName,
+              clientEmail,
+              clientPhone,
+              clientId: client?.id,
+              assignedLawyerId: lawyer?.id,
+              practiceArea,
+              date,
+              timeSlot,
+              notes,
+              status,
+              meetingLink,
               updatedAt: new Date(),
             },
           });
@@ -206,6 +252,18 @@ function toDate(value: unknown) {
 }
 function enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   return typeof value === "string" && allowed.includes(value as T) ? (value as T) : fallback;
+}
+function normalizeLeadSource(
+  value: unknown,
+): "website" | "referral" | "walk_in" | "phone" | "social" | "newsletter" {
+  if (typeof value !== "string") return "website";
+  const normalized = value.trim().toLowerCase().replace(/-/g, "_");
+  if (normalized === "walkin") return "walk_in";
+  return enumValue(
+    normalized,
+    ["website", "referral", "walk_in", "phone", "social", "newsletter"] as const,
+    "website",
+  );
 }
 function message(error: unknown) {
   return error instanceof Error ? error.message : "Unknown migration error";

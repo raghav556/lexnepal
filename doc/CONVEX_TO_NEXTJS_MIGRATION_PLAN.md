@@ -1,9 +1,10 @@
 # LexNepal Convex-to-Next.js Migration Plan
 
-**Status:** Phase 0 organizational approval recorded; Phase 1 complete; Phase 2 foundation implemented  
+**Status:** Foundations (Phases 0–7) implemented locally; Phase 8 partially complete; Phases 9–13 remaining  
 **Created:** 2026-08-02  
+**Updated remaining-work tracker:** [`migration/REMAINING_WORK_PLAN.md`](migration/REMAINING_WORK_PLAN.md) (2026-08-04)  
 **Migration strategy:** Domain-by-domain strangler migration  
-**Current source of truth:** Convex  
+**Current source of truth:** Convex (production authority; localhost mixed by domain flags)  
 **Target source of truth:** PostgreSQL behind a Next.js application/API layer
 
 ## 1. Purpose
@@ -611,12 +612,14 @@ Migrate last because analytics depends on almost every domain.
 
 ### Exit gate per domain
 
-- [x] Every domain endpoint has a parity decision.
-- [x] Every frontend caller uses the adapter.
-- [x] Contract tests pass.
-- [x] Migration and reconciliation pass.
-- [x] Rollback is tested.
-- [x] Convex writes for the domain can be disabled.
+- [ ] Every domain endpoint has a parity decision.
+- [ ] Every frontend caller uses the adapter.
+- [ ] Contract tests pass.
+- [ ] Migration and reconciliation pass.
+- [ ] Rollback is tested.
+- [ ] Convex writes for the domain can be disabled.
+
+Honest status: 8.1–8.3 are `complete_local`. 8.4–8.10 are partial or incomplete (finance/CRM APIs missing). Track remaining domain work only in `migration/REMAINING_WORK_PLAN.md` Phase R2 — do not mark this gate complete until that checklist is finished.
 
 ## Phase 9 — build repeatable data migration tooling
 
@@ -660,9 +663,11 @@ Invalid data must be written to `data-exceptions.csv`; it must never be silently
 
 ### Exit gate
 
-- [x] A production-like snapshot migrates successfully.
-- [x] Running the migration twice produces the same result.
-- [x] Reconciliation has zero unexplained differences.
+- [ ] A production-like snapshot migrates successfully.
+- [ ] Running the migration twice produces the same result.
+- [ ] Reconciliation has zero unexplained differences.
+
+Local progress: per-domain import scripts and a partial unified CLI exist. Full Phase 9 exit evidence is tracked in `migration/REMAINING_WORK_PLAN.md` Phase R3.
 
 ## Phase 10 — shadow, contract and security testing
 
@@ -691,10 +696,12 @@ Invalid data must be written to `data-exceptions.csv`; it must never be silently
 
 ### Exit gate
 
-- [x] No unexplained contract differences.
-- [x] No cross-tenant leakage.
-- [x] Performance meets agreed thresholds.
-- [x] Failure and retry behavior is proven.
+- [ ] No unexplained contract differences.
+- [ ] No cross-tenant leakage.
+- [ ] Performance meets agreed thresholds.
+- [ ] Failure and retry behavior is proven.
+
+Local progress: some domain contract unit tests exist. Full Phase 10 exit evidence is tracked in `migration/REMAINING_WORK_PLAN.md` Phase R4.
 
 ## Phase 11 — migrate the Vite/React frontend to Next.js
 
@@ -879,35 +886,36 @@ Immediate rollback triggers include:
 
 ## 14. Progress dashboard
 
-Update this table as the migration proceeds:
+Update this table as the migration proceeds. For remaining detailed work, ownership checklists and post-migration cleanup, use [`migration/REMAINING_WORK_PLAN.md`](migration/REMAINING_WORK_PLAN.md).
 
-| Phase                      | Status      | Owner | Target | Evidence              |
-| -------------------------- | ----------- | ----- | ------ | --------------------- |
-| 0. Strategy and governance | Draft       | TBD   | TBD    | This document         |
-| 1. Inventory               | Not started | TBD   | TBD    | `doc/migration/*.csv` |
-| 2. Next.js foundation      | Not started | TBD   | TBD    | PR/build              |
-| 3. PostgreSQL schema       | Not started | TBD   | TBD    | Migrations/tests      |
-| 4. Auth and authorization  | Not started | TBD   | TBD    | Security tests        |
-| 5. Frontend adapter        | Not started | TBD   | TBD    | Consumer inventory    |
-| 6. Storage                 | Not started | TBD   | TBD    | Storage tests         |
-| 7. Jobs and schedules      | Not started | TBD   | TBD    | Job tests             |
-| 8. Domain migrations       | Not started | TBD   | TBD    | Parity inventory      |
-| 9. Data tooling            | Not started | TBD   | TBD    | Reconciliation report |
-| 10. Shadow/contract tests  | Not started | TBD   | TBD    | Test reports          |
-| 11. Next.js frontend       | Not started | TBD   | TBD    | E2E tests             |
-| 12. Production cutover     | Not started | TBD   | TBD    | Cutover records       |
-| 13. Convex decommission    | Not started | TBD   | TBD    | Decommission approval |
+| Phase                      | Status                         | Owner | Target | Evidence                                              |
+| -------------------------- | ------------------------------ | ----- | ------ | ----------------------------------------------------- |
+| 0. Strategy and governance | Approved; named roles pending  | TBD   | TBD    | `PHASE_0_GOVERNANCE.md`                               |
+| 1. Inventory               | Complete (static)              | TBD   | TBD    | `doc/migration/*.csv`, `INVENTORY_SUMMARY.md`         |
+| 2. Next.js foundation      | Complete locally; ADR/CI gaps  | TBD   | TBD    | `PHASE_2_FOUNDATION.md`                               |
+| 3. PostgreSQL schema       | Complete locally               | TBD   | TBD    | `POSTGRES_SCHEMA_DESIGN.md`, drizzle tests            |
+| 4. Auth and authorization  | Complete locally               | TBD   | TBD    | `PHASE_4_AUTHORIZATION.md`                            |
+| 5. Frontend adapter        | Complete                       | TBD   | TBD    | `PHASE_5_FRONTEND_DATA_ADAPTER.md`                    |
+| 6. Storage                 | Complete locally               | TBD   | TBD    | `PHASE_6_DOCUMENT_STORAGE.md`                         |
+| 7. Jobs and schedules      | Complete locally; some blocked | TBD   | TBD    | `PHASE_7_BACKGROUND_JOBS.md`                          |
+| 8. Domain migrations       | Partial                        | TBD   | TBD    | `REMAINING_WORK_PLAN.md` Phase R2                     |
+| 9. Data tooling            | Partial                        | TBD   | TBD    | `REMAINING_WORK_PLAN.md` Phase R3                     |
+| 10. Shadow/contract tests  | Not complete                   | TBD   | TBD    | `REMAINING_WORK_PLAN.md` Phase R4                     |
+| 11. Next.js frontend       | Not started in practice        | TBD   | TBD    | Vite `src/pages` still authoritative UI               |
+| 12. Production cutover     | Not started                    | TBD   | TBD    | Local dress rehearsal first (`REMAINING` Phase R6)    |
+| 13. Convex decommission    | Not started                    | TBD   | TBD    | Cleanup waves in `REMAINING_WORK_PLAN.md` Phase R8    |
 
 ## 15. Immediate next actions
 
-1. Review and approve this document.
-2. Select and record the mandatory architecture decisions.
-3. Create the `doc/migration/` artifacts.
-4. Generate the exact Convex endpoint/table/frontend inventories.
-5. Create characterization tests for authentication, firm isolation, documents, signatures and finance.
-6. Scaffold the Next.js application without deleting or moving the existing application.
-7. Implement PostgreSQL, auth context and authorization foundations.
-8. Start the first low-risk vertical slice with public CMS reads.
+Follow [`migration/REMAINING_WORK_PLAN.md`](migration/REMAINING_WORK_PLAN.md). Short version:
+
+1. Accept the remaining-work plan and name owners (Phase R0).
+2. Prove domains with `VITE_USE_MOCK=false` (mock currently forces Convex).
+3. Finish Phase 8 in order: work management → **finance APIs** → **CRM APIs** → communication → documents → envelopes → analytics.
+4. Complete unified migration CLI + reconcile reports (Phase 9 / R3).
+5. Run contract/security proving (Phase 10 / R4).
+6. Only then move Vite UI to Next.js (Phase 11 / R5).
+7. Local cutover dress rehearsal, then production readiness, then Convex decommission + cleanup (Phases 12–13 / R6–R8).
 
 ## References
 

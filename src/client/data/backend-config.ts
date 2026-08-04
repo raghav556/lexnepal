@@ -41,6 +41,12 @@ const flagNames: Record<BackendDomain, string> = {
 };
 
 export function resolveBackendFlags(environment: Record<string, string | undefined>): BackendFlags {
+  // Offline mock auth cannot satisfy Next API sessions — keep domains on Convex mock data.
+  const useMock = environment.VITE_USE_MOCK === "true" || environment.NEXT_PUBLIC_VITE_USE_MOCK === "true";
+  if (useMock) {
+    return Object.fromEntries(BACKEND_DOMAINS.map((domain) => [domain, "convex"])) as unknown as BackendFlags;
+  }
+
   return Object.fromEntries(
     BACKEND_DOMAINS.map((domain) => {
       const raw =

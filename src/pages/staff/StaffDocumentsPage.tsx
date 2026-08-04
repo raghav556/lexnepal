@@ -48,15 +48,26 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
+import { useMutation } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useCases } from "@/client/queries/cases";
 import {
-  useCreateDocument,
   useDocuments,
   useDocumentSearch,
   useRecentDocuments,
+  useUploadDocument,
+  useTrashDocument,
+  useRestoreDocument,
+  useHardDeleteDocument,
+  useSetLegalHold,
+  useUpdateDocument,
 } from "@/client/queries/documents";
+import {
+  usePortalSigners,
+  useCreateEnvelope,
+  useSendEnvelope,
+  useRequestSignature,
+} from "@/client/queries/envelopes";
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
 import { format } from "date-fns";
 
@@ -101,19 +112,20 @@ export default function StaffDocumentsPage() {
 
   const allDocs = searchFilters.query ? searchResults : listResults;
   const recentDocs = useRecentDocuments(5) || [];
-  const signers = useQuery(api.envelopes.listPortalSigners, {}) || [];
+  const signers = usePortalSigners();
 
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const createDocument = useCreateDocument();
-  const requestSignature = useMutation(api.documents.requestSignature);
-  const createEnvelope = useMutation(api.envelopes.createEnvelope);
-  const sendEnvelope = useMutation(api.envelopes.sendEnvelope);
+  const uploadDocument = useUploadDocument();
+  const requestSignature = useRequestSignature();
+  const createEnvelope = useCreateEnvelope();
+  const sendEnvelope = useSendEnvelope();
   const triggerOCR = useMutation(api.documents.triggerOCR);
-  const softDeleteDoc = useMutation(api.documents.trashDocument);
-  const restoreDoc = useMutation(api.documents.restoreDocument);
-  const hardDeleteDoc = useMutation(api.documents.hardDeleteDocument);
-  const setLegalHold = useMutation(api.documents.setLegalHold);
-  const setRetention = useMutation(api.documents.setRetention);
+  const softDeleteDoc = useTrashDocument();
+  const restoreDoc = useRestoreDocument();
+  const hardDeleteDoc = useHardDeleteDocument();
+  const setLegalHold = useSetLegalHold();
+  const updateDocument = useUpdateDocument();
+  const setRetention = async (args: any) =>
+    updateDocument({ id: args.documentId, updates: { retentionPolicy: args.policy } });
 
   // States
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -216,30 +228,15 @@ export default function StaffDocumentsPage() {
     if (selectedFile.size > 50 * 1024 * 1024) return toast.error("Files cannot exceed 50 MB.");
     setIsUploading(true);
     try {
-      const postUrl = await generateUploadUrl();
-      let storageId = "";
-      if (postUrl === "mock-upload-url") {
-        storageId = URL.createObjectURL(selectedFile);
-      } else {
-        const result = await fetch(postUrl, {
-          method: "POST",
-          headers: { "Content-Type": selectedFile.type || "application/octet-stream" },
-          body: selectedFile,
-        });
-        if (!result.ok) throw new Error("Upload failed");
-        storageId = (await result.json()).storageId;
-      }
-      await createDocument({
-        caseId: uploadCaseId === "general" ? undefined : (uploadCaseId as any),
+      await uploadDocument({
+        file: selectedFile,
+        caseId: uploadCaseId === "general" ? undefined : uploadCaseId,
         title: selectedFile.name,
-        type: uploadType as any,
-        storageId,
-        mimeType: selectedFile.type || "application/octet-stream",
-        sizeBytes: selectedFile.size,
+        type: uploadType,
         tags: ["new"],
         isTemplate: false,
         isPrivileged,
-        ...(parentDocumentId ? { parentDocumentId: parentDocumentId as any } : {}),
+        parentDocumentId: parentDocumentId || undefined,
       });
       toast.success(
         parentDocumentId
@@ -318,7 +315,7 @@ export default function StaffDocumentsPage() {
 
   const handleArchive = async (docIds: string[]) => {
     try {
-      for (const id of docIds) await softDeleteDoc({ documentId: id as any });
+      for (const id of docIds) await softDeleteDoc(id);
       toast.success(`Archived ${docIds.length} document(s)`);
       setSelectedDocs([]);
       if (activeSidebarDoc && docIds.includes(activeSidebarDoc._id)) setActiveSidebarDoc(null);
@@ -329,7 +326,7 @@ export default function StaffDocumentsPage() {
 
   const handleRestore = async (docIds: string[]) => {
     try {
-      for (const id of docIds) await restoreDoc({ documentId: id as any });
+      for (const id of docIds) await restoreDoc(id);
       toast.success(`Restored ${docIds.length} document(s)`);
       setSelectedDocs([]);
       if (activeSidebarDoc && docIds.includes(activeSidebarDoc._id)) setActiveSidebarDoc(null);
@@ -346,7 +343,7 @@ export default function StaffDocumentsPage() {
     )
       return;
     try {
-      for (const id of docIds) await hardDeleteDoc({ documentId: id as any });
+      for (const id of docIds) await hardDeleteDoc(id);
       toast.success(`Permanently deleted ${docIds.length} document(s)`);
       setSelectedDocs([]);
       if (activeSidebarDoc && docIds.includes(activeSidebarDoc._id)) setActiveSidebarDoc(null);
@@ -364,7 +361,14 @@ export default function StaffDocumentsPage() {
     );
     if (!reason?.trim()) return;
     try {
-      await setLegalHold({ documentId: doc._id, enabled, reason: reason.trim() });
+      if (enabled) {
+        await setLegalHold({ documentId: doc._id, reason: reason.trim() });
+      } else {
+        await updateDocument({
+          id: doc._id,
+          updates: { isOnLegalHold: false, legalHoldReason: reason.trim() },
+        });
+      }
       toast.success(enabled ? "Legal hold applied." : "Legal hold released.");
     } catch (err: any) {
       toast.error(err?.message || "Could not update legal hold.");

@@ -1,118 +1,141 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { anyApi as api } from "convex/server";
+import {
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "@/client/data/convex-bridge";
+import { apiClient } from "@/client/api/client";
+import { ApiClientError, normalizeApiError } from "@/client/api/errors";
 import { useDomainBackend } from "@/client/data/provider";
-import { api } from "@/convex/_generated/api.js";
-// @ts-ignore
-import { useConvex } from "convex/react";
-import { queryKeys } from "./query-keys";
-
-// --- Leads ---
+import { queryKeys } from "@/client/queries/query-keys";
 
 export function useLeads(filters?: { status?: string; assignedTo?: string }) {
   const backend = useDomainBackend("leads");
-  const convex = useConvex();
-
-  return useQuery({
+  const convex = useConvexQuery(
+    api.leads.listLeads,
+    backend === "convex" ? ((filters || {}) as any) : "skip",
+  );
+  const next = useQuery({
     queryKey: queryKeys.crm.leads(filters),
-    queryFn: async () => {
-      if (backend === "convex") {
-        return await convex.query(api.leads.listLeads, filters || {});
-      } else {
-        const params = new URLSearchParams();
-        if (filters?.status) params.set("status", filters.status);
-        if (filters?.assignedTo) params.set("assignedTo", filters.assignedTo);
-        const res = await fetch(`/api/crm/leads?${params}`);
-        if (!res.ok) throw new Error("Failed to fetch leads");
-        return res.json();
-      }
-    },
+    queryFn: ({ signal }) =>
+      apiClient.request<any[]>("/api/v1/leads", { query: { ...filters }, signal }),
+    enabled: backend === "next",
   });
+  return {
+    data: (backend === "convex" ? convex : next.data) ?? [],
+    isLoading: backend === "next" ? next.isLoading : convex === undefined,
+  };
 }
 
 export function useLeadCommands() {
   const backend = useDomainBackend("leads");
-  const convex = useConvex();
   const queryClient = useQueryClient();
+  const convexCreate = useConvexMutation(api.leads.createLead as any);
+  const convexUpdate = useConvexMutation(api.leads.updateLead as any);
+  const convexConvert = useConvexMutation(api.leads.convertToClient as any);
+  const convexIntakeLink = useConvexMutation(api.leads.generateIntakeLink as any);
+  const convexSubmitIntake = useConvexMutation(api.leads.submitIntake as any);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all });
 
   const createLead = useMutation({
     mutationFn: async (data: any) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.leads.createLead, data);
-      } else {
-        const res = await fetch("/api/crm/leads", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (!res.ok) throw new Error("Failed to create lead");
-        return res.json();
+      try {
+        if (backend === "convex") return await convexCreate(data);
+        // Public website / chatbot captures go through the public firm endpoint.
+        return await apiClient.request("/api/v1/public/leads", { method: "POST", body: data });
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   const updateLead = useMutation({
-    mutationFn: async (args: { leadId: string; status?: string; assignedTo?: string; notes?: string }) => {
-      if (backend === "convex") {
+    mutationFn: async (args: {
+      leadId: string;
+      status?: string;
+      assignedTo?: string | null;
+      notes?: string;
+    }) => {
+      try {
         const { leadId, ...rest } = args;
-        return await convex.mutation(api.leads.updateLead, { leadId: leadId as any, ...rest });
-      } else {
-        const { leadId, ...data } = args;
-        const res = await fetch(`/api/crm/leads/${leadId}`, {
+        if (backend === "convex") return await convexUpdate({ leadId, ...rest });
+        return await apiClient.request(`/api/v1/leads/${leadId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: rest,
         });
-        if (!res.ok) throw new Error("Failed to update lead");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   const convertToClient = useMutation({
-    mutationFn: async (args: { leadId: string }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.leads.convertToClient, { leadId: args.leadId as any });
-      } else {
-        const res = await fetch(`/api/crm/leads/${args.leadId}/convert`, { method: "POST" });
-        if (!res.ok) throw new Error("Failed to convert lead to client");
-        return res.json();
+    mutationFn: async (args: {
+      leadId: string;
+      type?: "individual" | "corporate";
+      companyName?: string;
+    }) => {
+      try {
+        if (backend === "convex") return await convexConvert(args as any);
+        return await apiClient.request(`/api/v1/leads/${args.leadId}/convert`, {
+          method: "POST",
+          body: { type: args.type ?? "individual", companyName: args.companyName },
+        });
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.crm.all });
+      invalidate();
       queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     },
   });
 
   const generateIntakeLink = useMutation({
     mutationFn: async (args: { leadId: string }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.leads.generateIntakeLink as any, { leadId: args.leadId as any });
-      } else {
-        const res = await fetch(`/api/crm/leads/${args.leadId}/intake-link`, { method: "POST" });
-        if (!res.ok) throw new Error("Failed to generate intake link");
-        return res.json();
+      try {
+        if (backend === "convex") {
+          const result = await convexIntakeLink({ leadId: args.leadId });
+          return typeof result === "string" ? result : result?.token;
+        }
+        const result = await apiClient.request<{ token: string; url: string }>(
+          `/api/v1/leads/${args.leadId}/intake-link`,
+          { method: "POST", body: {} },
+        );
+        return result.token;
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
-  
+
   const submitIntake = useMutation({
-    mutationFn: async (args: { token: string; payload: any }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.leads.submitIntake as any, args);
-      } else {
-        const res = await fetch(`/api/crm/leads/intake/${args.token}`, {
+    mutationFn: async (args: {
+      token: string;
+      fullName: string;
+      phone: string;
+      email?: string;
+      address?: string;
+      citizenshipNo?: string;
+      practiceArea?: string;
+      caseDescription?: string;
+      documentStorageIds?: string[];
+    }) => {
+      try {
+        const { token, ...payload } = args;
+        if (backend === "convex") return await convexSubmitIntake(args as any);
+        return await apiClient.request(`/api/v1/public/leads/intake/${encodeURIComponent(token)}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(args.payload),
+          body: payload,
         });
-        if (!res.ok) throw new Error("Failed to submit intake form");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
-    }
+    },
   });
 
   return { createLead, updateLead, convertToClient, generateIntakeLink, submitIntake };
@@ -120,160 +143,184 @@ export function useLeadCommands() {
 
 export function useIntakeByToken(token: string | null) {
   const backend = useDomainBackend("leads");
-  const convex = useConvex();
-
-  return useQuery({
+  const convex = useConvexQuery(
+    api.leads.getIntakeByToken as any,
+    backend === "convex" && token ? { token } : "skip",
+  );
+  const next = useQuery({
     queryKey: ["crm", "intake", token],
-    queryFn: async () => {
-      if (backend === "convex") {
-        return await convex.query(api.leads.getIntakeByToken as any, { token: token! });
-      } else {
-        const res = await fetch(`/api/crm/leads/intake/${token}`);
-        if (!res.ok) throw new Error("Failed to fetch intake token");
-        return res.json();
+    queryFn: async ({ signal }) => {
+      try {
+        return await apiClient.request<{ lead: any }>(
+          `/api/v1/public/leads/intake/${encodeURIComponent(token!)}`,
+          { signal },
+        );
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 404) return null;
+        throw error;
       }
     },
-    enabled: !!token,
+    enabled: backend === "next" && !!token,
   });
-}
 
-// --- Appointments ---
+  const convexData =
+    convex === undefined
+      ? undefined
+      : convex === null
+        ? null
+        : (convex as any)?.lead
+          ? (convex as any)
+          : { lead: convex };
+
+  return {
+    data: backend === "convex" ? convexData : next.data,
+    isLoading: backend === "next" ? next.isLoading : convex === undefined,
+  };
+}
 
 export function useAppointments(filters?: { status?: string; assignedLawyerId?: string }) {
   const backend = useDomainBackend("appointments");
-  const convex = useConvex();
-
-  return useQuery({
+  const convex = useConvexQuery(
+    api.appointments.listAppointments,
+    backend === "convex" ? ((filters || {}) as any) : "skip",
+  );
+  const next = useQuery({
     queryKey: queryKeys.crm.appointments(filters),
-    queryFn: async () => {
-      if (backend === "convex") {
-        return await convex.query(api.appointments.listAppointments, filters || {});
-      } else {
-        const params = new URLSearchParams();
-        if (filters?.status) params.set("status", filters.status);
-        if (filters?.assignedLawyerId) params.set("assignedLawyerId", filters.assignedLawyerId);
-        const res = await fetch(`/api/crm/appointments?${params}`);
-        if (!res.ok) throw new Error("Failed to fetch appointments");
-        return res.json();
-      }
-    },
+    queryFn: ({ signal }) =>
+      apiClient.request<any[]>("/api/v1/appointments", { query: { ...filters }, signal }),
+    enabled: backend === "next",
   });
+  return {
+    data: (backend === "convex" ? convex : next.data) ?? [],
+    isLoading: backend === "next" ? next.isLoading : convex === undefined,
+  };
 }
 
-export function useAvailableSlots(date?: string) {
+export function useAvailableSlots(date?: string, assignedLawyerId?: string) {
   const backend = useDomainBackend("appointments");
-  const convex = useConvex();
-
-  return useQuery({
+  const convex = useConvexQuery(
+    api.appointments.listAvailableSlots,
+    backend === "convex" && date
+      ? ({ date, assignedLawyerId } as any)
+      : "skip",
+  );
+  const next = useQuery({
     queryKey: queryKeys.crm.availableSlots(date!),
-    queryFn: async () => {
-      if (backend === "convex") {
-        return await convex.query(api.appointments.listAvailableSlots, { date: date! });
-      } else {
-        const res = await fetch(`/api/crm/appointments/slots?date=${date}`);
-        if (!res.ok) throw new Error("Failed to fetch slots");
-        return res.json();
-      }
-    },
-    enabled: !!date,
+    queryFn: ({ signal }) =>
+      apiClient.request<string[]>("/api/v1/appointments/slots", {
+        query: { date, assignedLawyerId },
+        signal,
+      }),
+    enabled: backend === "next" && !!date,
   });
+  return {
+    data: (backend === "convex" ? convex : next.data) ?? [],
+    isLoading: backend === "next" ? next.isLoading : convex === undefined,
+  };
 }
 
 export function useAppointmentCommands() {
   const backend = useDomainBackend("appointments");
-  const convex = useConvex();
   const queryClient = useQueryClient();
+  const convexCreate = useConvexMutation(api.appointments.createAppointment as any);
+  const convexBook = useConvexMutation(api.appointments.bookConsultation as any);
+  const convexStatus = useConvexMutation(api.appointments.updateAppointmentStatus as any);
+  const convexAssign = useConvexMutation(api.appointments.assignLawyerToAppointment as any);
+  const convexReschedule = useConvexMutation(api.appointments.rescheduleAppointment as any);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all });
 
   const createAppointment = useMutation({
     mutationFn: async (data: any) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.appointments.createAppointment, data);
-      } else {
-        const res = await fetch("/api/crm/appointments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (!res.ok) throw new Error("Failed to create appointment");
-        return res.json();
+      try {
+        if (backend === "convex") return await convexCreate(data);
+        try {
+          return await apiClient.request("/api/v1/appointments", { method: "POST", body: data });
+        } catch (error) {
+          if (error instanceof ApiClientError && error.status === 401) {
+            return await apiClient.request("/api/v1/public/appointments", {
+              method: "POST",
+              body: data,
+            });
+          }
+          throw error;
+        }
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   const bookConsultation = useMutation({
-    mutationFn: async (data: { date: string; timeSlot: string; practiceArea: string; notes?: string }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.appointments.bookConsultation, data);
-      } else {
-        const res = await fetch("/api/crm/appointments/book", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (!res.ok) throw new Error("Failed to book consultation");
-        return res.json();
+    mutationFn: async (data: any) => {
+      try {
+        if (backend === "convex") return await convexBook(data);
+        return await apiClient.request("/api/v1/appointments/book", { method: "POST", body: data });
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   const updateStatus = useMutation({
-    mutationFn: async (args: { appointmentId: string; status: string; meetingLink?: string }) => {
-      if (backend === "convex") {
+    mutationFn: async (args: {
+      appointmentId: string;
+      status: string;
+      meetingLink?: string;
+    }) => {
+      try {
         const { appointmentId, ...rest } = args;
-        return await convex.mutation(api.appointments.updateAppointmentStatus, { appointmentId: appointmentId as any, ...rest });
-      } else {
-        const { appointmentId, ...data } = args;
-        const res = await fetch(`/api/crm/appointments/${appointmentId}/status`, {
+        if (backend === "convex") {
+          return await convexStatus({ id: appointmentId, ...rest });
+        }
+        return await apiClient.request(`/api/v1/appointments/${appointmentId}/status`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: rest,
         });
-        if (!res.ok) throw new Error("Failed to update status");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   const assignLawyer = useMutation({
     mutationFn: async (args: { appointmentId: string; lawyerId: string }) => {
-      if (backend === "convex") {
-        return await convex.mutation(api.appointments.assignLawyerToAppointment, { 
-          appointmentId: args.appointmentId as any, 
-          lawyerId: args.lawyerId as any 
-        });
-      } else {
-        const res = await fetch(`/api/crm/appointments/${args.appointmentId}/assign`, {
+      try {
+        if (backend === "convex") {
+          return await convexAssign({
+            id: args.appointmentId,
+            assignedLawyerId: args.lawyerId,
+          });
+        }
+        return await apiClient.request(`/api/v1/appointments/${args.appointmentId}/assign`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lawyerId: args.lawyerId }),
+          body: { assignedLawyerId: args.lawyerId },
         });
-        if (!res.ok) throw new Error("Failed to assign lawyer");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   const rescheduleAppointment = useMutation({
     mutationFn: async (args: { appointmentId: string; date: string; timeSlot: string }) => {
-      if (backend === "convex") {
+      try {
         const { appointmentId, ...rest } = args;
-        return await convex.mutation(api.appointments.rescheduleAppointment, { appointmentId: appointmentId as any, ...rest });
-      } else {
-        const { appointmentId, ...data } = args;
-        const res = await fetch(`/api/crm/appointments/${appointmentId}/reschedule`, {
+        if (backend === "convex") {
+          return await convexReschedule({ id: appointmentId, ...rest });
+        }
+        return await apiClient.request(`/api/v1/appointments/${appointmentId}/reschedule`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: rest,
         });
-        if (!res.ok) throw new Error("Failed to reschedule");
-        return res.json();
+      } catch (error) {
+        throw normalizeApiError(error);
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+    onSuccess: invalidate,
   });
 
   return { createAppointment, bookConsultation, updateStatus, assignLawyer, rescheduleAppointment };

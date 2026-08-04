@@ -36,7 +36,7 @@ interface ConvertModalState {
 }
 
 export default function AdminCRMPage() {
-  const { data: leads = [] } = useLeads({});
+  const { data: leads = [], isLoading: leadsLoading } = useLeads({});
   const { data: users = [] } = useStaffDirectory() as any;
   const { updateLead, convertToClient, generateIntakeLink } = useLeadCommands();
 
@@ -55,7 +55,7 @@ export default function AdminCRMPage() {
   const [converting, setConverting] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
 
-  const isLoading = leads === undefined || users === undefined;
+  const isLoading = leadsLoading || users === undefined;
   const staffUsers = users.filter((u: any) => u.role !== "client");
 
   const filteredLeads = leads.filter((l: any) => {

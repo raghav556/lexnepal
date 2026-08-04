@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 export { ConvexReactClient } from "./convex-client-stub";
@@ -5005,3 +5006,5 @@ function PreviewControlPanel({
     </div>
   );
 }
+
+export function useConvex() { return {} as any; }

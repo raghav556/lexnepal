@@ -8,10 +8,9 @@ import { Link } from "react-router-dom";
 import { Plus, Search, CalendarDays, X, Loader2, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
-import { useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useCases, useCreateCase } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
+import { useHearings } from "@/client/queries/hearings";
 import { PRACTICE_AREAS, COURTS } from "@/lib/lex-constants.ts";
 import { ConflictCheckerModal } from "@/components/cases/ConflictCheckerModal.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
@@ -28,7 +27,7 @@ export default function StaffCasesPage() {
   const cases = useCases({}) || [];
   const clients = useClients() || [];
   const users = useStaffDirectory() || [];
-  const hearings = useQuery(api.hearings.listHearings, {}) || [];
+  const hearings = useHearings({}) || [];
   const createCase = useCreateCase();
 
   const [search, setSearch] = useState("");

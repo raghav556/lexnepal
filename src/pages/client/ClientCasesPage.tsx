@@ -2,10 +2,9 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { FolderOpen, CalendarDays, Loader2 } from "lucide-react";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
-import { useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
+import { useHearings } from "@/client/queries/hearings";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 
@@ -23,7 +22,7 @@ export default function ClientCasesPage() {
   const clientId = clientRecord?._id;
   const cases = useCases(clientId ? { clientId } : {}) || [];
   const users = useStaffDirectory() || [];
-  const hearings = useQuery(api.hearings.listHearings, {}) || [];
+  const hearings = useHearings({}) || [];
 
   if (currentUser === undefined || clientRecord === undefined) {
     return (

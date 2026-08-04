@@ -186,6 +186,40 @@ export async function migrateWorkManagementExport(input: {
       }
     }
 
+    // 2b. Task Watchers
+    for (const record of records.get("taskWatchers") ?? []) {
+      const legacyId = asString(record._id);
+      try {
+        if (!legacyId) throw new Error("Missing legacy ID");
+        const taskRow = taskMap.get(asString(record.taskId) ?? "");
+        if (!taskRow) throw new Error("Task missing");
+        const watcher = userMap.get(asString(record.userId) ?? "");
+        if (!watcher) throw new Error("Watcher user missing");
+        const firmId = resolveFirm(record, input, taskRow.firmId);
+        await tx
+          .insert(taskWatchers)
+          .values({
+            legacyConvexId: legacyId,
+            firmId,
+            taskId: taskRow.id,
+            userId: watcher.id,
+            createdAt: toDate(record._creationTime) ?? new Date(),
+          })
+          .onConflictDoUpdate({
+            target: taskWatchers.legacyConvexId,
+            set: {
+              firmId,
+              taskId: taskRow.id,
+              userId: watcher.id,
+              updatedAt: new Date(),
+            },
+          });
+        migrated.taskWatchers += 1;
+      } catch (error) {
+        exceptions.push({ table: "taskWatchers", id: legacyId, reason: message(error) });
+      }
+    }
+
     // 3. Task Comments
     for (const record of records.get("taskComments") ?? []) {
       const legacyId = asString(record._id);
@@ -354,6 +388,7 @@ export async function migrateWorkManagementExport(input: {
   const checks: Record<string, { source: number; target: number }> = {};
   for (const [name, table] of [
     ["tasks", tasks],
+    ["taskWatchers", taskWatchers],
     ["hearings", hearings],
     ["researchNotes", researchNotes],
     ["sopTemplates", sopTemplates],

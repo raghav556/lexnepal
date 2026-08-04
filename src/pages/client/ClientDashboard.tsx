@@ -3,16 +3,15 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
 import { FolderOpen, FileText, Receipt, MessageSquare, CalendarDays, ArrowRight, Loader2 } from "lucide-react";
-import { useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useMyClient } from "@/client/queries/clients";
-import { useConfig } from "../../client/config-provider";
-import { useMessages } from "../../client/queries/communication";
+import { useMessages } from "@/client/queries/communication";
 import { useCases } from "@/client/queries/cases";
+import { useHearings } from "@/client/queries/hearings";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useInvoices } from "@/client/queries/financial";
+import { useDocuments } from "@/client/queries/documents";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -28,9 +27,9 @@ export default function ClientDashboard() {
 
   const cases = useCases(clientId ? { clientId } : {}) || [];
   const { data: invoices = [] } = useInvoices(clientId ? { clientId: clientId as any } : {});
-  const hearings = useQuery(api.hearings.listHearings, {}) || [];
+  const hearings = useHearings({}) || [];
   const users = useStaffDirectory() || [];
-  const documents = useQuery(api.documents.listDocuments, {}) || [];
+  const documents = useDocuments({}) || [];
 
   const caseIds = new Set(cases.map((c: any) => c._id));
   const myHearings = hearings.filter(
