@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import {
   auditLog,
   durableJobAttempts,
+  durableJobEffects,
   durableJobs,
   durableSchedules,
+  firms,
+  users,
 } from "../../src/server/db/schema";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { RetryableJobError } from "../../src/server/jobs/errors";
@@ -17,6 +20,44 @@ const actorUserId = "62000000-0000-4000-8000-000000000001";
 const database = getDatabase();
 const repository = new PostgresJobRepository();
 const suffix = randomUUID();
+
+await database
+  .insert(firms)
+  .values({ id: firmId, name: "Phase 7 Firm A", slug: "phase-7-firm-a" })
+  .onConflictDoNothing();
+await database
+  .insert(users)
+  .values({
+    id: actorUserId,
+    firmId,
+    tokenIdentifier: "phase7:user-a",
+    name: "Phase 7 User A",
+    email: "phase7-a@example.invalid",
+    role: "admin",
+    isActive: true,
+    isPending: false,
+  })
+  .onConflictDoNothing();
+
+// Isolate this proof from leftover due schedules / pending jobs in the local DB.
+await database
+  .update(durableSchedules)
+  .set({ nextRunAt: new Date(Date.now() + 86_400_000), updatedAt: new Date() });
+await database
+  .update(durableJobs)
+  .set({ availableAt: new Date(Date.now() + 86_400_000), updatedAt: new Date() })
+  .where(sql`${durableJobs.status} in ('pending', 'retry', 'processing')`);
+
+const evidence = {
+  idempotentEnqueue: false,
+  retryBackoff: false,
+  deadLetter: false,
+  manualRetryRecoverable: false,
+  noDuplicateSideEffects: false,
+  leaseRecovery: false,
+  scheduleExactlyOnce: false,
+  sideEffectRuns: 0,
+};
 
 const first = await repository.enqueue({
   firmId,
@@ -33,6 +74,8 @@ const duplicate = await repository.enqueue({
 if (!first.created || duplicate.created || first.job.id !== duplicate.job.id) {
   throw new Error("Queue idempotency verification failed");
 }
+evidence.idempotentEnqueue = true;
+
 const productionWorker = new DurableJobWorker(
   repository,
   createJobHandlers(),
@@ -40,6 +83,12 @@ const productionWorker = new DurableJobWorker(
 );
 if ((await productionWorker.runOnce()) !== "completed") {
   throw new Error("Analytics job did not complete");
+}
+{
+  const completed = await repository.get(firmId, first.job.id);
+  if (completed?.status !== "completed") {
+    throw new Error("Idempotent analytics job was not the completed job");
+  }
 }
 
 const retryJob = await repository.enqueue({
@@ -62,6 +111,7 @@ const retryWorker = new DurableJobWorker(
   `phase7-retry-${suffix}`,
 );
 if ((await retryWorker.runOnce()) !== "retry") throw new Error("Retryable job was not retried");
+evidence.retryBackoff = true;
 await database
   .update(durableJobs)
   .set({ availableAt: new Date() })
@@ -69,6 +119,8 @@ await database
 if ((await retryWorker.runOnce()) !== "dead_letter") {
   throw new Error("Exhausted retryable job was not dead-lettered");
 }
+evidence.deadLetter = true;
+
 const manuallyRetried = await repository.manualRetry({
   firmId,
   jobId: retryJob.job.id,
@@ -91,6 +143,93 @@ if (
 ) {
   throw new Error("Unconfigured SMS provider did not fail closed");
 }
+
+// R4.7: dead-letter → manual retry → successful completion with a single durable effect.
+const effectKey = `r47-side-effect-${suffix}`;
+let handlerPasses = 0;
+const recovery = await repository.enqueue({
+  firmId,
+  actorUserId,
+  type: "reminder.task",
+  idempotencyKey: `phase7-recover-${suffix}`,
+  maxAttempts: 2,
+  payload: { marker: suffix },
+});
+const recoveryWorker = new DurableJobWorker(
+  repository,
+  new Map([
+    [
+      "reminder.task",
+      async ({ job }) => {
+        handlerPasses += 1;
+        if (handlerPasses <= 2) {
+          throw new RetryableJobError("simulated recovery failure");
+        }
+        const [effect] = await database
+          .insert(durableJobEffects)
+          .values({
+            firmId: job.firmId,
+            jobId: job.id,
+            effectKey,
+            details: { pass: handlerPasses },
+          })
+          .onConflictDoNothing({
+            target: [durableJobEffects.firmId, durableJobEffects.jobId, durableJobEffects.effectKey],
+          })
+          .returning({ id: durableJobEffects.id });
+        // Re-run after recovery must not insert a second effect row.
+        await database
+          .insert(durableJobEffects)
+          .values({
+            firmId: job.firmId,
+            jobId: job.id,
+            effectKey,
+            details: { pass: handlerPasses, replay: true },
+          })
+          .onConflictDoNothing({
+            target: [durableJobEffects.firmId, durableJobEffects.jobId, durableJobEffects.effectKey],
+          });
+        return { recovered: true, effectInserted: Boolean(effect) };
+      },
+    ],
+  ]),
+  `phase7-recover-${suffix}`,
+);
+if ((await recoveryWorker.runOnce()) !== "retry") {
+  throw new Error("Recovery job first failure was not retried");
+}
+await database
+  .update(durableJobs)
+  .set({ availableAt: new Date() })
+  .where(eq(durableJobs.id, recovery.job.id));
+if ((await recoveryWorker.runOnce()) !== "dead_letter") {
+  throw new Error("Recovery job was not dead-lettered before manual retry");
+}
+await repository.manualRetry({
+  firmId,
+  jobId: recovery.job.id,
+  actorUserId,
+  reason: "R4.7 dead-letter recovery with single side effect",
+});
+await database
+  .update(durableJobs)
+  .set({ availableAt: new Date() })
+  .where(eq(durableJobs.id, recovery.job.id));
+if ((await recoveryWorker.runOnce()) !== "completed") {
+  throw new Error("Dead-letter job did not complete after manual retry");
+}
+const [effectRows] = await database
+  .select({ value: count() })
+  .from(durableJobEffects)
+  .where(
+    and(eq(durableJobEffects.jobId, recovery.job.id), eq(durableJobEffects.effectKey, effectKey)),
+  );
+evidence.sideEffectRuns = effectRows.value;
+if (effectRows.value !== 1) {
+  throw new Error(`Expected exactly one durable side effect, got ${effectRows.value}`);
+}
+evidence.manualRetryRecoverable = true;
+evidence.noDuplicateSideEffects = true;
 
 const leaseJob = await repository.enqueue({
   firmId,
@@ -121,6 +260,7 @@ const leaseAttempts = await database
 if (!leaseAttempts.some((attempt) => attempt.outcome === "lease_expired")) {
   throw new Error("Expired lease attempt was not recorded");
 }
+evidence.leaseRecovery = true;
 
 const scheduleName = `phase7-verification-${suffix}`;
 await database.insert(durableSchedules).values({
@@ -137,6 +277,7 @@ if ((await repository.enqueueDueSchedules()) !== 1) {
 if ((await repository.enqueueDueSchedules()) !== 0) {
   throw new Error("Schedule was enqueued twice for the same due time");
 }
+evidence.scheduleExactlyOnce = true;
 if (
   (await new DurableJobWorker(
     repository,
@@ -152,7 +293,24 @@ const auditCount = await database
   .select({ value: sql<number>`count(*)::int` })
   .from(auditLog)
   .where(and(eq(auditLog.firmId, firmId), eq(auditLog.resource, "durable_jobs")));
+
+const passed =
+  evidence.idempotentEnqueue &&
+  evidence.retryBackoff &&
+  evidence.deadLetter &&
+  evidence.manualRetryRecoverable &&
+  evidence.noDuplicateSideEffects &&
+  evidence.leaseRecovery &&
+  evidence.scheduleExactlyOnce;
+
+if (!passed) throw new Error(`R4.7 evidence incomplete: ${JSON.stringify(evidence)}`);
+
 process.stdout.write(
-  `${JSON.stringify({ idempotency: true, retryBackoff: true, deadLetter: finalRetryJob?.status === "dead_letter", manualRetry: finalRetryJob?.manualRetryCount === 1, leaseRecovery: true, scheduleExactlyOnce: true, observableStatus: Boolean(finalRetryJob), auditEvents: auditCount[0]?.value ?? 0 })}\n`,
+  `${JSON.stringify({
+    r47: evidence,
+    deadLetter: finalRetryJob?.status === "dead_letter",
+    manualRetry: finalRetryJob?.manualRetryCount === 1,
+    auditEvents: auditCount[0]?.value ?? 0,
+  })}\n`,
 );
 await closeDatabase();

@@ -357,6 +357,25 @@ describe("protected downloads and storage migration", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("denies download of quarantined or rejected documents before signing a URL", async () => {
+    const storage = new MemoryStorage();
+    const downloads = new DocumentDownloadService(
+      authorization,
+      {
+        getDownloadableDocument: async () => ({
+          id: "document-1",
+          firmId: "firm-1",
+          storageKey: "protected/firm-1/document-1/hash",
+          uploadStatus: "rejected",
+        }),
+      },
+      storage,
+    );
+    await expect(
+      downloads.createAuthorizedDownload(principal(), "document-1"),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: "Document is not available for download" });
+  });
+
   it("preserves source count and SHA-256 during legacy storage migration", async () => {
     const storage = new MemoryStorage();
     const files = [

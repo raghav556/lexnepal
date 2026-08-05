@@ -78,7 +78,7 @@ Schedule seeding is idempotent. It creates per-firm task, hearing, and signature
 
 ## Verification evidence
 
-`npm run jobs:verify-local` verifies real PostgreSQL idempotency, completion, retry/backoff, exhausted-attempt dead-lettering, audited manual retry, expired-lease recovery, schedule exactly-once enqueue behavior, and observable status. Unit tests verify worker completion, transient retry, permanent failure, missing-handler failure, and idle operation. The Phase 6 pipeline test executes clean and EICAR uploads through this durable worker.
+`npm run jobs:verify-local` (and `npm run migration:prove-job-retries` for R4.7) verifies real PostgreSQL idempotency, completion, retry/backoff, exhausted-attempt dead-lettering, audited manual retry with a single durable side-effect row, expired-lease recovery, schedule exactly-once enqueue behavior, and observable status. Unit tests verify worker completion, transient retry, permanent failure, missing-handler failure, and idle operation. The Phase 6 pipeline test executes clean and EICAR uploads through this durable worker.
 
 ## Exit gate
 

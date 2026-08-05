@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { authUsers, firmSettings, users } from "../../db/schema";
-import { GET as getUserRoute } from "../../next-app/app/api/v1/users/[userId]/route";
+import { GET as getUserRoute } from "../../src/app/api/v1/users/[userId]/route";
 
 const database = getDatabase();
 const password = "Local-boundary-only-2026!";

@@ -5,9 +5,9 @@ import {
   versionResponseSchema,
 } from "@/shared/contracts/operations";
 import { resetServerEnvironmentForTests } from "@/server/env";
-import { GET as health } from "../../next-app/app/api/v1/health/route";
-import { GET as readiness } from "../../next-app/app/api/v1/readiness/route";
-import { GET as version } from "../../next-app/app/api/v1/version/route";
+import { GET as health } from "../../src/app/api/v1/health/route";
+import { GET as readiness } from "../../src/app/api/v1/readiness/route";
+import { GET as version } from "../../src/app/api/v1/version/route";
 
 beforeEach(() => {
   Object.assign(process.env, { NODE_ENV: "test" });

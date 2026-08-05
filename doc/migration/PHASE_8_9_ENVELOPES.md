@@ -32,7 +32,8 @@ npm run envelopes:verify-local
 
 ## Local exit gate
 
-- [x] Service + Route Handlers for create/send/OTP/sign/void/expire.
+- [x] Service + Route Handlers for create/send/OTP/sign/void/expire/decline.
+- [x] R4.6 lifecycle proof: `npm run migration:prove-signature-otp`.
 - [x] Frontend staff/client envelope surfaces use adapters.
 - [x] Migration double-run reconcile passes on local fixture.
 - [x] Local envelopes backend flag is `next`.

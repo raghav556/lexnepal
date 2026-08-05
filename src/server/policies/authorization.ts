@@ -56,6 +56,21 @@ export function requireSameFirm(principal: AuthPrincipal, resourceFirmId: string
   }
 }
 
+/**
+ * Read-path tenant guard: foreign or missing resources look identical (NOT_FOUND)
+ * so attackers cannot probe another firm’s inventory.
+ */
+export function assertResourceInFirm(
+  principal: AuthPrincipal,
+  resourceFirmId: string | null | undefined,
+  notFoundMessage: string,
+): void {
+  requireFirmContext(principal);
+  if (!resourceFirmId || resourceFirmId !== principal.firmId) {
+    throw new AppError("NOT_FOUND", notFoundMessage, 404);
+  }
+}
+
 export async function requireClientOwnership(
   principal: AuthPrincipal,
   clientId: string,

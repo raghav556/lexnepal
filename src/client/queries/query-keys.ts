@@ -15,6 +15,8 @@ export const queryKeys = {
     search: (filters: unknown) => ["documents", "search", filters] as const,
     recent: (limit: number) => ["documents", "recent", limit] as const,
     detail: (id: string) => ["documents", "detail", id] as const,
+    templates: ["documents", "templates"] as const,
+    tags: ["documents", "tags"] as const,
   },
   cases: {
     all: ["cases"] as const,

@@ -2,11 +2,11 @@ import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { firmSettings, practiceAreas, users } from "../../db/schema";
-import { GET as publicCollectionGet } from "../../next-app/app/api/v1/public/cms/[collection]/route";
-import { GET as adminCollectionGet } from "../../next-app/app/api/v1/cms/[collection]/route";
-import { PATCH as adminItemPatch } from "../../next-app/app/api/v1/cms/[collection]/[id]/route";
-import { PUT as settingsPut } from "../../next-app/app/api/v1/cms/settings/route";
-import { POST as newsletterPost } from "../../next-app/app/api/v1/public/cms/newsletter/route";
+import { GET as publicCollectionGet } from "../../src/app/api/v1/public/cms/[collection]/route";
+import { GET as adminCollectionGet } from "../../src/app/api/v1/cms/[collection]/route";
+import { PATCH as adminItemPatch } from "../../src/app/api/v1/cms/[collection]/[id]/route";
+import { PUT as settingsPut } from "../../src/app/api/v1/cms/settings/route";
+import { POST as newsletterPost } from "../../src/app/api/v1/public/cms/newsletter/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";

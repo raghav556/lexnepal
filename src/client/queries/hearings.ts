@@ -105,3 +105,13 @@ export function useHearingCommands() {
     },
   };
 }
+
+export function usePesiList(): any[] {
+  const backend = useDomainBackend("hearings");
+  const convex = useConvexQuery(
+    api.court.getPesi,
+    backend === "convex" ? {} : "skip",
+  );
+  if (backend !== "convex") return [];
+  return Array.isArray(convex) ? convex : ((convex as any)?.items || []);
+}

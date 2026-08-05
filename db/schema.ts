@@ -1331,6 +1331,8 @@ export const payments = pgTable(
     amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
     gateway: paymentGatewayEnum("gateway").notNull(),
     referenceNumber: text("reference_number"),
+    /** Client/request key; unique per firm when set — double-submit returns the same payment. */
+    idempotencyKey: text("idempotency_key"),
     status: paymentStatusEnum("status").default("pending").notNull(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     ...lifecycleColumns(),
@@ -1341,6 +1343,7 @@ export const payments = pgTable(
       table.gateway,
       table.referenceNumber,
     ),
+    uniqueIndex("payments_firm_idempotency_unique").on(table.firmId, table.idempotencyKey),
     index("payments_firm_invoice_idx").on(table.firmId, table.invoiceId),
     index("payments_firm_client_idx").on(table.firmId, table.clientId),
   ],
@@ -1362,9 +1365,15 @@ export const trustTransactions = pgTable(
     approvedBy: uuid("approved_by")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    /** Client/request key; unique per firm when set — double-submit returns the same trust row. */
+    idempotencyKey: text("idempotency_key"),
     ...lifecycleColumns(),
   },
   (table) => [
+    uniqueIndex("trust_transactions_firm_idempotency_unique").on(
+      table.firmId,
+      table.idempotencyKey,
+    ),
     index("trust_transactions_firm_client_date_idx").on(
       table.firmId,
       table.clientId,

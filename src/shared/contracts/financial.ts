@@ -45,14 +45,24 @@ export const invoiceStatusUpdateSchema = z.object({
   paidDate: z.string().date().optional().nullable(),
 });
 
+/** Stable client/request key so retries and double-submits replay instead of double-posting. */
+export const financialIdempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(128)
+  .regex(/^[A-Za-z0-9._:~-]+$/, "Idempotency key has invalid characters");
+
 export const payInvoiceSchema = z.object({
   gateway: paymentGatewaySchema.optional(),
   referenceNumber: optionalText(200),
   amount: moneySchema.optional(),
+  idempotencyKey: financialIdempotencyKeySchema.optional(),
 });
 
 export const initiateGatewaySchema = z.object({
   gateway: z.enum(["esewa", "khalti", "connectips"]),
+  idempotencyKey: financialIdempotencyKeySchema.optional(),
 });
 
 export const timeEntryListSchema = z.object({
@@ -82,6 +92,7 @@ export const trustCreateSchema = z.object({
   description: z.string().trim().min(1).max(5000),
   date: z.string().date(),
   balance: moneySchema,
+  idempotencyKey: financialIdempotencyKeySchema.optional(),
 });
 
 export const expenseListSchema = z.object({

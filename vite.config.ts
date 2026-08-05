@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => {
   const useMock = env.VITE_USE_MOCK === "true";
 
   const alias: { find: string | RegExp; replacement: string }[] = [
+    {
+      find: "@/client/navigation",
+      replacement: path.resolve(__dirname, "./src/client/navigation/vite.tsx"),
+    },
     { find: "@/convex", replacement: path.resolve(__dirname, "./convex") },
     { find: "@", replacement: path.resolve(__dirname, "./src") },
     {

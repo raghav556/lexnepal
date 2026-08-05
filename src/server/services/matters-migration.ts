@@ -15,6 +15,7 @@ import {
   storageMigrationItems,
   users,
 } from "@/server/db/schema";
+import { asShadowBoolean, asShadowString, pushMismatch } from "./shadow-compare";
 
 type Value = Record<string, unknown>;
 const tables = ["clients", "cases", "conflictChecks"] as const;
@@ -23,6 +24,136 @@ export interface MattersMigrationReport {
   migrated: Record<string, number>;
   exceptions: Array<{ table: string; id?: string; reason: string }>;
   reconciliation: { passed: boolean; checks: Record<string, { source: number; target: number }> };
+}
+
+export interface MattersShadowReport {
+  domain: "matters";
+  passed: boolean;
+  checkedClients: number;
+  checkedCases: number;
+  mismatches: Array<{
+    table: string;
+    id?: string;
+    field: string;
+    source: unknown;
+    target: unknown;
+  }>;
+}
+
+export async function shadowReadMattersExport(input: {
+  exportPath: string;
+  firmMap: Record<string, string>;
+  orphanFirmId?: string;
+}): Promise<MattersShadowReport> {
+  const reader = await createReader(input.exportPath);
+  const sourceClients = await reader.readTable("clients");
+  const sourceCases = await reader.readTable("cases");
+  const database = getDatabase();
+  const mismatches: MattersShadowReport["mismatches"] = [];
+
+  const clientIds = sourceClients
+    .map((row) => asString(row._id))
+    .filter((id): id is string => Boolean(id));
+  const targetClients = clientIds.length
+    ? await database.select().from(clients).where(inArray(clients.legacyConvexId, clientIds))
+    : [];
+  const clientByLegacy = new Map(targetClients.map((row) => [row.legacyConvexId, row]));
+
+  for (const source of sourceClients) {
+    const id = asString(source._id);
+    const target = id ? clientByLegacy.get(id) : undefined;
+    if (!target) {
+      mismatches.push({ table: "clients", id, field: "row", source: "present", target: "missing" });
+      continue;
+    }
+    const expectedFirm =
+      input.firmMap[asString(source.firmId) ?? ""] ?? input.orphanFirmId ?? null;
+    pushMismatch(mismatches, "clients", id, "firmId", expectedFirm, target.firmId);
+    pushMismatch(
+      mismatches,
+      "clients",
+      id,
+      "fullName",
+      asShadowString(source.fullName) ?? "Migrated client",
+      target.fullName,
+    );
+    pushMismatch(
+      mismatches,
+      "clients",
+      id,
+      "email",
+      asShadowString(source.email) ?? null,
+      target.email,
+    );
+    pushMismatch(
+      mismatches,
+      "clients",
+      id,
+      "isActive",
+      asShadowBoolean(source.isActive, true),
+      target.isActive,
+    );
+  }
+
+  const caseIds = sourceCases
+    .map((row) => asString(row._id))
+    .filter((id): id is string => Boolean(id));
+  const targetCases = caseIds.length
+    ? await database.select().from(cases).where(inArray(cases.legacyConvexId, caseIds))
+    : [];
+  const caseByLegacy = new Map(targetCases.map((row) => [row.legacyConvexId, row]));
+
+  for (const source of sourceCases) {
+    const id = asString(source._id);
+    const target = id ? caseByLegacy.get(id) : undefined;
+    if (!target) {
+      mismatches.push({ table: "cases", id, field: "row", source: "present", target: "missing" });
+      continue;
+    }
+    const expectedFirm =
+      input.firmMap[asString(source.firmId) ?? ""] ?? input.orphanFirmId ?? null;
+    pushMismatch(mismatches, "cases", id, "firmId", expectedFirm, target.firmId);
+    pushMismatch(
+      mismatches,
+      "cases",
+      id,
+      "caseNumber",
+      asShadowString(source.caseNumber) ?? null,
+      target.caseNumber,
+    );
+    pushMismatch(
+      mismatches,
+      "cases",
+      id,
+      "title",
+      asShadowString(source.title) ?? "Migrated case",
+      target.title,
+    );
+    pushMismatch(
+      mismatches,
+      "cases",
+      id,
+      "status",
+      asShadowString(source.status) ?? "active",
+      target.status,
+    );
+    pushMismatch(
+      mismatches,
+      "cases",
+      id,
+      "conflictChecked",
+      asShadowBoolean(source.conflictChecked, false),
+      target.conflictChecked,
+    );
+  }
+
+  return {
+    domain: "matters",
+    passed: mismatches.length === 0,
+    checkedClients: sourceClients.length,
+    checkedCases: sourceCases.length,
+    mismatches,
+  };
 }
 
 export async function migrateMattersExport(input: {

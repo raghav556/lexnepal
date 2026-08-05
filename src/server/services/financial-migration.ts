@@ -14,6 +14,7 @@ import {
   trustTransactions,
   users,
 } from "@/server/db/schema";
+import { asShadowString, moneyString, pushMismatch } from "./shadow-compare";
 
 type Value = Record<string, unknown>;
 const tables = ["invoices", "timeEntries", "trustTransactions", "expenses"] as const;
@@ -23,6 +24,170 @@ export interface FinancialMigrationReport {
   migrated: Record<string, number>;
   exceptions: Array<{ table: string; id?: string; reason: string }>;
   reconciliation: { passed: boolean; checks: Record<string, { source: number; target: number }> };
+}
+
+export interface FinancialShadowReport {
+  domain: "financial";
+  passed: boolean;
+  checkedInvoices: number;
+  checkedExpenses: number;
+  checkedTrust: number;
+  mismatches: Array<{
+    table: string;
+    id?: string;
+    field: string;
+    source: unknown;
+    target: unknown;
+  }>;
+}
+
+export async function shadowReadFinancialExport(input: {
+  exportPath: string;
+  firmMap: Record<string, string>;
+  orphanFirmId?: string;
+}): Promise<FinancialShadowReport> {
+  const reader = await createReader(input.exportPath);
+  const sourceInvoices = await reader.readTable("invoices");
+  const sourceExpenses = await reader.readTable("expenses");
+  const sourceTrust = await reader.readTable("trustTransactions");
+  const database = getDatabase();
+  const mismatches: FinancialShadowReport["mismatches"] = [];
+
+  const invoiceIds = sourceInvoices
+    .map((row) => asString(row._id))
+    .filter((id): id is string => Boolean(id));
+  const targetInvoices = invoiceIds.length
+    ? await database.select().from(invoices).where(inArray(invoices.legacyConvexId, invoiceIds))
+    : [];
+  const invoiceByLegacy = new Map(targetInvoices.map((row) => [row.legacyConvexId, row]));
+
+  for (const source of sourceInvoices) {
+    const id = asString(source._id);
+    const target = id ? invoiceByLegacy.get(id) : undefined;
+    if (!target) {
+      mismatches.push({
+        table: "invoices",
+        id,
+        field: "row",
+        source: "present",
+        target: "missing",
+      });
+      continue;
+    }
+    pushMismatch(
+      mismatches,
+      "invoices",
+      id,
+      "invoiceNumber",
+      asShadowString(source.invoiceNumber) ?? null,
+      target.invoiceNumber,
+    );
+    pushMismatch(mismatches, "invoices", id, "total", moneyString(source.total), moneyString(target.total));
+    pushMismatch(
+      mismatches,
+      "invoices",
+      id,
+      "subtotal",
+      moneyString(source.subtotal),
+      moneyString(target.subtotal),
+    );
+    pushMismatch(
+      mismatches,
+      "invoices",
+      id,
+      "status",
+      asShadowString(source.status) ?? "draft",
+      target.status,
+    );
+  }
+
+  const expenseIds = sourceExpenses
+    .map((row) => asString(row._id))
+    .filter((id): id is string => Boolean(id));
+  const targetExpenses = expenseIds.length
+    ? await database.select().from(expenses).where(inArray(expenses.legacyConvexId, expenseIds))
+    : [];
+  const expenseByLegacy = new Map(targetExpenses.map((row) => [row.legacyConvexId, row]));
+  for (const source of sourceExpenses) {
+    const id = asString(source._id);
+    const target = id ? expenseByLegacy.get(id) : undefined;
+    if (!target) {
+      mismatches.push({
+        table: "expenses",
+        id,
+        field: "row",
+        source: "present",
+        target: "missing",
+      });
+      continue;
+    }
+    pushMismatch(
+      mismatches,
+      "expenses",
+      id,
+      "amount",
+      moneyString(source.amount),
+      moneyString(target.amount),
+    );
+    pushMismatch(
+      mismatches,
+      "expenses",
+      id,
+      "description",
+      asShadowString(source.description) ?? "Expense",
+      target.description,
+    );
+  }
+
+  const trustIds = sourceTrust
+    .map((row) => asString(row._id))
+    .filter((id): id is string => Boolean(id));
+  const targetTrust = trustIds.length
+    ? await database
+        .select()
+        .from(trustTransactions)
+        .where(inArray(trustTransactions.legacyConvexId, trustIds))
+    : [];
+  const trustByLegacy = new Map(targetTrust.map((row) => [row.legacyConvexId, row]));
+  for (const source of sourceTrust) {
+    const id = asString(source._id);
+    const target = id ? trustByLegacy.get(id) : undefined;
+    if (!target) {
+      mismatches.push({
+        table: "trustTransactions",
+        id,
+        field: "row",
+        source: "present",
+        target: "missing",
+      });
+      continue;
+    }
+    pushMismatch(
+      mismatches,
+      "trustTransactions",
+      id,
+      "amount",
+      moneyString(source.amount),
+      moneyString(target.amount),
+    );
+    pushMismatch(
+      mismatches,
+      "trustTransactions",
+      id,
+      "type",
+      asShadowString(source.type) ?? "receipt",
+      target.type,
+    );
+  }
+
+  return {
+    domain: "financial",
+    passed: mismatches.length === 0,
+    checkedInvoices: sourceInvoices.length,
+    checkedExpenses: sourceExpenses.length,
+    checkedTrust: sourceTrust.length,
+    mismatches,
+  };
 }
 
 export async function migrateFinancialExport(input: {

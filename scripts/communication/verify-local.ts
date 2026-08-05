@@ -4,9 +4,9 @@ import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { cases, durableJobs, firmSettings, messages, notifications } from "../../db/schema";
 import { migrateCommunicationExport } from "../../src/server/services/communication-migration";
 import { createJobWorker } from "../../src/server/jobs/runtime";
-import { GET as listMessages, POST as sendMessage } from "../../next-app/app/api/v1/messages/route";
-import { GET as listNotifications } from "../../next-app/app/api/v1/notifications/route";
-import { POST as sendEmail } from "../../next-app/app/api/v1/communications/email/route";
+import { GET as listMessages, POST as sendMessage } from "../../src/app/api/v1/messages/route";
+import { GET as listNotifications } from "../../src/app/api/v1/notifications/route";
+import { POST as sendEmail } from "../../src/app/api/v1/communications/email/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";

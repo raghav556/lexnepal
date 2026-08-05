@@ -4,15 +4,16 @@ import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { documents, firmSettings, users } from "../../db/schema";
 import { migrateEnvelopeExport } from "../../src/server/services/envelope-migration";
-import { GET as listEnvelopes, POST as createEnvelope } from "../../next-app/app/api/v1/envelopes/route";
-import { POST as sendEnvelope } from "../../next-app/app/api/v1/envelopes/[id]/send/route";
-import { POST as voidEnvelope } from "../../next-app/app/api/v1/envelopes/[id]/void/route";
-import { POST as expireEnvelope } from "../../next-app/app/api/v1/envelopes/[id]/expire/route";
-import { POST as issueOtp } from "../../next-app/app/api/v1/envelopes/otp/issue/route";
-import { POST as verifyOtp } from "../../next-app/app/api/v1/envelopes/otp/verify/route";
-import { POST as markViewed } from "../../next-app/app/api/v1/envelopes/mark-viewed/route";
-import { POST as signDocument } from "../../next-app/app/api/v1/envelopes/sign/route";
-import { GET as listDocuments } from "../../next-app/app/api/v1/documents/route";
+import { GET as listEnvelopes, POST as createEnvelope } from "../../src/app/api/v1/envelopes/route";
+import { POST as sendEnvelope } from "../../src/app/api/v1/envelopes/[id]/send/route";
+import { POST as voidEnvelope } from "../../src/app/api/v1/envelopes/[id]/void/route";
+import { POST as expireEnvelope } from "../../src/app/api/v1/envelopes/[id]/expire/route";
+import { POST as declineEnvelope } from "../../src/app/api/v1/envelopes/[id]/decline/route";
+import { POST as issueOtp } from "../../src/app/api/v1/envelopes/otp/issue/route";
+import { POST as verifyOtp } from "../../src/app/api/v1/envelopes/otp/verify/route";
+import { POST as markViewed } from "../../src/app/api/v1/envelopes/mark-viewed/route";
+import { POST as signDocument } from "../../src/app/api/v1/envelopes/sign/route";
+import { GET as listDocuments } from "../../src/app/api/v1/documents/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";
@@ -30,6 +31,16 @@ async function signIn(email: string) {
   if (!cookie) throw new Error("Session cookie missing");
   return cookie;
 }
+
+const evidence = {
+  issue: false,
+  verify: false,
+  verifyRejectsBadCode: false,
+  decline: false,
+  void: false,
+  expire: false,
+  sign: false,
+};
 
 try {
   await database
@@ -100,7 +111,6 @@ try {
     })
     .onConflictDoNothing();
 
-  // Ensure legacy id exists even if conflict was on another unique key
   const [fixtureDoc] = await database
     .select({ id: documents.id })
     .from(documents)
@@ -148,37 +158,42 @@ try {
   if (!docsResponse.ok) throw new Error(`Documents list failed: ${docsResponse.status}`);
   const docsBody = (await docsResponse.json()) as { data: Array<{ _id: string; uploadStatus?: string }> };
   const cleanDoc =
-    docsBody.data.find((d) => (d as any).uploadStatus === "clean") || docsBody.data[0];
+    docsBody.data.find((d) => (d as { uploadStatus?: string }).uploadStatus === "clean") ||
+    docsBody.data[0];
   if (!cleanDoc) throw new Error("Need at least one document for envelope create proof");
 
-  const createResponse = await createEnvelope(
-    new Request("http://local/api/v1/envelopes", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        documentId: cleanDoc._id,
-        routing: "parallel",
-        recipientUserIds: [boundaryUser.id],
-        title: "Verify envelope OTP/sign",
+  async function createAndSend(title: string, expiresAt?: string) {
+    const createResponse = await createEnvelope(
+      new Request("http://local/api/v1/envelopes", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          documentId: cleanDoc._id,
+          routing: "parallel",
+          recipientUserIds: [boundaryUser.id],
+          title,
+          ...(expiresAt ? { expiresAt } : {}),
+        }),
       }),
-    }),
-  );
-  if (!createResponse.ok) {
-    throw new Error(`Create envelope failed: ${createResponse.status} ${await createResponse.text()}`);
+    );
+    if (!createResponse.ok) {
+      throw new Error(`Create envelope failed: ${createResponse.status} ${await createResponse.text()}`);
+    }
+    const created = (await createResponse.json()) as { data: { envelopeId: string } };
+    const sendResponse = await sendEnvelope(
+      new Request(`http://local/api/v1/envelopes/${created.data.envelopeId}/send`, {
+        method: "POST",
+        headers,
+        body: "{}",
+      }),
+    );
+    if (!sendResponse.ok) {
+      throw new Error(`Send envelope failed: ${sendResponse.status} ${await sendResponse.text()}`);
+    }
+    return created.data.envelopeId;
   }
-  const created = (await createResponse.json()) as { data: { envelopeId: string } };
-  const envelopeId = created.data.envelopeId;
 
-  const sendResponse = await sendEnvelope(
-    new Request(`http://local/api/v1/envelopes/${envelopeId}/send`, {
-      method: "POST",
-      headers,
-      body: "{}",
-    }),
-  );
-  if (!sendResponse.ok) {
-    throw new Error(`Send envelope failed: ${sendResponse.status} ${await sendResponse.text()}`);
-  }
+  const envelopeId = await createAndSend("Verify envelope OTP/sign");
 
   const otpIssueResponse = await issueOtp(
     new Request("http://local/api/v1/envelopes/otp/issue", {
@@ -193,6 +208,22 @@ try {
   const otpIssued = (await otpIssueResponse.json()) as {
     data: { challengeId: string; demoCode: string };
   };
+  evidence.issue = Boolean(otpIssued.data.challengeId && otpIssued.data.demoCode);
+
+  const badVerifyResponse = await verifyOtp(
+    new Request("http://local/api/v1/envelopes/otp/verify", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        challengeId: otpIssued.data.challengeId,
+        code: "000000",
+      }),
+    }),
+  );
+  evidence.verifyRejectsBadCode = !badVerifyResponse.ok;
+  if (badVerifyResponse.ok) {
+    throw new Error("OTP verify accepted an incorrect code");
+  }
 
   const otpVerifyResponse = await verifyOtp(
     new Request("http://local/api/v1/envelopes/otp/verify", {
@@ -207,6 +238,7 @@ try {
   if (!otpVerifyResponse.ok) {
     throw new Error(`OTP verify failed: ${otpVerifyResponse.status} ${await otpVerifyResponse.text()}`);
   }
+  evidence.verify = true;
 
   const viewedResponse = await markViewed(
     new Request("http://local/api/v1/envelopes/mark-viewed", {
@@ -238,7 +270,26 @@ try {
   if (!signResponse.ok) {
     throw new Error(`Sign failed: ${signResponse.status} ${await signResponse.text()}`);
   }
+  evidence.sign = true;
   console.log("otp/sign path ok");
+
+  const declineId = await createAndSend("Verify decline envelope");
+  const declineResponse = await declineEnvelope(
+    new Request(`http://local/api/v1/envelopes/${declineId}/decline`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ reason: "Local verify decline" }),
+    }),
+  );
+  if (!declineResponse.ok) {
+    throw new Error(`Decline failed: ${declineResponse.status} ${await declineResponse.text()}`);
+  }
+  const declineBody = (await declineResponse.json()) as { data: { status: string } };
+  if (declineBody.data.status !== "declined") {
+    throw new Error(`Expected declined status, got ${declineBody.data.status}`);
+  }
+  evidence.decline = true;
+  console.log("decline path ok");
 
   const voidCreate = await createEnvelope(
     new Request("http://local/api/v1/envelopes", {
@@ -263,31 +314,15 @@ try {
   if (!voidResponse.ok) {
     throw new Error(`Void failed: ${voidResponse.status} ${await voidResponse.text()}`);
   }
+  evidence.void = true;
   console.log("void path ok");
 
-  const expireCreate = await createEnvelope(
-    new Request("http://local/api/v1/envelopes", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        documentId: cleanDoc._id,
-        routing: "parallel",
-        recipientUserIds: [boundaryUser.id],
-        title: "Verify expire envelope",
-        expiresAt: new Date(Date.now() - 60_000).toISOString(),
-      }),
-    }),
-  );
-  const expireCreated = (await expireCreate.json()) as { data: { envelopeId: string } };
-  await sendEnvelope(
-    new Request(`http://local/api/v1/envelopes/${expireCreated.data.envelopeId}/send`, {
-      method: "POST",
-      headers,
-      body: "{}",
-    }),
+  const expireId = await createAndSend(
+    "Verify expire envelope",
+    new Date(Date.now() - 60_000).toISOString(),
   );
   const expireResponse = await expireEnvelope(
-    new Request(`http://local/api/v1/envelopes/${expireCreated.data.envelopeId}/expire`, {
+    new Request(`http://local/api/v1/envelopes/${expireId}/expire`, {
       method: "POST",
       headers,
       body: "{}",
@@ -296,6 +331,7 @@ try {
   if (!expireResponse.ok) {
     throw new Error(`Expire failed: ${expireResponse.status} ${await expireResponse.text()}`);
   }
+  evidence.expire = true;
   console.log("expire path ok");
 
   const listResponse = await listEnvelopes(new Request("http://local/api/v1/envelopes", { headers }));
@@ -305,6 +341,12 @@ try {
     throw new Error("Envelope list empty after proofs");
   }
 
+  const required = ["issue", "verify", "decline", "void", "expire"] as const;
+  for (const key of required) {
+    if (!evidence[key]) throw new Error(`R4.6 evidence missing: ${key}`);
+  }
+
+  console.log(JSON.stringify({ r46: evidence }));
   console.log("envelopes:verify-local passed");
 } finally {
   await closeDatabase().catch(() => undefined);

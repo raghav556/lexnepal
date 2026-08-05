@@ -3,16 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button.tsx";
 import { Loader2, FileSignature, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useCase, useCases } from "@/client/queries/cases";
 import { useUploadDocument } from "@/client/queries/documents";
+import { useDocumentTemplates } from "@/client/queries/templates";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { generatePdfFromHtml } from "@/lib/pdfGenerator.ts";
 
 export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const cases = useCases({}) || [];
-  const templates = useQuery(api.templates.listTemplates, {}) || [];
+  const templates = useDocumentTemplates();
   const uploadDocument = useUploadDocument();
 
   const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());

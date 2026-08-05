@@ -1,0 +1,9 @@
+item,title,dependsOn,ownerRole,ownerName,status,evidence,notes
+R7.1,Accept production ADRs,"ADR-0001,0002,0004/5,0006,0009,0012-0015,0017,0019-prod",Migration owner,TBD,DEFER_PROD,,See production-readiness.md §R7.1
+R7.2,Staging real IdP / JWKS,ADR-0004; staging env,Security owner,TBD,DEFER_PROD,,Local Better Auth does not satisfy
+R7.3,Production-like data volume rehearsal,ADR-0002; staging DB,Data owner,TBD,DEFER_PROD,,Fixtures insufficient
+R7.4,Antivirus / CDR policy decision,ADR-0019 successor,Security / documents,TBD,DEFER_PROD,,ClamAV local only today
+R7.5,Email / SMS provider live,ADR-0009,Platform / product,TBD,DEFER_PROD,,SMS fail-closed locally
+R7.6,Monitoring / alerts live,ADR-0012,Operations owner,TBD,DEFER_PROD,,
+R7.7,Incident commander + rollback contacts,incident-contacts.md,Ops / migration,TBD,DEFER_PROD,,All TBD fails gate
+R7.8,Domain-by-domain production cutover,R7.1-R7.7; cutover-runbook prod cmds,Migration owner,TBD,DEFER_PROD,,No big bang

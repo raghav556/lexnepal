@@ -3,10 +3,10 @@ import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { firmSettings, hearings, tasks, researchNotes } from "../../db/schema";
 import { migrateWorkManagementExport } from "../../src/server/services/work-management-migration";
-import { GET as listTasks } from "../../next-app/app/api/v1/tasks/route";
-import { GET as listHearings } from "../../next-app/app/api/v1/hearings/route";
-import { GET as listResearch } from "../../next-app/app/api/v1/research/route";
-import { POST as scanOverdue } from "../../next-app/app/api/v1/tasks/overdue-reminders/route";
+import { GET as listTasks } from "../../src/app/api/v1/tasks/route";
+import { GET as listHearings } from "../../src/app/api/v1/hearings/route";
+import { GET as listResearch } from "../../src/app/api/v1/research/route";
+import { POST as scanOverdue } from "../../src/app/api/v1/tasks/overdue-reminders/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";

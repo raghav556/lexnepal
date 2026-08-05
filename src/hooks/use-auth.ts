@@ -1,8 +1,9 @@
 /**
- * Auth hook — uses Convex identity when live; mock profile when VITE_USE_MOCK=true.
+ * Auth hook — Better Auth (Next) when identity=next; Convex only when identity=convex/shadow.
+ * Mock profile when VITE_USE_MOCK=true.
  */
 
-import { useConvexAuth, useQuery } from "@/client/data/convex-bridge.ts";
+import { useConvexAuth, useQuery, convexRuntimeEnabled } from "@/client/data/convex-bridge.ts";
 import { api } from "@/convex/_generated/api.js";
 import { useDomainBackend } from "@/client/data/provider";
 import { localAuthClient } from "@/client/auth/local-auth-client";
@@ -21,13 +22,18 @@ interface AuthState {
   signout: () => Promise<void>;
 }
 
-const useMock = (typeof process !== "undefined" ? process.env.VITE_USE_MOCK : import.meta.env.VITE_USE_MOCK) === "true";
+const useMock =
+  (typeof process !== "undefined" ? process.env.VITE_USE_MOCK : import.meta.env.VITE_USE_MOCK) ===
+  "true";
 
 export function useAuth(): AuthState {
   const backend = useDomainBackend("identity");
-  const { isLoading, isAuthenticated } = useConvexAuth();
-  const currentUser = useQuery(api.users.getCurrentUser, backend === "convex" ? {} : "skip");
   const localSession = localAuthClient.useSession();
+  const { isLoading: convexLoading, isAuthenticated: convexAuthed } = useConvexAuth();
+  const currentUser = useQuery(
+    api.users.getCurrentUser,
+    backend === "convex" && convexRuntimeEnabled ? {} : "skip",
+  );
 
   if (useMock) {
     return {
@@ -45,7 +51,7 @@ export function useAuth(): AuthState {
     };
   }
 
-  if (backend === "next") {
+  if (backend === "next" || !convexRuntimeEnabled) {
     return {
       user: localSession.data?.user
         ? { profile: { name: localSession.data.user.name, email: localSession.data.user.email } }
@@ -61,7 +67,7 @@ export function useAuth(): AuthState {
 
   return {
     user:
-      isAuthenticated && currentUser
+      convexAuthed && currentUser
         ? {
             profile: {
               name: currentUser.name,
@@ -69,11 +75,10 @@ export function useAuth(): AuthState {
             },
           }
         : null,
-    isLoading,
-    isAuthenticated: !!isAuthenticated,
+    isLoading: convexLoading,
+    isAuthenticated: !!convexAuthed,
     signout: async () => {
       window.location.href = "/";
     },
   };
 }
-

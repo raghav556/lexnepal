@@ -116,4 +116,18 @@ describe("durable PostgreSQL job worker", () => {
     const worker = new DurableJobWorker(repository, new Map(), "worker-1");
     await expect(worker.runOnce()).resolves.toBe("idle");
   });
+
+  it("does not complete when a handler fails, so side effects stay unacknowledged", async () => {
+    const repository = new MemoryRepository();
+    const handler: JobHandler = async () => {
+      throw new RetryableJobError("before side effect");
+    };
+    const worker = new DurableJobWorker(
+      repository,
+      new Map([["analytics.aggregate", handler]]),
+      "worker-1",
+    );
+    await expect(worker.runOnce()).resolves.toBe("retry");
+    expect(repository.completed).toBe(0);
+  });
 });

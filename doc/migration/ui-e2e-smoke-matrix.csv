@@ -1,0 +1,12 @@
+area,path,nextFile,proof
+cms,/,src/app/(public)/page.tsx,playwright+filesystem
+cms,/blog,src/app/(public)/blog/page.tsx,playwright+filesystem
+cms,/practice-areas,src/app/(public)/practice-areas/page.tsx,playwright+filesystem
+cms,/about-us,src/app/(public)/about-us/page.tsx,playwright+filesystem
+cms,/contact,src/app/(public)/contact/page.tsx,playwright+filesystem
+login,/sign-in,src/app/sign-in/page.tsx,playwright+filesystem
+matter,/staff/cases,src/app/(staff)/staff/cases/page.tsx,playwright+filesystem
+document,/staff/documents,src/app/(staff)/staff/documents/page.tsx,playwright+filesystem
+invoice,/admin/finance,src/app/(admin)/admin/finance/page.tsx,playwright+filesystem
+invoice,/client/billing,src/app/(client)/client/billing/page.tsx,playwright+filesystem
+signature,/client/signatures,src/app/(client)/client/signatures/page.tsx,playwright+filesystem

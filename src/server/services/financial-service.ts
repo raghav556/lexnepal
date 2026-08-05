@@ -2,6 +2,7 @@ import "server-only";
 import type { AuditContext } from "@/server/audit/context";
 import type { AuthPrincipal } from "@/server/auth/types";
 import {
+  assertResourceInFirm,
   requireCapability,
   requireCaseAccess,
   requireClientOwnership,
@@ -62,9 +63,7 @@ export class FinancialService {
     requireFinanceManager(principal);
     await requireCaseAccess(principal, input.caseId, security);
     const client = await security.getClient(input.clientId);
-    if (!client || client.firmId !== principal.firmId) {
-      throw new AppError("NOT_FOUND", "Client was not found", 404);
-    }
+    assertResourceInFirm(principal, client?.firmId, "Client was not found");
     return repository.createInvoiceFromTimeEntries(requireFirmContext(principal).firmId, input, audit);
   }
 
@@ -159,9 +158,7 @@ export class FinancialService {
   ) {
     requireFinanceManager(principal);
     const client = await security.getClient(input.clientId);
-    if (!client || client.firmId !== principal.firmId) {
-      throw new AppError("NOT_FOUND", "Client was not found", 404);
-    }
+    assertResourceInFirm(principal, client?.firmId, "Client was not found");
     if (input.caseId) await requireCaseAccess(principal, input.caseId, security);
     return repository.createTrustTransaction(
       requireFirmContext(principal).firmId,

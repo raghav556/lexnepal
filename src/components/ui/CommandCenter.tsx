@@ -4,8 +4,6 @@ import { X, Send, Lock, MessageCircle, FileText, User, Paperclip, Users, ShieldC
 import { Button } from "./button.tsx";
 import { Input } from "./input.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useMutation, useQuery } from "@/client/data/convex-bridge.ts";
-import { api } from "@/convex/_generated/api.js";
 import { useMessages, useMessageCommands } from "../../client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";

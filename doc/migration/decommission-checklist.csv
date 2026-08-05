@@ -1,0 +1,23 @@
+wave,title,status,evidence,notes
+A1,Final Convex export + checksum,DEFER_PROD,,Local fixtures only
+A2,Final reconciliation + storage archive,partial_local,reconciliation-report.md,Re-run at prod
+A3,Remove Convex providers/hooks/generated,DEFER,,Rollback path
+A4,Remove convex-mock.tsx,DEFER,,Rollback / mock
+A5,Remove convex/ directory,DEFER,,Rollback / dual-run
+A6,Remove Convex deps and env,DEFER,,package.json still has convex
+A7,CI/docs boot without Convex,DEFER,,After A3-A6
+A8,decommission-checklist.md exists,complete_local,decommission-checklist.md,
+C1,Flags next + remove Convex hook branches,DEFER,,After soak/rollback window
+C2,Delete convex-bridge,DEFER,,After all domains frontend-switched
+C3,Delete dual-backend conditionals,DEFER,,After C1
+C4,Remove unused VITE_BACKEND_*,DEFER,,After Convex retired
+C5,Remove next-app isolation,complete_local,PHASE_11 R5.6,ADR-0018 superseded
+C6,Obsolete migration scripts vs CLI,complete_local,npm run migration --,Thin migrate-*.ts wrappers retained
+C7,Archive exports/reconcile/checksums,ongoing,doc/migration;exports,.migration-reports
+C8,Remove Convex packages from lockfile,DEFER,,After R8.A clean
+C9,Remove Convex env from env.example/docs,DEFER,,With C8
+C10,Parity rows to convex_retired,DEFER,,endpoint-parity.csv
+C11,Dead TBD stubs / experimental APIs,complete_local,no /api/crm tree,
+C12,Normalize APIs to /api/v1,complete_local,removed /api/communication/*,clients on /api/v1
+C13,Fix undocumented Completed claims,ongoing,ADR-0018 superseded,parity paths refresh later
+C14,Final security+E2E+backup restore,DEFER_PROD,R5.7+R6 local,Prod restore is R7.3

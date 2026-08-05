@@ -5465,3 +5465,2124 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 - Zero unexplained differences across all fixture domains.
 - domains=identity,cms,matters,work-management,financial,crm,communication,documents,storage,envelopes,hr,analytics
 
+## r4.2 — prove-shadow
+
+- Recorded at: `2026-08-05T17:30:19.462Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| identity | 1 | 1 | yes |
+| matters | 1 | 1 | yes |
+| financial | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.2 shadow reads: Convex export vs Postgres (Next not served as authority).
+- identity.passed=true mismatches=0
+- matters.passed=true mismatches=0
+- financial.passed=true mismatches=0
+
+## r4.3 — prove-cross-firm
+
+- Recorded at: `2026-08-05T17:34:31.203Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| authorization | 1 | 1 | yes |
+| crossFirmAttack | 1 | 1 | yes |
+| crossFirmSecurity | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.3 cross-firm attack tests: spoofed firm context, requireSameFirm, assertResourceInFirm NOT_FOUND probes.
+- filesPassed=3 testsPassed=13 exitCode=0
+- tests/unit/authorization.test.ts
+- tests/unit/cross-firm-attack.test.ts
+- tests/integration/cross-firm-security.test.ts
+
+## r4.4 — prove-finance-idempotency
+
+- Recorded at: `2026-08-05T17:41:31.714Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| paymentIdempotent | 2 | 1 | **no** |
+| trustIdempotent | 2 | 1 | **no** |
+| alreadyPaidNoDoublePost | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.4 finance idempotency: same Idempotency-Key / body key replays payment and trust without double-post.
+- Already-paid invoice pay without a new key returns existing completed payment.
+- payKey=r44-pay-1785951691608 trustKey=r44-trust-1785951691695
+
+## r4.5 — prove-document-malware
+
+- Recorded at: `2026-08-05T17:43:45.498Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clean | 1 | 1 | yes |
+| infected | 1 | 1 | yes |
+| oversized | 1 | 1 | yes |
+| unauthorized | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.5 document/malware: clean promote+download, EICAR reject, oversized intent deny, unauthorized/cross-firm download deny.
+- tests/unit/documents-contracts.test.ts
+- tests/unit/document-storage-pipeline.test.ts
+- scripts/storage/verify-local-pipeline.ts
+
+## r4.6 — prove-signature-otp
+
+- Recorded at: `2026-08-05T17:48:15.195Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| issue | 1 | 1 | yes |
+| verify | 1 | 1 | yes |
+| decline | 1 | 1 | yes |
+| void | 1 | 1 | yes |
+| expire | 1 | 1 | yes |
+| badCodeRejected | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.6 signature/OTP: issue, verify (rejects bad code), decline, void, expire (+ sign after verified OTP).
+- tests/unit/envelopes-contracts.test.ts
+- scripts/envelopes/verify-local.ts
+
+## r4.7 — prove-job-retries
+
+- Recorded at: `2026-08-05T17:51:45.727Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| idempotentEnqueue | 1 | 1 | yes |
+| deadLetter | 1 | 1 | yes |
+| manualRetryRecoverable | 1 | 1 | yes |
+| noDuplicateSideEffects | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.7 failure/retry: dead-letter → audited manual retry → single durable_job_effects row (no duplicate side effects).
+- tests/unit/jobs-contracts.test.ts
+- tests/unit/durable-job-worker.test.ts
+- scripts/jobs/verify-local.ts
+
+## r4.8 — prove-performance-smoke
+
+- Recorded at: `2026-08-05T17:55:05.619Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clientsList | 2000 | 8 | **no** |
+| casesList | 2000 | 16 | **no** |
+| documentsList | 2000 | 9 | **no** |
+| documentsSearch | 2000 | 10 | **no** |
+| conflictSearch | 2000 | 20 | **no** |
+| invoicesList | 2000 | 14 | **no** |
+| tasksList | 2000 | 66 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.8 performance smoke: representative local volume; list/search Route Handlers under budget.
+- volume={"clients":120,"cases":250,"documents":500,"invoices":150,"tasks":200}
+- budgetsMs={"clientsList":2000,"casesList":2000,"documentsList":2000,"documentsSearch":2000,"conflictSearch":2000,"invoicesList":2000,"tasksList":2000}
+- clientsList=8.2ms/2000ms
+- casesList=15.5ms/2000ms
+- documentsList=9.2ms/2000ms
+- documentsSearch=10ms/2000ms
+- conflictSearch=20.4ms/2000ms
+- invoicesList=13.7ms/2000ms
+- tasksList=65.7ms/2000ms
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-05T18:57:44.396Z`
+- Passed: **no**
+- Exceptions: 81
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 68 | 68 | yes |
+| matrixCount | 68 | 68 | yes |
+| appCoverage | 68 | 63 | **no** |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- `url-preserve` / `0` — App.tsx route not in inventory: /analytics
+- `url-preserve` / `1` — App.tsx route not in inventory: /appointments
+- `url-preserve` / `2` — App.tsx route not in inventory: /audit
+- `url-preserve` / `3` — App.tsx route not in inventory: /billing
+- `url-preserve` / `4` — App.tsx route not in inventory: /booking
+- `url-preserve` / `5` — App.tsx route not in inventory: /cases
+- `url-preserve` / `6` — App.tsx route not in inventory: /cases/:id
+- `url-preserve` / `7` — App.tsx route not in inventory: /checklist
+- `url-preserve` / `8` — App.tsx route not in inventory: /clients
+- `url-preserve` / `9` — App.tsx route not in inventory: /cms
+- `url-preserve` / `10` — App.tsx route not in inventory: /cms/about
+- `url-preserve` / `11` — App.tsx route not in inventory: /cms/blog
+- `url-preserve` / `12` — App.tsx route not in inventory: /cms/careers
+- `url-preserve` / `13` — App.tsx route not in inventory: /cms/governance
+- `url-preserve` / `14` — App.tsx route not in inventory: /cms/navigation
+- `url-preserve` / `15` — App.tsx route not in inventory: /cms/news
+- `url-preserve` / `16` — App.tsx route not in inventory: /cms/practice-areas
+- `url-preserve` / `17` — App.tsx route not in inventory: /cms/resources
+- `url-preserve` / `18` — App.tsx route not in inventory: /cms/team
+- `url-preserve` / `19` — App.tsx route not in inventory: /cms/testimonials
+- `url-preserve` / `20` — App.tsx route not in inventory: /conflict-checker
+- `url-preserve` / `21` — App.tsx route not in inventory: /crm
+- `url-preserve` / `22` — App.tsx route not in inventory: /document-generator
+- `url-preserve` / `23` — App.tsx route not in inventory: /documents
+- `url-preserve` / `24` — App.tsx route not in inventory: /expenses
+- `url-preserve` / `25` — App.tsx route not in inventory: /finance
+- `url-preserve` / `26` — App.tsx route not in inventory: /hearings
+- `url-preserve` / `27` — App.tsx route not in inventory: /hr
+- `url-preserve` / `28` — App.tsx route not in inventory: /kyc
+- `url-preserve` / `29` — App.tsx route not in inventory: /messages
+- `url-preserve` / `30` — App.tsx route not in inventory: /profile
+- `url-preserve` / `31` — App.tsx route not in inventory: /research
+- `url-preserve` / `32` — App.tsx route not in inventory: /settings
+- `url-preserve` / `33` — App.tsx route not in inventory: /signatures
+- `url-preserve` / `34` — App.tsx route not in inventory: /tasks
+- `url-preserve` / `35` — App.tsx route not in inventory: /templates
+- `url-preserve` / `36` — App.tsx route not in inventory: /time
+- `url-preserve` / `37` — App.tsx route not in inventory: /users
+- `url-preserve` / `38` — Inventory path missing from App.tsx: /client/cases
+- `url-preserve` / `39` — Inventory path missing from App.tsx: /client/documents
+- `url-preserve` / `40` — Inventory path missing from App.tsx: /client/messages
+- `url-preserve` / `41` — Inventory path missing from App.tsx: /client/billing
+- `url-preserve` / `42` — Inventory path missing from App.tsx: /client/booking
+- `url-preserve` / `43` — Inventory path missing from App.tsx: /client/kyc
+- `url-preserve` / `44` — Inventory path missing from App.tsx: /client/signatures
+- `url-preserve` / `45` — Inventory path missing from App.tsx: /client/checklist
+- `url-preserve` / `46` — Inventory path missing from App.tsx: /client/profile
+- `url-preserve` / `47` — Inventory path missing from App.tsx: /staff/cases
+- `url-preserve` / `48` — Inventory path missing from App.tsx: /staff/cases/:id
+- `url-preserve` / `49` — Inventory path missing from App.tsx: /staff/hearings
+- `url-preserve` / `50` — Inventory path missing from App.tsx: /staff/documents
+- `url-preserve` / `51` — Inventory path missing from App.tsx: /staff/tasks
+- `url-preserve` / `52` — Inventory path missing from App.tsx: /staff/time
+- `url-preserve` / `53` — Inventory path missing from App.tsx: /staff/clients
+- `url-preserve` / `54` — Inventory path missing from App.tsx: /staff/appointments
+- `url-preserve` / `55` — Inventory path missing from App.tsx: /staff/research
+- `url-preserve` / `56` — Inventory path missing from App.tsx: /staff/profile
+- `url-preserve` / `57` — Inventory path missing from App.tsx: /admin/users
+- `url-preserve` / `58` — Inventory path missing from App.tsx: /admin/analytics
+- `url-preserve` / `59` — Inventory path missing from App.tsx: /admin/hr
+- `url-preserve` / `60` — Inventory path missing from App.tsx: /admin/finance
+- `url-preserve` / `61` — Inventory path missing from App.tsx: /admin/expenses
+- `url-preserve` / `62` — Inventory path missing from App.tsx: /admin/crm
+- `url-preserve` / `63` — Inventory path missing from App.tsx: /admin/settings
+- `url-preserve` / `64` — Inventory path missing from App.tsx: /admin/audit
+- `url-preserve` / `65` — Inventory path missing from App.tsx: /admin/conflict-checker
+- `url-preserve` / `66` — Inventory path missing from App.tsx: /admin/document-generator
+- `url-preserve` / `67` — Inventory path missing from App.tsx: /admin/appointments
+- `url-preserve` / `68` — Inventory path missing from App.tsx: /admin/templates
+- `url-preserve` / `69` — Inventory path missing from App.tsx: /admin/profile
+- `url-preserve` / `70` — Inventory path missing from App.tsx: /admin/cms
+- `url-preserve` / `71` — Inventory path missing from App.tsx: /admin/cms/navigation
+- `url-preserve` / `72` — Inventory path missing from App.tsx: /admin/cms/practice-areas
+- `url-preserve` / `73` — Inventory path missing from App.tsx: /admin/cms/testimonials
+- `url-preserve` / `74` — Inventory path missing from App.tsx: /admin/cms/team
+- `url-preserve` / `75` — Inventory path missing from App.tsx: /admin/cms/blog
+- `url-preserve` / `76` — Inventory path missing from App.tsx: /admin/cms/news
+- `url-preserve` / `77` — Inventory path missing from App.tsx: /admin/cms/careers
+- `url-preserve` / `78` — Inventory path missing from App.tsx: /admin/cms/resources
+- `url-preserve` / `79` — Inventory path missing from App.tsx: /admin/cms/about
+- `url-preserve` / `80` — Inventory path missing from App.tsx: /admin/cms/governance
+
+### FK integrity
+
+- Status: **fail**
+- `url-preserve` (38) — Inventory path missing from App.tsx: /client/cases
+- `url-preserve` (39) — Inventory path missing from App.tsx: /client/documents
+- `url-preserve` (40) — Inventory path missing from App.tsx: /client/messages
+- `url-preserve` (41) — Inventory path missing from App.tsx: /client/billing
+- `url-preserve` (42) — Inventory path missing from App.tsx: /client/booking
+- `url-preserve` (43) — Inventory path missing from App.tsx: /client/kyc
+- `url-preserve` (44) — Inventory path missing from App.tsx: /client/signatures
+- `url-preserve` (45) — Inventory path missing from App.tsx: /client/checklist
+- `url-preserve` (46) — Inventory path missing from App.tsx: /client/profile
+- `url-preserve` (47) — Inventory path missing from App.tsx: /staff/cases
+- `url-preserve` (48) — Inventory path missing from App.tsx: /staff/cases/:id
+- `url-preserve` (49) — Inventory path missing from App.tsx: /staff/hearings
+- `url-preserve` (50) — Inventory path missing from App.tsx: /staff/documents
+- `url-preserve` (51) — Inventory path missing from App.tsx: /staff/tasks
+- `url-preserve` (52) — Inventory path missing from App.tsx: /staff/time
+- `url-preserve` (53) — Inventory path missing from App.tsx: /staff/clients
+- `url-preserve` (54) — Inventory path missing from App.tsx: /staff/appointments
+- `url-preserve` (55) — Inventory path missing from App.tsx: /staff/research
+- `url-preserve` (56) — Inventory path missing from App.tsx: /staff/profile
+- `url-preserve` (57) — Inventory path missing from App.tsx: /admin/users
+- `url-preserve` (58) — Inventory path missing from App.tsx: /admin/analytics
+- `url-preserve` (59) — Inventory path missing from App.tsx: /admin/hr
+- `url-preserve` (60) — Inventory path missing from App.tsx: /admin/finance
+- `url-preserve` (61) — Inventory path missing from App.tsx: /admin/expenses
+- `url-preserve` (62) — Inventory path missing from App.tsx: /admin/crm
+- `url-preserve` (63) — Inventory path missing from App.tsx: /admin/settings
+- `url-preserve` (64) — Inventory path missing from App.tsx: /admin/audit
+- `url-preserve` (65) — Inventory path missing from App.tsx: /admin/conflict-checker
+- `url-preserve` (66) — Inventory path missing from App.tsx: /admin/document-generator
+- `url-preserve` (67) — Inventory path missing from App.tsx: /admin/appointments
+- `url-preserve` (68) — Inventory path missing from App.tsx: /admin/templates
+- `url-preserve` (69) — Inventory path missing from App.tsx: /admin/profile
+- `url-preserve` (70) — Inventory path missing from App.tsx: /admin/cms
+- `url-preserve` (71) — Inventory path missing from App.tsx: /admin/cms/navigation
+- `url-preserve` (72) — Inventory path missing from App.tsx: /admin/cms/practice-areas
+- `url-preserve` (73) — Inventory path missing from App.tsx: /admin/cms/testimonials
+- `url-preserve` (74) — Inventory path missing from App.tsx: /admin/cms/team
+- `url-preserve` (75) — Inventory path missing from App.tsx: /admin/cms/blog
+- `url-preserve` (76) — Inventory path missing from App.tsx: /admin/cms/news
+- `url-preserve` (77) — Inventory path missing from App.tsx: /admin/cms/careers
+- `url-preserve` (78) — Inventory path missing from App.tsx: /admin/cms/resources
+- `url-preserve` (79) — Inventory path missing from App.tsx: /admin/cms/about
+- `url-preserve` (80) — Inventory path missing from App.tsx: /admin/cms/governance
+
+### Notes
+
+- R5.5 URL preserve: inventory ↔ matrix ↔ App.tsx ↔ next-app files; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+- App.tsx route not in inventory: /analytics
+- App.tsx route not in inventory: /appointments
+- App.tsx route not in inventory: /audit
+- App.tsx route not in inventory: /billing
+- App.tsx route not in inventory: /booking
+- App.tsx route not in inventory: /cases
+- App.tsx route not in inventory: /cases/:id
+- App.tsx route not in inventory: /checklist
+- App.tsx route not in inventory: /clients
+- App.tsx route not in inventory: /cms
+- App.tsx route not in inventory: /cms/about
+- App.tsx route not in inventory: /cms/blog
+- App.tsx route not in inventory: /cms/careers
+- App.tsx route not in inventory: /cms/governance
+- App.tsx route not in inventory: /cms/navigation
+- App.tsx route not in inventory: /cms/news
+- App.tsx route not in inventory: /cms/practice-areas
+- App.tsx route not in inventory: /cms/resources
+- App.tsx route not in inventory: /cms/team
+- App.tsx route not in inventory: /cms/testimonials
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-05T18:58:10.909Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 68 | 68 | yes |
+| matrixCount | 68 | 68 | yes |
+| appCoverage | 68 | 68 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5 URL preserve: inventory ↔ matrix ↔ App.tsx ↔ next-app files; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-05T18:59:01.348Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 68 | 68 | yes |
+| matrixCount | 68 | 68 | yes |
+| appCoverage | 68 | 68 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5 URL preserve: inventory ↔ matrix ↔ App.tsx ↔ next-app files; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-05T19:05:45.285Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 68 | 68 | yes |
+| matrixCount | 68 | 68 | yes |
+| appCoverage | 68 | 68 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ App.tsx ↔ src/app files; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-05T19:19:31.079Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 68 | 68 | yes |
+| matrixCount | 68 | 68 | yes |
+| appCoverage | 68 | 68 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ App.tsx ↔ src/app files; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r5.7 — prove-e2e-smoke
+
+- Recorded at: `2026-08-05T19:36:42.504Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| cms | 5 | 5 | yes |
+| login | 1 | 1 | yes |
+| matter | 1 | 1 | yes |
+| document | 1 | 1 | yes |
+| invoice | 2 | 2 | yes |
+| signature | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.7 E2E smoke: CMS public + login + matter/document/invoice/signature portal pages.
+- baseUrl=http://127.0.0.1:3001
+- seeded=e2e-admin@example.invalid,e2e-staff@example.invalid,e2e-client@example.invalid
+- firmId=61000000-0000-4000-8000-000000000001
+- matrix=doc/migration/ui-e2e-smoke-matrix.csv
+
+## cms — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:39:46.451Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 0 | **no** |
+| practiceAreas | 1 | 0 | **no** |
+| blogPosts | 2 | 0 | **no** |
+| resources | 1 | 0 | **no** |
+| newsAndAwards | 1 | 0 | **no** |
+| careers | 1 | 0 | **no** |
+| jobApplications | 1 | 0 | **no** |
+| legalPages | 1 | 0 | **no** |
+| cmsSettings | 2 | 0 | **no** |
+| newsletterSubscribers | 1 | 0 | **no** |
+| navigation | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=1e81e81f37065bee925bef39
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## cms — import-postgres
+
+- Recorded at: `2026-08-05T19:39:48.485Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+- fingerprint=1e81e81f37065bee925bef39
+
+## cms — verify
+
+- Recorded at: `2026-08-05T19:39:50.167Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## cms — reconcile
+
+- Recorded at: `2026-08-05T19:39:52.005Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## r6 — prove-cutover-rehearsal
+
+- Recorded at: `2026-08-05T19:39:53.846Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| identity | 1 | 0 | **no** |
+| cms | 1 | 1 | yes |
+| matters | 1 | 0 | **no** |
+| work-management | 1 | 0 | **no** |
+| financial | 1 | 0 | **no** |
+| crm | 1 | 0 | **no** |
+| communication | 1 | 0 | **no** |
+| documents | 1 | 0 | **no** |
+| envelopes | 1 | 0 | **no** |
+| hr | 1 | 0 | **no** |
+| analytics | 1 | 0 | **no** |
+| storage | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R6 local cutover dress rehearsal — see cutover-runbook.md + cutover-log.csv
+- rehearsalId=r6-2026-08-05T19-39-44-595Z
+- thisRun=true
+- allDomainsLoggedPassed=false
+- cms=passed
+
+## identity — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:40:06.798Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 0 | **no** |
+| firmSettings | 1 | 0 | **no** |
+| sessions | 1 | 0 | **no** |
+| auditLog | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=abc16408719041d862650e04
+- Sessions are retired (not re-imported) by identity-migration.
+
+## identity — import-postgres
+
+- Recorded at: `2026-08-05T19:40:08.668Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+- fingerprint=abc16408719041d862650e04
+
+## identity — verify
+
+- Recorded at: `2026-08-05T19:40:10.400Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## identity — reconcile
+
+- Recorded at: `2026-08-05T19:40:12.417Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+
+## cms — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:40:16.214Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 0 | **no** |
+| practiceAreas | 1 | 0 | **no** |
+| blogPosts | 2 | 0 | **no** |
+| resources | 1 | 0 | **no** |
+| newsAndAwards | 1 | 0 | **no** |
+| careers | 1 | 0 | **no** |
+| jobApplications | 1 | 0 | **no** |
+| legalPages | 1 | 0 | **no** |
+| cmsSettings | 2 | 0 | **no** |
+| newsletterSubscribers | 1 | 0 | **no** |
+| navigation | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=1e81e81f37065bee925bef39
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## cms — import-postgres
+
+- Recorded at: `2026-08-05T19:40:18.068Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+- fingerprint=1e81e81f37065bee925bef39
+
+## cms — verify
+
+- Recorded at: `2026-08-05T19:40:19.832Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## cms — reconcile
+
+- Recorded at: `2026-08-05T19:40:21.649Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## matters — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:40:25.116Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 0 | **no** |
+| cases | 1 | 0 | **no** |
+| conflictChecks | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — import-postgres
+
+- Recorded at: `2026-08-05T19:40:26.957Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — verify
+
+- Recorded at: `2026-08-05T19:40:29.011Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## matters — reconcile
+
+- Recorded at: `2026-08-05T19:40:31.062Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## work-management — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:40:34.590Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 0 | **no** |
+| taskComments | 1 | 0 | **no** |
+| taskWatchers | 1 | 0 | **no** |
+| hearings | 1 | 0 | **no** |
+| researchNotes | 1 | 0 | **no** |
+| sopTemplates | 1 | 0 | **no** |
+| sopTemplateTasks | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — import-postgres
+
+- Recorded at: `2026-08-05T19:40:36.432Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — verify
+
+- Recorded at: `2026-08-05T19:40:38.290Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## work-management — reconcile
+
+- Recorded at: `2026-08-05T19:40:40.194Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## financial — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:40:43.998Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 0 | **no** |
+| timeEntries | 2 | 0 | **no** |
+| trustTransactions | 1 | 0 | **no** |
+| expenses | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=4cf8786f43dfa083d306a2fd
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## financial — import-postgres
+
+- Recorded at: `2026-08-05T19:40:45.998Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+- fingerprint=4cf8786f43dfa083d306a2fd
+
+## financial — verify
+
+- Recorded at: `2026-08-05T19:40:47.929Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## financial — reconcile
+
+- Recorded at: `2026-08-05T19:40:49.763Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## crm — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:40:53.485Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 0 | **no** |
+| appointments | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — import-postgres
+
+- Recorded at: `2026-08-05T19:40:55.680Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — verify
+
+- Recorded at: `2026-08-05T19:40:57.535Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## crm — reconcile
+
+- Recorded at: `2026-08-05T19:40:59.523Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## communication — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:41:02.984Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 0 | **no** |
+| notifications | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — import-postgres
+
+- Recorded at: `2026-08-05T19:41:04.905Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — verify
+
+- Recorded at: `2026-08-05T19:41:06.649Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## communication — reconcile
+
+- Recorded at: `2026-08-05T19:41:08.425Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## documents — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:41:12.224Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 0 | **no** |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Wraps existing document-migration.ts; firmMap resolves hyphenated Convex IDs.
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — import-postgres
+
+- Recorded at: `2026-08-05T19:41:14.223Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — reconcile
+
+- Recorded at: `2026-08-05T19:41:17.943Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## envelopes — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:41:21.310Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 0 | **no** |
+| signatureRecipients | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — import-postgres
+
+- Recorded at: `2026-08-05T19:41:23.197Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — verify
+
+- Recorded at: `2026-08-05T19:41:24.889Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## envelopes — reconcile
+
+- Recorded at: `2026-08-05T19:41:27.014Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## hr — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:41:30.844Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 0 | **no** |
+| leaveRequests | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## hr — import-postgres
+
+- Recorded at: `2026-08-05T19:41:32.722Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+
+## hr — verify
+
+- Recorded at: `2026-08-05T19:41:34.410Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## hr — reconcile
+
+- Recorded at: `2026-08-05T19:41:36.173Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## storage — import-postgres (dry-run)
+
+- Recorded at: `2026-08-05T19:41:43.510Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Uses convertConvexStorageExport + migrateLegacyStorage (no rewrite).
+- fingerprint=47198672962339c3e16e078d
+
+## storage — import-postgres
+
+- Recorded at: `2026-08-05T19:41:45.624Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Checksum verified via migrateLegacyStorage.
+- R3.6 uses existing convertConvexStorageExport + migrateLegacyStorage helpers.
+- fingerprint=47198672962339c3e16e078d
+
+## storage — verify
+
+- Recorded at: `2026-08-05T19:41:47.339Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Verified against last saved storage migration report.
+
+## storage — reconcile
+
+- Recorded at: `2026-08-05T19:41:49.170Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- R3.6 File SHA-256 from storage_migration_items (expected vs actual).
+- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+
+## r6 — prove-cutover-rehearsal
+
+- Recorded at: `2026-08-05T19:41:50.921Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| identity | 1 | 1 | yes |
+| cms | 1 | 1 | yes |
+| matters | 1 | 1 | yes |
+| work-management | 1 | 1 | yes |
+| financial | 1 | 1 | yes |
+| crm | 1 | 1 | yes |
+| communication | 1 | 1 | yes |
+| documents | 1 | 1 | yes |
+| envelopes | 1 | 1 | yes |
+| hr | 1 | 1 | yes |
+| analytics | 1 | 1 | yes |
+| storage | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R6 local cutover dress rehearsal — see cutover-runbook.md + cutover-log.csv
+- rehearsalId=r6-2026-08-05T19-40-05-115Z
+- thisRun=true
+- allDomainsLoggedPassed=true
+- identity=passed
+- cms=passed
+- matters=passed
+- work-management=passed
+- financial=passed
+- crm=passed
+- communication=passed
+- documents=passed
+- envelopes=passed
+- hr=passed
+- analytics=passed
+- storage=passed
+
+## r7 — prove-production-readiness-plan
+
+- Recorded at: `2026-08-05T19:49:47.826Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| R7.1 | 1 | 1 | yes |
+| R7.2 | 1 | 1 | yes |
+| R7.3 | 1 | 1 | yes |
+| R7.4 | 1 | 1 | yes |
+| R7.5 | 1 | 1 | yes |
+| R7.6 | 1 | 1 | yes |
+| R7.7 | 1 | 1 | yes |
+| R7.8 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R7 planning artifacts present; production cutover remains DEFER_PROD.
+- tracked=R7.1,R7.2,R7.3,R7.4,R7.5,R7.6,R7.7,R7.8
+- statusDeferOrOpen=8/8
+- incidentContactsTemplate=true
+- Do not set production-readiness.csv status=complete without evidence + owner.
+
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-05T19:54:31.164Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A8 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C6 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 partial_local: checklist present; safe waves C5/C6/C11/C12/A8 complete_local.
+- Full Convex decommission (A3–A6, C1–C4, C8–C10) remains DEFER until rollback window.
+- convexResidualFiles=27
+- residual=eslint.config.mjs
+- residual=next.config.ts
+- residual=scripts/migration/generate-convex-inventory.mjs
+- residual=scripts/migration/prove-decommission-status.ts
+- residual=src/client/data/convex-bridge.ts
+- residual=src/client/queries/analytics.ts
+- residual=src/client/queries/briefs.ts
+- residual=src/client/queries/cases.ts
+- residual=src/client/queries/clients.ts
+- residual=src/client/queries/cms.ts
+- residual=src/client/queries/communication.ts
+- residual=src/client/queries/crm.ts
+- residual=src/client/queries/documents.ts
+- residual=src/client/queries/envelopes.ts
+- residual=src/client/queries/financial.ts
+- residual=src/client/queries/hearings.ts
+- residual=src/client/queries/hr.ts
+- residual=src/client/queries/identity.ts
+- residual=src/client/queries/research.ts
+- residual=src/client/queries/tasks.ts
+- residual=src/client/queries/templates.ts
+- residual=src/components/providers/default.tsx
+- residual=src/hooks/use-auth.ts
+- residual=src/hooks/use-current-user.ts
+- residual=src/lib/convex-mock.tsx
+

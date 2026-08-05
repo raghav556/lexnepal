@@ -8,9 +8,9 @@ Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through `
 
 - Invoices + line items (create from unbilled time)
 - Time entries
-- Trust transactions
+- Trust transactions (firm-scoped `idempotency_key`; double-submit replays)
 - Expenses + stats
-- Payments (mark paid + gateway initiate)
+- Payments (mark paid + gateway initiate; same idempotency + already-paid replay)
 
 ## Implemented vertical slice
 

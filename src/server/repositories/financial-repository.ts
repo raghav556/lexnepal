@@ -342,25 +342,100 @@ export class PostgresFinancialRepository {
         throw new AppError("CONFLICT", "Cancelled invoices cannot be paid", 409);
       }
 
+      if (input.idempotencyKey) {
+        const [byKey] = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.firmId, firmId),
+              eq(payments.idempotencyKey, input.idempotencyKey),
+              isNull(payments.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (byKey) {
+          return {
+            success: true,
+            paymentId: byKey.id,
+            _id: byKey.id,
+            replayed: true as const,
+          };
+        }
+      }
+
+      if (invoice.status === "paid") {
+        const [existingPaid] = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.firmId, firmId),
+              eq(payments.invoiceId, invoice.id),
+              eq(payments.status, "completed"),
+              isNull(payments.deletedAt),
+            ),
+          )
+          .orderBy(desc(payments.createdAt))
+          .limit(1);
+        if (existingPaid) {
+          return {
+            success: true,
+            paymentId: existingPaid.id,
+            _id: existingPaid.id,
+            replayed: true as const,
+          };
+        }
+      }
+
       const paidDate = audit.occurredAt.toISOString().slice(0, 10);
       const amount = input.amount ?? money(invoice.total);
       const gateway = input.gateway ?? "bank_transfer";
       const referenceNumber =
         input.referenceNumber ?? `PAY-${String(Date.now()).slice(-8)}`;
 
-      const [payment] = await tx
-        .insert(payments)
-        .values({
-          firmId,
-          invoiceId: invoice.id,
-          clientId: invoice.clientId,
-          amount: String(amount),
-          gateway,
-          referenceNumber,
-          status: "completed",
-          paidAt: audit.occurredAt,
-        })
-        .returning();
+      const insertValues = {
+        firmId,
+        invoiceId: invoice.id,
+        clientId: invoice.clientId,
+        amount: String(amount),
+        gateway,
+        referenceNumber,
+        idempotencyKey: input.idempotencyKey ?? null,
+        status: "completed" as const,
+        paidAt: audit.occurredAt,
+      };
+
+      const [payment] = input.idempotencyKey
+        ? await tx
+            .insert(payments)
+            .values(insertValues)
+            .onConflictDoNothing({
+              target: [payments.firmId, payments.idempotencyKey],
+            })
+            .returning()
+        : await tx.insert(payments).values(insertValues).returning();
+
+      if (!payment && input.idempotencyKey) {
+        const [replay] = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.firmId, firmId),
+              eq(payments.idempotencyKey, input.idempotencyKey),
+              isNull(payments.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (!replay) throw new AppError("CONFLICT", "Payment idempotency conflict", 409);
+        return {
+          success: true,
+          paymentId: replay.id,
+          _id: replay.id,
+          replayed: true as const,
+        };
+      }
 
       await tx
         .update(invoices)
@@ -389,6 +464,7 @@ export class PostgresFinancialRepository {
         success: true,
         paymentId: payment.id,
         _id: payment.id,
+        replayed: false as const,
       };
     });
   }
@@ -407,19 +483,76 @@ export class PostgresFinancialRepository {
         .limit(1);
       if (!invoice) throw new AppError("NOT_FOUND", "Invoice was not found", 404);
 
+      if (input.idempotencyKey) {
+        const [byKey] = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.firmId, firmId),
+              eq(payments.idempotencyKey, input.idempotencyKey),
+              isNull(payments.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (byKey) {
+          return {
+            paymentId: byKey.id,
+            _id: byKey.id,
+            gateway: byKey.gateway,
+            amount: money(byKey.amount),
+            invoiceNumber: invoice.invoiceNumber,
+            nextStep: "redirect_or_confirm" as const,
+            replayed: true as const,
+          };
+        }
+      }
+
       const referenceNumber = `PEND-${Date.now()}`;
-      const [payment] = await tx
-        .insert(payments)
-        .values({
-          firmId,
-          invoiceId: invoice.id,
-          clientId: invoice.clientId,
-          amount: String(invoice.total),
-          gateway: input.gateway,
-          status: "pending",
-          referenceNumber,
-        })
-        .returning();
+      const insertValues = {
+        firmId,
+        invoiceId: invoice.id,
+        clientId: invoice.clientId,
+        amount: String(invoice.total),
+        gateway: input.gateway,
+        status: "pending" as const,
+        referenceNumber,
+        idempotencyKey: input.idempotencyKey ?? null,
+      };
+
+      const [payment] = input.idempotencyKey
+        ? await tx
+            .insert(payments)
+            .values(insertValues)
+            .onConflictDoNothing({
+              target: [payments.firmId, payments.idempotencyKey],
+            })
+            .returning()
+        : await tx.insert(payments).values(insertValues).returning();
+
+      if (!payment && input.idempotencyKey) {
+        const [replay] = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.firmId, firmId),
+              eq(payments.idempotencyKey, input.idempotencyKey),
+              isNull(payments.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (!replay) throw new AppError("CONFLICT", "Payment idempotency conflict", 409);
+        return {
+          paymentId: replay.id,
+          _id: replay.id,
+          gateway: replay.gateway,
+          amount: money(replay.amount),
+          invoiceNumber: invoice.invoiceNumber,
+          nextStep: "redirect_or_confirm" as const,
+          replayed: true as const,
+        };
+      }
 
       await writeAudit(tx, audit, "payment.initiated", "payments", payment.id, input.gateway);
       return {
@@ -428,7 +561,8 @@ export class PostgresFinancialRepository {
         gateway: input.gateway,
         amount: money(invoice.total),
         invoiceNumber: invoice.invoiceNumber,
-        nextStep: "redirect_or_confirm",
+        nextStep: "redirect_or_confirm" as const,
+        replayed: false as const,
       };
     });
   }
@@ -440,22 +574,64 @@ export class PostgresFinancialRepository {
     audit: AuditContext,
   ) {
     return runFinancialTransaction(database, async (tx) => {
-      const [row] = await tx
-        .insert(trustTransactions)
-        .values({
-          firmId,
-          clientId: input.clientId,
-          caseId: input.caseId ?? null,
-          type: input.type,
-          amount: String(input.amount),
-          description: input.description,
-          transactionDate: input.date,
-          balance: String(input.balance),
-          approvedBy,
-        })
-        .returning();
+      if (input.idempotencyKey) {
+        const [byKey] = await tx
+          .select()
+          .from(trustTransactions)
+          .where(
+            and(
+              eq(trustTransactions.firmId, firmId),
+              eq(trustTransactions.idempotencyKey, input.idempotencyKey),
+              isNull(trustTransactions.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (byKey) {
+          return { ...toTrustDto(byKey), replayed: true as const };
+        }
+      }
+
+      const insertValues = {
+        firmId,
+        clientId: input.clientId,
+        caseId: input.caseId ?? null,
+        type: input.type,
+        amount: String(input.amount),
+        description: input.description,
+        transactionDate: input.date,
+        balance: String(input.balance),
+        approvedBy,
+        idempotencyKey: input.idempotencyKey ?? null,
+      };
+
+      const [row] = input.idempotencyKey
+        ? await tx
+            .insert(trustTransactions)
+            .values(insertValues)
+            .onConflictDoNothing({
+              target: [trustTransactions.firmId, trustTransactions.idempotencyKey],
+            })
+            .returning()
+        : await tx.insert(trustTransactions).values(insertValues).returning();
+
+      if (!row && input.idempotencyKey) {
+        const [replay] = await tx
+          .select()
+          .from(trustTransactions)
+          .where(
+            and(
+              eq(trustTransactions.firmId, firmId),
+              eq(trustTransactions.idempotencyKey, input.idempotencyKey),
+              isNull(trustTransactions.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (!replay) throw new AppError("CONFLICT", "Trust idempotency conflict", 409);
+        return { ...toTrustDto(replay), replayed: true as const };
+      }
+
       await writeAudit(tx, audit, "trust.created", "trust_transactions", row.id, row.type);
-      return toTrustDto(row);
+      return { ...toTrustDto(row), replayed: false as const };
     });
   }
 

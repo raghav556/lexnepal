@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { MAX_DOCUMENT_BYTES } from "@/shared/documents/limits";
+
+export { MAX_DOCUMENT_BYTES };
 
 export const uuidSchema = z.string().uuid();
 const optionalText = (max: number) => z.string().trim().max(max).optional().nullable();
@@ -73,7 +76,7 @@ export const publicDocumentShareSchema = z.object({
 export const documentUploadIntentSchema = z.object({
   fileName: z.string().trim().min(1).max(240),
   mimeType: z.string().trim().min(1).max(160),
-  sizeBytes: z.number().int().positive(),
+  sizeBytes: z.number().int().positive().max(MAX_DOCUMENT_BYTES),
   sha256: z
     .string()
     .regex(/^[0-9a-f]{64}$/i)

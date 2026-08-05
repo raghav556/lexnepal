@@ -13,6 +13,12 @@ import {
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
 import { useDomainBackend } from "@/client/data/provider";
+import {
+  authoritativeBackendData,
+  useShadowRead,
+  usesConvexBackend,
+  usesNextBackend,
+} from "@/client/data/shadow-reader";
 import { queryKeys } from "@/client/queries/query-keys";
 import type {
   DocumentDto,
@@ -60,7 +66,7 @@ export function useDocuments(filters: ListDocumentsInput = {}): DocumentDto[] | 
   const backend = useDomainBackend("documents");
   const convex = useConvexQuery(
     api.documents.listDocuments,
-    backend === "convex" ? filters : "skip",
+    usesConvexBackend(backend) ? filters : "skip",
   ) as DocumentDto[] | undefined;
   const next = useTanstackQuery({
     queryKey: queryKeys.documents.list(filters),
@@ -74,9 +80,18 @@ export function useDocuments(filters: ListDocumentsInput = {}): DocumentDto[] | 
         },
         signal,
       }),
-    enabled: backend === "next",
+    enabled: usesNextBackend(backend),
   });
-  return backend === "convex" ? convex : next.data;
+  useShadowRead(
+    "documents",
+    "listDocuments",
+    backend,
+    convex,
+    next.data,
+    next.isLoading,
+    next.error,
+  );
+  return authoritativeBackendData(backend, convex, next.data);
 }
 
 export function useDocumentSearch(filters: SearchDocumentsInput | null): DocumentDto[] | undefined {
@@ -460,6 +475,39 @@ export function usePublicSharedDocument() {
       },
       [backend, convexDownload],
     ),
+  };
+}
+
+/** Convex-only OCR. No-ops / throws when documents backend is next. */
+export function useTriggerOCR() {
+  const backend = useDomainBackend("documents");
+  const convexMutation = useConvexMutation(api.documents.triggerOCR);
+  return {
+    ocrAvailable: backend === "convex",
+    trigger: useCallback(
+      async (documentId: string) => {
+        if (backend !== "convex") {
+          throw new Error("OCR is not available on the Next backend yet.");
+        }
+        return convexMutation({ documentId });
+      },
+      [backend, convexMutation],
+    ),
+  };
+}
+
+/** Convex-only legacy security migration. Hidden when documents=next. */
+export function useMigrateLegacyDocumentSecurity() {
+  const backend = useDomainBackend("documents");
+  const convexMutation = useConvexMutation(api.documents.migrateLegacySecurityBoundary);
+  return {
+    migrateAvailable: backend === "convex",
+    migrate: useCallback(async () => {
+      if (backend !== "convex") {
+        throw new Error("Legacy document migration is only available on the Convex backend.");
+      }
+      return convexMutation({}) as Promise<{ updated: number }>;
+    }, [backend, convexMutation]),
   };
 }
 

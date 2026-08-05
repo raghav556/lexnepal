@@ -5,13 +5,11 @@ import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Loader2, Trash, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/convex/_generated/api.js";
-import { useQuery, useMutation } from "@/client/data/convex-bridge.ts";
+import { useDocumentTagCommands, useDocumentTags } from "@/client/queries/templates";
 
 export function TagManagementModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const tags = useQuery(api.tags.listTags) || [];
-  const createTag = useMutation(api.tags.createTag);
-  const deleteTag = useMutation(api.tags.deleteTag);
+  const tags = useDocumentTags();
+  const { createTag, deleteTag } = useDocumentTagCommands();
 
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState("#e5e7eb");
@@ -34,7 +32,7 @@ export function TagManagementModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
   const handleDelete = async (id: any) => {
     try {
-      await deleteTag({ tagId: id });
+      await deleteTag(id);
     } catch (e: any) {
       toast.error(e.message || "Failed to delete tag");
     }

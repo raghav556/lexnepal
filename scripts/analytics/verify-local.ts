@@ -3,7 +3,7 @@ import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { users } from "../../db/schema";
 import { analyticsDashboardSchema } from "../../src/shared/contracts/analytics";
-import { GET as getDashboard } from "../../next-app/app/api/v1/analytics/dashboard/route";
+import { GET as getDashboard } from "../../src/app/api/v1/analytics/dashboard/route";
 
 const database = getDatabase();
 const password = "Local-boundary-only-2026!";

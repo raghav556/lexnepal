@@ -6,14 +6,14 @@ import { migrateHrExport } from "../../src/server/services/hr-migration";
 import {
   GET as listAttendance,
   POST as upsertAttendance,
-} from "../../next-app/app/api/v1/hr/attendance/route";
+} from "../../src/app/api/v1/hr/attendance/route";
 import {
   GET as listLeave,
   POST as createLeave,
-} from "../../next-app/app/api/v1/hr/leave-requests/route";
-import { POST as reviewLeave } from "../../next-app/app/api/v1/hr/leave-requests/review/route";
-import { GET as getPayroll } from "../../next-app/app/api/v1/hr/payroll/route";
-import { POST as setBaseSalary } from "../../next-app/app/api/v1/hr/base-salary/route";
+} from "../../src/app/api/v1/hr/leave-requests/route";
+import { POST as reviewLeave } from "../../src/app/api/v1/hr/leave-requests/review/route";
+import { GET as getPayroll } from "../../src/app/api/v1/hr/payroll/route";
+import { POST as setBaseSalary } from "../../src/app/api/v1/hr/base-salary/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";

@@ -16,6 +16,7 @@ const migrationFiles = [
   "drizzle/0006_local_identity_authority.sql",
   "drizzle/0007_avatar_quarantine_pipeline.sql",
   "drizzle/0008_matters_kyc_security.sql",
+  "drizzle/0009_financial_idempotency.sql",
 ];
 
 async function applySqlFile(database: PGlite, file: string): Promise<void> {
@@ -192,6 +193,35 @@ describe("PostgreSQL schema migrations", () => {
     `);
   });
 
+  it("enforces payment and trust financial idempotency uniqueness", async () => {
+    await database.exec(`
+      insert into invoices (id, firm_id, invoice_number, case_id, client_id, status, subtotal, vat_amount, total, issued_date, due_date)
+      values ('60000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'IDEM-001',
+        '30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+        'sent', 100, 13, 113, current_date, current_date)
+    `);
+    await database.exec(`
+      insert into payments (firm_id, invoice_id, client_id, amount, gateway, reference_number, idempotency_key, status)
+      values ('00000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001',
+        '20000000-0000-4000-8000-000000000001', 113, 'bank_transfer', 'REF-IDEM-1', 'pay-idem-1', 'completed')
+    `);
+    await expectRejected(`
+      insert into payments (firm_id, invoice_id, client_id, amount, gateway, reference_number, idempotency_key, status)
+      values ('00000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001',
+        '20000000-0000-4000-8000-000000000001', 113, 'cash', 'REF-IDEM-2', 'pay-idem-1', 'completed')
+    `);
+    await database.exec(`
+      insert into trust_transactions (firm_id, client_id, type, amount, description, transaction_date, balance, approved_by, idempotency_key)
+      values ('00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+        'receipt', 1000, 'Retainer', current_date, 1000, '10000000-0000-4000-8000-000000000001', 'trust-idem-1')
+    `);
+    await expectRejected(`
+      insert into trust_transactions (firm_id, client_id, type, amount, description, transaction_date, balance, approved_by, idempotency_key)
+      values ('00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+        'receipt', 1000, 'Retainer replay', current_date, 2000, '10000000-0000-4000-8000-000000000001', 'trust-idem-1')
+    `);
+  });
+
   it("enforces document and financial quality checks", async () => {
     await expectRejected(`
       insert into documents (firm_id, document_number, title, type, storage_id, mime_type, size_bytes, version, uploaded_by, is_template, is_privileged)
@@ -225,6 +255,9 @@ describe("initial migration rollback", () => {
     const rollbackDatabase = new PGlite();
     try {
       for (const migration of migrationFiles) await applySqlFile(rollbackDatabase, migration);
+      await rollbackDatabase.exec(
+        fs.readFileSync(path.resolve("drizzle/down/0009_financial_idempotency.down.sql"), "utf8"),
+      );
       await rollbackDatabase.exec(
         fs.readFileSync(path.resolve("drizzle/down/0008_matters_kyc_security.down.sql"), "utf8"),
       );

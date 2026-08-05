@@ -1,7 +1,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { MAX_DOCUMENT_BYTES } from "@/shared/documents/limits";
 
-export const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;
+export { MAX_DOCUMENT_BYTES };
 export const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
   "application/msword",

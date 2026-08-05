@@ -8,22 +8,38 @@ import {
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
 import { useDomainBackend } from "@/client/data/provider";
+import {
+  authoritativeBackendData,
+  useShadowRead,
+  usesConvexBackend,
+  usesNextBackend,
+} from "@/client/data/shadow-reader";
 import { queryKeys } from "@/client/queries/query-keys";
 
 export function useInvoices(filters?: { clientId?: string; caseId?: string; status?: string }) {
   const backend = useDomainBackend("finance");
   const convex = useConvexQuery(
     api.invoices.listInvoices,
-    backend === "convex" ? filters || {} : "skip",
+    usesConvexBackend(backend) ? filters || {} : "skip",
   );
   const next = useQuery({
     queryKey: queryKeys.financial.invoices(filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>("/api/v1/financial/invoices", { query: { ...filters }, signal }),
-    enabled: backend === "next",
+    enabled: usesNextBackend(backend),
   });
+  useShadowRead(
+    "finance",
+    "listInvoices",
+    backend,
+    convex,
+    next.data,
+    next.isLoading,
+    next.error,
+  );
+  const data = authoritativeBackendData(backend, convex as any[] | undefined, next.data);
   return {
-    data: (backend === "convex" ? convex : next.data) ?? [],
+    data: data ?? [],
     isLoading: backend === "next" ? next.isLoading : convex === undefined,
   };
 }
@@ -77,12 +93,17 @@ export function useInvoiceCommands() {
       try {
         const id = String(data.invoiceId ?? data.id ?? "");
         if (backend === "convex") return await convexPayInvoice(data);
+        const idempotencyKey =
+          typeof data.idempotencyKey === "string" && data.idempotencyKey.length >= 8
+            ? data.idempotencyKey
+            : crypto.randomUUID();
         return await apiClient.request(`/api/v1/financial/invoices/${id}/pay`, {
           method: "POST",
           body: {
             gateway: data.gateway,
             referenceNumber: data.referenceNumber,
             amount: data.amount,
+            idempotencyKey,
           },
         });
       } catch (error) {
@@ -97,9 +118,13 @@ export function useInvoiceCommands() {
       try {
         const id = String(data.invoiceId ?? data.id ?? "");
         if (backend === "convex") return await convexInitiateGateway(data);
+        const idempotencyKey =
+          typeof data.idempotencyKey === "string" && data.idempotencyKey.length >= 8
+            ? data.idempotencyKey
+            : crypto.randomUUID();
         return await apiClient.request(`/api/v1/financial/invoices/${id}/gateway`, {
           method: "POST",
-          body: { gateway: data.gateway },
+          body: { gateway: data.gateway, idempotencyKey },
         });
       } catch (error) {
         throw normalizeApiError(error);
@@ -200,9 +225,13 @@ export function useTrustCommands() {
     mutationFn: async (data: any) => {
       try {
         if (backend === "convex") return await convexCreate(data);
+        const idempotencyKey =
+          typeof data.idempotencyKey === "string" && data.idempotencyKey.length >= 8
+            ? data.idempotencyKey
+            : crypto.randomUUID();
         return await apiClient.request("/api/v1/financial/trust-transactions", {
           method: "POST",
-          body: data,
+          body: { ...data, idempotencyKey },
         });
       } catch (error) {
         throw normalizeApiError(error);

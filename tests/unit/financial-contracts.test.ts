@@ -65,5 +65,30 @@ describe("Financial input contracts", () => {
       }).success,
     ).toBe(true);
     expect(payInvoiceSchema.safeParse({ gateway: "esewa", amount: 100 }).success).toBe(true);
+    expect(
+      payInvoiceSchema.safeParse({
+        gateway: "esewa",
+        amount: 100,
+        idempotencyKey: "pay-key-01",
+      }).success,
+    ).toBe(true);
+    expect(
+      payInvoiceSchema.safeParse({
+        gateway: "esewa",
+        amount: 100,
+        idempotencyKey: "short",
+      }).success,
+    ).toBe(false);
+    expect(
+      trustCreateSchema.safeParse({
+        clientId: "123e4567-e89b-12d3-a456-426614174000",
+        type: "receipt",
+        amount: 1000,
+        description: "Retainer",
+        date: "2026-08-01",
+        balance: 1000,
+        idempotencyKey: "trust-key-1",
+      }).success,
+    ).toBe(true);
   });
 });

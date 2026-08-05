@@ -9,9 +9,9 @@ import { migrateLegacyStorage } from "../../src/server/storage/storage-migration
 import { PostgresDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
 import { S3ObjectStorage } from "../../src/server/storage/s3-object-storage";
 import { getServerEnvironment } from "../../src/server/env";
-import { GET as listDocuments } from "../../next-app/app/api/v1/documents/route";
-import { POST as createShare } from "../../next-app/app/api/v1/documents/[id]/share/route";
-import { POST as getPublicShare } from "../../next-app/app/api/v1/public/document-shares/[token]/route";
+import { GET as listDocuments } from "../../src/app/api/v1/documents/route";
+import { POST as createShare } from "../../src/app/api/v1/documents/[id]/share/route";
+import { POST as getPublicShare } from "../../src/app/api/v1/public/document-shares/[token]/route";
 
 const firmA = "61000000-0000-4000-8000-000000000001";
 const password = "Local-boundary-only-2026!";

@@ -1,10 +1,12 @@
 {
-  "compilerOptions": { "allowImportingTsExtensions": true, 
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "noImplicitAny": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -16,27 +18,36 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
+      "@/client/navigation": ["./src/client/navigation/next.tsx"],
       "@/*": ["./src/*"],
       "@/convex/*": ["./convex/*"],
-      "convex/react": ["./src/lib/convex-mock.tsx"],
       "@usehercules/auth/react": ["./src/lib/hercules-react-shim.ts"]
     }
   },
   "include": [
-    "next-app/next-env.d.ts",
+    "next-env.d.ts",
+    "types.d.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "next-app/app/**/*.ts",
-    "next-app/app/**/*.tsx",
+    "src/app/**/*.ts",
+    "src/app/**/*.tsx",
     "src/server/**/*.ts",
     "src/server/**/*.tsx",
     "src/shared/**/*.ts",
     "src/shared/**/*.tsx",
     "src/client/**/*.ts",
     "src/client/**/*.tsx",
-    "next-app/proxy.ts",
-    "next-app/instrumentation.ts",
-    "next-app/next.config.ts",
+    "src/views/**/*.ts",
+    "src/views/**/*.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/lib/**/*.ts",
+    "src/lib/**/*.tsx",
+    "src/hooks/**/*.ts",
+    "src/hooks/**/*.tsx",
+    "proxy.ts",
+    "instrumentation.ts",
+    "next.config.ts",
     "db/**/*.ts",
     "drizzle.config.ts",
     "scripts/db/**/*.ts",
@@ -48,6 +59,8 @@
   "exclude": [
     "node_modules",
     "dist",
-    "convex"
+    "convex",
+    "src/legacy-pages",
+    "next-app"
   ]
 }

@@ -42,7 +42,7 @@ File names use `NNNN-short-title.md`, beginning with `0001`.
 | ADR-0015     | Cutover rollback window, RPO/RTO and backup retention      | Phase 2                           | Operations/data owners     | Proposed                                                    |
 | ADR-0016     | API contract/versioning and compatibility policy           | Phase 2                           | API owner                  | Accepted                                                    |
 | ADR-0017     | Authoritative-writer switching and write-journal design    | Before first domain cutover       | Data/migration owners      | Proposed                                                    |
-| ADR-0018     | Isolate Next.js while legacy `src/pages` exists            | Phase 2                           | Migration/API owners       | Accepted                                                    |
+| ADR-0018     | Isolate Next.js while legacy `src/pages` exists            | Phase 2                           | Migration/API owners       | **Superseded** (R5.6 — `src/app` + `src/legacy-pages`)     |
 | ADR-0019     | Local ClamAV requirement and CDR deferral                  | Phase 6                           | Security/documents owners  | Accepted locally; production review required                |
 | ADR-0020     | PostgreSQL-backed local identity authority                 | Phase 8.1                         | Security/migration owners  | Accepted locally                                            |
 | ADR-0021     | Private KYC object security                                | Phase 8.3                         | Security/matters owners    | Accepted locally                                            |

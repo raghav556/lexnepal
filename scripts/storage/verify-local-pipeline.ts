@@ -111,6 +111,22 @@ try {
 }
 if (!unauthorizedDownloadDenied) throw new Error("Unauthorized document download was not denied");
 
+let oversizedDenied = false;
+try {
+  await runtime.pipeline.createUploadIntent(principalA, {
+    fileName: "phase-6-oversized.pdf",
+    mimeType: "application/pdf",
+    sizeBytes: 50 * 1024 * 1024 + 1,
+  });
+} catch (error) {
+  oversizedDenied =
+    Boolean(error) &&
+    typeof error === "object" &&
+    ((error as { code?: string }).code === "VALIDATION_FAILED" ||
+      String((error as Error).message ?? "").toLowerCase().includes("50 mb"));
+}
+if (!oversizedDenied) throw new Error("Oversized upload intent was not rejected");
+
 const eicarBytes = new TextEncoder().encode(
   ["X5O!P%@AP[4\\PZX54(P^)", "7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"].join(""),
 );
@@ -133,7 +149,22 @@ const rejectedObjects = await storage.listKeys(`rejected/${firmA}/${infectedInte
 if (rejectedObjects.length !== 1) throw new Error("Rejected EICAR object is missing");
 
 process.stdout.write(
-  `${JSON.stringify({ clean: { intentId: cleanIntentId, documentId: cleanIntent.documentId, sha256: sha256Hex(cleanBytes), promoted: true, downloaded: true }, infected: { intentId: infectedIntentId, rejected: true }, authorization: { unauthorizedDownloadDenied, crossFirmCompletionDenied, crossFirmDownloadDenied } })}\n`,
+  `${JSON.stringify({
+    clean: {
+      intentId: cleanIntentId,
+      documentId: cleanIntent.documentId,
+      sha256: sha256Hex(cleanBytes),
+      promoted: true,
+      downloaded: true,
+    },
+    infected: { intentId: infectedIntentId, rejected: true },
+    oversized: { denied: oversizedDenied },
+    authorization: {
+      unauthorizedDownloadDenied,
+      crossFirmCompletionDenied,
+      crossFirmDownloadDenied,
+    },
+  })}\n`,
 );
 
 async function upload(

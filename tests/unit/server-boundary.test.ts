@@ -19,7 +19,7 @@ describe("server-only architecture boundary", () => {
   });
 
   it("prevents client components from importing server modules", () => {
-    const files = [...walk(path.resolve("next-app/app")), ...walk(path.resolve("src"))].filter(
+    const files = [...walk(path.resolve("src/app")), ...walk(path.resolve("src"))].filter(
       (file) => /\.tsx?$/.test(file),
     );
     const serverRoot = path.resolve("src/server");

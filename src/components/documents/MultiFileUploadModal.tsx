@@ -149,7 +149,7 @@ export default function MultiFileUploadModal({
   return (
     <Dialog
       open={open}
-      onOpenChange={(val) => {
+      onOpenChange={(val: boolean) => {
         if (!isProcessing) {
           onOpenChange(val);
           if (!val) setTasks([]);

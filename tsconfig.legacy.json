@@ -17,6 +17,7 @@
     "noImplicitAny": false,
     "allowJs": true,
     "paths": {
+      "@/client/navigation": ["./src/client/navigation/vite.tsx"],
       "@/*": ["./src/*"],
       "@/convex/*": ["./convex/*"],
       "convex/react": ["./src/lib/convex-mock.tsx"],
@@ -26,5 +27,5 @@
     "baseUrl": "."
   },
   "include": ["src", "vite.config.ts"],
-  "exclude": ["node_modules", "convex", "src/server", "src/shared", "src/client"]
+  "exclude": ["node_modules", "convex", "src/server", "src/shared", "src/client", "src/app"]
 }

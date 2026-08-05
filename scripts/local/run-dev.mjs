@@ -48,4 +48,4 @@ console.log("[dev] Starting Vite legacy SPA on :3002 (fallback for unmigrated ro
 start("vite", [viteCli, "--port", "3002"]);
 
 console.log("[dev] Starting Next.js on :3001...");
-start("next", [nextCli, "dev", "next-app", "--port", "3001"]);
+start("next", [nextCli, "dev", "--port", "3001"]);

@@ -3,12 +3,12 @@ import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { expenses, firmSettings, invoices, timeEntries, trustTransactions } from "../../db/schema";
 import { migrateFinancialExport } from "../../src/server/services/financial-migration";
-import { GET as listInvoices } from "../../next-app/app/api/v1/financial/invoices/route";
-import { GET as listTimeEntries } from "../../next-app/app/api/v1/financial/time-entries/route";
-import { GET as listTrust } from "../../next-app/app/api/v1/financial/trust-transactions/route";
-import { GET as listExpenses } from "../../next-app/app/api/v1/financial/expenses/route";
-import { GET as expenseStats } from "../../next-app/app/api/v1/financial/expenses/stats/route";
-import { POST as createTimeEntry } from "../../next-app/app/api/v1/financial/time-entries/route";
+import { GET as listInvoices } from "../../src/app/api/v1/financial/invoices/route";
+import { GET as listTimeEntries } from "../../src/app/api/v1/financial/time-entries/route";
+import { GET as listTrust } from "../../src/app/api/v1/financial/trust-transactions/route";
+import { GET as listExpenses } from "../../src/app/api/v1/financial/expenses/route";
+import { GET as expenseStats } from "../../src/app/api/v1/financial/expenses/stats/route";
+import { POST as createTimeEntry } from "../../src/app/api/v1/financial/time-entries/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";

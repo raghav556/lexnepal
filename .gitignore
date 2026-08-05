@@ -14,3 +14,7 @@ coverage
 logs/migration-*.log
 exports/
 *.tmp
+tmp/
+test-results/
+playwright-report/
+blob-report/

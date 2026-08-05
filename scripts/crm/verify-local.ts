@@ -3,11 +3,11 @@ import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { appointments, firmSettings, leads } from "../../db/schema";
 import { migrateCrmExport } from "../../src/server/services/crm-migration";
-import { GET as listLeads, POST as createLeadStaff } from "../../next-app/app/api/v1/leads/route";
-import { POST as createLeadPublic } from "../../next-app/app/api/v1/public/leads/route";
-import { GET as listAppointments } from "../../next-app/app/api/v1/appointments/route";
-import { GET as listSlots } from "../../next-app/app/api/v1/appointments/slots/route";
-import { POST as createAppointmentPublic } from "../../next-app/app/api/v1/public/appointments/route";
+import { GET as listLeads, POST as createLeadStaff } from "../../src/app/api/v1/leads/route";
+import { POST as createLeadPublic } from "../../src/app/api/v1/public/leads/route";
+import { GET as listAppointments } from "../../src/app/api/v1/appointments/route";
+import { GET as listSlots } from "../../src/app/api/v1/appointments/slots/route";
+import { POST as createAppointmentPublic } from "../../src/app/api/v1/public/appointments/route";
 
 const database = getDatabase();
 const firmA = "61000000-0000-4000-8000-000000000001";

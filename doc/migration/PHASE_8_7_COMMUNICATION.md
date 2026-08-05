@@ -16,7 +16,7 @@ Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through `
 - Hardened `CommunicationRepository` with `_id` DTOs, case-scoped notify-on-send
 - `CommunicationService` with `requireCaseAccess`, staff/client rules, email enqueue
 - Versioned Route Handlers under `/api/v1/messages`, `/api/v1/notifications`, `/api/v1/communications/email`
-- Legacy `/api/communication/*` kept as thin proxies onto the same service (no second business path)
+- Canonical clients use `/api/v1/messages` and `/api/v1/notifications`. Legacy `/api/communication/*` proxies were removed in R8.B C12 (no remaining callers).
 - Frontend adapters use `apiClient` with 5s message / 10s notification polling; AdminFinancePage email uses adapter
 - Idempotent importer with real reconciliation checks
 - Local verify: `npm run communication:verify-local` (includes Mailpit capture proof)

@@ -13,20 +13,29 @@ import {
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
 import { useDomainBackend } from "@/client/data/provider";
+import {
+  authoritativeBackendData,
+  useShadowRead,
+  usesConvexBackend,
+  usesNextBackend,
+} from "@/client/data/shadow-reader";
 import { queryKeys } from "@/client/queries/query-keys";
 import type { CaseDto, ConflictHitDto, ListCasesInput } from "@/shared/contracts/domains";
 
 export function useCases(filters: ListCasesInput = {}): CaseDto[] | undefined {
   const backend = useDomainBackend("cases");
-  const convex = useConvexQuery(api.cases.listCases, backend === "convex" ? filters : "skip") as
-    CaseDto[] | undefined;
+  const convex = useConvexQuery(
+    api.cases.listCases,
+    usesConvexBackend(backend) ? filters : "skip",
+  ) as CaseDto[] | undefined;
   const next = useTanstackQuery({
     queryKey: queryKeys.cases.list(filters),
     queryFn: ({ signal }) =>
       apiClient.request<CaseDto[]>("/api/v1/cases", { query: { ...filters }, signal }),
-    enabled: backend === "next",
+    enabled: usesNextBackend(backend),
   });
-  return backend === "convex" ? convex : next.data;
+  useShadowRead("cases", "listCases", backend, convex, next.data, next.isLoading, next.error);
+  return authoritativeBackendData(backend, convex, next.data);
 }
 export function useCase(caseId: string | null, details = false): any {
   const backend = useDomainBackend("cases");

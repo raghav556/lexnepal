@@ -64,6 +64,13 @@
       "when": 1785668400000,
       "tag": "0008_matters_kyc_security",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785711600000,
+      "tag": "0009_financial_idempotency",
+      "breakpoints": true
     }
   ]
 }

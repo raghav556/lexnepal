@@ -69,9 +69,9 @@ Recorded 2026-08-04 from repository inspection:
 
 | Fact | Evidence |
 | --- | --- |
-| Next API surface exists (~89 route files) | `next-app/app/api/...` |
-| Vite UI still owns real screens (~68 pages) | `src/pages/` |
-| Next UI is mostly placeholders | `next-app/app/(public|staff|client|admin)/...` |
+| Next API surface exists (~89 route files) | `src/app/api/...` |
+| Vite UI dual-run shell | `src/legacy-pages/` + `dev:legacy` |
+| Next UI + App Router | `src/app/(public|staff|client|admin)/...` |
 | Domain flags switched to `next` in local env | identity, cms, cases, clients, tasks, hearings, research, finance, leads, appointments, messages, notifications, documents, envelopes, analytics, hr |
 | Domain flags still Convex by default | _(none among Phase 8 business domains)_ |
 | Mock mode currently overrides Next flags | ~~`.env.local` has `VITE_USE_MOCK=true`~~ now `false` locally |
@@ -79,7 +79,7 @@ Recorded 2026-08-04 from repository inspection:
 | CRM Next APIs missing | ~~hooks called `/api/crm/*`~~ resolved via `/api/v1/leads` + `/api/v1/appointments` |
 | Parity ledger not updated past inventory | many domains now `frontend_switched`; residual inventory rows may remain for retired/unused Convex helpers |
 | Unified migration CLI incomplete | ~~only identity + documents registered~~ resolved — see `PHASE_9_MIGRATION_TOOLING.md` |
-| Missing owner artifacts | `cutover-runbook.md`, `decommission-checklist.md`; reconciliation/exceptions now written by CLI |
+| Missing owner artifacts | `incident-contacts.md` / R7 owners still TBD; `cutover-runbook.md` + `decommission-checklist.md` exist |
 
 ### Domains already strong locally (do not rebuild)
 
@@ -255,18 +255,34 @@ Evidence:
 
 | # | Work item | Pass rule |
 | --- | --- | --- |
-| R4.1 | Contract tests per domain | Same fixture → same business result (timestamps normalized) |
-| R4.2 | Shadow reads where useful | Compare Next vs Convex without serving Next as authority yet |
-| R4.3 | Cross-firm attack tests | No firm can see another firm’s data |
-| R4.4 | Finance idempotency | Double-submit payment/trust actions do not double-post |
-| R4.5 | Document/malware path | Clean / infected / oversized / unauthorized download |
-| R4.6 | Signature/OTP path | Issue, verify, decline, void, expire |
-| R4.7 | Failure/retry jobs | Dead-letter recoverable; no duplicate side effects |
-| R4.8 | Performance smoke on localhost | List/search pages remain usable with representative local data volume |
+| R4.1 | Contract tests per domain | `complete_local` — Zod `*-contracts.test.ts` for every migrated domain (41 tests) |
+| R4.2 | Shadow reads where useful | `complete_local` — identity/matters/financial export→PG shadow + client shadow mode (Convex authority) |
+| R4.3 | Cross-firm attack tests | `complete_local` — `assertResourceInFirm` + unit/integration attack suites; `npm run migration:prove-cross-firm` |
+| R4.4 | Finance idempotency | `complete_local` — payment/trust idempotency keys + already-paid replay; `npm run migration:prove-finance-idempotency` |
+| R4.5 | Document/malware path | `complete_local` — clean / EICAR / oversized / unauthorized; `npm run migration:prove-document-malware` |
+| R4.6 | Signature/OTP path | `complete_local` — issue / verify / decline / void / expire; `npm run migration:prove-signature-otp` |
+| R4.7 | Failure/retry jobs | `complete_local` — dead-letter recoverable + single durable effect; `npm run migration:prove-job-retries` |
+| R4.8 | Performance smoke on localhost | `complete_local` — 120/250/500/150/200 volume; list/search ≤2s; `npm run migration:prove-performance-smoke` |
 
 Existing unit contract files (`identity`, `cms`, `matters`, `work`) are a start — extend them; do not create a second unrelated test style.
 
-**Exit gate:** No unexplained contract differences; no cross-tenant leakage; retries proven.
+**R4.1 evidence:** `tests/unit/{identity,cms,matters,work,financial,crm,communication,documents,envelopes,hr,analytics}-contracts.test.ts` — same Vitest + Zod `safeParse` style; `npx vitest run tests/unit/*-contracts.test.ts` passed. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**R4.2 evidence:** `npm run migration:prove-shadow` (identity + matters + financial export→Postgres, zero mismatches); client `VITE_BACKEND_*=shadow` compares Next vs Convex while serving Convex — `src/client/data/shadow-reader.ts` wired on cases/documents/finance list hooks.
+
+**R4.3 evidence:** `npm run migration:prove-cross-firm` — `tests/unit/authorization.test.ts`, `tests/unit/cross-firm-attack.test.ts`, `tests/integration/cross-firm-security.test.ts` (13 tests); foreign inventory probes use `NOT_FOUND` via `assertResourceInFirm`. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**R4.4 evidence:** `npm run migration:prove-finance-idempotency` — same `idempotencyKey` replays payment and trust (one row each); already-paid invoice pay does not insert another completed payment. Schema migration `0009_financial_idempotency`. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**R4.5 evidence:** `npm run migration:prove-document-malware` — clean promote+download, EICAR reject, oversized intent deny, unauthorized/cross-firm download deny; unit + live MinIO/ClamAV pipeline. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**R4.6 evidence:** `npm run migration:prove-signature-otp` — OTP issue + verify (rejects bad code), decline, void, expire (+ sign after verified OTP). Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**R4.7 evidence:** `npm run migration:prove-job-retries` — idempotent enqueue, retry→dead-letter, audited manual recovery, `durable_job_effects` stays at one row. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**R4.8 evidence:** `npm run migration:prove-performance-smoke` — representative volume (120 clients / 250 cases / 500 docs / 150 invoices / 200 tasks); all list/search Route Handlers under 2000 ms. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+
+**Exit gate:** No unexplained contract differences; no cross-tenant leakage; retries proven. **R4 complete locally** (R4.1–R4.8).
 
 ---
 
@@ -276,17 +292,17 @@ Existing unit contract files (`identity`, `cms`, `matters`, `work`) are a start 
 
 | # | Work item | Detail |
 | --- | --- | --- |
-| R5.1 | Inventory routes | Every Vite route gets App Router equivalent or redirect |
-| R5.2 | Layouts | public / client / staff / admin guards |
-| R5.3 | Move pages, reuse components | Prefer moving presentational components; avoid redesign |
-| R5.4 | Replace Convex providers | Auth and data only through Next adapters |
-| R5.5 | Preserve URLs | Same links or tested redirects |
-| R5.6 | Remove ADR-0018 isolation | After `src/pages` no longer conflicts, consolidate app roots |
-| R5.7 | E2E smoke | Login, matter, document, invoice, signature, CMS public pages |
+| R5.1 | Inventory routes | `complete_local` — 68 Vite routes mapped; see `PHASE_11_UI_ROUTE_INVENTORY.md` + `ui-route-inventory.csv` |
+| R5.2 | Layouts | `complete_local` — shared `PortalRoleGuard`; public portal CTA by role; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.2 |
+| R5.3 | Move pages, reuse components | `complete_local` — W1–W5; 68/68 routes via `src/views` + nav shim; see `PHASE_11_UI_ROUTE_INVENTORY.md` |
+| R5.4 | Replace Convex providers | `complete_local` — AuthSessionGate; templates/tags `/api/v1`; gated briefs/OCR/PESI/migrate; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.4 |
+| R5.5 | Preserve URLs | `complete_local` — 68/68 same-path; `migration:prove-url-preserve`; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.5 |
+| R5.6 | Remove ADR-0018 isolation | `complete_local` — `src/app` + `src/legacy-pages`; ADR-0018 superseded; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.6 |
+| R5.7 | E2E smoke | `complete_local` — Playwright login/matter/document/invoice/signature/CMS; `migration:prove-e2e-smoke`; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.7 |
 
-**Do not start R5 early.** Starting UI migration while Finance/CRM APIs are missing creates duplicate temporary UI bridges.
+**R5–R6 complete locally; R7 planned (`DEFER_PROD`, not prod-ready); safe R8 cleanup may proceed.**
 
-**Exit gate:** No active page depends directly on Convex; deep links work.
+**Exit gate:** No active page depends directly on Convex; deep links work; E2E smoke green.
 
 ---
 
@@ -294,21 +310,24 @@ Existing unit contract files (`identity`, `cms`, `matters`, `work`) are a start 
 
 Production cutover is later. On localhost, rehearse the exact runbook so production is boring.
 
-Per domain:
+| # | Work item | Detail |
+| --- | --- | --- |
+| R6.1 | Cutover runbook | `complete_local` — [`cutover-runbook.md`](cutover-runbook.md) (local commands; prod stubs `DEFER_PROD`) |
+| R6.2 | Dress rehearsal + log | `complete_local` — `migration:prove-cutover-rehearsal`; [`cutover-log.csv`](cutover-log.csv) (12/12 domains passed) |
+
+Per domain (automated by prove script):
 
 1. Backup/export ready.
-2. Temporary write freeze (or local equivalent stop-writing procedure).
+2. Temporary write freeze (local marker under `.local/write-freeze/`).
 3. Final delta import.
 4. Reconcile.
-5. Switch flag to `next`.
-6. Keep Convex read-only for soak.
-7. Monitor errors.
-8. Practice rollback flag flip.
+5. Switch / confirm flag `next`.
+6. Keep Convex read-only for soak (flag=`next`).
+7. Monitor errors (CLI verify + reconcile).
+8. Practice rollback flag flip (`rollback --dry-run`).
 9. Record result in cutover log.
 
-Create missing artifact: `doc/migration/cutover-runbook.md` (local commands first; production commands added later under `DEFER_PROD`).
-
-Suggested local soak (shortened vs production):
+Suggested local soak (shortened vs production; calendar soak remains operator-owned before R7):
 
 | Domain | Local soak |
 | --- | --- |
@@ -317,7 +336,9 @@ Suggested local soak (shortened vs production):
 | Cases / documents | 2–3 days |
 | Billing / signatures | 3+ days |
 
-**Exit gate:** Every domain has a successful local dress rehearsal record.
+**R6 complete locally; R7 planned (`DEFER_PROD`); safe R8 cleanup waves OK if rollback paths remain.**
+
+**Exit gate:** Every domain has a successful local dress rehearsal record. ✅ (`cutover-log.csv`, 12/12 `passed`)
 
 ---
 
@@ -325,22 +346,30 @@ Suggested local soak (shortened vs production):
 
 Do **not** pretend localhost completion equals production completion. When you leave localhost later:
 
-| # | Required before real users |
-| --- | --- |
-| R7.1 | Accept production ADRs (hosting, Postgres HA/PITR, storage, secrets, residency, rollback window) |
-| R7.2 | Staging against real identity provider / JWKS |
-| R7.3 | Production-like data volume rehearsal |
-| R7.4 | Real antivirus/CDR policy decision |
-| R7.5 | Email/SMS provider live |
-| R7.6 | Monitoring/alerts live |
-| R7.7 | Named incident commander + rollback contacts |
-| R7.8 | Domain-by-domain production cutover (no big bang) |
+| # | Work item | Detail |
+| --- | --- | --- |
+| R7.1 | Accept production ADRs | Hosting, Postgres HA/PITR, storage, secrets, residency, rollback window — see [`production-readiness.md`](production-readiness.md) §R7.1 |
+| R7.2 | Staging real IdP / JWKS | Hercules (ADR-0004); local Better Auth does **not** count |
+| R7.3 | Production-like data volume rehearsal | Staging DB + restore drill; fixtures insufficient |
+| R7.4 | Antivirus / CDR policy | Extend/supersede ADR-0019 for production |
+| R7.5 | Email / SMS provider live | ADR-0009; no silent success without delivery |
+| R7.6 | Monitoring / alerts live | ADR-0012 |
+| R7.7 | Incident commander + contacts | Fill [`incident-contacts.md`](incident-contacts.md) (all TBD today) |
+| R7.8 | Domain-by-domain production cutover | No big bang; prod commands still stubs in cutover-runbook |
 
----
+**Planning artifacts (now):** [`production-readiness.md`](production-readiness.md), [`production-readiness.csv`](production-readiness.csv), [`incident-contacts.md`](incident-contacts.md).  
+**Proof that the plan exists (not that prod is ready):** `npm run migration:prove-production-readiness-plan` → `productionReady: false`, `deferProd: true`.
+
+**R7 remains `DEFER_PROD` until every CSV row has evidence + named owners.** Safe **R8** cleanup waves may proceed in parallel if they do not remove rollback paths.
+
+**Exit gate:** Real users only after R7.1–R7.8 are evidenced; localhost R6 does not satisfy this gate.
 
 ### Phase R8 — Phase 13 decommission Convex + cleanup
 
-Only after R5–R6 (and R7 if production).
+Only after R5–R6 (and R7 if production). **Localhost:** safe waves may proceed; full Convex deletion stays blocked while rollback is required.
+
+**Artifacts:** [`decommission-checklist.md`](decommission-checklist.md), [`decommission-checklist.csv`](decommission-checklist.csv).  
+**Proof:** `npm run migration:prove-decommission-status` → `partial_local`, `convexDecommissionComplete: false`.
 
 #### R8.A Decommission Convex
 
@@ -352,37 +381,39 @@ Searches must find **no active app usage** of:
 
 Work:
 
-1. Final immutable Convex export + checksum archive.
-2. Final reconciliation + storage checksum archive.
-3. Remove Convex providers, hooks, generated bindings.
-4. Remove `src/lib/convex-mock.tsx` after Next fixtures exist.
-5. Remove `convex/` directory.
-6. Remove Convex dependencies and env vars.
-7. Update CI/docs so Convex is not required to boot the app.
-8. Create `doc/migration/decommission-checklist.md` and tick every row.
+1. Final immutable Convex export + checksum archive. — `DEFER_PROD`
+2. Final reconciliation + storage checksum archive. — local evidence exists; re-run at prod
+3. Remove Convex providers, hooks, generated bindings. — **DEFER** (rollback)
+4. Remove `src/lib/convex-mock.tsx` after Next fixtures exist. — **DEFER**
+5. Remove `convex/` directory. — **DEFER**
+6. Remove Convex dependencies and env vars. — **DEFER**
+7. Update CI/docs so Convex is not required to boot the app. — **DEFER** until 3–6
+8. Create `doc/migration/decommission-checklist.md` and tick every row. — **complete_local**
 
 #### R8.B Cleanup after migration (mandatory tidy list)
 
 This is the “after migration cleanup” you asked for. Do it in this order so nothing needed for rollback is deleted too early.
 
-| Wave | Cleanup item | When safe | Why |
+| Wave | Cleanup item | When safe | Status |
 | --- | --- | --- | --- |
-| C1 | Domain backend flags default to `next` only; remove Convex branches inside hooks | After that domain’s soak + rollback window | Stops dual-path drift |
-| C2 | Delete compatibility bridge (`convex-bridge` / mock Convex client paths) | After all domains frontend-switched | Removes hidden Convex dependency |
-| C3 | Delete per-domain “temporary dual backend” conditionals | After C1 | Prevents duplicate business paths |
-| C4 | Remove unused `VITE_BACKEND_*` once only Next remains | After all domains retired Convex | Simplifies ops |
-| C5 | Remove `next-app` isolation workaround if app root consolidated | After Phase R5 | Ends coexistence hack |
-| C6 | Remove obsolete migration-only scripts that were superseded by unified CLI | After CLI registers all domains and is proven | Avoid two tools for one job |
-| C7 | Archive (do not casually delete) exports, reconcile reports, checksum manifests | Keep for retention period | Audit/legal recovery |
-| C8 | Remove Convex packages from `package.json` / lockfile | After searches in R8.A are clean | Supply-chain cleanup |
-| C9 | Remove Convex env from `.env.example` and deployment docs | Same time as C8 | Prevents accidental reintroduction |
-| C10 | Close parity rows to `convex_retired` | After callers gone | Ledger becomes historical truth |
-| C11 | Remove dead “TBD” route stubs and unused experimental APIs | After inventory confirms no callers | Avoid API ghost surface |
-| C12 | Normalize any leftover non-versioned APIs (e.g. `/api/crm`, `/api/communication`) into `/api/v1` | During/after R2–R5 | One API style |
-| C13 | Delete outdated “Completed” claims that lack evidence; keep evidence notes | Continuous | Stops documentation drift |
-| C14 | Final security + E2E + backup restore drill | End of cleanup | Confirms system stands alone |
+| C1 | Domain backend flags default to `next` only; remove Convex branches inside hooks | After that domain’s soak + rollback window | `DEFER` |
+| C2 | Delete compatibility bridge (`convex-bridge` / mock Convex client paths) | After all domains frontend-switched | `DEFER` |
+| C3 | Delete per-domain “temporary dual backend” conditionals | After C1 | `DEFER` |
+| C4 | Remove unused `VITE_BACKEND_*` once only Next remains | After all domains retired Convex | `DEFER` |
+| C5 | Remove `next-app` isolation workaround if app root consolidated | After Phase R5 | **complete_local** (R5.6) |
+| C6 | Remove obsolete migration-only scripts that were superseded by unified CLI | After CLI registers all domains and is proven | **complete_local** — CLI canonical; thin `migrate-*.ts` wrappers retained |
+| C7 | Archive (do not casually delete) exports, reconcile reports, checksum manifests | Keep for retention period | **ongoing** |
+| C8 | Remove Convex packages from `package.json` / lockfile | After searches in R8.A are clean | `DEFER` |
+| C9 | Remove Convex env from `.env.example` and deployment docs | Same time as C8 | `DEFER` |
+| C10 | Close parity rows to `convex_retired` | After callers gone | `DEFER` |
+| C11 | Remove dead “TBD” route stubs and unused experimental APIs | After inventory confirms no callers | **complete_local** (this pass) |
+| C12 | Normalize any leftover non-versioned APIs (e.g. `/api/crm`, `/api/communication`) into `/api/v1` | During/after R2–R5 | **complete_local** — removed `/api/communication/*` |
+| C13 | Delete outdated “Completed” claims that lack evidence; keep evidence notes | Continuous | **ongoing** |
+| C14 | Final security + E2E + backup restore drill | End of cleanup | `DEFER_PROD` (local R5.7+R6 done) |
 
 **Cleanup rule:** If rollback might still need it, **archive** it. Only delete when the rollback window for that item has expired and owners approve.
+
+**R8 status:** `PARTIAL` (`safe_waves_local`). Not Convex-retired.
 
 ---
 
@@ -399,7 +430,7 @@ This is a sequencing guide, not a calendar promise.
 | Week E | R2.7 analytics + R3 unified migration CLI | Full local import/reconcile toolkit |
 | Week F | R4 contract/security proving | Signed-off local parity evidence |
 | Week G | R5 Vite → Next UI move | Next serves real pages |
-| Week H | R6 dress rehearsals + start R8 cleanup waves that are safe | Convex unused locally |
+| Week H | ~~R6 dress rehearsals~~ + start R8 cleanup waves that are safe | Convex unused locally |
 | Later | R7 production gate + production cutover + final R8 | Convex decommissioned in production |
 
 Adjust timing to team size; **do not change order**.
@@ -452,11 +483,11 @@ Use this as your final acceptance checklist.
 | Domain 8.10 Analytics | R2.7 | complete_local | PHASE_8_10_ANALYTICS.md | next |
 | Domain HR residual | R2.8 | complete_local | PHASE_8_11_HR.md | next |
 | Data tooling (Phase 9) | R3 | complete_local | PHASE_9_MIGRATION_TOOLING.md | CLI |
-| Shadow/contract/security | R4 | OPEN | tests/ | TBD |
-| Frontend to Next.js | R5 | OPEN | `src/pages` vs `next-app` | TBD |
-| Local cutover rehearsal | R6 | OPEN | cutover-runbook (missing) | TBD |
-| Production readiness | R7 | DEFER_PROD | ADRs + runbooks | TBD |
-| Decommission + cleanup | R8 | OPEN | decommission-checklist (missing) | TBD |
+| Shadow/contract/security | R4 | COMPLETE_LOCAL | `PHASE_10_CONTRACT_SECURITY.md` | R4.1–R4.8 proven locally |
+| Frontend to Next.js | R5 | COMPLETE_LOCAL | `PHASE_11_UI_ROUTE_INVENTORY.md` (R5.1–R5.7 complete_local) | next R7/R8 |
+| Local cutover rehearsal | R6 | COMPLETE_LOCAL | `cutover-runbook.md` + `cutover-log.csv` (12/12) | next R7/R8 |
+| Production readiness | R7 | DEFER_PROD | `production-readiness.md` + CSV (planned; not prod-ready) | owners TBD |
+| Decommission + cleanup | R8 | PARTIAL | `decommission-checklist.md` (safe waves local; Convex residual DEFER) | TBD |
 
 ---
 
@@ -470,8 +501,22 @@ Use this as your final acceptance checklist.
 6. ~~Next build focus: **R2.8 HR residual**.~~ Done locally — see `PHASE_8_11_HR.md`.
 7. ~~Phase R2 exit gate~~ — all business domain flags `next` locally; evidence in PHASE_8_* docs.
 8. ~~**R3** unified migration CLI~~ — see `PHASE_9_MIGRATION_TOOLING.md`.
-9. Next build focus: **R4** shadow / contract / security proving.
-10. After each domain: update parity CSV + this dashboard in the same change.
+9. ~~**R5.1** Vite → App Router route inventory.~~ Done locally — see `PHASE_11_UI_ROUTE_INVENTORY.md` + `ui-route-inventory.csv`.
+10. ~~**R5.2** Harden public/client/staff/admin layouts/guards.~~ Done locally — shared `PortalRoleGuard`; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.2.
+11. ~~**R5.3 W1** auth/public page moves.~~ Done locally — `src/views` + `@/client/navigation` shim; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.3.
+12. ~~**R5.3 W2** client portal page moves.~~ Done locally — `src/views/client` + shared profile; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.3.
+13. ~~**R5.3 W3** staff portal page moves.~~ Done locally — `src/views/staff` + cases `[id]`; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.3.
+14. ~~**R5.3 W4** admin ops page moves.~~ Done locally — `src/views/admin` (excl. CMS); see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.3.
+15. ~~**R5.3 W5** admin CMS page moves.~~ Done locally — `src/views/admin/cms`; **R5.3 complete_local** (68/68).
+16. ~~**R5.4** replace Convex providers.~~ Done locally — AuthSessionGate; templates/tags APIs; gated residuals; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.4.
+17. ~~**R5.5** URL preserve / redirect proofs.~~ Done locally — `ui-deep-link-matrix.csv` + `npm run migration:prove-url-preserve` (68/68 same-path, 0 redirects).
+18. ~~**R5.6** remove ADR-0018 isolation.~~ Done locally — `src/app` + `src/legacy-pages`; ADR-0018 superseded; C5 complete.
+19. ~~**R5.7** E2E smoke.~~ Done locally — `npm run migration:prove-e2e-smoke` (CMS + login + matter/document/invoice/signature).
+20. ~~**R6** local cutover dress rehearsal.~~ Done locally — `cutover-runbook.md` + `npm run migration:prove-cutover-rehearsal` (12/12 domains in `cutover-log.csv`).
+21. ~~**R7 plan now.**~~ Planning artifacts added — `production-readiness.md` / CSV / `incident-contacts.md`; `migration:prove-production-readiness-plan` (still `DEFER_PROD`, `productionReady: false`).
+22. ~~**R8 safe waves.**~~ Checklist + C5/C6/C11/C12 local; `migration:prove-decommission-status` (`partial_local`). Full Convex delete remains **DEFER**.
+23. Next: fill R7 owners/contacts + accept production ADRs; do not strip `convex-bridge` until rollback window expires.
+24. After each domain: update parity CSV + this dashboard in the same change.
 
 ---
 
