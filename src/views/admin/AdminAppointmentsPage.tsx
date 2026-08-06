@@ -13,7 +13,8 @@ import { useStaffDirectory } from "@/client/queries/identity";
 
 export default function AdminAppointmentsPage() {
   const { data: appointments = [] } = useAppointments({});
-  const { data: users = [] } = useStaffDirectory() as any;
+  // useStaffDirectory returns the array (or undefined while loading) — not a query object.
+  const users = useStaffDirectory() ?? [];
   
   const lawyers = users.filter((u: any) => ["partner", "associate", "senior_associate"].includes(u.role));
   

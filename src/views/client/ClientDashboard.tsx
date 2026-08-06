@@ -28,7 +28,8 @@ export default function ClientDashboard() {
   const cases = useCases(clientId ? { clientId } : {}) || [];
   const { data: invoices = [] } = useInvoices(clientId ? { clientId: clientId as any } : {});
   const hearings = useHearings({}) || [];
-  const users = useStaffDirectory() || [];
+  // Directory is staff-only; clients get 403 — never block the dashboard on it.
+  const users = useStaffDirectory() ?? [];
   const documents = useDocuments({}) || [];
 
   const caseIds = new Set(cases.map((c: any) => c._id));

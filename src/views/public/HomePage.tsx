@@ -8,6 +8,14 @@ import { useBlogPosts, useCmsSettings, usePracticeAreas, usePublicTeam, useTesti
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 
+function formatPostDate(post: { publishDate?: string | null; createdAt?: string | null; _creationTime?: string | number | null }) {
+  const raw = post.publishDate ?? post.createdAt ?? post._creationTime;
+  if (raw == null || raw === "") return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return format(date, "MMM d, yyyy");
+}
+
 const TRUSTED_LOGOS = [
   "Himalayan Bank Ltd", "Nepal Telecom", "Chaudhary Group", "Ncell Axiata", "Yeti Airlines", "Standard Chartered", "Surya Nepal"
 ];
@@ -416,21 +424,24 @@ export default function HomePage() {
               <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">Our Dedicated Team</RevealText>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {publicTeam.map((member: any, i: number) => (
-                <FadeInUp key={member._id} delay={i * 0.1}>
-                  <Link href={`/lawyers/${member._id}`} className="block h-full group min-w-0">
+              {publicTeam.map((member: any, i: number) => {
+                const memberName = String(member.name ?? member.fullName ?? "Advocate");
+                const memberRole = String(member.role ?? "associate").replaceAll("_", " ");
+                return (
+                <FadeInUp key={member._id ?? member.id ?? i} delay={i * 0.1}>
+                  <Link href={`/lawyers/${member._id ?? member.id}`} className="block h-full group min-w-0">
                     <HoverGlowCard className="h-full rounded-xl">
                       <Card className="h-full border-border bg-card overflow-hidden text-center shadow-sm relative z-10 transition-colors duration-300">
                         <CardContent className="p-4 sm:p-6">
                           <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden mb-4 border-2 border-primary/20">
                             {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                              <img src={member.avatarUrl} alt={memberName} className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-3xl font-serif">{member.name.charAt(0)}</span>
+                              <span className="text-3xl font-serif">{memberName.charAt(0)}</span>
                             )}
                           </div>
-                          <h3 className="font-semibold text-base sm:text-lg text-foreground group-hover:text-accent transition-colors break-words">{member.name}</h3>
-                          <p className="text-sm text-accent capitalize font-medium mb-3">{member.role.replace("_", " ")}</p>
+                          <h3 className="font-semibold text-base sm:text-lg text-foreground group-hover:text-accent transition-colors break-words">{memberName}</h3>
+                          <p className="text-sm text-accent capitalize font-medium mb-3">{memberRole}</p>
                           {member.bio && <p className="text-sm text-muted-foreground line-clamp-3">{member.bio}</p>}
                           
                           <div className="mt-4 pt-4 border-t border-border/50 text-sm font-medium text-accent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -441,7 +452,8 @@ export default function HomePage() {
                     </HoverGlowCard>
                   </Link>
                 </FadeInUp>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-8 sm:mt-12 text-center">
@@ -540,32 +552,41 @@ export default function HomePage() {
 
             {/* Desktop: 3-column grid */}
             <div className="hidden md:grid grid-cols-3 gap-6">
-              {testimonials.map((t: any, i: number) => (
-                <FadeInUp key={t.name} delay={i * 0.1}>
+              {testimonials.map((t: any, i: number) => {
+                const name = String(t.clientName ?? t.name ?? "Client");
+                const quote = String(t.quote ?? t.text ?? "");
+                const company = t.company ? String(t.company) : "";
+                return (
+                <FadeInUp key={t._id ?? t.id ?? `${name}-${i}`} delay={i * 0.1}>
                   <HoverGlowCard className="h-full rounded-xl">
                     <Card className="h-full border-border bg-card relative z-10 transition-colors duration-300">
                       <CardContent className="p-6">
                         <div className="flex gap-1 mb-4">{Array.from({ length: 5 }).map((_, j) => <span key={j} className="text-accent text-sm">{"\u2605"}</span>)}</div>
-                        <p className="text-sm text-muted-foreground mb-4 italic leading-relaxed">{`"${t.text}"`}</p>
+                        <p className="text-sm text-muted-foreground mb-4 italic leading-relaxed">{`"${quote}"`}</p>
                         <div className="flex items-center gap-3 pt-3 border-t border-border">
-                          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">{t.name.charAt(0)}</div>
+                          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">{name.charAt(0)}</div>
                           <div>
-                            <div className="font-semibold text-sm text-foreground">{t.name}</div>
-                            <div className="text-xs text-muted-foreground">{t.company}</div>
+                            <div className="font-semibold text-sm text-foreground">{name}</div>
+                            {company ? <div className="text-xs text-muted-foreground">{company}</div> : null}
                           </div>
                         </div>
                       </CardContent>
                     </Card>
                   </HoverGlowCard>
                 </FadeInUp>
-              ))}
+                );
+              })}
             </div>
 
             {/* Mobile: one slide in flow — avoid absolute stacking that overlaps the next section */}
             <div className="md:hidden">
-              {testimonials.map((t: any, i: number) => (
+              {testimonials.map((t: any, i: number) => {
+                const name = String(t.clientName ?? t.name ?? "Client");
+                const quote = String(t.quote ?? t.text ?? "");
+                const company = t.company ? String(t.company) : "";
+                return (
                 <div
-                  key={t.name}
+                  key={t._id ?? t.id ?? `${name}-${i}`}
                   className={i === activeTestimonial ? "block" : "hidden"}
                   aria-hidden={i !== activeTestimonial}
                 >
@@ -577,21 +598,22 @@ export default function HomePage() {
                         ))}
                       </div>
                       <p className="text-sm text-muted-foreground mb-4 italic leading-relaxed break-words">
-                        {`"${t.text}"`}
+                        {`"${quote}"`}
                       </p>
                       <div className="flex items-center gap-3 pt-3 border-t border-border min-w-0">
                         <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs shrink-0">
-                          {t.name.charAt(0)}
+                          {name.charAt(0)}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-semibold text-sm text-foreground truncate">{t.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">{t.company}</div>
+                          <div className="font-semibold text-sm text-foreground truncate">{name}</div>
+                          {company ? <div className="text-xs text-muted-foreground truncate">{company}</div> : null}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
-              ))}
+                );
+              })}
               <div className="flex justify-center gap-2 mt-4">
                 {testimonials.map((_: any, i: number) => (
                   <button
@@ -650,8 +672,10 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {recentPosts.map((post: any, i: number) => (
-                <FadeInUp key={post._id} delay={i * 0.1}>
+              {recentPosts.map((post: any, i: number) => {
+                const published = formatPostDate(post);
+                return (
+                <FadeInUp key={post._id ?? post.id ?? post.slug ?? i} delay={i * 0.1}>
                   <Link href={`/blog/${post.slug}`} className="block h-full min-w-0">
                     <HoverGlowCard className="h-full rounded-xl">
                       <Card className="h-full relative z-10 transition-all duration-300 group border-border/50 overflow-hidden bg-card py-0 gap-0">
@@ -662,8 +686,10 @@ export default function HomePage() {
                         )}
                         <CardContent className="p-4 sm:p-6 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded-sm">{post.category}</span>
-                            <span className="text-xs text-muted-foreground">{format(new Date(post._creationTime), 'MMM d, yyyy')}</span>
+                            {post.category ? (
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded-sm">{post.category}</span>
+                            ) : null}
+                            {published ? <span className="text-xs text-muted-foreground">{published}</span> : null}
                           </div>
                           <h3 className="font-bold text-base sm:text-lg text-foreground mb-2 group-hover:text-accent transition-colors line-clamp-2 break-words">{post.title}</h3>
                           <p className="text-sm text-muted-foreground line-clamp-3">{post.excerpt || "Read full article to learn more."}</p>
@@ -672,7 +698,8 @@ export default function HomePage() {
                     </HoverGlowCard>
                   </Link>
                 </FadeInUp>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

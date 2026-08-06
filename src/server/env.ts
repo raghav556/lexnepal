@@ -26,7 +26,7 @@ const serverEnvironmentSchema = z.object({
   AUTH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(2_592_000).default(28_800),
   BETTER_AUTH_SECRET: z.string().min(32).default("lexnepal-local-development-secret-change-me"),
   BETTER_AUTH_URL: optionalUrl.default("http://localhost:3001"),
-  APP_PUBLIC_URL: optionalUrl.default("http://localhost:3002"),
+  APP_PUBLIC_URL: optionalUrl.default("http://localhost:3001"),
   PUBLIC_FIRM_SLUG: z.string().trim().min(1).default("phase-6-firm-a"),
   SMTP_HOST: z.string().min(1).default("127.0.0.1"),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),

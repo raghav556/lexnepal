@@ -26,10 +26,16 @@ export function useUsers(role?: string): UserDto[] | undefined {
 }
 
 export function useCurrentIdentityUser(): UserDto | null | undefined {
-  return useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["identity", "me"],
     queryFn: ({ signal }) => apiClient.request<UserDto>("/api/v1/users/me", { signal }),
-  }).data;
+    retry: 1,
+    staleTime: 30_000,
+  });
+  // undefined = still loading; null = unauthenticated / failed (do not spin forever)
+  if (isPending) return undefined;
+  if (isError) return null;
+  return data ?? null;
 }
 
 export function useStaffDirectory(): StaffDirectoryEntryDto[] | undefined {
@@ -37,6 +43,7 @@ export function useStaffDirectory(): StaffDirectoryEntryDto[] | undefined {
     queryKey: queryKeys.identity.directory,
     queryFn: ({ signal }) =>
       apiClient.request<StaffDirectoryEntryDto[]>("/api/v1/users/directory", { signal }),
+    retry: false,
   }).data;
 }
 

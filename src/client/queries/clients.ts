@@ -13,10 +13,15 @@ export function useClients(): ClientDto[] | undefined {
 }
 
 export function useMyClient(): ClientDto | null | undefined {
-  return useTanstackQuery({
+  const { data, isPending, isError } = useTanstackQuery({
     queryKey: queryKeys.clients.mine,
     queryFn: ({ signal }) => apiClient.request<ClientDto | null>("/api/v1/clients/me", { signal }),
-  }).data;
+    retry: 1,
+    staleTime: 30_000,
+  });
+  if (isPending) return undefined;
+  if (isError) return null;
+  return data ?? null;
 }
 
 export function useKycFiles(clientId: string | null) {

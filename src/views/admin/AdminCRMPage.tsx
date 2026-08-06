@@ -37,7 +37,9 @@ interface ConvertModalState {
 
 export default function AdminCRMPage() {
   const { data: leads = [], isLoading: leadsLoading } = useLeads({});
-  const { data: users = [] } = useStaffDirectory() as any;
+  // useStaffDirectory returns the array (or undefined while loading) — not a query object.
+  const staffDirectory = useStaffDirectory();
+  const users = staffDirectory ?? [];
   const { updateLead, convertToClient, generateIntakeLink } = useLeadCommands();
 
   // List by default on phones (avoids page-wide horizontal scroll from kanban columns)
@@ -55,15 +57,19 @@ export default function AdminCRMPage() {
   const [converting, setConverting] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
 
-  const isLoading = leadsLoading || users === undefined;
+  // Staff directory is helpful for assignee labels but must not block the pipeline UI
+  // (hook returns undefined both while loading and on error).
+  const isLoading = leadsLoading;
   const staffUsers = users.filter((u: any) => u.role !== "client");
 
   const filteredLeads = leads.filter((l: any) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return l.fullName.toLowerCase().includes(q) || 
-           (l.email && l.email.toLowerCase().includes(q)) || 
-           (l.phone && l.phone.includes(q));
+    return (
+      String(l.fullName ?? "").toLowerCase().includes(q) ||
+      (l.email && String(l.email).toLowerCase().includes(q)) ||
+      (l.phone && String(l.phone).includes(q))
+    );
   });
 
   const {

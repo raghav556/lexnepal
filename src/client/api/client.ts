@@ -16,7 +16,8 @@ export class ApiClient {
   private readonly fetcher: typeof fetch;
 
   constructor(private readonly options: ApiClientOptions = {}) {
-    this.fetcher = options.fetcher ?? fetch;
+    // Bind fetch — unbound `fetch` throws "Illegal invocation" in the browser.
+    this.fetcher = options.fetcher ?? ((input, init) => globalThis.fetch(input, init));
   }
 
   async request<TResponse, TBody = unknown>(

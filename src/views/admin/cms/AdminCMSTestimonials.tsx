@@ -28,11 +28,11 @@ export default function AdminCMSTestimonials() {
 
   const handleOpenModal = (t?: any) => {
     if (t) {
-      setEditingId(t._id);
+      setEditingId(t._id ?? t.id);
       setFormData({
-        name: t.name,
+        name: t.clientName ?? t.name ?? "",
         company: t.company || "",
-        text: t.text,
+        text: t.quote ?? t.text ?? "",
         rating: t.rating || 5,
         isApproved: t.isApproved,
       });
@@ -45,11 +45,18 @@ export default function AdminCMSTestimonials() {
 
   const handleSave = async () => {
     try {
+      const payload = {
+        clientName: formData.name,
+        company: formData.company || null,
+        quote: formData.text,
+        rating: formData.rating,
+        isApproved: formData.isApproved,
+      };
       if (editingId) {
-        await updateTestimonial({ id: editingId as any, ...formData });
+        await updateTestimonial({ id: editingId as any, ...payload });
         toast.success("Testimonial updated.");
       } else {
-        await createTestimonial(formData);
+        await createTestimonial(payload);
         toast.success("Testimonial created.");
       }
       setIsModalOpen(false);
@@ -90,9 +97,13 @@ export default function AdminCMSTestimonials() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
-          {testimonials.map((t: any) => (
+          {testimonials.map((t: any) => {
+            const name = t.clientName ?? t.name ?? "Client";
+            const quote = t.quote ?? t.text ?? "";
+            const id = t._id ?? t.id;
+            return (
             <Card
-              key={t._id}
+              key={id}
               className={`min-w-0 overflow-hidden ${!t.isApproved ? "opacity-60 grayscale" : ""}`}
             >
               <CardHeader className="space-y-3 pb-2 px-3 sm:px-6">
@@ -103,7 +114,7 @@ export default function AdminCMSTestimonials() {
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <CardTitle className="text-sm sm:text-base font-semibold break-words leading-snug">
-                        {t.name}
+                        {name}
                       </CardTitle>
                       <Badge
                         variant={t.isApproved ? "default" : "secondary"}
@@ -138,7 +149,7 @@ export default function AdminCMSTestimonials() {
                   ))}
                 </div>
                 <p className="text-sm italic text-muted-foreground line-clamp-3 break-words mb-4">
-                  &ldquo;{t.text}&rdquo;
+                  &ldquo;{quote}&rdquo;
                 </p>
 
                 <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
@@ -153,7 +164,7 @@ export default function AdminCMSTestimonials() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(t._id)}
+                    onClick={() => handleDelete(id)}
                     className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     title="Delete"
                   >
@@ -162,7 +173,8 @@ export default function AdminCMSTestimonials() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
