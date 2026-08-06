@@ -1,32 +1,21 @@
 import { Button } from "@/components/ui/button.tsx";
 import { LogIn } from "lucide-react";
 
-const useMock = (typeof process !== "undefined" ? process.env.VITE_USE_MOCK : import.meta.env.VITE_USE_MOCK) === "true";
-const authority = (typeof process !== "undefined" ? process.env.VITE_HERCULES_OIDC_AUTHORITY : import.meta.env.VITE_HERCULES_OIDC_AUTHORITY) as string | undefined;
-const clientId = (typeof process !== "undefined" ? process.env.VITE_HERCULES_OIDC_CLIENT_ID : import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID) as string | undefined;
+const authority = process.env.VITE_HERCULES_OIDC_AUTHORITY;
+const clientId = process.env.VITE_HERCULES_OIDC_CLIENT_ID;
 
-/**
- * Sign-in button.
- * Live: redirects to OIDC authorize endpoint when configured.
- * Mock: navigates to admin portal for local demo.
- */
+/** Sign-in button; redirects to the OIDC authorize endpoint when one is configured. */
 export function SignInButton() {
   const handleSignIn = () => {
-    if (useMock) {
-      window.location.href = "/admin";
-      return;
-    }
-
     if (!authority || !clientId) {
       alert(
-        "Sign-in is not configured. Set VITE_HERCULES_OIDC_AUTHORITY and VITE_HERCULES_OIDC_CLIENT_ID, or enable VITE_USE_MOCK=true for offline demo.",
+        "Sign-in is not configured. Set VITE_HERCULES_OIDC_AUTHORITY and VITE_HERCULES_OIDC_CLIENT_ID.",
       );
       return;
     }
 
     const redirectUri =
-      ((typeof process !== "undefined" ? process.env.VITE_AUTH_REDIRECT_URI : import.meta.env.VITE_AUTH_REDIRECT_URI) as string | undefined) ||
-      `${window.location.origin}/auth/callback`;
+      process.env.VITE_AUTH_REDIRECT_URI || `${window.location.origin}/auth/callback`;
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -43,4 +32,3 @@ export function SignInButton() {
     </Button>
   );
 }
-

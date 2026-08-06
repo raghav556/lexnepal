@@ -1,21 +1,27 @@
 import { useCallback, useRef } from "react";
 import { useNavigate } from "@/client/navigation";
-import { useAuthCallback } from "@usehercules/auth/react";
-import { useLegacyIdentityCallback } from "@/client/queries/identity";
+import { useAuthCallback } from "@/lib/hercules-react-shim";
+import { apiClient } from "@/client/api/client";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { getPortalForRole, type UserRole } from "@/hooks/use-current-user";
 
+/**
+ * OIDC redirect landing page, used when AUTH_PROVIDER=hercules. The provider has already
+ * authenticated the visitor by the time we get here; POSTing the session exchanges that for our own
+ * session cookie and tells us which portal the user belongs in.
+ */
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { isBackendAuthenticated: isConvexAuthenticated, sync: updateCurrentUser } = useLegacyIdentityCallback();
-  // Store the role returned by updateCurrentUser so we can redirect correctly
   const roleRef = useRef<UserRole | null>(null);
 
   const onSync = useCallback(async () => {
-    const result = await updateCurrentUser();
-    roleRef.current = result.role;
-  }, [updateCurrentUser]);
+    const session = await apiClient.request<{ user: { role: string } }>("/api/v1/auth/session", {
+      method: "POST",
+      body: {},
+    });
+    roleRef.current = (session.user?.role as UserRole) ?? null;
+  }, []);
 
   const navigateByRole = useCallback(() => {
     const role = roleRef.current;
@@ -29,7 +35,7 @@ export default function AuthCallback() {
   const navigateHome = useCallback(() => navigate("/", { replace: true }), [navigate]);
 
   const { status, error, retry } = useAuthCallback({
-    isBackendAuthenticated: isConvexAuthenticated,
+    isBackendAuthenticated: true,
     onSync,
     onSuccess: navigateByRole,
     onNoAuthParams: navigateHome,

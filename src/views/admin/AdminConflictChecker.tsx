@@ -16,8 +16,6 @@ import {
 import { FadeInUp } from "@/components/ui/animations.tsx";
 import { toast } from "sonner";
 import { useConflictCommands, useRecentConflictChecks } from "@/client/queries/cases";
-import { useCases } from "@/client/queries/cases";
-import { useClients } from "@/client/queries/clients";
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "cleared") {
@@ -49,8 +47,6 @@ export default function AdminConflictChecker() {
 
   const conflictCommands = useConflictCommands();
   const recentChecks = useRecentConflictChecks() || [];
-  const clients = useClients() || [];
-  const cases = useCases({}) || [];
 
   const [results, setResults] = useState<
     {
@@ -72,43 +68,7 @@ export default function AdminConflictChecker() {
     setActiveCheckId(null);
 
     try {
-      const query = searchQuery.trim();
-      const lower = query.toLowerCase();
-      const legacyHits = [
-        ...clients
-          .filter(
-            (client) =>
-              client.fullName.toLowerCase().includes(lower) ||
-              client.companyName?.toLowerCase().includes(lower),
-          )
-          .map((client) => ({
-            type: "Existing Client",
-            id: client._id,
-            name: client.fullName,
-            reason: client.companyName || client.email || "Client name match",
-          })),
-        ...cases
-          .filter(
-            (matter) =>
-              matter.title.toLowerCase().includes(lower) ||
-              String(matter.opposingCounsel || "")
-                .toLowerCase()
-                .includes(lower),
-          )
-          .map((matter) => ({
-            type: String(matter.opposingCounsel || "")
-              .toLowerCase()
-              .includes(lower)
-              ? "Opposing Counsel"
-              : "Existing Case",
-            id: matter._id,
-            name: String(matter.opposingCounsel || matter.title),
-            reason: String(matter.opposingCounsel || matter.caseNumber),
-            caseId: matter._id,
-            caseNumber: matter.caseNumber,
-          })),
-      ];
-      const outcome = await conflictCommands.search(query, legacyHits);
+      const outcome = await conflictCommands.search(searchQuery.trim());
       setResults(
         outcome.hits.map((hit) => ({
           type: hit.type,

@@ -1,3 +1,5 @@
+import "server-only";
+
 /** Shared helpers for Convex-export → Postgres shadow comparisons (R4.2). */
 export type ShadowMismatch = {
   table: string;

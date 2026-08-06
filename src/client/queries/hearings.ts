@@ -1,15 +1,6 @@
-import {
-  useQuery as useTanstackQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { anyApi as api } from "convex/server";
-import {
-  useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
-} from "@/client/data/convex-bridge";
+import { useQuery as useTanstackQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
-import { useDomainBackend } from "@/client/data/provider";
 import { queryKeys } from "@/client/queries/query-keys";
 import type { HearingDto, ListHearingsInput } from "@/shared/contracts/domains";
 
@@ -39,51 +30,36 @@ function normalizeHearingUpdateInput(input: Record<string, unknown>) {
   return next;
 }
 
-export function useHearings(
-  filters: ListHearingsInput | "skip" = {},
-): HearingDto[] | undefined {
-  const backend = useDomainBackend("hearings");
+export function useHearings(filters: ListHearingsInput | "skip" = {}): HearingDto[] | undefined {
   const activeFilters = filters === "skip" ? {} : filters;
-  const convex = useConvexQuery(
-    api.hearings.listHearings,
-    backend === "convex" && filters !== "skip" ? activeFilters : "skip",
-  ) as HearingDto[] | undefined;
   const next = useTanstackQuery({
     queryKey: queryKeys.hearings.list(activeFilters),
     queryFn: ({ signal }) =>
       apiClient.request<HearingDto[]>("/api/v1/hearings", { query: { ...activeFilters }, signal }),
-    enabled: backend === "next" && filters !== "skip",
+    enabled: filters !== "skip",
   });
-  return backend === "convex" ? convex : next.data;
+  return next.data;
 }
 
 export function useHearing(hearingId: string | null): HearingDto | undefined {
-  const backend = useDomainBackend("hearings");
   const next = useTanstackQuery({
     queryKey: queryKeys.hearings.detail(hearingId ?? "none"),
     queryFn: ({ signal }) =>
       apiClient.request<HearingDto>(`/api/v1/hearings/${hearingId}`, { signal }),
-    enabled: backend === "next" && Boolean(hearingId),
+    enabled: Boolean(hearingId),
   });
-  return backend === "next" ? next.data : undefined;
+  return next.data;
 }
 
 export function useHearingCommands() {
-  const backend = useDomainBackend("hearings");
   const queryClient = useQueryClient();
-  const convexCreate = useConvexMutation(api.hearings.createHearing);
-  const convexUpdate = useConvexMutation(api.hearings.updateHearing);
-
   const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.hearings.all });
 
   return {
     async createHearing(input: Record<string, unknown>) {
       try {
         const body = normalizeHearingCreateInput(input);
-        const result =
-          backend === "convex"
-            ? await convexCreate(body)
-            : await apiClient.request("/api/v1/hearings", { method: "POST", body });
+        const result = await apiClient.request("/api/v1/hearings", { method: "POST", body });
         await invalidate();
         return result;
       } catch (error) {
@@ -93,10 +69,10 @@ export function useHearingCommands() {
     async updateHearing(hearingId: string, input: Record<string, unknown>) {
       try {
         const body = normalizeHearingUpdateInput(input);
-        const result =
-          backend === "convex"
-            ? await convexUpdate({ hearingId, ...body })
-            : await apiClient.request(`/api/v1/hearings/${hearingId}`, { method: "PATCH", body });
+        const result = await apiClient.request(`/api/v1/hearings/${hearingId}`, {
+          method: "PATCH",
+          body,
+        });
         await invalidate();
         return result;
       } catch (error) {
@@ -104,14 +80,4 @@ export function useHearingCommands() {
       }
     },
   };
-}
-
-export function usePesiList(): any[] {
-  const backend = useDomainBackend("hearings");
-  const convex = useConvexQuery(
-    api.court.getPesi,
-    backend === "convex" ? {} : "skip",
-  );
-  if (backend !== "convex") return [];
-  return Array.isArray(convex) ? convex : ((convex as any)?.items || []);
 }

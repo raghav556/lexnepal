@@ -9,7 +9,7 @@ import {
 } from "../db/schema";
 import { AppError } from "@/shared/errors/api-error";
 import type { DocumentDto } from "@/shared/contracts/domains";
-import type { DocumentSearchInput } from "@/shared/contracts/documents";
+import type { DocumentSearchInput, DocumentShareCreateInput } from "@/shared/contracts/documents";
 
 function toDocumentDto(
   row: {
@@ -99,7 +99,7 @@ export class DocumentRepository {
       ilike(documents.title, `%${filters.query}%`),
     ];
     if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
-    if (filters.type) conditions.push(eq(documents.type, filters.type as any));
+    if (filters.type) conditions.push(eq(documents.type, filters.type));
     if (filters.generalOnly) conditions.push(sql`${documents.caseId} IS NULL`);
 
     const results = await db
@@ -132,54 +132,11 @@ export class DocumentRepository {
     return toDocumentDto(row, tagsByDoc[row.id] || []);
   }
 
-  static async createDocument(firmId: string, data: any, userId: string) {
-    const db = getDatabase();
-    return await db.transaction(async (tx) => {
-      const [newDoc] = await tx
-        .insert(documents)
-        .values({
-          firmId,
-          caseId: data.caseId || null,
-          title: data.title,
-          documentNumber: `DOC-${Date.now()}`,
-          description: data.description || null,
-          type: data.type || "other",
-          storageId: data.storageId,
-          mimeType: data.mimeType || "application/octet-stream",
-          sizeBytes: data.sizeBytes || 0,
-          uploadedBy: userId,
-          isTemplate: data.isTemplate || false,
-          isPrivileged: data.isPrivileged || false,
-          confidentialityLevel: data.confidentialityLevel || "internal",
-          status: "active",
-          uploadStatus: data.uploadStatus || "clean",
-        } as any)
-        .returning();
-
-      if (data.tags && data.tags.length > 0) {
-        for (const tagName of data.tags) {
-          let [tag] = await tx
-            .select()
-            .from(documentTags)
-            .where(and(eq(documentTags.firmId, firmId), eq(documentTags.name, tagName)));
-          if (!tag) {
-            [tag] = await tx
-              .insert(documentTags)
-              .values({ firmId, name: tagName, color: "#cccccc" })
-              .returning();
-          }
-          await tx.insert(documentTagAssignments).values({
-            firmId,
-            documentId: newDoc!.id,
-            tagId: tag!.id,
-          });
-        }
-      }
-      return toDocumentDto(newDoc as any, data.tags || []);
-    });
-  }
-
-  static async updateDocumentMetadata(firmId: string, id: string, updates: any) {
+  static async updateDocumentMetadata(
+    firmId: string,
+    id: string,
+    updates: Partial<typeof documents.$inferInsert>,
+  ) {
     const db = getDatabase();
     const isUuid = /^[0-9a-f-]{36}$/i.test(id);
     const whereClause = isUuid
@@ -221,7 +178,12 @@ export class DocumentRepository {
     await db.delete(documents).where(whereClause);
   }
 
-  static async createShare(firmId: string, documentId: string, shareData: any, createdBy: string) {
+  static async createShare(
+    firmId: string,
+    documentId: string,
+    shareData: DocumentShareCreateInput,
+    createdBy: string,
+  ) {
     const { hashSharePassword } = await import("@/server/security/share-password");
     const db = getDatabase();
     const doc = await this.getDocumentById(firmId, documentId);

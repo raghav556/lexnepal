@@ -1,6 +1,7 @@
 /**
- * R8 status proof: decommission checklist present; safe waves recorded;
- * Convex residual expected until R8.A authorized (non-zero residual is OK).
+ * R8 proof: local Convex decommission complete under waiver.
+ * Requires checklist CSV complete_local for A3–A8 / C1–C4 / C8;
+ * zero runtime residual in src/ (archive under doc/ is allowed).
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -10,13 +11,35 @@ import { DOC_MIGRATION_DIR } from "./types";
 
 const CHECKLIST = path.join(DOC_MIGRATION_DIR, "decommission-checklist.md");
 const CSV = path.join(DOC_MIGRATION_DIR, "decommission-checklist.csv");
+const ARCHIVE_ZIP = path.join(
+  DOC_MIGRATION_DIR,
+  "archive",
+  "convex-decommission",
+  "convex-source.zip",
+);
 const ROOT = process.cwd();
 
-const REQUIRED_COMPLETE = ["A8", "C5", "C6", "C11", "C12"] as const;
-const BLOCKED_MUST_NOT_BE_COMPLETE = ["A3", "A4", "A5", "A6", "C1", "C2", "C8"] as const;
+const REQUIRED_COMPLETE = [
+  "A1",
+  "A3",
+  "A4",
+  "A5",
+  "A6",
+  "A7",
+  "A8",
+  "C1",
+  "C2",
+  "C3",
+  "C4",
+  "C5",
+  "C8",
+  "C9",
+  "C11",
+  "C12",
+] as const;
 
 const RESIDUAL_RE =
-  /convex\/react|useConvexAuth|convex\/_generated|VITE_CONVEX|CONVEX_DEPLOYMENT|convex-bridge|convex-mock/;
+  /from\s+["']convex\/|useConvexAuth|convex\/_generated|VITE_CONVEX|CONVEX_DEPLOYMENT|convex-bridge|convex-mock/;
 
 const SKIP_DIR = new Set([
   "node_modules",
@@ -28,6 +51,7 @@ const SKIP_DIR = new Set([
   "tmp",
   "test-results",
   "playwright-report",
+  "archive",
 ]);
 
 function parseCsvLine(line: string): string[] {
@@ -65,33 +89,25 @@ async function walkFiles(dir: string, acc: string[] = []): Promise<string[]> {
       await walkFiles(full, acc);
       continue;
     }
-    if (!/\.(ts|tsx|mjs|json)$/.test(entry.name)) continue;
-    // Skip huge migration report dumps and this checklist itself
+    if (!/\.(ts|tsx|mjs|js)$/.test(entry.name)) continue;
     const rel = path.relative(ROOT, full).replace(/\\/g, "/");
     if (rel.startsWith("doc/migration/reconciliation")) continue;
     if (rel.includes("decommission-checklist")) continue;
+    if (rel.includes("archive/convex-decommission")) continue;
     acc.push(full);
   }
   return acc;
 }
 
 async function findResidualFiles(): Promise<string[]> {
-  const roots = [
-    path.join(ROOT, "src"),
-    path.join(ROOT, "scripts"),
-    path.join(ROOT, "tests"),
-    path.join(ROOT, "convex"),
-  ];
+  const roots = [path.join(ROOT, "src"), path.join(ROOT, "tests")];
   const singles = [
     path.join(ROOT, "package.json"),
     path.join(ROOT, "next.config.ts"),
     path.join(ROOT, "vite.config.ts"),
-    path.join(ROOT, "eslint.config.mjs"),
   ];
   const files: string[] = [];
-  for (const dir of roots) {
-    await walkFiles(dir, files);
-  }
+  for (const dir of roots) await walkFiles(dir, files);
   for (const file of singles) {
     try {
       await fs.access(file);
@@ -110,18 +126,21 @@ async function findResidualFiles(): Promise<string[]> {
   return [...new Set(hits)].sort();
 }
 
-async function legacyCommunicationRoutesExist(): Promise<boolean> {
-  const base = path.join(ROOT, "src/app/api/communication");
-  const files = await walkFiles(base).catch(() => [] as string[]);
-  return files.some((f) => f.endsWith(`${path.sep}route.ts`) || f.endsWith("/route.ts"));
-}
-
 try {
   await fs.access(CHECKLIST);
   await fs.access(CSV);
+  await fs.access(ARCHIVE_ZIP);
 
-  if (await legacyCommunicationRoutesExist()) {
-    throw new Error("C12 incomplete: legacy src/app/api/communication/**/route.ts still present");
+  const convexDir = path.join(ROOT, "convex");
+  const convexExists = await fs.access(convexDir).then(() => true, () => false);
+  if (convexExists) throw new Error("convex/ directory still present — A5 incomplete");
+
+  const pkg = JSON.parse(await fs.readFile(path.join(ROOT, "package.json"), "utf8")) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  if (pkg.dependencies?.convex || pkg.devDependencies?.convex) {
+    throw new Error("package.json still lists convex dependency — A6/C8 incomplete");
   }
 
   const text = await fs.readFile(CSV, "utf8");
@@ -140,23 +159,14 @@ try {
     }
   }
 
-  for (const wave of BLOCKED_MUST_NOT_BE_COMPLETE) {
-    const status = byWave.get(wave)?.[2] ?? "";
-    if (/^complete(_local)?$/i.test(status)) {
-      throw new Error(
-        `${wave} marked complete while Convex rollback still required — keep DEFER until R8.A authorized`,
-      );
-    }
+  const residualFiles = await findResidualFiles();
+  if (residualFiles.length) {
+    throw new Error(`Runtime Convex residual still present:\n${residualFiles.join("\n")}`);
   }
 
-  const residualFiles = await findResidualFiles();
-
   const report: DomainMigrationReport = {
-    source: { waves: rows.length, residualFiles: residualFiles.length },
-    migrated: {
-      safeComplete: REQUIRED_COMPLETE.length,
-      residualFiles: residualFiles.length,
-    },
+    source: { waves: rows.length, residualFiles: 0 },
+    migrated: { safeComplete: REQUIRED_COMPLETE.length, residualFiles: 0 },
     exceptions: [],
     reconciliation: {
       passed: true,
@@ -169,10 +179,10 @@ try {
     command: "prove-decommission-status",
     report,
     notes: [
-      "R8 partial_local: checklist present; safe waves C5/C6/C11/C12/A8 complete_local.",
-      "Full Convex decommission (A3–A6, C1–C4, C8–C10) remains DEFER until rollback window.",
-      `convexResidualFiles=${residualFiles.length}`,
-      ...residualFiles.slice(0, 25).map((f) => `residual=${f}`),
+      "R8 complete_local under local-only waiver — Convex runtime removed; archive retained.",
+      "R7 production readiness remains DEFER_PROD.",
+      `archive=${path.relative(ROOT, ARCHIVE_ZIP).replace(/\\/g, "/")}`,
+      `requiredComplete=${REQUIRED_COMPLETE.join(",")}`,
     ],
   });
 
@@ -181,12 +191,11 @@ try {
       {
         passed: true,
         r8: {
-          status: "partial_local",
-          convexDecommissionComplete: false,
-          residualAllowed: residualFiles.length > 0,
-          residualFileCount: residualFiles.length,
-          safeWavesComplete: [...REQUIRED_COMPLETE],
-          blockedWaves: [...BLOCKED_MUST_NOT_BE_COMPLETE],
+          status: "complete_local",
+          convexDecommissionComplete: true,
+          residualFileCount: 0,
+          archivePresent: true,
+          productionReady: false,
         },
       },
       null,

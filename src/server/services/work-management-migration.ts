@@ -3,7 +3,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
-import { and, eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import {
   cases,
@@ -46,7 +46,8 @@ export async function migrateWorkManagementExport(input: {
   for (const table of tables) {
     try {
       records.set(table, await reader.readTable(table));
-    } catch (e: any) {
+    } catch {
+      // A table missing from the export simply has nothing to migrate.
       records.set(table, []);
     }
   }

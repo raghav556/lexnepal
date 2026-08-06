@@ -10,6 +10,7 @@ import { PostgresIdentityRepository } from "@/server/repositories/identity-repos
 import { DEFAULT_ROLE_PERMISSIONS } from "@/server/auth/capabilities";
 import type {
   CreateUserInput,
+  StaffDirectoryEntryDto,
   UpdateOwnProfileInput,
   UpdateSystemSettingsInput,
   UpdateUserInput,
@@ -58,14 +59,15 @@ export class IdentityService {
     requireCapability(principal, "users.manage");
     return this.repository.listUsers(requireFirmContext(principal).firmId, role);
   }
-  listDirectory(principal: AuthPrincipal) {
+  listDirectory(principal: AuthPrincipal): Promise<StaffDirectoryEntryDto[]> {
     requireCapability(principal, "users.view_directory");
     return this.repository
       .listUsers(requireFirmContext(principal).firmId)
       .then((rows) =>
         rows
           .filter((user) => user.role !== "client" && user.isActive && !user.isPending)
-          .map(({ id, name, email, role, avatar }) => ({ id, name, email, role, avatar })),
+          // `_id` mirrors `id` because directory consumers still match on the legacy key.
+          .map(({ id, name, email, role, avatar }) => ({ id, _id: id, name, email, role, avatar })),
       );
   }
   async getUser(principal: AuthPrincipal, userId: string) {

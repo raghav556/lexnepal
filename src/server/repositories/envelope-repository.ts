@@ -27,6 +27,27 @@ function dtoId(row: { id: string; legacyConvexId?: string | null }) {
   return row.id;
 }
 
+/** One outstanding signature request shown in a signer's inbox. */
+interface PendingSignatureAction {
+  recipientId: string;
+  envelopeId: string;
+  envelopeTitle: string;
+  routing: string;
+  expiresAt: string | undefined;
+  order: number;
+  document: {
+    _id: string;
+    id: string;
+    title: string;
+    storageId: string | null;
+    mimeType: string | null;
+    sizeBytes: number | null;
+    requiresSignature: boolean | null;
+    signatureStatus: string | null;
+    viewedAt: string | null;
+  } | null;
+}
+
 export class EnvelopeRepository {
   static async listPortalSigners(firmId: string) {
     const db = getDatabase();
@@ -224,7 +245,7 @@ export class EnvelopeRepository {
           eq(signatureRecipients.status, "pending"),
         ),
       );
-    const actions = [];
+    const actions: PendingSignatureAction[] = [];
     for (const recipient of mine) {
       let envelope = await this.resolveEnvelope(firmId, recipient.envelopeId);
       if (!envelope) continue;
@@ -596,7 +617,7 @@ export class EnvelopeRepository {
     const doc = await this.resolveDocument(firmId, documentId);
     if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
     if (doc.isTemplate) throw new AppError("CONFLICT", "Templates cannot be sent for signature", 409);
-    let signerId = intendedSignerUserId;
+    const signerId = intendedSignerUserId;
     if (!signerId) {
       throw new AppError(
         "VALIDATION_FAILED",
@@ -749,7 +770,7 @@ export class EnvelopeRepository {
 
   static async completeRecipientAfterSign(firmId: string, envelopeId: string, userId: string) {
     const db = getDatabase();
-    let envelope = await this.resolveEnvelope(firmId, envelopeId);
+    const envelope = await this.resolveEnvelope(firmId, envelopeId);
     if (!envelope || envelope.status !== "sent") return;
     const recipients = (
       await db

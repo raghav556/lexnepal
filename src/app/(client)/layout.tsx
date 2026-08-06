@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, LogOut, Menu, X, Calendar, User as UserIcon, ChevronUp, ShieldCheck, PenTool, ClipboardList } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: any; heading?: string };
+type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: LucideIcon; heading?: string };
+type NavLink = NavItem & { href: string; icon: LucideIcon };
+const isNavLink = (item: NavItem): item is NavLink => Boolean(item.href && item.icon);
 
 const NAV: NavItem[] = [
   { heading: "Overview" },
@@ -57,10 +60,11 @@ function ClientDesktopSidebar() {
           if (item.heading) {
             return <div key={`heading-${idx}`} className="text-xs font-semibold text-muted-foreground mt-5 mb-2 px-3 uppercase tracking-wider">{item.heading}</div>;
           }
+          if (!isNavLink(item)) return null;
           const { label, href, icon: Icon } = item;
           return (
-            <Link key={href} href={href!} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              isActive(href!) ? "bg-accent/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            <Link key={href} href={href} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              isActive(href) ? "bg-accent/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             )}><Icon className="w-4 h-4" />{label}</Link>
           );
         })}
@@ -105,9 +109,12 @@ function ClientMobileChrome() {
   const isActive = useIsActive();
   const pathname = usePathname();
 
-  useEffect(() => {
+  // Collapse the drawer whenever the route changes, including browser back/forward.
+  const [drawerPathname, setDrawerPathname] = useState(pathname);
+  if (drawerPathname !== pathname) {
+    setDrawerPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   const handleSignout = async () => { await signout(); router.push("/"); };
 
@@ -130,10 +137,11 @@ function ClientMobileChrome() {
               if (item.heading) {
                 return <div key={`mob-heading-${idx}`} className="text-xs font-semibold text-muted-foreground mt-4 mb-2 px-3 uppercase tracking-wider">{item.heading}</div>;
               }
+              if (!isNavLink(item)) return null;
               const { label, href, icon: Icon } = item;
               return (
-                <Link key={href} href={href!} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
-                  isActive(href!) ? "bg-accent/10 text-accent" : "text-foreground"
+                <Link key={href} href={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+                  isActive(href) ? "bg-accent/10 text-accent" : "text-foreground"
                 )}><Icon className="w-4 h-4" />{label}</Link>
               );
             })}

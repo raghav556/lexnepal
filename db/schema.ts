@@ -1790,11 +1790,17 @@ export const researchNotes = pgTable(
     authorId: uuid("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "restrict" }),
+    // Nepal Kanoon Patrika citation of the precedent the note is about.
+    citationNkpNo: text("citation_nkp_no"),
+    citationDecisionNo: text("citation_decision_no"),
+    citationBench: text("citation_bench"),
     ...lifecycleColumns(),
   },
   (table) => [
     index("research_notes_firm_author_idx").on(table.firmId, table.authorId),
     index("research_notes_firm_category_idx").on(table.firmId, table.category),
+    index("research_notes_firm_case_idx").on(table.firmId, table.caseId),
   ],
 );
 export const researchNoteTags = pgTable(

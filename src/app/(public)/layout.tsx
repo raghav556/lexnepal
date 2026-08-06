@@ -15,7 +15,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { getPortalForRole, useCurrentUser } from "@/hooks/use-current-user";
 
-const NAV_LINKS = [
+type PublicNavLink = { label: string; href: string; openInNewTab?: boolean };
+
+const NAV_LINKS: PublicNavLink[] = [
   { label: "Home", href: "/" },
   { label: "About Us", href: "/about-us" },
   { label: "Practice Areas", href: "/practice-areas" },
@@ -38,13 +40,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const [isSubscribing, setIsSubscribing] = useState(false);
   const pathname = usePathname();
 
-  const navLinks = useMemo(() => {
-    const active = (headerNav || []).filter((l: any) => l.isActive !== false);
+  const navLinks: PublicNavLink[] = useMemo(() => {
+    const entries = (headerNav ?? []) as Array<Record<string, unknown>>;
+    const active = entries.filter((l) => l.isActive !== false);
     if (active.length === 0) return NAV_LINKS;
-    return active.map((l: any) => ({
-      label: l.label as string,
-      href: (l.url as string) || "/",
-      openInNewTab: !!l.openInNewTab,
+    return active.map((l) => ({
+      label: String(l.label ?? ""),
+      href: String(l.url ?? "/"),
+      openInNewTab: Boolean(l.openInNewTab),
     }));
   }, [headerNav]);
 
@@ -73,10 +76,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
+  // Collapse the mobile menu whenever the route changes, including browser back/forward.
+  const [menuPathname, setMenuPathname] = useState(pathname);
+  if (menuPathname !== pathname) {
+    setMenuPathname(pathname);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   // Scroll Progress Bar Logic
   const { scrollYProgress } = useScroll();
@@ -143,7 +148,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <nav className="hidden lg:flex items-center gap-1.5 bg-muted/20 p-1.5 rounded-full border border-border/50">
               {navLinks.map((l) => {
                 const isActive = pathname === l.href;
-                if ((l as any).openInNewTab || /^https?:\/\//.test(l.href)) {
+                if (l.openInNewTab || /^https?:\/\//.test(l.href)) {
                   return (
                     <a key={`${l.label}-${l.href}`} href={l.href} target="_blank" rel="noreferrer" className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 text-muted-foreground hover:text-primary hover:bg-muted/50">
                       {l.label}
@@ -178,7 +183,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className={cn("lg:hidden border-t border-border bg-background overflow-hidden transition-all duration-300 ease-in-out", mobileOpen ? "max-h-[min(70vh,32rem)] opacity-100 overflow-y-auto" : "max-h-0 opacity-0 border-t-0")}>
           <div className="px-4 py-4 space-y-3">
             {navLinks.map((l) => (
-              /^https?:\/\//.test(l.href) || (l as any).openInNewTab ? (
+              /^https?:\/\//.test(l.href) || l.openInNewTab ? (
                 <a key={`m-${l.label}-${l.href}`} href={l.href} target="_blank" rel="noreferrer" className="block text-sm font-medium text-foreground hover:text-primary" onClick={() => setMobileOpen(false)}>
                   {l.label}
                 </a>
@@ -222,6 +227,56 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 {settings?.linkedinUrl && <a href={settings.linkedinUrl} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full bg-primary-foreground/10 hover:bg-accent/20 flex items-center justify-center transition-colors"><Linkedin className="w-4 h-4" /></a>}
                 {settings?.twitterUrl && <a href={settings.twitterUrl} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full bg-primary-foreground/10 hover:bg-accent/20 flex items-center justify-center transition-colors"><Twitter className="w-4 h-4" /></a>}
               </div>
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="font-serif text-lg font-semibold mb-4">Quick Links</h3>
+              <ul className="space-y-2">
+                {navLinks.map((l) => (
+                  <li key={`footer-${l.label}-${l.href}`}>
+                    <Link href={l.href} className="text-sm text-primary-foreground/70 hover:text-accent transition-colors">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="font-serif text-lg font-semibold mb-4">Contact</h3>
+              <ul className="space-y-2 text-sm text-primary-foreground/70">
+                {settings?.contactPhone && (
+                  <li className="flex items-center gap-2 break-words [overflow-wrap:anywhere]">
+                    <Phone className="w-4 h-4 shrink-0" /> {settings.contactPhone}
+                  </li>
+                )}
+                {settings?.contactEmail && (
+                  <li className="flex items-center gap-2 break-words [overflow-wrap:anywhere]">
+                    <Mail className="w-4 h-4 shrink-0" /> {settings.contactEmail}
+                  </li>
+                )}
+                <li>
+                  <Link href="/consultation" className="hover:text-accent transition-colors">Book a consultation</Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="font-serif text-lg font-semibold mb-4">Newsletter</h3>
+              <p className="text-sm text-primary-foreground/70 mb-3">Legal updates from our practice, a few times a year.</p>
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-2">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  aria-label="Email address"
+                  className="w-full rounded-md bg-primary-foreground/10 border border-primary-foreground/20 px-3 py-2 text-sm placeholder:text-primary-foreground/40 focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <Button type="submit" size="sm" disabled={isSubscribing} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  {isSubscribing ? "Subscribing..." : "Subscribe"}
+                </Button>
+              </form>
             </div>
           </div>
         </div>

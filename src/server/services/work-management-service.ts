@@ -158,11 +158,13 @@ export class WorkManagementService {
 
   async createResearchNote(principal: AuthPrincipal, input: ResearchCreateInput, audit: AuditContext) {
     requireCapability(principal, "cases.manage");
+    if (input.caseId) await requireCaseAccess(principal, input.caseId, security);
     return repository.createResearchNote(requireFirmContext(principal).firmId, input, audit);
   }
 
   async updateResearchNote(principal: AuthPrincipal, noteId: string, input: ResearchUpdateInput, audit: AuditContext) {
     requireCapability(principal, "cases.manage");
+    if (input.caseId) await requireCaseAccess(principal, input.caseId, security);
     return repository.updateResearchNote(requireFirmContext(principal).firmId, noteId, input, audit);
   }
 

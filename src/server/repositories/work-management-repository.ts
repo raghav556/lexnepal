@@ -19,6 +19,7 @@ import type {
   HearingCreateInput,
   HearingListInput,
   HearingUpdateInput,
+  ResearchCitation,
   ResearchCreateInput,
   ResearchUpdateInput,
   SopCreateInput,
@@ -114,7 +115,9 @@ export class PostgresWorkManagementRepository {
         .insert(tasks)
         .values({
           firmId,
-          ...(normalizeEmpty(rest) as any),
+          ...normalizeEmpty(rest),
+          dueDate: toTimestamp(rest.dueDate),
+          reminderAt: toTimestamp(rest.reminderAt),
           isRecurring: rest.isRecurring ?? false,
           clientVisible: rest.clientVisible ?? false,
           createdBy: audit.actorId,
@@ -150,7 +153,13 @@ export class PostgresWorkManagementRepository {
         rest.status === "done" && existing.status !== "done" ? audit.occurredAt : undefined;
       const [row] = await tx
         .update(tasks)
-        .set({ ...(normalizeEmpty(rest) as any), ...(completedAt ? { completedAt } : {}), updatedAt: audit.occurredAt })
+        .set({
+          ...normalizeEmpty(rest),
+          dueDate: toTimestamp(rest.dueDate),
+          reminderAt: toTimestamp(rest.reminderAt),
+          ...(completedAt ? { completedAt } : {}),
+          updatedAt: audit.occurredAt,
+        })
         .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt)))
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
@@ -207,7 +216,13 @@ export class PostgresWorkManagementRepository {
 
   async listWorkload(firmId: string) {
     const rows = await database
-      .select({ id: tasks.id, assignedTo: tasks.assignedTo, status: tasks.status, priority: tasks.priority })
+      .select({
+        id: tasks.id,
+        assignedTo: tasks.assignedTo,
+        status: tasks.status,
+        priority: tasks.priority,
+        dueDate: tasks.dueDate,
+      })
       .from(tasks)
       .where(and(eq(tasks.firmId, firmId), isNull(tasks.deletedAt), isNull(tasks.archivedAt)));
     const byAssignee = new Map<string, { assignedTo: string; total: number; urgent: number; overdue: number }>();
@@ -216,6 +231,8 @@ export class PostgresWorkManagementRepository {
       const entry = byAssignee.get(row.assignedTo) ?? { assignedTo: row.assignedTo, total: 0, urgent: 0, overdue: 0 };
       entry.total += 1;
       if (row.priority === "urgent") entry.urgent += 1;
+      const open = row.status === "todo" || row.status === "in_progress";
+      if (open && row.dueDate && row.dueDate.getTime() < now.getTime()) entry.overdue += 1;
       byAssignee.set(row.assignedTo, entry);
     }
     return [...byAssignee.values()].sort((a, b) => b.total - a.total);
@@ -392,7 +409,15 @@ export class PostgresWorkManagementRepository {
     return database.transaction(async (tx) => {
       const [row] = await tx
         .insert(researchNotes)
-        .values({ firmId, title: input.title, category: input.category, content: input.content, authorId: audit.actorId })
+        .values({
+          firmId,
+          title: input.title,
+          category: input.category,
+          content: input.content,
+          authorId: audit.actorId,
+          caseId: input.caseId ?? null,
+          ...citationColumns(input.citation),
+        })
         .returning();
       if (input.tags.length)
         await tx.insert(researchNoteTags).values(input.tags.map((tag) => ({ firmId, researchNoteId: row.id, tag })));
@@ -402,10 +427,21 @@ export class PostgresWorkManagementRepository {
   }
 
   async updateResearchNote(firmId: string, noteId: string, input: ResearchUpdateInput, audit: AuditContext) {
+    // `tags` lives in its own table, so it is replaced after the row update rather than set on it.
+    const scalars = normalizeEmpty({
+      title: input.title,
+      category: input.category,
+      content: input.content,
+      caseId: input.caseId,
+    });
     return database.transaction(async (tx) => {
       const [row] = await tx
         .update(researchNotes)
-        .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
+        .set({
+          ...scalars,
+          ...(input.citation === undefined ? {} : citationColumns(input.citation)),
+          updatedAt: audit.occurredAt,
+        })
         .where(and(eq(researchNotes.id, noteId), eq(researchNotes.firmId, firmId), isNull(researchNotes.deletedAt)))
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Research note was not found", 404);
@@ -447,7 +483,15 @@ export class PostgresWorkManagementRepository {
       .select({ tag: researchNoteTags.tag })
       .from(researchNoteTags)
       .where(and(eq(researchNoteTags.firmId, row.firmId), eq(researchNoteTags.researchNoteId, row.id)));
-    return { ...toDto(row), tags: tags.map((t) => t.tag) };
+    const { citationNkpNo, citationDecisionNo, citationBench, ...dto } = toDto(row);
+    return {
+      ...dto,
+      tags: tags.map((t) => t.tag),
+      citation:
+        citationNkpNo || citationDecisionNo || citationBench
+          ? { nkpNo: citationNkpNo, decisionNo: citationDecisionNo, bench: citationBench }
+          : null,
+    };
   }
 
   private async validateTaskRelationships(firmId: string, assignedTo: string, caseId: string | null) {
@@ -487,6 +531,7 @@ export class PostgresWorkManagementRepository {
     let sent = 0;
     for (const task of due) {
       if (!task.dueDate) continue;
+      const dueDateIso = task.dueDate.toISOString().slice(0, 10);
       const dueDate = new Date(task.dueDate);
       dueDate.setHours(0, 0, 0, 0);
       if (dueDate.getTime() > todayStart.getTime()) continue;
@@ -499,7 +544,7 @@ export class PostgresWorkManagementRepository {
           firmId,
           userId: task.assignedTo,
           title: "Task due / overdue",
-          body: `"${task.title}" is due or overdue (${task.dueDateBs || task.dueDate.toISOString().slice(0, 10)}).`,
+          body: `"${task.title}" is due or overdue (${task.dueDateBs || dueDateIso}).`,
           type: "task_due",
           relatedId: task.id,
           link: `/staff/tasks?task=${task.id}`,
@@ -540,14 +585,26 @@ async function writeAudit(
   });
 }
 
+/** Contracts carry timestamps as ISO strings; the columns are `timestamptz`. */
+function toTimestamp(value: string | null | undefined) {
+  if (value === undefined) return undefined;
+  return value === null ? null : new Date(value);
+}
+
 function normalizeEmpty<T extends Record<string, unknown>>(input: T): T {
   return Object.fromEntries(
     Object.entries(input).map(([k, v]) => [k, v === "" ? null : v]),
   ) as T;
 }
 
-function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
-  const output: any = { ...row, _id: row.id };
+/** Shape a row takes on the wire: dates serialized and internal columns stripped. */
+type RowDto<T> = Omit<
+  { [K in keyof T]: Date extends T[K] ? Exclude<T[K], Date> | string : T[K] },
+  "firmId" | "legacyConvexId" | "deletedAt"
+> & { _id: string };
+
+function toDto<T extends Record<string, unknown>>(row: T): RowDto<T> {
+  const output: Record<string, unknown> = { ...row, _id: row.id };
   for (const [key, value] of Object.entries(output)) {
     if (value instanceof Date) {
       output[key] = value.toISOString();
@@ -556,11 +613,19 @@ function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
   delete output.firmId;
   delete output.legacyConvexId;
   delete output.deletedAt;
-  return output;
+  return output as RowDto<T>;
+}
+
+function citationColumns(citation: ResearchCitation | null | undefined) {
+  return {
+    citationNkpNo: citation?.nkpNo?.trim() || null,
+    citationDecisionNo: citation?.decisionNo?.trim() || null,
+    citationBench: citation?.bench?.trim() || null,
+  };
 }
 
 function toHearingDto(row: typeof hearings.$inferSelect) {
-  const dto = toDto(row as unknown as Record<string, unknown>);
+  const dto = toDto(row);
   const rawTime = row.hearingTime == null ? null : String(row.hearingTime);
   const time = rawTime ? rawTime.slice(0, 5) : null;
   return { ...dto, hearingTime: time, time };

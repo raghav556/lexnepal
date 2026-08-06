@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils.ts";
 
 type SignMethod = "draw" | "type" | "upload";
 
-async function sha256HexFromBuffer(buffer: ArrayBuffer) {
+async function sha256HexFromBuffer(buffer: BufferSource) {
   const hash = await crypto.subtle.digest("SHA-256", buffer);
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -250,7 +250,7 @@ export default function ClientSignaturesPage() {
     setDeclineReason("");
     setViewed(!!selectedDoc.viewedAt);
     setSelectedFileUrl(null);
-    void downloadDocument(selectedDoc._id, selectedDoc.storageId)
+    void downloadDocument(selectedDoc._id)
       .then((url) => setSelectedFileUrl(url ? String(url) : ""))
       .catch(() => setSelectedFileUrl(""));
     markViewed({ documentId: selectedDoc._id })
@@ -275,8 +275,9 @@ export default function ClientSignaturesPage() {
       }
     }
     const enc = new TextEncoder();
-    const bytes = enc.encode(`${doc._id}|${doc.storageId}|${doc.title}|${doc.sizeBytes}`);
-    return sha256HexFromBuffer(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    return sha256HexFromBuffer(
+      enc.encode(`${doc._id}|${doc.storageId}|${doc.title}|${doc.sizeBytes}`),
+    );
   }, []);
 
   const handleSendOtp = async () => {

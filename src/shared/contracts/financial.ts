@@ -126,3 +126,14 @@ export type TrustCreateInput = z.infer<typeof trustCreateSchema>;
 export type ExpenseListInput = z.infer<typeof expenseListSchema>;
 export type ExpenseCreateInput = z.infer<typeof expenseCreateSchema>;
 export type ExpenseApproveInput = z.infer<typeof expenseApproveSchema>;
+
+/** Aggregate expense totals in NPR, as returned by `GET /api/v1/financial/expenses/stats`. */
+export interface ExpenseStatsDto {
+  total: number;
+  approved: number;
+  pending: number;
+  caseLinked: number;
+  byCategory: Record<string, number>;
+  count: number;
+  pendingCount: number;
+}

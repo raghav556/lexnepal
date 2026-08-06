@@ -166,7 +166,7 @@ export class MigrationEngine {
     processor: (batch: RecordValue[], isDryRun: boolean) => Promise<void>,
     isDryRun: boolean = false,
   ) {
-    let offset = isDryRun ? 0 : this.getOffset(tableName);
+    const offset = isDryRun ? 0 : this.getOffset(tableName);
     let currentLine = 0;
     let batch: RecordValue[] = [];
 

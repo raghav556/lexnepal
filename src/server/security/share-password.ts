@@ -1,3 +1,4 @@
+import "server-only";
 import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 
 const SHARE_PASSWORD_ITERATIONS = 210_000;

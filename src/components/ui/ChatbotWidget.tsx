@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, X, Send, User, Bot, Loader2, ArrowRight, Scale } from "lucide-react";
 import { Button } from "./button.tsx";
 import { cn } from "@/lib/utils.ts";
-import { Link } from "react-router-dom";
+import { Link } from "@/client/navigation";
 import { useLeadCommands } from "@/client/queries/crm";
 
 type Message = {
@@ -246,7 +246,7 @@ export function ChatbotWidget() {
                       {msg.isLink && msg.linkHref && (
                         <div className="mt-3">
                           <Button asChild size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs">
-                            <Link to={msg.linkHref} onClick={() => setIsOpen(false)}>
+                            <Link href={msg.linkHref} onClick={() => setIsOpen(false)}>
                               {msg.linkText} <ArrowRight className="ml-1 w-3 h-3" />
                             </Link>
                           </Button>

@@ -110,6 +110,35 @@ export class DocumentService {
     return { success: true as const };
   }
 
+  /**
+   * Queues text extraction for a document. Extraction runs in the `document.ocr` durable job so a
+   * slow scan never blocks the request; the caller polls the document for `searchableText`.
+   */
+  async requestTextExtraction(principal: AuthPrincipal, documentId: string) {
+    requireCapability(principal, "documents.upload");
+    await requireDocumentAccess(principal, documentId, security);
+    const { firmId } = requireFirmContext(principal);
+    const doc = await DocumentRepository.getDocumentById(firmId, documentId);
+    if (!doc) throw new AppError("NOT_FOUND", "Document was not found", 404);
+    if ((doc as { uploadStatus?: string }).uploadStatus !== "clean") {
+      throw new AppError("CONFLICT", "Document is not available for text extraction", 409);
+    }
+
+    // Imported lazily so document reads do not pull the job handler graph (OCR engine, SMTP).
+    const { getJobRepository } = await import("@/server/jobs/runtime");
+    const { job, created } = await getJobRepository().enqueue({
+      firmId,
+      actorUserId: principal.user.id,
+      type: "document.ocr",
+      // Re-running against the same stored bytes is a no-op, so the version pins the key.
+      idempotencyKey: `document.ocr:${documentId}:${(doc as { version?: number }).version ?? 1}`,
+      payload: { documentId },
+      maxAttempts: 3,
+      timeoutSeconds: 600,
+    });
+    return { jobId: job.id, status: job.status, queued: created };
+  }
+
   async createShare(
     principal: AuthPrincipal,
     documentId: string,
@@ -167,13 +196,13 @@ async function resolvePublicShare(token: string, password?: string | null) {
     throw new AppError("NOT_FOUND", "This share link is invalid or revoked", 404);
   }
   if (share.lockedUntil && share.lockedUntil.getTime() > Date.now()) {
-    throw new AppError("TOO_MANY_REQUESTS", "Too many attempts. Try again later", 429);
+    throw new AppError("RATE_LIMITED", "Too many attempts. Try again later", 429);
   }
   if (share.expiresAt && share.expiresAt.getTime() <= Date.now()) {
-    throw new AppError("GONE", "This share link has expired", 410);
+    throw new AppError("CONFLICT", "This share link has expired", 410);
   }
   if (share.maxDownloads !== null && share.downloadsCount >= share.maxDownloads) {
-    throw new AppError("GONE", "This share link has reached its download limit", 410);
+    throw new AppError("CONFLICT", "This share link has reached its download limit", 410);
   }
   if (share.passwordHash) {
     const valid = !!password && verifySharePassword(password, share.passwordHash);

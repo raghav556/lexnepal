@@ -1,30 +1,25 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "@/client/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { 
-  CalendarDays, FileText, Clock, User, ArrowLeft, Loader2, Save, PenTool, CheckSquare, 
-  DollarSign, Plus, FolderTree, Scale, FileArchive, ArrowRight, Zap, Users,
-  Printer, Link as LinkIcon, Bold, Italic, List, Underline, Highlighter, Trash2, Cloud, CloudOff
+  CalendarDays, Clock, User, ArrowLeft, Loader2, Save, CheckSquare, 
+  DollarSign, Plus, FolderTree, Scale, FileArchive, Zap, Users
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
 import { useCase, useCaseCommands } from "@/client/queries/cases";
-import { useCaseBriefCommands, useCaseBriefs } from "@/client/queries/briefs";
 import { useClients } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useHearings } from "@/client/queries/hearings";
 import { useDocuments } from "@/client/queries/documents";
 import { useTasks, useTaskCommands, useSopTemplates, useUpdateTask } from "@/client/queries/tasks";
-import { useResearchNotes } from "@/client/queries/research";
 import { useTimeEntries, useExpenses } from "@/client/queries/financial";
 import { cn } from "@/lib/utils.ts";
 import { PRIORITY_COLORS, formatTaskDue } from "@/lib/task-constants.ts";
-
-type BriefSaveStatus = "idle" | "unsaved" | "saving" | "saved";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -70,11 +65,6 @@ export default function StaffCaseDetailPage() {
     return matched.length > 0 ? matched : sopTemplates;
   })();
 
-  const briefs = useCaseBriefs(caseId || null);
-  const { briefsAvailable, create: createBrief, update: updateBrief, remove: deleteBrief } =
-    useCaseBriefCommands();
-  const researchNotes = useResearchNotes() || [];
-
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("");
   const [court, setCourt] = useState("");
@@ -91,17 +81,6 @@ export default function StaffCaseDetailPage() {
     evidence: true,
     orders: true,
   });
-
-  // Trial Briefs State
-  const [selectedBrief, setSelectedBrief] = useState<any | null>(null);
-  const [briefContent, setBriefContent] = useState("");
-  const [briefTitle, setBriefTitle] = useState("");
-  const [showMentionMenu, setShowMentionMenu] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState("");
-  const [briefSaveStatus, setBriefSaveStatus] = useState<BriefSaveStatus>("idle");
-  const editorRef = useRef<HTMLDivElement>(null);
-  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const loadedBriefId = useRef<string | null>(null);
 
   const timeline = useMemo(() => {
     if (!caseData) return [];
@@ -145,172 +124,6 @@ export default function StaffCaseDetailPage() {
       setNewTaskTitle(""); toast.success("Task added");
     } catch (err: any) { toast.error(err?.message || "Failed to add task"); } finally { setIsAddingTask(false); }
   };
-
-  const selectBrief = useCallback((brief: any) => {
-    setSelectedBrief(brief);
-    setBriefTitle(brief.title);
-    setBriefContent(brief.content || "");
-    setShowMentionMenu(false);
-    setMentionQuery("");
-    setBriefSaveStatus("idle");
-    loadedBriefId.current = null;
-  }, []);
-
-  const persistBrief = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!selectedBrief || !editorRef.current) return;
-    const content = editorRef.current.innerHTML;
-    setBriefContent(content);
-    setBriefSaveStatus("saving");
-    try {
-      await updateBrief({ id: selectedBrief._id, title: briefTitle, content });
-      setSelectedBrief((prev: any) => prev ? { ...prev, title: briefTitle, content, lastModified: Date.now() } : prev);
-      setBriefSaveStatus("saved");
-      if (!opts?.silent) toast.success("Brief saved");
-    } catch {
-      setBriefSaveStatus("unsaved");
-      toast.error("Failed to save brief");
-    }
-  }, [selectedBrief, briefTitle, updateBrief]);
-
-  const scheduleAutosave = useCallback(() => {
-    setBriefSaveStatus("unsaved");
-    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(() => {
-      void persistBrief({ silent: true });
-    }, 1200);
-  }, [persistBrief]);
-
-  useEffect(() => {
-    if (!selectedBrief || !editorRef.current) return;
-    if (loadedBriefId.current === selectedBrief._id) return;
-    editorRef.current.innerHTML = selectedBrief.content || "";
-    loadedBriefId.current = selectedBrief._id;
-  }, [selectedBrief]);
-
-  useEffect(() => {
-    return () => {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    };
-  }, []);
-
-  const handleCreateBrief = async () => {
-    if (!briefsAvailable) {
-      toast.error("Case briefs are not available on the Next backend yet.");
-      return;
-    }
-    if (!caseId || !currentUser) return;
-    try {
-      const newId = await createBrief({
-        caseId: caseId as any,
-        title: "Untitled Hearing Brief",
-        content: "<p></p>",
-        authorId: currentUser._id as any,
-      });
-      selectBrief({
-        _id: newId,
-        caseId,
-        title: "Untitled Hearing Brief",
-        content: "<p></p>",
-        authorId: currentUser._id,
-        lastModified: Date.now(),
-      });
-      toast.success("Brief created");
-    } catch {
-      toast.error("Failed to create brief");
-    }
-  };
-
-  const handleDeleteBrief = async () => {
-    if (!selectedBrief) return;
-    try {
-      await deleteBrief({ id: selectedBrief._id });
-      setSelectedBrief(null);
-      setBriefTitle("");
-      setBriefContent("");
-      loadedBriefId.current = null;
-      setBriefSaveStatus("idle");
-      toast.success("Brief deleted");
-    } catch {
-      toast.error("Failed to delete brief");
-    }
-  };
-
-  const handlePrintBrief = () => {
-    if (editorRef.current) setBriefContent(editorRef.current.innerHTML);
-    window.print();
-  };
-
-  const applyFormat = (command: string, value?: string) => {
-    editorRef.current?.focus();
-    document.execCommand("styleWithCSS", false, "true");
-    const ok = document.execCommand(command, false, value);
-    if (!ok && command === "hiliteColor") {
-      document.execCommand("backColor", false, value);
-    }
-    if (editorRef.current) setBriefContent(editorRef.current.innerHTML);
-    scheduleAutosave();
-  };
-
-  const removeMentionQueryAtCursor = () => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const node = range.startContainer;
-    if (node.nodeType !== Node.TEXT_NODE || !node.textContent) return;
-    const text = node.textContent;
-    const upToCursor = text.slice(0, range.startOffset);
-    const atIdx = upToCursor.lastIndexOf("@");
-    if (atIdx === -1) return;
-    const del = document.createRange();
-    del.setStart(node, atIdx);
-    del.setEnd(node, range.startOffset);
-    del.deleteContents();
-    sel.removeAllRanges();
-    const after = document.createRange();
-    after.setStart(node, atIdx);
-    after.collapse(true);
-    sel.addRange(after);
-  };
-
-  const insertMention = (title: string, link: string) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.focus();
-    removeMentionQueryAtCursor();
-    const safeTitle = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    document.execCommand(
-      "insertHTML",
-      false,
-      `<a href="${link}" class="text-primary underline font-semibold bg-primary/10 px-1 rounded" contenteditable="false">@${safeTitle}</a>&nbsp;`,
-    );
-    setBriefContent(editor.innerHTML);
-    setShowMentionMenu(false);
-    setMentionQuery("");
-    scheduleAutosave();
-  };
-
-  const handleEditorInput = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    setBriefContent(editor.innerHTML);
-    const text = editor.innerText || "";
-    const words = text.split(/[\s\u00a0]+/);
-    const lastWord = words[words.length - 1] || "";
-    if (lastWord.startsWith("@")) {
-      setShowMentionMenu(true);
-      setMentionQuery(lastWord.slice(1));
-    } else {
-      setShowMentionMenu(false);
-    }
-    scheduleAutosave();
-  };
-
-  const filteredDocs = documents.filter((d: any) =>
-    d.title.toLowerCase().includes(mentionQuery.toLowerCase()),
-  );
-  const filteredPrecedents = researchNotes.filter((n: any) =>
-    n.title.toLowerCase().includes(mentionQuery.toLowerCase()),
-  );
 
   const triggerSOP = async (templateKey: string) => {
     if (!caseId || !currentUser) return;
@@ -417,7 +230,6 @@ export default function StaffCaseDetailPage() {
           <TabsTrigger value="parties" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Users className="w-3.5 h-3.5 mr-2" />Parties & Counsel</TabsTrigger>
           <TabsTrigger value="financials" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><DollarSign className="w-3.5 h-3.5 mr-2" />Case Ledger</TabsTrigger>
           <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Clock className="w-3.5 h-3.5 mr-2" />Timeline</TabsTrigger>
-          <TabsTrigger value="briefs" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><FileText className="w-3.5 h-3.5 mr-2" />Trial Briefs & Memos</TabsTrigger>
         </TabsList>
 
         {/* 1. Tasks & SOPs */}
@@ -712,155 +524,6 @@ export default function StaffCaseDetailPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* 6. Trial Briefs */}
-        <TabsContent value="briefs" className="mt-6 h-[600px] flex gap-4 print:mt-0 print:h-auto print:block">
-          
-          {/* Print Letterhead (Only visible on print) */}
-          <div className="hidden print:block w-full mb-8 border-b-2 border-black pb-4 text-black">
-             <h1 className="text-3xl font-serif font-bold text-center uppercase tracking-widest">Srimar Law</h1>
-             <p className="text-center text-sm font-mono mt-1">Trial Brief & Bench Memo</p>
-             <div className="flex justify-between mt-6 text-sm font-bold">
-               <p>Case: {caseData.caseNumber} — {caseData.title}</p>
-               <p>Date: {new Date().toLocaleDateString()}</p>
-             </div>
-             {briefTitle && <p className="mt-4 text-lg font-serif font-bold text-center">{briefTitle}</p>}
-          </div>
-
-          {/* Left Sidebar: Brief List */}
-          <Card className="w-1/3 flex flex-col overflow-hidden print:hidden border-border bg-card shadow-xs">
-            <CardHeader className="py-3 border-b border-border bg-secondary/10 flex flex-row items-center justify-between shrink-0">
-              <CardTitle className="text-sm font-bold flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Case Briefs</CardTitle>
-              {briefsAvailable && (
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleCreateBrief}><Plus className="w-4 h-4" /></Button>
-              )}
-            </CardHeader>
-            <CardContent className="flex-1 p-2 overflow-y-auto space-y-1 bg-muted/10">
-              {!briefsAvailable ? (
-                <p className="text-xs text-muted-foreground text-center mt-6 px-3">
-                  Case briefs are not available on the Next backend yet.
-                </p>
-              ) : briefs.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center mt-6">No briefs created yet.</p>
-              ) : (
-                briefs.map((b) => (
-                  <div 
-                    key={b._id} 
-                    onClick={() => selectBrief(b)}
-                    className={cn("p-3 rounded-lg border cursor-pointer transition-all text-left", selectedBrief?._id === b._id ? "bg-primary/5 border-primary/50 shadow-sm" : "bg-background border-border hover:border-primary/30")}
-                  >
-                    <h4 className="text-xs font-bold font-serif line-clamp-1">{b.title}</h4>
-                    <p className="text-[10px] text-muted-foreground mt-1">{new Date(b.lastModified).toLocaleDateString()}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Right Canvas: RichText Editor */}
-          <Card className="flex-1 flex flex-col overflow-visible print:border-none print:shadow-none print:bg-transparent bg-card shadow-xs">
-            {!selectedBrief ? (
-               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground print:hidden">
-                 <PenTool className="w-12 h-12 mb-3 opacity-20" />
-                 <p className="text-sm">Select or create a trial brief to start drafting.</p>
-               </div>
-            ) : (
-               <>
-                 <CardHeader className="py-3 border-b border-border bg-background shrink-0 print:hidden flex flex-row justify-between items-center z-10 gap-3">
-                    <Input
-                      className="font-serif text-lg font-bold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
-                      value={briefTitle}
-                      onChange={(e) => { setBriefTitle(e.target.value); scheduleAutosave(); }}
-                    />
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={cn(
-                        "hidden sm:inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide",
-                        briefSaveStatus === "saving" && "text-muted-foreground",
-                        briefSaveStatus === "saved" && "text-emerald-600",
-                        briefSaveStatus === "unsaved" && "text-amber-600",
-                        briefSaveStatus === "idle" && "text-muted-foreground/60",
-                      )}>
-                        {briefSaveStatus === "saving" && <><Loader2 className="w-3 h-3 animate-spin" /> Syncing</>}
-                        {briefSaveStatus === "saved" && <><Cloud className="w-3 h-3" /> Saved</>}
-                        {briefSaveStatus === "unsaved" && <><CloudOff className="w-3 h-3" /> Unsaved</>}
-                        {briefSaveStatus === "idle" && <><Cloud className="w-3 h-3" /> Ready</>}
-                      </span>
-                      <Button variant="outline" size="sm" onClick={handlePrintBrief}><Printer className="w-4 h-4 mr-2" /> Print PDF</Button>
-                      <Button size="sm" onClick={() => void persistBrief()} disabled={briefSaveStatus === "saving"}>
-                        {briefSaveStatus === "saving" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={handleDeleteBrief} title="Delete brief">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                 </CardHeader>
-                 
-                 {/* RichText Toolbar */}
-                 <div className="px-4 py-2 border-b border-border bg-muted/30 flex flex-wrap items-center gap-1 print:hidden">
-                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Bold" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("bold")}><Bold className="w-3.5 h-3.5" /></Button>
-                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Italic" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("italic")}><Italic className="w-3.5 h-3.5" /></Button>
-                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Underline" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("underline")}><Underline className="w-3.5 h-3.5" /></Button>
-                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Bulleted list" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("insertUnorderedList")}><List className="w-3.5 h-3.5" /></Button>
-                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Highlight" onMouseDown={(e) => e.preventDefault()} onClick={() => applyFormat("hiliteColor", "#fef08a")}><Highlighter className="w-3.5 h-3.5" /></Button>
-                   <div className="w-px h-5 bg-border mx-2 self-center" />
-                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onMouseDown={(e) => e.preventDefault()} onClick={() => { editorRef.current?.focus(); document.execCommand("insertText", false, "@"); setShowMentionMenu(true); setMentionQuery(""); }}>
-                     <LinkIcon className="w-3.5 h-3.5 mr-1" /> Mention Docs
-                   </Button>
-                 </div>
-
-                 <CardContent className="flex-1 p-0 relative h-full print:h-auto">
-                    <div className="absolute inset-0 p-8 overflow-y-auto print:static print:p-0 print:overflow-visible">
-                      <div className="max-w-3xl mx-auto h-full relative font-serif text-base leading-loose print:max-w-none">
-                        <div
-                          ref={editorRef}
-                          className="w-full min-h-[400px] outline-none prose prose-sm dark:prose-invert max-w-none print:hidden"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onInput={handleEditorInput}
-                          onBlur={() => {
-                            if (editorRef.current) setBriefContent(editorRef.current.innerHTML);
-                          }}
-                        />
-
-                        <div className="hidden print:block prose prose-sm max-w-none font-serif text-black leading-relaxed" dangerouslySetInnerHTML={{ __html: briefContent || selectedBrief.content }} />
-
-                        {showMentionMenu && (
-                          <div className="absolute top-10 left-10 w-72 bg-background border border-border shadow-xl rounded-lg overflow-hidden z-50 print:hidden">
-                            <div className="bg-primary/5 px-3 py-2 border-b border-border">
-                              <p className="text-[10px] font-bold text-primary uppercase">Link to Evidence or Precedent</p>
-                              {mentionQuery && <p className="text-[10px] text-muted-foreground mt-0.5">Filter: @{mentionQuery}</p>}
-                            </div>
-                            <div className="max-h-56 overflow-y-auto">
-                               {filteredDocs.length > 0 && (
-                                 <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/40">Digital Misl</div>
-                               )}
-                               {filteredDocs.map((doc: any) => (
-                                 <button key={doc._id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertMention(doc.title, `/staff/cases/${caseId}?misl=${doc._id}`)} className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b border-border flex items-center gap-2">
-                                   <FolderTree className="w-3 h-3 text-muted-foreground shrink-0" /> <span className="line-clamp-1">{doc.title}</span>
-                                 </button>
-                               ))}
-                               {filteredPrecedents.length > 0 && (
-                                 <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/40">Research Vault</div>
-                               )}
-                               {filteredPrecedents.map((note: any) => (
-                                 <button key={note._id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertMention(note.title, `/staff/research?note=${note._id}`)} className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b border-border flex items-center gap-2">
-                                   <Scale className="w-3 h-3 text-muted-foreground shrink-0" /> <span className="line-clamp-1">{note.title}</span>
-                                 </button>
-                               ))}
-                               {filteredDocs.length === 0 && filteredPrecedents.length === 0 && (
-                                 <p className="px-3 py-4 text-xs text-muted-foreground text-center">No matching evidence or precedents.</p>
-                               )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                 </CardContent>
-               </>
-            )}
-          </Card>
-
         </TabsContent>
       </Tabs>
     </div>

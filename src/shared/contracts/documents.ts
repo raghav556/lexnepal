@@ -50,7 +50,8 @@ export const documentRecentSchema = z.object({
 });
 
 export const documentUpdateSchema = z.object({
-  title: optionalText(500),
+  // Title is `not null` in storage, so it may be changed but never cleared.
+  title: z.string().trim().min(1).max(500).optional(),
   description: optionalText(10_000),
   type: documentTypeSchema.optional(),
   isPrivileged: z.boolean().optional(),

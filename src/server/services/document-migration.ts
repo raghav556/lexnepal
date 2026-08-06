@@ -128,7 +128,7 @@ export async function migrateDocuments(
           ["draft", "review", "approved", "filed", "archived"] as const,
           "draft",
         ),
-        uploadStatus: "clean",
+        uploadStatus: "clean" as const,
         isOnLegalHold: Boolean(doc.isOnLegalHold),
         legalHoldReason: asString(doc.legalHoldReason) || null,
         deletedAt: doc.isDeleted ? new Date() : null,

@@ -833,6 +833,14 @@
   },
   {
     "table": "research_notes",
+    "index": "research_notes_firm_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0010_research_citations.sql",
+    "queryPattern": "Firm-scoped research_notes lookup by case"
+  },
+  {
+    "table": "research_notes",
     "index": "research_notes_firm_category_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,category",

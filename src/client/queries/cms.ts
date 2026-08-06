@@ -1,12 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- temporary Convex compatibility adapter; removed with Convex */
+/* eslint-disable @typescript-eslint/no-explicit-any -- CMS entries are schema-less per collection */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { anyApi as api } from "convex/server";
-import {
-  useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
-} from "@/client/data/convex-bridge";
 import { apiClient } from "@/client/api/client";
-import { useDomainBackend } from "@/client/data/provider";
 import { queryKeys } from "@/client/queries/query-keys";
 
 type Filters = Record<string, string | number | boolean | undefined>;
@@ -18,33 +12,21 @@ type CmsCollection =
   | "careers"
   | "resources"
   | "navigation";
-const convexLists: Record<CmsCollection, any> = {
-  "practice-areas": api.cms.listPracticeAreas,
-  testimonials: api.cms.listTestimonials,
-  "blog-posts": api.cms.listBlogPosts,
-  news: api.cms.listNewsAndAwards,
-  careers: api.cms.listCareers,
-  resources: api.cms.listResources,
-  navigation: api.cms.listNavigationLinks,
-};
+
+function basePath(scope: "public" | "admin") {
+  return scope === "public" ? "/api/v1/public/cms" : "/api/v1/cms";
+}
 
 export function useCmsCollection(
   collection: CmsCollection,
   filters: Filters = {},
   scope: "public" | "admin" = "public",
 ) {
-  const backend = useDomainBackend("cms");
-  const convex = useConvexQuery(convexLists[collection], backend === "convex" ? filters : "skip");
-  const next = useQuery({
+  return useQuery({
     queryKey: queryKeys.cms.collection(scope, collection, filters),
     queryFn: ({ signal }) =>
-      apiClient.request<any[]>(
-        `/api/v1/${scope === "public" ? "public/cms" : "cms"}/${collection}`,
-        { query: filters, signal },
-      ),
-    enabled: backend === "next",
-  });
-  return (backend === "convex" ? convex : next.data) as any[] | undefined;
+      apiClient.request<any[]>(`${basePath(scope)}/${collection}`, { query: filters, signal }),
+  }).data;
 }
 export const usePracticeAreas = (filters: Filters = {}, scope: "public" | "admin" = "public") =>
   useCmsCollection("practice-areas", filters, scope);
@@ -62,116 +44,55 @@ export const useNavigation = (filters: Filters = {}, scope: "public" | "admin" =
   useCmsCollection("navigation", filters, scope);
 
 export function useCmsSettings(scope: "public" | "admin" = "public") {
-  const backend = useDomainBackend("cms");
-  const convex = useConvexQuery(api.cms.getSettings, backend === "convex" ? {} : "skip");
-  const next = useQuery({
+  return useQuery({
     queryKey: queryKeys.cms.settings(scope),
     queryFn: ({ signal }) =>
-      apiClient.request<Record<string, any>>(
-        `/api/v1/${scope === "public" ? "public/cms" : "cms"}/settings`,
-        { signal },
-      ),
-    enabled: backend === "next",
-  });
-  return (backend === "convex" ? convex : next.data) as Record<string, any> | undefined;
+      apiClient.request<Record<string, any>>(`${basePath(scope)}/settings`, { signal }),
+  }).data;
 }
+
 export function useBlogPost(slug: string) {
-  const backend = useDomainBackend("cms");
-  const convex = useConvexQuery(
-    api.cms.getBlogPostBySlug,
-    backend === "convex" ? { slug } : "skip",
-  );
-  const next = useQuery({
+  return useQuery({
     queryKey: queryKeys.cms.post(slug),
     queryFn: ({ signal }) =>
       apiClient.request<any>(`/api/v1/public/cms/blog-posts/${slug}`, { signal }),
-    enabled: backend === "next" && Boolean(slug),
-  });
-  return backend === "convex" ? convex : next.data;
+    enabled: Boolean(slug),
+  }).data;
 }
+
 export function useLegalPage(slug: "privacy-policy" | "terms") {
-  const backend = useDomainBackend("cms");
-  const convex = useConvexQuery(api.cms.getLegalPage, backend === "convex" ? { slug } : "skip");
-  const next = useQuery({
+  return useQuery({
     queryKey: queryKeys.cms.legal(slug),
     queryFn: ({ signal }) =>
       apiClient.request<any>(`/api/v1/public/cms/legal-pages/${slug}`, { signal }),
-    enabled: backend === "next",
-  });
-  return backend === "convex" ? convex : next.data;
+  }).data;
 }
+
 export function usePublicTeam() {
-  const backend = useDomainBackend("cms");
-  const convex = useConvexQuery(api.cms.listPublicTeam, backend === "convex" ? {} : "skip");
-  const next = useQuery({
+  return useQuery({
     queryKey: queryKeys.cms.team,
     queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/public/cms/team", { signal }),
-    enabled: backend === "next",
-  });
-  return (backend === "convex" ? convex : next.data) as any[] | undefined;
+  }).data;
 }
+
 export function useJobApplications(filters: Filters = {}) {
-  const backend = useDomainBackend("cms");
-  const convex = useConvexQuery(
-    api.cms.listJobApplications,
-    backend === "convex" ? filters : "skip",
-  );
-  const next = useQuery({
+  return useQuery({
     queryKey: queryKeys.cms.applications(filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>("/api/v1/cms/applications", { query: filters, signal }),
-    enabled: backend === "next",
-  });
-  return (backend === "convex" ? convex : next.data) as any[] | undefined;
+  }).data;
 }
+
 export function useNewsletterSubscribers() {
-  const backend = useDomainBackend("cms");
-  const next = useQuery({
+  return useQuery({
     queryKey: ["cms", "admin", "newsletter"],
     queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/cms/newsletter", { signal }),
-    enabled: backend === "next",
-  });
-  return backend === "next" ? next.data : [];
+  }).data;
 }
 
 export function useCmsCommands() {
-  const backend = useDomainBackend("cms");
   const client = useQueryClient();
   const invalidate = () => client.invalidateQueries({ queryKey: queryKeys.cms.all });
-  const convexCreate: Record<CmsCollection, any> = {
-    "practice-areas": useConvexMutation(api.cms.createPracticeArea),
-    testimonials: useConvexMutation(api.cms.createTestimonial),
-    "blog-posts": useConvexMutation(api.cms.createBlogPost),
-    news: useConvexMutation(api.cms.createNewsAndAward),
-    careers: useConvexMutation(api.cms.createCareer),
-    resources: useConvexMutation(api.cms.createResource),
-    navigation: useConvexMutation(api.cms.createNavigationLink),
-  };
-  const convexUpdate: Record<CmsCollection, any> = {
-    "practice-areas": useConvexMutation(api.cms.updatePracticeArea),
-    testimonials: useConvexMutation(api.cms.updateTestimonial),
-    "blog-posts": useConvexMutation(api.cms.updateBlogPost),
-    news: useConvexMutation(api.cms.updateNewsAndAward),
-    careers: useConvexMutation(api.cms.updateCareer),
-    resources: useConvexMutation(api.cms.updateResource),
-    navigation: useConvexMutation(api.cms.updateNavigationLink),
-  };
-  const convexDelete: Record<CmsCollection, any> = {
-    "practice-areas": useConvexMutation(api.cms.deletePracticeArea),
-    testimonials: useConvexMutation(api.cms.deleteTestimonial),
-    "blog-posts": useConvexMutation(api.cms.deleteBlogPost),
-    news: useConvexMutation(api.cms.deleteNewsAndAward),
-    careers: useConvexMutation(api.cms.deleteCareer),
-    resources: useConvexMutation(api.cms.deleteResource),
-    navigation: useConvexMutation(api.cms.deleteNavigationLink),
-  };
-  const convexSettings = useConvexMutation(api.cms.updateSettings);
-  const convexApplication = useConvexMutation(api.cms.createJobApplication);
-  const convexApplicationStatus = useConvexMutation(api.cms.updateJobApplicationStatus);
-  const convexDownload = useConvexMutation(api.cms.incrementResourceDownload);
-  const convexNewsletter = useConvexMutation(api.cms.subscribeNewsletter);
-  const convexReorder = useConvexMutation(api.cms.reorderNavigationLinks);
-  const convexLegal = useConvexMutation(api.cms.upsertLegalPage);
   const mutation = useMutation({
     mutationFn: async (operation: {
       kind: string;
@@ -179,22 +100,6 @@ export function useCmsCommands() {
       id?: string;
       body?: any;
     }) => {
-      if (backend === "convex") {
-        if (operation.kind === "create") return convexCreate[operation.collection!](operation.body);
-        if (operation.kind === "update")
-          return convexUpdate[operation.collection!]({ id: operation.id, ...operation.body });
-        if (operation.kind === "delete")
-          return convexDelete[operation.collection!]({ id: operation.id });
-        if (operation.kind === "settings") return convexSettings(operation.body);
-        if (operation.kind === "apply") return convexApplication(operation.body);
-        if (operation.kind === "application-status")
-          return convexApplicationStatus({ id: operation.id, ...operation.body });
-        if (operation.kind === "download") return convexDownload({ id: operation.id });
-        if (operation.kind === "newsletter") return convexNewsletter(operation.body);
-        if (operation.kind === "reorder") return convexReorder(operation.body);
-        if (operation.kind === "legal")
-          return convexLegal({ slug: operation.id, ...operation.body });
-      }
       if (operation.kind === "create")
         return apiClient.request(`/api/v1/cms/${operation.collection}`, {
           method: "POST",
@@ -281,6 +186,7 @@ export function useCmsCommands() {
     },
   };
 }
+
 function normalize(collection: CmsCollection, body: any) {
   if (collection === "practice-areas") {
     const { iconName, ...rest } = body;

@@ -37,42 +37,56 @@ function money(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
+const MONEY_KEYS = [
+  "subtotal",
+  "vatAmount",
+  "total",
+  "amount",
+  "quantity",
+  "unitPrice",
+  "ratePerHour",
+  "balance",
+] as const;
+type MoneyKey = (typeof MONEY_KEYS)[number];
+
+/** Shape a row takes on the wire: dates serialized, money coerced, internal columns stripped. */
+type RowDto<T> = Omit<
+  {
+    [K in keyof T]: K extends MoneyKey
+      ? null extends T[K]
+        ? number | null
+        : number
+      : Date extends T[K]
+        ? Exclude<T[K], Date> | string
+        : T[K];
+  },
+  "firmId" | "legacyConvexId" | "deletedAt"
+> & { _id: string };
+
+function toDto<T extends Record<string, unknown>>(row: T): RowDto<T> {
   const output: Record<string, unknown> = { ...row, _id: row.id };
   for (const [key, value] of Object.entries(output)) {
     if (value instanceof Date) output[key] = value.toISOString();
   }
-  for (const key of [
-    "subtotal",
-    "vatAmount",
-    "total",
-    "amount",
-    "quantity",
-    "unitPrice",
-    "ratePerHour",
-    "balance",
-  ]) {
+  for (const key of MONEY_KEYS) {
     if (key in output && output[key] != null) output[key] = money(output[key]);
   }
   delete output.firmId;
   delete output.legacyConvexId;
   delete output.deletedAt;
-  return output as T & { _id: string };
+  return output as RowDto<T>;
 }
 
 function toTimeDto(row: typeof timeEntries.$inferSelect) {
-  const dto = toDto(row as unknown as Record<string, unknown>);
-  return { ...dto, date: row.entryDate };
+  return { ...toDto(row), date: row.entryDate };
 }
 
 function toExpenseDto(row: typeof expenses.$inferSelect) {
-  const dto = toDto(row as unknown as Record<string, unknown>);
-  return { ...dto, date: row.expenseDate };
+  return { ...toDto(row), date: row.expenseDate };
 }
 
 function toTrustDto(row: typeof trustTransactions.$inferSelect) {
-  const dto = toDto(row as unknown as Record<string, unknown>);
-  return { ...dto, date: row.transactionDate };
+  return { ...toDto(row), date: row.transactionDate };
 }
 
 async function writeAudit(

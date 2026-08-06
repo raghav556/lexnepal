@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input.tsx";
 import { 
   CalendarDays, Plus, X, Loader2, Edit2, Search, Filter,
   List as ListIcon, Calendar as CalendarIcon, MapPin, Scale,
-  User, CheckSquare, AlertTriangle, RefreshCw, Clock, ArrowRight,
-  ChevronLeft, ChevronRight, Terminal, Server
+  User, CheckSquare, AlertTriangle, Clock,
+  ChevronLeft, ChevronRight, Server
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDualDate, gregorianToBs, formatBs } from "@/lib/nepali-calendar.ts";
@@ -16,8 +16,7 @@ import { useI18n } from "@/lib/i18n-context.tsx";
 import { getBSDate } from "@/lib/bs-calendar.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
-import { useDomainBackend } from "@/client/data/provider";
-import { useHearings, useHearingCommands, usePesiList } from "@/client/queries/hearings";
+import { useHearings, useHearingCommands } from "@/client/queries/hearings";
 import { useTasks, useTaskCommands, useUpdateTask } from "@/client/queries/tasks";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 
@@ -46,8 +45,6 @@ export default function StaffHearingsPage() {
   const hearings = useHearings({}) || [];
   const cases = useCases({}) || [];
   const users = useStaffDirectory() || [];
-  const pesiList = usePesiList();
-  const pesiAvailable = useDomainBackend("hearings") === "convex";
   const { createHearing, updateHearing } = useHearingCommands();
   const { createHearingPrepTasks } = useTaskCommands();
   const updateTask = useUpdateTask();
@@ -56,7 +53,6 @@ export default function StaffHearingsPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showPesiModal, setShowPesiModal] = useState(false);
   
   // UI Toggles
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
@@ -83,11 +79,6 @@ export default function StaffHearingsPage() {
   const [nextDateBs, setNextDateBs] = useState("");
   const [updateNotes, setUpdateNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  
-  // Pesi Sync Simulation State
-  const [syncLogs, setSyncLogs] = useState<string[]>([]);
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Handle Gregorian date selection
   const handleGregorianChange = (val: string) => {
@@ -166,39 +157,6 @@ export default function StaffHearingsPage() {
     setShowUpdateModal(true);
   };
 
-  const runPesiSync = () => {
-    setIsSyncing(true);
-    setSyncLogs(["Initializing secure connection to supremecourt.gov.np..."]);
-    setSyncProgress(10);
-    
-    setTimeout(() => {
-      setSyncLogs(prev => [...prev, "Authenticated. Fetching daily cause list XML..."]);
-      setSyncProgress(35);
-    }, 1000);
-    
-    setTimeout(() => {
-      setSyncLogs(prev => [...prev, "XML received. Parsing 1,240 records..."]);
-      setSyncProgress(60);
-    }, 2500);
-    
-    setTimeout(() => {
-      setSyncLogs(prev => [...prev, "Cross-referencing with LexNepal Active Cases DB..."]);
-      setSyncProgress(80);
-    }, 3800);
-    
-    setTimeout(() => {
-      setSyncLogs(prev => [...prev, "Found 2 matching cases for your firm. Injecting into Docket..."]);
-      setSyncProgress(100);
-      toast.success("Pesi synchronized successfully!");
-      setTimeout(() => {
-        setIsSyncing(false);
-        setShowPesiModal(false);
-        setSyncLogs([]);
-        setSyncProgress(0);
-      }, 1500);
-    }, 5500);
-  };
-
   // Conflict Detection Algorithm
   // If the same lawyer has >= 2 hearings on the same date, flag them as conflict.
   const lawyerHearingMap: Record<string, string[]> = {};
@@ -245,11 +203,6 @@ export default function StaffHearingsPage() {
           <p className="text-sm text-muted-foreground mt-1">Manage schedules, track pesi lists, and resolve lawyer conflicts.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {pesiAvailable && (
-            <Button variant="outline" className="border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100" onClick={() => setShowPesiModal(true)}>
-              <RefreshCw className="w-4 h-4 mr-2" /> Sync Court Pesi
-            </Button>
-          )}
           <Button onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4 mr-2" /> Add Hearing
           </Button>
@@ -445,34 +398,16 @@ export default function StaffHearingsPage() {
                   <Server className="w-4 h-4" /> Automated Pesi Sync
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                {!pesiAvailable ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    Court Pesi sync is not available on the Next backend yet.
+              <CardContent className="p-4">
+                <div className="text-center py-6 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Automated Pesi sync is not connected.
                   </p>
-                ) : pesiList.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-sm text-muted-foreground mb-3">No synced pesi records for today.</p>
-                    <Button variant="outline" className="w-full border-orange-200 text-orange-700" onClick={() => setShowPesiModal(true)}>
-                      <RefreshCw className="w-4 h-4 mr-2" /> Sync Now
-                    </Button>
-                  </div>
-                ) : (
-                  pesiList.map((p: any) => {
-                    const matchedCase = cases.find((c: any) => c._id === p.caseId);
-                    return (
-                      <div key={p._id} className="p-3 rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-900/10 dark:border-orange-900/30">
-                        <div className="flex justify-between items-start mb-1">
-                          <p className="font-bold text-sm text-foreground line-clamp-1">{matchedCase ? matchedCase.title : "Unknown"}</p>
-                          <Badge className="bg-orange-100 text-orange-800 text-[9px] uppercase">{p.status}</Badge>
-                        </div>
-                        <p className="text-xs font-mono text-muted-foreground">S.N: {p.serialNumber} | {p.courtName}</p>
-                        <p className="text-xs text-muted-foreground mt-1"><strong>Judge:</strong> {p.judgeName}</p>
-                        <p className="text-xs italic mt-1">{p.hearingType}</p>
-                      </div>
-                    );
-                  })
-                )}
+                  <p className="text-xs text-muted-foreground">
+                    No court cause-list integration is configured. Add hearings manually until an
+                    official court API or import is available.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -626,58 +561,6 @@ export default function StaffHearingsPage() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Pesi Sync Simulation Modal */}
-      {showPesiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-in fade-in-20 backdrop-blur-md">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col scale-in-95">
-             <div className="bg-zinc-900 text-zinc-100 p-4 flex items-center justify-between border-b border-zinc-800">
-               <div className="flex items-center gap-2">
-                 <Terminal className="w-5 h-5 text-green-400" />
-                 <h3 className="font-mono font-bold text-sm tracking-wider">SupremeCourt_Nepal_API_Bridge</h3>
-               </div>
-               {!isSyncing && (
-                 <button onClick={() => setShowPesiModal(false)} className="text-zinc-500 hover:text-zinc-100 p-1 rounded hover:bg-zinc-800"><X className="w-4 h-4" /></button>
-               )}
-             </div>
-             
-             <div className="p-6 bg-zinc-950 min-h-[300px] flex flex-col">
-               <div className="flex-1 font-mono text-[11px] text-green-400/80 space-y-2 overflow-y-auto">
-                 {syncLogs.length === 0 && (
-                   <div className="text-zinc-500 h-full flex flex-col items-center justify-center text-center space-y-4">
-                     <Server className="w-12 h-12 opacity-50" />
-                     <p>Ready to establish secure connection to Nepal Court CMS.<br/>Click Start Sync to begin.</p>
-                   </div>
-                 )}
-                 {syncLogs.map((log, i) => (
-                   <p key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                     <span className="text-zinc-600 mr-2">[{format(new Date(), "HH:mm:ss")}]</span> {log}
-                   </p>
-                 ))}
-                 {isSyncing && <p className="animate-pulse">_</p>}
-               </div>
-               
-               {isSyncing && (
-                 <div className="mt-6">
-                   <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
-                     <div className="h-full bg-green-500 transition-all duration-500 ease-out" style={{ width: `${syncProgress}%` }}></div>
-                   </div>
-                   <p className="text-[10px] text-zinc-500 font-mono mt-2 text-right">{syncProgress}% Complete</p>
-                 </div>
-               )}
-             </div>
-             
-             {!isSyncing && syncLogs.length === 0 && (
-               <div className="p-4 bg-zinc-900 border-t border-zinc-800 flex justify-end gap-3">
-                 <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100" onClick={() => setShowPesiModal(false)}>Cancel</Button>
-                 <Button className="bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20" onClick={runPesiSync}>
-                   Start Secure Sync <ArrowRight className="w-4 h-4 ml-2" />
-                 </Button>
-               </div>
-             )}
           </div>
         </div>
       )}

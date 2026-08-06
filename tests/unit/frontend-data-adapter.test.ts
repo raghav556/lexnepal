@@ -3,37 +3,9 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClient } from "@/client/api/client";
 import { ApiClientError, normalizeApiError } from "@/client/api/errors";
-import { BACKEND_DOMAINS, resolveBackendFlags } from "@/client/data/backend-config";
 import { queryKeys } from "@/client/queries/query-keys";
 
-describe("frontend backend routing", () => {
-  it("defaults every domain to Convex and switches domains independently", () => {
-    const defaults = resolveBackendFlags({});
-    expect(BACKEND_DOMAINS.every((domain) => defaults[domain] === "convex")).toBe(true);
-
-    const switched = resolveBackendFlags({
-      VITE_BACKEND_DOCUMENTS: "next",
-      VITE_BACKEND_CASES: "convex",
-      NEXT_PUBLIC_BACKEND_TASKS: "next",
-      VITE_BACKEND_CMS: "invalid",
-    });
-    expect(switched.documents).toBe("next");
-    expect(switched.tasks).toBe("next");
-    expect(switched.cases).toBe("convex");
-    expect(switched.cms).toBe("convex");
-  });
-
-  it("forces Convex for every domain while VITE_USE_MOCK is enabled", () => {
-    const mocked = resolveBackendFlags({
-      VITE_USE_MOCK: "true",
-      VITE_BACKEND_DOCUMENTS: "next",
-      VITE_BACKEND_CASES: "next",
-      VITE_BACKEND_IDENTITY: "next",
-      NEXT_PUBLIC_BACKEND_TASKS: "next",
-    });
-    expect(BACKEND_DOMAINS.every((domain) => mocked[domain] === "convex")).toBe(true);
-  });
-
+describe("frontend data adapter", () => {
   it("uses stable domain query-key namespaces", () => {
     expect(queryKeys.documents.list({ inTrash: false })).toEqual([
       "documents",
@@ -69,9 +41,9 @@ describe("normalized API errors", () => {
     });
   });
 
-  it("normalizes legacy Convex errors to the same client error type", () => {
+  it("normalizes bare error payloads to the same client error type", () => {
     const normalized = normalizeApiError({
-      message: "Convex request failed",
+      message: "Request failed",
       data: { code: "UNAUTHENTICATED", message: "Authentication is required" },
     });
     expect(normalized).toBeInstanceOf(ApiClientError);
@@ -83,30 +55,28 @@ describe("normalized API errors", () => {
   });
 });
 
-describe("Convex import boundary", () => {
-  it("keeps direct convex/react imports inside the transitional bridge", () => {
+describe("decommissioned backend boundary", () => {
+  it("has no Convex or react-router imports left in the app source", () => {
     const root = path.resolve("src");
     const violations: string[] = [];
     walk(root, (file) => {
-      if (file.endsWith(path.join("client", "data", "convex-bridge.ts"))) return;
-      if (file.includes(path.join("client", "queries"))) return;
-      if (/from\s+["']convex\/react["']/.test(fs.readFileSync(file, "utf8"))) {
+      const source = fs.readFileSync(file, "utf8");
+      if (/from\s+["']convex\/|from\s+["']react-router|@\/convex\//.test(source)) {
         violations.push(path.relative(root, file));
       }
     });
     expect(violations).toEqual([]);
   });
 
-  it("keeps matters components independent of Convex domain exports", () => {
-    const root = path.resolve("src");
-    const violations: string[] = [];
-    walk(root, (file) => {
-      if (!file.endsWith(".tsx")) return;
-      if (/api\.(?:clients|cases|conflictChecks)\b/.test(fs.readFileSync(file, "utf8"))) {
-        violations.push(path.relative(root, file));
-      }
-    });
-    expect(violations).toEqual([]);
+  it("routes every domain hook through the Next API client", () => {
+    const queriesDir = path.resolve("src/client/queries");
+    const offenders: string[] = [];
+    for (const entry of fs.readdirSync(queriesDir)) {
+      if (!entry.endsWith(".ts") || entry === "query-keys.ts") continue;
+      const source = fs.readFileSync(path.join(queriesDir, entry), "utf8");
+      if (!source.includes("@/client/api/client")) offenders.push(entry);
+    }
+    expect(offenders).toEqual([]);
   });
 });
 

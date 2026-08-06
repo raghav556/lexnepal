@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { User as UserIcon, AlertTriangle, Activity, FileText, Settings, Shield, LogOut, Menu, X, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, ChevronUp, Navigation, Newspaper } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
@@ -11,7 +12,9 @@ import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: any; heading?: string };
+type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: LucideIcon; heading?: string };
+type NavLink = NavItem & { href: string; icon: LucideIcon };
+const isNavLink = (item: NavItem): item is NavLink => Boolean(item.href && item.icon);
 
 const NAV: NavItem[] = [
   { heading: "Overview" },
@@ -83,10 +86,11 @@ function AdminDesktopSidebar() {
           if (item.heading) {
             return <div key={`heading-${idx}`} className="text-xs font-semibold text-sidebar-foreground/50 mt-5 mb-2 px-3 uppercase tracking-wider">{item.heading}</div>;
           }
+          if (!isNavLink(item)) return null;
           const { label, i18nKey, href, icon: Icon } = item;
           return (
-            <Link key={href} href={href!} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              isActive(href!) ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            <Link key={href} href={href} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              isActive(href) ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             )}><Icon className="w-4 h-4 shrink-0" />{t(i18nKey!) !== i18nKey ? t(i18nKey!) : label}</Link>
           );
         })}
@@ -133,9 +137,12 @@ function AdminMobileChrome() {
   const isActive = useIsActive();
   const pathname = usePathname();
 
-  useEffect(() => {
+  // Collapse the drawer whenever the route changes, including browser back/forward.
+  const [drawerPathname, setDrawerPathname] = useState(pathname);
+  if (drawerPathname !== pathname) {
+    setDrawerPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <>

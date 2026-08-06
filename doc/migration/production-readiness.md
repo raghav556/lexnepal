@@ -8,6 +8,18 @@ Contacts template: [`incident-contacts.md`](incident-contacts.md)
 Cutover procedure: [`cutover-runbook.md`](cutover-runbook.md) §6 (prod stubs)  
 Rollback model: [`rollback-runbook.md`](rollback-runbook.md)
 
+> **R8 local decommission waiver.** Convex has been fully removed from the local app under the
+> waiver in [`decommission-checklist.md`](decommission-checklist.md). That changes two things for
+> this gate, and nothing else:
+>
+> - **Rollback (R7.8 / ADR-0015):** flag-flip rollback no longer exists. A production cutover plan
+>   must either restore Convex from `archive/convex-decommission/convex-source.zip` or adopt a
+>   forward-fix-only rollback posture with the incident commander's written acceptance.
+> - **R7.3:** still requires a real production Convex export. The local archive is source code,
+>   not data, and grants no R7.3 credit.
+>
+> Every other row below is unchanged and remains `DEFER_PROD`.
+
 ---
 
 ## Exit gate (production)

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- migration input is untrusted heterogeneous legacy JSON */
+ 
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";

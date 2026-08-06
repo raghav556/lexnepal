@@ -1,7 +1,8 @@
 /**
- * R5.5 proof: every Vite product URL has the same Next path (or a documented redirect).
+ * R5.5 proof: every historical Vite product URL still resolves to the same Next path
+ * (or a documented redirect).
  *
- * Offline gate: inventory + deep-link matrix + App.tsx coverage + src/app filesystem.
+ * Offline gate: inventory + deep-link matrix + `src/app` route coverage.
  * Optional HTTP: set NEXT_PROOF_BASE_URL=http://localhost:3001 to GET sample deep links.
  */
 import fs from "node:fs/promises";
@@ -12,7 +13,7 @@ import type { DomainMigrationReport } from "./types";
 const ROOT = process.cwd();
 const INVENTORY = path.join(ROOT, "doc/migration/ui-route-inventory.csv");
 const MATRIX = path.join(ROOT, "doc/migration/ui-deep-link-matrix.csv");
-const APP_TSX = path.join(ROOT, "src/App.tsx");
+const APP_DIR = path.join(ROOT, "src/app");
 const NEXT_CONFIG = path.join(ROOT, "next.config.ts");
 
 type InventoryRow = {
@@ -69,58 +70,28 @@ function normalizePathPattern(p: string): string {
     .replace(/\/$/, "") || "/";
 }
 
-/** Expand React Router nested paths in App.tsx into absolute inventory-style paths. */
-function extractAppRoutes(source: string): string[] {
-  const paths = new Set<string>();
-  const stack: string[] = [];
-  const lines = source.split(/\r?\n/);
-
-  function isSelfClosingRoute(line: string): boolean {
-    // Ignore `/>` inside element={...} JSX (e.g. element={<Layout />})
-    const stripped = line.replace(/\{[\s\S]*?\}/g, "{}");
-    return /<Route\b[^>]*\/>/.test(stripped);
+/**
+ * Walk the App Router tree and return one inventory-style path per `page.tsx`. Route groups
+ * (`(public)`) contribute no URL segment; a root `not-found.tsx` stands in for the catch-all `*`.
+ */
+async function discoverNextRoutes(dir = APP_DIR, prefix = ""): Promise<string[]> {
+  const paths: string[] = [];
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (entry.name === "api") continue;
+      const isRouteGroup = entry.name.startsWith("(") && entry.name.endsWith(")");
+      paths.push(
+        ...(await discoverNextRoutes(
+          path.join(dir, entry.name),
+          isRouteGroup ? prefix : `${prefix}/${entry.name}`,
+        )),
+      );
+      continue;
+    }
+    if (entry.name === "page.tsx") paths.push(prefix || "/");
+    if (entry.name === "not-found.tsx" && dir === APP_DIR) paths.push("*");
   }
-
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (line.startsWith("</Route>")) {
-      stack.pop();
-      continue;
-    }
-    if (!line.includes("<Route")) continue;
-
-    const pathMatch = line.match(/\bpath=["']([^"']+)["']/);
-    const isIndex = /\bindex\b/.test(line);
-
-    if (isIndex) {
-      const parent = stack[stack.length - 1] || "/";
-      paths.add(parent);
-      continue;
-    }
-    if (!pathMatch) continue;
-
-    const seg = pathMatch[1]!;
-    if (seg === "*") {
-      paths.add("*");
-      continue;
-    }
-
-    let full: string;
-    if (seg.startsWith("/")) {
-      full = seg;
-    } else {
-      const parent = stack[stack.length - 1] || "";
-      full = `${parent.replace(/\/$/, "")}/${seg}`.replace(/\/+/g, "/");
-      if (!full.startsWith("/")) full = `/${full}`;
-    }
-    paths.add(full);
-
-    if (!isSelfClosingRoute(line)) {
-      stack.push(full);
-    }
-  }
-
-  return [...paths].sort();
+  return [...new Set(paths)].sort();
 }
 
 async function pathExists(rel: string): Promise<boolean> {
@@ -241,18 +212,17 @@ async function main() {
     }
   }
 
-  const appSource = await fs.readFile(APP_TSX, "utf8");
-  const appRoutes = extractAppRoutes(appSource);
-  const invPaths = new Set(inventory.map((r) => r.vitePath));
+  const appRoutes = await discoverNextRoutes();
+  const invPaths = new Set(inventory.map((r) => r.nextPath));
 
   for (const route of appRoutes) {
     if (!invPaths.has(route)) {
-      errors.push(`App.tsx route not in inventory: ${route}`);
+      errors.push(`src/app route not in inventory: ${route}`);
     }
   }
   for (const row of inventory) {
-    if (!appRoutes.includes(row.vitePath)) {
-      errors.push(`Inventory path missing from App.tsx: ${row.vitePath}`);
+    if (!appRoutes.includes(row.nextPath)) {
+      errors.push(`Inventory path missing from src/app: ${row.nextPath}`);
     }
   }
 
@@ -294,7 +264,7 @@ async function main() {
     command: "prove-url-preserve",
     report,
     notes: [
-      "R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ App.tsx ↔ src/app files; same-path default; redirects only if matrix.redirectFrom set.",
+      "R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ src/app routes; same-path default; redirects only if matrix.redirectFrom set.",
       `redirectCount=${redirects.length}`,
       `httpSmoke=${http.ran ? (http.failures.length === 0 ? "passed" : "failed") : "skipped"}`,
       ...(http.ran ? [`NEXT_PROOF_BASE_URL=${process.env.NEXT_PROOF_BASE_URL}`] : []),

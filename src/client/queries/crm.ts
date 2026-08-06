@@ -1,47 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { anyApi as api } from "convex/server";
-import {
-  useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
-} from "@/client/data/convex-bridge";
 import { apiClient } from "@/client/api/client";
 import { ApiClientError, normalizeApiError } from "@/client/api/errors";
-import { useDomainBackend } from "@/client/data/provider";
 import { queryKeys } from "@/client/queries/query-keys";
 
 export function useLeads(filters?: { status?: string; assignedTo?: string }) {
-  const backend = useDomainBackend("leads");
-  const convex = useConvexQuery(
-    api.leads.listLeads,
-    backend === "convex" ? ((filters || {}) as any) : "skip",
-  );
   const next = useQuery({
     queryKey: queryKeys.crm.leads(filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>("/api/v1/leads", { query: { ...filters }, signal }),
-    enabled: backend === "next",
   });
-  return {
-    data: (backend === "convex" ? convex : next.data) ?? [],
-    isLoading: backend === "next" ? next.isLoading : convex === undefined,
-  };
+  return { data: next.data ?? [], isLoading: next.isLoading };
 }
 
 export function useLeadCommands() {
-  const backend = useDomainBackend("leads");
   const queryClient = useQueryClient();
-  const convexCreate = useConvexMutation(api.leads.createLead as any);
-  const convexUpdate = useConvexMutation(api.leads.updateLead as any);
-  const convexConvert = useConvexMutation(api.leads.convertToClient as any);
-  const convexIntakeLink = useConvexMutation(api.leads.generateIntakeLink as any);
-  const convexSubmitIntake = useConvexMutation(api.leads.submitIntake as any);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all });
 
   const createLead = useMutation({
     mutationFn: async (data: any) => {
       try {
-        if (backend === "convex") return await convexCreate(data);
         // Public website / chatbot captures go through the public firm endpoint.
         return await apiClient.request("/api/v1/public/leads", { method: "POST", body: data });
       } catch (error) {
@@ -60,11 +38,7 @@ export function useLeadCommands() {
     }) => {
       try {
         const { leadId, ...rest } = args;
-        if (backend === "convex") return await convexUpdate({ leadId, ...rest });
-        return await apiClient.request(`/api/v1/leads/${leadId}`, {
-          method: "PATCH",
-          body: rest,
-        });
+        return await apiClient.request(`/api/v1/leads/${leadId}`, { method: "PATCH", body: rest });
       } catch (error) {
         throw normalizeApiError(error);
       }
@@ -79,7 +53,6 @@ export function useLeadCommands() {
       companyName?: string;
     }) => {
       try {
-        if (backend === "convex") return await convexConvert(args as any);
         return await apiClient.request(`/api/v1/leads/${args.leadId}/convert`, {
           method: "POST",
           body: { type: args.type ?? "individual", companyName: args.companyName },
@@ -97,10 +70,6 @@ export function useLeadCommands() {
   const generateIntakeLink = useMutation({
     mutationFn: async (args: { leadId: string }) => {
       try {
-        if (backend === "convex") {
-          const result = await convexIntakeLink({ leadId: args.leadId });
-          return typeof result === "string" ? result : result?.token;
-        }
         const result = await apiClient.request<{ token: string; url: string }>(
           `/api/v1/leads/${args.leadId}/intake-link`,
           { method: "POST", body: {} },
@@ -127,7 +96,6 @@ export function useLeadCommands() {
     }) => {
       try {
         const { token, ...payload } = args;
-        if (backend === "convex") return await convexSubmitIntake(args as any);
         return await apiClient.request(`/api/v1/public/leads/intake/${encodeURIComponent(token)}`, {
           method: "POST",
           body: payload,
@@ -142,11 +110,6 @@ export function useLeadCommands() {
 }
 
 export function useIntakeByToken(token: string | null) {
-  const backend = useDomainBackend("leads");
-  const convex = useConvexQuery(
-    api.leads.getIntakeByToken as any,
-    backend === "convex" && token ? { token } : "skip",
-  );
   const next = useQuery({
     queryKey: ["crm", "intake", token],
     queryFn: async ({ signal }) => {
@@ -156,54 +119,26 @@ export function useIntakeByToken(token: string | null) {
           { signal },
         );
       } catch (error) {
+        // An unknown or expired token is a normal "no intake here" answer, not a failure.
         if (error instanceof ApiClientError && error.status === 404) return null;
         throw error;
       }
     },
-    enabled: backend === "next" && !!token,
+    enabled: !!token,
   });
-
-  const convexData =
-    convex === undefined
-      ? undefined
-      : convex === null
-        ? null
-        : (convex as any)?.lead
-          ? (convex as any)
-          : { lead: convex };
-
-  return {
-    data: backend === "convex" ? convexData : next.data,
-    isLoading: backend === "next" ? next.isLoading : convex === undefined,
-  };
+  return { data: next.data, isLoading: next.isLoading };
 }
 
 export function useAppointments(filters?: { status?: string; assignedLawyerId?: string }) {
-  const backend = useDomainBackend("appointments");
-  const convex = useConvexQuery(
-    api.appointments.listAppointments,
-    backend === "convex" ? ((filters || {}) as any) : "skip",
-  );
   const next = useQuery({
     queryKey: queryKeys.crm.appointments(filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>("/api/v1/appointments", { query: { ...filters }, signal }),
-    enabled: backend === "next",
   });
-  return {
-    data: (backend === "convex" ? convex : next.data) ?? [],
-    isLoading: backend === "next" ? next.isLoading : convex === undefined,
-  };
+  return { data: next.data ?? [], isLoading: next.isLoading };
 }
 
 export function useAvailableSlots(date?: string, assignedLawyerId?: string) {
-  const backend = useDomainBackend("appointments");
-  const convex = useConvexQuery(
-    api.appointments.listAvailableSlots,
-    backend === "convex" && date
-      ? ({ date, assignedLawyerId } as any)
-      : "skip",
-  );
   const next = useQuery({
     queryKey: queryKeys.crm.availableSlots(date!),
     queryFn: ({ signal }) =>
@@ -211,31 +146,22 @@ export function useAvailableSlots(date?: string, assignedLawyerId?: string) {
         query: { date, assignedLawyerId },
         signal,
       }),
-    enabled: backend === "next" && !!date,
+    enabled: !!date,
   });
-  return {
-    data: (backend === "convex" ? convex : next.data) ?? [],
-    isLoading: backend === "next" ? next.isLoading : convex === undefined,
-  };
+  return { data: next.data ?? [], isLoading: next.isLoading };
 }
 
 export function useAppointmentCommands() {
-  const backend = useDomainBackend("appointments");
   const queryClient = useQueryClient();
-  const convexCreate = useConvexMutation(api.appointments.createAppointment as any);
-  const convexBook = useConvexMutation(api.appointments.bookConsultation as any);
-  const convexStatus = useConvexMutation(api.appointments.updateAppointmentStatus as any);
-  const convexAssign = useConvexMutation(api.appointments.assignLawyerToAppointment as any);
-  const convexReschedule = useConvexMutation(api.appointments.rescheduleAppointment as any);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all });
 
   const createAppointment = useMutation({
     mutationFn: async (data: any) => {
       try {
-        if (backend === "convex") return await convexCreate(data);
         try {
           return await apiClient.request("/api/v1/appointments", { method: "POST", body: data });
         } catch (error) {
+          // The same form serves signed-in staff and anonymous website visitors.
           if (error instanceof ApiClientError && error.status === 401) {
             return await apiClient.request("/api/v1/public/appointments", {
               method: "POST",
@@ -254,7 +180,6 @@ export function useAppointmentCommands() {
   const bookConsultation = useMutation({
     mutationFn: async (data: any) => {
       try {
-        if (backend === "convex") return await convexBook(data);
         return await apiClient.request("/api/v1/appointments/book", { method: "POST", body: data });
       } catch (error) {
         throw normalizeApiError(error);
@@ -264,16 +189,9 @@ export function useAppointmentCommands() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async (args: {
-      appointmentId: string;
-      status: string;
-      meetingLink?: string;
-    }) => {
+    mutationFn: async (args: { appointmentId: string; status: string; meetingLink?: string }) => {
       try {
         const { appointmentId, ...rest } = args;
-        if (backend === "convex") {
-          return await convexStatus({ id: appointmentId, ...rest });
-        }
         return await apiClient.request(`/api/v1/appointments/${appointmentId}/status`, {
           method: "PATCH",
           body: rest,
@@ -288,12 +206,6 @@ export function useAppointmentCommands() {
   const assignLawyer = useMutation({
     mutationFn: async (args: { appointmentId: string; lawyerId: string }) => {
       try {
-        if (backend === "convex") {
-          return await convexAssign({
-            id: args.appointmentId,
-            assignedLawyerId: args.lawyerId,
-          });
-        }
         return await apiClient.request(`/api/v1/appointments/${args.appointmentId}/assign`, {
           method: "POST",
           body: { assignedLawyerId: args.lawyerId },
@@ -309,9 +221,6 @@ export function useAppointmentCommands() {
     mutationFn: async (args: { appointmentId: string; date: string; timeSlot: string }) => {
       try {
         const { appointmentId, ...rest } = args;
-        if (backend === "convex") {
-          return await convexReschedule({ id: appointmentId, ...rest });
-        }
         return await apiClient.request(`/api/v1/appointments/${appointmentId}/reschedule`, {
           method: "POST",
           body: rest,

@@ -7586,3 +7586,46 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 - residual=src/hooks/use-current-user.ts
 - residual=src/lib/convex-mock.tsx
 
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-06T02:13:35.041Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A1 | 1 | 1 | yes |
+| A3 | 1 | 1 | yes |
+| A4 | 1 | 1 | yes |
+| A5 | 1 | 1 | yes |
+| A6 | 1 | 1 | yes |
+| A7 | 1 | 1 | yes |
+| A8 | 1 | 1 | yes |
+| C1 | 1 | 1 | yes |
+| C2 | 1 | 1 | yes |
+| C3 | 1 | 1 | yes |
+| C4 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C8 | 1 | 1 | yes |
+| C9 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 complete_local under local-only waiver — Convex runtime removed; archive retained.
+- R7 production readiness remains DEFER_PROD.
+- archive=doc/migration/archive/convex-decommission/convex-source.zip
+- requiredComplete=A1,A3,A4,A5,A6,A7,A8,C1,C2,C3,C4,C5,C8,C9,C11,C12
+

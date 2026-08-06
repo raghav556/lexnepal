@@ -50,9 +50,9 @@ export default function AdminExpensesPage() {
   const [search, setSearch] = useState("");
   
   const { data: expenses = [] } = useExpenses({ category: categoryFilter, status: statusFilter });
-  const { data: stats = {} } = useExpenseStats();
+  const { data: stats } = useExpenseStats();
   const cases = useCases({}) || [];
-  const users = (useStaffDirectory() || []) as any[];
+  const users = useStaffDirectory() || [];
 
   const { createExpense: createExpenseMutation, approveExpense: approveExpenseMutation, deleteExpense: deleteExpenseMutation } = useExpenseCommands();
 
@@ -137,26 +137,26 @@ export default function AdminExpensesPage() {
     {
       label: "Total Expenses",
       shortLabel: "Total",
-      value: formatCurrency(stats.total || 0),
+      value: formatCurrency(stats?.total ?? 0),
       valueClass: "text-foreground",
     },
     {
       label: "Approved & Paid",
       shortLabel: "Approved",
-      value: formatCurrency(stats.approved || 0),
+      value: formatCurrency(stats?.approved ?? 0),
       valueClass: "text-emerald-600 dark:text-emerald-400",
     },
     {
       label: "Pending Approval",
       shortLabel: "Pending",
-      value: formatCurrency(stats.pending || 0),
+      value: formatCurrency(stats?.pending ?? 0),
       valueClass: "text-amber-600 dark:text-amber-400",
-      badge: (stats.pendingCount || 0) > 0 ? `${stats.pendingCount}` : null,
+      badge: (stats?.pendingCount ?? 0) > 0 ? `${stats?.pendingCount}` : null,
     },
     {
       label: "Case-Linked Costs",
       shortLabel: "Case-linked",
-      value: formatCurrency(stats.caseLinked || 0),
+      value: formatCurrency(stats?.caseLinked ?? 0),
       valueClass: "text-foreground",
       icon: true,
     },

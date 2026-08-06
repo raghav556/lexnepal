@@ -103,6 +103,7 @@ practice_areas,practice_areas_firm_slug_unique,yes,"firm_id,slug",Enforce practi
 research_note_tags,research_note_tags_firm_tag_idx,no,"firm_id,tag",Documented operational lookup for research_note_tags,drizzle/0000_initial_postgresql_schema.sql
 research_note_tags,research_note_tags_unique,yes,"firm_id,research_note_id,tag",Enforce research_note_tags business or tenant uniqueness,drizzle/0000_initial_postgresql_schema.sql
 research_notes,research_notes_firm_author_idx,no,"firm_id,author_id",Firm-scoped research_notes lookup by responsible user,drizzle/0000_initial_postgresql_schema.sql
+research_notes,research_notes_firm_case_idx,no,"firm_id,case_id",Firm-scoped research_notes lookup by case,drizzle/0010_research_citations.sql
 research_notes,research_notes_firm_category_idx,no,"firm_id,category",Firm-scoped research_notes classification filter,drizzle/0000_initial_postgresql_schema.sql
 resources,resources_firm_category_idx,no,"firm_id,category",Firm-scoped resources classification filter,drizzle/0000_initial_postgresql_schema.sql
 sessions,sessions_expiry_idx,no,expires_at,Firm-scoped sessions chronological or reminder query,drizzle/0002_authentication_sessions.sql

@@ -208,43 +208,26 @@ export async function migrateEnvelopeExport(input: {
   );
   const checks: EnvelopeMigrationReport["reconciliation"]["checks"] = {};
   for (const table of tables) {
-    const targetFirmFilter = Object.values(input.firmMap);
+    // Reconciliation counts the rows carrying a legacy id seen in the export, per table.
+    const legacyIds = (records.get(table) ?? [])
+      .map((r) => asString(r._id))
+      .filter(Boolean) as string[];
     let target = 0;
-    if (table === "signatureEnvelopes") {
-      target = (
-        await database
-          .select({ id: signatureEnvelopes.id })
-          .from(signatureEnvelopes)
-          .where(inArray(signatureEnvelopes.firmId, targetFirmFilter))
-      ).filter((row) =>
-        (records.get(table) ?? []).some(
-          (r) => asString(r._id) && true,
-        ),
-      ).length;
-      // Count by legacy ids present in source
-      const legacyIds = (records.get(table) ?? [])
-        .map((r) => asString(r._id))
-        .filter(Boolean) as string[];
-      if (legacyIds.length) {
-        target = (
-          await database
-            .select({ id: signatureEnvelopes.id })
-            .from(signatureEnvelopes)
-            .where(inArray(signatureEnvelopes.legacyConvexId, legacyIds))
-        ).length;
-      } else target = 0;
-    } else {
-      const legacyIds = (records.get(table) ?? [])
-        .map((r) => asString(r._id))
-        .filter(Boolean) as string[];
-      target = legacyIds.length
-        ? (
-            await database
-              .select({ id: signatureRecipients.id })
-              .from(signatureRecipients)
-              .where(inArray(signatureRecipients.legacyConvexId, legacyIds))
-          ).length
-        : 0;
+    if (legacyIds.length) {
+      target =
+        table === "signatureEnvelopes"
+          ? (
+              await database
+                .select({ id: signatureEnvelopes.id })
+                .from(signatureEnvelopes)
+                .where(inArray(signatureEnvelopes.legacyConvexId, legacyIds))
+            ).length
+          : (
+              await database
+                .select({ id: signatureRecipients.id })
+                .from(signatureRecipients)
+                .where(inArray(signatureRecipients.legacyConvexId, legacyIds))
+            ).length;
     }
     checks[table] = { source: source[table]!, target };
   }

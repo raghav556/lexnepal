@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { toast } from "sonner";
 import { useIdentityCommands, useRolePermissions, useSystemSettings } from "@/client/queries/identity";
-import { useMigrateLegacyDocumentSecurity } from "@/client/queries/documents";
 import { Save, Settings, CreditCard, Globe, Layers, Blocks, MessageSquare, Wallet, Video, UploadCloud, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
@@ -40,10 +39,8 @@ export default function AdminSettingsPage() {
   const settings = useSystemSettings();
   const { updateSettings, updateRolePermissions } = useIdentityCommands();
   const rolePermissions = useRolePermissions();
-  const { migrateAvailable, migrate: migrateDocumentSecurity } = useMigrateLegacyDocumentSecurity();
   const [permMatrix, setPermMatrix] = useState<Record<string, string[]>>({});
   const [savingPerms, setSavingPerms] = useState(false);
-  const [migratingDocuments, setMigratingDocuments] = useState(false);
 
   useEffect(() => {
     if (rolePermissions) setPermMatrix(rolePermissions as Record<string, string[]>);
@@ -607,32 +604,6 @@ export default function AdminSettingsPage() {
               </div>
             </CardContent>
           </Card>
-          {migrateAvailable && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Legacy Document Security Migration</CardTitle>
-              <CardDescription>
-                One-time migration for an existing single-firm installation. It assigns tenant IDs, marks existing documents as trusted legacy files, and revokes legacy public links that used plaintext passwords.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" disabled={migratingDocuments} onClick={async () => {
-                if (!window.confirm("Run the one-time document security migration? Legacy public links will be revoked.")) return;
-                setMigratingDocuments(true);
-                try {
-                  const result = await migrateDocumentSecurity();
-                  toast.success(`Security migration complete: ${result.updated} records updated.`);
-                } catch (err: any) {
-                  toast.error(err?.message || "Security migration failed.");
-                } finally {
-                  setMigratingDocuments(false);
-                }
-              }}>
-                <Shield className="w-4 h-4 mr-2" /> {migratingDocuments ? "Migrating…" : "Migrate Legacy Documents"}
-              </Button>
-            </CardContent>
-          </Card>
-          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -19,9 +19,7 @@
     "baseUrl": ".",
     "paths": {
       "@/client/navigation": ["./src/client/navigation/next.tsx"],
-      "@/*": ["./src/*"],
-      "@/convex/*": ["./convex/*"],
-      "@usehercules/auth/react": ["./src/lib/hercules-react-shim.ts"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [
@@ -56,11 +54,5 @@
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "convex",
-    "src/legacy-pages",
-    "next-app"
-  ]
+  "exclude": ["node_modules", "dist", "next-app"]
 }

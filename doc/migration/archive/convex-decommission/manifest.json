@@ -1,0 +1,243 @@
+{
+  "createdAt": "2026-08-05T20:34:56.367Z",
+  "reason": "R8.A1 local-only waiver — Convex runtime removed from the app; restore from this zip to rebuild the rollback path",
+  "fileCount": 46,
+  "totalBytes": 451771,
+  "zip": {
+    "path": "doc/migration/archive/convex-decommission/convex-source.zip",
+    "sha256": "98e4836a1dd8419038bc2e1584d42f5879ed525a870e82d8b01511273c19f0e8",
+    "bytes": 110882
+  },
+  "files": [
+    {
+      "path": "convex/_generated/api.d.ts",
+      "bytes": 3496,
+      "sha256": "2b4df4607e53cc5eef7082184e30a4f2439c1c91aa11e6a3ba978445f4a5b55f"
+    },
+    {
+      "path": "convex/_generated/api.js",
+      "bytes": 480,
+      "sha256": "f513058549831e85376f8d19cafaf2a4a770b6eb1b859fb371141f2c9dec0d70"
+    },
+    {
+      "path": "convex/_generated/dataModel.d.ts",
+      "bytes": 1736,
+      "sha256": "db177073d16a4393c7a96bcdc3a2a904e88c2432d54d138ca7715cc431982c17"
+    },
+    {
+      "path": "convex/_generated/server.d.ts",
+      "bytes": 5600,
+      "sha256": "b0c8d708aaa165b10633bb6181dea1af4b9976a71ad001d75f42785ddfbca458"
+    },
+    {
+      "path": "convex/_generated/server.js",
+      "bytes": 3696,
+      "sha256": "aea87b3ee367e0e870f3da81ffce8babd8ea1aea695a1e38689841aebc09a1e8"
+    },
+    {
+      "path": "convex/analytics.ts",
+      "bytes": 3395,
+      "sha256": "ca864cacc28e4e9199da31a53da7f4333b57df5791d8820bc3f440ba7495bf11"
+    },
+    {
+      "path": "convex/appointments.ts",
+      "bytes": 6347,
+      "sha256": "8015ac0dc311c488f1f18dbb5b48d9fcb5f8b89ddaddbbc8f2c319b23e042366"
+    },
+    {
+      "path": "convex/auditLog.ts",
+      "bytes": 1969,
+      "sha256": "9007da3563d567b4d2aae6bd143fcb01f437f29aec47affe8e297e341b866931"
+    },
+    {
+      "path": "convex/auth.config.ts",
+      "bytes": 240,
+      "sha256": "d3f3f37466c9dc5998d04a81d7ef73853e949d5763de22f85d00e763d12f77f8"
+    },
+    {
+      "path": "convex/cases.ts",
+      "bytes": 5498,
+      "sha256": "e801d022c58820fc6f3d03dcf0655a972a3efdc6afde323566d2c3b6fd5e388e"
+    },
+    {
+      "path": "convex/chatbots.ts",
+      "bytes": 676,
+      "sha256": "b9a5f06e9e15dd6bed2bbaad7a2ae589bf32e1f9a84667b31ee93c18a5d11aa6"
+    },
+    {
+      "path": "convex/clients.ts",
+      "bytes": 9739,
+      "sha256": "10b208080b8c9cb95f3b1f939c5c28cc9709a393c37b54785c54fbae38f36141"
+    },
+    {
+      "path": "convex/cms.ts",
+      "bytes": 18467,
+      "sha256": "477077e4441494cffc38553e1107af404fe21b8710d30289acac59cff12a0be6"
+    },
+    {
+      "path": "convex/communications.ts",
+      "bytes": 4171,
+      "sha256": "d6339121e78f88d04f125f4b40947ee608a552ef4b2a113afd6fc6ab21da2ead"
+    },
+    {
+      "path": "convex/conflictChecks.ts",
+      "bytes": 1615,
+      "sha256": "6d5378b2c777af17db9002029eda776676ec0c1d57fb71ec3485a3feb6dc4d26"
+    },
+    {
+      "path": "convex/court.ts",
+      "bytes": 656,
+      "sha256": "eb675d0b9e6f52044600bfb27b180207742c3c20475180d7b3f3248e69e30c24"
+    },
+    {
+      "path": "convex/crons.ts",
+      "bytes": 300,
+      "sha256": "b540b0b4815925097ab3c6085c789af95ca4628089da8e1ca3f4169b956d39ab"
+    },
+    {
+      "path": "convex/documentSecurity.ts",
+      "bytes": 6742,
+      "sha256": "f2a9762844540ef0abdeceded12e27d37121819a0161a7ea2ce176670f3780cb"
+    },
+    {
+      "path": "convex/documents.ts",
+      "bytes": 43934,
+      "sha256": "4b5f0b37618510c857c2524fc9febadb2f529c0a84f220389407f409b64c4a76"
+    },
+    {
+      "path": "convex/envelopes.ts",
+      "bytes": 21786,
+      "sha256": "1c0fe1477621e16debc7a9207b0ddca496e313e14add6cfe76a8fba19558f4e7"
+    },
+    {
+      "path": "convex/expenses.ts",
+      "bytes": 3015,
+      "sha256": "f3fd2e260d692582520b4812bb41bdd3aee78a962b20d88467d0c3778005a432"
+    },
+    {
+      "path": "convex/hearings.ts",
+      "bytes": 1743,
+      "sha256": "751c31d7ed219999b90c9c27eba887b7ea2d5db7ac1ec08f323e2a838d3b2b88"
+    },
+    {
+      "path": "convex/hr.ts",
+      "bytes": 4863,
+      "sha256": "e72c6c21a9178c2317a9ec9837d5ccc946b6febb4479ae7c739821279712c85d"
+    },
+    {
+      "path": "convex/invoices.ts",
+      "bytes": 8720,
+      "sha256": "94fcfff930dc2d133e4606c34f3a53cd46857c9c9ba2a7731c45dbb3a5274e92"
+    },
+    {
+      "path": "convex/leads.ts",
+      "bytes": 4840,
+      "sha256": "a9e649eb1ed628e44c01649755a9ad4d1f164e27742519bf50ad8759b5eba56f"
+    },
+    {
+      "path": "convex/lib/documentSecurity.ts",
+      "bytes": 3391,
+      "sha256": "f0abec18f729f4b8d68773f900d5e6c7f3dd16c00213cce55f4b21ccc2be02ee"
+    },
+    {
+      "path": "convex/lib/notify.ts",
+      "bytes": 656,
+      "sha256": "1b00c969daa90328302ffc4914827052466deacd8529895803eb299a04a4c231"
+    },
+    {
+      "path": "convex/lib/roles.ts",
+      "bytes": 4988,
+      "sha256": "6391d499340d1f28467145378780726d8a6aa46ec0b6a78efa4b8526e37b76ce"
+    },
+    {
+      "path": "convex/lib/totp.ts",
+      "bytes": 3212,
+      "sha256": "52aef65d591ba3baf9b80d2f315df758779da17621123ac6568d324c76468ecc"
+    },
+    {
+      "path": "convex/messages.ts",
+      "bytes": 3659,
+      "sha256": "1164d54abb94519b14f857d12c784e680f8cccbdf677097dbb3e037d13d39a19"
+    },
+    {
+      "path": "convex/notifications.ts",
+      "bytes": 2316,
+      "sha256": "030113b7f6ec9bb882437cff13bf5d7036288d893e16cca2f66ac394046b76f9"
+    },
+    {
+      "path": "convex/research.ts",
+      "bytes": 1682,
+      "sha256": "257011b0c22bc0ed702d499a2029d8fc65aab1dd70b098398a938b95636c9195"
+    },
+    {
+      "path": "convex/schema.ts",
+      "bytes": 26547,
+      "sha256": "78cdf550da801b638bda479c85f9dc2ad68c7910bc408e0c311a7c8211c0cd7c"
+    },
+    {
+      "path": "convex/seed.ts",
+      "bytes": 5573,
+      "sha256": "34ebed0ef5ee812fe571e6bc1cf7028dd3d0172c5398233c7016f6f145ef9432"
+    },
+    {
+      "path": "convex/settings.ts",
+      "bytes": 2207,
+      "sha256": "b7fa3a0591b68e9c58a0667c4578c7c13a31275740d69993737f9bb35395cf9c"
+    },
+    {
+      "path": "convex/tags.ts",
+      "bytes": 1496,
+      "sha256": "0dfe9beee760336be5b6aa5633b95e3f340c9c9bf7ffddf9da6d1503213a9145"
+    },
+    {
+      "path": "convex/tasks.ts",
+      "bytes": 19630,
+      "sha256": "dad736ec4d1320d551b641d1aa3664d9777b9650196a25b87a83e36941dbd9f9"
+    },
+    {
+      "path": "convex/templates.ts",
+      "bytes": 4539,
+      "sha256": "6cafb64097da6266a017e2145cb47a6ef7aa087d9fa1be74e4f5c998c1beb9a6"
+    },
+    {
+      "path": "convex/timeEntries.ts",
+      "bytes": 1500,
+      "sha256": "7909363dcd97b73fa2231734405f79b4085332ed539ad730a28f938556ae6ad8"
+    },
+    {
+      "path": "convex/users.ts",
+      "bytes": 31954,
+      "sha256": "26a99498624649bc9120a866cf06bedb07ea9c0f193f56ce0d5e3e8d3d1e59bb"
+    },
+    {
+      "path": "src/client/data/convex-bridge.ts",
+      "bytes": 2534,
+      "sha256": "07fb5ec05de5368a0b8621f158909db467e2016cceddef404f629cef05af7234"
+    },
+    {
+      "path": "src/client/data/shadow-reader.ts",
+      "bytes": 1813,
+      "sha256": "30283945cfc69d7e85bdaa1803ec04f26c111b3fe23b0fc60ac7248e9ce951bc"
+    },
+    {
+      "path": "src/client/queries/briefs.ts",
+      "bytes": 1639,
+      "sha256": "86ea7dd3336829badcd2215bdbf9be46208cba4977c52272bcd3a46fff20b396"
+    },
+    {
+      "path": "src/lib/convex-client-stub.ts",
+      "bytes": 320,
+      "sha256": "056927614114724f35b6621b8491ad9a941fb5e667ef7539b25ea03f914578c3"
+    },
+    {
+      "path": "src/lib/convex-mock.tsx",
+      "bytes": 165910,
+      "sha256": "2cb2f6ba40efdcdf15cdfdf554b7b88cdc6c4dae05781863fb98ff744cc4c576"
+    },
+    {
+      "path": "tests/characterization/document-security.test.mjs",
+      "bytes": 2481,
+      "sha256": "724663d20e4d728b56d391625cc7043bfe0d6a9988b13917d55abc9212e214a4"
+    }
+  ]
+}

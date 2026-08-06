@@ -153,11 +153,20 @@ export const researchCategorySchema = z.enum([
   "template_research",
 ]);
 
+/** Nepal Kanoon Patrika reference for the precedent a note is written about. */
+export const researchCitationSchema = z.object({
+  nkpNo: optionalText(100),
+  decisionNo: optionalText(100),
+  bench: optionalText(200),
+});
+
 export const researchCreateSchema = z.object({
   title: z.string().trim().min(1).max(300),
   category: researchCategorySchema,
   tags: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
   content: z.string().trim().min(1).max(500_000),
+  caseId: uuidSchema.optional().nullable(),
+  citation: researchCitationSchema.optional().nullable(),
 });
 
 export const researchUpdateSchema = researchCreateSchema
@@ -178,3 +187,4 @@ export type HearingPrepInput = z.infer<typeof hearingPrepSchema>;
 export type TaskCommentCreateInput = z.infer<typeof taskCommentCreateSchema>;
 export type ResearchCreateInput = z.infer<typeof researchCreateSchema>;
 export type ResearchUpdateInput = z.infer<typeof researchUpdateSchema>;
+export type ResearchCitation = z.infer<typeof researchCitationSchema>;

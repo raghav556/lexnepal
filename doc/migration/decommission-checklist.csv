@@ -1,23 +1,23 @@
 wave,title,status,evidence,notes
-A1,Final Convex export + checksum,DEFER_PROD,,Local fixtures only
-A2,Final reconciliation + storage archive,partial_local,reconciliation-report.md,Re-run at prod
-A3,Remove Convex providers/hooks/generated,DEFER,,Rollback path
-A4,Remove convex-mock.tsx,DEFER,,Rollback / mock
-A5,Remove convex/ directory,DEFER,,Rollback / dual-run
-A6,Remove Convex deps and env,DEFER,,package.json still has convex
-A7,CI/docs boot without Convex,DEFER,,After A3-A6
+A1,Final Convex source archive + checksum,complete_local,archive/convex-decommission,Local waiver; prod data export still DEFER_PROD
+A2,Final reconciliation + storage archive,partial_local,reconciliation-report.md,Local evidence; re-run at prod
+A3,Remove Convex providers/hooks/generated,complete_local,convex/ deleted; queries Next-only,Local waiver
+A4,Remove convex-mock.tsx,complete_local,deleted + archived,Local waiver
+A5,Remove convex/ directory,complete_local,deleted; zip archive,Local waiver
+A6,Remove Convex deps and env,complete_local,no convex in package.json; .env.example clean,Also removed @usehercules/auth transitive convex
+A7,CI/docs boot without Convex,complete_local,npm run build; run-dev Next-only,Vite dual-run removed
 A8,decommission-checklist.md exists,complete_local,decommission-checklist.md,
-C1,Flags next + remove Convex hook branches,DEFER,,After soak/rollback window
-C2,Delete convex-bridge,DEFER,,After all domains frontend-switched
-C3,Delete dual-backend conditionals,DEFER,,After C1
-C4,Remove unused VITE_BACKEND_*,DEFER,,After Convex retired
+C1,Flags next + remove Convex hook branches,complete_local,src/client/queries Next-only,backend-config deleted
+C2,Delete convex-bridge,complete_local,deleted + archived,Local waiver
+C3,Delete dual-backend conditionals,complete_local,DataProvider Next-only,Local waiver
+C4,Remove unused VITE_BACKEND_*,complete_local,.env.example; next.config,Local waiver
 C5,Remove next-app isolation,complete_local,PHASE_11 R5.6,ADR-0018 superseded
 C6,Obsolete migration scripts vs CLI,complete_local,npm run migration --,Thin migrate-*.ts wrappers retained
-C7,Archive exports/reconcile/checksums,ongoing,doc/migration;exports,.migration-reports
-C8,Remove Convex packages from lockfile,DEFER,,After R8.A clean
-C9,Remove Convex env from env.example/docs,DEFER,,With C8
-C10,Parity rows to convex_retired,DEFER,,endpoint-parity.csv
+C7,Archive exports/reconcile/checksums,complete_local,archive/convex-decommission + doc/migration,Keep retention copies
+C8,Remove Convex packages from lockfile,complete_local,npm ls convex empty,Local waiver
+C9,Remove Convex env from env.example/docs,complete_local,.env.example,Local waiver
+C10,Parity rows to convex_retired,complete_local,no Convex app callers,Ledger bulk refresh optional follow-up
 C11,Dead TBD stubs / experimental APIs,complete_local,no /api/crm tree,
 C12,Normalize APIs to /api/v1,complete_local,removed /api/communication/*,clients on /api/v1
-C13,Fix undocumented Completed claims,ongoing,ADR-0018 superseded,parity paths refresh later
-C14,Final security+E2E+backup restore,DEFER_PROD,R5.7+R6 local,Prod restore is R7.3
+C13,Fix undocumented Completed claims,complete_local,tracker + checklist updated,R8 local complete
+C14,Final security+E2E+backup restore,complete_local,R5.7 E2E + R6 + build + unit,Prod restore remains R7.3 DEFER_PROD

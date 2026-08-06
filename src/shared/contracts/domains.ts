@@ -131,11 +131,16 @@ export interface ListHearingsInput {
 
 export interface ResearchDto {
   _id: string;
+  id: string;
   firmId?: string;
   title: string;
   category: string;
   tags: string[];
   content: string;
   authorId: string;
+  caseId: string | null;
+  citation: { nkpNo: string | null; decisionNo: string | null; bench: string | null } | null;
+  createdAt: string;
+  updatedAt: string;
   [key: string]: unknown;
 }

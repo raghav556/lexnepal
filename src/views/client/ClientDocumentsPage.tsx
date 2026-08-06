@@ -19,7 +19,7 @@ const TYPE_COLORS: Record<string, string> = {
   other: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
 };
 
-function DownloadButton({ documentId, storageId }: { documentId: string; storageId: string }) {
+function DownloadButton({ documentId }: { documentId: string }) {
   const downloadDocument = useDownloadDocument();
   const [busy, setBusy] = useState(false);
   return (
@@ -30,7 +30,7 @@ function DownloadButton({ documentId, storageId }: { documentId: string; storage
       onClick={async () => {
         setBusy(true);
         try {
-          const url = await downloadDocument(documentId, storageId);
+          const url = await downloadDocument(documentId);
           if (url) window.open(String(url), "_blank");
         } catch (err: any) {
           toast.error(err?.message || "Download failed");
@@ -138,7 +138,7 @@ export default function ClientDocumentsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={TYPE_COLORS[doc.type] || TYPE_COLORS.other}>{doc.type}</Badge>
-                    <DownloadButton documentId={doc._id} storageId={doc.storageId} />
+                    <DownloadButton documentId={doc._id} />
                   </div>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">

@@ -121,6 +121,11 @@ export interface UserDto {
   updatedAt: string;
 }
 
+/** Directory projection of {@link UserDto}: the fields any authenticated member may read. */
+export type StaffDirectoryEntryDto = Pick<UserDto, "id" | "name" | "email" | "role" | "avatar"> & {
+  _id: string;
+};
+
 export interface SessionDto {
   id: string;
   device: string;

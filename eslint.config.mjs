@@ -5,7 +5,21 @@ import nextTypeScript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
-  globalIgnores([".next/**", "dist/**", "coverage/**", "convex/_generated/**"]),
+  globalIgnores([".next/**", "coverage/**"]),
+  {
+    rules: {
+      // An underscore prefix marks a binding that exists only to satisfy a signature or shape.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
   {
     files: ["src/**/*.{ts,tsx}"],
     rules: {
@@ -15,16 +29,15 @@ export default defineConfig([
           paths: [
             {
               name: "convex/react",
-              message:
-                "Import backend-neutral domain hooks or the transitional client data bridge.",
+              message: "Convex is decommissioned; use the domain hooks in src/client/queries.",
+            },
+            {
+              name: "react-router-dom",
+              message: "Use @/client/navigation, which wraps the Next router.",
             },
           ],
         },
       ],
     },
-  },
-  {
-    files: ["src/client/data/convex-bridge.ts"],
-    rules: { "no-restricted-imports": "off" },
   },
 ]);

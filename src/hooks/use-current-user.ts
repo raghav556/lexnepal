@@ -1,7 +1,7 @@
-import type { Doc } from "@/convex/_generated/dataModel.d.ts";
+import type { UserDto } from "@/shared/contracts/identity";
 import { useCurrentIdentityUser } from "@/client/queries/identity";
 
-export type LexUser = Doc<"users">;
+export type LexUser = UserDto;
 export type UserRole = LexUser["role"];
 
 export const STAFF_ROLES: UserRole[] = [
@@ -13,7 +13,7 @@ export const STAFF_ROLES: UserRole[] = [
 ];
 
 export function useCurrentUser(): LexUser | null | undefined {
-  return useCurrentIdentityUser() as LexUser | null | undefined;
+  return useCurrentIdentityUser();
 }
 
 export function getPortalForRole(role: UserRole): "/client" | "/staff" | "/admin" {

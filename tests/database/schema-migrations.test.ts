@@ -17,6 +17,7 @@ const migrationFiles = [
   "drizzle/0007_avatar_quarantine_pipeline.sql",
   "drizzle/0008_matters_kyc_security.sql",
   "drizzle/0009_financial_idempotency.sql",
+  "drizzle/0010_research_citations.sql",
 ];
 
 async function applySqlFile(database: PGlite, file: string): Promise<void> {
@@ -255,6 +256,9 @@ describe("initial migration rollback", () => {
     const rollbackDatabase = new PGlite();
     try {
       for (const migration of migrationFiles) await applySqlFile(rollbackDatabase, migration);
+      await rollbackDatabase.exec(
+        fs.readFileSync(path.resolve("drizzle/down/0010_research_citations.down.sql"), "utf8"),
+      );
       await rollbackDatabase.exec(
         fs.readFileSync(path.resolve("drizzle/down/0009_financial_idempotency.down.sql"), "utf8"),
       );

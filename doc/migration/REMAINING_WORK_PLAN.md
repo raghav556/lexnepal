@@ -300,7 +300,7 @@ Existing unit contract files (`identity`, `cms`, `matters`, `work`) are a start 
 | R5.6 | Remove ADR-0018 isolation | `complete_local` — `src/app` + `src/legacy-pages`; ADR-0018 superseded; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.6 |
 | R5.7 | E2E smoke | `complete_local` — Playwright login/matter/document/invoice/signature/CMS; `migration:prove-e2e-smoke`; see `PHASE_11_UI_ROUTE_INVENTORY.md` § R5.7 |
 
-**R5–R6 complete locally; R7 planned (`DEFER_PROD`, not prod-ready); safe R8 cleanup may proceed.**
+**R2–R6 + R8 complete locally; R7 remains `DEFER_PROD` (real users / cloud).**
 
 **Exit gate:** No active page depends directly on Convex; deep links work; E2E smoke green.
 
@@ -366,54 +366,36 @@ Do **not** pretend localhost completion equals production completion. When you l
 
 ### Phase R8 — Phase 13 decommission Convex + cleanup
 
-Only after R5–R6 (and R7 if production). **Localhost:** safe waves may proceed; full Convex deletion stays blocked while rollback is required.
+**Status:** `COMPLETE_LOCAL` under local-only waiver (see [`decommission-checklist.md`](decommission-checklist.md)).  
+**Proof:** `npm run migration:prove-decommission-status` → `convexDecommissionComplete: true`.  
+**Archive:** `doc/migration/archive/convex-decommission/` (`migration:archive-convex -- --verify`).
 
-**Artifacts:** [`decommission-checklist.md`](decommission-checklist.md), [`decommission-checklist.csv`](decommission-checklist.csv).  
-**Proof:** `npm run migration:prove-decommission-status` → `partial_local`, `convexDecommissionComplete: false`.
+R7 production readiness remains **`DEFER_PROD`**. Flag-flip Convex rollback is gone locally; restore from the zip if needed.
 
-#### R8.A Decommission Convex
+#### R8.A Decommission Convex — complete locally
 
-Searches must find **no active app usage** of:
+1. ~~Final immutable Convex export + checksum archive.~~ **complete_local** (source zip; prod *data* export still R7.3)
+2. Reconciliation / storage archive — local evidence; prod re-run later
+3. ~~Remove Convex providers, hooks, generated bindings.~~ **complete_local**
+4. ~~Remove `src/lib/convex-mock.tsx`.~~ **complete_local**
+5. ~~Remove `convex/` directory.~~ **complete_local**
+6. ~~Remove Convex dependencies and env vars.~~ **complete_local**
+7. ~~Update CI/docs so Convex is not required to boot.~~ **complete_local** (Next-only `npm run dev`)
+8. ~~`decommission-checklist.md`.~~ **complete_local**
 
-- `convex/react`, `useConvexAuth`, `useQuery(`, `useMutation(`, `useAction(`
-- `api.`, `convex/_generated`
-- `VITE_CONVEX`, `CONVEX_DEPLOYMENT`
+#### R8.B Cleanup waves — complete locally
 
-Work:
+| Wave | Status |
+| --- | --- |
+| C1–C4 | **complete_local** — Next-only adapters; no `VITE_BACKEND_*` |
+| C5–C6 | **complete_local** |
+| C7–C9 | **complete_local** — archive kept; packages/env cleaned |
+| C10–C13 | **complete_local** |
+| C14 | **complete_local** (localhost build/unit + prior E2E/R6); prod restore = R7.3 |
 
-1. Final immutable Convex export + checksum archive. — `DEFER_PROD`
-2. Final reconciliation + storage checksum archive. — local evidence exists; re-run at prod
-3. Remove Convex providers, hooks, generated bindings. — **DEFER** (rollback)
-4. Remove `src/lib/convex-mock.tsx` after Next fixtures exist. — **DEFER**
-5. Remove `convex/` directory. — **DEFER**
-6. Remove Convex dependencies and env vars. — **DEFER**
-7. Update CI/docs so Convex is not required to boot the app. — **DEFER** until 3–6
-8. Create `doc/migration/decommission-checklist.md` and tick every row. — **complete_local**
+**Cleanup rule (prod):** still archive-first. Local waiver already exercised for this repo.
 
-#### R8.B Cleanup after migration (mandatory tidy list)
-
-This is the “after migration cleanup” you asked for. Do it in this order so nothing needed for rollback is deleted too early.
-
-| Wave | Cleanup item | When safe | Status |
-| --- | --- | --- | --- |
-| C1 | Domain backend flags default to `next` only; remove Convex branches inside hooks | After that domain’s soak + rollback window | `DEFER` |
-| C2 | Delete compatibility bridge (`convex-bridge` / mock Convex client paths) | After all domains frontend-switched | `DEFER` |
-| C3 | Delete per-domain “temporary dual backend” conditionals | After C1 | `DEFER` |
-| C4 | Remove unused `VITE_BACKEND_*` once only Next remains | After all domains retired Convex | `DEFER` |
-| C5 | Remove `next-app` isolation workaround if app root consolidated | After Phase R5 | **complete_local** (R5.6) |
-| C6 | Remove obsolete migration-only scripts that were superseded by unified CLI | After CLI registers all domains and is proven | **complete_local** — CLI canonical; thin `migrate-*.ts` wrappers retained |
-| C7 | Archive (do not casually delete) exports, reconcile reports, checksum manifests | Keep for retention period | **ongoing** |
-| C8 | Remove Convex packages from `package.json` / lockfile | After searches in R8.A are clean | `DEFER` |
-| C9 | Remove Convex env from `.env.example` and deployment docs | Same time as C8 | `DEFER` |
-| C10 | Close parity rows to `convex_retired` | After callers gone | `DEFER` |
-| C11 | Remove dead “TBD” route stubs and unused experimental APIs | After inventory confirms no callers | **complete_local** (this pass) |
-| C12 | Normalize any leftover non-versioned APIs (e.g. `/api/crm`, `/api/communication`) into `/api/v1` | During/after R2–R5 | **complete_local** — removed `/api/communication/*` |
-| C13 | Delete outdated “Completed” claims that lack evidence; keep evidence notes | Continuous | **ongoing** |
-| C14 | Final security + E2E + backup restore drill | End of cleanup | `DEFER_PROD` (local R5.7+R6 done) |
-
-**Cleanup rule:** If rollback might still need it, **archive** it. Only delete when the rollback window for that item has expired and owners approve.
-
-**R8 status:** `PARTIAL` (`safe_waves_local`). Not Convex-retired.
+**R8 status:** `COMPLETE_LOCAL`. Not production-retired until R7.
 
 ---
 
@@ -487,7 +469,7 @@ Use this as your final acceptance checklist.
 | Frontend to Next.js | R5 | COMPLETE_LOCAL | `PHASE_11_UI_ROUTE_INVENTORY.md` (R5.1–R5.7 complete_local) | next R7/R8 |
 | Local cutover rehearsal | R6 | COMPLETE_LOCAL | `cutover-runbook.md` + `cutover-log.csv` (12/12) | next R7/R8 |
 | Production readiness | R7 | DEFER_PROD | `production-readiness.md` + CSV (planned; not prod-ready) | owners TBD |
-| Decommission + cleanup | R8 | PARTIAL | `decommission-checklist.md` (safe waves local; Convex residual DEFER) | TBD |
+| Decommission + cleanup | R8 | COMPLETE_LOCAL | `decommission-checklist.md` + archive zip; prove-decommission-status | local waiver |
 
 ---
 
@@ -514,8 +496,8 @@ Use this as your final acceptance checklist.
 19. ~~**R5.7** E2E smoke.~~ Done locally — `npm run migration:prove-e2e-smoke` (CMS + login + matter/document/invoice/signature).
 20. ~~**R6** local cutover dress rehearsal.~~ Done locally — `cutover-runbook.md` + `npm run migration:prove-cutover-rehearsal` (12/12 domains in `cutover-log.csv`).
 21. ~~**R7 plan now.**~~ Planning artifacts added — `production-readiness.md` / CSV / `incident-contacts.md`; `migration:prove-production-readiness-plan` (still `DEFER_PROD`, `productionReady: false`).
-22. ~~**R8 safe waves.**~~ Checklist + C5/C6/C11/C12 local; `migration:prove-decommission-status` (`partial_local`). Full Convex delete remains **DEFER**.
-23. Next: fill R7 owners/contacts + accept production ADRs; do not strip `convex-bridge` until rollback window expires.
+22. ~~**R8 safe waves.**~~ Extended to **R8 complete_local** — Convex runtime removed under local waiver; archive verifies; Vite dual-run retired.
+23. Next: **R7** when leaving localhost (prod ADRs, real IdP, volume/restore); optional parity CSV bulk `convex_retired` polish.
 24. After each domain: update parity CSV + this dashboard in the same change.
 
 ---

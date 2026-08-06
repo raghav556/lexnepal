@@ -27,7 +27,7 @@ import {
   Link2,
   ScanText,
 } from "lucide-react";
-import { MultiFileUploadModal } from "@/components/documents/MultiFileUploadModal.tsx";
+import MultiFileUploadModal from "@/components/documents/MultiFileUploadModal.tsx";
 import { AdvancedSearch } from "@/components/documents/AdvancedSearch.tsx";
 import { TagManagementModal } from "@/components/documents/TagManagementModal.tsx";
 import { TemplateGeneratorModal } from "@/components/documents/TemplateGeneratorModal.tsx";
@@ -59,7 +59,7 @@ import {
   useHardDeleteDocument,
   useSetLegalHold,
   useUpdateDocument,
-  useTriggerOCR,
+  useExtractDocumentText,
 } from "@/client/queries/documents";
 import {
   usePortalSigners,
@@ -117,7 +117,7 @@ export default function StaffDocumentsPage() {
   const requestSignature = useRequestSignature();
   const createEnvelope = useCreateEnvelope();
   const sendEnvelope = useSendEnvelope();
-  const { ocrAvailable, trigger: triggerOCR } = useTriggerOCR();
+  const extractDocumentText = useExtractDocumentText();
   const softDeleteDoc = useTrashDocument();
   const restoreDoc = useRestoreDocument();
   const hardDeleteDoc = useHardDeleteDocument();
@@ -303,14 +303,9 @@ export default function StaffDocumentsPage() {
   };
 
   const handleOCR = async (doc: any) => {
-    if (!ocrAvailable) {
-      toast.error("OCR is not available on the Next backend yet.");
-      return;
-    }
     try {
-      toast.loading("Extracting text...", { id: "ocr" });
-      await triggerOCR(doc._id);
-      toast.success("Text extracted for global search!", { id: "ocr" });
+      await extractDocumentText(doc._id);
+      toast.success("Text extraction queued. Searchable text appears once the job finishes.");
     } catch (err: any) {
       toast.error(err.message, { id: "ocr" });
     }
@@ -888,8 +883,7 @@ export default function StaffDocumentsPage() {
                     <Link2 className="w-4 h-4 mr-2" /> Share External Link
                   </Button>
                   {(doc.mimeType?.includes("pdf") || doc.mimeType?.includes("image")) &&
-                    !doc.searchableText &&
-                    ocrAvailable && (
+                    !doc.searchableText && (
                       <Button
                         variant="outline"
                         className="w-full bg-card"
