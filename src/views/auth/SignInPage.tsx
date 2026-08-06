@@ -1,24 +1,49 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "@/client/navigation";
+import { Link, useNavigate, useParams, useSearchParams } from "@/client/navigation";
 import { localAuthClient } from "@/client/auth/local-auth-client";
+import { AUTH_IDLE_TIMEOUT, AUTH_REDIRECT_REASON_KEY, AUTH_SESSION_EXPIRED } from "@/client/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PREMIUM_EASE } from "@/components/ui/animations";
 import { getPortalForRole, STAFF_ROLES, type UserRole } from "@/hooks/use-current-user";
+import {
+  PORTAL_DESCRIPTIONS,
+  PORTAL_HOME,
+  PORTAL_INTENTS,
+  PORTAL_LABELS,
+  parsePortalIntent,
+  type PortalIntent,
+} from "@/shared/auth/portal-intent";
+import { formatSignInError } from "@/shared/auth/sign-in-errors";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeft,
+  Briefcase,
   Eye,
   EyeOff,
   Loader2,
   Lock,
   Scale,
+  Shield,
   ShieldCheck,
   Smartphone,
+  UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const DEMO_EMAILS: Record<PortalIntent, string> = {
+  admin: "e2e-admin@example.invalid",
+  staff: "e2e-staff@example.invalid",
+  client: "e2e-client@example.invalid",
+};
+
+const PORTAL_ICONS: Record<PortalIntent, typeof UserRound> = {
+  client: UserRound,
+  staff: Briefcase,
+  admin: Shield,
+};
 
 function safeNextPath(raw: string | null): string | null {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("://")) return null;
@@ -36,8 +61,13 @@ function destinationForRole(role: UserRole, next: string | null): string {
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const routeParams = useParams<{ portal?: string }>();
   const [params] = useSearchParams();
-  const nextPath = useMemo(() => safeNextPath(params.get("next")), [params]);
+  const explicitNext = useMemo(() => safeNextPath(params.get("next")), [params]);
+  const activePortal = useMemo(() => {
+    return parsePortalIntent(routeParams.portal) ?? parsePortalIntent(params.get("portal")) ?? "client";
+  }, [routeParams.portal, params]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -49,8 +79,34 @@ export default function SignInPage() {
 
   useEffect(() => {
     const host = window.location.hostname;
-    setShowLocalAccounts(host === "localhost" || host === "127.0.0.1");
+    const localHost = host === "localhost" || host === "127.0.0.1";
+    const hideDemo = process.env.NEXT_PUBLIC_HIDE_DEMO_ACCOUNTS === "1";
+    const isProduction = process.env.NODE_ENV === "production";
+    setShowLocalAccounts(localHost && !isProduction && !hideDemo);
   }, []);
+
+  useEffect(() => {
+    const reason = sessionStorage.getItem(AUTH_REDIRECT_REASON_KEY);
+    if (reason === AUTH_SESSION_EXPIRED) {
+      sessionStorage.removeItem(AUTH_REDIRECT_REASON_KEY);
+      toast.message("Your session expired. Please sign in again.");
+      return;
+    }
+    if (reason === AUTH_IDLE_TIMEOUT) {
+      sessionStorage.removeItem(AUTH_REDIRECT_REASON_KEY);
+      toast.message("You were signed out after a period of inactivity.");
+    }
+  }, []);
+
+  const selectPortal = (portal: PortalIntent) => {
+    const qs = params.toString();
+    navigate(`/sign-in/${portal}${qs ? `?${qs}` : ""}`, { replace: true });
+  };
+
+  const portalSignInHref = (portal: PortalIntent) => {
+    const qs = params.toString();
+    return `/sign-in/${portal}${qs ? `?${qs}` : ""}`;
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -58,10 +114,10 @@ export default function SignInPage() {
     try {
       if (needsTwoFactor) {
         const result = await localAuthClient.twoFactor.verifyTotp({ code, trustDevice: false });
-        if (result.error) throw new Error(result.error.message);
+        if (result.error) throw result.error;
       } else {
         const result = await localAuthClient.signIn.email({ email, password, rememberMe });
-        if (result.error) throw new Error(result.error.message);
+        if (result.error) throw result.error;
         if ((result.data as typeof result.data & { twoFactorRedirect?: boolean })?.twoFactorRedirect) {
           setNeedsTwoFactor(true);
           return;
@@ -70,20 +126,21 @@ export default function SignInPage() {
       const response = await fetch("/api/v1/auth/session", { credentials: "include" });
       const session = await response.json();
       if (!response.ok && session.error?.details?.reason === "MFA_ENROLLMENT_REQUIRED") {
-        navigate("/mfa-enroll");
+        const next = explicitNext ? `?next=${encodeURIComponent(explicitNext)}` : "";
+        navigate(`/mfa-enroll${next}`);
         return;
       }
       if (!response.ok) throw new Error(session.error?.message ?? "Session could not be established");
       const role = session.data?.user?.role as UserRole | undefined;
       if (!role) throw new Error("Session did not include a user role");
-      const dest = destinationForRole(role, nextPath);
-      if (nextPath && dest !== nextPath) {
+      const dest = destinationForRole(role, explicitNext);
+      if (explicitNext && dest !== explicitNext) {
         toast.message(`Signed in as ${role.replaceAll("_", " ")} — opening your portal.`);
       }
       // Full navigation so portal layouts mount with a fresh client tree + auth cookie.
       window.location.assign(dest);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Sign-in failed");
+      toast.error(formatSignInError(error));
     } finally {
       setBusy(false);
     }
@@ -216,19 +273,65 @@ export default function SignInPage() {
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {needsTwoFactor
                   ? "Enter the 6-digit code from your authenticator app to finish signing in."
-                  : nextPath
-                    ? `Sign in with an account that can access ${nextPath}.`
-                    : "Sign in with your firm credentials to open your LexNepal workspace."}
+                  : explicitNext
+                    ? `Sign in with an account that can access ${explicitNext}.`
+                    : PORTAL_DESCRIPTIONS[activePortal]}
               </p>
+
+              {!needsTwoFactor ? (
+                <div className="mt-5">
+                  <div
+                    role="tablist"
+                    aria-label="Choose portal"
+                    className="grid grid-cols-3 gap-1 rounded-xl border border-border/70 bg-secondary/30 p-1"
+                  >
+                    {PORTAL_INTENTS.map((portal) => {
+                      const Icon = PORTAL_ICONS[portal];
+                      const selected = activePortal === portal;
+                      return (
+                        <Link
+                          key={portal}
+                          href={portalSignInHref(portal)}
+                          role="tab"
+                          aria-selected={selected}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            selectPortal(portal);
+                          }}
+                          className={cn(
+                            "flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors",
+                            selected
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <Icon className="size-4 shrink-0" aria-hidden />
+                          <span className="text-xs font-semibold">{PORTAL_LABELS[portal]}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  {!explicitNext ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      After sign-in, you’ll open{" "}
+                      <span className="font-medium text-foreground">{PORTAL_HOME[activePortal]}</span>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {!needsTwoFactor && showLocalAccounts ? (
                 <div className="mt-4 rounded-lg border border-border/70 bg-secondary/40 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
-                  <p className="font-medium text-foreground">Local demo accounts</p>
-                  <p className="mt-1">Password for all: <code className="text-foreground">E2E-Smoke-Only-2026!</code></p>
-                  <ul className="mt-2 space-y-1">
-                    <li>Admin → <code className="text-foreground">e2e-admin@example.invalid</code></li>
-                    <li>Staff → <code className="text-foreground">e2e-staff@example.invalid</code></li>
-                    <li>Client → <code className="text-foreground">e2e-client@example.invalid</code></li>
-                  </ul>
+                  <p className="font-medium text-foreground">
+                    Local demo — {PORTAL_LABELS[activePortal]} portal
+                  </p>
+                  <p className="mt-1">
+                    Password: <code className="text-foreground">E2E-Smoke-Only-2026!</code>
+                  </p>
+                  <p className="mt-2">
+                    Email:{" "}
+                    <code className="text-foreground">{DEMO_EMAILS[activePortal]}</code>
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -296,10 +399,12 @@ export default function SignInPage() {
                         <Label htmlFor="password" className="text-sm font-medium">
                           Password
                         </Label>
-                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Lock className="size-3" />
-                          Encrypted session
-                        </span>
+                        <Link
+                          href="/reset-password"
+                          className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                        >
+                          Forgot password?
+                        </Link>
                       </div>
                       <div className="relative">
                         <Input

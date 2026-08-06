@@ -5,6 +5,8 @@ import { ArrowRight, Shield, Clock, Award, Users, Phone, MapPin, ChevronDown, Me
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useBlogPosts, useCmsSettings, usePracticeAreas, usePublicTeam, useTestimonials } from "@/client/queries/cms";
+import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
+import { resolvePublicTitle } from "@/shared/leadership";
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 
@@ -327,6 +329,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <DirectorMessageSection settings={settings} team={publicTeam} />
+
       {/* ===== PRACTICE AREAS ===== */}
       <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
@@ -426,7 +430,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {publicTeam.map((member: any, i: number) => {
                 const memberName = String(member.name ?? member.fullName ?? "Advocate");
-                const memberRole = String(member.role ?? "associate").replaceAll("_", " ");
+                const memberRole = resolvePublicTitle(member);
                 return (
                 <FadeInUp key={member._id ?? member.id ?? i} delay={i * 0.1}>
                   <Link href={`/lawyers/${member._id ?? member.id}`} className="block h-full group min-w-0">
@@ -434,8 +438,8 @@ export default function HomePage() {
                       <Card className="h-full border-border bg-card overflow-hidden text-center shadow-sm relative z-10 transition-colors duration-300">
                         <CardContent className="p-4 sm:p-6">
                           <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden mb-4 border-2 border-primary/20">
-                            {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={memberName} className="w-full h-full object-cover" />
+                            {member.avatarUrl || member.avatar ? (
+                              <img src={member.avatarUrl || member.avatar} alt={memberName} className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-3xl font-serif">{memberName.charAt(0)}</span>
                             )}

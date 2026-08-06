@@ -1,21 +1,45 @@
-import React, { useState, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
 import {
   Search,
   ShieldAlert,
   CheckCircle2,
-  User,
-  FileText,
   AlertTriangle,
   Download,
   XCircle,
   Clock,
+  BarChart3,
+  Filter,
+  ShieldCheck,
 } from "lucide-react";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 import { toast } from "sonner";
-import { useConflictCommands, useRecentConflictChecks } from "@/client/queries/cases";
+import {
+  useConflictCommands,
+  useConflictStats,
+  useRecentConflictChecks,
+} from "@/client/queries/cases";
+import {
+  ConflictHitList,
+  ConflictRiskSummary,
+} from "@/components/conflicts/ConflictHitList";
+import type { ConflictHitDto } from "@/shared/contracts/domains";
+import type {
+  ConflictOfficialResultDto,
+  ConflictSearchScope,
+} from "@/shared/contracts/conflicts";
+import { cn } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "cleared") {
@@ -34,334 +58,382 @@ function StatusBadge({ status }: { status: string }) {
   }
   return (
     <span className="text-xs font-semibold text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-1 rounded-full inline-flex items-center gap-1">
-      <AlertTriangle className="w-3 h-3" /> Pending
+      <AlertTriangle className="w-3 h-3" /> Pending review
     </span>
   );
 }
 
+const DEFAULT_SCOPE: ConflictSearchScope = {
+  clients: true,
+  cases: true,
+  leads: true,
+  appointments: true,
+};
+
 export default function AdminConflictChecker() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
+  const [scope, setScope] = useState<ConflictSearchScope>(DEFAULT_SCOPE);
   const [isSearching, setIsSearching] = useState(false);
   const [activeCheckId, setActiveCheckId] = useState<string | null>(null);
+  const [result, setResult] = useState<ConflictOfficialResultDto | null>(null);
+  const [severityFilter, setSeverityFilter] = useState<"all" | "high" | "medium" | "low">("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [decisionKind, setDecisionKind] = useState<"cleared" | "conflict">("cleared");
+  const [decisionNotes, setDecisionNotes] = useState("");
+  const [isDeciding, setIsDeciding] = useState(false);
 
   const conflictCommands = useConflictCommands();
   const recentChecks = useRecentConflictChecks() || [];
-
-  const [results, setResults] = useState<
-    {
-      type: string;
-      name: string;
-      context: string;
-      match: string;
-    }[]
-  >([]);
-
+  const stats = useConflictStats();
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const filteredHits = useMemo(() => {
+    if (!result?.hits) return [] as ConflictHitDto[];
+    return result.hits.filter((hit) => {
+      const severityOk = severityFilter === "all" || hit.severity === severityFilter;
+      const typeOk = typeFilter === "all" || hit.type === typeFilter;
+      return severityOk && typeOk;
+    });
+  }, [result, severityFilter, typeFilter]);
+
+  const hitTypes = useMemo(() => {
+    if (!result?.hits) return [] as string[];
+    return [...new Set(result.hits.map((h) => h.type))];
+  }, [result]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
-    setHasSearched(true);
     setActiveCheckId(null);
+    setResult(null);
+    setSeverityFilter("all");
+    setTypeFilter("all");
 
     try {
-      const outcome = await conflictCommands.search(searchQuery.trim());
-      setResults(
-        outcome.hits.map((hit) => ({
-          type: hit.type,
-          name: hit.name,
-          context: hit.caseNumber ? `Case: ${hit.caseNumber}` : hit.reason,
-          match: hit.reason,
-        })),
-      );
+      const outcome = await conflictCommands.search(searchQuery.trim(), { scope });
+      setResult(outcome);
       setActiveCheckId(outcome.checkId);
-    } catch (error) {
+    } catch {
       toast.error("Conflict search failed.");
     } finally {
       setIsSearching(false);
     }
   };
 
-  const handleClear = async () => {
+  const openDecision = (kind: "cleared" | "conflict") => {
+    setDecisionKind(kind);
+    setDecisionNotes(
+      kind === "cleared"
+        ? "Reviewed all hits. No disqualifying conflict — clearance granted."
+        : "Potential conflict identified. Matter intake blocked pending partner review.",
+    );
+    setDecisionOpen(true);
+  };
+
+  const submitDecision = async () => {
     if (!activeCheckId) return;
+    setIsDeciding(true);
     try {
-      await conflictCommands.updateStatus(
-        activeCheckId,
-        "cleared",
-        "Manually reviewed and cleared by attorney.",
+      await conflictCommands.updateStatus(activeCheckId, decisionKind, decisionNotes.trim());
+      toast.success(
+        decisionKind === "cleared"
+          ? "Conflict check cleared and logged."
+          : "Conflict flagged — do not proceed with intake.",
       );
-      toast.success("Conflict check cleared successfully.");
+      setDecisionOpen(false);
     } catch {
-      toast.error("Failed to clear conflict check.");
+      toast.error("Failed to save conflict decision.");
+    } finally {
+      setIsDeciding(false);
     }
   };
 
-  const handleReject = async () => {
-    if (!activeCheckId) return;
-    try {
-      await conflictCommands.updateStatus(activeCheckId, "conflict", "Marked as a conflict.");
-      toast.error("Matter flagged as a conflict. Do not proceed.");
-    } catch {
-      toast.error("Failed to update check.");
-    }
-  };
-
-  const handleDownloadReport = () => {
-    window.print();
+  const toggleScope = (key: keyof ConflictSearchScope) => {
+    setScope((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
     <div
-      className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6 sm:space-y-8 w-full min-w-0"
+      className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 sm:space-y-8 w-full min-w-0 conflict-report-root"
       ref={reportRef}
     >
-      <div className="print:hidden min-w-0">
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">
-          Conflict Checker
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Search clients, opposing counsel, and cases before accepting a new matter.
-        </p>
-      </div>
+      <style>{`
+        @media print {
+          .print\\:hidden { display: none !important; }
+          .conflict-report-root { padding: 0; max-width: 100%; }
+          body { background: white; color: black; }
+        }
+      `}</style>
 
-      <div className="hidden print:block mb-8 border-b pb-4">
-        <h1 className="text-2xl font-bold text-black">Conflict Clearance Report</h1>
-        <p className="text-sm text-gray-600">Generated on {new Date().toLocaleString()}</p>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <strong>Search Query:</strong> {searchQuery}
+      <div className="print:hidden min-w-0 space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
+            <ShieldCheck className="w-6 h-6 text-accent" />
           </div>
           <div>
-            <strong>Hits Found:</strong> {results.length}
-          </div>
-          <div>
-            <strong>Run By:</strong> Authorized Personnel
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">
+              Enterprise Conflict Intelligence
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Multi-source clearance across clients, matters, CRM leads, and consultation requests.
+            </p>
           </div>
         </div>
       </div>
 
-      <Card className="border-border/50 shadow-sm print:hidden min-w-0 overflow-hidden">
-        <CardHeader className="bg-secondary/20 border-b pb-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3 min-w-0">
-            <ShieldAlert className="w-6 h-6 text-accent shrink-0" />
-            <CardTitle className="text-base sm:text-lg">Run Global Search</CardTitle>
+      {stats && (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 print:hidden">
+          {[
+            { label: "Checks this month", value: stats.checksThisMonth, icon: BarChart3 },
+            { label: "Total logged", value: stats.totalChecks, icon: ShieldAlert },
+            { label: "Pending review", value: stats.pendingReviews, icon: Clock },
+            { label: "Cleared", value: stats.clearedCount, icon: CheckCircle2 },
+            { label: "Conflicts flagged", value: stats.conflictCount, icon: XCircle },
+          ].map(({ label, value, icon: Icon }) => (
+            <Card key={label} className="border-border/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+                  <Icon className="w-4 h-4 text-accent/70" />
+                </div>
+                <p className="text-2xl font-bold mt-2">{value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div className="hidden print:block mb-8 border-b pb-4">
+        <h1 className="text-2xl font-bold text-black">Conflict Clearance Report</h1>
+        <p className="text-sm text-gray-600">Generated {new Date().toLocaleString()}</p>
+        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <strong>Search query:</strong> {searchQuery}
           </div>
+          <div>
+            <strong>Total hits:</strong> {result?.summary.total ?? 0}
+          </div>
+          <div>
+            <strong>High-risk hits:</strong> {result?.summary.high ?? 0}
+          </div>
+          <div>
+            <strong>Check ID:</strong> {activeCheckId ?? "—"}
+          </div>
+        </div>
+      </div>
+
+      <Card className="border-border/50 shadow-sm print:hidden">
+        <CardHeader className="bg-secondary/20 border-b pb-4">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Search className="w-5 h-5 text-accent" /> Official conflict search
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="relative flex-1 min-w-0 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground pointer-events-none" />
+        <CardContent className="pt-6 space-y-4">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Name, company, or counsel…"
-                title="Search by person name, company name, or opposing counsel"
-                className="pl-9 sm:pl-10 h-11 sm:h-12 text-sm sm:text-base w-full"
+                placeholder="Person, company, counsel, email, phone, case #, KYC ID…"
+                className="pl-9 h-11"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button
-              type="submit"
-              disabled={isSearching}
-              className="h-11 sm:h-12 px-6 sm:px-8 bg-accent hover:bg-accent/90 w-full sm:w-auto shrink-0"
-            >
-              {isSearching ? "Searching..." : "Check Conflicts"}
+            <Button type="submit" disabled={isSearching} className="h-11 bg-accent hover:bg-accent/90">
+              {isSearching ? "Searching…" : "Run official check"}
             </Button>
           </form>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1">
+              <Filter className="w-3.5 h-3.5" /> Sources:
+            </span>
+            {(Object.keys(scope) as (keyof ConflictSearchScope)[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleScope(key)}
+                className={cn(
+                  "text-xs px-3 py-1 rounded-full border transition-colors",
+                  scope[key]
+                    ? "bg-accent/10 border-accent/30 text-accent"
+                    : "bg-muted/30 border-border text-muted-foreground",
+                )}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Official checks are audit-logged with your identity, timestamp, and hit summary. Use before
+            accepting any new matter or client engagement.
+          </p>
         </CardContent>
       </Card>
 
-      {hasSearched && !isSearching && (
+      {result && !isSearching && (
         <FadeInUp>
-          <div className="space-y-6 mt-2 sm:mt-4 print:mt-0 min-w-0">
-            <h2 className="font-semibold text-base sm:text-lg flex flex-wrap items-baseline gap-x-2 gap-y-1 text-foreground print:text-black min-w-0">
-              <span>Search Results for</span>
-              <span className="text-accent print:text-black italic break-all">"{searchQuery}"</span>
-            </h2>
-
-            {results.length === 0 ? (
-              <div className="bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-900/50 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center text-center print:border-black print:bg-white">
-                <CheckCircle2 className="w-12 h-12 text-green-500 mb-4 print:text-black" />
-                <h3 className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-400 mb-2 print:text-black">
-                  No Conflicts Found
-                </h3>
-                <p className="text-sm sm:text-base text-green-600/80 dark:text-green-400/80 print:text-black">
-                  There are no records of this individual or entity in our database. It is safe to
-                  proceed.
+          <div className="space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-lg">
+                  Results for{" "}
+                  <span className="text-accent italic break-all">"{result.query}"</span>
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Checked {new Date(result.searchedAt).toLocaleString()} · Check ID{" "}
+                  <span className="font-mono text-xs">{activeCheckId}</span>
                 </p>
-                <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 print:hidden w-full sm:w-auto">
-                  <Button
-                    onClick={handleDownloadReport}
-                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
-                  >
-                    <Download className="w-4 h-4 mr-2" /> Download Clearance Report
-                  </Button>
-                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden">
+                <Download className="w-4 h-4 mr-2" /> Export clearance report
+              </Button>
+            </div>
+
+            <ConflictRiskSummary summary={result.summary} />
+
+            {result.summary.total === 0 ? (
+              <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900/40 p-8 text-center">
+                <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                <h3 className="text-xl font-bold text-green-800 dark:text-green-300">
+                  Clear — no matching records
+                </h3>
+                <p className="text-sm text-green-700/80 dark:text-green-400/80 mt-2 max-w-lg mx-auto">
+                  No clients, matters, leads, or consultation requests matched this query across
+                  selected sources. Clearance auto-logged as cleared.
+                </p>
               </div>
             ) : (
-              <div className="space-y-4 min-w-0">
-                <div className="bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-900/50 rounded-lg p-4 flex flex-col md:flex-row md:items-start justify-between gap-4 print:border-black print:bg-white">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0 print:text-black" />
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-red-700 dark:text-red-400 print:text-black">
-                        Potential Conflicts Detected
+              <>
+                <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/40 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 print:hidden">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="font-bold text-red-800 dark:text-red-300">
+                        {result.summary.high > 0
+                          ? "High-risk matches require partner review"
+                          : "Potential conflicts detected"}
                       </h4>
-                      <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1 print:text-black">
-                        We found {results.length} record(s) matching your search. Please review the
-                        details below.
+                      <p className="text-sm text-red-700/80 dark:text-red-400/80 mt-1">
+                        Review each hit, open linked records, then record your clearance decision.
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 print:hidden">
-                    <Button
-                      variant="outline"
-                      className="border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto"
-                      onClick={handleReject}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" /> Mark as Conflict
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    <Button variant="outline" className="border-red-300 text-red-700" onClick={() => openDecision("conflict")}>
+                      <XCircle className="w-4 h-4 mr-2" /> Flag conflict
                     </Button>
-                    <Button
-                      onClick={handleClear}
-                      className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-2" /> Clear Conflict
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => openDecision("cleared")}>
+                      <CheckCircle2 className="w-4 h-4 mr-2" /> Grant clearance
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  {results.map((res, i) => (
-                    <Card
-                      key={i}
-                      className="border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden print:border-gray-300 print:shadow-none min-w-0"
-                    >
-                      <div className="flex min-w-0">
-                        <div className="w-2 bg-red-500 shrink-0 print:bg-black" />
-                        <div className="p-4 flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                          <div className="flex items-start sm:items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-full bg-secondary print:bg-gray-200 flex items-center justify-center shrink-0">
-                              {res.type === "Client" ? (
-                                <User className="w-5 h-5 text-muted-foreground print:text-black" />
-                              ) : (
-                                <FileText className="w-5 h-5 text-muted-foreground print:text-black" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-base sm:text-lg text-foreground print:text-black break-words">
-                                {res.name}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <span className="text-xs font-semibold uppercase bg-secondary print:border print:border-black print:bg-white px-2 py-0.5 rounded text-foreground print:text-black">
-                                  {res.type}
-                                </span>
-                                <span className="text-sm text-muted-foreground print:text-gray-700 break-words">
-                                  {res.context}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground print:text-gray-700 italic md:text-right shrink-0">
-                            Match via: {res.match}
-                          </p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                <div className="flex flex-wrap gap-2 print:hidden">
+                  <select
+                    className="text-sm border border-input rounded-md px-2 py-1.5 bg-background"
+                    value={severityFilter}
+                    onChange={(e) => setSeverityFilter(e.target.value as typeof severityFilter)}
+                  >
+                    <option value="all">All severities</option>
+                    <option value="high">High only</option>
+                    <option value="medium">Medium only</option>
+                    <option value="low">Low only</option>
+                  </select>
+                  <select
+                    className="text-sm border border-input rounded-md px-2 py-1.5 bg-background"
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                  >
+                    <option value="all">All types</option>
+                    {hitTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="pt-2 print:hidden">
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadReport}
-                    className="w-full sm:w-auto"
-                  >
-                    <Download className="w-4 h-4 mr-2" /> Download Report
-                  </Button>
-                </div>
-              </div>
+                <ConflictHitList hits={filteredHits} />
+              </>
             )}
           </div>
         </FadeInUp>
       )}
 
-      {/* Recent Checks — cards on mobile, table on md+ */}
-      <div className="mt-8 sm:mt-12 print:hidden min-w-0">
-        <h3 className="text-lg sm:text-xl font-bold font-serif mb-4 flex items-center gap-2 text-foreground">
-          <Clock className="w-5 h-5 text-accent shrink-0" /> Recent Check History
+      <div className="print:hidden space-y-4">
+        <h3 className="text-lg font-bold font-serif flex items-center gap-2">
+          <Clock className="w-5 h-5 text-accent" /> Audit trail — recent checks
         </h3>
-
         {recentChecks.length === 0 ? (
-          <Card className="min-w-0">
-            <CardContent className="py-8 px-4 text-center text-sm text-muted-foreground">
-              No conflict checks have been run yet.
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              No official conflict checks logged yet.
             </CardContent>
           </Card>
         ) : (
-          <>
-            {/* Mobile: stacked cards (no horizontal scroll) */}
-            <div className="md:hidden space-y-3">
-              {recentChecks.map((check: any) => (
-                <Card key={check._id} className="min-w-0 overflow-hidden">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-foreground break-words min-w-0">
-                        "{check.searchQuery}"
-                      </p>
-                      <StatusBadge status={check.status} />
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span>{new Date(check.timestamp).toLocaleString()}</span>
-                      <span>
-                        {check.hitsCount} hit{check.hitsCount === 1 ? "" : "s"}
-                      </span>
-                      <span className="truncate">{check.runByName}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Desktop: table */}
-            <Card className="hidden md:block min-w-0 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left min-w-[640px]">
-                  <thead className="bg-muted/50 text-muted-foreground uppercase border-b border-border">
-                    <tr>
-                      <th className="px-4 lg:px-6 py-3 font-medium">Date & Time</th>
-                      <th className="px-4 lg:px-6 py-3 font-medium">Search Query</th>
-                      <th className="px-4 lg:px-6 py-3 font-medium">Hits</th>
-                      <th className="px-4 lg:px-6 py-3 font-medium">Status</th>
-                      <th className="px-4 lg:px-6 py-3 font-medium">Run By</th>
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[720px]">
+                <thead className="bg-muted/50 text-muted-foreground uppercase text-xs border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left">When</th>
+                    <th className="px-4 py-3 text-left">Query</th>
+                    <th className="px-4 py-3 text-left">Hits</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Run by</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {recentChecks.map((check: any) => (
+                    <tr key={check._id} className="hover:bg-muted/20">
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {new Date(check.timestamp ?? check.checkedAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 font-medium max-w-xs truncate">"{check.searchQuery}"</td>
+                      <td className="px-4 py-3">{check.hitsCount}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={check.status} />
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{check.runByName}</td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {recentChecks.map((check: any) => (
-                      <tr key={check._id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 lg:px-6 py-3 text-muted-foreground whitespace-nowrap">
-                          {new Date(check.timestamp).toLocaleString()}
-                        </td>
-                        <td className="px-4 lg:px-6 py-3 font-medium text-foreground max-w-xs truncate">
-                          "{check.searchQuery}"
-                        </td>
-                        <td className="px-4 lg:px-6 py-3">{check.hitsCount}</td>
-                        <td className="px-4 lg:px-6 py-3">
-                          <StatusBadge status={check.status} />
-                        </td>
-                        <td className="px-4 lg:px-6 py-3 text-muted-foreground">
-                          {check.runByName}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         )}
       </div>
+
+      <Dialog open={decisionOpen} onOpenChange={setDecisionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {decisionKind === "cleared" ? "Grant conflict clearance" : "Flag as conflict"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Decision notes (audit record)</Label>
+            <Textarea
+              rows={5}
+              value={decisionNotes}
+              onChange={(e) => setDecisionNotes(e.target.value)}
+              placeholder="Document your reasoning for compliance…"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDecisionOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitDecision} disabled={isDeciding || !decisionNotes.trim()}>
+              {isDeciding ? "Saving…" : "Save decision"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

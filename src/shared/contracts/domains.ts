@@ -56,14 +56,7 @@ export interface ClientDto {
   [key: string]: unknown;
 }
 
-export interface ConflictHitDto {
-  type: string;
-  id: string;
-  name: string;
-  reason: string;
-  caseId?: string;
-  caseNumber?: string;
-}
+export type { ConflictHitDto } from "@/shared/contracts/conflicts";
 
 export interface TaskDto {
   _id: string;

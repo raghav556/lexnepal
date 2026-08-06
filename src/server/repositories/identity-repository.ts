@@ -487,6 +487,7 @@ function toUserDto(user: typeof users.$inferSelect): UserDto {
     avatar: user.avatar ? `/api/v1/users/${user.id}/avatar` : null,
     phone: user.phone,
     bio: user.bio,
+    leadershipTitle: user.leadershipTitle,
     barCouncilNumber: user.barCouncilNumber,
     barCouncilExpiry: user.barCouncilExpiry,
     isActive: user.isActive,

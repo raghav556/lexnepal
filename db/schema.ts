@@ -327,6 +327,7 @@ export const users = pgTable(
     isPublicFacing: boolean("is_public_facing").default(false).notNull(),
     bio: text("bio"),
     longBio: text("long_bio"),
+    leadershipTitle: text("leadership_title"),
     publicEmail: text("public_email"),
     linkedinUrl: text("linkedin_url"),
     twitterUrl: text("twitter_url"),

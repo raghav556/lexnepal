@@ -1,3 +1,7 @@
 "use client";
 
-export { default } from "@/views/shared/SharedProfilePage";
+import SharedProfilePage from "@/views/shared/SharedProfilePage";
+
+export default function AdminProfilePage() {
+  return <SharedProfilePage variant="admin" />;
+}

@@ -112,6 +112,7 @@ export interface UserDto {
   isActive: boolean;
   isPending: boolean;
   isPublicFacing: boolean;
+  leadershipTitle?: string | null;
   twoFactorEnabled: boolean;
   twoFactorRequired: boolean;
   lastLoginAt: string | null;

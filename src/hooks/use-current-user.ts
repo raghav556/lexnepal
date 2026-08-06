@@ -1,5 +1,5 @@
 import type { UserDto } from "@/shared/contracts/identity";
-import { useCurrentIdentityUser } from "@/client/queries/identity";
+import { useAuthContext } from "@/client/auth/auth-provider";
 
 export type LexUser = UserDto;
 export type UserRole = LexUser["role"];
@@ -13,7 +13,7 @@ export const STAFF_ROLES: UserRole[] = [
 ];
 
 export function useCurrentUser(): LexUser | null | undefined {
-  return useCurrentIdentityUser();
+  return useAuthContext().identityUser;
 }
 
 export function getPortalForRole(role: UserRole): "/client" | "/staff" | "/admin" {

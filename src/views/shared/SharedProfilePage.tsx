@@ -1,30 +1,80 @@
-import { useState, useEffect, useRef } from "react";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { useCurrentIdentityUser, useOwnAuditEvents, useProfileCommands, useSessions } from "@/client/queries/identity";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
-import { User, Shield, MonitorSmartphone, Database, Upload, Trash2, KeyRound, ShieldAlert, MonitorX, Laptop, Smartphone, Download, ActivitySquare } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
+import {
+  User,
+  Shield,
+  MonitorSmartphone,
+  Database,
+  Upload,
+  Trash2,
+  KeyRound,
+  ShieldAlert,
+  Download,
+  ActivitySquare,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
+import { ProfileLoadingSkeleton } from "@/components/auth/AuthLoadingSkeleton";
+import { ProfileHero } from "@/views/shared/profile/ProfileHero";
+import { ClientProfileExtras } from "@/views/shared/profile/ClientProfileExtras";
+import { StaffProfileExtras } from "@/views/shared/profile/StaffProfileExtras";
+import { AdminProfileExtras } from "@/views/shared/profile/AdminProfileExtras";
+import type { ProfileVariant } from "@/views/shared/profile/profile-types";
+import { PasswordConfirmDialog } from "@/components/auth/PasswordConfirmDialog";
+import { TotpEnrollmentPanel } from "@/components/auth/TotpEnrollmentPanel";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
+import { SessionListPanel } from "@/components/auth/SessionListPanel";
+import type { TotpEnrollmentPayload } from "@/shared/auth/totp";
 
-export default function SharedProfilePage() {
+type SharedProfilePageProps = {
+  variant: ProfileVariant;
+};
+
+type MfaPasswordMode = "enable" | "disable" | null;
+
+export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const user = useCurrentIdentityUser();
+  const { signout } = useAuth();
   const sessions = useSessions(user?.id);
   const auditLog = useOwnAuditEvents();
-  const { revokeSession, updateProfile, changePassword, uploadAvatar, removeAvatar, beginTotp, confirmTotp, disableTotp } = useProfileCommands();
+  const {
+    revokeSession,
+    revokeAllOtherSessions,
+    updateProfile,
+    changePassword,
+    uploadAvatar,
+    removeAvatar,
+    beginTotp,
+    confirmTotp,
+    disableTotp,
+  } = useProfileCommands();
 
   const [profileForm, setProfileForm] = useState({ name: "", phone: "", bio: "" });
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState({ current: "", newPass: "", confirm: "" });
 
+  const [mfaPasswordMode, setMfaPasswordMode] = useState<MfaPasswordMode>(null);
+  const [mfaPasswordBusy, setMfaPasswordBusy] = useState(false);
   const [totpDialogOpen, setTotpDialogOpen] = useState(false);
-  const [totpEnrollment, setTotpEnrollment] = useState<{ secret: string; otpauthUrl: string } | null>(null);
-  const [totpCode, setTotpCode] = useState("");
+  const [totpEnrollment, setTotpEnrollment] = useState<TotpEnrollmentPayload | null>(null);
+  const [totpBusy, setTotpBusy] = useState(false);
+  const [sessionsBusy, setSessionsBusy] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,43 +112,42 @@ export default function SharedProfilePage() {
       await changePassword(passwordForm.current, passwordForm.newPass);
       toast.success("Password changed successfully!");
       setPasswordForm({ current: "", newPass: "", confirm: "" });
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to change password");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to change password");
     }
   };
 
-  const handleBegin2FA = async () => {
-    const password = window.prompt("Enter your current password to enable MFA:");
-    if (!password) return;
+  const handleMfaPasswordConfirm = async (password: string) => {
+    setMfaPasswordBusy(true);
     try {
-      const result = await beginTotp(password);
-      setTotpEnrollment(result);
-      setTotpCode("");
-      setTotpDialogOpen(true);
-    } catch {
-      toast.error("Failed to start 2FA enrollment");
+      if (mfaPasswordMode === "enable") {
+        const result = await beginTotp(password);
+        setTotpEnrollment(result);
+        setMfaPasswordMode(null);
+        setTotpDialogOpen(true);
+      } else if (mfaPasswordMode === "disable") {
+        await disableTotp(password);
+        toast.success("Two-Factor Authentication disabled");
+        setMfaPasswordMode(null);
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setMfaPasswordBusy(false);
     }
   };
 
-  const handleConfirm2FA = async () => {
+  const handleConfirm2FA = async (code: string) => {
+    setTotpBusy(true);
     try {
-      await confirmTotp(totpCode);
+      await confirmTotp(code);
       toast.success("Two-Factor Authentication enabled!");
       setTotpDialogOpen(false);
       setTotpEnrollment(null);
     } catch {
       toast.error("Invalid authenticator code");
-    }
-  };
-
-  const handleDisable2FA = async () => {
-    const password = window.prompt("Enter your current password to disable MFA:");
-    if (!password) return;
-    try {
-      await disableTotp(password);
-      toast.success("Two-Factor Authentication disabled");
-    } catch {
-      toast.error("Invalid authenticator code");
+    } finally {
+      setTotpBusy(false);
     }
   };
 
@@ -123,11 +172,31 @@ export default function SharedProfilePage() {
   };
 
   const handleRevokeSession = async (sessionId: string) => {
+    setSessionsBusy(true);
     try {
       await revokeSession(sessionId);
       toast.success("Session revoked successfully");
     } catch {
       toast.error("Failed to revoke session");
+    } finally {
+      setSessionsBusy(false);
+    }
+  };
+
+  const handleRevokeAllOtherSessions = async () => {
+    if (!user) return;
+    setSessionsBusy(true);
+    try {
+      const result = await revokeAllOtherSessions(user.id);
+      toast.success(
+        result.revoked > 0
+          ? `Signed out of ${result.revoked} other device${result.revoked === 1 ? "" : "s"}`
+          : "No other active sessions to revoke",
+      );
+    } catch {
+      toast.error("Failed to revoke other sessions");
+    } finally {
+      setSessionsBusy(false);
     }
   };
 
@@ -156,17 +225,24 @@ export default function SharedProfilePage() {
     toast.success("Profile data downloaded");
   };
 
-  if (user === undefined) return <div className="p-6">Loading profile...</div>;
+  if (user === undefined) return <ProfileLoadingSkeleton />;
   if (user === null) return <div className="p-6">Not signed in.</div>;
 
-  const isLawyer = ['partner', 'senior_associate', 'associate', 'paralegal'].includes(user.role);
+  const isLawyer = ["partner", "senior_associate", "associate", "paralegal"].includes(user.role);
+
+  const portalExtras =
+    variant === "client" ? (
+      <ClientProfileExtras />
+    ) : variant === "staff" ? (
+      <StaffProfileExtras user={user} />
+    ) : (
+      <AdminProfileExtras user={user} />
+    );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl font-bold text-foreground">My Profile & Settings</h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your personal information, security, and account preferences.</p>
-      </div>
+      <ProfileHero user={user} variant={variant} onSignOut={signout} />
+      {portalExtras}
 
       <Tabs defaultValue="general" className="w-full flex flex-col md:flex-row gap-6">
         <TabsList className="flex md:flex-col h-auto bg-transparent p-0 space-y-1 w-full md:w-56 overflow-x-auto justify-start border-b md:border-b-0 border-border pb-2 md:pb-0 shrink-0">
@@ -229,31 +305,33 @@ export default function SharedProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Full Name</Label>
-                    <Input value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} />
+                    <Input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label>Phone Number</Label>
-                    <Input value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="+977..." />
+                    <Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} placeholder="+977..." />
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>Email Address</Label>
                     <Input value={user.email ?? ""} disabled className="bg-muted/50" />
                     <p className="text-xs text-muted-foreground">Contact an administrator to change your email address.</p>
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>System Role</Label>
-                    <Input value={ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role} disabled className="bg-muted/50" />
-                  </div>
+                  {variant !== "client" ? (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>System Role</Label>
+                      <Input value={ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role} disabled className="bg-muted/50" />
+                    </div>
+                  ) : null}
                 </div>
 
-                {isLawyer && (
+                {isLawyer && variant === "staff" && (
                   <div className="space-y-2 pt-4 border-t border-border mt-4">
                     <Label>Professional Biography</Label>
                     <Textarea
                       rows={5}
                       placeholder="Enter a professional bio..."
                       value={profileForm.bio}
-                      onChange={e => setProfileForm({...profileForm, bio: e.target.value})}
+                      onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground">This biography may be visible on the firm's public-facing website.</p>
                   </div>
@@ -269,22 +347,40 @@ export default function SharedProfilePage() {
           <TabsContent value="security" className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><KeyRound className="w-5 h-5 text-primary" /> Change Password</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <KeyRound className="w-5 h-5 text-primary" /> Change Password
+                </CardTitle>
                 <CardDescription>Ensure your account is using a long, random password to stay secure.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
                   <div className="space-y-2">
                     <Label>Current Password</Label>
-                    <Input type="password" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} required />
+                    <Input
+                      type="password"
+                      value={passwordForm.current}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>New Password</Label>
-                    <Input type="password" value={passwordForm.newPass} onChange={e => setPasswordForm({...passwordForm, newPass: e.target.value})} required />
+                    <Input
+                      type="password"
+                      value={passwordForm.newPass}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPass: e.target.value })}
+                      required
+                    />
+                    <PasswordStrengthIndicator password={passwordForm.newPass} />
                   </div>
                   <div className="space-y-2">
                     <Label>Confirm New Password</Label>
-                    <Input type="password" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} required />
+                    <Input
+                      type="password"
+                      value={passwordForm.confirm}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                      required
+                    />
                   </div>
                   <Button type="submit">Update Password</Button>
                 </form>
@@ -293,7 +389,9 @@ export default function SharedProfilePage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-primary" /> Two-Factor Authentication</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-primary" /> Two-Factor Authentication
+                </CardTitle>
                 <CardDescription>Add an extra layer of security to your account using an authenticator app.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 bg-muted/30 rounded-xl border border-border mx-0 sm:mx-6 mb-6">
@@ -307,11 +405,15 @@ export default function SharedProfilePage() {
                 </div>
                 <Button
                   variant={user.twoFactorEnabled ? "destructive" : "default"}
-                  onClick={user.twoFactorEnabled ? handleDisable2FA : handleBegin2FA}
+                  onClick={() => setMfaPasswordMode(user.twoFactorEnabled ? "disable" : "enable")}
                   disabled={user.twoFactorEnabled && user.twoFactorRequired}
                   className="shrink-0"
                 >
-                  {user.twoFactorEnabled && user.twoFactorRequired ? "Required by policy" : user.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+                  {user.twoFactorEnabled && user.twoFactorRequired
+                    ? "Required by policy"
+                    : user.twoFactorEnabled
+                      ? "Disable 2FA"
+                      : "Enable 2FA"}
                 </Button>
               </CardContent>
             </Card>
@@ -321,38 +423,17 @@ export default function SharedProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Active Sessions</CardTitle>
-                <CardDescription>These are the devices that have logged into your account. Revoke any sessions that you do not recognize.</CardDescription>
+                <CardDescription>
+                  These are the devices that have logged into your account. Revoke any sessions that you do not recognize.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {sessions?.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No active sessions found.</p>
-                ) : (
-                  sessions?.map((session: any) => (
-                    <div key={session._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-border rounded-xl bg-card">
-                      <div className="flex items-start gap-4">
-                        <div className={`p-2 rounded-full ${session.isCurrent ? 'bg-green-100 text-green-600 dark:bg-green-900/30' : 'bg-muted text-muted-foreground'}`}>
-                          {session.device.toLowerCase().includes('phone') ? <Smartphone className="w-5 h-5" /> : <Laptop className="w-5 h-5" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm flex items-center gap-2">
-                            {session.device} - {session.browser}
-                            {session.isCurrent && <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-200">Current Session</Badge>}
-                          </p>
-                          <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                            <span>IP: {session.ipAddress}</span>
-                            <span>&bull;</span>
-                            <span>{session.isCurrent ? "Active now" : `Last active: ${new Date(session.lastActive).toLocaleString()}`}</span>
-                          </div>
-                        </div>
-                      </div>
-                      {!session.isCurrent && (
-                        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 shrink-0 w-full sm:w-auto" onClick={() => handleRevokeSession(session._id)}>
-                          <MonitorX className="w-4 h-4 mr-2" /> Revoke
-                        </Button>
-                      )}
-                    </div>
-                  ))
-                )}
+              <CardContent>
+                <SessionListPanel
+                  sessions={sessions}
+                  busy={sessionsBusy}
+                  onRevokeSession={handleRevokeSession}
+                  onRevokeAllOther={handleRevokeAllOtherSessions}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -360,7 +441,9 @@ export default function SharedProfilePage() {
           <TabsContent value="data" className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ActivitySquare className="w-5 h-5 text-primary" /> Activity Log</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <ActivitySquare className="w-5 h-5 text-primary" /> Activity Log
+                </CardTitle>
                 <CardDescription>Review recent security events and actions taken on your account.</CardDescription>
               </CardHeader>
               <CardContent>
@@ -370,13 +453,16 @@ export default function SharedProfilePage() {
                   ) : auditLog.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">No activity recorded.</p>
                   ) : (
-                    auditLog.map((log: any) => (
-                      <div key={log._id} className="flex flex-col sm:flex-row justify-between sm:items-center py-3 border-b border-border last:border-0 gap-1">
+                    auditLog.map((log) => (
+                      <div key={log.id} className="flex flex-col sm:flex-row justify-between sm:items-center py-3 border-b border-border last:border-0 gap-1">
                         <div>
-                          <p className="text-sm font-medium">{log.action}{log.details ? `: ${log.details}` : ""}</p>
-                          {log.ipAddress && <p className="text-xs text-muted-foreground mt-0.5">IP Address: {log.ipAddress}</p>}
+                          <p className="text-sm font-medium">
+                            {log.action}
+                            {log.details ? `: ${log.details}` : ""}
+                          </p>
+                          {log.ipAddress ? <p className="text-xs text-muted-foreground mt-0.5">IP Address: {log.ipAddress}</p> : null}
                         </div>
-                        <p className="text-xs text-muted-foreground">{new Date(log._creationTime).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</p>
                       </div>
                     ))
                   )}
@@ -386,14 +472,14 @@ export default function SharedProfilePage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Download className="w-5 h-5 text-primary" /> Export Data</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="w-5 h-5 text-primary" /> Export Data
+                </CardTitle>
                 <CardDescription>Download a copy of your personal data for your own records or GDPR compliance.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-muted/30 rounded-xl border border-border">
-                  <p className="text-sm text-muted-foreground max-w-[70%]">
-                    Your export will include your profile information in JSON format.
-                  </p>
+                  <p className="text-sm text-muted-foreground max-w-[70%]">Your export will include your profile information in JSON format.</p>
                   <Button variant="outline" onClick={handleDataExport} className="shrink-0 w-full sm:w-auto">
                     <Download className="w-4 h-4 mr-2" /> Download Profile
                   </Button>
@@ -404,36 +490,36 @@ export default function SharedProfilePage() {
         </div>
       </Tabs>
 
+      <PasswordConfirmDialog
+        open={mfaPasswordMode !== null}
+        onOpenChange={(open) => {
+          if (!open) setMfaPasswordMode(null);
+        }}
+        title={mfaPasswordMode === "disable" ? "Disable two-factor authentication" : "Enable two-factor authentication"}
+        description="Enter your current password to continue."
+        confirmLabel={mfaPasswordMode === "disable" ? "Disable 2FA" : "Continue"}
+        busy={mfaPasswordBusy}
+        onConfirm={handleMfaPasswordConfirm}
+      />
+
       <Dialog open={totpDialogOpen} onOpenChange={setTotpDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Set Up Authenticator</DialogTitle>
+            <DialogTitle>Set up authenticator</DialogTitle>
           </DialogHeader>
-          {totpEnrollment && (
-            <div className="space-y-4 py-2">
-              <p className="text-sm text-muted-foreground">Scan this secret in your authenticator app, or enter it manually:</p>
-              <code className="block p-3 bg-muted rounded text-xs break-all">{totpEnrollment.secret}</code>
-              <p className="text-xs text-muted-foreground break-all">URI: {totpEnrollment.otpauthUrl}</p>
-              <div className="space-y-2">
-                <Label>Verification Code</Label>
-                <Input value={totpCode} onChange={(e) => setTotpCode(e.target.value)} placeholder="6-digit code" maxLength={6} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTotpDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirm2FA}>Confirm & Enable</Button>
-          </DialogFooter>
+          {totpEnrollment ? (
+            <TotpEnrollmentPanel
+              enrollment={totpEnrollment}
+              busy={totpBusy}
+              onConfirm={handleConfirm2FA}
+              onCancel={() => {
+                setTotpDialogOpen(false);
+                setTotpEnrollment(null);
+              }}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function Badge({ children, variant = "default", className = "" }: { children: React.ReactNode, variant?: string, className?: string }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${className}`}>
-      {children}
-    </span>
   );
 }

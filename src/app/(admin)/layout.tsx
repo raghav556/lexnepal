@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { User as UserIcon, AlertTriangle, Activity, FileText, Settings, Shield, LogOut, Menu, X, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, ChevronUp, Navigation, Newspaper } from "lucide-react";
+import { AlertTriangle, Activity, FileText, Settings, Shield, Menu, X, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, Navigation, Newspaper } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
+import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
+import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: LucideIcon; heading?: string };
 type NavLink = NavItem & { href: string; icon: LucideIcon };
@@ -34,6 +34,7 @@ const NAV: NavItem[] = [
 
   { heading: "Public CMS" },
   { label: "Site Settings", i18nKey: "nav.site_settings", href: "/admin/cms", icon: Globe },
+  { label: "Homepage", href: "/admin/cms/homepage", icon: LayoutDashboard },
   { label: "Navigation & Menus", i18nKey: "nav.navigation", href: "/admin/cms/navigation", icon: Navigation },
   { label: "Practice Areas", i18nKey: "nav.practice_areas", href: "/admin/cms/practice-areas", icon: Briefcase },
   { label: "Testimonials", i18nKey: "nav.testimonials", href: "/admin/cms/testimonials", icon: Quote },
@@ -63,11 +64,8 @@ function useIsActive() {
 }
 
 function AdminDesktopSidebar() {
-  const { signout, user } = useAuth();
-  const router = useRouter();
-  const { t, language, setLanguage } = useI18n();
+  const { t } = useI18n();
   const isActive = useIsActive();
-  const handleSignout = async () => { await signout(); router.push("/"); };
 
   return (
     <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border shrink-0">
@@ -96,36 +94,12 @@ function AdminDesktopSidebar() {
         })}
       </nav>
       <div className="px-3 py-4 border-t border-sidebar-border">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <UserIcon className="w-4 h-4 text-primary" />
-              </div>
-              <div className="flex-1 text-left overflow-hidden">
-                <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.profile.name ?? "Admin"}</p>
-                <p className="text-[10px] text-sidebar-foreground/50 truncate">{user?.profile.email}</p>
-              </div>
-              <ChevronUp className="w-4 h-4 text-sidebar-foreground/50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56" side="top">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/admin/profile" className="cursor-pointer">
-                <UserIcon className="w-4 h-4 mr-2" /> Profile & Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLanguage(language === 'en' ? 'ne' : 'en')} className="cursor-pointer">
-              <Globe className="w-4 h-4 mr-2" /> Language ({language === 'en' ? 'नेपाली' : 'English'})
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignout} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
-              <LogOut className="w-4 h-4 mr-2" /> {t("nav.signout")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <PortalAccountMenu
+          profileHref="/admin/profile"
+          variant="dropdown"
+          fallbackName="Admin"
+          showLanguageToggle
+        />
       </div>
     </aside>
   );
@@ -164,8 +138,8 @@ function AdminMobileChrome() {
       </div>
 
       {open && (
-        <div className="md:hidden fixed inset-0 z-40 bg-sidebar pt-14">
-          <nav className="px-4 py-4 space-y-1 h-[calc(100dvh-3.5rem)] overflow-y-auto">
+        <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-sidebar pt-14">
+          <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
             {NAV.map((item, idx) => {
               if (item.heading) {
                 return <div key={`mheading-${idx}`} className="text-xs font-semibold text-sidebar-foreground/40 mt-4 mb-1 px-3 uppercase tracking-wider">{item.heading}</div>;
@@ -179,6 +153,13 @@ function AdminMobileChrome() {
               );
             })}
           </nav>
+          <PortalAccountMenu
+            profileHref="/admin/profile"
+            variant="drawer"
+            fallbackName="Admin"
+            showLanguageToggle
+            onAction={() => setOpen(false)}
+          />
         </div>
       )}
     </>
@@ -194,6 +175,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         description="Restricted access. Please sign in with admin credentials."
         dark
       >
+        <IdleSessionGuard />
         <div className="flex h-screen overflow-hidden bg-background">
           <AdminDesktopSidebar />
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

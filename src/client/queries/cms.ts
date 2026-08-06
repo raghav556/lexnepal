@@ -60,6 +60,20 @@ export function useBlogPost(slug: string) {
   }).data;
 }
 
+export function useNewsItem(id: string) {
+  return useQuery({
+    queryKey: queryKeys.cms.newsItem(id),
+    queryFn: async ({ signal }) => {
+      try {
+        return await apiClient.request<any>(`/api/v1/public/cms/news/${id}`, { signal });
+      } catch {
+        return null;
+      }
+    },
+    enabled: Boolean(id),
+  }).data;
+}
+
 export function useLegalPage(slug: "privacy-policy" | "terms") {
   return useQuery({
     queryKey: queryKeys.cms.legal(slug),

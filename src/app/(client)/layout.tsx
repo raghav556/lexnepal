@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Scale, LayoutDashboard, FolderOpen, MessageSquare, Receipt, FileText, LogOut, Menu, X, Calendar, User as UserIcon, ChevronUp, ShieldCheck, PenTool, ClipboardList } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -39,9 +39,8 @@ function useIsActive() {
 
 function ClientDesktopSidebar() {
   const { signout, user } = useAuth();
-  const router = useRouter();
   const isActive = useIsActive();
-  const handleSignout = async () => { await signout(); router.push("/"); };
+  const handleSignout = async () => { await signout(); };
 
   return (
     <aside className="hidden md:flex md:w-60 flex-col h-screen sticky top-0 bg-card border-r border-border shrink-0">
@@ -105,7 +104,6 @@ function ClientDesktopSidebar() {
 function ClientMobileChrome() {
   const [open, setOpen] = useState(false);
   const { signout } = useAuth();
-  const router = useRouter();
   const isActive = useIsActive();
   const pathname = usePathname();
 
@@ -116,7 +114,7 @@ function ClientMobileChrome() {
     setOpen(false);
   }
 
-  const handleSignout = async () => { await signout(); router.push("/"); };
+  const handleSignout = async () => { await signout(); };
 
   return (
     <>

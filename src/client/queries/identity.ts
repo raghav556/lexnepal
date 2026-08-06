@@ -15,7 +15,9 @@ import type {
   UpdateUserInput,
   UserDto,
 } from "@/shared/contracts/identity";
+import { useAuthContext } from "@/client/auth/auth-provider";
 import { localAuthClient } from "@/client/auth/local-auth-client";
+import { normalizeTotpEnrollment } from "@/shared/auth/totp";
 
 export function useUsers(role?: string): UserDto[] | undefined {
   return useQuery({
@@ -26,16 +28,7 @@ export function useUsers(role?: string): UserDto[] | undefined {
 }
 
 export function useCurrentIdentityUser(): UserDto | null | undefined {
-  const { data, isPending, isError } = useQuery({
-    queryKey: ["identity", "me"],
-    queryFn: ({ signal }) => apiClient.request<UserDto>("/api/v1/users/me", { signal }),
-    retry: 1,
-    staleTime: 30_000,
-  });
-  // undefined = still loading; null = unauthenticated / failed (do not spin forever)
-  if (isPending) return undefined;
-  if (isError) return null;
-  return data ?? null;
+  return useAuthContext().identityUser;
 }
 
 export function useStaffDirectory(): StaffDirectoryEntryDto[] | undefined {
@@ -201,11 +194,10 @@ export function useProfileCommands() {
     async beginTotp(password: string) {
       const result = await localAuthClient.twoFactor.enable({ password });
       if (result.error) throw new Error(result.error.message);
-      return {
-        secret: "Stored by authenticator",
-        otpauthUrl: result.data.totpURI,
+      return normalizeTotpEnrollment({
+        totpURI: result.data.totpURI,
         backupCodes: result.data.backupCodes,
-      };
+      });
     },
     async confirmTotp(code: string) {
       const result = await localAuthClient.twoFactor.verifyTotp({ code, trustDevice: false });
@@ -221,6 +213,13 @@ export function useProfileCommands() {
     },
     async revokeSession(sessionId: string) {
       const result = await apiClient.request<void>(`/api/v1/users/me/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
+      await invalidate();
+      return result;
+    },
+    async revokeAllOtherSessions(userId: string) {
+      const result = await apiClient.request<{ revoked: number }>(`/api/v1/users/${userId}/sessions`, {
         method: "DELETE",
       });
       await invalidate();

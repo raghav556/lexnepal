@@ -1,12 +1,12 @@
 "use client";
 
 import { Suspense } from "react";
-import AccountSetupPage from "@/views/auth/AccountSetupPage";
+import ResetPasswordPage from "@/views/auth/ResetPasswordPage";
 
-export default function ResetPasswordPage() {
+export default function Page() {
   return (
     <Suspense fallback={null}>
-      <AccountSetupPage />
+      <ResetPasswordPage />
     </Suspense>
   );
 }

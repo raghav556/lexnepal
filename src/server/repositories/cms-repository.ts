@@ -203,6 +203,16 @@ export class PostgresCmsRepository {
       .orderBy(desc(newsAndAwards.publicationDate));
     return rows.map((row) => toDto({ ...row, date: row.publicationDate }));
   }
+  async getNewsItem(firmId: string, id: string) {
+    const [row] = await database
+      .select()
+      .from(newsAndAwards)
+      .where(
+        and(eq(newsAndAwards.firmId, firmId), eq(newsAndAwards.id, id), isNull(newsAndAwards.deletedAt)),
+      )
+      .limit(1);
+    return row ? toDto({ ...row, date: row.publicationDate }) : null;
+  }
   createNews(firmId: string, input: NewsInput, audit: AuditContext) {
     const { date, ...rest } = input;
     return this.createAudited(
@@ -646,14 +656,17 @@ export class PostgresCmsRepository {
         )
         .orderBy(asc(userNotableCases.position)),
     ]);
-    return team.map((row) =>
-      toDto({
+    return team.map((row) => {
+      const avatarUrl = row.avatar ? `/api/v1/users/${row.id}/avatar` : null;
+      return toDto({
         id: row.id,
         name: row.name,
         role: row.role,
-        avatar: row.avatar ? `/api/v1/users/${row.id}/avatar` : null,
+        avatar: avatarUrl,
+        avatarUrl,
         bio: row.bio,
         longBio: row.longBio,
+        leadershipTitle: row.leadershipTitle,
         publicEmail: row.publicEmail,
         linkedinUrl: row.linkedinUrl,
         twitterUrl: row.twitterUrl,
@@ -667,8 +680,8 @@ export class PostgresCmsRepository {
         notableCases: cases
           .filter((item) => item.userId === row.id)
           .map((item) => item.description),
-      }),
-    );
+      });
+    });
   }
 
   async updateTeamProfile(

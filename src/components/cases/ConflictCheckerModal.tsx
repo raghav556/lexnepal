@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useCaseCommands, useConflictSearch } from "@/client/queries/cases";
+import { useEffect, useState } from "react";
+import { useCaseCommands, useConflictCommands, useConflictPreview } from "@/client/queries/cases";
 import {
   Dialog,
   DialogContent,
@@ -9,37 +9,82 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { AlertTriangle, CheckCircle2, Search, ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ConflictHitList, ConflictRiskSummary } from "@/components/conflicts/ConflictHitList";
+import type { ConflictOfficialResultDto } from "@/shared/contracts/conflicts";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Optional: pre-fill query and lock to a specific case for marking cleared
   caseId?: string;
   caseNumber?: string;
+  initialQuery?: string;
+  matterContext?: {
+    clientName?: string;
+    opposingCounsel?: string;
+    caseNumber?: string;
+  };
+  onOfficialClearance?: (result: ConflictOfficialResultDto) => void;
 }
 
-export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }: Props) {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+export function ConflictCheckerModal({
+  open,
+  onOpenChange,
+  caseId,
+  caseNumber,
+  initialQuery = "",
+  matterContext,
+  onOfficialClearance,
+}: Props) {
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [isMarking, setIsMarking] = useState(false);
+  const [isOfficialRunning, setIsOfficialRunning] = useState(false);
+  const [officialResult, setOfficialResult] = useState<ConflictOfficialResultDto | null>(null);
 
   const { markConflict: markConflictChecked } = useCaseCommands();
+  const conflictCommands = useConflictCommands();
+  const preview = useConflictPreview(debouncedQuery);
 
-  // Debounce the search query by 300ms
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 300);
+    const timer = setTimeout(() => setDebouncedQuery(query), 350);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const hits = useConflictSearch(debouncedQuery);
+  useEffect(() => {
+    if (open) {
+      setQuery(initialQuery);
+      setDebouncedQuery(initialQuery);
+      setOfficialResult(null);
+    }
+  }, [open, initialQuery]);
 
+  const hits = preview?.hits;
   const hasConflicts = hits && hits.length > 0;
-  const searched = debouncedQuery.length >= 2;
+  const searched = debouncedQuery.trim().length >= 2;
+  const highRisk = preview?.summary.high ?? 0;
+
+  const handleOfficialCheck = async () => {
+    if (debouncedQuery.trim().length < 2) return;
+    setIsOfficialRunning(true);
+    try {
+      const outcome = await conflictCommands.search(debouncedQuery.trim(), { matterContext });
+      setOfficialResult(outcome);
+      onOfficialClearance?.(outcome);
+      if (outcome.summary.total === 0) {
+        toast.success("Official clearance logged — no conflicts found.");
+      } else if (outcome.summary.high > 0) {
+        toast.warning("High-risk hits found — partner review required.");
+      } else {
+        toast.info("Matches found — review before granting clearance.");
+      }
+    } catch {
+      toast.error("Official conflict check failed.");
+    } finally {
+      setIsOfficialRunning(false);
+    }
+  };
 
   const handleMarkCleared = async () => {
     if (!caseId) return;
@@ -48,7 +93,7 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
       await markConflictChecked(caseId, true);
       toast.success(`Conflict check cleared for case ${caseNumber || caseId}`);
       onOpenChange(false);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to mark conflict checked");
     } finally {
       setIsMarking(false);
@@ -58,18 +103,18 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
   const handleClose = () => {
     setQuery("");
     setDebouncedQuery("");
+    setOfficialResult(null);
     onOpenChange(false);
   };
 
-  const typeColors: Record<string, string> = {
-    "Existing Client": "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    "Existing Case": "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-    "Opposing Counsel": "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  };
+  const clearanceGranted =
+    officialResult &&
+    (officialResult.summary.total === 0 ||
+      (officialResult.summary.high === 0 && officialResult.summary.total > 0));
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[640px]">
+      <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-primary" />
@@ -79,121 +124,90 @@ export function ConflictCheckerModal({ open, onOpenChange, caseId, caseNumber }:
 
         <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">
-            Search by client name, opposing party, or related entity to detect any existing
-            relationships before accepting a new case engagement.
+            Live preview scans firm records without logging. Run an{" "}
+            <strong>official check</strong> before opening a new matter — it creates an audit record.
           </p>
 
-          {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               autoFocus
-              placeholder="Type a name, company, or party to check..."
+              placeholder="Client, company, opposing counsel, email, phone…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-9"
             />
           </div>
 
-          {/* Status Banner */}
-          {searched && hits === undefined && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Scanning records…</span>
+          {searched && preview === undefined && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm text-muted-foreground">Preview scan…</span>
             </div>
           )}
 
-          {searched && hits !== undefined && !hasConflicts && (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                  No conflicts found
-                </p>
-                <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-                  "{debouncedQuery}" does not match any existing clients, cases, or opposing
-                  parties.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {searched && hasConflicts && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-red-800 dark:text-red-300">
-                  ⚠ Conflict Detected — {hits!.length} hit{hits!.length !== 1 ? "s" : ""} found
-                </p>
-                <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
-                  Review each match carefully before proceeding with this engagement.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Results Table */}
-          {searched && hits !== undefined && hits.length > 0 && (
-            <div className="border border-border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/60">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Matched Name
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Reason
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Case #
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {hits!.map((hit, i) => (
-                    <tr key={i} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-3 py-2.5">
-                        <Badge
-                          className={`text-xs ${typeColors[hit.type] || "bg-gray-100 text-gray-700"}`}
-                        >
-                          {hit.type}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2.5 font-medium text-foreground">{hit.name}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground text-xs">{hit.reason}</td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
-                        {hit.caseNumber || "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {searched && preview && (
+            <>
+              <ConflictRiskSummary summary={preview.summary} />
+              {!hasConflicts && (
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <p className="text-sm text-emerald-800 dark:text-emerald-300">
+                    Preview: no matches for "{debouncedQuery}".
+                  </p>
+                </div>
+              )}
+              {hasConflicts && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-800 dark:text-red-300">
+                    {highRisk > 0
+                      ? `${highRisk} high-risk hit(s) — do not proceed without partner sign-off.`
+                      : `${hits!.length} match(es) found in preview.`}
+                  </p>
+                </div>
+              )}
+              {hasConflicts && <ConflictHitList hits={hits!} />}
+            </>
           )}
 
           {!searched && (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <div className="flex flex-col items-center py-8 text-muted-foreground">
               <ShieldCheck className="w-10 h-10 mb-3 opacity-30" />
-              <p className="text-sm">Enter at least 2 characters to begin searching</p>
+              <p className="text-sm">Enter at least 2 characters to preview</p>
+            </div>
+          )}
+
+          {officialResult && (
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 text-sm">
+              Official check logged · ID{" "}
+              <span className="font-mono text-xs">{officialResult.checkId}</span> ·{" "}
+              {officialResult.summary.total} hit(s)
             </div>
           )}
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleClose}>
+        <DialogFooter className="gap-2 flex-col sm:flex-row">
+          <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
             Close
           </Button>
-          {caseId && searched && !hasConflicts && (
-            <Button onClick={handleMarkCleared} disabled={isMarking} className="gap-2">
-              {isMarking ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4" />
-              )}
-              Mark Conflict-Cleared for Case
+          <Button
+            variant="secondary"
+            onClick={handleOfficialCheck}
+            disabled={!searched || isOfficialRunning}
+            className="w-full sm:w-auto"
+          >
+            {isOfficialRunning ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <ShieldCheck className="w-4 h-4 mr-2" />
+            )}
+            Run official check
+          </Button>
+          {caseId && searched && clearanceGranted && (
+            <Button onClick={handleMarkCleared} disabled={isMarking} className="w-full sm:w-auto gap-2">
+              {isMarking ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Mark case cleared
             </Button>
           )}
         </DialogFooter>

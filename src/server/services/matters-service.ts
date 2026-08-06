@@ -9,6 +9,10 @@ import {
 import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
 import { PostgresMattersRepository } from "@/server/repositories/matters-repository";
 import type {
+  ConflictOfficialSearchInput,
+  ConflictPreviewInput,
+} from "@/shared/contracts/conflicts";
+import type {
   CaseCreateInput,
   CaseListInput,
   CaseUpdateInput,
@@ -104,9 +108,36 @@ export class MattersService {
     return repository.updateCase(requireFirmContext(principal).firmId, caseId, input, audit);
   }
 
-  async searchConflicts(principal: AuthPrincipal, query: string, audit: AuditContext) {
+  async searchConflicts(
+    principal: AuthPrincipal,
+    input: ConflictOfficialSearchInput,
+    audit: AuditContext,
+  ) {
     requireCapability(principal, "conflicts.manage");
-    return repository.searchAndLogConflicts(requireFirmContext(principal).firmId, query, audit);
+    return repository.searchAndLogConflicts(
+      requireFirmContext(principal).firmId,
+      input.query,
+      audit,
+      {
+        runByName: principal.user.name ?? principal.user.email ?? "Authorized user",
+        scope: input.scope,
+        matterContext: input.matterContext,
+      },
+    );
+  }
+
+  async previewConflicts(principal: AuthPrincipal, input: ConflictPreviewInput) {
+    requireCapability(principal, "conflicts.manage");
+    return repository.previewConflicts(
+      requireFirmContext(principal).firmId,
+      input.query,
+      input.scope,
+    );
+  }
+
+  async getConflictStats(principal: AuthPrincipal) {
+    requireCapability(principal, "conflicts.manage");
+    return repository.getConflictStats(requireFirmContext(principal).firmId);
   }
 
   async listConflictChecks(principal: AuthPrincipal) {

@@ -14,6 +14,7 @@ import { useHearings } from "@/client/queries/hearings";
 import { PRACTICE_AREAS, COURTS } from "@/lib/lex-constants.ts";
 import { ConflictCheckerModal } from "@/components/cases/ConflictCheckerModal.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
+import type { ConflictOfficialResultDto } from "@/shared/contracts/conflicts";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -45,11 +46,37 @@ export default function StaffCasesPage() {
   const [opposingCounsel, setOpposingCounsel] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConflictChecker, setShowConflictChecker] = useState(false);
+  const [officialClearance, setOfficialClearance] = useState<ConflictOfficialResultDto | null>(
+    null,
+  );
+
+  const selectedClient = clients.find((c: any) => c._id === clientId);
+  const matterContext = {
+    clientName: selectedClient?.fullName ?? selectedClient?.companyName ?? undefined,
+    opposingCounsel: opposingCounsel.trim() || undefined,
+    caseNumber: caseNumber.trim() || undefined,
+  };
+
+  const clearanceRequired = Boolean(clientId || opposingCounsel.trim() || title.trim());
+  const hasValidClearance =
+    officialClearance != null &&
+    (officialClearance.summary.total === 0 || officialClearance.summary.high === 0);
+
+  const openConflictForMatter = () => {
+    const seed = opposingCounsel.trim() || selectedClient?.fullName || title.trim();
+    setShowConflictChecker(true);
+    return seed;
+  };
 
   const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseNumber || !title || !clientId || !assignedLawyerId) {
       toast.error("Please fill in all required fields.");
+      return;
+    }
+    if (clearanceRequired && !hasValidClearance) {
+      toast.error("Run an official conflict check before creating this matter.");
+      openConflictForMatter();
       return;
     }
     setIsSubmitting(true);
@@ -75,6 +102,7 @@ export default function StaffCasesPage() {
       setClientId("");
       setAssignedLawyerId("");
       setOpposingCounsel("");
+      setOfficialClearance(null);
     } catch (err: any) {
       toast.error(err?.message || "Failed to create case.");
     } finally {
@@ -355,7 +383,10 @@ export default function StaffCasesPage() {
                     required
                     className="w-full h-9 rounded-md border border-input bg-input text-foreground px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
                     value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
+                    onChange={(e) => {
+                      setClientId(e.target.value);
+                      setOfficialClearance(null);
+                    }}
                   >
                     <option value="">Select Client</option>
                     {clients.map((cl: any) => (
@@ -425,9 +456,44 @@ export default function StaffCasesPage() {
                 <Input
                   placeholder="Adv. Krishna Bhandari"
                   value={opposingCounsel}
-                  onChange={(e) => setOpposingCounsel(e.target.value)}
+                  onChange={(e) => {
+                    setOpposingCounsel(e.target.value);
+                    setOfficialClearance(null);
+                  }}
                 />
               </div>
+
+              {clearanceRequired && (
+                <div
+                  className={`rounded-lg border p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    hasValidClearance
+                      ? "border-green-200 bg-green-50 dark:bg-green-950/20"
+                      : "border-amber-200 bg-amber-50 dark:bg-amber-950/20"
+                  }`}
+                >
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      {hasValidClearance
+                        ? "Official conflict clearance on file"
+                        : "Official conflict check required"}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5">
+                      {hasValidClearance
+                        ? `Check ${officialClearance?.checkId.slice(0, 8)}… · ${officialClearance?.summary.total ?? 0} hit(s)`
+                        : "Run an official check for client, counsel, and matter details before creating."}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={hasValidClearance ? "outline" : "default"}
+                    onClick={() => setShowConflictChecker(true)}
+                  >
+                    <ShieldCheck className="w-4 h-4 mr-1" />
+                    {hasValidClearance ? "Re-check" : "Run check"}
+                  </Button>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Description / Notes</label>
@@ -448,7 +514,7 @@ export default function StaffCasesPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={isSubmitting}>
+                <Button type="submit" size="sm" disabled={isSubmitting || (clearanceRequired && !hasValidClearance)}>
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Case"}
                 </Button>
               </div>
@@ -458,7 +524,22 @@ export default function StaffCasesPage() {
       )}
 
       {/* Conflict Checker Modal */}
-      <ConflictCheckerModal open={showConflictChecker} onOpenChange={setShowConflictChecker} />
+      <ConflictCheckerModal
+        open={showConflictChecker}
+        onOpenChange={setShowConflictChecker}
+        initialQuery={
+          opposingCounsel.trim() || selectedClient?.fullName || title.trim() || ""
+        }
+        matterContext={matterContext}
+        onOfficialClearance={(result) => {
+          if (result.summary.high > 0) {
+            toast.error("High-risk conflicts found — partner review required before creating matter.");
+            setOfficialClearance(null);
+            return;
+          }
+          setOfficialClearance(result);
+        }}
+      />
     </div>
   );
 }

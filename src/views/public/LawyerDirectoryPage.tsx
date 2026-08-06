@@ -10,11 +10,13 @@ import { Pagination } from "@/components/ui/pagination.tsx";
 import { usePublicTeam } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 
+import { resolvePublicTitle } from "@/shared/leadership";
+
 const getLawyerDetails = (user: any) => {
   const isPartner = user.role === "partner";
   const isSenior = user.role === "senior_associate";
   return {
-    title: isPartner ? "Partner" : isSenior ? "Senior Associate" : "Associate",
+    title: resolvePublicTitle(user),
     specialization: isPartner
       ? ["Corporate Law", "Litigation"]
       : isSenior
@@ -170,9 +172,9 @@ export default function LawyerDirectoryPage() {
                       <div className="h-24 sm:h-28 bg-primary relative flex justify-center shrink-0">
                         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_50%,_oklch(0.7_0.15_60),_transparent_80%)]" />
                         <div className="absolute -bottom-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-card flex items-center justify-center text-primary font-serif text-2xl sm:text-3xl font-bold border-4 border-card shadow-lg overflow-hidden z-10">
-                          {lawyer.avatarUrl ? (
+                          {lawyer.avatarUrl || lawyer.avatar ? (
                             <img
-                              src={lawyer.avatarUrl}
+                              src={lawyer.avatarUrl || lawyer.avatar}
                               alt={lawyer.name}
                               className="w-full h-full object-cover"
                             />

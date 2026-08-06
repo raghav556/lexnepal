@@ -6,7 +6,7 @@ const CMS_PATHS = ["/", "/blog", "/practice-areas", "/about-us", "/contact"] as 
 async function signIn(page: Page, email: string) {
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(E2E_PASSWORD);
+  await page.locator("#password").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 

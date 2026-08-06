@@ -20,6 +20,15 @@ import type {
 } from "@/shared/contracts/matters";
 import { AppError } from "@/shared/errors/api-error";
 import type { CaseDto } from "@/shared/contracts/domains";
+import type {
+  ConflictOfficialSearchInput,
+  ConflictPreviewInput,
+  ConflictSearchScope,
+} from "@/shared/contracts/conflicts";
+import {
+  runConflictSearch,
+  runMatterBundleSearch,
+} from "@/server/services/conflict-search";
 
 const database = getDatabase();
 
@@ -205,77 +214,35 @@ export class PostgresMattersRepository {
     });
   }
 
-  async searchAndLogConflicts(firmId: string, query: string, audit: AuditContext) {
-    const pattern = `%${escapeLike(query)}%`;
-    const [clientRows, caseRows] = await Promise.all([
-      database
-        .select({
-          id: clients.id,
-          fullName: clients.fullName,
-          companyName: clients.companyName,
-          email: clients.email,
-        })
-        .from(clients)
-        .where(
-          and(
-            eq(clients.firmId, firmId),
-            isNull(clients.deletedAt),
-            or(ilike(clients.fullName, pattern), ilike(clients.companyName, pattern)),
-          ),
-        )
-        .limit(100),
-      database
-        .select({
-          id: cases.id,
-          title: cases.title,
-          caseNumber: cases.caseNumber,
-          opposingCounsel: cases.opposingCounsel,
-          judge: cases.judge,
-        })
-        .from(cases)
-        .where(
-          and(
-            eq(cases.firmId, firmId),
-            isNull(cases.deletedAt),
-            or(
-              ilike(cases.title, pattern),
-              ilike(cases.opposingCounsel, pattern),
-              ilike(cases.judge, pattern),
-            ),
-          ),
-        )
-        .limit(100),
-    ]);
-    const hits = [
-      ...clientRows.map((row) => ({
-        type: "Existing Client",
-        id: row.id,
-        name: row.fullName,
-        reason: row.companyName || row.email || "Client name match",
-      })),
-      ...caseRows.map((row) => ({
-        type: row.opposingCounsel?.toLowerCase().includes(query.toLowerCase())
-          ? "Opposing Counsel"
-          : "Existing Case",
-        id: row.id,
-        caseId: row.id,
-        caseNumber: row.caseNumber,
-        name: row.opposingCounsel?.toLowerCase().includes(query.toLowerCase())
-          ? row.opposingCounsel
-          : row.title,
-        reason: row.opposingCounsel || row.judge || "Matter match",
-      })),
-    ];
+  async previewConflicts(firmId: string, query: string, scope?: Partial<ConflictSearchScope>) {
+    return runConflictSearch(firmId, query, scope);
+  }
+
+  async searchAndLogConflicts(
+    firmId: string,
+    query: string,
+    audit: AuditContext,
+    options?: {
+      runByName?: string;
+      scope?: Partial<ConflictSearchScope>;
+      matterContext?: { clientName?: string; opposingCounsel?: string; caseNumber?: string };
+    },
+  ) {
+    const outcome = options?.matterContext
+      ? await runMatterBundleSearch(firmId, query, options.matterContext, options.scope)
+      : await runConflictSearch(firmId, query, options?.scope);
+    const hits = outcome.hits;
+
     const [check] = await database.transaction(async (tx) => {
       const inserted = await tx
         .insert(conflictChecks)
         .values({
           firmId,
-          searchQuery: query,
+          searchQuery: outcome.query,
           hitsCount: hits.length,
           status: hits.length ? "pending" : "cleared",
           runBy: audit.actorId,
-          runByName: "Authenticated user",
+          runByName: options?.runByName?.trim() || "Authorized user",
           checkedAt: audit.occurredAt,
         })
         .returning();
@@ -285,11 +252,33 @@ export class PostgresMattersRepository {
         "conflict.search_run",
         "conflict_checks",
         inserted[0].id,
-        `hits=${hits.length}`,
+        `hits=${hits.length};high=${outcome.summary.high}`,
       );
       return inserted;
     });
-    return { checkId: check.id, hits };
+    return { checkId: check.id, ...outcome };
+  }
+
+  async getConflictStats(firmId: string) {
+    const rows = await database
+      .select({
+        status: conflictChecks.status,
+        checkedAt: conflictChecks.checkedAt,
+      })
+      .from(conflictChecks)
+      .where(and(eq(conflictChecks.firmId, firmId), isNull(conflictChecks.deletedAt)));
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    return {
+      totalChecks: rows.length,
+      pendingReviews: rows.filter((r) => r.status === "pending").length,
+      clearedCount: rows.filter((r) => r.status === "cleared").length,
+      conflictCount: rows.filter((r) => r.status === "conflict").length,
+      checksThisMonth: rows.filter((r) => r.checkedAt >= monthStart).length,
+    };
   }
 
   async listConflictChecks(firmId: string) {
@@ -299,7 +288,11 @@ export class PostgresMattersRepository {
       .where(and(eq(conflictChecks.firmId, firmId), isNull(conflictChecks.deletedAt)))
       .orderBy(desc(conflictChecks.checkedAt))
       .limit(50);
-    return rows.map(toDto);
+    return rows.map((row) => {
+      const dto = toDto(row);
+      dto.timestamp = row.checkedAt.toISOString();
+      return dto;
+    });
   }
 
   async decideConflictCheck(

@@ -7,6 +7,7 @@ import { useCmsTeamIdentityBridge } from "@/client/queries/identity";
 import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
+import { LEADERSHIP_TITLE_EXAMPLES, isLeadershipRole } from "@/shared/leadership";
 
 export default function AdminCMSTeam() {
   const { users, createUser, updateTeamMember, deleteUser, togglePublicStatus } = useCmsTeamIdentityBridge();
@@ -41,6 +42,7 @@ export default function AdminCMSTeam() {
     isPublicFacing: false,
     bio: "",
     longBio: "",
+    leadershipTitle: "",
     avatarUrl: "",
     linkedinUrl: "",
     twitterUrl: "",
@@ -57,7 +59,7 @@ export default function AdminCMSTeam() {
     setEditingId(null);
     setFormData({
       name: "", email: "", role: "associate", isPublicFacing: false,
-      bio: "", longBio: "", avatarUrl: "", linkedinUrl: "", twitterUrl: "", publicEmail: "", barCouncilNumber: "",
+      bio: "", longBio: "", leadershipTitle: "", avatarUrl: "", linkedinUrl: "", twitterUrl: "", publicEmail: "", barCouncilNumber: "",
       practiceAreas: [], notableCases: [], education: [],
     });
     setActiveTab("basic");
@@ -74,6 +76,7 @@ export default function AdminCMSTeam() {
       isPublicFacing: user.isPublicFacing || false,
       bio: user.bio || "",
       longBio: user.longBio || "",
+      leadershipTitle: user.leadershipTitle || "",
       avatarUrl: user.avatarUrl || "",
       linkedinUrl: user.linkedinUrl || "",
       twitterUrl: user.twitterUrl || "",
@@ -415,6 +418,28 @@ export default function AdminCMSTeam() {
                       <option value="paralegal">Paralegal</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Public leadership title</label>
+                  <Input
+                    value={formData.leadershipTitle}
+                    onChange={(e) => setFormData({ ...formData, leadershipTitle: e.target.value })}
+                    placeholder={
+                      isLeadershipRole(formData.role)
+                        ? "e.g. Managing Partner, Director of Litigation"
+                        : "Optional — shown on public profile instead of role label"
+                    }
+                    list="leadership-title-suggestions"
+                  />
+                  <datalist id="leadership-title-suggestions">
+                    {LEADERSHIP_TITLE_EXAMPLES.map((title) => (
+                      <option key={title} value={title} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground">
+                    Used on lawyer profiles, directory, and homepage director message. Partners and senior associates can be featured as firm leadership.
+                  </p>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

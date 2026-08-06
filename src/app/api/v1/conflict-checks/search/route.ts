@@ -3,18 +3,18 @@ import { buildAuditContext } from "@/server/audit/context";
 import { withApiHandler } from "@/server/http/handler";
 import { jsonResponse } from "@/server/http/response";
 import { getMattersService } from "@/server/services/matters-service";
-import { conflictSearchSchema } from "@/shared/contracts/matters";
+import { conflictOfficialSearchSchema } from "@/shared/contracts/conflicts";
 
 export const POST = withApiHandler(
   "/api/v1/conflict-checks/search",
   async ({ request, requestId }) => {
     const principal = await requireSession(request);
-    const input = conflictSearchSchema.parse(await request.json());
+    const input = conflictOfficialSearchSchema.parse(await request.json());
     return jsonResponse(
       {
         data: await getMattersService().searchConflicts(
           principal,
-          input.query,
+          input,
           buildAuditContext(request, requestId, principal),
         ),
       },

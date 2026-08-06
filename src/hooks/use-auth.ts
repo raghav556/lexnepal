@@ -1,6 +1,7 @@
-/** Auth hook — reads the Better Auth session. */
+/** Unified auth hook — Better Auth session + /api/v1/users/me via AuthProvider. */
 
-import { localAuthClient } from "@/client/auth/local-auth-client";
+import { useAuthContext } from "@/client/auth/auth-provider";
+import type { UserDto } from "@/shared/contracts/identity";
 
 export interface AuthUser {
   profile: {
@@ -10,24 +11,33 @@ export interface AuthUser {
 }
 
 interface AuthState {
+  /** Legacy session-shaped user for existing UI (identity-first when hydrated). */
   user: AuthUser | null;
+  /** LexNepal identity user — undefined while loading, null when signed out. */
+  identityUser: UserDto | null | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
   signout: () => Promise<void>;
 }
 
 export function useAuth(): AuthState {
-  const localSession = localAuthClient.useSession();
+  const { identityUser, isLoading, isAuthenticated, signout } = useAuthContext();
+
+  const user: AuthUser | null =
+    identityUser != null
+      ? {
+          profile: {
+            name: identityUser.name ?? undefined,
+            email: identityUser.email ?? undefined,
+          },
+        }
+      : null;
 
   return {
-    user: localSession.data?.user
-      ? { profile: { name: localSession.data.user.name, email: localSession.data.user.email } }
-      : null,
-    isLoading: localSession.isPending,
-    isAuthenticated: Boolean(localSession.data?.user),
-    signout: async () => {
-      await localAuthClient.signOut();
-      window.location.href = "/sign-in";
-    },
+    user,
+    identityUser,
+    isLoading,
+    isAuthenticated,
+    signout,
   };
 }

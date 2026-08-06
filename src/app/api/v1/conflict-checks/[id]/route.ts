@@ -3,7 +3,8 @@ import { buildAuditContext } from "@/server/audit/context";
 import { withApiHandler } from "@/server/http/handler";
 import { jsonResponse } from "@/server/http/response";
 import { getMattersService } from "@/server/services/matters-service";
-import { conflictDecisionSchema, uuidSchema } from "@/shared/contracts/matters";
+import { conflictDecisionSchema } from "@/shared/contracts/conflicts";
+import { uuidSchema } from "@/shared/contracts/matters";
 
 export const PATCH = withApiHandler(
   "/api/v1/conflict-checks/:id",

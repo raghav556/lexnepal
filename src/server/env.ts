@@ -75,6 +75,16 @@ export function getServerEnvironment(): ServerEnvironment {
   ) {
     throw new Error("BETTER_AUTH_SECRET must be replaced before production startup");
   }
+  if (parsed.data.NODE_ENV === "production") {
+    for (const [name, value] of [
+      ["BETTER_AUTH_URL", parsed.data.BETTER_AUTH_URL],
+      ["APP_PUBLIC_URL", parsed.data.APP_PUBLIC_URL],
+    ] as const) {
+      if (value && !value.startsWith("https://")) {
+        throw new Error(`${name} must use https:// in production`);
+      }
+    }
+  }
   cachedEnvironment = parsed.data;
   return cachedEnvironment;
 }

@@ -117,6 +117,7 @@ export const teamProfileInputSchema = z
     isPublicFacing: z.boolean().optional(),
     bio: z.string().trim().max(2_000).optional().nullable(),
     longBio: z.string().trim().max(20_000).optional().nullable(),
+    leadershipTitle: z.string().trim().max(200).optional().nullable(),
     publicEmail: z
       .union([z.string().trim().email().max(320), z.literal("")])
       .optional()

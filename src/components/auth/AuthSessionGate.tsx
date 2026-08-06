@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Loader2, Scale } from "lucide-react";
+import { Scale } from "lucide-react";
+import { AuthGuardSkeleton } from "@/components/auth/AuthLoadingSkeleton";
 import { SignInButton } from "@/components/ui/signin";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -33,13 +34,7 @@ export function AuthSessionGate({
   );
 
   if (isLoading) {
-    return (
-      loadingFallback ?? (
-        <div className={shell}>
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-      )
-    );
+    return loadingFallback ?? <AuthGuardSkeleton dark={dark} />;
   }
 
   if (!isAuthenticated) {

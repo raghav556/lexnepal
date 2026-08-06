@@ -115,14 +115,19 @@ export const caseListSchema = z.object({
 });
 
 export const conflictSearchSchema = z.object({ query: z.string().trim().min(2).max(250) });
-export const conflictDecisionSchema = z.object({
-  status: z.enum(["cleared", "conflict"]),
-  notes: optionalText(5_000),
-});
-export const caseConflictDecisionSchema = z.object({
-  cleared: z.boolean(),
-  notes: optionalText(5_000),
-});
+export {
+  conflictDecisionSchema,
+  caseConflictDecisionSchema,
+  conflictPreviewSchema,
+  conflictOfficialSearchSchema,
+} from "@/shared/contracts/conflicts";
+export type {
+  ConflictHitDto,
+  ConflictSearchResultDto,
+  ConflictOfficialResultDto,
+  ConflictCheckStatsDto,
+  ConflictSearchScope,
+} from "@/shared/contracts/conflicts";
 
 export type ClientCreateInput = z.infer<typeof clientCreateSchema>;
 export type ClientStaffUpdateInput = z.infer<typeof clientStaffUpdateSchema>;

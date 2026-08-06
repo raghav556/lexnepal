@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button.tsx";
 import { LogIn } from "lucide-react";
+import { signInPathForPortal, type PortalIntent } from "@/shared/auth/portal-intent";
 
 const authority = process.env.VITE_HERCULES_OIDC_AUTHORITY;
 const clientId = process.env.VITE_HERCULES_OIDC_CLIENT_ID;
@@ -7,6 +8,8 @@ const clientId = process.env.VITE_HERCULES_OIDC_CLIENT_ID;
 type SignInButtonProps = {
   /** After local sign-in, prefer this portal path when the account role allows it. */
   next?: string;
+  /** Preset portal tab on the unified sign-in page. */
+  portal?: PortalIntent;
 };
 
 /**
@@ -14,7 +17,7 @@ type SignInButtonProps = {
  * - Local (default): navigates to Better Auth `/sign-in`.
  * - Hercules: when VITE_HERCULES_OIDC_* are set, redirects to the OIDC authorize URL.
  */
-export function SignInButton({ next }: SignInButtonProps = {}) {
+export function SignInButton({ next, portal = "client" }: SignInButtonProps = {}) {
   const handleSignIn = () => {
     if (authority && clientId) {
       const redirectUri =
@@ -29,8 +32,7 @@ export function SignInButton({ next }: SignInButtonProps = {}) {
       return;
     }
 
-    const target = next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in";
-    window.location.href = target;
+    window.location.href = signInPathForPortal(portal, next);
   };
 
   return (

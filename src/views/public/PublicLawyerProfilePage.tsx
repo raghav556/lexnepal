@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, Mail, Phone, MapPin, GraduationCap, Scale, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { resolvePublicTitle } from "@/shared/leadership";
 
 export default function PublicLawyerProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -47,8 +48,8 @@ export default function PublicLawyerProfilePage() {
           <div className="flex flex-col md:flex-row gap-10 items-center md:items-start">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
               <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden border-4 border-primary-foreground/20 shadow-2xl bg-secondary flex items-center justify-center shrink-0">
-                {lawyer.avatarUrl ? (
-                  <img src={lawyer.avatarUrl} alt={lawyer.name} className="w-full h-full object-cover" />
+                {lawyer.avatarUrl || lawyer.avatar ? (
+                  <img src={lawyer.avatarUrl || lawyer.avatar} alt={lawyer.name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-6xl font-serif text-primary">{lawyer.name.charAt(0)}</span>
                 )}
@@ -56,7 +57,9 @@ export default function PublicLawyerProfilePage() {
             </motion.div>
             
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center md:text-left flex-1">
-              <Badge className="bg-accent text-accent-foreground mb-4 uppercase tracking-wider">{lawyer.role.replace("_", " ")}</Badge>
+              <Badge className="bg-accent text-accent-foreground mb-4 uppercase tracking-wider">
+                {resolvePublicTitle(lawyer)}
+              </Badge>
               <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4 leading-tight">{lawyer.name}</h1>
               <p className="text-xl text-primary-foreground/80 mb-8 max-w-2xl">{lawyer.bio}</p>
               

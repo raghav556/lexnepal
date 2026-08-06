@@ -17,6 +17,7 @@ import {
 } from "@/server/db/schema";
 import { getServerEnvironment } from "@/server/env";
 import { enqueueIdentityEmail } from "@/server/auth/identity-email";
+import { authAuditAfterHook, authAuditBeforeHook } from "@/server/auth/auth-event-hooks";
 
 let instance: ReturnType<typeof createLocalAuth> | undefined;
 export function getLocalAuth() {
@@ -26,16 +27,25 @@ export function getLocalAuth() {
 
 function createLocalAuth() {
   const environment = getServerEnvironment();
+  const secureCookies = environment.NODE_ENV === "production";
   return betterAuth({
     appName: "LexNepal",
     baseURL: environment.BETTER_AUTH_URL,
-    trustedOrigins: [
-      "http://localhost:3001",
-      "http://127.0.0.1:3001",
-      "http://localhost:3002",
-      "http://127.0.0.1:3002",
-    ],
+    trustedOrigins: resolveTrustedOrigins(environment.APP_PUBLIC_URL, environment.BETTER_AUTH_URL),
     secret: environment.BETTER_AUTH_SECRET,
+    advanced: {
+      useSecureCookies: secureCookies,
+      defaultCookieAttributes: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: secureCookies,
+        path: "/",
+      },
+    },
+    hooks: {
+      before: authAuditBeforeHook,
+      after: authAuditAfterHook,
+    },
     database: drizzleAdapter(getDatabase(), {
       provider: "pg",
       schema: {
@@ -155,4 +165,18 @@ async function activateLinkedUser(user: { id: string; [key: string]: unknown }):
       updatedAt: new Date(),
     })
     .where(eq(users.id, linkedId));
+}
+
+/** Local defaults plus production URLs from env (no trailing slash). */
+function resolveTrustedOrigins(...urls: Array<string | undefined>): string[] {
+  const localDefaults = [
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3002",
+  ];
+  const fromEnv = urls
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.replace(/\/$/, ""));
+  return [...new Set([...localDefaults, ...fromEnv])];
 }

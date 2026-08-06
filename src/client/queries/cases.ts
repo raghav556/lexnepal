@@ -9,6 +9,12 @@ import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
 import type { CaseDto, ConflictHitDto, ListCasesInput } from "@/shared/contracts/domains";
+import type {
+  ConflictCheckStatsDto,
+  ConflictOfficialResultDto,
+  ConflictSearchResultDto,
+  ConflictSearchScope,
+} from "@/shared/contracts/conflicts";
 
 export function useCases(filters: ListCasesInput = {}): CaseDto[] | undefined {
   return useTanstackQuery({
@@ -72,17 +78,25 @@ export function useCaseCommands() {
   };
 }
 
-export function useConflictSearch(query: string): ConflictHitDto[] | undefined {
+export function useConflictPreview(
+  query: string,
+  scope?: Partial<ConflictSearchScope>,
+): ConflictSearchResultDto | undefined {
   return useTanstackQuery({
-    queryKey: queryKeys.conflicts.search(query),
+    queryKey: queryKeys.conflicts.preview(query, scope),
     queryFn: () =>
-      apiClient.request<{ hits: ConflictHitDto[] }>("/api/v1/conflict-checks/search", {
+      apiClient.request<ConflictSearchResultDto>("/api/v1/conflict-checks/preview", {
         method: "POST",
-        body: { query },
+        body: { query, scope },
       }),
-    enabled: query.length >= 2,
+    enabled: query.trim().length >= 2,
     staleTime: 30_000,
-  }).data?.hits;
+  }).data;
+}
+
+/** @deprecated Prefer useConflictPreview — preview does not write audit history. */
+export function useConflictSearch(query: string): ConflictHitDto[] | undefined {
+  return useConflictPreview(query)?.hits;
 }
 
 export function useRecentConflictChecks(): any[] | undefined {
@@ -92,22 +106,42 @@ export function useRecentConflictChecks(): any[] | undefined {
   }).data;
 }
 
+export function useConflictStats(): ConflictCheckStatsDto | undefined {
+  return useTanstackQuery({
+    queryKey: queryKeys.conflicts.stats,
+    queryFn: ({ signal }) =>
+      apiClient.request<ConflictCheckStatsDto>("/api/v1/conflict-checks?stats=1", { signal }),
+  }).data;
+}
+
 export function useConflictCommands() {
   const client = useQueryClient();
+  const invalidate = () => client.invalidateQueries({ queryKey: queryKeys.conflicts.all });
   return {
-    /** Runs the search server-side; the API also records the check and returns its id. */
-    async search(query: string) {
-      return apiClient.request<{ checkId: string; hits: ConflictHitDto[] }>(
-        "/api/v1/conflict-checks/search",
-        { method: "POST", body: { query } },
-      );
+    async preview(query: string, scope?: Partial<ConflictSearchScope>) {
+      return apiClient.request<ConflictSearchResultDto>("/api/v1/conflict-checks/preview", {
+        method: "POST",
+        body: { query, scope },
+      });
+    },
+    async search(
+      query: string,
+      options?: {
+        scope?: Partial<ConflictSearchScope>;
+        matterContext?: { clientName?: string; opposingCounsel?: string; caseNumber?: string };
+      },
+    ) {
+      return apiClient.request<ConflictOfficialResultDto>("/api/v1/conflict-checks/search", {
+        method: "POST",
+        body: { query, ...options },
+      });
     },
     async updateStatus(checkId: string, status: "cleared" | "conflict", notes?: string) {
       const result = await apiClient.request(`/api/v1/conflict-checks/${checkId}`, {
         method: "PATCH",
         body: { status, notes },
       });
-      await client.invalidateQueries({ queryKey: queryKeys.conflicts.all });
+      await invalidate();
       return result;
     },
   };

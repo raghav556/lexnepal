@@ -1,6 +1,7 @@
 export const queryKeys = {
   identity: {
     all: ["identity"] as const,
+    me: ["identity", "me"] as const,
     users: (role?: string) => ["identity", "users", role ?? "all"] as const,
     directory: ["identity", "directory"] as const,
     settings: ["identity", "settings"] as const,
@@ -33,6 +34,9 @@ export const queryKeys = {
   conflicts: {
     all: ["conflict-checks"] as const,
     recent: ["conflict-checks", "recent"] as const,
+    stats: ["conflict-checks", "stats"] as const,
+    preview: (query: string, scope?: unknown) =>
+      ["conflict-checks", "preview", query, scope ?? "all"] as const,
     search: (query: string) => ["conflict-checks", "search", query] as const,
   },
   tasks: {
@@ -62,6 +66,7 @@ export const queryKeys = {
       ["cms", scope, collection, filters] as const,
     settings: (scope: "public" | "admin") => ["cms", scope, "settings"] as const,
     post: (slug: string) => ["cms", "public", "blog-post", slug] as const,
+    newsItem: (id: string) => ["cms", "public", "news-item", id] as const,
     legal: (slug: string) => ["cms", "public", "legal", slug] as const,
     team: ["cms", "public", "team"] as const,
     applications: (filters: unknown) => ["cms", "admin", "applications", filters] as const,
