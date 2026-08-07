@@ -14,9 +14,11 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { CheckCircle, Calendar, Clock, ShieldCheck, Scale, PhoneCall, Mail, Check, ChevronDown } from "lucide-react";
-import { usePracticeAreas } from "@/client/queries/cms";
+import { usePracticeAreas, usePublicTeamMember } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 import { formatAppointmentDate, todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
+import { resolvePracticeAreaTitleFromParam } from "@/shared/practice-areas-visibility";
+import { resolvePublicTitle } from "@/shared/leadership";
 
 const schema = z.object({
   clientName: z.string().min(2, "Name required"),
@@ -88,7 +90,10 @@ export default function ConsultationPage() {
   const practiceAreaOptions = cmsPracticeAreas
     .map((a: { title?: string }) => String(a.title ?? "").trim())
     .filter(Boolean);
-  
+  const lawyerQuery = usePublicTeamMember(lawyerId);
+  const selectedLawyer = lawyerQuery.data;
+  const lawyerInvalid = Boolean(lawyerId) && !lawyerQuery.isLoading && (lawyerQuery.isError || !selectedLawyer);
+
   const [submitted, setSubmitted] = useState(false);
   const [submittedDate, setSubmittedDate] = useState("");
   const [submittedSlot, setSubmittedSlot] = useState("");
@@ -110,17 +115,52 @@ export default function ConsultationPage() {
   });
 
   useEffect(() => {
-    if (!practiceAreaParam) return;
-    if (practiceAreaOptions.includes(practiceAreaParam)) {
-      form.setValue("practiceArea", practiceAreaParam);
+    if (lawyerInvalid) {
+      form.setValue("assignedLawyerId", undefined);
+      return;
     }
-  }, [practiceAreaParam, practiceAreaOptions, form]);
+    if (selectedLawyer) {
+      form.setValue("assignedLawyerId", String(selectedLawyer.id || selectedLawyer._id || lawyerId));
+      const tags: string[] = Array.isArray(selectedLawyer.practiceAreas)
+        ? selectedLawyer.practiceAreas
+        : [];
+      if (!practiceAreaParam && tags[0]) {
+        const resolved = resolvePracticeAreaTitleFromParam(tags[0], cmsPracticeAreas) || tags[0];
+        if (practiceAreaOptions.includes(resolved) || tags[0]) {
+          form.setValue(
+            "practiceArea",
+            practiceAreaOptions.includes(resolved) ? resolved : tags[0],
+          );
+        }
+      }
+    }
+  }, [
+    selectedLawyer,
+    lawyerInvalid,
+    lawyerId,
+    practiceAreaParam,
+    cmsPracticeAreas,
+    practiceAreaOptions,
+    form,
+  ]);
+
+  useEffect(() => {
+    if (!practiceAreaParam) return;
+    const resolved = resolvePracticeAreaTitleFromParam(practiceAreaParam, cmsPracticeAreas);
+    if (resolved) {
+      form.setValue("practiceArea", resolved);
+    }
+  }, [practiceAreaParam, cmsPracticeAreas, form]);
 
   const watchedDate = form.watch("date");
   const watchedSlot = form.watch("timeSlot");
+  const effectiveLawyerId =
+    selectedLawyer && !lawyerInvalid
+      ? String(selectedLawyer.id || selectedLawyer._id || lawyerId)
+      : undefined;
   const { data: availableSlots = [], isLoading: slotsLoading } = useAvailableSlots(
     watchedDate || undefined,
-    lawyerId,
+    effectiveLawyerId,
   );
 
   useEffect(() => {
@@ -209,7 +249,40 @@ export default function ConsultationPage() {
       </section>
 
       {/* Trust Bar */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 mb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 mb-8">
+        {selectedLawyer && !lawyerInvalid && (
+          <Card className="mb-4 border-accent/30 bg-card shadow-lg">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-4">
+              {selectedLawyer.avatarUrl || selectedLawyer.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={String(selectedLawyer.avatarUrl || selectedLawyer.avatar)}
+                  alt=""
+                  className="w-14 h-14 rounded-full object-cover border border-border shrink-0"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-semibold shrink-0">
+                  {String(selectedLawyer.name ?? "?").slice(0, 1)}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-accent uppercase tracking-wide">Booking with</p>
+                <p className="font-serif text-lg font-bold text-foreground truncate">{selectedLawyer.name}</p>
+                <p className="text-sm text-muted-foreground truncate">{resolvePublicTitle(selectedLawyer)}</p>
+              </div>
+              <Button asChild variant="outline" size="sm" className="shrink-0 hidden sm:inline-flex">
+                <Link href={`/lawyers/${selectedLawyer.id || selectedLawyer._id}`}>View profile</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {lawyerInvalid && (
+          <Card className="mb-4 border-destructive/30 bg-card">
+            <CardContent className="p-4 text-sm text-muted-foreground">
+              The selected advocate is unavailable for public booking. You can still request a general consultation.
+            </CardContent>
+          </Card>
+        )}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 

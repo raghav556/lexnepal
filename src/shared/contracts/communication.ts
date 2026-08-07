@@ -33,6 +33,30 @@ export const messageMarkReadSchema = z.object({
   caseId: uuidSchema,
 });
 
+export const messageUnreadSchema = z.object({
+  caseIds: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((value, ctx) => {
+      const ids = value
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (ids.length === 0 || ids.length > 100) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Provide 1–100 caseIds" });
+        return z.NEVER;
+      }
+      for (const id of ids) {
+        if (!z.string().uuid().safeParse(id).success) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Invalid caseId: ${id}` });
+          return z.NEVER;
+        }
+      }
+      return ids;
+    }),
+});
+
 export const notificationMarkReadSchema = z.object({
   notificationId: uuidSchema,
 });
@@ -47,4 +71,5 @@ export const emailSendSchema = z.object({
 export type MessageListInput = z.infer<typeof messageListSchema>;
 export type MessageCreateInput = z.infer<typeof messageCreateSchema>;
 export type MessageMarkReadInput = z.infer<typeof messageMarkReadSchema>;
+export type MessageUnreadInput = z.infer<typeof messageUnreadSchema>;
 export type EmailSendInput = z.infer<typeof emailSendSchema>;

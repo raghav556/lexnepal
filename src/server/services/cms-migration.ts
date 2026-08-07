@@ -287,6 +287,13 @@ export async function migrateCmsExport(input: {
               legacyConvexId: id,
               firmId: input.targetFirmId,
               title: textValue(row.title)!,
+              slug:
+                textValue(row.slug) ||
+                (textValue(row.title) || "resource")
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/^-+|-+$/g, "")
+                  .slice(0, 120) || "resource",
               description: textValue(row.description)!,
               category: textValue(row.category)!,
               coverImageUrl: textValue(row.coverImageUrl),
@@ -294,6 +301,10 @@ export async function migrateCmsExport(input: {
               isGated: boolValue(row.isGated, false),
               downloads: numberValue(row.downloads) ?? 0,
               publishedDate: dateOnly(row.publishedDate),
+              status: enumValue(row.status, ["draft", "published"]) ?? "published",
+              seoTitle: textValue(row.seoTitle),
+              seoDescription: textValue(row.seoDescription),
+              displayOrder: numberValue(row.displayOrder) ?? 0,
               createdAt: dateValue(row._creationTime),
             })
             .onConflictDoUpdate({
@@ -318,15 +329,27 @@ export async function migrateCmsExport(input: {
               legacyConvexId: id,
               firmId: input.targetFirmId,
               title: textValue(row.title)!,
+              slug:
+                textValue(row.slug) ||
+                (textValue(row.title) || "news-update")
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/^-+|-+$/g, "")
+                  .slice(0, 120) ||
+                `news-${id.slice(0, 8)}`,
               excerpt: textValue(row.excerpt)!,
               content: textValue(row.content)!,
               publicationDate: dateOnly(row.date),
               type: enumValue(row.type, ["award", "press_release", "firm_news"])!,
               status:
-                enumValue(row.status, ["draft", "published"]) ??
+                enumValue(row.status, ["draft", "pending_review", "published", "rejected"]) ??
                 (row.published === false || row.isDraft === true ? "draft" : "published"),
               linkUrl: textValue(row.linkUrl),
               imageUrl: textValue(row.imageUrl),
+              seoTitle: textValue(row.seoTitle),
+              seoDescription: textValue(row.seoDescription),
+              displayOrder: numberValue(row.displayOrder) ?? 0,
+              isFeatured: boolValue(row.isFeatured, false),
               createdAt: dateValue(row._creationTime),
             })
             .onConflictDoUpdate({
@@ -334,7 +357,7 @@ export async function migrateCmsExport(input: {
               set: {
                 title: textValue(row.title)!,
                 status:
-                  enumValue(row.status, ["draft", "published"]) ??
+                  enumValue(row.status, ["draft", "pending_review", "published", "rejected"]) ??
                   (row.published === false || row.isDraft === true ? "draft" : "published"),
                 updatedAt: new Date(),
               },
@@ -359,17 +382,23 @@ export async function migrateCmsExport(input: {
               content: textValue(row.content)!,
               coverImageUrl: textValue(row.coverImageUrl),
               author: textValue(row.author)!,
-              status: enumValue(row.status, ["draft", "published"])!,
+              status:
+                enumValue(row.status, ["draft", "pending_review", "published", "rejected"]) ??
+                "published",
               publishDate: optionalDate(row.publishDate),
               seoTitle: textValue(row.seoTitle),
               seoDescription: textValue(row.seoDescription),
+              displayOrder: numberValue(row.displayOrder) ?? 0,
+              isFeatured: boolValue(row.isFeatured, false),
               createdAt: dateValue(row._creationTime),
             })
             .onConflictDoUpdate({
               target: blogPosts.legacyConvexId,
               set: {
                 title: textValue(row.title)!,
-                status: enumValue(row.status, ["draft", "published"])!,
+                status:
+                  enumValue(row.status, ["draft", "pending_review", "published", "rejected"]) ??
+                  "published",
                 publishDate: optionalDate(row.publishDate),
                 updatedAt: new Date(),
               },

@@ -145,6 +145,17 @@ export class PostgresSecurityRepository implements SessionRepository, Authorizat
     return client ?? null;
   }
 
+  /** Case IDs owned by a CRM client within the firm (portal scoping). */
+  async listCaseIdsForClient(firmId: string, clientId: string): Promise<string[]> {
+    const rows = await this.database
+      .select({ id: cases.id })
+      .from(cases)
+      .where(
+        and(eq(cases.firmId, firmId), eq(cases.clientId, clientId), isNull(cases.deletedAt)),
+      );
+    return rows.map((row) => row.id);
+  }
+
   async getDocument(documentId: string): Promise<DocumentAccessRecord | null> {
     const [document] = await this.database
       .select({

@@ -121,6 +121,7 @@ export class CrmRepository {
         message: data.message ?? null,
         assignedTo: data.assignedTo ?? null,
         notes: data.notes ?? null,
+        resourceId: data.resourceId ?? null,
         status: "new",
       })
       .returning();

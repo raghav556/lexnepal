@@ -26,7 +26,8 @@ export function useCmsCollection(
     queryKey: queryKeys.cms.collection(scope, collection, filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>(`${basePath(scope)}/${collection}`, { query: filters, signal }),
-    ...(scope === "public" && (collection === "practice-areas" || collection === "testimonials")
+    ...(scope === "public" &&
+    (collection === "practice-areas" || collection === "testimonials" || collection === "resources")
       ? { staleTime: 0, refetchOnMount: "always" as const }
       : {}),
   }).data;
@@ -55,6 +56,18 @@ export const useCareers = (filters: Filters = {}, scope: "public" | "admin" = "p
   useCmsCollection("careers", filters, scope);
 export const useResources = (filters: Filters = {}, scope: "public" | "admin" = "public") =>
   useCmsCollection("resources", filters, scope);
+
+export function useResource(slug: string) {
+  return useQuery({
+    queryKey: queryKeys.cms.resource(slug),
+    queryFn: ({ signal }) =>
+      apiClient.request<any>(`/api/v1/public/cms/resources/${slug}`, { signal }),
+    enabled: Boolean(slug),
+    staleTime: 0,
+    refetchOnMount: "always" as const,
+    retry: false,
+  });
+}
 export const useNavigation = (filters: Filters = {}, scope: "public" | "admin" = "public") =>
   useCmsCollection("navigation", filters, scope);
 
@@ -80,21 +93,24 @@ export function useBlogPost(slug: string) {
     queryFn: ({ signal }) =>
       apiClient.request<any>(`/api/v1/public/cms/blog-posts/${slug}`, { signal }),
     enabled: Boolean(slug),
-  }).data;
+    staleTime: 0,
+    refetchOnMount: "always" as const,
+    retry: false,
+  });
 }
 
-export function useNewsItem(id: string) {
+export function useNewsItem(slug: string) {
   return useQuery({
-    queryKey: queryKeys.cms.newsItem(id),
-    queryFn: async ({ signal }) => {
-      try {
-        return await apiClient.request<any>(`/api/v1/public/cms/news/${id}`, { signal });
-      } catch {
-        return null;
-      }
-    },
-    enabled: Boolean(id),
-  }).data;
+    queryKey: queryKeys.cms.newsItem(slug),
+    queryFn: ({ signal }) =>
+      apiClient.request<any>(`/api/v1/public/cms/news/by-slug/${encodeURIComponent(slug)}`, {
+        signal,
+      }),
+    enabled: Boolean(slug),
+    staleTime: 0,
+    refetchOnMount: "always" as const,
+    retry: false,
+  });
 }
 
 export function useLegalPage(
@@ -108,11 +124,32 @@ export function useLegalPage(
   }).data;
 }
 
-export function usePublicTeam() {
+export function usePublicTeam(filters?: string | { practiceArea?: string; role?: string; search?: string }) {
+  const normalized =
+    typeof filters === "string"
+      ? { practiceArea: filters || undefined }
+      : filters || {};
   return useQuery({
-    queryKey: queryKeys.cms.team,
-    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/public/cms/team", { signal }),
+    queryKey: [...queryKeys.cms.team, normalized.practiceArea || "", normalized.role || "", normalized.search || ""],
+    queryFn: ({ signal }) =>
+      apiClient.request<any[]>("/api/v1/public/cms/team", {
+        signal,
+        query: {
+          ...(normalized.practiceArea ? { practiceArea: normalized.practiceArea } : {}),
+          ...(normalized.role ? { role: normalized.role } : {}),
+          ...(normalized.search ? { search: normalized.search } : {}),
+        },
+      }),
   }).data;
+}
+
+export function usePublicTeamMember(id?: string) {
+  return useQuery({
+    queryKey: [...queryKeys.cms.team, "member", id || ""],
+    enabled: Boolean(id),
+    queryFn: ({ signal }) =>
+      apiClient.request<any>(`/api/v1/public/cms/team/${id}`, { signal }),
+  });
 }
 
 export function useAdminTeam() {
@@ -176,8 +213,9 @@ export function useCmsCommands() {
           body: operation.body,
         });
       if (operation.kind === "download")
-        return apiClient.request(`/api/v1/public/cms/resources/${operation.id}/downloads`, {
+        return apiClient.request(`/api/v1/public/cms/resources/download/${operation.id}`, {
           method: "POST",
+          body: operation.body ?? {},
         });
       if (operation.kind === "newsletter")
         return apiClient.request("/api/v1/public/cms/newsletter", {
@@ -218,7 +256,10 @@ export function useCmsCommands() {
     apply: (body: any) => mutation.mutateAsync({ kind: "apply", body }),
     updateApplicationStatus: (id: string, status: string) =>
       mutation.mutateAsync({ kind: "application-status", id, body: { status } }),
-    incrementDownload: (id: string) => mutation.mutateAsync({ kind: "download", id }),
+    incrementDownload: (id: string, body?: { fullName?: string; email?: string }) =>
+      mutation.mutateAsync({ kind: "download", id, body }),
+    requestResourceDownload: (id: string, body?: { fullName?: string; email?: string }) =>
+      mutation.mutateAsync({ kind: "download", id, body }),
     subscribe: (email: string) => mutation.mutateAsync({ kind: "newsletter", body: { email } }),
     reorder: (body: any) => mutation.mutateAsync({ kind: "reorder", body }),
     upsertLegal: (slug: string, body: any) =>

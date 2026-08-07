@@ -47,6 +47,27 @@ export class MattersService {
     return repository.getClientByUser(firmId, actorId, true);
   }
 
+  /**
+   * Client-safe staff summary for advocates/team on the caller's matters only.
+   * Does not require users.view_directory.
+   */
+  async listMyTeam(principal: AuthPrincipal) {
+    const { firmId, actorId } = requireFirmContext(principal);
+    if (principal.user.role !== "client") {
+      throw new AppError("FORBIDDEN", "Only client portal accounts can list their matter team", 403);
+    }
+    const client = await repository.getClientByUser(firmId, actorId, false);
+    if (!client) return [];
+    const matters = await repository.listCases(firmId, { clientId: String(client._id) });
+    const staffIds = new Set<string>();
+    for (const matter of matters) {
+      if (matter.assignedLawyerId) staffIds.add(matter.assignedLawyerId);
+      for (const memberId of matter.teamMemberIds || []) staffIds.add(memberId);
+    }
+    if (staffIds.size === 0) return [];
+    return repository.listStaffSummaries(firmId, [...staffIds]);
+  }
+
   async createClient(principal: AuthPrincipal, input: ClientCreateInput, audit: AuditContext) {
     requireCapability(principal, "clients.manage");
     return repository.createClient(requireFirmContext(principal).firmId, input, audit);

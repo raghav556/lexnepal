@@ -23,6 +23,24 @@ export class DocumentService {
     requireCapability(principal, "documents.read");
     const { firmId } = requireFirmContext(principal);
     if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
+
+    if (principal.user.role === "client") {
+      const client = await security.getClientByUser(principal.user.id);
+      if (!client || client.firmId !== firmId) return [];
+      const caseIds = await security.listCaseIdsForClient(firmId, client.id);
+      return DocumentRepository.listDocuments(
+        firmId,
+        {
+          caseId: filters.caseId,
+          caseIds: filters.caseId ? undefined : caseIds,
+          isTemplate: filters.isTemplate ?? false,
+          inTrash: filters.inTrash ?? false,
+          clientUserId: principal.user.id,
+        },
+        200,
+      );
+    }
+
     return DocumentRepository.listDocuments(firmId, {
       caseId: filters.caseId,
       isTemplate: filters.isTemplate,
@@ -34,12 +52,31 @@ export class DocumentService {
     requireCapability(principal, "documents.read");
     const { firmId } = requireFirmContext(principal);
     if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
-    return DocumentRepository.searchDocuments(firmId, filters);
+
+    const rows = await DocumentRepository.searchDocuments(firmId, filters);
+    if (principal.user.role !== "client") return rows;
+
+    const client = await security.getClientByUser(principal.user.id);
+    if (!client || client.firmId !== firmId) return [];
+    const caseIds = new Set(await security.listCaseIdsForClient(firmId, client.id));
+    return rows.filter((doc) => {
+      if (doc.isTemplate || doc.isPrivileged) return false;
+      const level = String(doc.confidentialityLevel || "");
+      if (level === "internal" || level === "privileged") return false;
+      if (doc.uploadedBy === principal.user.id) return true;
+      if (doc.caseId && caseIds.has(doc.caseId)) return true;
+      return false;
+    });
   }
 
   async recent(principal: AuthPrincipal, limit: number) {
     requireCapability(principal, "documents.read");
     const { firmId } = requireFirmContext(principal);
+    if (principal.user.role === "client") {
+      return this.list(principal, { isTemplate: false, inTrash: false }).then((rows) =>
+        rows.slice(0, limit),
+      );
+    }
     return DocumentRepository.listRecent(firmId, limit);
   }
 

@@ -88,7 +88,10 @@ export class CmsService {
       case "careers":
         return this.repository.listCareers(firmId, true);
       case "resources":
-        return this.repository.listResources(firmId, query.get("category") ?? undefined);
+        return this.repository.listResources(firmId, {
+          category: query.get("category") ?? undefined,
+          public: true,
+        });
       case "navigation":
         return this.repository.listNavigation(firmId, parseLocation(query.get("location")), true);
     }
@@ -115,34 +118,49 @@ export class CmsService {
       case "careers":
         return this.repository.listCareers(firmId, parseBoolean(query.get("isActive")));
       case "resources":
-        return this.repository.listResources(firmId, query.get("category") ?? undefined);
+        return this.repository.listResources(firmId, {
+          category: query.get("category") ?? undefined,
+          status: parseResourceStatus(query.get("status")),
+        });
       case "navigation":
         return this.repository.listNavigation(firmId, parseLocation(query.get("location")));
     }
   }
-  create(
+  async create(
     principal: AuthPrincipal,
     collection: CmsCollection,
     input: CollectionInput,
     audit: AuditContext,
   ) {
     const firmId = this.managerFirmId(principal);
+    let result: Record<string, unknown> | null | undefined;
     switch (collection) {
       case "practice-areas":
-        return this.repository.createPracticeArea(firmId, input as PracticeAreaInput, audit);
+        result = await this.repository.createPracticeArea(firmId, input as PracticeAreaInput, audit);
+        break;
       case "testimonials":
-        return this.repository.createTestimonial(firmId, input as TestimonialInput, audit);
+        result = await this.repository.createTestimonial(firmId, input as TestimonialInput, audit);
+        break;
       case "blog-posts":
-        return this.repository.createBlogPost(firmId, input as BlogPostInput, audit);
+        result = await this.repository.createBlogPost(firmId, input as BlogPostInput, audit);
+        await this.revalidateBlog(result?.slug as string | undefined);
+        break;
       case "news":
-        return this.repository.createNews(firmId, input as NewsInput, audit);
+        result = await this.repository.createNews(firmId, input as NewsInput, audit);
+        await this.revalidateNews(result?.slug as string | undefined);
+        break;
       case "careers":
-        return this.repository.createCareer(firmId, input as CareerInput, audit);
+        result = await this.repository.createCareer(firmId, input as CareerInput, audit);
+        break;
       case "resources":
-        return this.repository.createResource(firmId, input as ResourceInput, audit);
+        result = await this.repository.createResource(firmId, input as ResourceInput, audit);
+        await this.revalidateResources(result?.slug as string | undefined);
+        break;
       case "navigation":
-        return this.repository.createNavigation(firmId, input as NavigationInput, audit);
+        result = await this.repository.createNavigation(firmId, input as NavigationInput, audit);
+        break;
     }
+    return result;
   }
   async update(
     principal: AuthPrincipal,
@@ -187,6 +205,15 @@ export class CmsService {
                       audit,
                     );
     if (!result) throw new AppError("NOT_FOUND", "CMS item was not found", 404);
+    if (collection === "resources") {
+      await this.revalidateResources((result as { slug?: string }).slug);
+    }
+    if (collection === "blog-posts") {
+      await this.revalidateBlog((result as { slug?: string }).slug);
+    }
+    if (collection === "news") {
+      await this.revalidateNews((result as { slug?: string }).slug);
+    }
     return result;
   }
   async delete(
@@ -211,6 +238,9 @@ export class CmsService {
                   ? await this.repository.deleteResource(firmId, id, audit)
                   : await this.repository.deleteNavigation(firmId, id, audit);
     if (!deleted) throw new AppError("NOT_FOUND", "CMS item was not found", 404);
+    if (collection === "resources") await this.revalidateResources();
+    if (collection === "blog-posts") await this.revalidateBlog();
+    if (collection === "news") await this.revalidateNews();
   }
 
   async getPublishedPost(slug: string) {
@@ -223,8 +253,276 @@ export class CmsService {
     if (!row) throw new AppError("NOT_FOUND", "Practice area was not found", 404);
     return row;
   }
+  async getPublicResource(slug: string) {
+    const row = await this.repository.getPublicResourceBySlug(await this.publicFirmId(), slug);
+    if (!row) throw new AppError("NOT_FOUND", "Resource was not found", 404);
+    return row;
+  }
+  async requestResourceDownload(
+    id: string,
+    input: { fullName?: string; email?: string } = {},
+  ) {
+    const firmId = await this.publicFirmId();
+    const resource = await this.repository.getPublishedResourceById(firmId, id);
+    if (!resource) throw new AppError("NOT_FOUND", "Resource was not found", 404);
+    if (!resource.fileUrl) throw new AppError("NOT_FOUND", "Resource file is missing", 404);
+    if (resource.isGated) {
+      if (!input.fullName?.trim() || !input.email?.trim()) {
+        throw new AppError(
+          "VALIDATION_FAILED",
+          "Name and email are required to download this resource",
+          400,
+        );
+      }
+      const { getCrmService } = await import("@/server/services/crm-service");
+      await getCrmService().createLeadPublic({
+        fullName: input.fullName.trim(),
+        email: input.email.trim(),
+        source: "website",
+        message: `Requested Resource Download: ${resource.title}`,
+        resourceId: resource.id,
+      });
+    }
+    const row = await this.repository.incrementResourceDownload(firmId, id);
+    if (!row?.fileUrl) throw new AppError("NOT_FOUND", "Resource was not found", 404);
+    return { url: row.fileUrl, downloads: row.downloads };
+  }
+  async incrementDownload(id: string) {
+    return this.requestResourceDownload(id);
+  }
+
+  private async revalidateResources(slug?: string) {
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/resources");
+      if (slug) revalidatePath(`/resources/${slug}`);
+      revalidatePath("/sitemap.xml");
+    } catch {
+      /* ignore outside Next request */
+    }
+  }
+  private async revalidateBlog(slug?: string) {
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/blog");
+      if (slug) revalidatePath(`/blog/${slug}`);
+      revalidatePath("/sitemap.xml");
+    } catch {
+      /* ignore outside Next request */
+    }
+  }
+  private async revalidateNews(slug?: string) {
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/news");
+      if (slug) revalidatePath(`/news/${slug}`);
+      revalidatePath("/sitemap.xml");
+    } catch {
+      /* ignore outside Next request */
+    }
+  }
+
+  async reviewBlogPost(
+    principal: AuthPrincipal,
+    id: string,
+    input: { action: "approve" | "reject"; reviewNotes?: string | null },
+    audit: AuditContext,
+  ) {
+    const firmId = this.managerFirmId(principal);
+    const existing = await this.repository.getBlogPostById(firmId, id);
+    if (!existing) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
+    if (existing.status !== "pending_review") {
+      throw new AppError("CONFLICT", "Only pending posts can be reviewed", 409);
+    }
+    const result = await this.repository.reviewBlogPost(
+      firmId,
+      id,
+      { ...input, reviewerId: principal.user.id },
+      audit,
+    );
+    if (!result) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
+    await this.revalidateBlog(result.slug as string | undefined);
+    return result;
+  }
+
+  async reviewNewsItem(
+    principal: AuthPrincipal,
+    id: string,
+    input: { action: "approve" | "reject"; reviewNotes?: string | null },
+    audit: AuditContext,
+  ) {
+    const firmId = this.managerFirmId(principal);
+    const existing = await this.repository.getNewsItem(firmId, id);
+    if (!existing) throw new AppError("NOT_FOUND", "News item was not found", 404);
+    if (existing.status !== "pending_review") {
+      throw new AppError("CONFLICT", "Only pending news can be reviewed", 409);
+    }
+    const result = await this.repository.reviewNews(
+      firmId,
+      id,
+      { ...input, reviewerId: principal.user.id },
+      audit,
+    );
+    if (!result) throw new AppError("NOT_FOUND", "News item was not found", 404);
+    await this.revalidateNews(result.slug as string | undefined);
+    return result;
+  }
+
+  private requireContentSubmit(principal: AuthPrincipal) {
+    if (
+      !principal.capabilities.has("cms.content_submit") &&
+      !principal.capabilities.has("cms.manage")
+    ) {
+      requireCapability(principal, "cms.content_submit");
+    }
+    return requireFirmContext(principal);
+  }
+
+  listStaffBlogPosts(principal: AuthPrincipal) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    return this.repository.listStaffBlogPosts(firmId, actorId);
+  }
+
+  async createStaffBlogPost(
+    principal: AuthPrincipal,
+    input: BlogPostInput,
+    audit: AuditContext,
+  ) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    if (input.status === "published" || input.status === "pending_review") {
+      throw new AppError("FORBIDDEN", "Staff cannot publish posts directly", 403);
+    }
+    const authorName = principal.user.name || principal.user.email || "Staff author";
+    return this.repository.createBlogPost(
+      firmId,
+      {
+        ...input,
+        status: "draft",
+        author: input.author || authorName,
+        authorUserId: actorId,
+        submittedBy: actorId,
+        publishDate: "",
+      },
+      audit,
+    );
+  }
+
+  async updateStaffBlogPost(
+    principal: AuthPrincipal,
+    id: string,
+    input: Partial<BlogPostInput>,
+    audit: AuditContext,
+  ) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    const existing = await this.repository.getBlogPostById(firmId, id);
+    if (!existing) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
+    const owner =
+      existing.submittedBy === actorId ||
+      existing.authorUserId === actorId ||
+      principal.capabilities.has("cms.manage");
+    if (!owner) throw new AppError("FORBIDDEN", "You can only edit your own posts", 403);
+    if (
+      existing.status !== "draft" &&
+      existing.status !== "rejected" &&
+      !principal.capabilities.has("cms.manage")
+    ) {
+      throw new AppError("CONFLICT", "Only draft or rejected posts can be edited", 409);
+    }
+    if (input.status === "published") {
+      throw new AppError("FORBIDDEN", "Staff cannot publish posts directly", 403);
+    }
+    const { status: _ignored, ...safe } = input;
+    const result = await this.repository.updateBlogPost(
+      firmId,
+      id,
+      { ...safe, status: "draft" },
+      audit,
+    );
+    if (!result) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
+    return result;
+  }
+
+  async submitStaffBlogPost(principal: AuthPrincipal, id: string, audit: AuditContext) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    const existing = await this.repository.getBlogPostById(firmId, id);
+    if (!existing) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
+    const owner =
+      existing.submittedBy === actorId ||
+      existing.authorUserId === actorId ||
+      principal.capabilities.has("cms.manage");
+    if (!owner) throw new AppError("FORBIDDEN", "You can only submit your own posts", 403);
+    if (existing.status !== "draft" && existing.status !== "rejected") {
+      throw new AppError("CONFLICT", "Only draft or rejected posts can be submitted", 409);
+    }
+    const result = await this.repository.submitBlogPost(firmId, id, actorId, audit);
+    if (!result) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
+    return result;
+  }
+
+  listStaffNews(principal: AuthPrincipal) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    return this.repository.listStaffNews(firmId, actorId);
+  }
+
+  async createStaffNews(principal: AuthPrincipal, input: NewsInput, audit: AuditContext) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    if (input.status === "published" || input.status === "pending_review") {
+      throw new AppError("FORBIDDEN", "Staff cannot publish news directly", 403);
+    }
+    return this.repository.createNews(
+      firmId,
+      { ...input, status: "draft", submittedBy: actorId },
+      audit,
+    );
+  }
+
+  async updateStaffNews(
+    principal: AuthPrincipal,
+    id: string,
+    input: Partial<NewsInput>,
+    audit: AuditContext,
+  ) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    const existing = await this.repository.getNewsItem(firmId, id);
+    if (!existing) throw new AppError("NOT_FOUND", "News item was not found", 404);
+    if (existing.submittedBy !== actorId && !principal.capabilities.has("cms.manage")) {
+      throw new AppError("FORBIDDEN", "You can only edit your own news", 403);
+    }
+    if (
+      existing.status !== "draft" &&
+      existing.status !== "rejected" &&
+      !principal.capabilities.has("cms.manage")
+    ) {
+      throw new AppError("CONFLICT", "Only draft or rejected news can be edited", 409);
+    }
+    if (input.status === "published") {
+      throw new AppError("FORBIDDEN", "Staff cannot publish news directly", 403);
+    }
+    const { status: _ignored, ...safe } = input;
+    return this.repository.updateNews(firmId, id, { ...safe, status: "draft" }, audit);
+  }
+
+  async submitStaffNews(principal: AuthPrincipal, id: string, audit: AuditContext) {
+    const { firmId, actorId } = this.requireContentSubmit(principal);
+    const existing = await this.repository.getNewsItem(firmId, id);
+    if (!existing) throw new AppError("NOT_FOUND", "News item was not found", 404);
+    if (existing.submittedBy !== actorId && !principal.capabilities.has("cms.manage")) {
+      throw new AppError("FORBIDDEN", "You can only submit your own news", 403);
+    }
+    if (existing.status !== "draft" && existing.status !== "rejected") {
+      throw new AppError("CONFLICT", "Only draft or rejected news can be submitted", 409);
+    }
+    const result = await this.repository.submitNews(firmId, id, actorId, audit);
+    if (!result) throw new AppError("NOT_FOUND", "News item was not found", 404);
+    return result;
+  }
   async getPublicNewsItem(id: string) {
     const row = await this.repository.getNewsItem(await this.publicFirmId(), id, "published");
+    if (!row) throw new AppError("NOT_FOUND", "News item was not found", 404);
+    return row;
+  }
+  async getPublicNewsBySlug(slug: string) {
+    const row = await this.repository.getPublicNewsBySlug(await this.publicFirmId(), slug);
     if (!row) throw new AppError("NOT_FOUND", "News item was not found", 404);
     return row;
   }
@@ -273,11 +571,6 @@ export class CmsService {
     if (!row) throw new AppError("NOT_FOUND", "Application was not found", 404);
     return row;
   }
-  async incrementDownload(id: string) {
-    const row = await this.repository.incrementResourceDownload(await this.publicFirmId(), id);
-    if (!row) throw new AppError("NOT_FOUND", "Resource was not found", 404);
-    return row;
-  }
   async subscribe(email: string) {
     return this.repository.subscribeNewsletter(await this.publicFirmId(), email);
   }
@@ -299,8 +592,13 @@ export class CmsService {
     if (!row) throw new AppError("NOT_FOUND", "Subscriber was not found", 404);
     return row;
   }
-  async listPublicTeam() {
-    return this.repository.listPublicTeam(await this.publicFirmId());
+  async listPublicTeam(filters?: { practiceArea?: string; role?: string; search?: string }) {
+    return this.repository.listPublicTeam(await this.publicFirmId(), filters);
+  }
+  async getPublicTeamMember(userId: string) {
+    const row = await this.repository.getPublicTeamMember(await this.publicFirmId(), userId);
+    if (!row) throw new AppError("NOT_FOUND", "Team member was not found", 404);
+    return row;
   }
   async updateTeamProfile(
     principal: AuthPrincipal,
@@ -315,6 +613,14 @@ export class CmsService {
       audit,
     );
     if (!result) throw new AppError("NOT_FOUND", "Team member was not found", 404);
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/lawyers");
+      revalidatePath(`/lawyers/${userId}`);
+      revalidatePath("/");
+    } catch {
+      /* ignore outside Next request */
+    }
     return result;
   }
   async listAdminTeam(principal: AuthPrincipal) {
@@ -333,6 +639,14 @@ function parseBoolean(value: string | null) {
   return value === "true" ? true : value === "false" ? false : undefined;
 }
 function parseBlogStatus(value: string | null) {
+  return value === "draft" ||
+    value === "pending_review" ||
+    value === "published" ||
+    value === "rejected"
+    ? value
+    : undefined;
+}
+function parseResourceStatus(value: string | null) {
   return value === "draft" || value === "published" ? value : undefined;
 }
 function parseNewsType(value: string | null) {

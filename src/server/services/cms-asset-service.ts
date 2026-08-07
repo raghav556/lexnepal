@@ -14,8 +14,20 @@ import { publicCmsAssetUrl, type CmsAssetPurpose } from "@/shared/cms-assets";
 import { getCmsService } from "@/server/services/cms-service";
 
 const MAX_CMS_ASSET_BYTES = 5 * 1024 * 1024;
-const MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+const MAX_CMS_RESOURCE_FILE_BYTES = 25 * 1024 * 1024;
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+const RESOURCE_FILE_MIME_TYPES = new Set(["application/pdf"]);
 const database = getDatabase();
+
+function isResourceFilePurpose(purpose: CmsAssetPurpose) {
+  return purpose === "resource_file";
+}
+
+function extensionForMime(mimeType: string) {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "application/pdf") return "pdf";
+  return "jpg";
+}
 
 export class CmsAssetService {
   private requireManager(principal: AuthPrincipal) {
@@ -36,12 +48,23 @@ export class CmsAssetService {
   ) {
     const { firmId, actorId } = this.requireManager(principal);
     const mimeType = input.mimeType.toLowerCase();
-    if (!MIME_TYPES.has(mimeType))
-      throw new AppError("VALIDATION_FAILED", "CMS asset must be JPEG or PNG", 400);
-    if (input.sizeBytes < 1 || input.sizeBytes > MAX_CMS_ASSET_BYTES)
-      throw new AppError("VALIDATION_FAILED", "CMS asset must not exceed 5 MB", 400);
+    const allowPdf = isResourceFilePurpose(input.purpose);
+    const allowed = allowPdf ? RESOURCE_FILE_MIME_TYPES : IMAGE_MIME_TYPES;
+    const maxBytes = allowPdf ? MAX_CMS_RESOURCE_FILE_BYTES : MAX_CMS_ASSET_BYTES;
+    if (!allowed.has(mimeType))
+      throw new AppError(
+        "VALIDATION_FAILED",
+        allowPdf ? "Resource file must be a PDF" : "CMS asset must be JPEG or PNG",
+        400,
+      );
+    if (input.sizeBytes < 1 || input.sizeBytes > maxBytes)
+      throw new AppError(
+        "VALIDATION_FAILED",
+        allowPdf ? "Resource file must not exceed 25 MB" : "CMS asset must not exceed 5 MB",
+        400,
+      );
     const id = randomUUID();
-    const extension = mimeType === "image/png" ? "png" : "jpg";
+    const extension = extensionForMime(mimeType);
     const key = `quarantine/${firmId}/cms/${id}/asset.${extension}`;
     const expiresAt = new Date(Date.now() + 3_600_000);
     await database.transaction(async (tx) => {
@@ -70,7 +93,7 @@ export class CmsAssetService {
     const grant = await getDocumentStorageRuntime().storage.createUploadGrant({
       key,
       contentType: mimeType,
-      maxBytes: MAX_CMS_ASSET_BYTES,
+      maxBytes,
       intentId: id,
       expiresInSeconds: 600,
     });
@@ -188,7 +211,7 @@ export class CmsAssetService {
         await runtime.storage.deleteObject(intent.quarantineKey);
         return { status: "rejected" as const };
       }
-      const extension = valid.mimeType === "image/png" ? "png" : "jpg";
+      const extension = extensionForMime(valid.mimeType);
       const protectedKey = `protected/${firmId}/cms/${intent.id}/${valid.sha256}.${extension}`;
       await runtime.storage.putObject(
         protectedKey,

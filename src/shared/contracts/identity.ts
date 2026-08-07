@@ -23,6 +23,7 @@ export const capabilitySchema = z.enum([
   "finance.manage",
   "hr.manage",
   "cms.manage",
+  "cms.content_submit",
   "audit.view",
   "settings.manage",
   "documents.read",

@@ -55,6 +55,35 @@ export class FinancialService {
     return repository.listInvoices(firmId, filters);
   }
 
+  async getInvoice(principal: AuthPrincipal, invoiceId: string) {
+    const { firmId } = requireFirmContext(principal);
+    const invoice = await repository.getInvoiceWithLineItems(firmId, invoiceId);
+    if (!invoice) throw new AppError("NOT_FOUND", "Invoice was not found", 404);
+    if (principal.user.role === "client") {
+      await requireClientOwnership(
+        principal,
+        String((invoice as { clientId?: string }).clientId ?? ""),
+        security,
+      );
+    } else if (
+      !principal.capabilities.has("finance.manage") &&
+      !principal.capabilities.has("cases.manage")
+    ) {
+      throw new AppError("FORBIDDEN", "Access denied: missing permission finance.manage", 403);
+    }
+    return invoice;
+  }
+
+  async listMyPayments(principal: AuthPrincipal) {
+    const { firmId } = requireFirmContext(principal);
+    if (principal.user.role !== "client") {
+      throw new AppError("FORBIDDEN", "Payment history listing is for client portal accounts", 403);
+    }
+    const client = await security.getClientByUser(principal.user.id);
+    if (!client) return [];
+    return repository.listPaymentsForClient(firmId, client.id);
+  }
+
   async createInvoiceFromTimeEntries(
     principal: AuthPrincipal,
     input: InvoiceFromTimeInput,

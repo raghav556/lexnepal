@@ -153,6 +153,36 @@ export class PostgresMattersRepository {
     return { ...matter, client, lawyer: lawyer[0] ? { ...lawyer[0], _id: lawyer[0].id } : null };
   }
 
+  /** Minimal staff projection for client portal matter team. */
+  async listStaffSummaries(firmId: string, userIds: string[]) {
+    if (userIds.length === 0) return [];
+    const rows = await database
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        avatar: users.avatar,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.firmId, firmId),
+          inArray(users.id, userIds),
+          isNull(users.deletedAt),
+          eq(users.isActive, true),
+        ),
+      );
+    return rows.map((row) => ({
+      id: row.id,
+      _id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      avatar: row.avatar ? `/api/v1/users/${row.id}/avatar` : null,
+    }));
+  }
+
   async createCase(firmId: string, input: CaseCreateInput, audit: AuditContext) {
     await this.validateCaseRelationships(
       firmId,

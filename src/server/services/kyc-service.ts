@@ -320,8 +320,25 @@ export class KycService {
   }
 
   async listFiles(principal: AuthPrincipal, clientId: string) {
-    requireCapability(principal, "kyc.review");
     const { firmId } = requireFirmContext(principal);
+    if (principal.user.role === "client") {
+      const [mine] = await database
+        .select({ id: clients.id })
+        .from(clients)
+        .where(
+          and(
+            eq(clients.userId, principal.user.id),
+            eq(clients.firmId, firmId),
+            isNull(clients.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!mine || mine.id !== clientId) {
+        throw new AppError("NOT_FOUND", "Client was not found", 404);
+      }
+    } else {
+      requireCapability(principal, "kyc.review");
+    }
     const [client] = await database
       .select({ id: clients.id })
       .from(clients)

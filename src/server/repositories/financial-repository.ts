@@ -134,6 +134,49 @@ export class PostgresFinancialRepository {
     return row ? toDto(row as unknown as Record<string, unknown>) : null;
   }
 
+  /** Invoice plus client-safe line items (description / qty / amounts only). */
+  async getInvoiceWithLineItems(firmId: string, invoiceId: string) {
+    const invoice = await this.getInvoice(firmId, invoiceId);
+    if (!invoice) return null;
+    const lines = await database
+      .select()
+      .from(invoiceLineItems)
+      .where(
+        and(
+          eq(invoiceLineItems.firmId, firmId),
+          eq(invoiceLineItems.invoiceId, invoiceId),
+          isNull(invoiceLineItems.deletedAt),
+        ),
+      );
+    return {
+      ...invoice,
+      lineItems: lines.map((line) => ({
+        id: line.id,
+        _id: line.id,
+        description: line.description,
+        quantity: money(line.quantity),
+        unitPrice: money(line.unitPrice),
+        amount: money(line.amount),
+        type: line.type,
+      })),
+    };
+  }
+
+  async listPaymentsForClient(firmId: string, clientId: string) {
+    const rows = await database
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.firmId, firmId),
+          eq(payments.clientId, clientId),
+          isNull(payments.deletedAt),
+        ),
+      )
+      .orderBy(desc(payments.createdAt));
+    return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
+  }
+
   async listTimeEntries(firmId: string, filters: TimeEntryListInput = {}) {
     const predicates = [eq(timeEntries.firmId, firmId), isNull(timeEntries.deletedAt)];
     if (filters.caseId) predicates.push(eq(timeEntries.caseId, filters.caseId));

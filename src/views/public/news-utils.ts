@@ -50,6 +50,3 @@ export function formatNewsDate(value?: string): string {
 }
 
 export const NEWS_PAD = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
-
-export const DEFAULT_NEWS_IMAGE =
-  "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1200&q=80";

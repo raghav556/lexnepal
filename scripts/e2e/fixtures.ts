@@ -12,6 +12,11 @@ export const E2E_USERS = {
     name: "E2E Staff",
     role: "associate" as const,
   },
+  staff2: {
+    email: "e2e-staff2@example.invalid",
+    name: "E2E Staff Two",
+    role: "associate" as const,
+  },
   client: {
     email: "e2e-client@example.invalid",
     name: "E2E Client",

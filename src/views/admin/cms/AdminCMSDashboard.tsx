@@ -60,6 +60,7 @@ export default function AdminCMSDashboard() {
     mobileAppBannerVisible: false, mobileAppTitle: "", mobileAppDescription: "", mobileAppPlayStoreUrl: "", mobileAppAppStoreUrl: "",
     announcementVisible: false, announcementText: "", announcementLink: "",
     businessHoursText: "", timezone: "Asia/Kathmandu", emergencyPhone: "", emergencyText: "",
+    contactHeroTitle: "", contactHeroSubtitle: "",
     privacyPolicyUrl: "", termsOfServiceUrl: "", cookieConsentEnabled: true,
     primaryCtaLabel: "", primaryCtaShortLabel: "", primaryCtaHref: "",
     maintenanceModeEnabled: false, maintenanceMessage: "", facebookPixelId: "", liveChatWidgetScript: ""
@@ -79,6 +80,7 @@ export default function AdminCMSDashboard() {
         mobileAppBannerVisible: settings.mobileAppBannerVisible || false, mobileAppTitle: settings.mobileAppTitle || "Srimar Law Mobile App", mobileAppDescription: settings.mobileAppDescription || "Get legal assistance at your fingertips. Coming soon to iOS and Android.", mobileAppPlayStoreUrl: settings.mobileAppPlayStoreUrl || "", mobileAppAppStoreUrl: settings.mobileAppAppStoreUrl || "",
         announcementVisible: settings.announcementVisible || false, announcementText: settings.announcementText || "", announcementLink: settings.announcementLink || "",
         businessHoursText: settings.businessHoursText || "", timezone: settings.timezone || "Asia/Kathmandu", emergencyPhone: settings.emergencyPhone || "", emergencyText: settings.emergencyText || "",
+        contactHeroTitle: settings.contactHeroTitle || "", contactHeroSubtitle: settings.contactHeroSubtitle || "",
         privacyPolicyUrl: settings.privacyPolicyUrl || "/privacy-policy", termsOfServiceUrl: settings.termsOfServiceUrl || "/terms", cookieConsentEnabled: settings.cookieConsentEnabled ?? true,
         primaryCtaLabel: settings.primaryCtaLabel || "Book Consultation", primaryCtaShortLabel: settings.primaryCtaShortLabel || "Book Now", primaryCtaHref: settings.primaryCtaHref || "/consultation",
         maintenanceModeEnabled: settings.maintenanceModeEnabled || false, maintenanceMessage: settings.maintenanceMessage || "", facebookPixelId: settings.facebookPixelId || "", liveChatWidgetScript: settings.liveChatWidgetScript || ""
@@ -306,6 +308,26 @@ export default function AdminCMSDashboard() {
                     <div className="grid gap-2 md:col-span-2">
                       <label className="text-sm font-semibold flex items-center gap-2"><MapPin className="w-4 h-4"/> Physical Address</label>
                       <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <label htmlFor="contact-hero-title" className="text-sm font-semibold">Contact hero title</label>
+                      <Input
+                        id="contact-hero-title"
+                        type="text"
+                        value={formData.contactHeroTitle}
+                        onChange={(e) => setFormData({ ...formData, contactHeroTitle: e.target.value })}
+                        placeholder="Get in Touch"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <label htmlFor="contact-hero-subtitle" className="text-sm font-semibold">Contact hero subtitle</label>
+                      <Input
+                        id="contact-hero-subtitle"
+                        type="text"
+                        value={formData.contactHeroSubtitle}
+                        onChange={(e) => setFormData({ ...formData, contactHeroSubtitle: e.target.value })}
+                        placeholder="Reach LexNepal for inquiries and support"
+                      />
                     </div>
                   </CardContent>
                 </Card>

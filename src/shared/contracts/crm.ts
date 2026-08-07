@@ -42,6 +42,17 @@ export const leadCreateSchema = z.object({
   source: leadSourceSchema.default("website"),
   assignedTo: uuidSchema.optional().nullable(),
   notes: optionalText(10_000),
+  resourceId: uuidSchema.optional().nullable(),
+});
+
+/** Stricter payload for /contact → public leads (actionable CRM rows). */
+export const publicContactLeadSchema = z.object({
+  fullName: z.string().trim().min(2).max(200),
+  email: z.string().trim().email().max(320),
+  phone: z.string().trim().min(9).max(40),
+  message: z.string().trim().min(10).max(10_000),
+  practiceAreaInterest: optionalText(200),
+  source: z.literal("website").default("website"),
 });
 
 export const leadUpdateSchema = z.object({
@@ -110,6 +121,7 @@ export const appointmentRescheduleSchema = z.object({
 
 export type LeadListInput = z.infer<typeof leadListSchema>;
 export type LeadCreateInput = z.infer<typeof leadCreateSchema>;
+export type PublicContactLeadInput = z.infer<typeof publicContactLeadSchema>;
 export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>;
 export type LeadConvertInput = z.infer<typeof leadConvertSchema>;
 export type IntakeSubmitInput = z.infer<typeof intakeSubmitSchema>;

@@ -1,31 +1,65 @@
-import React, { useState, useMemo } from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useBlogPosts, useCmsCommands } from "@/client/queries/cms";
-import { Plus, Edit, Trash2, Search, CheckCircle2, Clock, Globe, Eye, Code, FileText, Settings, Layout } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog.tsx";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { Label } from "@/components/ui/label";
+import { useBlogPosts, useCmsCommands, useCmsSettings } from "@/client/queries/cms";
+import { queryKeys } from "@/client/queries/query-keys";
+import { apiClient } from "@/client/api/client";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  CheckCircle2,
+  Clock,
+  Globe,
+  Eye,
+  Code,
+  FileText,
+  XCircle,
+  Check,
+  X,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog.tsx";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
-import { FadeInUp } from "@/components/ui/animations.tsx";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+import type { BlogEditorialStatus } from "@/shared/blog-visibility";
+
+type StatusFilter = "all" | "pending_review" | "published" | "draft" | "rejected";
 
 export default function AdminCMSBlog() {
   const posts = useBlogPosts({}, "admin") || [];
+  const settings = useCmsSettings("admin") || {};
   const cms = useCmsCommands();
+  const queryClient = useQueryClient();
   const createPost = (body: any) => cms.create("blog-posts", body);
   const updatePost = ({ id, ...body }: any) => cms.update("blog-posts", id, body);
   const deletePost = ({ id }: any) => cms.remove("blog-posts", id);
   const user = useCurrentUser();
 
+  const [heroTitle, setHeroTitle] = useState("Legal Insights");
+  const [heroSubtitle, setHeroSubtitle] = useState(
+    "Plain-language guides to Nepal law from our advocates.",
+  );
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  // Editor State
+
   const [editorTab, setEditorTab] = useState("write");
   const [formData, setFormData] = useState({
     title: "",
@@ -34,18 +68,37 @@ export default function AdminCMSBlog() {
     excerpt: "",
     content: "",
     coverImageUrl: "",
-    status: "draft" as "draft" | "published",
+    status: "draft" as BlogEditorialStatus,
     publishDate: "",
     seoTitle: "",
     seoDescription: "",
+    isFeatured: false,
+    displayOrder: 0,
   });
 
+  useEffect(() => {
+    if (settings.blogHeroTitle) setHeroTitle(String(settings.blogHeroTitle));
+    if (settings.blogHeroSubtitle) setHeroSubtitle(String(settings.blogHeroSubtitle));
+  }, [settings.blogHeroTitle, settings.blogHeroSubtitle]);
+
+  const saveHeroSetting = async (key: string, value: string) => {
+    try {
+      await cms.updateSettings({ [key]: value });
+      toast.success("Hero updated");
+    } catch {
+      toast.error("Failed to save hero");
+    }
+  };
+
   const filteredPosts = useMemo(() => {
-    return posts.filter((p: any) => 
-      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [posts, searchTerm]);
+    return posts.filter((p: any) => {
+      const matchesSearch =
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.category || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [posts, searchTerm, statusFilter]);
 
   const handleOpenModal = (post?: any) => {
     if (post) {
@@ -61,12 +114,24 @@ export default function AdminCMSBlog() {
         publishDate: post.publishDate || "",
         seoTitle: post.seoTitle || "",
         seoDescription: post.seoDescription || "",
+        isFeatured: Boolean(post.isFeatured),
+        displayOrder: Number(post.displayOrder ?? 0),
       });
     } else {
       setEditingId(null);
-      setFormData({ 
-        title: "", slug: "", category: "General", excerpt: "", 
-        content: "", coverImageUrl: "", status: "draft", publishDate: "", seoTitle: "", seoDescription: "" 
+      setFormData({
+        title: "",
+        slug: "",
+        category: "General",
+        excerpt: "",
+        content: "",
+        coverImageUrl: "",
+        status: "draft",
+        publishDate: "",
+        seoTitle: "",
+        seoDescription: "",
+        isFeatured: false,
+        displayOrder: 0,
       });
     }
     setEditorTab("write");
@@ -92,13 +157,19 @@ export default function AdminCMSBlog() {
         seoDescription: formData.seoDescription || undefined,
         author: user.name || user.email || "Admin",
         publishDate,
+        isFeatured: formData.isFeatured,
+        displayOrder: Number(formData.displayOrder) || 0,
       };
 
       if (editingId) {
         await updatePost({ id: editingId as any, ...payload });
         toast.success("Blog post updated.");
       } else {
-        await createPost(payload);
+        const createStatus =
+          formData.status === "published" || formData.status === "draft"
+            ? formData.status
+            : "draft";
+        await createPost({ ...payload, status: createStatus });
         toast.success("Blog post created.");
       }
       setIsModalOpen(false);
@@ -119,16 +190,74 @@ export default function AdminCMSBlog() {
     }
   };
 
+  const handleReview = async (id: string, action: "approve" | "reject") => {
+    let reviewNotes: string | undefined;
+    if (action === "reject") {
+      const notes = window.prompt("Rejection notes (shared with the author):");
+      if (notes === null) return;
+      reviewNotes = notes.trim() || undefined;
+    }
+    try {
+      await apiClient.request(`/api/v1/cms/blog-posts/${id}/review`, {
+        method: "POST",
+        body: { action, reviewNotes },
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cms.all });
+      toast.success(action === "approve" ? "Post approved and published." : "Post rejected.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Review action failed.");
+    }
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return "Not Published";
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric'
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch {
       return "Invalid Date";
     }
   };
+
+  const statusBadge = (status: string) => {
+    if (status === "published") {
+      return (
+        <Badge variant="default" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
+          <CheckCircle2 className="w-3 h-3" />
+          {status}
+        </Badge>
+      );
+    }
+    if (status === "pending_review") {
+      return (
+        <Badge variant="secondary" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
+          <Clock className="w-3 h-3" />
+          pending
+        </Badge>
+      );
+    }
+    if (status === "rejected") {
+      return (
+        <Badge variant="destructive" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
+          <XCircle className="w-3 h-3" />
+          rejected
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
+        <Clock className="w-3 h-3" />
+        {status}
+      </Badge>
+    );
+  };
+
+  const statusLocked =
+    formData.status === "pending_review" || formData.status === "rejected";
 
   return (
     <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
@@ -144,6 +273,54 @@ export default function AdminCMSBlog() {
         </Button>
       </div>
 
+      <Card className="border-border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Public page chrome</CardTitle>
+          <CardDescription>Hero copy for /blog</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="blog-hero-title">Hero title</Label>
+            <Input
+              id="blog-hero-title"
+              value={heroTitle}
+              onChange={(e) => setHeroTitle(e.target.value)}
+              onBlur={() => saveHeroSetting("blogHeroTitle", heroTitle)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="blog-hero-subtitle">Hero subtitle</Label>
+            <Input
+              id="blog-hero-subtitle"
+              value={heroSubtitle}
+              onChange={(e) => setHeroSubtitle(e.target.value)}
+              onBlur={() => saveHeroSetting("blogHeroSubtitle", heroSubtitle)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "All"],
+            ["pending_review", "Pending"],
+            ["published", "Published"],
+            ["draft", "Draft"],
+            ["rejected", "Rejected"],
+          ] as const
+        ).map(([value, label]) => (
+          <Button
+            key={value}
+            size="sm"
+            variant={statusFilter === value ? "default" : "outline"}
+            onClick={() => setStatusFilter(value)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
       <Card className="border-border overflow-hidden min-w-0">
         <div className="p-3 sm:p-4 border-b border-border bg-muted/30 flex items-center gap-2 min-w-0">
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -156,7 +333,6 @@ export default function AdminCMSBlog() {
           />
         </div>
 
-        {/* Mobile cards */}
         <div className="md:hidden divide-y divide-border">
           {filteredPosts.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-muted-foreground">
@@ -171,27 +347,39 @@ export default function AdminCMSBlog() {
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{post.slug}</p>
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <Badge
-                      variant={post.status === "published" ? "default" : "secondary"}
-                      className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap"
-                    >
-                      {post.status === "published" ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <Clock className="w-3 h-3" />
-                      )}
-                      {post.status}
-                    </Badge>
+                    {statusBadge(post.status)}
                     <Badge variant="outline" className="bg-background text-[10px]">
                       {post.category}
                     </Badge>
                   </div>
+                  {post.status === "rejected" && post.reviewNotes ? (
+                    <p className="text-xs text-destructive break-words">Notes: {post.reviewNotes}</p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
                     {post.author}
                     {post.status === "published" ? ` · ${formatDate(post.publishDate)}` : ""}
                   </p>
                 </div>
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border">
+                  {post.status === "pending_review" && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => handleReview(post._id, "approve")}
+                        className="gap-1.5"
+                      >
+                        <Check className="w-4 h-4" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleReview(post._id, "reject")}
+                        className="gap-1.5"
+                      >
+                        <X className="w-4 h-4" /> Reject
+                      </Button>
+                    </>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => handleOpenModal(post)} className="gap-1.5">
                     <Edit className="w-4 h-4" /> Edit
                   </Button>
@@ -210,7 +398,6 @@ export default function AdminCMSBlog() {
           )}
         </div>
 
-        {/* Desktop / tablet table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase font-semibold">
@@ -238,20 +425,11 @@ export default function AdminCMSBlog() {
                         {post.title}
                       </div>
                       <div className="text-xs text-muted-foreground truncate max-w-xs">{post.slug}</div>
+                      {post.status === "rejected" && post.reviewNotes ? (
+                        <p className="text-xs text-destructive mt-1 line-clamp-2">{post.reviewNotes}</p>
+                      ) : null}
                     </td>
-                    <td className="px-4 lg:px-6 py-4">
-                      <Badge
-                        variant={post.status === "published" ? "default" : "secondary"}
-                        className="uppercase tracking-wider text-[10px] whitespace-nowrap"
-                      >
-                        {post.status === "published" ? (
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                        ) : (
-                          <Clock className="w-3 h-3 mr-1" />
-                        )}
-                        {post.status}
-                      </Badge>
-                    </td>
+                    <td className="px-4 lg:px-6 py-4">{statusBadge(post.status)}</td>
                     <td className="px-4 lg:px-6 py-4">
                       <Badge variant="outline" className="bg-background whitespace-nowrap">
                         {post.category}
@@ -264,7 +442,22 @@ export default function AdminCMSBlog() {
                       {post.status === "published" ? formatDate(post.publishDate) : "—"}
                     </td>
                     <td className="px-4 lg:px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 flex-wrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                        {post.status === "pending_review" && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => handleReview(post._id, "approve")}>
+                              <Check className="w-4 h-4 mr-1" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => handleReview(post._id, "reject")}
+                            >
+                              <X className="w-4 h-4 mr-1" /> Reject
+                            </Button>
+                          </>
+                        )}
                         <Button variant="ghost" size="sm" onClick={() => handleOpenModal(post)}>
                           <Edit className="w-4 h-4 mr-2" /> Edit
                         </Button>
@@ -300,22 +493,28 @@ export default function AdminCMSBlog() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 shrink-0">
-                <div className="flex items-center gap-1 sm:gap-2 bg-muted/50 p-1 sm:p-1.5 rounded-lg border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, status: "draft" })}
-                    className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-semibold rounded-md transition-all ${formData.status === "draft" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >
-                    Draft
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, status: "published" })}
-                    className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-semibold rounded-md transition-all ${formData.status === "published" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >
-                    Published
-                  </button>
-                </div>
+                {statusLocked ? (
+                  <div className="px-3 py-1.5 text-sm font-semibold rounded-md border border-border bg-muted/50">
+                    Status: {formData.status.replace("_", " ")}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 sm:gap-2 bg-muted/50 p-1 sm:p-1.5 rounded-lg border border-border">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, status: "draft" })}
+                      className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-semibold rounded-md transition-all ${formData.status === "draft" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, status: "published" })}
+                      className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-semibold rounded-md transition-all ${formData.status === "published" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Published
+                    </button>
+                  </div>
+                )}
                 <Button onClick={handleSave} className="gap-2 w-full sm:w-auto">
                   <CheckCircle2 className="w-4 h-4" /> Save Article
                 </Button>
@@ -324,25 +523,85 @@ export default function AdminCMSBlog() {
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
-            {/* Left Sidebar - Meta & SEO */}
             <div className="w-full md:w-80 md:border-r border-b md:border-b-0 border-border bg-muted/10 text-foreground overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 shrink-0 max-h-[38vh] md:max-h-none">
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Title</label>
-                <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Article Title" />
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Article Title"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-muted-foreground">URL Slug</label>
-                <Input value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} placeholder="e.g. new-civil-code-nepal" className="bg-background text-muted-foreground" />
+                <Input
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="e.g. new-civil-code-nepal"
+                  className="bg-background text-muted-foreground"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Category</label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
                   <option value="General">General</option>
                   <option value="Corporate Law">Corporate Law</option>
                   <option value="Civil Law">Civil Law</option>
                   <option value="Criminal Defense">Criminal Defense</option>
                   <option value="Firm News">Firm News</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Status</label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+                  value={formData.status}
+                  disabled={statusLocked}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      status: e.target.value as BlogEditorialStatus,
+                    })
+                  }
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  {formData.status === "pending_review" && (
+                    <option value="pending_review">Pending review</option>
+                  )}
+                  {formData.status === "rejected" && (
+                    <option value="rejected">Rejected</option>
+                  )}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="blog-featured"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-input"
+                  checked={formData.isFeatured}
+                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                />
+                <Label htmlFor="blog-featured">Featured</Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="blog-display-order">Display order</Label>
+                <Input
+                  id="blog-display-order"
+                  type="number"
+                  min={0}
+                  value={formData.displayOrder}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      displayOrder: Number.parseInt(e.target.value, 10) || 0,
+                    })
+                  }
+                />
               </div>
               <div className="space-y-2">
                 <CmsImageUploadField
@@ -356,10 +615,14 @@ export default function AdminCMSBlog() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Short Excerpt</label>
-                <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} placeholder="Appears on the blog index cards..." />
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={formData.excerpt}
+                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                  placeholder="Appears on the blog index cards..."
+                />
               </div>
 
-              {/* SEO SECTION */}
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center gap-2 mb-4 text-primary">
                   <Globe className="w-4 h-4" />
@@ -368,17 +631,30 @@ export default function AdminCMSBlog() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-muted-foreground">SEO Title</label>
-                    <Input value={formData.seoTitle} onChange={e => setFormData({...formData, seoTitle: e.target.value})} placeholder="Leave blank to use main title" className="bg-background" />
+                    <Input
+                      value={formData.seoTitle}
+                      onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
+                      placeholder="Leave blank to use main title"
+                      className="bg-background"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-muted-foreground">SEO Description</label>
-                    <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.seoDescription} onChange={e => setFormData({...formData, seoDescription: e.target.value})} placeholder="Meta description for search engines" />
+                    <label className="text-sm font-semibold text-muted-foreground">
+                      SEO Description
+                    </label>
+                    <textarea
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={formData.seoDescription}
+                      onChange={(e) =>
+                        setFormData({ ...formData, seoDescription: e.target.value })
+                      }
+                      placeholder="Meta description for search engines"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Side - Markdown Editor */}
             <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-background overflow-hidden">
               <div className="border-b border-border p-2 bg-muted/30 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 shrink-0">
                 <Tabs value={editorTab} onValueChange={setEditorTab} className="w-full sm:max-w-sm">
@@ -426,7 +702,6 @@ export default function AdminCMSBlog() {
                 )}
               </div>
             </div>
-
           </div>
         </DialogContent>
       </Dialog>

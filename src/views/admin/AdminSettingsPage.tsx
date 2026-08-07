@@ -21,6 +21,7 @@ const ALL_CAPABILITIES = [
   "finance.manage",
   "hr.manage",
   "cms.manage",
+  "cms.content_submit",
   "audit.view",
   "settings.manage",
   "documents.read",

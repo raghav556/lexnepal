@@ -2,10 +2,10 @@
  * Smoke-test CMS content for local preview (news on /news, header nav link).
  * Targets PUBLIC_FIRM_SLUG (default phase-6-firm-a).
  */
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getServerEnvironment } from "../../src/server/env";
-import { firms, navigation, newsAndAwards, cmsSettings, practiceAreas, testimonials } from "../../db/schema";
+import { firms, navigation, newsAndAwards, cmsSettings, practiceAreas, testimonials, resources, blogPosts } from "../../db/schema";
 import { DEFAULT_DIRECTOR_MESSAGE } from "../../src/shared/director-message";
 import { seedBrandAssets, seedDirectorMessageAssets, seedPromotedCmsAsset } from "./seed-cms-assets";
 
@@ -13,27 +13,43 @@ const SMOKE_NEWS_LEGACY_ID = "e2e_smoke_news_1";
 
 const HEADER_ROOTS = [
   { legacyConvexId: "e2e_smoke_nav_home", label: "Home", url: "/", order: 1 },
-  { legacyConvexId: "cms_nav_1", label: "About Us", url: "/about-us", order: 2 },
-  { legacyConvexId: "e2e_smoke_nav_practice", label: "Practice Areas", url: "/practice-areas", order: 3 },
-  { legacyConvexId: "cms_nav_2", label: "Our Team", url: "/lawyers", order: 4 },
-  { legacyConvexId: "e2e_smoke_nav_resources", label: "Resources", url: "#", order: 5 },
-  { legacyConvexId: "e2e_smoke_nav_contact", label: "Contact", url: "/contact", order: 6 },
+  { legacyConvexId: "e2e_smoke_nav_practice", label: "Practice Areas", url: "/practice-areas", order: 2 },
+  { legacyConvexId: "cms_nav_2", label: "Our Team", url: "/lawyers", order: 3 },
+  { legacyConvexId: "e2e_smoke_nav_resources", label: "Resources", url: "#", order: 4 },
+  { legacyConvexId: "e2e_smoke_nav_contact", label: "Contact", url: "/contact", order: 5 },
+  { legacyConvexId: "cms_nav_1", label: "About", url: "/about-us", order: 6 },
 ] as const;
 
 const HEADER_CHILDREN = [
+  // Resources submenu — remaining content pages
+  {
+    legacyConvexId: "e2e_smoke_nav_resources_lib",
+    label: "Resource Library",
+    url: "/resources",
+    order: 1,
+    parentLegacyId: "e2e_smoke_nav_resources",
+  },
   {
     legacyConvexId: "e2e_smoke_nav_blog",
     label: "Blog",
     url: "/blog",
-    order: 1,
+    order: 2,
     parentLegacyId: "e2e_smoke_nav_resources",
   },
   {
     legacyConvexId: "e2e_smoke_nav_news",
     label: "News & Awards",
     url: "/news",
-    order: 2,
+    order: 3,
     parentLegacyId: "e2e_smoke_nav_resources",
+  },
+  // About submenu
+  {
+    legacyConvexId: "e2e_smoke_nav_careers",
+    label: "Careers",
+    url: "/careers",
+    order: 1,
+    parentLegacyId: "cms_nav_1",
   },
 ] as const;
 
@@ -260,46 +276,179 @@ export async function seedCmsSmoke() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const [news] = await db
-    .insert(newsAndAwards)
-    .values({
-      firmId: firm.id,
+  const NEWS_SEED = [
+    {
       legacyConvexId: SMOKE_NEWS_LEGACY_ID,
-      title: "LexNepal Named Top Corporate Law Firm 2026 (Smoke Test)",
+      title: "LexNepal Named Top Corporate Law Firm 2026",
+      slug: "lexnepal-named-top-corporate-law-firm-2026",
       excerpt:
-        "Local smoke-test entry from /admin/cms/news — visible on the public News & Awards page at /news.",
+        "Recognition for corporate and commercial counsel serving Nepal businesses and investors.",
       content:
-        "This is a deterministic smoke-test news item seeded for local development. " +
-        "Create or edit items in Admin → CMS → News & Awards and they appear on the public site at /news " +
-        "for the firm configured by PUBLIC_FIRM_SLUG.",
-      publicationDate: today,
-      type: "award",
-      status: "published",
+        "## Recognition\n\nLexNepal was named among the top corporate law firms for 2026.\n\n### Why it matters\n\nClients rely on practical counsel across company law, FDI, and commercial disputes.",
+      type: "award" as const,
+      status: "published" as const,
+      isFeatured: true,
+      displayOrder: 1,
       linkUrl: "https://example.invalid/lexnepal-smoke-test",
-      imageUrl:
-        "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80",
-    })
-    .onConflictDoUpdate({
-      target: newsAndAwards.legacyConvexId,
-      set: {
-        title: "LexNepal Named Top Corporate Law Firm 2026 (Smoke Test)",
-        excerpt:
-          "Local smoke-test entry from /admin/cms/news — visible on the public News & Awards page at /news.",
-        content:
-          "This is a deterministic smoke-test news item seeded for local development. " +
-          "Create or edit items in Admin → CMS → News & Awards and they appear on the public site at /news " +
-          "for the firm configured by PUBLIC_FIRM_SLUG.",
+      imageUrl: null as string | null,
+      seoTitle: "Top Corporate Law Firm 2026 | LexNepal",
+      seoDescription: "LexNepal recognition for corporate and commercial counsel in Nepal.",
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_press",
+      title: "LexNepal Advises on Cross-Border Investment Round",
+      slug: "lexnepal-advises-cross-border-investment-round",
+      excerpt: "Press coverage of LexNepal counsel on a recent Nepal inbound investment.",
+      content:
+        "## Press note\n\nOur corporate team advised on documentation and regulatory filings for an inbound investment.\n\nContact LexNepal for FDI and company law support.",
+      type: "press_release" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 2,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_firm",
+      title: "LexNepal Opens Extended Client Hours in Kathmandu",
+      slug: "lexnepal-extended-client-hours-kathmandu",
+      excerpt: "Firm news: extended consultation availability for busy clients.",
+      content:
+        "## Firm update\n\nWe now offer extended consultation windows on weekdays.\n\nBook via the consultation page or contact the front desk.",
+      type: "firm_news" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 3,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    // Extra published items so /news shows pagination (6/page after featured).
+    {
+      legacyConvexId: "e2e_smoke_news_p4",
+      title: "LexNepal Speaks at Kathmandu Corporate Counsel Forum",
+      slug: "lexnepal-kathmandu-corporate-counsel-forum",
+      excerpt: "Our partners shared practical notes on company law filings and board governance.",
+      content: "## Forum\n\nLexNepal advocates joined peers to discuss governance and OCR practice tips.",
+      type: "firm_news" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 4,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_p5",
+      title: "Chambers Note: LexNepal Employment Practice",
+      slug: "chambers-note-lexnepal-employment-practice",
+      excerpt: "Recognition for labor and employment counsel supporting Nepal employers.",
+      content: "## Award note\n\nEmployment counsel continues to support compliant hiring and workplace policies.",
+      type: "award" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 5,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_p6",
+      title: "Press: LexNepal on Digital Signature Law Updates",
+      slug: "press-lexnepal-digital-signature-law-updates",
+      excerpt: "Media commentary on electronic signatures and evidence practice in Nepal.",
+      content: "## Press\n\nDigital signature rules affect contracts and court filings. LexNepal summarized the practical impact.",
+      type: "press_release" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 6,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_p7",
+      title: "LexNepal Hosts Client Briefing on FDI Approvals",
+      slug: "lexnepal-client-briefing-fdi-approvals",
+      excerpt: "Firm news covering a private briefing for inbound investors and local partners.",
+      content: "## Briefing\n\nTopics included DOI filings, sectoral restrictions, and documentation timelines.",
+      type: "firm_news" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 7,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_p8",
+      title: "LexNepal Recognized for Dispute Resolution Work",
+      slug: "lexnepal-recognized-dispute-resolution-work",
+      excerpt: "Award spotlight for commercial litigation and arbitration support.",
+      content: "## Recognition\n\nOur disputes team continues to advise on commercial and arbitration matters.",
+      type: "award" as const,
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 8,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+    {
+      legacyConvexId: "e2e_smoke_news_pending",
+      title: "Pending Review: Regional Expansion Announcement",
+      slug: "pending-review-regional-expansion",
+      excerpt: "Draft firm news awaiting admin approval.",
+      content:
+        "## Draft\n\nThis item should **not** appear on the public news page until approved.",
+      type: "firm_news" as const,
+      status: "pending_review" as const,
+      isFeatured: false,
+      displayOrder: 99,
+      linkUrl: null as string | null,
+      imageUrl: null as string | null,
+      seoTitle: null as string | null,
+      seoDescription: null as string | null,
+    },
+  ];
+
+  const newsLegacyIds = NEWS_SEED.map((n) => n.legacyConvexId);
+  await db.delete(newsAndAwards).where(
+    and(eq(newsAndAwards.firmId, firm.id), inArray(newsAndAwards.legacyConvexId, newsLegacyIds)),
+  );
+
+  let newsId = "";
+  for (const item of NEWS_SEED) {
+    const [row] = await db
+      .insert(newsAndAwards)
+      .values({
+        firmId: firm.id,
+        legacyConvexId: item.legacyConvexId,
+        title: item.title,
+        slug: item.slug,
+        excerpt: item.excerpt,
+        content: item.content,
         publicationDate: today,
-        type: "award",
-        status: "published",
-        linkUrl: "https://example.invalid/lexnepal-smoke-test",
-        imageUrl:
-          "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80",
-        updatedAt: new Date(),
-        deletedAt: null,
-      },
-    })
-    .returning({ id: newsAndAwards.id });
+        type: item.type,
+        status: item.status,
+        linkUrl: item.linkUrl,
+        imageUrl: item.imageUrl,
+        seoTitle: item.seoTitle,
+        seoDescription: item.seoDescription,
+        displayOrder: item.displayOrder,
+        isFeatured: item.isFeatured,
+      })
+      .returning({ id: newsAndAwards.id });
+    if (item.legacyConvexId === SMOKE_NEWS_LEGACY_ID) newsId = row!.id;
+  }
 
   const navIds: string[] = [];
   const legacyIdToDbId = new Map<string, string>();
@@ -309,7 +458,8 @@ export async function seedCmsSmoke() {
     ...FOOTER_NAV,
   ].map((item) => item.legacyConvexId);
 
-  // Hard-delete prior smoke rows so unique sibling orders are free (soft-deleted rows still hold the index).
+  // Replace firm header nav completely so leftover CMS verify junk / wrong nesting cannot leak into the public menu.
+  await db.delete(navigation).where(and(eq(navigation.firmId, firm.id), eq(navigation.location, "header")));
   await db.delete(navigation).where(inArray(navigation.legacyConvexId, [...smokeLegacyIds]));
 
   for (const item of [...HEADER_ROOTS, ...FOOTER_NAV].sort((a, b) => b.order - a.order)) {
@@ -428,6 +578,174 @@ export async function seedCmsSmoke() {
     "practiceAreasHeroSubtitle",
     "Our advocates bring deep specialization and courtroom experience across major areas of Nepal law.",
   );
+  await upsertSetting(firm.id, "lawyersHeroTitle", "Our Advocates");
+  await upsertSetting(
+    firm.id,
+    "lawyersHeroSubtitle",
+    "Meet the Nepal Bar Council advocates behind LexNepal — specialists across corporate, litigation, and advisory work.",
+  );
+  await upsertSetting(firm.id, "resourcesHeroTitle", "Legal Resources");
+  await upsertSetting(
+    firm.id,
+    "resourcesHeroSubtitle",
+    "Guides, whitepapers, and reports prepared by our advocates to help you navigate Nepal law.",
+  );
+  await upsertSetting(firm.id, "blogHeroTitle", "Legal Insights");
+  await upsertSetting(
+    firm.id,
+    "blogHeroSubtitle",
+    "Plain-language guides to Nepal law from LexNepal advocates.",
+  );
+  await upsertSetting(firm.id, "newsHeroTitle", "News & Awards");
+  await upsertSetting(
+    firm.id,
+    "newsHeroSubtitle",
+    "Firm announcements, press coverage, and recognition from LexNepal advocates.",
+  );
+  await upsertSetting(firm.id, "contactHeroTitle", "Get in Touch");
+  await upsertSetting(
+    firm.id,
+    "contactHeroSubtitle",
+    "Reach LexNepal for general inquiries, legal support, press, or partnership opportunities.",
+  );
+  await upsertSetting(firm.id, "firmName", "LexNepal");
+  await upsertSetting(firm.id, "email", "hello@lexnepal.example");
+  await upsertSetting(firm.id, "phone", "+977-1-4000000");
+  await upsertSetting(firm.id, "address", "Durbar Marg, Kathmandu, Nepal");
+  await upsertSetting(firm.id, "businessHoursText", "Mon–Fri: 9:00 AM – 6:00 PM (NPT)");
+  await upsertSetting(firm.id, "emergencyPhone", "+977-9800000000");
+
+  const BLOG_SEED = [
+    {
+      legacyConvexId: "e2e_smoke_blog_company",
+      title: "How to Register a Company in Nepal",
+      slug: "how-to-register-a-company-in-nepal",
+      category: "Corporate Law",
+      excerpt: "A practical overview of OCR filings, timelines, and documents for private limited companies.",
+      content:
+        "## Overview\n\nRegistering a private limited company in Nepal typically takes **7–14 working days**.\n\n### Key steps\n\n1. Reserve a name\n2. Prepare MoA and AoA\n3. File with the Office of Company Registrar\n",
+      author: "LexNepal Editorial",
+      status: "published" as const,
+      isFeatured: true,
+      displayOrder: 1,
+    },
+    {
+      legacyConvexId: "e2e_smoke_blog_labor",
+      title: "Labor Law Basics for Employers",
+      slug: "labor-law-basics-for-employers",
+      category: "General",
+      excerpt: "Core obligations under the Labor Act that every employer should understand.",
+      content:
+        "## Employment contracts\n\nWritten contracts reduce disputes. Include role, pay, and notice periods.\n\n## Working hours\n\nStandard hours and overtime rules apply under the Labor Act.",
+      author: "LexNepal Editorial",
+      status: "published" as const,
+      isFeatured: false,
+      displayOrder: 2,
+    },
+    {
+      legacyConvexId: "e2e_smoke_blog_pending",
+      title: "Pending Review: FDI Entry Modes",
+      slug: "pending-review-fdi-entry-modes",
+      category: "Corporate Law",
+      excerpt: "Draft article awaiting editorial approval.",
+      content: "## Draft\n\nThis post should **not** appear on the public blog until approved.",
+      author: "Staff Author",
+      status: "pending_review" as const,
+      isFeatured: false,
+      displayOrder: 99,
+    },
+  ];
+
+  const blogLegacyIds = BLOG_SEED.map((b) => b.legacyConvexId);
+  await db.delete(blogPosts).where(
+    and(eq(blogPosts.firmId, firm.id), inArray(blogPosts.legacyConvexId, blogLegacyIds)),
+  );
+  const blogIds: string[] = [];
+  for (const item of BLOG_SEED) {
+    const [row] = await db
+      .insert(blogPosts)
+      .values({
+        firmId: firm.id,
+        legacyConvexId: item.legacyConvexId,
+        title: item.title,
+        slug: item.slug,
+        category: item.category,
+        excerpt: item.excerpt,
+        content: item.content,
+        author: item.author,
+        status: item.status,
+        isFeatured: item.isFeatured,
+        displayOrder: item.displayOrder,
+        publishDate: item.status === "published" ? new Date() : null,
+      })
+      .returning({ id: blogPosts.id });
+    blogIds.push(row!.id);
+  }
+
+  const RESOURCES_SEED = [
+    {
+      legacyConvexId: "e2e_smoke_res_company",
+      title: "Company Registration Guide",
+      slug: "company-registration-guide",
+      description:
+        "Step-by-step overview of registering a private limited company in Nepal, including OCR filings and practical timelines.",
+      category: "Guide",
+      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      isGated: false,
+      status: "published" as const,
+      displayOrder: 1,
+    },
+    {
+      legacyConvexId: "e2e_smoke_res_fdi",
+      title: "FDI Checklist for Nepal",
+      slug: "fdi-checklist-nepal",
+      description:
+        "A practical checklist for foreign direct investment approvals, sectoral restrictions, and documentation.",
+      category: "Whitepaper",
+      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      isGated: true,
+      status: "published" as const,
+      displayOrder: 2,
+    },
+    {
+      legacyConvexId: "e2e_smoke_res_draft",
+      title: "Draft Employment Handbook (Internal)",
+      slug: "draft-employment-handbook",
+      description: "Internal draft — should not appear on the public library.",
+      category: "Guide",
+      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      isGated: false,
+      status: "draft" as const,
+      displayOrder: 99,
+    },
+  ];
+
+  const resourceLegacyIds = RESOURCES_SEED.map((r) => r.legacyConvexId);
+  await db.delete(resources).where(
+    and(eq(resources.firmId, firm.id), inArray(resources.legacyConvexId, resourceLegacyIds)),
+  );
+  const resourceIds: string[] = [];
+  for (const item of RESOURCES_SEED) {
+    const [row] = await db
+      .insert(resources)
+      .values({
+        firmId: firm.id,
+        legacyConvexId: item.legacyConvexId,
+        title: item.title,
+        slug: item.slug,
+        description: item.description,
+        category: item.category,
+        fileUrl: item.fileUrl,
+        isGated: item.isGated,
+        status: item.status,
+        displayOrder: item.displayOrder,
+        publishedDate: new Date().toISOString().slice(0, 10),
+        downloads: 0,
+      })
+      .returning({ id: resources.id });
+    resourceIds.push(row!.id);
+  }
+
   await upsertSetting(firm.id, "about_page", DEFAULT_ABOUT_PAGE);
   await upsertSetting(firm.id, "urlRedirects", [
     { from: "/legacy-home", to: "/", permanent: true },
@@ -440,10 +758,12 @@ export async function seedCmsSmoke() {
   return {
     firmId: firm.id,
     firmSlug: slug,
-    newsId: news!.id,
+    newsId,
     navigationIds: navIds,
     practiceAreaIds,
     testimonialIds,
+    resourceIds,
+    blogIds,
     directorAssets,
     brandAssets,
   };

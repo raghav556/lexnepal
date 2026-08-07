@@ -1,9 +1,10 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
 import { getDatabase } from "@/server/db/client";
 import {
   auditLog,
+  caseTeamMembers,
   cases,
   clients,
   messageAttachments,
@@ -31,7 +32,13 @@ function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
 export class CommunicationRepository {
   async listMessages(firmId: string, input: MessageListInput & { includeInternal: boolean }) {
     const conditions = [eq(messages.firmId, firmId), eq(messages.caseId, input.caseId)];
-    if (!input.includeInternal) conditions.push(eq(messages.isInternal, false));
+    if (!input.includeInternal) {
+      conditions.push(eq(messages.isInternal, false));
+    } else if (input.isInternal === true) {
+      conditions.push(eq(messages.isInternal, true));
+    } else if (input.isInternal === false) {
+      conditions.push(eq(messages.isInternal, false));
+    }
 
     const rows = await database
       .select({
@@ -45,14 +52,99 @@ export class CommunicationRepository {
       .orderBy(desc(messages.createdAt))
       .limit(input.limit ?? 50);
 
+    const messageIds = rows.map((row) => row.message.id);
+    const readByMap: Record<string, string[]> = {};
+    const attachmentMap: Record<string, string[]> = {};
+
+    if (messageIds.length > 0) {
+      const reads = await database
+        .select({
+          messageId: messageReads.messageId,
+          userId: messageReads.userId,
+        })
+        .from(messageReads)
+        .where(
+          and(eq(messageReads.firmId, firmId), inArray(messageReads.messageId, messageIds)),
+        );
+      for (const read of reads) {
+        (readByMap[read.messageId] ??= []).push(read.userId);
+      }
+
+      const attachments = await database
+        .select({
+          messageId: messageAttachments.messageId,
+          storageId: messageAttachments.storageId,
+          position: messageAttachments.position,
+        })
+        .from(messageAttachments)
+        .where(
+          and(
+            eq(messageAttachments.firmId, firmId),
+            inArray(messageAttachments.messageId, messageIds),
+          ),
+        )
+        .orderBy(messageAttachments.position);
+      for (const attachment of attachments) {
+        (attachmentMap[attachment.messageId] ??= []).push(attachment.storageId);
+      }
+    }
+
     return rows
       .map((row) =>
         toDto({
           ...(row.message as unknown as Record<string, unknown>),
           senderName: row.senderName || row.senderEmail || "Unknown",
+          readBy: readByMap[row.message.id] ?? [],
+          attachmentIds: attachmentMap[row.message.id] ?? [],
         }),
       )
       .reverse();
+  }
+
+  async unreadCountsByCase(
+    firmId: string,
+    userId: string,
+    caseIds: string[],
+    options: { clientVisibleOnly: boolean },
+  ): Promise<Record<string, number>> {
+    const result: Record<string, number> = {};
+    for (const id of caseIds) result[id] = 0;
+    if (caseIds.length === 0) return result;
+
+    const conditions = [
+      eq(messages.firmId, firmId),
+      inArray(messages.caseId, caseIds),
+      ne(messages.senderId, userId),
+      notExists(
+        database
+          .select({ id: messageReads.id })
+          .from(messageReads)
+          .where(
+            and(
+              eq(messageReads.messageId, messages.id),
+              eq(messageReads.userId, userId),
+              eq(messageReads.firmId, firmId),
+            ),
+          ),
+      ),
+    ];
+    if (options.clientVisibleOnly) {
+      conditions.push(eq(messages.isInternal, false));
+    }
+
+    const rows = await database
+      .select({
+        caseId: messages.caseId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(messages)
+      .where(and(...conditions))
+      .groupBy(messages.caseId);
+
+    for (const row of rows) {
+      result[row.caseId] = Number(row.count) || 0;
+    }
+    return result;
   }
 
   async createMessage(
@@ -112,7 +204,7 @@ export class CommunicationRepository {
               body: `${sender.name} sent you a message regarding ${matter.title}.`,
               type: "message",
               relatedId: matter.id,
-              link: "/client/messages",
+              link: `/client/messages?caseId=${matter.id}`,
             });
           }
         } else if (matter.assignedLawyerId) {
@@ -123,7 +215,29 @@ export class CommunicationRepository {
             body: `${sender.name} sent a message regarding ${matter.title}.`,
             type: "message",
             relatedId: matter.id,
-            link: `/staff/cases/${matter.id}`,
+            link: `/staff/messages?caseId=${matter.id}`,
+          });
+        }
+      } else {
+        // Case Team (internal): notify assigned lawyer + team members except sender.
+        const teamRows = await tx
+          .select({ userId: caseTeamMembers.userId })
+          .from(caseTeamMembers)
+          .where(and(eq(caseTeamMembers.caseId, matter.id), eq(caseTeamMembers.firmId, firmId)));
+        const recipientIds = new Set<string>([
+          matter.assignedLawyerId,
+          ...teamRows.map((row) => row.userId),
+        ]);
+        recipientIds.delete(sender.id);
+        for (const userId of recipientIds) {
+          await tx.insert(notifications).values({
+            firmId,
+            userId,
+            title: "Case Team Message",
+            body: `${sender.name} posted in the case team chat for ${matter.title}.`,
+            type: "message",
+            relatedId: matter.id,
+            link: `/staff/cases/${matter.id}?tab=messages&mode=team`,
           });
         }
       }

@@ -137,14 +137,67 @@ export class PostgresCmsRepository {
     input: Partial<PracticeAreaInput>,
     audit: AuditContext,
   ) {
-    return this.updateAudited(
+    return this.updatePracticeAreaWithRedirect(firmId, id, input, audit);
+  }
+
+  private async updatePracticeAreaWithRedirect(
+    firmId: string,
+    id: string,
+    input: Partial<PracticeAreaInput>,
+    audit: AuditContext,
+  ) {
+    const [current] = await database
+      .select({ slug: practiceAreas.slug })
+      .from(practiceAreas)
+      .where(
+        and(eq(practiceAreas.id, id), eq(practiceAreas.firmId, firmId), isNull(practiceAreas.deletedAt)),
+      )
+      .limit(1);
+    const row = await this.updateAudited(
       practiceAreas,
       firmId,
       id,
       mapPracticeAreaInput(input),
       audit,
       "practice_area",
-    ).then((row) => (row ? withPracticeAreaAliases(row) : row));
+    );
+    if (
+      row &&
+      current?.slug &&
+      typeof input.slug === "string" &&
+      input.slug.trim() &&
+      input.slug.trim() !== current.slug
+    ) {
+      await this.appendUrlRedirect(
+        firmId,
+        {
+          from: `/practice-areas/${current.slug}`,
+          to: `/practice-areas/${input.slug.trim()}`,
+          permanent: true,
+        },
+        audit,
+      );
+    }
+    return row ? withPracticeAreaAliases(row) : row;
+  }
+
+  async appendUrlRedirect(
+    firmId: string,
+    redirect: { from: string; to: string; permanent?: boolean },
+    audit: AuditContext,
+  ) {
+    const { cmsRedirectsSettingSchema } = await import("@/shared/contracts/cms");
+    const settings = await this.getSettings(firmId);
+    const existingRaw = settings.urlRedirects;
+    const existing = cmsRedirectsSettingSchema.parse(Array.isArray(existingRaw) ? existingRaw : []);
+    const from = redirect.from.trim();
+    const to = redirect.to.trim();
+    const next = [
+      ...existing.filter((r) => r.from !== from),
+      { from, to, permanent: redirect.permanent ?? true },
+    ].slice(0, 200);
+    await this.updateSettings(firmId, { settings: [{ key: "urlRedirects", value: next }] }, audit);
+    return next;
   }
   deletePracticeArea(firmId: string, id: string, audit: AuditContext) {
     return this.softDelete(practiceAreas, firmId, id, audit, "practice_area");
@@ -193,7 +246,11 @@ export class PostgresCmsRepository {
     return this.softDelete(testimonials, firmId, id, audit, "testimonial");
   }
 
-  async listBlogPosts(firmId: string, status?: "draft" | "published") {
+  async listBlogPosts(
+    firmId: string,
+    status?: "draft" | "pending_review" | "published" | "rejected",
+    options?: { submittedBy?: string },
+  ) {
     const rows = await database
       .select()
       .from(blogPosts)
@@ -202,10 +259,38 @@ export class PostgresCmsRepository {
           eq(blogPosts.firmId, firmId),
           isNull(blogPosts.deletedAt),
           status ? eq(blogPosts.status, status) : undefined,
+          options?.submittedBy ? eq(blogPosts.submittedBy, options.submittedBy) : undefined,
         ),
       )
-      .orderBy(desc(blogPosts.publishDate), desc(blogPosts.createdAt));
+      .orderBy(
+        desc(blogPosts.isFeatured),
+        asc(blogPosts.displayOrder),
+        desc(blogPosts.publishDate),
+        desc(blogPosts.createdAt),
+      );
     return rows.map(toDto);
+  }
+  async listStaffBlogPosts(firmId: string, userId: string) {
+    const rows = await database
+      .select()
+      .from(blogPosts)
+      .where(
+        and(
+          eq(blogPosts.firmId, firmId),
+          isNull(blogPosts.deletedAt),
+          sql`(${blogPosts.submittedBy} = ${userId} OR ${blogPosts.authorUserId} = ${userId})`,
+        ),
+      )
+      .orderBy(desc(blogPosts.updatedAt));
+    return rows.map(toDto);
+  }
+  async getBlogPostById(firmId: string, id: string) {
+    const [row] = await database
+      .select()
+      .from(blogPosts)
+      .where(and(eq(blogPosts.id, id), eq(blogPosts.firmId, firmId), isNull(blogPosts.deletedAt)))
+      .limit(1);
+    return row ? toDto(row) : null;
   }
   async getPublishedBlogPost(firmId: string, slug: string) {
     const [row] = await database
@@ -222,8 +307,22 @@ export class PostgresCmsRepository {
       .limit(1);
     return row ? toDto(row) : null;
   }
-  createBlogPost(firmId: string, input: BlogPostInput, audit: AuditContext) {
-    return this.createAudited(blogPosts, firmId, mapBlogInput(input), audit, "blog_post");
+  createBlogPost(
+    firmId: string,
+    input: BlogPostInput & { submittedBy?: string | null },
+    audit: AuditContext,
+  ) {
+    const { submittedBy, ...rest } = input;
+    return this.createAudited(
+      blogPosts,
+      firmId,
+      {
+        ...mapBlogInput(rest),
+        ...(submittedBy ? { submittedBy } : {}),
+      },
+      audit,
+      "blog_post",
+    );
   }
   updateBlogPost(firmId: string, id: string, input: Partial<BlogPostInput>, audit: AuditContext) {
     return this.updateAudited(blogPosts, firmId, id, mapBlogInput(input), audit, "blog_post");
@@ -231,11 +330,59 @@ export class PostgresCmsRepository {
   deleteBlogPost(firmId: string, id: string, audit: AuditContext) {
     return this.softDelete(blogPosts, firmId, id, audit, "blog_post");
   }
+  async reviewBlogPost(
+    firmId: string,
+    id: string,
+    input: {
+      action: "approve" | "reject";
+      reviewNotes?: string | null;
+      reviewerId: string;
+    },
+    audit: AuditContext,
+  ) {
+    const now = audit.occurredAt;
+    const patch =
+      input.action === "approve"
+        ? {
+            status: "published" as const,
+            publishDate: now,
+            reviewedBy: input.reviewerId,
+            reviewedAt: now,
+            reviewNotes: input.reviewNotes ?? null,
+          }
+        : {
+            status: "rejected" as const,
+            reviewedBy: input.reviewerId,
+            reviewedAt: now,
+            reviewNotes: input.reviewNotes ?? null,
+          };
+    return this.updateAudited(blogPosts, firmId, id, patch, audit, "blog_post");
+  }
+  async submitBlogPost(
+    firmId: string,
+    id: string,
+    submitterId: string,
+    audit: AuditContext,
+  ) {
+    return this.updateAudited(
+      blogPosts,
+      firmId,
+      id,
+      {
+        status: "pending_review",
+        submittedBy: submitterId,
+        submittedAt: audit.occurredAt,
+        reviewNotes: null,
+      },
+      audit,
+      "blog_post",
+    );
+  }
 
   async listNews(
     firmId: string,
     type?: "award" | "press_release" | "firm_news",
-    status?: "draft" | "published",
+    status?: "draft" | "pending_review" | "published" | "rejected",
   ) {
     const rows = await database
       .select()
@@ -248,10 +395,32 @@ export class PostgresCmsRepository {
           status ? eq(newsAndAwards.status, status) : undefined,
         ),
       )
-      .orderBy(desc(newsAndAwards.publicationDate));
+      .orderBy(
+        desc(newsAndAwards.isFeatured),
+        asc(newsAndAwards.displayOrder),
+        desc(newsAndAwards.publicationDate),
+      );
     return rows.map((row) => toDto({ ...row, date: row.publicationDate }));
   }
-  async getNewsItem(firmId: string, id: string, status?: "draft" | "published") {
+  async listStaffNews(firmId: string, userId: string) {
+    const rows = await database
+      .select()
+      .from(newsAndAwards)
+      .where(
+        and(
+          eq(newsAndAwards.firmId, firmId),
+          isNull(newsAndAwards.deletedAt),
+          eq(newsAndAwards.submittedBy, userId),
+        ),
+      )
+      .orderBy(desc(newsAndAwards.updatedAt));
+    return rows.map((row) => toDto({ ...row, date: row.publicationDate }));
+  }
+  async getNewsItem(
+    firmId: string,
+    id: string,
+    status?: "draft" | "pending_review" | "published" | "rejected",
+  ) {
     const [row] = await database
       .select()
       .from(newsAndAwards)
@@ -266,12 +435,37 @@ export class PostgresCmsRepository {
       .limit(1);
     return row ? toDto({ ...row, date: row.publicationDate }) : null;
   }
-  createNews(firmId: string, input: NewsInput, audit: AuditContext) {
-    const { date, ...rest } = input;
+  async getPublicNewsBySlug(firmId: string, slug: string) {
+    const [row] = await database
+      .select()
+      .from(newsAndAwards)
+      .where(
+        and(
+          eq(newsAndAwards.firmId, firmId),
+          eq(newsAndAwards.slug, slug),
+          eq(newsAndAwards.status, "published"),
+          isNull(newsAndAwards.deletedAt),
+        ),
+      )
+      .limit(1);
+    return row ? toDto({ ...row, date: row.publicationDate }) : null;
+  }
+  createNews(
+    firmId: string,
+    input: NewsInput & { submittedBy?: string | null },
+    audit: AuditContext,
+  ) {
+    const { date, submittedBy, ...rest } = input;
     return this.createAudited(
       newsAndAwards,
       firmId,
-      { ...normalizeEmpty(rest), publicationDate: date },
+      {
+        ...normalizeEmpty(rest),
+        publicationDate: date,
+        ...(submittedBy ? { submittedBy } : {}),
+        displayOrder: input.displayOrder ?? 0,
+        isFeatured: input.isFeatured ?? false,
+      },
       audit,
       "news",
     );
@@ -282,13 +476,60 @@ export class PostgresCmsRepository {
       newsAndAwards,
       firmId,
       id,
-      { ...normalizeEmpty(rest), ...(date ? { publicationDate: date } : {}) },
+      {
+        ...normalizeEmpty(rest),
+        ...(date ? { publicationDate: date } : {}),
+        ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
+        ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
+      },
       audit,
       "news",
     );
   }
   deleteNews(firmId: string, id: string, audit: AuditContext) {
     return this.softDelete(newsAndAwards, firmId, id, audit, "news");
+  }
+  async reviewNews(
+    firmId: string,
+    id: string,
+    input: {
+      action: "approve" | "reject";
+      reviewNotes?: string | null;
+      reviewerId: string;
+    },
+    audit: AuditContext,
+  ) {
+    const now = audit.occurredAt;
+    const patch =
+      input.action === "approve"
+        ? {
+            status: "published" as const,
+            reviewedBy: input.reviewerId,
+            reviewedAt: now,
+            reviewNotes: input.reviewNotes ?? null,
+          }
+        : {
+            status: "rejected" as const,
+            reviewedBy: input.reviewerId,
+            reviewedAt: now,
+            reviewNotes: input.reviewNotes ?? null,
+          };
+    return this.updateAudited(newsAndAwards, firmId, id, patch, audit, "news");
+  }
+  async submitNews(firmId: string, id: string, submitterId: string, audit: AuditContext) {
+    return this.updateAudited(
+      newsAndAwards,
+      firmId,
+      id,
+      {
+        status: "pending_review",
+        submittedBy: submitterId,
+        submittedAt: audit.occurredAt,
+        reviewNotes: null,
+      },
+      audit,
+      "news",
+    );
   }
 
   async listCareers(firmId: string, isActive?: boolean) {
@@ -447,7 +688,14 @@ export class PostgresCmsRepository {
     return this.updateAudited(jobApplications, firmId, id, { status }, audit, "job_application");
   }
 
-  async listResources(firmId: string, category?: string) {
+  async listResources(
+    firmId: string,
+    options?: {
+      category?: string;
+      status?: "draft" | "published";
+      public?: boolean;
+    },
+  ) {
     const rows = await database
       .select()
       .from(resources)
@@ -455,27 +703,75 @@ export class PostgresCmsRepository {
         and(
           eq(resources.firmId, firmId),
           isNull(resources.deletedAt),
-          category ? eq(resources.category, category) : undefined,
+          options?.category ? eq(resources.category, options.category) : undefined,
+          options?.status ? eq(resources.status, options.status) : undefined,
+          options?.public ? eq(resources.status, "published") : undefined,
         ),
       )
-      .orderBy(desc(resources.publishedDate));
-    return rows.map(toDto);
+      .orderBy(asc(resources.displayOrder), desc(resources.publishedDate));
+    return rows.map((row) =>
+      options?.public ? toPublicResourceDto(row as Record<string, unknown>) : toDto(row),
+    );
+  }
+  async getPublicResourceBySlug(firmId: string, slug: string) {
+    const [row] = await database
+      .select()
+      .from(resources)
+      .where(
+        and(
+          eq(resources.firmId, firmId),
+          eq(resources.slug, slug),
+          eq(resources.status, "published"),
+          isNull(resources.deletedAt),
+        ),
+      )
+      .limit(1);
+    return row ? toPublicResourceDto(row as Record<string, unknown>) : null;
+  }
+  async getPublishedResourceById(firmId: string, id: string) {
+    const [row] = await database
+      .select()
+      .from(resources)
+      .where(
+        and(
+          eq(resources.id, id),
+          eq(resources.firmId, firmId),
+          eq(resources.status, "published"),
+          isNull(resources.deletedAt),
+        ),
+      )
+      .limit(1);
+    return row ?? null;
   }
   createResource(firmId: string, input: ResourceInput, audit: AuditContext) {
+    const { publishedDate, ...rest } = input;
     return this.createAudited(
       resources,
       firmId,
       {
-        ...normalizeEmpty(input),
+        ...normalizeEmpty(rest),
         downloads: 0,
-        publishedDate: new Date().toISOString().slice(0, 10),
+        publishedDate: publishedDate || new Date().toISOString().slice(0, 10),
+        status: input.status ?? "draft",
+        displayOrder: input.displayOrder ?? 0,
       },
       audit,
       "resource",
     );
   }
   updateResource(firmId: string, id: string, input: Partial<ResourceInput>, audit: AuditContext) {
-    return this.updateAudited(resources, firmId, id, normalizeEmpty(input), audit, "resource");
+    const { publishedDate, ...rest } = input;
+    return this.updateAudited(
+      resources,
+      firmId,
+      id,
+      {
+        ...normalizeEmpty(rest),
+        ...(publishedDate !== undefined ? { publishedDate } : {}),
+      },
+      audit,
+      "resource",
+    );
   }
   deleteResource(firmId: string, id: string, audit: AuditContext) {
     return this.softDelete(resources, firmId, id, audit, "resource");
@@ -484,8 +780,15 @@ export class PostgresCmsRepository {
     const [row] = await database
       .update(resources)
       .set({ downloads: sql`${resources.downloads} + 1`, updatedAt: new Date() })
-      .where(and(eq(resources.id, id), eq(resources.firmId, firmId), isNull(resources.deletedAt)))
-      .returning({ downloads: resources.downloads });
+      .where(
+        and(
+          eq(resources.id, id),
+          eq(resources.firmId, firmId),
+          eq(resources.status, "published"),
+          isNull(resources.deletedAt),
+        ),
+      )
+      .returning({ downloads: resources.downloads, fileUrl: resources.fileUrl });
     return row ?? null;
   }
 
@@ -678,15 +981,54 @@ export class PostgresCmsRepository {
     );
   }
 
-  async listPublicTeam(firmId: string) {
-    return this.listTeamProfiles(firmId, { publicOnly: true });
+  async listPublicTeam(
+    firmId: string,
+    filters?: { practiceArea?: string; role?: string; search?: string },
+  ) {
+    let team = await this.listTeamProfiles(firmId, { publicOnly: true });
+    const practiceArea = filters?.practiceArea?.trim();
+    const role = filters?.role?.trim();
+    const search = filters?.search?.trim().toLowerCase();
+    if (role && role !== "all") {
+      team = team.filter((member) => String(member.role ?? "") === role);
+    }
+    if (search) {
+      team = team.filter((member) => {
+        const name = String(member.name ?? "").toLowerCase();
+        const bio = String(member.bio ?? "").toLowerCase();
+        const title = String(member.leadershipTitle ?? "").toLowerCase();
+        return name.includes(search) || bio.includes(search) || title.includes(search);
+      });
+    }
+    if (practiceArea) {
+      const { normalizePracticeAreaKey } = await import("@/shared/practice-areas-visibility");
+      const needle = normalizePracticeAreaKey(practiceArea);
+      team = team.filter((member) => {
+        const areas = Array.isArray(member.practiceAreas)
+          ? (member.practiceAreas as string[])
+          : [];
+        return areas.some((tag) => {
+          const key = normalizePracticeAreaKey(String(tag ?? ""));
+          return key === needle || key.includes(needle) || needle.includes(key);
+        });
+      });
+    }
+    return team;
+  }
+
+  async getPublicTeamMember(firmId: string, userId: string) {
+    const team = await this.listTeamProfiles(firmId, { publicOnly: true, userId });
+    return team[0] ?? null;
   }
 
   async listAdminTeam(firmId: string) {
     return this.listTeamProfiles(firmId, { publicOnly: false });
   }
 
-  private async listTeamProfiles(firmId: string, options: { publicOnly: boolean }) {
+  private async listTeamProfiles(
+    firmId: string,
+    options: { publicOnly: boolean; userId?: string },
+  ) {
     const team = await database
       .select()
       .from(users)
@@ -697,9 +1039,10 @@ export class PostgresCmsRepository {
           isNull(users.deletedAt),
           sql`${users.role} <> 'client'`,
           options.publicOnly ? eq(users.isPublicFacing, true) : undefined,
+          options.userId ? eq(users.id, options.userId) : undefined,
         ),
       )
-      .orderBy(asc(users.name));
+      .orderBy(asc(users.displayOrder), asc(users.name));
     const ids = team.map((row) => row.id);
     if (!ids.length) return [];
     const [education, areas, cases] = await Promise.all([
@@ -738,23 +1081,26 @@ export class PostgresCmsRepository {
     ]);
     return team.map((row) => {
       const avatarUrl = row.avatar ? `/api/v1/users/${row.id}/avatar` : null;
-      return toDto({
+      const languages = Array.isArray(row.languages) ? row.languages : [];
+      const base = {
         id: row.id,
         name: row.name,
-        email: row.email,
         role: row.role,
         isPublicFacing: row.isPublicFacing,
-        isPending: row.isPending,
-        isActive: row.isActive,
         avatar: avatarUrl,
         avatarUrl,
         bio: row.bio,
         longBio: row.longBio,
         leadershipTitle: row.leadershipTitle,
         publicEmail: row.publicEmail,
+        publicPhone: row.publicPhone,
         linkedinUrl: row.linkedinUrl,
         twitterUrl: row.twitterUrl,
         barCouncilNumber: row.barCouncilNumber,
+        barCouncilExpiry: row.barCouncilExpiry,
+        displayOrder: row.displayOrder,
+        yearsExperience: row.yearsExperience,
+        languages,
         education: education
           .filter((item) => item.userId === row.id)
           .map(({ degree, institution, year }) => ({ degree, institution, year })),
@@ -764,6 +1110,15 @@ export class PostgresCmsRepository {
         notableCases: cases
           .filter((item) => item.userId === row.id)
           .map((item) => item.description),
+      };
+      if (options.publicOnly) {
+        return toDto(base);
+      }
+      return toDto({
+        ...base,
+        email: row.email,
+        isPending: row.isPending,
+        isActive: row.isActive,
       });
     });
   }
@@ -918,6 +1273,8 @@ function mapBlogInput(input: Partial<BlogPostInput>) {
     ...(input.publishDate !== undefined
       ? { publishDate: input.publishDate ? new Date(input.publishDate) : null }
       : {}),
+    ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
+    ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
   });
 }
 function mapPracticeAreaInput(input: Partial<PracticeAreaInput>) {
@@ -953,4 +1310,11 @@ function toDto<T extends Record<string, unknown>>(row: T): Record<string, unknow
   delete output.deletedAt;
   delete output.deletedBy;
   return output;
+}
+
+/** Public resource DTO — never expose fileUrl when gated. */
+function toPublicResourceDto(row: Record<string, unknown>): Record<string, unknown> {
+  const dto = toDto(row);
+  if (dto.isGated) delete dto.fileUrl;
+  return dto;
 }

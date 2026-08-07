@@ -21,6 +21,19 @@ export function useInvoices(filters?: { clientId?: string; caseId?: string; stat
   return { data: next.data ?? [], isLoading: next.isLoading };
 }
 
+export async function fetchInvoiceDetail(invoiceId: string) {
+  return apiClient.request<any>(`/api/v1/financial/invoices/${invoiceId}`);
+}
+
+export function useMyPayments() {
+  const next = useQuery({
+    queryKey: queryKeys.financial.myPayments,
+    queryFn: ({ signal }) =>
+      apiClient.request<any[]>("/api/v1/financial/payments/mine", { signal }),
+  });
+  return { data: next.data ?? [], isLoading: next.isLoading };
+}
+
 export function useInvoiceCommands() {
   const queryClient = useQueryClient();
   const invalidate = () =>

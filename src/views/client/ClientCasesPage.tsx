@@ -2,11 +2,11 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { FolderOpen, CalendarDays, Loader2 } from "lucide-react";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClient, useMyTeam } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useHearings } from "@/client/queries/hearings";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
-import { useStaffDirectory } from "@/client/queries/identity";
+import Link from "next/link";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -21,7 +21,7 @@ export default function ClientCasesPage() {
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
   const cases = useCases(clientId ? { clientId } : {}) || [];
-  const users = useStaffDirectory() || [];
+  const users = useMyTeam() || [];
   const hearings = useHearings({}) || [];
 
   if (currentUser === undefined || clientRecord === undefined) {
@@ -68,7 +68,8 @@ export default function ClientCasesPage() {
             const nextHearingObj = hearings.find((h: any) => h.caseId === c._id && h.status === "scheduled");
 
             return (
-              <Card key={c._id} className="hover:shadow-md transition-shadow">
+              <Link key={c._id} href={`/client/cases/${c._id}`} className="block">
+              <Card className="hover:shadow-md transition-shadow">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -91,6 +92,7 @@ export default function ClientCasesPage() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             );
           })}
         </div>

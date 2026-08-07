@@ -12,16 +12,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       excerpt?: string;
       seoTitle?: string | null;
       seoDescription?: string | null;
+      coverImageUrl?: string | null;
     };
+    const title = String(post.seoTitle || post.title || "Blog");
+    const description = String(
+      post.seoDescription || post.excerpt || "Legal insight from LexNepal",
+    );
+    const image = post.coverImageUrl || undefined;
     return {
-      title: post.seoTitle || post.title || "Blog",
-      description: post.seoDescription || post.excerpt || undefined,
+      title,
+      description,
+      openGraph: image ? { images: [String(image)] } : undefined,
     };
   } catch {
     return { title: "Blog" };
   }
 }
 
-export default function Page() {
-  return <BlogPostPage />;
+export default async function Page({ params }: Props) {
+  const { slug } = await params;
+  return <BlogPostPage slug={slug} />;
 }

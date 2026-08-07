@@ -371,6 +371,37 @@ export default function ClientBookingPage() {
                           >
                             <ExternalLink className="w-3 h-3 mr-1" /> Join
                           </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => {
+                              const day = (apt.date || "").replace(/-/g, "");
+                              const lines = [
+                                "BEGIN:VCALENDAR",
+                                "VERSION:2.0",
+                                "BEGIN:VEVENT",
+                                `UID:${apt._id || apt.id}@srimar.law`,
+                                `DTSTART;VALUE=DATE:${day}`,
+                                `SUMMARY:Consultation — ${apt.practiceArea || "Srimar Law"}`,
+                                apt.meetingLink ? `URL:${apt.meetingLink}` : "",
+                                "END:VEVENT",
+                                "END:VCALENDAR",
+                              ].filter(Boolean);
+                              const blob = new Blob([lines.join("\r\n")], {
+                                type: "text/calendar",
+                              });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = "consultation.ics";
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            ICS
+                          </Button>
                         </div>
                       )}
                       {status === "confirmed" && !apt.meetingLink && (
@@ -390,10 +421,12 @@ export default function ClientBookingPage() {
               Need Immediate Help?
             </h3>
             <p className="text-sm text-blue-800 dark:text-blue-400 mb-4">
-              If you have an urgent legal matter that requires immediate attention, please call our
-              emergency hotline.
+              If you have an urgent legal matter that requires immediate attention, contact the firm
+              through Messages or the public contact page.
             </p>
-            <p className="font-mono font-bold text-blue-900 dark:text-blue-300">+977 1-4422334</p>
+            <Button asChild variant="outline" size="sm" className="border-blue-300">
+              <a href="/contact">Contact the firm</a>
+            </Button>
           </div>
         </div>
       </div>

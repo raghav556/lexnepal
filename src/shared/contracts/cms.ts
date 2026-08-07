@@ -57,24 +57,43 @@ export const blogPostInputSchema = z
     content: z.string().min(1).max(200_000),
     coverImageUrl: optionalCmsAssetOrUrl.nullable(),
     author: z.string().trim().min(1).max(200),
-    status: z.enum(["draft", "published"]),
+    authorUserId: z.string().uuid().optional().nullable(),
+    status: z.enum(["draft", "pending_review", "published", "rejected"]),
     publishDate: z.union([z.string().datetime(), z.literal("")]),
     seoTitle: z.string().trim().max(300).optional(),
     seoDescription: z.string().trim().max(1_000).optional(),
+    displayOrder: z.number().int().min(0).max(10_000).default(0),
+    isFeatured: z.boolean().default(false),
   })
-  .refine((value) => value.status === "draft" || value.publishDate.length > 0, {
+  .refine((value) => value.status !== "published" || value.publishDate.length > 0, {
     message: "Published posts require a publish date",
     path: ["publishDate"],
   });
+
+export const blogReviewActionSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  reviewNotes: z.string().trim().max(5_000).optional().nullable(),
+});
+
 export const newsInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
+  slug: slugSchema,
   excerpt: z.string().trim().min(1).max(1_000),
   content: z.string().min(1).max(100_000),
   date: dateOnly,
   type: z.enum(["award", "press_release", "firm_news"]),
-  status: z.enum(["draft", "published"]).default("draft"),
+  status: z.enum(["draft", "pending_review", "published", "rejected"]).default("draft"),
   linkUrl: optionalUrl,
   imageUrl: optionalCmsAssetOrUrl.nullable(),
+  seoTitle: z.string().trim().max(300).optional().nullable(),
+  seoDescription: z.string().trim().max(1_000).optional().nullable(),
+  displayOrder: z.number().int().min(0).max(10_000).default(0),
+  isFeatured: z.boolean().default(false),
+});
+
+export const newsReviewActionSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  reviewNotes: z.string().trim().max(5_000).optional().nullable(),
 });
 export const careerInputSchema = z.object({
   title: z.string().trim().min(1).max(250),
@@ -102,11 +121,30 @@ export const applicationStatusSchema = z.enum([
 ]);
 export const resourceInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
+  slug: slugSchema,
   description: z.string().trim().min(1).max(10_000),
   category: z.string().trim().min(1).max(100),
   coverImageUrl: optionalCmsAssetOrUrl.nullable(),
-  fileUrl: z.string().url().max(2_000),
+  fileUrl: z
+    .union([
+      z.string().url().max(2_000),
+      z
+        .string()
+        .max(2_000)
+        .regex(/^\/api\/v1\/public\/cms\/assets\/[0-9a-fA-F-]{36}$/),
+    ])
+    .refine((v) => v.length > 0, "File URL is required"),
   isGated: z.boolean(),
+  status: z.enum(["draft", "published"]).default("draft"),
+  publishedDate: dateOnly.optional(),
+  seoTitle: z.string().trim().max(300).optional().nullable(),
+  seoDescription: z.string().trim().max(1_000).optional().nullable(),
+  displayOrder: z.number().int().min(0).max(10_000).default(0),
+});
+
+export const resourceDownloadRequestSchema = z.object({
+  fullName: z.string().trim().min(1).max(200).optional(),
+  email: z.string().trim().email().max(320).optional(),
 });
 
 /** Admin-managed public path redirects (CMS-10). */
@@ -161,9 +199,17 @@ export const teamProfileInputSchema = z
       .union([z.string().trim().email().max(320), z.literal("")])
       .optional()
       .nullable(),
+    publicPhone: z.string().trim().max(40).optional().nullable(),
     linkedinUrl: optionalUrl.nullable(),
     twitterUrl: optionalUrl.nullable(),
     barCouncilNumber: z.string().trim().max(100).optional().nullable(),
+    barCouncilExpiry: z
+      .union([z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")])
+      .optional()
+      .nullable(),
+    displayOrder: z.number().int().min(0).max(10_000).optional(),
+    yearsExperience: z.number().int().min(0).max(80).optional().nullable(),
+    languages: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
     practiceAreas: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
     notableCases: z.array(z.string().trim().min(1).max(2_000)).max(100).optional(),
     education: z

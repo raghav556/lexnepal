@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { RevealText, FadeInUp } from "@/components/ui/animations";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils.ts";
+import { generateSignatureCertificatePDF } from "@/lib/pdf-generator.ts";
+import { useCurrentUser } from "@/hooks/use-current-user.ts";
 
 type SignMethod = "draw" | "type" | "upload";
 
@@ -194,6 +196,7 @@ function SignedDownload({ documentId }: { documentId: string }) {
 }
 
 export default function ClientSignaturesPage() {
+  const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const cases = useCases(clientRecord?._id ? { clientId: clientRecord._id } : {}) || [];
   const documents = useDocuments({}) || [];
@@ -258,9 +261,41 @@ export default function ClientSignaturesPage() {
       .catch(() => {});
   }, [selectedDoc?._id, selectedEnvelopeId]);
 
-  const uploadBlob = async (blob: Blob, fileName: string) => {
-    const digest = await sha256HexFromBuffer(await blob.arrayBuffer());
-    return `sig-artifact:${digest.slice(0, 32)}:${fileName}`;
+  const uploadBlob = async (blob: Blob, fileName: string, parentDocumentId: string, caseId?: string) => {
+    const file = new File([blob], fileName, { type: blob.type || "image/png" });
+    const digest = await sha256HexFromBuffer(await file.arrayBuffer());
+    const intent = await (
+      await import("@/client/api/client")
+    ).apiClient.request<{
+      intentId: string;
+      upload: { url: string; fields: Record<string, string> };
+    }>("/api/v1/document-upload-intents", {
+      method: "POST",
+      body: {
+        fileName: file.name,
+        mimeType: file.type || "image/png",
+        sizeBytes: file.size,
+        sha256: digest,
+        caseId,
+        parentDocumentId,
+      },
+    });
+    const form = new FormData();
+    Object.entries(intent.upload.fields).forEach(([key, value]) => form.append(key, value));
+    form.append("file", file);
+    const uploaded = await fetch(intent.upload.url, { method: "POST", body: form });
+    if (!uploaded.ok) throw new Error("Object storage rejected the signature upload");
+    await (
+      await import("@/client/api/client")
+    ).apiClient.request(`/api/v1/document-upload-intents/${intent.intentId}/complete`, {
+      method: "POST",
+      body: {},
+    });
+    const storageKey =
+      intent.upload.fields.key ||
+      intent.upload.fields.Key ||
+      `intent:${intent.intentId}`;
+    return storageKey;
   };
 
   const computeDocHash = useCallback(async (doc: any, fileUrl?: string | null) => {
@@ -348,10 +383,20 @@ export default function ClientSignaturesPage() {
       let artifactId: string | undefined;
       if (method === "draw") {
         if (!drawnDataUrl) throw new Error("Draw your signature first.");
-        artifactId = await uploadBlob(dataUrlToBlob(drawnDataUrl), "signature.png");
+        artifactId = await uploadBlob(
+          dataUrlToBlob(drawnDataUrl),
+          "signature.png",
+          selectedDoc._id,
+          selectedDoc.caseId,
+        );
       } else if (method === "upload") {
         if (!uploadFile) throw new Error("Upload a signature image.");
-        artifactId = await uploadBlob(uploadFile, uploadFile.name);
+        artifactId = await uploadBlob(
+          uploadFile,
+          uploadFile.name,
+          selectedDoc._id,
+          selectedDoc.caseId,
+        );
       } else if (!typedName.trim()) {
         throw new Error("Type your full legal name.");
       }
@@ -512,7 +557,7 @@ export default function ClientSignaturesPage() {
                                   Verify
                                 </Button>
                               </div>
-                              {demoOtp && (
+                              {demoOtp && process.env.NODE_ENV === "development" && (
                                 <p className="text-[11px] text-muted-foreground">
                                   Dev code: <span className="font-mono font-semibold">{demoOtp}</span>
                                 </p>
@@ -669,7 +714,28 @@ export default function ClientSignaturesPage() {
                           {doc.signatureMethod ? ` · ${doc.signatureMethod}` : ""}
                         </p>
                       </div>
-                      <SignedDownload documentId={doc._id} />
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() =>
+                            generateSignatureCertificatePDF({
+                              title: doc.title,
+                              documentId: doc._id,
+                              signedAt: doc.signedAt,
+                              signatureMethod: doc.signatureMethod,
+                              documentSha256: doc.sha256,
+                              typedSignatureText: doc.typedSignatureText,
+                              signerName: currentUser?.name || clientRecord?.fullName,
+                              consentVersion: doc.signConsentVersion || "esign-consent-v1",
+                            })
+                          }
+                        >
+                          Certificate
+                        </Button>
+                        <SignedDownload documentId={doc._id} />
+                      </div>
                     </div>
                   ))}
                 </div>

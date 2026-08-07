@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
-import { blogPosts, newsAndAwards, practiceAreas, firms } from "@/server/db/schema";
+import { blogPosts, newsAndAwards, practiceAreas, firms, users, resources } from "@/server/db/schema";
 import { getServerEnvironment } from "@/server/env";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/terms",
   ];
 
-  const [areas, posts, news] = await Promise.all([
+  const [areas, posts, news, lawyers, library] = await Promise.all([
     db
       .select({ slug: practiceAreas.slug, updatedAt: practiceAreas.updatedAt })
       .from(practiceAreas)
@@ -56,13 +56,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ),
       ),
     db
-      .select({ id: newsAndAwards.id, updatedAt: newsAndAwards.updatedAt })
+      .select({
+        slug: newsAndAwards.slug,
+        updatedAt: newsAndAwards.updatedAt,
+        publicationDate: newsAndAwards.publicationDate,
+      })
       .from(newsAndAwards)
       .where(
         and(
           eq(newsAndAwards.firmId, firm.id),
           eq(newsAndAwards.status, "published"),
           isNull(newsAndAwards.deletedAt),
+        ),
+      ),
+    db
+      .select({ id: users.id, updatedAt: users.updatedAt })
+      .from(users)
+      .where(
+        and(
+          eq(users.firmId, firm.id),
+          eq(users.isActive, true),
+          eq(users.isPublicFacing, true),
+          isNull(users.deletedAt),
+          sql`${users.role} <> 'client'`,
+        ),
+      ),
+    db
+      .select({ slug: resources.slug, updatedAt: resources.updatedAt })
+      .from(resources)
+      .where(
+        and(
+          eq(resources.firmId, firm.id),
+          eq(resources.status, "published"),
+          isNull(resources.deletedAt),
         ),
       ),
   ]);
@@ -86,10 +112,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     })),
     ...news.map((n) => ({
-      url: `${base}/news/${n.id}`,
-      lastModified: n.updatedAt ?? undefined,
+      url: `${base}/news/${n.slug}`,
+      lastModified: n.updatedAt ?? (n.publicationDate ? new Date(n.publicationDate) : undefined),
       changeFrequency: "weekly" as const,
       priority: 0.5,
+    })),
+    ...lawyers.map((l) => ({
+      url: `${base}/lawyers/${l.id}`,
+      lastModified: l.updatedAt ?? undefined,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    ...library.map((r) => ({
+      url: `${base}/resources/${r.slug}`,
+      lastModified: r.updatedAt ?? undefined,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
     })),
   ];
 

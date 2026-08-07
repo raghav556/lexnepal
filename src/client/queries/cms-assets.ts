@@ -3,8 +3,10 @@ import { CMS_ASSET_PURPOSES, publicCmsAssetUrl, type CmsAssetPurpose } from "@/s
 
 export { CMS_ASSET_PURPOSES, publicCmsAssetUrl, type CmsAssetPurpose };
 
-const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
-const MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+const ALLOWED_RESOURCE_FILE_MIME_TYPES = new Set(["application/pdf"]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_RESOURCE_FILE_BYTES = 25 * 1024 * 1024;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,11 +26,18 @@ type IntentStatus = {
 };
 
 export async function uploadCmsAsset(file: File, purpose: CmsAssetPurpose): Promise<string> {
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error("Only JPEG and PNG images are supported.");
+  const isResourceFile = purpose === "resource_file";
+  const allowed = isResourceFile ? ALLOWED_RESOURCE_FILE_MIME_TYPES : ALLOWED_IMAGE_MIME_TYPES;
+  const maxBytes = isResourceFile ? MAX_RESOURCE_FILE_BYTES : MAX_IMAGE_BYTES;
+  if (!allowed.has(file.type)) {
+    throw new Error(
+      isResourceFile ? "Only PDF files are supported." : "Only JPEG and PNG images are supported.",
+    );
   }
-  if (file.size < 1 || file.size > MAX_BYTES) {
-    throw new Error("Image must be 5 MB or smaller.");
+  if (file.size < 1 || file.size > maxBytes) {
+    throw new Error(
+      isResourceFile ? "PDF must be 25 MB or smaller." : "Image must be 5 MB or smaller.",
+    );
   }
 
   const intent = await apiClient.request<{

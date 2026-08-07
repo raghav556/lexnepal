@@ -16,6 +16,7 @@ import type {
   MessageCreateInput,
   MessageListInput,
   MessageMarkReadInput,
+  MessageUnreadInput,
 } from "@/shared/contracts/communication";
 import { AppError } from "@/shared/errors/api-error";
 
@@ -32,6 +33,22 @@ export class CommunicationService {
       includeInternal: principal.user.role !== "client",
     });
     return { page, isDone: true, continueCursor: "" };
+  }
+
+  async unreadCounts(principal: AuthPrincipal, input: MessageUnreadInput) {
+    const { firmId } = requireFirmContext(principal);
+    const allowed: string[] = [];
+    for (const caseId of input.caseIds) {
+      try {
+        await requireCaseAccess(principal, caseId, security);
+        allowed.push(caseId);
+      } catch {
+        // Skip inaccessible matters — do not leak counts.
+      }
+    }
+    return repository.unreadCountsByCase(firmId, principal.user.id, allowed, {
+      clientVisibleOnly: principal.user.role === "client",
+    });
   }
 
   async sendMessage(principal: AuthPrincipal, input: MessageCreateInput, audit: AuditContext) {

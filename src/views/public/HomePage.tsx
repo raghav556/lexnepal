@@ -355,17 +355,37 @@ export default function HomePage() {
       <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
           <div className="text-center mb-8 sm:mb-12">
-            <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">Practice Areas</RevealText>
+            <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">
+              {String(settings?.practiceAreasHeroTitle || "Practice Areas")}
+            </RevealText>
             <FadeInUp delay={0.1}>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-1">Deep expertise across all major areas of Nepal law.</p>
+              <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-1">
+                {String(
+                  settings?.practiceAreasHeroSubtitle ||
+                    "Deep expertise across all major areas of Nepal law.",
+                )}
+              </p>
             </FadeInUp>
           </div>
+          {practiceAreas.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-8">
+              Practice areas will appear here once published in the admin console.
+            </p>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {practiceAreas.map((area: any, i: number) => (
-              <FadeInUp key={area._id} delay={i * 0.06}>
+              <FadeInUp key={area._id || area.id} delay={i * 0.06}>
                 <Link href={`/practice-areas/${area.slug}`} className="block h-full min-w-0">
                   <HoverGlowCard className="h-full rounded-xl">
                     <Card className="h-full border-border bg-card hover:border-accent/50 transition-colors duration-300 relative z-10 overflow-hidden">
+                      {area.coverImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={String(area.coverImageUrl)}
+                          alt=""
+                          className="w-full h-28 object-cover border-b border-border"
+                        />
+                      ) : null}
                       <CardContent className="p-4 sm:p-6">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/15">
                           <PracticeAreaIcon
@@ -382,6 +402,7 @@ export default function HomePage() {
               </FadeInUp>
             ))}
           </div>
+          )}
           <div className="text-center mt-8 sm:mt-10">
             <Button asChild variant="secondary" className="w-full sm:w-auto"><Link href="/practice-areas">View All Practice Areas <ArrowRight className="ml-2 w-4 h-4" /></Link></Button>
           </div>
@@ -448,7 +469,9 @@ export default function HomePage() {
         <section className="py-12 sm:py-16 lg:py-20 bg-secondary">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
             <div className="text-center mb-8 sm:mb-12">
-              <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">Our Dedicated Team</RevealText>
+              <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">
+                {String(settings?.lawyersHeroTitle || "Our Dedicated Team")}
+              </RevealText>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {publicTeam.map((member: any, i: number) => {

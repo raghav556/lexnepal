@@ -1,13 +1,16 @@
 import { useMemo } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { CheckSquare, Circle, Loader2, ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button.tsx";
+import { CheckSquare, Circle, Loader2, ClipboardList, MessageSquare, Calendar } from "lucide-react";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useTasks } from "@/client/queries/tasks";
 import { cn } from "@/lib/utils.ts";
 import { formatTaskDue, PRIORITY_COLORS, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty.tsx";
 
 /**
  * Client-visible checklist items only (tasks.clientVisible on the client's cases).
@@ -65,7 +68,30 @@ export default function ClientChecklistPage() {
         </CardHeader>
         <CardContent className="p-4 space-y-2">
           {checklist.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-10">{t("tasks.no_client_items")}</p>
+            <Empty className="py-8">
+              <EmptyHeader>
+                <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+                <EmptyTitle>No shared action items yet</EmptyTitle>
+                <EmptyDescription>
+                  When your legal team shares checklist items on your matters, they appear here.
+                  You can message the firm or book a consultation in the meantime.
+                </EmptyDescription>
+              </EmptyHeader>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/client/messages">
+                    <MessageSquare className="w-4 h-4 mr-1" />
+                    Messages
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/client/booking">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Book Appointment
+                  </Link>
+                </Button>
+              </div>
+            </Empty>
           ) : (
             checklist.map((task: any) => {
               const matchedCase = cases.find((c: any) => c._id === task.caseId);

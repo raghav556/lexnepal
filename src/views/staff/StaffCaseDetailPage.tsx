@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "@/client/navigation";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { 
   CalendarDays, Clock, User, ArrowLeft, Loader2, Save, CheckSquare, 
-  DollarSign, Plus, FolderTree, Scale, FileArchive, Zap, Users
+  DollarSign, Plus, FolderTree, Scale, FileArchive, Zap, Users, MessageSquare
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -18,6 +19,7 @@ import { useHearings } from "@/client/queries/hearings";
 import { useDocuments } from "@/client/queries/documents";
 import { useTasks, useTaskCommands, useSopTemplates, useUpdateTask } from "@/client/queries/tasks";
 import { useTimeEntries, useExpenses } from "@/client/queries/financial";
+import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { cn } from "@/lib/utils.ts";
 import { PRIORITY_COLORS, formatTaskDue } from "@/lib/task-constants.ts";
 
@@ -40,6 +42,7 @@ const MISL_CATEGORIES = [
 export default function StaffCaseDetailPage() {
   const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const searchParams = useSearchParams();
   const currentUser = useCurrentUser();
 
   const caseData = useCase(caseId || null);
@@ -64,6 +67,18 @@ export default function StaffCaseDetailPage() {
     );
     return matched.length > 0 ? matched : sopTemplates;
   })();
+
+  const tabFromQuery = searchParams.get("tab");
+  const modeFromQuery = searchParams.get("mode");
+  const [activeTab, setActiveTab] = useState(tabFromQuery === "messages" ? "messages" : "tasks");
+  const [messageStream, setMessageStream] = useState<"client" | "team">(
+    modeFromQuery === "team" ? "team" : "client",
+  );
+  useEffect(() => {
+    if (tabFromQuery === "messages") setActiveTab("messages");
+    if (modeFromQuery === "team") setMessageStream("team");
+    if (modeFromQuery === "client") setMessageStream("client");
+  }, [tabFromQuery, modeFromQuery]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("");
@@ -223,9 +238,10 @@ export default function StaffCaseDetailPage() {
         )}
       </div>
 
-      <Tabs defaultValue="tasks">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1.5 bg-secondary/50 rounded-lg print:hidden">
           <TabsTrigger value="tasks" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><CheckSquare className="w-3.5 h-3.5 mr-2" />Tasks & SOPs</TabsTrigger>
+          <TabsTrigger value="messages" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><MessageSquare className="w-3.5 h-3.5 mr-2" />Messages</TabsTrigger>
           <TabsTrigger value="misl" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><FolderTree className="w-3.5 h-3.5 mr-2" />Digital Misl (Files)</TabsTrigger>
           <TabsTrigger value="parties" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><Users className="w-3.5 h-3.5 mr-2" />Parties & Counsel</TabsTrigger>
           <TabsTrigger value="financials" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"><DollarSign className="w-3.5 h-3.5 mr-2" />Case Ledger</TabsTrigger>
@@ -309,6 +325,38 @@ export default function StaffCaseDetailPage() {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="messages" className="mt-6 space-y-3">
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={messageStream === "client" ? "default" : "outline"}
+              onClick={() => setMessageStream("client")}
+            >
+              Client
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={messageStream === "team" ? "default" : "outline"}
+              onClick={() => setMessageStream("team")}
+            >
+              Case Team
+            </Button>
+          </div>
+          {caseId ? (
+            <MatterChatPanel
+              caseId={caseId}
+              mode="staff"
+              stream={messageStream}
+              title={messageStream === "team" ? "Case team discussion" : "Client messages"}
+              users={users}
+              bordered
+              className="h-[min(70vh,640px)]"
+            />
+          ) : null}
         </TabsContent>
 
         {/* 2. Digital Misl (Files) */}

@@ -1,12 +1,24 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import { Link } from "@/client/navigation";
-import { ArrowRight, BookOpen, ChevronDown } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronDown,
+  Phone,
+  Scale,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import { usePracticeAreas } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
-import { useState } from "react";
+import { consultationHrefForPracticeArea } from "@/shared/practice-areas-visibility";
 
 function FAQAccordionItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -38,11 +50,27 @@ function FAQAccordionItem({ q, a }: { q: string; a: string }) {
 export default function PracticeAreasPage() {
   const practiceAreas = usePracticeAreas({ isActive: true }, "public");
   const settings = usePublicCmsSettings();
+  const [query, setQuery] = useState("");
   const heroTitle = String(settings?.practiceAreasHeroTitle || "Practice Areas");
   const heroSubtitle = String(
     settings?.practiceAreasHeroSubtitle ||
       "Our advocates bring deep specialization and courtroom experience across major areas of Nepal law.",
   );
+
+  const filtered = useMemo(() => {
+    const list = [...(practiceAreas || [])];
+    list.sort(
+      (a: { displayOrder?: number; title?: string }, b: { displayOrder?: number; title?: string }) =>
+        (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+        String(a.title ?? "").localeCompare(String(b.title ?? "")),
+    );
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((area: Record<string, unknown>) => {
+      const hay = `${area.title ?? ""} ${area.description ?? ""} ${area.longDescription ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [practiceAreas, query]);
 
   return (
     <div className="w-full min-w-0 overflow-x-clip">
@@ -54,12 +82,13 @@ export default function PracticeAreasPage() {
               "radial-gradient(circle at 50% 50%, oklch(0.75 0.15 60) 0%, transparent 60%)",
           }}
         />
+        <div className="absolute -right-16 top-10 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 md:py-28 min-w-0">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="min-w-0"
+            className="min-w-0 max-w-3xl"
           >
             <div className="inline-flex max-w-full items-center gap-2 bg-accent/20 text-accent px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-5">
               <BookOpen className="w-3.5 h-3.5 shrink-0" />
@@ -82,88 +111,137 @@ export default function PracticeAreasPage() {
         </div>
       </section>
 
+      <section className="border-b border-border bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          {[
+            { icon: Scale, title: "Specialized counsel", text: "Advocates matched to your matter." },
+            { icon: ShieldCheck, title: "Confidential advice", text: "Privilege from the first conversation." },
+            { icon: Phone, title: "Clear next steps", text: "Strategy and fees explained upfront." },
+          ].map((item) => (
+            <div key={item.title} className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <item.icon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-foreground text-sm">{item.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">Our practice areas</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {practiceAreas ? `${filtered.length} active ${filtered.length === 1 ? "area" : "areas"}` : "Loading…"}
+            </p>
+          </div>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search practice areas…"
+              className="pl-9"
+              aria-label="Search practice areas"
+            />
+          </div>
+        </div>
+
         {!practiceAreas ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-56 rounded-xl bg-muted/50 animate-pulse" />
+              <div key={i} className="h-64 rounded-xl bg-muted/50 animate-pulse" />
             ))}
           </div>
-        ) : practiceAreas.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-12">
-            Practice areas will appear here once published.
-          </p>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 px-4 border border-dashed border-border rounded-2xl bg-muted/20">
+            <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-serif text-xl font-bold text-foreground mb-2">
+              {query ? "No matching practice areas" : "Practice areas coming soon"}
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+              {query
+                ? "Try a different search, or book a consultation and we will route your matter."
+                : "Published practice areas from the admin console appear here automatically."}
+            </p>
+            <Button asChild>
+              <Link href="/consultation" className="gap-2">
+                Book Consultation <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {practiceAreas.map((area: Record<string, unknown>, i: number) => {
+            {filtered.map((area: Record<string, unknown>, i: number) => {
               const faqs = Array.isArray(area.faqs)
-                ? (area.faqs as Array<{ question?: string; answer?: string; q?: string; a?: string }>)
+                ? (area.faqs as Array<{ question?: string; answer?: string }>)
                 : [];
               const slug = String(area.slug ?? "");
+              const title = String(area.title ?? "");
               return (
                 <motion.div
                   key={String(area._id || area.id)}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.08, duration: 0.5 }}
+                  transition={{ delay: Math.min(i * 0.06, 0.3), duration: 0.45 }}
                   className="min-w-0"
                 >
                   <Card className="hover:shadow-lg transition-all duration-300 group h-full sm:hover:-translate-y-1 overflow-hidden py-0 gap-0">
-                    <CardContent className="p-4 sm:p-6 flex flex-col h-full min-w-0">
+                    <CardContent className="p-0 flex flex-col h-full min-w-0">
                       {area.coverImageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={String(area.coverImageUrl)}
                           alt=""
-                          className="w-full h-32 object-cover rounded-lg mb-4 border border-border"
+                          className="w-full h-36 object-cover border-b border-border"
                         />
-                      ) : null}
-                      <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4 min-w-0">
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 group-hover:scale-110 transition-all text-accent">
-                          <PracticeAreaIcon
-                            name={resolvePracticeAreaIconName(
-                              area as { icon?: string; iconName?: string },
-                            )}
-                            className="w-6 h-6"
-                          />
-                        </div>
-                        <div className="min-w-0 pt-0.5">
-                          <Link
-                            href={`/practice-areas/${slug}`}
-                            className="font-serif font-bold text-base sm:text-lg text-foreground group-hover:text-accent transition-colors break-words leading-snug"
-                          >
-                            {String(area.title)}
-                          </Link>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-4 flex-1 break-words">
-                        {String(
-                          area.longDescription ||
-                            area.description ||
-                            `Expert legal representation in ${String(area.title).toLowerCase()}.`,
-                        )}
-                      </p>
-                      {faqs.length > 0 && (
-                        <div className="border-t border-border pt-3 sm:pt-4 mt-auto min-w-0">
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
-                            Common Questions
-                          </p>
-                          {faqs.slice(0, 3).map((faq, fi) => (
-                            <FAQAccordionItem
-                              key={`${faq.question || faq.q}-${fi}`}
-                              q={String(faq.question || faq.q || "")}
-                              a={String(faq.answer || faq.a || "")}
-                            />
-                          ))}
-                        </div>
+                      ) : (
+                        <div className="h-2 bg-gradient-to-r from-primary/80 via-accent/70 to-primary/40" />
                       )}
-                      <Button asChild variant="ghost" size="sm" className="mt-3 self-start px-0">
-                        <Link href={`/practice-areas/${slug}`} className="gap-1.5 text-accent">
-                          Learn more <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </Button>
+                      <div className="p-4 sm:p-6 flex flex-col flex-1 min-w-0">
+                        <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4 min-w-0">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 group-hover:scale-110 transition-all text-accent">
+                            <PracticeAreaIcon
+                              name={resolvePracticeAreaIconName(
+                                area as { icon?: string; iconName?: string },
+                              )}
+                              className="w-6 h-6"
+                            />
+                          </div>
+                          <div className="min-w-0 pt-0.5">
+                            <Link
+                              href={`/practice-areas/${slug}`}
+                              className="font-serif font-bold text-base sm:text-lg text-foreground group-hover:text-accent transition-colors break-words leading-snug"
+                            >
+                              {title}
+                            </Link>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-3 mb-4 flex-1">
+                          {String(area.description || area.longDescription || "")}
+                        </p>
+                        {faqs.length > 0 && (
+                          <div className="border border-border rounded-lg px-3 mb-4">
+                            {faqs.slice(0, 2).map((faq, fi) => (
+                              <FAQAccordionItem
+                                key={`${faq.question}-${fi}`}
+                                q={String(faq.question ?? "")}
+                                a={String(faq.answer ?? "")}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <Button asChild variant="ghost" className="justify-start px-0 h-auto">
+                          <Link href={`/practice-areas/${slug}`} className="gap-1.5 text-accent">
+                            Learn more <ArrowRight className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -171,36 +249,37 @@ export default function PracticeAreasPage() {
             })}
           </div>
         )}
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mt-10 sm:mt-12 lg:mt-16 bg-secondary rounded-2xl p-5 sm:p-8 lg:p-10 border border-border min-w-0"
-        >
-          <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3 px-1 break-words">
-            Not Sure Which Practice Area Applies?
-          </h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-5 sm:mb-6 max-w-md mx-auto px-1">
-            Book a free initial consultation. Our advocates will assess your situation and guide you
-            toward the right legal path.
-          </p>
-          <Button
-            asChild
-            size="lg"
-            className="w-full sm:w-auto h-auto min-h-11 whitespace-normal px-4 py-2.5"
-          >
-            <Link
-              href="/consultation"
-              className="inline-flex items-center justify-center gap-2 text-center"
-            >
-              <span className="sm:hidden">Book Consultation</span>
-              <span className="hidden sm:inline">Book a Free Consultation</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </Link>
-          </Button>
-        </motion.div>
       </div>
+
+      <section className="py-12 sm:py-16 lg:py-20 bg-primary">
+        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 text-center min-w-0">
+          <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-primary-foreground mb-3 sm:mb-4">
+            Not sure which practice area applies?
+          </h2>
+          <p className="text-sm sm:text-base text-primary-foreground/70 mb-6 sm:mb-8">
+            Tell us about your matter and we will match you with the right advocate.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto"
+            >
+              <Link href={consultationHrefForPracticeArea({})} className="gap-2">
+                Book a Consultation <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 w-full sm:w-auto"
+            >
+              <Link href="/contact">Get in Touch</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

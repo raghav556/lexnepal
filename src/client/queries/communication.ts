@@ -25,6 +25,21 @@ export function useMessages(caseId: string, isInternal?: boolean) {
   return { data: next.data, isLoading: next.isLoading };
 }
 
+export function useUnreadMessageCounts(caseIds: string[]) {
+  const key = [...caseIds].sort().join(",");
+  const next = useQuery({
+    queryKey: ["messages", "unread", key],
+    queryFn: ({ signal }) =>
+      apiClient.request<Record<string, number>>("/api/v1/messages/unread", {
+        query: { caseIds: key },
+        signal,
+      }),
+    enabled: caseIds.length > 0,
+    refetchInterval: 10_000,
+  });
+  return { data: next.data ?? {}, isLoading: next.isLoading };
+}
+
 export function useMessageCommands() {
   const queryClient = useQueryClient();
 
@@ -51,6 +66,7 @@ export function useMessageCommands() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cases.detail(variables.caseId) });
+      queryClient.invalidateQueries({ queryKey: ["messages", "unread"] });
     },
   });
 
@@ -67,6 +83,7 @@ export function useMessageCommands() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.cases.detail(variables.caseId) });
+      queryClient.invalidateQueries({ queryKey: ["messages", "unread"] });
     },
   });
 

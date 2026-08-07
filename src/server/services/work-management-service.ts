@@ -29,6 +29,21 @@ export class WorkManagementService {
   async listHearings(principal: AuthPrincipal, filters: HearingListInput) {
     const { firmId } = requireFirmContext(principal);
     if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
+
+    if (principal.user.role === "client") {
+      const clientRecord = await security.getClientByUser(principal.user.id);
+      if (!clientRecord || clientRecord.firmId !== firmId) return [];
+      const caseIds = await security.listCaseIdsForClient(firmId, clientRecord.id);
+      if (filters.caseId) {
+        if (!caseIds.includes(filters.caseId)) return [];
+        return repository.listHearings(firmId, filters);
+      }
+      if (caseIds.length === 0) return [];
+      const rows = await repository.listHearings(firmId, {});
+      const allowed = new Set(caseIds);
+      return rows.filter((h) => allowed.has(String(h.caseId)));
+    }
+
     return repository.listHearings(firmId, filters);
   }
 
@@ -63,8 +78,11 @@ export class WorkManagementService {
     if (principal.capabilities.has("cases.view_all")) return rows;
     if (principal.user.role === "client") {
       const clientRecord = await security.getClientByUser(principal.user.id);
-      if (!clientRecord) return [];
-      return rows.filter((r) => r.clientVisible && r.caseId);
+      if (!clientRecord || clientRecord.firmId !== firmId) return [];
+      const caseIds = new Set(await security.listCaseIdsForClient(firmId, clientRecord.id));
+      return rows.filter(
+        (r) => r.clientVisible && r.caseId && caseIds.has(String(r.caseId)),
+      );
     }
     return rows.filter(
       (r) => r.assignedTo === principal.user.id || (r.watchers as string[]).includes(principal.user.id),
@@ -75,7 +93,22 @@ export class WorkManagementService {
     const { firmId } = requireFirmContext(principal);
     const row = await repository.getTask(firmId, taskId);
     if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
-    return row;
+
+    if (principal.capabilities.has("cases.view_all")) return row;
+    if (principal.user.role === "client") {
+      const clientRecord = await security.getClientByUser(principal.user.id);
+      if (!clientRecord || clientRecord.firmId !== firmId) {
+        throw new AppError("NOT_FOUND", "Task was not found", 404);
+      }
+      const caseIds = new Set(await security.listCaseIdsForClient(firmId, clientRecord.id));
+      if (!row.clientVisible || !row.caseId || !caseIds.has(String(row.caseId))) {
+        throw new AppError("NOT_FOUND", "Task was not found", 404);
+      }
+      return row;
+    }
+    const watchers = (row.watchers as string[]) || [];
+    if (row.assignedTo === principal.user.id || watchers.includes(principal.user.id)) return row;
+    throw new AppError("NOT_FOUND", "Task was not found", 404);
   }
 
   async createTask(principal: AuthPrincipal, input: TaskCreateInput, audit: AuditContext) {

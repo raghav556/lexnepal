@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, ShieldCheck, CheckCircle2, XCircle, Clock, FileText } from "lucide-react";
-import { useClientCommands, useMyClient } from "@/client/queries/clients";
+import { useClientCommands, useKycFiles, useMyClient } from "@/client/queries/clients";
 import { toast } from "sonner";
 import { RevealText, FadeInUp } from "@/components/ui/animations";
 import { cn } from "@/lib/utils.ts";
@@ -89,6 +89,7 @@ export default function ClientKYCOnboarding() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const status = clientRecord?.kycStatus;
+  const kycFiles = useKycFiles(clientRecord?._id || null);
 
   const uploadFile = async (file: File, docType: DocType): Promise<UploadedFile> => {
     return clientCommands.uploadKycFile(file, docType);
@@ -261,6 +262,41 @@ export default function ClientKYCOnboarding() {
                 </>
               )}
             </div>
+            {kycFiles && kycFiles.length > 0 && status !== "pending" ? (
+              <div className="border-t border-border pt-4 text-left max-w-md mx-auto space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Submitted files
+                </p>
+                <ul className="space-y-1.5">
+                  {kycFiles.map((file: any) => (
+                    <li
+                      key={file._id || file.id || file.storageId}
+                      className="flex items-start gap-2 text-sm"
+                    >
+                      <FileText className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                      <span className="break-words min-w-0">
+                        <span className="font-medium">
+                          {file.docType === "government_id" || file.documentType === "government_id"
+                            ? "Government ID"
+                            : file.docType === "proof_of_address" ||
+                                file.documentType === "proof_of_address"
+                              ? "Proof of address"
+                              : "Document"}
+                          :
+                        </span>{" "}
+                        {file.fileName || file.name || file.originalFileName || "Uploaded file"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : status === "submitted" || status === "verified" || status === "rejected" ? (
+              <div className="border-t border-border pt-4 text-center max-w-md mx-auto">
+                <p className="text-xs text-muted-foreground">
+                  No submitted file metadata is available to display yet.
+                </p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}

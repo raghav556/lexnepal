@@ -134,6 +134,41 @@
       "when": 1786086000000,
       "tag": "0019_testimonials_homepage",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786140000000,
+      "tag": "0020_dm_threads",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786141000000,
+      "tag": "0021_team_public_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786142000000,
+      "tag": "0022_resources_premium",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1786143000000,
+      "tag": "0023_blog_editorial",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1786144000000,
+      "tag": "0024_news_premium",
+      "breakpoints": true
     }
   ]
 }

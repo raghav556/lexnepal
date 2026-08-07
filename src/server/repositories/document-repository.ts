@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDatabase } from "../db/client";
 import {
   documents,
@@ -63,17 +63,45 @@ function toDocumentDto(
 export class DocumentRepository {
   static async listDocuments(
     firmId: string,
-    filters: { caseId?: string; isTemplate?: boolean; inTrash?: boolean },
+    filters: {
+      caseId?: string;
+      caseIds?: string[];
+      isTemplate?: boolean;
+      inTrash?: boolean;
+      /** When set, also include docs the user uploaded or was asked to sign (client portal). */
+      clientUserId?: string;
+    },
     limit = 50,
   ) {
     const db = getDatabase();
     const conditions = [eq(documents.firmId, firmId)];
-    if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
-    if (filters.isTemplate !== undefined) {
+    if (filters.caseId && !filters.clientUserId) {
+      conditions.push(eq(documents.caseId, filters.caseId));
+    } else if (filters.caseIds && filters.caseIds.length > 0 && !filters.clientUserId) {
+      conditions.push(inArray(documents.caseId, filters.caseIds));
+    }
+    if (filters.isTemplate !== undefined && !filters.clientUserId) {
       conditions.push(eq(documents.isTemplate, filters.isTemplate));
     }
     if (filters.inTrash) conditions.push(sql`${documents.deletedAt} IS NOT NULL`);
     else conditions.push(isNull(documents.deletedAt));
+
+    if (filters.clientUserId) {
+      conditions.push(eq(documents.isTemplate, false));
+      conditions.push(eq(documents.isPrivileged, false));
+      conditions.push(sql`${documents.confidentialityLevel} NOT IN ('internal', 'privileged')`);
+
+      const ownershipOrCase = [
+        eq(documents.uploadedBy, filters.clientUserId),
+        eq(documents.intendedSignerUserId, filters.clientUserId),
+      ];
+      if (filters.caseId) {
+        ownershipOrCase.push(eq(documents.caseId, filters.caseId));
+      } else if (filters.caseIds && filters.caseIds.length > 0) {
+        ownershipOrCase.push(inArray(documents.caseId, filters.caseIds));
+      }
+      conditions.push(or(...ownershipOrCase)!);
+    }
 
     const results = await db
       .select()

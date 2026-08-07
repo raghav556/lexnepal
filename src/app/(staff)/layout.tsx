@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Scale, LayoutDashboard, FolderOpen, CalendarDays, FileText, CheckSquare, Clock, Users, Menu, X, Calendar, BookOpen, MessageSquare, UserCog, KanbanSquare } from "lucide-react";
+import { Scale, LayoutDashboard, FolderOpen, CalendarDays, FileText, CheckSquare, Clock, Users, Menu, X, Calendar, BookOpen, MessageSquare, UserCog, KanbanSquare, MessagesSquare, PenTool } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CommandCenter } from "@/components/ui/CommandCenter";
@@ -29,10 +29,13 @@ const NAV: NavItem[] = [
   { label: "Hearings", i18nKey: "nav.hearings", href: "/staff/hearings", icon: CalendarDays },
   { label: "Documents", i18nKey: "nav.documents", href: "/staff/documents", icon: FileText },
   { label: "Research Vault", i18nKey: "nav.research", href: "/staff/research", icon: BookOpen },
+  { label: "Content", href: "/staff/content", icon: PenTool },
 
   { heading: "Client Relations" },
   { label: "CRM", i18nKey: "nav.crm", href: "/staff/crm", icon: KanbanSquare },
   { label: "Clients", i18nKey: "nav.clients", href: "/staff/clients", icon: Users },
+  { label: "Messages", i18nKey: "nav.messages", href: "/staff/messages", icon: MessageSquare },
+  { label: "Team Chat", i18nKey: "nav.team_chat", href: "/staff/team-chat", icon: MessagesSquare },
   { label: "Appointments", i18nKey: "nav.appointments", href: "/staff/appointments", icon: Calendar },
 ];
 

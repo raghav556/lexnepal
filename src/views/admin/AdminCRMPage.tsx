@@ -38,11 +38,13 @@ import {
   Download,
   Plus,
   Calendar,
+  BookOpen,
 } from "lucide-react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
 import type { LeadCreateInput } from "@/shared/contracts/crm";
+import { contactFormLeadLabel, isContactFormLead } from "@/shared/contact-visibility";
 
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
@@ -87,6 +89,7 @@ type LeadRow = {
   source?: string;
   status: string;
   practiceAreaInterest?: string | null;
+  resourceId?: string | null;
   message?: string | null;
   notes?: string | null;
   assignedTo?: string | null;
@@ -129,6 +132,7 @@ function exportLeadsCsv(list: LeadRow[], staffName: (id?: string | null) => stri
     l.status ?? "",
     l.source ?? "",
     l.practiceAreaInterest ?? "",
+    l.resourceId ?? "",
     staffName(l.assignedTo),
     String(stageAgeDays(l)),
     l.intakeSubmitted ? "submitted" : l.intakeToken ? "link" : "",
@@ -595,6 +599,18 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                 {lead.practiceAreaInterest}
               </Badge>
             )}
+            {lead.resourceId && (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <BookOpen className="w-2.5 h-2.5" />
+                Resource lead
+              </Badge>
+            )}
+            {isContactFormLead(lead) && (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <Mail className="w-2.5 h-2.5" />
+                {contactFormLeadLabel()}
+              </Badge>
+            )}
             {!isKanban && (
               <Badge variant="secondary" className="text-[10px] capitalize">
                 {lead.source?.replace("_", " ")}
@@ -922,9 +938,17 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                     Source
                   </p>
-                  <Badge variant="secondary" className="capitalize">
-                    {detailsModal.source?.replace("_", " ")}
-                  </Badge>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="capitalize">
+                      {detailsModal.source?.replace("_", " ")}
+                    </Badge>
+                    {isContactFormLead(detailsModal) && (
+                      <Badge variant="outline" className="gap-1">
+                        <Mail className="w-3 h-3" />
+                        {contactFormLeadLabel()}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
@@ -937,6 +961,15 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                   )}
                 </div>
               </div>
+
+              {detailsModal.resourceId && (
+                <div className="pt-4 border-t border-border">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Resource download
+                  </p>
+                  <p className="text-sm font-mono break-all">{detailsModal.resourceId}</p>
+                </div>
+              )}
 
               {detailsModal.message && (
                 <div className="pt-4 border-t border-border">

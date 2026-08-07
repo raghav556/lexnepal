@@ -24,6 +24,21 @@ export function useMyClient(): ClientDto | null | undefined {
   return data ?? null;
 }
 
+/** Advocates/team on the caller's matters — client-safe (no staff directory). */
+export function useMyTeam():
+  | Array<{ id: string; _id: string; name: string; email: string; role: string; avatar: string | null }>
+  | undefined {
+  return useTanstackQuery({
+    queryKey: queryKeys.clients.myTeam,
+    queryFn: ({ signal }) =>
+      apiClient.request<
+        Array<{ id: string; _id: string; name: string; email: string; role: string; avatar: string | null }>
+      >("/api/v1/clients/me/team", { signal }),
+    retry: 1,
+    staleTime: 60_000,
+  }).data;
+}
+
 export function useKycFiles(clientId: string | null) {
   return useTanstackQuery({
     queryKey: queryKeys.clients.kycFiles(clientId ?? "none"),

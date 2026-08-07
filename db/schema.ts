@@ -282,8 +282,19 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "hired",
 ]);
 export const newsTypeEnum = pgEnum("news_type", ["award", "press_release", "firm_news"]);
-export const newsStatusEnum = pgEnum("news_status", ["draft", "published"]);
-export const blogStatusEnum = pgEnum("blog_status", ["draft", "published"]);
+export const newsStatusEnum = pgEnum("news_status", [
+  "draft",
+  "pending_review",
+  "published",
+  "rejected",
+]);
+export const blogStatusEnum = pgEnum("blog_status", [
+  "draft",
+  "pending_review",
+  "published",
+  "rejected",
+]);
+export const resourceStatusEnum = pgEnum("resource_status", ["draft", "published"]);
 export const navigationLocationEnum = pgEnum("navigation_location", [
   "header",
   "footer_col_1",
@@ -334,6 +345,10 @@ export const users = pgTable(
     publicEmail: text("public_email"),
     linkedinUrl: text("linkedin_url"),
     twitterUrl: text("twitter_url"),
+    publicPhone: text("public_phone"),
+    displayOrder: integer("display_order").default(0).notNull(),
+    languages: jsonb("languages").$type<string[]>().default([]).notNull(),
+    yearsExperience: integer("years_experience"),
     baseSalary: numeric("base_salary", { precision: 14, scale: 2 }),
     activationToken: text("activation_token"),
     isPending: boolean("is_pending").default(false).notNull(),
@@ -1503,6 +1518,88 @@ export const messageReads = pgTable(
   ],
 );
 
+/** Staff 1:1 DM threads — pair of users with sorted UUIDs for uniqueness. */
+export const dmThreads = pgTable(
+  "dm_threads",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    userLowId: uuid("user_low_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    userHighId: uuid("user_high_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("dm_threads_pair_unique").on(table.firmId, table.userLowId, table.userHighId),
+    index("dm_threads_firm_low_idx").on(table.firmId, table.userLowId),
+    index("dm_threads_firm_high_idx").on(table.firmId, table.userHighId),
+  ],
+);
+
+export const dmMessages = pgTable(
+  "dm_messages",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => dmThreads.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    content: text("content").notNull(),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    index("dm_messages_thread_created_idx").on(table.firmId, table.threadId, table.createdAt),
+  ],
+);
+
+export const dmMessageAttachments = pgTable(
+  "dm_message_attachments",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => dmMessages.id, { onDelete: "cascade" }),
+    storageId: text("storage_id").notNull(),
+    position: integer("position").notNull(),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("dm_message_attachments_position_unique").on(
+      table.firmId,
+      table.messageId,
+      table.position,
+    ),
+  ],
+);
+
+export const dmMessageReads = pgTable(
+  "dm_message_reads",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => dmMessages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at", { withTimezone: true }).defaultNow().notNull(),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("dm_message_reads_unique").on(table.firmId, table.messageId, table.userId),
+    index("dm_message_reads_user_idx").on(table.firmId, table.userId),
+  ],
+);
+
 export const leads = pgTable(
   "leads",
   {
@@ -1520,6 +1617,7 @@ export const leads = pgTable(
       onDelete: "set null",
     }),
     notes: text("notes"),
+    resourceId: uuid("resource_id"),
     intakeToken: text("intake_token"),
     intakeSubmitted: boolean("intake_submitted").default(false).notNull(),
     ...lifecycleColumns(),
@@ -2072,9 +2170,18 @@ export const resources = pgTable(
     isGated: boolean("is_gated").default(false).notNull(),
     downloads: integer("downloads").default(0).notNull(),
     publishedDate: date("published_date").notNull(),
+    status: resourceStatusEnum("status").default("published").notNull(),
+    slug: text("slug").notNull(),
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    displayOrder: integer("display_order").default(0).notNull(),
     ...lifecycleColumns(),
   },
-  (table) => [index("resources_firm_category_idx").on(table.firmId, table.category)],
+  (table) => [
+    index("resources_firm_category_idx").on(table.firmId, table.category),
+    uniqueIndex("resources_firm_slug_unique").on(table.firmId, table.slug),
+    index("resources_firm_status_idx").on(table.firmId, table.status),
+  ],
 );
 export const newsAndAwards = pgTable(
   "news_and_awards",
@@ -2082,6 +2189,7 @@ export const newsAndAwards = pgTable(
     ...identityColumns(),
     firmId: tenantColumn(),
     title: text("title").notNull(),
+    slug: text("slug").notNull(),
     excerpt: text("excerpt").notNull(),
     content: text("content").notNull(),
     publicationDate: date("publication_date").notNull(),
@@ -2089,12 +2197,22 @@ export const newsAndAwards = pgTable(
     status: newsStatusEnum("status").default("published").notNull(),
     linkUrl: text("link_url"),
     imageUrl: text("image_url"),
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    displayOrder: integer("display_order").default(0).notNull(),
+    isFeatured: boolean("is_featured").default(false).notNull(),
+    submittedBy: uuid("submitted_by"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNotes: text("review_notes"),
     ...lifecycleColumns(),
   },
   (table) => [
     index("news_and_awards_firm_type_idx").on(table.firmId, table.type),
     index("news_and_awards_firm_date_idx").on(table.firmId, table.publicationDate),
     index("news_and_awards_firm_status_idx").on(table.firmId, table.status),
+    uniqueIndex("news_and_awards_firm_slug_unique").on(table.firmId, table.slug),
   ],
 );
 export const blogPosts = pgTable(
@@ -2109,10 +2227,18 @@ export const blogPosts = pgTable(
     content: text("content").notNull(),
     coverImageUrl: text("cover_image_url"),
     author: text("author").notNull(),
+    authorUserId: uuid("author_user_id"),
     status: blogStatusEnum("status").notNull(),
     publishDate: timestamp("publish_date", { withTimezone: true }),
     seoTitle: text("seo_title"),
     seoDescription: text("seo_description"),
+    displayOrder: integer("display_order").default(0).notNull(),
+    isFeatured: boolean("is_featured").default(false).notNull(),
+    submittedBy: uuid("submitted_by"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNotes: text("review_notes"),
     ...lifecycleColumns(),
   },
   (table) => [

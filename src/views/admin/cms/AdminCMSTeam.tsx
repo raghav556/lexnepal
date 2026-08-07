@@ -66,7 +66,12 @@ export default function AdminCMSTeam() {
     linkedinUrl: "",
     twitterUrl: "",
     publicEmail: "",
+    publicPhone: "",
     barCouncilNumber: "",
+    barCouncilExpiry: "",
+    displayOrder: 0,
+    yearsExperience: "",
+    languages: [] as string[],
     practiceAreas: [],
     notableCases: [],
     education: [],
@@ -87,7 +92,17 @@ export default function AdminCMSTeam() {
       linkedinUrl: user.linkedinUrl || "",
       twitterUrl: user.twitterUrl || "",
       publicEmail: user.publicEmail || "",
+      publicPhone: user.publicPhone || "",
       barCouncilNumber: user.barCouncilNumber || "",
+      barCouncilExpiry: user.barCouncilExpiry
+        ? String(user.barCouncilExpiry).slice(0, 10)
+        : "",
+      displayOrder: user.displayOrder ?? 0,
+      yearsExperience:
+        user.yearsExperience === null || user.yearsExperience === undefined
+          ? ""
+          : String(user.yearsExperience),
+      languages: Array.isArray(user.languages) ? user.languages : [],
       practiceAreas: user.practiceAreas || [],
       notableCases: user.notableCases || [],
       education: user.education || [],
@@ -113,9 +128,14 @@ export default function AdminCMSTeam() {
     setIsSaving(true);
     try {
       const { email: _email, role: _role, avatarUrl: _avatarUrl, ...publicProfile } = formData;
+      const yearsRaw = String(publicProfile.yearsExperience ?? "").trim();
       await updateTeamMember({
         userId: editingId,
         ...publicProfile,
+        displayOrder: Number(publicProfile.displayOrder) || 0,
+        yearsExperience: yearsRaw === "" ? null : Number(yearsRaw),
+        barCouncilExpiry: publicProfile.barCouncilExpiry || null,
+        languages: Array.isArray(publicProfile.languages) ? publicProfile.languages : [],
       });
       toast.success("Public profile updated.");
       setIsModalOpen(false);
@@ -476,6 +496,48 @@ export default function AdminCMSTeam() {
                     <Input value={formData.publicEmail} onChange={e => setFormData({...formData, publicEmail: e.target.value})} placeholder="e.g. ramesh@lexnepal.com" />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Public Phone</label>
+                    <Input
+                      value={formData.publicPhone}
+                      onChange={(e) => setFormData({ ...formData, publicPhone: e.target.value })}
+                      placeholder="e.g. +977-98XXXXXXXX"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">LinkedIn URL</label>
+                    <Input
+                      value={formData.linkedinUrl}
+                      onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+                      placeholder="https://linkedin.com/in/..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Twitter / X URL</label>
+                    <Input
+                      value={formData.twitterUrl}
+                      onChange={(e) => setFormData({ ...formData, twitterUrl: e.target.value })}
+                      placeholder="https://x.com/..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Display order</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.displayOrder}
+                      onChange={(e) =>
+                        setFormData({ ...formData, displayOrder: Number(e.target.value) || 0 })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">Lower numbers appear first on /lawyers.</p>
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Avatar</label>
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-muted border border-border shrink-0">
@@ -521,9 +583,49 @@ export default function AdminCMSTeam() {
 
             {activeTab === "professional" && (
               <div className="space-y-8">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Bar Council Registration Number</label>
-                  <Input value={formData.barCouncilNumber} onChange={e => setFormData({...formData, barCouncilNumber: e.target.value})} placeholder="e.g. 12345" className="max-w-md" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Bar Council Registration Number</label>
+                    <Input value={formData.barCouncilNumber} onChange={e => setFormData({...formData, barCouncilNumber: e.target.value})} placeholder="e.g. 12345" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Bar Council Expiry</label>
+                    <Input
+                      type="date"
+                      value={formData.barCouncilExpiry}
+                      onChange={(e) => setFormData({ ...formData, barCouncilExpiry: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Years of experience</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={80}
+                      value={formData.yearsExperience}
+                      onChange={(e) => setFormData({ ...formData, yearsExperience: e.target.value })}
+                      placeholder="e.g. 12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Languages (comma-separated)</label>
+                    <Input
+                      value={(formData.languages || []).join(", ")}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          languages: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      placeholder="Nepali, English"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-3 min-w-0">

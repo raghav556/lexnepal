@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useMemo, type FormEvent } from "react";
+import { useState, useEffect, useMemo, useRef, type FormEvent } from "react";
 import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
 import {
   Menu,
@@ -39,6 +39,8 @@ import {
   DEFAULT_PRIVACY_POLICY_URL,
   DEFAULT_TERMS_OF_SERVICE_URL,
 } from "@/shared/public-routes";
+import { isPracticeAreasNavRoot } from "@/shared/practice-areas-visibility";
+import { usePracticeAreas } from "@/client/queries/cms";
 
 export type PublicNavEntry = Record<string, unknown>;
 type PublicNavLink = {
@@ -160,6 +162,39 @@ function FooterNavList({ links }: { links: PublicNavLink[] }) {
 
 function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: string }) {
   const children = link.children ?? [];
+  const [open, setOpen] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => setOpen(false), 120);
+  };
+
+  useEffect(() => () => clearCloseTimer(), []);
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && rootRef.current && !rootRef.current.contains(target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open]);
+
   if (children.length === 0) {
     if (isExternalHref(link.href, link.openInNewTab)) {
       return (
@@ -189,33 +224,71 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
     );
   }
 
-  const childActive = children.some((c) => pathname === c.href);
+  const childActive = children.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`));
+  const triggerActive = childActive || (!isPlaceholderHref(link.href) && pathname === link.href);
   const triggerClass = cn(
     navLinkClass,
     "inline-flex items-center gap-1",
-    childActive
+    triggerActive || open
       ? "bg-background text-primary shadow-sm"
       : "text-muted-foreground hover:text-primary hover:bg-muted/50",
   );
+  const isMega = children.length >= 4;
+  const placeholder = isPlaceholderHref(link.href);
 
   return (
-    <div className="relative group">
-      {isPlaceholderHref(link.href) || isExternalHref(link.href, link.openInNewTab) ? (
-        <button type="button" className={triggerClass} aria-haspopup="menu">
+    <div
+      ref={rootRef}
+      className="relative"
+      onMouseEnter={() => {
+        clearCloseTimer();
+        setOpen(true);
+      }}
+      onMouseLeave={scheduleClose}
+    >
+      {placeholder || isExternalHref(link.href, link.openInNewTab) ? (
+        <button
+          type="button"
+          className={triggerClass}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
           {link.label}
-          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 transition-transform", open && "rotate-180")} />
         </button>
       ) : (
-        <Link href={link.href} className={triggerClass} aria-haspopup="menu">
+        <Link
+          href={link.href}
+          className={triggerClass}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={(e) => {
+            // First click opens the menu; second click (or chevron intent) navigates.
+            if (!open) {
+              e.preventDefault();
+              setOpen(true);
+            }
+          }}
+        >
           {link.label}
-          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 transition-transform", open && "rotate-180")} />
         </Link>
       )}
       <div
         role="menu"
-        className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full pt-2 z-50 min-w-[10rem]"
+        className={cn(
+          "absolute left-1/2 -translate-x-1/2 top-full pt-2 z-[60] transition-opacity duration-150",
+          open ? "visible opacity-100 pointer-events-auto" : "invisible opacity-0 pointer-events-none",
+          isMega ? "min-w-[18rem]" : "min-w-[11rem]",
+        )}
       >
-        <div className="rounded-lg border border-border bg-background shadow-lg py-1">
+        <div
+          className={cn(
+            "rounded-xl border border-border bg-background shadow-xl py-2",
+            isMega && "grid grid-cols-2 gap-x-1 p-2 min-w-[22rem]",
+          )}
+        >
           {children.map((child) =>
             isExternalHref(child.href, child.openInNewTab) ? (
               <a
@@ -224,7 +297,8 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
                 href={child.href}
                 target="_blank"
                 rel="noreferrer"
-                className="block px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:bg-muted/50 whitespace-nowrap"
+                className="block px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-md whitespace-nowrap"
+                onClick={() => setOpen(false)}
               >
                 {child.label}
               </a>
@@ -234,9 +308,12 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
                 role="menuitem"
                 href={child.href}
                 className={cn(
-                  "block px-3 py-2 text-sm whitespace-nowrap hover:bg-muted/50",
-                  pathname === child.href ? "text-primary font-medium" : "text-muted-foreground hover:text-primary",
+                  "block px-3 py-2 text-sm whitespace-nowrap rounded-md hover:bg-muted/50",
+                  pathname === child.href || pathname.startsWith(`${child.href}/`)
+                    ? "text-primary font-medium"
+                    : "text-muted-foreground hover:text-primary",
                 )}
+                onClick={() => setOpen(false)}
               >
                 {child.label}
               </Link>
@@ -399,6 +476,7 @@ function PublicLayoutShellInner({
   const { data: headerNav } = usePublicNav("header", initialHeaderNav);
   const { data: footerCol1Nav } = usePublicNav("footer_col_1", initialFooterCol1);
   const { data: footerCol2Nav } = usePublicNav("footer_col_2", initialFooterCol2);
+  const practiceAreasLive = usePracticeAreas({ isActive: true }, "public") || [];
   const { subscribe: subscribeNewsletter } = useCmsCommands();
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -415,7 +493,28 @@ function PublicLayoutShellInner({
   const footerTitle1 = String(settings?.footerCol1Title || "Quick Links");
   const footerTitle2 = String(settings?.footerCol2Title || "Explore");
 
-  const navLinks = useMemo(() => mapCmsNav(headerNav ?? []), [headerNav]);
+  const navLinks = useMemo(() => {
+    const base = mapCmsNav(headerNav ?? []);
+    const paChildren: PublicNavLink[] = [...practiceAreasLive]
+      .sort(
+        (a: { displayOrder?: number; title?: string }, b: { displayOrder?: number; title?: string }) =>
+          (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+          String(a.title ?? "").localeCompare(String(b.title ?? "")),
+      )
+      .map((pa: { title?: string; slug?: string }) => ({
+        label: String(pa.title ?? ""),
+        href: `/practice-areas/${String(pa.slug ?? "")}`,
+      }))
+      .filter((c) => c.label && c.href !== "/practice-areas/");
+    if (paChildren.length > 0) {
+      paChildren.push({ label: "View all practice areas", href: "/practice-areas" });
+    }
+    return base.map((link) =>
+      isPracticeAreasNavRoot(link)
+        ? { ...link, children: paChildren.length > 0 ? paChildren : undefined }
+        : link,
+    );
+  }, [headerNav, practiceAreasLive]);
   const footer1Links = useMemo(() => mapCmsNav(footerCol1Nav ?? []), [footerCol1Nav]);
   const footer2Links = useMemo(() => mapCmsNav(footerCol2Nav ?? []), [footerCol2Nav]);
   const showNavSkeleton = navLinks.length === 0;
@@ -649,7 +748,7 @@ function PublicLayoutShellInner({
                 <NavSkeleton />
               ) : (
                 <nav
-                  className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border/50 bg-muted/20 max-w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                  className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border/50 bg-muted/20 max-w-full overflow-visible flex-wrap justify-center"
                   aria-label="Main navigation"
                 >
                   {navLinks.map((l) => (
