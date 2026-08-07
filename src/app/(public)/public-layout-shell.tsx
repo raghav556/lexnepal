@@ -51,19 +51,20 @@ type PublicNavLink = {
 function NavSkeleton({ count = 7 }: { count?: number }) {
   return (
     <div
-      className="inline-flex items-center gap-1 p-1 rounded-full border border-border/50 bg-muted/20"
+      className="inline-flex items-center gap-0.5 sm:gap-1 p-1 rounded-full border border-border/50 bg-muted/20 max-w-full"
       aria-busy="true"
       aria-label="Loading navigation"
     >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-8 w-14 xl:w-16 rounded-full bg-muted/60 animate-pulse" />
+        <div key={i} className="h-7 w-12 lg:w-14 xl:w-16 rounded-full bg-muted/60 animate-pulse shrink-0" />
       ))}
     </div>
   );
 }
 
+/** Compact on tablet/laptop (md+), roomier on xl/2xl — inline nav from md (768px). */
 const navLinkClass =
-  "px-2.5 xl:px-3 2xl:px-3.5 py-1.5 rounded-full text-xs xl:text-[13px] 2xl:text-sm font-medium transition-all duration-300 whitespace-nowrap";
+  "px-2 lg:px-2.5 xl:px-3 2xl:px-3.5 py-1.5 rounded-full text-[11px] lg:text-xs xl:text-[13px] 2xl:text-sm font-medium transition-all duration-300 whitespace-nowrap shrink-0";
 
 function entryId(entry: PublicNavEntry): string {
   return String(entry.id ?? entry._id ?? "");
@@ -469,6 +470,17 @@ function PublicLayoutShellInner({
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
+  // Close mobile drawer when the header has room for inline nav (~tablet+).
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const closeIfDesktop = () => {
+      if (mq.matches) setMobileOpen(false);
+    };
+    closeIfDesktop();
+    mq.addEventListener("change", closeIfDesktop);
+    return () => mq.removeEventListener("change", closeIfDesktop);
+  }, []);
+
   const [menuPathname, setMenuPathname] = useState(pathname);
   if (menuPathname !== pathname) {
     setMenuPathname(pathname);
@@ -604,21 +616,22 @@ function PublicLayoutShellInner({
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16 gap-3 sm:gap-4 min-w-0">
+          <div className="flex items-center h-14 sm:h-16 gap-2 sm:gap-3 min-w-0">
             <Link
               href="/"
-              className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0 max-w-[10.5rem] sm:max-w-[12rem]"
+              title={firmName}
+              className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0 max-w-[42%] sm:max-w-[11rem] md:max-w-[9.5rem] lg:max-w-[11rem] xl:max-w-[14rem] 2xl:max-w-[16rem]"
             >
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={firmName} className="h-9 sm:h-10 w-auto object-contain shrink-0" />
+                <img src={logoUrl} alt={firmName} className="h-8 sm:h-9 md:h-8 lg:h-9 xl:h-10 w-auto object-contain shrink-0" />
               ) : (
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center shadow-sm shrink-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 rounded-lg bg-primary flex items-center justify-center shadow-sm shrink-0">
                   <Scale className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
                 </div>
               )}
               <div className="flex flex-col min-w-0 leading-tight">
-                <span className="font-serif text-base sm:text-xl xl:text-2xl font-bold text-primary tracking-tight truncate">
+                <span className="font-serif text-sm sm:text-base md:text-sm lg:text-base xl:text-xl 2xl:text-2xl font-bold text-primary tracking-tight truncate">
                   {firmName}
                 </span>
                 <span className="hidden xl:block text-[9px] sm:text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-0.5 truncate">
@@ -627,12 +640,16 @@ function PublicLayoutShellInner({
               </div>
             </Link>
 
-            <div className="hidden xl:flex flex-1 items-center justify-center min-w-0 px-4 2xl:px-8">
+            {/*
+              Inline nav from md (768px). Covers Windows-scaled laptops
+              (e.g. 1366 CSS px @ 150% scale ≈ 910px — below old lg/xl cutoffs).
+            */}
+            <div className="hidden md:flex flex-1 items-center justify-center min-w-0 px-1 lg:px-2 xl:px-4">
               {showNavSkeleton ? (
                 <NavSkeleton />
               ) : (
                 <nav
-                  className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border/50 bg-muted/20 max-w-full"
+                  className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border/50 bg-muted/20 max-w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                   aria-label="Main navigation"
                 >
                   {navLinks.map((l) => (
@@ -642,16 +659,16 @@ function PublicLayoutShellInner({
               )}
             </div>
 
-            <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0 ml-auto xl:ml-0">
+            <div className="hidden md:flex items-center gap-1.5 lg:gap-2 xl:gap-3 shrink-0">
               <PublicHeaderAuth />
               <Button
                 asChild
                 size="sm"
-                className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm font-medium shrink-0 text-xs xl:text-sm px-3 xl:px-4"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm font-medium shrink-0 text-xs xl:text-sm px-2.5 lg:px-3 xl:px-4"
               >
                 <Link href={ctaHref}>
-                  <span className="hidden 2xl:inline">{ctaLabel}</span>
-                  <span className="2xl:hidden">{ctaShortLabel}</span>
+                  <span className="hidden xl:inline">{ctaLabel}</span>
+                  <span className="xl:hidden">{ctaShortLabel}</span>
                   <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
                 </Link>
               </Button>
@@ -659,9 +676,10 @@ function PublicLayoutShellInner({
 
             <button
               type="button"
-              className="xl:hidden p-2 shrink-0 ml-auto md:ml-0"
+              className="md:hidden p-2 shrink-0 ml-auto"
               onClick={() => setMobileOpen((v) => !v)}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -670,7 +688,7 @@ function PublicLayoutShellInner({
 
         <div
           className={cn(
-            "xl:hidden border-t border-border bg-background overflow-hidden transition-all duration-300",
+            "md:hidden border-t border-border bg-background overflow-hidden transition-all duration-300",
             mobileOpen ? "max-h-[70vh] opacity-100" : "max-h-0 opacity-0",
           )}
         >
