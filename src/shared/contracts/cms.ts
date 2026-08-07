@@ -8,7 +8,21 @@ export const slugSchema = z
   .max(160)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const optionalUrl = z.union([z.string().url().max(2_000), z.literal("")]).optional();
+const optionalCmsAssetOrUrl = z
+  .union([
+    z.literal(""),
+    z.string().url().max(2_000),
+    z
+      .string()
+      .max(2_000)
+      .regex(/^\/api\/v1\/public\/cms\/assets\/[0-9a-fA-F-]{36}$/),
+  ])
+  .optional();
 const dateOnly = z.string().date();
+const practiceAreaFaqSchema = z.object({
+  question: z.string().trim().min(1).max(500),
+  answer: z.string().trim().min(1).max(5_000),
+});
 
 export const practiceAreaInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -16,6 +30,13 @@ export const practiceAreaInputSchema = z.object({
   icon: z.string().trim().min(1).max(100),
   slug: slugSchema,
   isActive: z.boolean(),
+  displayOrder: z.number().int().min(0).max(10_000).default(0),
+  longDescription: z.string().trim().max(50_000).optional().nullable(),
+  faqs: z.array(practiceAreaFaqSchema).max(20).default([]),
+  coverImageUrl: optionalCmsAssetOrUrl.nullable(),
+  seoTitle: z.string().trim().max(300).optional().nullable(),
+  seoDescription: z.string().trim().max(1_000).optional().nullable(),
+  showOnHome: z.boolean().default(true),
 });
 export const testimonialInputSchema = z.object({
   clientName: z.string().trim().min(1).max(200),

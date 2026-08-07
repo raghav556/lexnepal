@@ -21,6 +21,7 @@ import { GET as adminLegalGet } from "../../src/app/api/v1/cms/legal-pages/[slug
 import { GET as adminTeamGet } from "../../src/app/api/v1/cms/team/route";
 import { POST as newsletterPost } from "../../src/app/api/v1/public/cms/newsletter/route";
 import { POST as navReorderPost } from "../../src/app/api/v1/cms/navigation/reorder/route";
+import { GET as publicPracticeAreaGet } from "../../src/app/api/v1/public/cms/practice-areas/[slug]/route";
 import { todayIsoInFirmTz } from "../../src/shared/crm/appointment-dates";
 import {
   DEFAULT_PRIVACY_POLICY_URL,
@@ -752,6 +753,90 @@ try {
     throw new Error("Admin team GET returned invalid payload");
   }
 
+  // Practice areas: slug detail, FAQs, icon alias, inactive 404.
+  const paSlug = `verify-pa-${Date.now().toString(36)}`;
+  const paCreate = await adminCollectionPost(
+    new Request("http://local/api/v1/cms/practice-areas", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Verify Practice Area",
+        slug: paSlug,
+        icon: "Scale",
+        description: "Short verify description",
+        longDescription: "Long verify description for detail page.",
+        displayOrder: 50,
+        showOnHome: true,
+        isActive: true,
+        faqs: [{ question: "Verify question?", answer: "Verify answer." }],
+      }),
+    }),
+    { params: Promise.resolve({ collection: "practice-areas" }) },
+  );
+  if (paCreate.status !== 201) {
+    throw new Error(`Practice area create failed: ${paCreate.status} ${await paCreate.text()}`);
+  }
+  const paBody = (await paCreate.json()) as {
+    data: { id?: string; _id?: string; icon?: string; iconName?: string; faqs?: unknown[] };
+  };
+  const paId = paBody.data.id || paBody.data._id;
+  if (!paId) throw new Error("Practice area missing id");
+  if (paBody.data.icon !== "Scale" || paBody.data.iconName !== "Scale") {
+    throw new Error("Practice area icon/iconName alias missing on create");
+  }
+  if (!Array.isArray(paBody.data.faqs) || paBody.data.faqs.length !== 1) {
+    throw new Error("Practice area FAQs missing on create");
+  }
+
+  const publicPaList = await publicCollectionGet(
+    new Request("http://local/api/v1/public/cms/practice-areas"),
+    { params: Promise.resolve({ collection: "practice-areas" }) },
+  );
+  const publicPaListBody = (await publicPaList.json()) as {
+    data: Array<{ slug?: string; icon?: string; iconName?: string; faqs?: unknown[] }>;
+  };
+  const listed = publicPaListBody.data.find((item) => item.slug === paSlug);
+  if (!listed || listed.icon !== "Scale" || listed.iconName !== "Scale") {
+    throw new Error("Public practice area list missing icon alias");
+  }
+  if (!Array.isArray(listed.faqs) || listed.faqs.length !== 1) {
+    throw new Error("Public practice area list missing FAQs");
+  }
+
+  const publicPaSlug = await publicPracticeAreaGet(
+    new Request(`http://local/api/v1/public/cms/practice-areas/${paSlug}`),
+    { params: Promise.resolve({ slug: paSlug }) },
+  );
+  if (publicPaSlug.status !== 200) {
+    throw new Error(`Public practice area by slug failed: ${publicPaSlug.status}`);
+  }
+
+  const hidePa = await adminItemPatch(
+    new Request(`http://local/api/v1/cms/practice-areas/${paId}`, {
+      method: "PATCH",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ isActive: false }),
+    }),
+    { params: Promise.resolve({ collection: "practice-areas", id: paId }) },
+  );
+  if (hidePa.status !== 200) {
+    throw new Error(`Practice area hide failed: ${hidePa.status}`);
+  }
+  const publicPaHidden = await publicPracticeAreaGet(
+    new Request(`http://local/api/v1/public/cms/practice-areas/${paSlug}`),
+    { params: Promise.resolve({ slug: paSlug }) },
+  );
+  if (publicPaHidden.status !== 404) {
+    throw new Error(`Inactive practice area should 404, got ${publicPaHidden.status}`);
+  }
+  await adminItemDelete(
+    new Request(`http://local/api/v1/cms/practice-areas/${paId}`, {
+      method: "DELETE",
+      headers: { cookie },
+    }),
+    { params: Promise.resolve({ collection: "practice-areas", id: paId }) },
+  );
+
   const [actor] = await database
     .select({ id: users.id })
     .from(users)
@@ -784,6 +869,9 @@ try {
       navSiblingOrderOk: true,
       navPublicParentIdOk: true,
       navLegalHrefAllowlistOk: true,
+      practiceAreaSlugOk: true,
+      practiceAreaFaqsOk: true,
+      practiceAreaIconAliasOk: true,
       adminTeamRosterOk: true,
       actor: actor.id,
     })}\n`,

@@ -1974,9 +1974,23 @@ export const practiceAreas = pgTable(
     icon: text("icon").notNull(),
     slug: text("slug").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+    longDescription: text("long_description"),
+    faqs: jsonb("faqs").$type<Array<{ question: string; answer: string }>>().default([]).notNull(),
+    coverImageUrl: text("cover_image_url"),
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    showOnHome: boolean("show_on_home").default(true).notNull(),
     ...lifecycleColumns(),
   },
-  (table) => [uniqueIndex("practice_areas_firm_slug_unique").on(table.firmId, table.slug)],
+  (table) => [
+    uniqueIndex("practice_areas_firm_slug_unique").on(table.firmId, table.slug),
+    index("practice_areas_firm_active_order_idx").on(
+      table.firmId,
+      table.isActive,
+      table.displayOrder,
+    ),
+  ],
 );
 export const careers = pgTable(
   "careers",

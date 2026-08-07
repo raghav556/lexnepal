@@ -5,7 +5,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getServerEnvironment } from "../../src/server/env";
-import { firms, navigation, newsAndAwards, cmsSettings } from "../../db/schema";
+import { firms, navigation, newsAndAwards, cmsSettings, practiceAreas } from "../../db/schema";
 import { DEFAULT_DIRECTOR_MESSAGE } from "../../src/shared/director-message";
 import { seedBrandAssets, seedDirectorMessageAssets } from "./seed-cms-assets";
 
@@ -83,6 +83,104 @@ const DEFAULT_ABOUT_PAGE = {
   ],
   timeline: [{ year: "2010", title: "Firm Founded", desc: "Established in Kathmandu." }],
 };
+
+const PRACTICE_AREAS_SEED = [
+  {
+    legacyConvexId: "cms_pa_1",
+    title: "Corporate Law",
+    slug: "corporate-law",
+    icon: "Briefcase",
+    displayOrder: 1,
+    showOnHome: true,
+    description: "Corporate advisory and transactions.",
+    longDescription:
+      "Comprehensive corporate legal services including company formation, mergers & acquisitions, joint ventures, corporate governance, and commercial contracts.",
+    faqs: [
+      {
+        question: "How long does company registration take in Nepal?",
+        answer:
+          "Private limited company registration typically takes 7–14 working days through the Office of Company Registrar.",
+      },
+      {
+        question: "What is the minimum paid-up capital?",
+        answer:
+          "For private limited companies, no minimum paid-up capital is required under the Companies Act 2063.",
+      },
+    ],
+  },
+  {
+    legacyConvexId: "e2e_smoke_pa_criminal",
+    title: "Criminal Defense",
+    slug: "criminal-defense",
+    icon: "Shield",
+    displayOrder: 2,
+    showOnHome: true,
+    description: "Expert criminal defense and prosecution support.",
+    longDescription:
+      "Expert criminal defense and prosecution support covering bail applications, trial advocacy, appeals, and white-collar crime defense.",
+    faqs: [
+      {
+        question: "What are bail rights in Nepal?",
+        answer:
+          "Under Nepal's Criminal Procedure Code, bail is available for most offenses. The court considers gravity, flight risk, and evidence.",
+      },
+    ],
+  },
+  {
+    legacyConvexId: "e2e_smoke_pa_civil",
+    title: "Civil Litigation",
+    slug: "civil-litigation",
+    icon: "Gavel",
+    displayOrder: 3,
+    showOnHome: true,
+    description: "Property disputes, contracts, and civil claims.",
+    longDescription:
+      "Sensitive handling of property disputes, contracts, tort claims, and other civil matters through mediation, arbitration, and courtroom representation.",
+    faqs: [
+      {
+        question: "What is the statute of limitations for civil cases?",
+        answer:
+          "Under the Muluki Civil Code 2074, limitation periods vary by claim type — typically 2-5 years from the date of the cause of action.",
+      },
+    ],
+  },
+  {
+    legacyConvexId: "e2e_smoke_pa_property",
+    title: "Property & Real Estate",
+    slug: "property-real-estate",
+    icon: "Building2",
+    displayOrder: 4,
+    showOnHome: true,
+    description: "Land, conveyancing, and real estate disputes.",
+    longDescription:
+      "Title due diligence, conveyancing, landlord-tenant matters, and real estate dispute resolution across Nepal.",
+    faqs: [
+      {
+        question: "Do you handle property transfer registrations?",
+        answer:
+          "Yes. We assist with due diligence, drafting, and registration formalities with the Land Revenue Office.",
+      },
+    ],
+  },
+  {
+    legacyConvexId: "e2e_smoke_pa_ip",
+    title: "Intellectual Property",
+    slug: "intellectual-property",
+    icon: "FileText",
+    displayOrder: 5,
+    showOnHome: false,
+    description: "Trademarks, patents, and IP enforcement.",
+    longDescription:
+      "Trademark and patent filings, brand protection strategies, and IP enforcement before Nepalese authorities and courts.",
+    faqs: [
+      {
+        question: "How long does trademark registration take?",
+        answer:
+          "Trademark registration in Nepal typically takes 12–18 months depending on oppositions and examination timelines.",
+      },
+    ],
+  },
+] as const;
 
 async function upsertSetting(firmId: string, key: string, value: unknown) {
   const db = getDatabase();
@@ -193,6 +291,32 @@ export async function seedCmsSmoke() {
     navIds.push(row!.id);
   }
 
+  const practiceAreaIds: string[] = [];
+  const paLegacyIds = PRACTICE_AREAS_SEED.map((item) => item.legacyConvexId);
+  await db.delete(practiceAreas).where(inArray(practiceAreas.legacyConvexId, [...paLegacyIds]));
+  for (const item of PRACTICE_AREAS_SEED) {
+    const [row] = await db
+      .insert(practiceAreas)
+      .values({
+        firmId: firm.id,
+        legacyConvexId: item.legacyConvexId,
+        title: item.title,
+        slug: item.slug,
+        icon: item.icon,
+        description: item.description,
+        longDescription: item.longDescription,
+        faqs: [...item.faqs],
+        displayOrder: item.displayOrder,
+        showOnHome: item.showOnHome,
+        isActive: true,
+        coverImageUrl: null,
+        seoTitle: `${item.title} | LexNepal`,
+        seoDescription: item.description,
+      })
+      .returning({ id: practiceAreas.id });
+    practiceAreaIds.push(row!.id);
+  }
+
   const directorAssets = await seedDirectorMessageAssets(firm.id);
   await upsertSetting(firm.id, "director_message", {
     ...DEFAULT_DIRECTOR_MESSAGE,
@@ -216,6 +340,12 @@ export async function seedCmsSmoke() {
   await upsertSetting(firm.id, "primaryCtaLabel", "Book Consultation");
   await upsertSetting(firm.id, "primaryCtaShortLabel", "Book Now");
   await upsertSetting(firm.id, "primaryCtaHref", "/consultation");
+  await upsertSetting(firm.id, "practiceAreasHeroTitle", "Practice Areas");
+  await upsertSetting(
+    firm.id,
+    "practiceAreasHeroSubtitle",
+    "Our advocates bring deep specialization and courtroom experience across major areas of Nepal law.",
+  );
   await upsertSetting(firm.id, "about_page", DEFAULT_ABOUT_PAGE);
 
   return {
@@ -223,6 +353,7 @@ export async function seedCmsSmoke() {
     firmSlug: slug,
     newsId: news!.id,
     navigationIds: navIds,
+    practiceAreaIds,
     directorAssets,
     brandAssets,
   };

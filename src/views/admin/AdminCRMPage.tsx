@@ -18,6 +18,7 @@ import {
   useLeads,
   useLeadCommands,
 } from "@/client/queries/crm";
+import { usePracticeAreas } from "@/client/queries/cms";
 import { apiClient } from "@/client/api/client";
 import { queryKeys } from "@/client/queries/query-keys";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -171,6 +172,11 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
 
   const staffDirectory = useStaffDirectory();
   const users = staffDirectory ?? [];
+  const cmsPracticeAreas = usePracticeAreas({}, "admin") || [];
+  const practiceAreaTitles = cmsPracticeAreas
+    .filter((a: { isActive?: boolean }) => a.isActive !== false)
+    .map((a: { title?: string }) => String(a.title ?? "").trim())
+    .filter(Boolean);
   const { createLead, updateLead, convertToClient, generateIntakeLink } = useLeadCommands();
   const { createAppointment } = useAppointmentCommands();
 
@@ -1325,14 +1331,27 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
               </div>
               <div>
                 <Label htmlFor="crm-add-pa">Practice area</Label>
-                <Input
-                  id="crm-add-pa"
-                  className="mt-1"
-                  value={addForm.practiceAreaInterest}
-                  onChange={(e) =>
-                    setAddForm((f) => ({ ...f, practiceAreaInterest: e.target.value }))
+                <Select
+                  value={addForm.practiceAreaInterest || "__none__"}
+                  onValueChange={(value) =>
+                    setAddForm((f) => ({
+                      ...f,
+                      practiceAreaInterest: value === "__none__" ? "" : value,
+                    }))
                   }
-                />
+                >
+                  <SelectTrigger id="crm-add-pa" className="mt-1">
+                    <SelectValue placeholder="Select practice area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {practiceAreaTitles.map((title) => (
+                      <SelectItem key={title} value={title}>
+                        {title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="crm-add-msg">Inquiry / message</Label>

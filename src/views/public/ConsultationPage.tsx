@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { CheckCircle, Calendar, Clock, ShieldCheck, Scale, PhoneCall, Mail, Check, ChevronDown } from "lucide-react";
-import { PRACTICE_AREAS } from "@/lib/lex-constants.ts";
+import { usePracticeAreas } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 import { formatAppointmentDate, todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
 
@@ -83,6 +83,11 @@ function FaqItem({ faq }: { faq: typeof FAQS[0] }) {
 export default function ConsultationPage() {
   const [searchParams] = useSearchParams();
   const lawyerId = searchParams.get("lawyerId") || undefined;
+  const practiceAreaParam = searchParams.get("practiceArea") || "";
+  const cmsPracticeAreas = usePracticeAreas({ isActive: true }, "public") || [];
+  const practiceAreaOptions = cmsPracticeAreas
+    .map((a: { title?: string }) => String(a.title ?? "").trim())
+    .filter(Boolean);
   
   const [submitted, setSubmitted] = useState(false);
   const [submittedDate, setSubmittedDate] = useState("");
@@ -92,8 +97,24 @@ export default function ConsultationPage() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { clientName: "", clientEmail: "", clientPhone: "", practiceArea: "", date: "", timeSlot: "", notes: "", assignedLawyerId: lawyerId as string | undefined },
+    defaultValues: {
+      clientName: "",
+      clientEmail: "",
+      clientPhone: "",
+      practiceArea: practiceAreaParam,
+      date: "",
+      timeSlot: "",
+      notes: "",
+      assignedLawyerId: lawyerId as string | undefined,
+    },
   });
+
+  useEffect(() => {
+    if (!practiceAreaParam) return;
+    if (practiceAreaOptions.includes(practiceAreaParam)) {
+      form.setValue("practiceArea", practiceAreaParam);
+    }
+  }, [practiceAreaParam, practiceAreaOptions, form]);
 
   const watchedDate = form.watch("date");
   const watchedSlot = form.watch("timeSlot");
@@ -365,7 +386,15 @@ export default function ConsultationPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {PRACTICE_AREAS.map((area) => <SelectItem key={area} value={area}>{area}</SelectItem>)}
+                            {practiceAreaOptions.length === 0 ? (
+                              <SelectItem value="General Consultation">General Consultation</SelectItem>
+                            ) : (
+                              practiceAreaOptions.map((area) => (
+                                <SelectItem key={area} value={area}>
+                                  {area}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />

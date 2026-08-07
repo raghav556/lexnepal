@@ -816,6 +816,14 @@
     "queryPattern": "Enforce practice_areas business or tenant uniqueness"
   },
   {
+    "table": "practice_areas",
+    "index": "practice_areas_firm_active_order_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,is_active,display_order",
+    "migration": "drizzle/0018_practice_areas_corporate.sql",
+    "queryPattern": "Firm-scoped practice area listing by activity and display order"
+  },
+  {
     "table": "research_note_tags",
     "index": "research_note_tags_firm_tag_idx",
     "unique": false,

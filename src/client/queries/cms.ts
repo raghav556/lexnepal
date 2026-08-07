@@ -26,10 +26,25 @@ export function useCmsCollection(
     queryKey: queryKeys.cms.collection(scope, collection, filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>(`${basePath(scope)}/${collection}`, { query: filters, signal }),
+    ...(scope === "public" && collection === "practice-areas"
+      ? { staleTime: 0, refetchOnMount: "always" as const }
+      : {}),
   }).data;
 }
 export const usePracticeAreas = (filters: Filters = {}, scope: "public" | "admin" = "public") =>
   useCmsCollection("practice-areas", filters, scope);
+
+export function usePracticeArea(slug: string) {
+  return useQuery({
+    queryKey: queryKeys.cms.practiceArea(slug),
+    queryFn: ({ signal }) =>
+      apiClient.request<any>(`/api/v1/public/cms/practice-areas/${slug}`, { signal }),
+    enabled: Boolean(slug),
+    staleTime: 0,
+    refetchOnMount: "always" as const,
+    retry: false,
+  });
+}
 export const useTestimonials = (filters: Filters = {}, scope: "public" | "admin" = "public") =>
   useCmsCollection("testimonials", filters, scope);
 export const useBlogPosts = (filters: Filters = {}, scope: "public" | "admin" = "public") =>

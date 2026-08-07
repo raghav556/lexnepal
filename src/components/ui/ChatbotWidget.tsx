@@ -5,6 +5,8 @@ import { Button } from "./button.tsx";
 import { cn } from "@/lib/utils.ts";
 import { Link } from "@/client/navigation";
 import { useLeadCommands } from "@/client/queries/crm";
+import { usePracticeAreas } from "@/client/queries/cms";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 
 type Message = {
   id: string;
@@ -16,19 +18,12 @@ type Message = {
   linkHref?: string;
 };
 
-// Advanced Knowledge Base
+// Advanced Knowledge Base (static fallbacks; practice areas come from CMS)
 const KNOWLEDGE_BASE = {
   firmName: "Srimar Law",
   location: "Kathmandu, Nepal",
   hours: "Sunday to Friday, 9:00 AM - 6:00 PM. Closed on Saturdays and public holidays.",
   contact: "Email: info@Srimar Law.com | Phone: +977-1-4XXXXXX",
-  practiceAreas: [
-    "Corporate & Commercial Law (Company Registration, FDI, Contracts)",
-    "Civil Litigation (Property, Family, Torts)",
-    "Criminal Defense",
-    "Intellectual Property (Trademarks, Patents)",
-    "Employment & Labor Law"
-  ],
   team: [
     { name: "Senior Partners", role: "Handling complex litigation and major corporate deals." },
     { name: "Associates", role: "Handling day-to-to legal compliance, drafting, and research." }
@@ -81,6 +76,9 @@ export function ChatbotWidget() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { createPublicLead } = useLeadCommands();
+  const settings = usePublicCmsSettings();
+  const cmsPracticeAreas = usePracticeAreas({ isActive: true }, "public") || [];
+  const firmName = String(settings?.firmName || KNOWLEDGE_BASE.firmName);
 
   // Lead capture state
   const [leadName, setLeadName] = useState("");
@@ -121,21 +119,39 @@ export function ChatbotWidget() {
 
       switch (intent) {
         case "greeting":
-          botResponse.content = `Hello there! Welcome to ${KNOWLEDGE_BASE.firmName}. How can I assist you with your legal needs today?`;
+          botResponse.content = `Hello there! Welcome to ${firmName}. How can I assist you with your legal needs today?`;
           break;
         case "location":
           botResponse.content = `Our main office is located in ${KNOWLEDGE_BASE.location}. Would you like to schedule an in-person meeting?`;
           break;
         case "hours":
-          botResponse.content = `Our office hours are: ${KNOWLEDGE_BASE.hours}.`;
+          botResponse.content = `Our office hours are: ${String(settings?.businessHoursText || KNOWLEDGE_BASE.hours)}.`;
           break;
         case "contact":
-          botResponse.content = `You can reach us directly at:\n${KNOWLEDGE_BASE.contact}\n\nAlternatively, leave your details below and we will call you back!`;
+          botResponse.content = `You can reach us directly at:\n${
+            settings?.phone || settings?.email
+              ? `Phone: ${String(settings?.phone || "")}\nEmail: ${String(settings?.email || "")}`
+              : KNOWLEDGE_BASE.contact
+          }\n\nAlternatively, leave your details below and we will call you back!`;
           botResponse.isForm = true;
           break;
-        case "practice_areas":
-          botResponse.content = `We are a full-service law firm. Our main practice areas include:\n• ${KNOWLEDGE_BASE.practiceAreas.join('\n• ')}\n\nDo you need help with any of these specific areas?`;
+        case "practice_areas": {
+          const lines = cmsPracticeAreas
+            .map((a: { title?: string; description?: string }) => {
+              const title = String(a.title ?? "").trim();
+              const desc = String(a.description ?? "").trim();
+              return title ? (desc ? `${title} — ${desc}` : title) : "";
+            })
+            .filter(Boolean);
+          botResponse.content =
+            lines.length > 0
+              ? `We are a full-service law firm. Our practice areas include:\n• ${lines.join("\n• ")}\n\nWould you like to explore any of these on our website?`
+              : `We offer legal services across multiple practice areas. Browse our practice areas page to learn more.`;
+          botResponse.isLink = true;
+          botResponse.linkText = "View Practice Areas";
+          botResponse.linkHref = "/practice-areas";
           break;
+        }
         case "team":
           botResponse.content = `We have a highly specialized team of advocates, including:\n• ${KNOWLEDGE_BASE.team[0].name} (${KNOWLEDGE_BASE.team[0].role})\n• ${KNOWLEDGE_BASE.team[1].name} (${KNOWLEDGE_BASE.team[1].role})\n\nYou can view their full profiles in our directory.`;
           botResponse.isLink = true;

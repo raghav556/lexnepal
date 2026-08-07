@@ -82,7 +82,7 @@ Legend: **wired** = admin ↔ API ↔ DB ↔ public consumer working for core CR
 | Site Settings | `/admin/cms` | Layout, Home, Contact | **wired** (CMS-2…4) | Contact keys + brand/ops consumers |
 | Homepage | `/admin/cms/homepage` | Director message on Home | **wired** (narrow) | Only director message — not full section CMS |
 | Navigation | `/admin/cms/navigation` | Header + footer cols | **wired** (CMS-3) | Footer uses `footer_col_*` + titles |
-| Practice areas | `/admin/cms/practice-areas` | Home + `/practice-areas` | **wired** | Public FAQs still hardcoded (CMS-10 deferred) |
+| Practice areas | `/admin/cms/practice-areas` | Home + `/practice-areas` + `/practice-areas/[slug]` + consultation/CRM/chatbot | **complete** | FAQs, order, cover, SEO, slug detail owned by CMS |
 | Testimonials | `/admin/cms/testimonials` | Home (approved) | **wired** | — |
 | Public Team | `/admin/cms/team` | Home, `/lawyers`, profiles | **wired** | Avatar via Users (CMS-8) |
 | Blog | `/admin/cms/blog` | `/blog`, `/blog/[slug]` | **wired** | publishDate preserve + SEO metadata (CMS-5) |
@@ -133,8 +133,8 @@ Canonical **admin write** keys (Site Settings → `updateSettings`): `phone`, `e
 | --- | --- | --- |
 | CMS-P2-1 | No first-party media library | **CMS-7 deferred** — URL-only honesty labels |
 | CMS-P2-2 | Team `avatarUrl` decorative | **DONE (CMS-8)** |
-| CMS-P2-3 | FAQ not CMS-owned | **CMS-10 deferred** |
-| CMS-P2-4 | No sitemap / redirects CMS | **CMS-10 deferred** |
+| CMS-P2-3 | FAQ not CMS-owned | **DONE for practice areas** (CMS FAQs JSON); sitemap/redirects still deferred |
+| CMS-P2-4 | No sitemap / redirects CMS | **CMS-10 deferred** (sitemap/redirects only) |
 | CMS-P2-5 | Nav soft-delete children | **DONE (CMS-9)** — cascade proven |
 | CMS-P2-6 | Live chat script | Intentionally retired — keep disabled |
 
@@ -174,7 +174,7 @@ Do **not** duplicate PHASE_8_2 authority work. Same pattern as CRM-0…6 / APT-0
 | **CMS-7** | P2 | Media upload via existing quarantine/storage for covers/resources | **DEFERRED** — URL-only honesty |
 | **CMS-8** | P2 | Team: remove dead avatar URL; deep-link Users avatar; clarify caps UI | **DONE 2026-08-07** |
 | **CMS-9** | P2 | Admin legal GET; nav soft-delete children | **DONE 2026-08-07** |
-| **CMS-10** | P2 | Optional: FAQ CMS, sitemap, redirects, preview — only if prioritized | **DEFERRED** — product decision |
+| **CMS-10** | P2 | Practice-area FAQ ownership done; sitemap/redirects/preview still deferred | **PARTIAL** |
 
 ---
 
@@ -302,13 +302,13 @@ Removed editable Avatar URL; display Users avatar; deep-link `/admin/users`.
 
 ---
 
-### CMS-10 — FAQ / sitemap / redirects — **DEFERRED**
+### CMS-10 — FAQ / sitemap / redirects — **PARTIAL**
 
-Product decision: not building FAQ CMS, sitemap manager, or redirects module in this pass.
+Practice-area FAQs are CMS-owned (`practice_areas.faqs` + admin editor + public list/detail). Sitemap manager, redirects module, and preview remain deferred.
 
 ---
 
 ## 10. Report status
 
-**CMS-0…CMS-6, CMS-8, CMS-9 done.** **CMS-7** and **CMS-10** deferred (honest URL-only / optional product).
-`cms:verify-local` PASS with footer, blog, news draft, legal GET, nav cascade flags.
+**CMS-0…CMS-6, CMS-8, CMS-9 done.** Practice-area FAQ ownership done. **CMS-7** and remaining CMS-10 (sitemap/redirects) deferred.
+`cms:verify-local` PASS with footer, blog, news draft, legal GET, nav cascade, and practice-area slug/FAQ/icon flags.

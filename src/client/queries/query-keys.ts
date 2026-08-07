@@ -67,6 +67,7 @@ export const queryKeys = {
       ["cms", scope, collection, filters] as const,
     settings: (scope: "public" | "admin") => ["cms", scope, "settings"] as const,
     post: (slug: string) => ["cms", "public", "blog-post", slug] as const,
+    practiceArea: (slug: string) => ["cms", "public", "practice-area", slug] as const,
     newsItem: (id: string) => ["cms", "public", "news-item", id] as const,
     legal: (slug: string) => ["cms", "public", "legal", slug] as const,
     team: ["cms", "public", "team"] as const,

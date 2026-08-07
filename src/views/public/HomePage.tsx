@@ -1,14 +1,15 @@
 import { Link } from "@/client/navigation";
 import { motion, useInView, useScroll, useTransform, useMotionValue, useSpring } from "motion/react";
 import { RevealText, FadeInUp, HoverGlowCard, PREMIUM_EASE } from "@/components/ui/animations.tsx";
-import { ArrowRight, Shield, Clock, Award, Users, Phone, MapPin, ChevronDown, MessageSquare, FileCheck, Gavel, Briefcase, Scale, Building2, Smartphone, Download } from "lucide-react";
+import { ArrowRight, Shield, Clock, Award, Users, Phone, MapPin, ChevronDown, MessageSquare, FileCheck, Gavel, Briefcase, Scale, Smartphone, Download } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useBlogPosts, usePracticeAreas, usePublicTeam, useTestimonials } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
 import { resolvePublicTitle } from "@/shared/leadership";
-import { useState, useEffect, useRef } from "react";
+import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 
 function formatPostDate(post: { publishDate?: string | null; createdAt?: string | null; _creationTime?: string | number | null }) {
@@ -22,14 +23,6 @@ function formatPostDate(post: { publishDate?: string | null; createdAt?: string 
 const TRUSTED_LOGOS = [
   "Himalayan Bank Ltd", "Nepal Telecom", "Chaudhary Group", "Ncell Axiata", "Yeti Airlines", "Standard Chartered", "Surya Nepal"
 ];
-
-// Mapping for dynamic icons
-const iconMap: Record<string, React.ReactNode> = {
-  Scale: <Scale className="w-5 h-5" />,
-  Shield: <Shield className="w-5 h-5" />,
-  Briefcase: <Briefcase className="w-5 h-5" />,
-  Building2: <Building2 className="w-5 h-5" />,
-};
 
 const STATS = [
   { value: 500, suffix: "+", label: "Cases Won" },
@@ -114,7 +107,19 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function HomePage() {
   const settings = usePublicCmsSettings();
   const firmName = String(settings?.firmName ?? "Our Firm");
-  const practiceAreas = usePracticeAreas({ isActive: true }, "public") || [];
+  const practiceAreasRaw = usePracticeAreas({ isActive: true }, "public") || [];
+  const practiceAreas = useMemo(() => {
+    const featured = practiceAreasRaw.filter(
+      (a: { showOnHome?: boolean }) => a.showOnHome !== false,
+    );
+    const list = (featured.length > 0 ? featured : practiceAreasRaw).slice();
+    list.sort(
+      (a: { displayOrder?: number; title?: string }, b: { displayOrder?: number; title?: string }) =>
+        (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+        String(a.title ?? "").localeCompare(String(b.title ?? "")),
+    );
+    return list.slice(0, 6);
+  }, [practiceAreasRaw]);
   const testimonials = useTestimonials({ isApproved: true }, "public") || [];
   const publicTeam = usePublicTeam() || [];
   const allPosts = useBlogPosts({ status: "published" }, "public") || [];
@@ -343,17 +348,20 @@ export default function HomePage() {
             </FadeInUp>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {practiceAreas.slice(0, 6).map((area: any, i: number) => (
+            {practiceAreas.map((area: any, i: number) => (
               <FadeInUp key={area._id} delay={i * 0.06}>
-                <Link href="/practice-areas" className="block h-full min-w-0">
+                <Link href={`/practice-areas/${area.slug}`} className="block h-full min-w-0">
                   <HoverGlowCard className="h-full rounded-xl">
                     <Card className="h-full border-border bg-card hover:border-accent/50 transition-colors duration-300 relative z-10 overflow-hidden">
                       <CardContent className="p-4 sm:p-6">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/15">
-                          {iconMap[area.iconName] || <Briefcase className="w-5 h-5" />}
+                          <PracticeAreaIcon
+                            name={resolvePracticeAreaIconName(area)}
+                            className="w-5 h-5"
+                          />
                         </div>
                         <h3 className="text-base sm:text-lg font-serif font-bold text-foreground mb-2 break-words">{area.title}</h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">{area.shortDescription || area.description}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{area.description}</p>
                       </CardContent>
                     </Card>
                   </HoverGlowCard>

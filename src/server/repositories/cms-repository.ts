@@ -96,11 +96,32 @@ export class PostgresCmsRepository {
           isActive === undefined ? undefined : eq(practiceAreas.isActive, isActive),
         ),
       )
-      .orderBy(asc(practiceAreas.title));
-    return rows.map(toDto);
+      .orderBy(asc(practiceAreas.displayOrder), asc(practiceAreas.title));
+    return rows.map(toPracticeAreaDto);
+  }
+  async getPracticeAreaBySlug(firmId: string, slug: string, activeOnly = true) {
+    const [row] = await database
+      .select()
+      .from(practiceAreas)
+      .where(
+        and(
+          eq(practiceAreas.firmId, firmId),
+          eq(practiceAreas.slug, slug),
+          isNull(practiceAreas.deletedAt),
+          activeOnly ? eq(practiceAreas.isActive, true) : undefined,
+        ),
+      )
+      .limit(1);
+    return row ? toPracticeAreaDto(row) : null;
   }
   createPracticeArea(firmId: string, input: PracticeAreaInput, audit: AuditContext) {
-    return this.createAudited(practiceAreas, firmId, input, audit, "practice_area");
+    return this.createAudited(
+      practiceAreas,
+      firmId,
+      mapPracticeAreaInput(input),
+      audit,
+      "practice_area",
+    ).then((row) => (row ? withPracticeAreaAliases(row) : row));
   }
   updatePracticeArea(
     firmId: string,
@@ -108,7 +129,14 @@ export class PostgresCmsRepository {
     input: Partial<PracticeAreaInput>,
     audit: AuditContext,
   ) {
-    return this.updateAudited(practiceAreas, firmId, id, input, audit, "practice_area");
+    return this.updateAudited(
+      practiceAreas,
+      firmId,
+      id,
+      mapPracticeAreaInput(input),
+      audit,
+      "practice_area",
+    ).then((row) => (row ? withPracticeAreaAliases(row) : row));
   }
   deletePracticeArea(firmId: string, id: string, audit: AuditContext) {
     return this.softDelete(practiceAreas, firmId, id, audit, "practice_area");
@@ -876,6 +904,23 @@ function mapBlogInput(input: Partial<BlogPostInput>) {
       ? { publishDate: input.publishDate ? new Date(input.publishDate) : null }
       : {}),
   });
+}
+function mapPracticeAreaInput(input: Partial<PracticeAreaInput>) {
+  return normalizeEmpty({
+    ...input,
+    ...(input.faqs !== undefined ? { faqs: input.faqs } : {}),
+    ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
+    ...(input.showOnHome !== undefined ? { showOnHome: input.showOnHome } : {}),
+  });
+}
+function withPracticeAreaAliases(dto: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...dto,
+    iconName: dto.icon ?? dto.iconName,
+  };
+}
+function toPracticeAreaDto<T extends Record<string, unknown>>(row: T): Record<string, unknown> {
+  return withPracticeAreaAliases(toDto(row));
 }
 function toDto<T extends Record<string, unknown>>(row: T): Record<string, unknown> {
   const output: Record<string, unknown> = { ...row, _id: row.id };

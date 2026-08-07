@@ -210,6 +210,11 @@ export class CmsService {
     if (!row) throw new AppError("NOT_FOUND", "Blog post was not found", 404);
     return row;
   }
+  async getPublicPracticeArea(slug: string) {
+    const row = await this.repository.getPracticeAreaBySlug(await this.publicFirmId(), slug, true);
+    if (!row) throw new AppError("NOT_FOUND", "Practice area was not found", 404);
+    return row;
+  }
   async getPublicNewsItem(id: string) {
     const row = await this.repository.getNewsItem(await this.publicFirmId(), id, "published");
     if (!row) throw new AppError("NOT_FOUND", "News item was not found", 404);

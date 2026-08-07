@@ -2,39 +2,11 @@ import { motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "@/client/navigation";
-import { ArrowRight, Briefcase, Scale, Shield, Building2, ChevronDown, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown } from "lucide-react";
 import { usePracticeAreas } from "@/client/queries/cms";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
 import { useState } from "react";
-
-const iconMap: Record<string, React.ReactNode> = {
-  Scale: <Scale className="w-6 h-6 text-accent" />,
-  Shield: <Shield className="w-6 h-6 text-accent" />,
-  Briefcase: <Briefcase className="w-6 h-6 text-accent" />,
-  Building2: <Building2 className="w-6 h-6 text-accent" />,
-};
-
-const AREA_DETAILS: Record<string, { desc: string; faqs: { q: string; a: string }[] }> = {
-  "Corporate Law": {
-    desc: "Comprehensive corporate legal services including company formation, mergers & acquisitions, joint ventures, corporate governance, and commercial contracts.",
-    faqs: [
-      { q: "How long does company registration take in Nepal?", a: "Private limited company registration typically takes 7–14 working days through the Office of Company Registrar." },
-      { q: "What is the minimum paid-up capital?", a: "For private limited companies, no minimum paid-up capital is required under the Companies Act 2063." },
-    ],
-  },
-  "Criminal Defense": {
-    desc: "Expert criminal defense and prosecution support covering bail applications, trial advocacy, appeals, and white-collar crime defense.",
-    faqs: [
-      { q: "What are bail rights in Nepal?", a: "Under Nepal's Criminal Procedure Code, bail is available for most offenses. The court considers gravity, flight risk, and evidence." },
-      { q: "How long can police detain without charge?", a: "Under MULUKI CRIMINAL CODE 2074, police can detain for up to 24 hours without producing before a court." },
-    ],
-  },
-  "Civil Litigation": {
-    desc: "Sensitive and confidential handling of property disputes, contracts, tort claims, and other civil matters through mediation, arbitration, and courtroom representation.",
-    faqs: [
-      { q: "What is the statute of limitations for civil cases?", a: "Under the Muluki Civil Code 2074, limitation periods vary by claim type — typically 2-5 years from the date of the cause of action." },
-    ],
-  },
-};
 
 function FAQAccordionItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -64,11 +36,16 @@ function FAQAccordionItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function PracticeAreasPage() {
-  const practiceAreas = usePracticeAreas({ isActive: true }, "public") || [];
+  const practiceAreas = usePracticeAreas({ isActive: true }, "public");
+  const settings = usePublicCmsSettings();
+  const heroTitle = String(settings?.practiceAreasHeroTitle || "Practice Areas");
+  const heroSubtitle = String(
+    settings?.practiceAreasHeroSubtitle ||
+      "Our advocates bring deep specialization and courtroom experience across major areas of Nepal law.",
+  );
 
   return (
     <div className="w-full min-w-0 overflow-x-clip">
-      {/* Hero */}
       <section className="relative bg-primary overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.08]"
@@ -89,29 +66,43 @@ export default function PracticeAreasPage() {
               <span className="truncate">Legal Expertise</span>
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-3 sm:mb-4 leading-tight">
-              Practice <span className="text-accent">Areas</span>
+              {heroTitle.includes(" ") ? (
+                <>
+                  {heroTitle.split(" ").slice(0, -1).join(" ")}{" "}
+                  <span className="text-accent">{heroTitle.split(" ").slice(-1)}</span>
+                </>
+              ) : (
+                <span className="text-accent">{heroTitle}</span>
+              )}
             </h1>
             <p className="text-sm sm:text-base md:text-lg text-primary-foreground/70 max-w-2xl break-words">
-              Our advocates bring deep specialization and courtroom experience across all major areas of
-              Nepal law. Each practice area is backed by decades of combined expertise.
+              {heroSubtitle}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Practice Area Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16 min-w-0">
-        {practiceAreas.length === 0 ? (
+        {!practiceAreas ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-56 rounded-xl bg-muted/50 animate-pulse" />
+            ))}
+          </div>
+        ) : practiceAreas.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-12">
             Practice areas will appear here once published.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {practiceAreas.map((area: any, i: number) => {
-              const detail = AREA_DETAILS[area.title];
+            {practiceAreas.map((area: Record<string, unknown>, i: number) => {
+              const faqs = Array.isArray(area.faqs)
+                ? (area.faqs as Array<{ question?: string; answer?: string; q?: string; a?: string }>)
+                : [];
+              const slug = String(area.slug ?? "");
               return (
                 <motion.div
-                  key={area._id}
+                  key={String(area._id || area.id)}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -120,36 +111,59 @@ export default function PracticeAreasPage() {
                 >
                   <Card className="hover:shadow-lg transition-all duration-300 group h-full sm:hover:-translate-y-1 overflow-hidden py-0 gap-0">
                     <CardContent className="p-4 sm:p-6 flex flex-col h-full min-w-0">
+                      {area.coverImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={String(area.coverImageUrl)}
+                          alt=""
+                          className="w-full h-32 object-cover rounded-lg mb-4 border border-border"
+                        />
+                      ) : null}
                       <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4 min-w-0">
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 group-hover:scale-110 transition-all">
-                          {iconMap[area.iconName] || (
-                            <Briefcase className="w-6 h-6 text-accent" />
-                          )}
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 group-hover:scale-110 transition-all text-accent">
+                          <PracticeAreaIcon
+                            name={resolvePracticeAreaIconName(
+                              area as { icon?: string; iconName?: string },
+                            )}
+                            className="w-6 h-6"
+                          />
                         </div>
                         <div className="min-w-0 pt-0.5">
-                          <h3 className="font-serif font-bold text-base sm:text-lg text-foreground group-hover:text-accent transition-colors break-words leading-snug">
-                            {area.title}
-                          </h3>
+                          <Link
+                            href={`/practice-areas/${slug}`}
+                            className="font-serif font-bold text-base sm:text-lg text-foreground group-hover:text-accent transition-colors break-words leading-snug"
+                          >
+                            {String(area.title)}
+                          </Link>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-4 flex-1 break-words">
-                        {area.longDescription ||
-                          area.shortDescription ||
-                          area.description ||
-                          detail?.desc ||
-                          `Expert legal representation and advisory services in ${area.title.toLowerCase()}, tailored to Nepal's legal framework.`}
+                        {String(
+                          area.longDescription ||
+                            area.description ||
+                            `Expert legal representation in ${String(area.title).toLowerCase()}.`,
+                        )}
                       </p>
-                      {detail?.faqs && (
+                      {faqs.length > 0 && (
                         <div className="border-t border-border pt-3 sm:pt-4 mt-auto min-w-0">
                           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                             Common Questions
                           </p>
-                          {detail.faqs.map((faq) => (
-                            <FAQAccordionItem key={faq.q} q={faq.q} a={faq.a} />
+                          {faqs.slice(0, 3).map((faq, fi) => (
+                            <FAQAccordionItem
+                              key={`${faq.question || faq.q}-${fi}`}
+                              q={String(faq.question || faq.q || "")}
+                              a={String(faq.answer || faq.a || "")}
+                            />
                           ))}
                         </div>
                       )}
+                      <Button asChild variant="ghost" size="sm" className="mt-3 self-start px-0">
+                        <Link href={`/practice-areas/${slug}`} className="gap-1.5 text-accent">
+                          Learn more <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -158,7 +172,6 @@ export default function PracticeAreasPage() {
           </div>
         )}
 
-        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

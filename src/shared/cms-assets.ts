@@ -4,6 +4,7 @@ export const CMS_ASSET_PURPOSES = [
   "logo",
   "favicon",
   "hero_image",
+  "practice_area_cover",
 ] as const;
 export type CmsAssetPurpose = (typeof CMS_ASSET_PURPOSES)[number];
 

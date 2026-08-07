@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { useCmsTeamIdentityBridge } from "@/client/queries/identity";
+import { usePracticeAreas } from "@/client/queries/cms";
 import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, EyeOff, X, ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
@@ -14,6 +15,11 @@ const PUBLIC_ELIGIBLE_ROLES = ["partner", "senior_associate", "associate", "para
 
 export default function AdminCMSTeam() {
   const { users, updateTeamMember, removeFromPublicTeam, togglePublicStatus } = useCmsTeamIdentityBridge();
+  const cmsPracticeAreas = usePracticeAreas({}, "admin") || [];
+  const practiceAreaTitleOptions = cmsPracticeAreas
+    .filter((a: { isActive?: boolean }) => a.isActive !== false)
+    .map((a: { title?: string }) => String(a.title ?? "").trim())
+    .filter(Boolean);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -532,6 +538,7 @@ export default function AdminCMSTeam() {
                     <div key={index} className="flex items-center gap-2 min-w-0">
                       <Input
                         value={area}
+                        list="cms-team-practice-areas"
                         onChange={(e) => updateArrayItem("practiceAreas", index, e.target.value)}
                         placeholder="e.g. Corporate Litigation"
                         className="min-w-0"
@@ -541,6 +548,11 @@ export default function AdminCMSTeam() {
                       </Button>
                     </div>
                   ))}
+                  <datalist id="cms-team-practice-areas">
+                    {practiceAreaTitleOptions.map((title) => (
+                      <option key={title} value={title} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="space-y-3 min-w-0">
