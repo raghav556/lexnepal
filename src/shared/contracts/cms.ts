@@ -55,7 +55,7 @@ export const blogPostInputSchema = z
     category: z.string().trim().min(1).max(100),
     excerpt: z.string().trim().min(1).max(1_000),
     content: z.string().min(1).max(200_000),
-    coverImageUrl: optionalUrl,
+    coverImageUrl: optionalCmsAssetOrUrl.nullable(),
     author: z.string().trim().min(1).max(200),
     status: z.enum(["draft", "published"]),
     publishDate: z.union([z.string().datetime(), z.literal("")]),
@@ -74,7 +74,7 @@ export const newsInputSchema = z.object({
   type: z.enum(["award", "press_release", "firm_news"]),
   status: z.enum(["draft", "published"]).default("draft"),
   linkUrl: optionalUrl,
-  imageUrl: optionalUrl,
+  imageUrl: optionalCmsAssetOrUrl.nullable(),
 });
 export const careerInputSchema = z.object({
   title: z.string().trim().min(1).max(250),
@@ -104,10 +104,28 @@ export const resourceInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().min(1).max(10_000),
   category: z.string().trim().min(1).max(100),
-  coverImageUrl: optionalUrl,
+  coverImageUrl: optionalCmsAssetOrUrl.nullable(),
   fileUrl: z.string().url().max(2_000),
   isGated: z.boolean(),
 });
+
+/** Admin-managed public path redirects (CMS-10). */
+export const cmsRedirectSchema = z.object({
+  from: z
+    .string()
+    .trim()
+    .min(1)
+    .max(500)
+    .regex(/^\//, "Redirect from must be a root-relative path"),
+  to: z
+    .string()
+    .trim()
+    .min(1)
+    .max(2_000)
+    .refine((v) => v.startsWith("/") || /^https:\/\//.test(v), "Redirect to must be relative or HTTPS"),
+  permanent: z.boolean().default(true),
+});
+export const cmsRedirectsSettingSchema = z.array(cmsRedirectSchema).max(200);
 export const legalSlugSchema = z.enum(["privacy-policy", "terms"]);
 export const legalPageInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
@@ -226,3 +244,4 @@ export type LegalPageInput = z.infer<typeof legalPageInputSchema>;
 export type NavigationInput = z.infer<typeof navigationInputSchema>;
 export type CmsSettingsUpdate = z.infer<typeof cmsSettingsUpdateSchema>;
 export type TeamProfileInput = z.infer<typeof teamProfileInputSchema>;
+export type CmsRedirect = z.infer<typeof cmsRedirectSchema>;

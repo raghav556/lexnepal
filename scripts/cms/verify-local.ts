@@ -294,7 +294,15 @@ try {
 
   // Homepage director message: admin save → public settings → parseable payload.
   const uploadCmsAssetVerify = async (
-    purpose: "director_photo" | "director_signature" | "logo" | "favicon" | "hero_image",
+    purpose:
+      | "director_photo"
+      | "director_signature"
+      | "logo"
+      | "favicon"
+      | "hero_image"
+      | "blog_cover"
+      | "news_image"
+      | "resource_cover",
   ) => {
     const intentResponse = await cmsAssetIntentPost(
       new Request("http://local/api/v1/cms/asset-upload-intents", {
@@ -992,6 +1000,36 @@ try {
     { params: Promise.resolve({ collection: "testimonials", id: tOffHomeId }) },
   );
 
+  // CMS-7: blog_cover asset purpose accepts upload and returns public CMS asset URL.
+  const blogCoverUrl = await uploadCmsAssetVerify("blog_cover");
+  if (!blogCoverUrl.startsWith("/api/v1/public/cms/assets/")) {
+    throw new Error("blog_cover publicUrl missing CMS asset path");
+  }
+
+  // CMS-10: urlRedirects setting writes cache and is readable for proxy lookups.
+  const redirectsPut = await settingsPut(
+    new Request("http://local/api/v1/cms/settings", {
+      method: "PUT",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        settings: [
+          {
+            key: "urlRedirects",
+            value: [{ from: "/legacy-verify-path", to: "/about-us", permanent: true }],
+          },
+        ],
+      }),
+    }),
+  );
+  if (redirectsPut.status !== 200) {
+    throw new Error(`urlRedirects save failed: ${redirectsPut.status}`);
+  }
+  const { findCmsRedirect } = await import("../../src/server/cms/redirect-cache");
+  const hit = findCmsRedirect("/legacy-verify-path");
+  if (!hit || hit.to !== "/about-us") {
+    throw new Error("urlRedirects cache miss after settings save");
+  }
+
   const [actor] = await database
     .select({ id: users.id })
     .from(users)
@@ -1032,6 +1070,8 @@ try {
       testimonialsOrderOk: true,
       testimonialsRatingOk: true,
       testimonialsAvatarContractOk: true,
+      cmsBlogCoverUploadOk: true,
+      cmsRedirectsOk: true,
       adminTeamRosterOk: true,
       actor: actor.id,
     })}\n`,

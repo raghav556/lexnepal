@@ -63,20 +63,24 @@ function runNpm(script: string) {
 
 function flagsAreNext(flags: string[]): { ok: boolean; detail: string } {
   if (flags.length === 0) return { ok: true, detail: "no UI flags (infra domain)" };
-  const missing: string[] = [];
+  // Post-Convex decommission: unset VITE_BACKEND_* means Next-only (implicit next).
+  // Explicit non-next values still fail so a stale `convex`/`shadow` env cannot pass.
   const wrong: string[] = [];
+  const detailParts: string[] = [];
   for (const key of flags) {
     const value = process.env[key];
-    if (value === undefined || value === "") missing.push(key);
-    else if (value !== "next") wrong.push(`${key}=${value}`);
+    if (value === undefined || value === "") {
+      detailParts.push(`${key}=next(implicit)`);
+    } else if (value !== "next") {
+      wrong.push(`${key}=${value}`);
+    } else {
+      detailParts.push(`${key}=next`);
+    }
   }
-  if (missing.length || wrong.length) {
-    return {
-      ok: false,
-      detail: [...missing.map((k) => `${k} unset`), ...wrong].join("; "),
-    };
+  if (wrong.length) {
+    return { ok: false, detail: wrong.join("; ") };
   }
-  return { ok: true, detail: flags.map((k) => `${k}=next`).join(",") };
+  return { ok: true, detail: detailParts.join(",") };
 }
 
 async function assertBackup(item: CutoverDomain): Promise<string> {

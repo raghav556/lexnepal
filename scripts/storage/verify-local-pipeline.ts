@@ -225,13 +225,22 @@ async function processUntilSettled(
   expectedStatus: "promoted" | "rejected",
   workerId: string,
 ): Promise<"clean" | "infected"> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  // Local queues can accumulate unrelated jobs (e.g. Mailpit email from CMS verify).
+  // Drain generously; only stop after a short idle streak so a just-enqueued scan can appear.
+  let idleStreak = 0;
+  for (let attempt = 0; attempt < 500; attempt += 1) {
     const intent = await repository.getIntent(intentId);
     if (intent?.status === expectedStatus) {
       return expectedStatus === "promoted" ? "clean" : "infected";
     }
     const result = await createJobWorker(`${workerId}-${attempt}`).runOnce();
-    if (result === "idle") break;
+    if (result === "idle") {
+      idleStreak += 1;
+      if (idleStreak >= 8) break;
+      await new Promise((resolve) => setTimeout(resolve, 75));
+      continue;
+    }
+    idleStreak = 0;
   }
   throw new Error(`Upload intent ${intentId} did not reach ${expectedStatus}`);
 }

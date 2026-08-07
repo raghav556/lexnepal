@@ -16,9 +16,11 @@ LexNepal is moving from **Convex** (old backend) to **Next.js + PostgreSQL** (ne
 
 | Area | Reality on localhost |
 | --- | --- |
-| Foundations (Phases 0–7) | Built and usable locally, with some open approvals and blocked job types |
-| Business domains (Phase 8) | **Partially done.** Identity, CMS, clients/cases, work management, finance, and CRM are farthest along locally. Several other domains have code but are still pointed at Convex |
-| Data tools / testing / UI move / production cutover / cleanup (Phases 9–13) | Still ahead |
+| Foundations (Phases 0–7) | Built and usable locally |
+| Business domains (Phase 8) | **`complete_local`** — all Phase 8 domains on Next + Postgres |
+| Data tools / UI cutover / local dress rehearsal / Convex decommission (R3–R6, R8) | **`complete_local`** |
+| Local production-shaped gate | See [`LOCAL_PRODUCTION_SHAPED.md`](LOCAL_PRODUCTION_SHAPED.md) — harness, backup drill, CMS-7/10 |
+| Production readiness (R7) | **`DEFER_PROD`** — needs cloud accounts (hosted DB, IdP, DNS/TLS, vault, live email/SMS, monitoring) |
 
 ### What “done” means for you
 

@@ -13,7 +13,7 @@ export type CutoverDomain = {
   domain: string;
   /** Human label for the cutover log */
   label: string;
-  /** `VITE_BACKEND_*` keys that must be `next` after cutover (empty for storage infra) */
+  /** Historical `VITE_BACKEND_*` keys; unset = Next-only after Convex decommission */
   backendFlags: string[];
   exportPath: string;
   extraArgs: string[];

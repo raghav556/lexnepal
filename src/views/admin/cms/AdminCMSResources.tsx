@@ -8,6 +8,7 @@ import { Plus, BookOpen, Download, Edit, Trash2 } from "lucide-react";
 import { FadeInUp } from "@/components/ui/animations";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
 
 export default function AdminCMSResources() {
   const resources = useResources({}, "admin") || [];
@@ -222,17 +223,17 @@ export default function AdminCMSResources() {
                 placeholder="https://.../file.pdf"
                 className="min-w-0"
               />
-              <p className="text-xs text-muted-foreground">External HTTPS URL only — first-party media library deferred.</p>
+              <p className="text-xs text-muted-foreground">
+                PDF/document download URL (HTTPS). Cover image below uses CMS upload.
+              </p>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Cover Image URL (optional)</label>
-              <Input
-                value={formData.coverImageUrl}
-                onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
-                placeholder="https://..."
-                className="min-w-0"
-              />
-            </div>
+            <CmsImageUploadField
+              label="Cover image (optional)"
+              purpose="resource_cover"
+              value={formData.coverImageUrl || undefined}
+              onChange={(url) => setFormData({ ...formData, coverImageUrl: url ?? "" })}
+              previewClassName="mt-2 h-24 w-full max-w-xs rounded-md object-cover border"
+            />
             <label className="flex items-start sm:items-center gap-2 text-sm">
               <input
                 type="checkbox"

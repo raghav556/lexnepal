@@ -429,6 +429,13 @@ export async function seedCmsSmoke() {
     "Our advocates bring deep specialization and courtroom experience across major areas of Nepal law.",
   );
   await upsertSetting(firm.id, "about_page", DEFAULT_ABOUT_PAGE);
+  await upsertSetting(firm.id, "urlRedirects", [
+    { from: "/legacy-home", to: "/", permanent: true },
+  ]);
+  const { writeCmsRedirectsCache } = await import("../../src/server/cms/redirect-cache");
+  writeCmsRedirectsCache([
+    { from: "/legacy-home", to: "/", permanent: true },
+  ]);
 
   return {
     firmId: firm.id,

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 import ReactMarkdown from 'react-markdown';
+import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
 
 export default function AdminCMSBlog() {
   const posts = useBlogPosts({}, "admin") || [];
@@ -344,12 +345,14 @@ export default function AdminCMSBlog() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Cover Image URL</label>
-                <Input type="url" value={formData.coverImageUrl} onChange={e => setFormData({...formData, coverImageUrl: e.target.value})} placeholder="https://..." />
-                <p className="text-xs text-muted-foreground">External HTTPS URL only — first-party media library deferred.</p>
-                {formData.coverImageUrl && (
-                  <img src={formData.coverImageUrl} alt="Cover" className="w-full h-24 object-cover rounded-md border border-border mt-2" />
-                )}
+                <CmsImageUploadField
+                  label="Cover image"
+                  purpose="blog_cover"
+                  value={formData.coverImageUrl || undefined}
+                  onChange={(url) => setFormData({ ...formData, coverImageUrl: url ?? "" })}
+                  previewClassName="mt-2 w-full h-24 object-cover rounded-md border border-border"
+                  hint="Upload a JPEG/PNG or paste a public HTTPS / CMS asset URL."
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Short Excerpt</label>

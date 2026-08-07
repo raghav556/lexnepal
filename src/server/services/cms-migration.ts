@@ -3,7 +3,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import {
   blogPosts,
@@ -379,31 +379,102 @@ export async function migrateCmsExport(input: {
       );
 
     const navigationMap = new Map<string, string>();
+
+    async function freeRootOrderSlot(
+      firmId: string,
+      location: "header" | "footer_col_1" | "footer_col_2",
+      order: number,
+      exceptId?: string,
+    ) {
+      const conditions = [
+        eq(navigation.firmId, firmId),
+        eq(navigation.location, location),
+        eq(navigation.order, order),
+        isNull(navigation.parentId),
+      ];
+      if (exceptId) conditions.push(ne(navigation.id, exceptId));
+      const conflicts = await tx
+        .select({ id: navigation.id })
+        .from(navigation)
+        .where(and(...conditions));
+      for (const [index, conflict] of conflicts.entries()) {
+        await tx
+          .update(navigation)
+          .set({
+            // Park conflicting seeded/local roots so import can claim the order.
+            order: 50_000 + index + Math.floor(Math.random() * 10_000),
+            updatedAt: new Date(),
+          })
+          .where(eq(navigation.id, conflict.id));
+      }
+    }
+
     for (const row of records.get("navigation") ?? [])
       await migrate(
         "navigation",
         row,
         async (id) => {
+          const label = textValue(row.label)!;
+          const url = textValue(row.url)!;
+          const location = enumValue(row.location, [
+            "header",
+            "footer_col_1",
+            "footer_col_2",
+          ])!;
+          const order = numberValue(row.order) ?? 0;
+          const isActive = boolValue(row.isActive, true);
+          const openInNewTab = boolValue(row.openInNewTab, false);
+          const createdAt = dateValue(row._creationTime);
+
+          const [byLegacy] = await tx
+            .select({ id: navigation.id })
+            .from(navigation)
+            .where(eq(navigation.legacyConvexId, id))
+            .limit(1);
+          if (byLegacy) {
+            await freeRootOrderSlot(input.targetFirmId, location, order, byLegacy.id);
+            await tx
+              .update(navigation)
+              .set({
+                label,
+                url,
+                location,
+                order,
+                isActive,
+                openInNewTab,
+                parentId: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(navigation.id, byLegacy.id));
+            navigationMap.set(id, byLegacy.id);
+            return;
+          }
+
+          await freeRootOrderSlot(input.targetFirmId, location, order);
           const [created] = await tx
             .insert(navigation)
             .values({
               legacyConvexId: id,
               firmId: input.targetFirmId,
-              label: textValue(row.label)!,
-              url: textValue(row.url)!,
-              location: enumValue(row.location, ["header", "footer_col_1", "footer_col_2"])!,
-              order: numberValue(row.order) ?? 0,
-              isActive: boolValue(row.isActive, true),
+              label,
+              url,
+              location,
+              order,
+              isActive,
               parentId: null,
-              openInNewTab: boolValue(row.openInNewTab, false),
-              createdAt: dateValue(row._creationTime),
+              openInNewTab,
+              createdAt,
             })
             .onConflictDoUpdate({
               target: navigation.legacyConvexId,
               set: {
-                label: textValue(row.label)!,
-                url: textValue(row.url)!,
-                order: numberValue(row.order) ?? 0,
+                label,
+                url,
+                order,
+                location,
+                isActive,
+                openInNewTab,
+                parentId: null,
                 updatedAt: new Date(),
               },
             })

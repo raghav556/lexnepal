@@ -61,15 +61,23 @@ export class PostgresCmsRepository {
   }
 
   async updateSettings(firmId: string, input: CmsSettingsUpdate, audit: AuditContext) {
+    const { writeCmsRedirectsCache } = await import("@/server/cms/redirect-cache");
+    const { cmsRedirectsSettingSchema } = await import("@/shared/contracts/cms");
     await database.transaction(async (tx) => {
-      for (const item of input.settings)
+      for (const item of input.settings) {
+        let value = item.value;
+        if (item.key === "urlRedirects") {
+          value = cmsRedirectsSettingSchema.parse(item.value);
+          writeCmsRedirectsCache(value);
+        }
         await tx
           .insert(cmsSettings)
-          .values({ firmId, key: item.key, value: item.value })
+          .values({ firmId, key: item.key, value })
           .onConflictDoUpdate({
             target: [cmsSettings.firmId, cmsSettings.key],
-            set: { value: item.value, deletedAt: null, updatedAt: audit.occurredAt },
+            set: { value, deletedAt: null, updatedAt: audit.occurredAt },
           });
+      }
       await writeAudit(
         tx,
         audit,

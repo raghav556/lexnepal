@@ -15,7 +15,7 @@
 | Domain authority (PG + `/api/v1/cms*` + `cms:verify-local`) | **Done** (`PHASE_8_2`) |
 | Admin routes (12 CMS pages under `/admin/cms`) | **Present** and linked from admin layout |
 | Public E2E connectivity (admin save → API → public read) | **Wired locally** — CMS-0…9 fixes applied; run `cms:verify-local` |
-| Corporate polish (SEO runtime, media library, FAQ CMS, sitemap) | **Partial** — CMS-7/10 deferred; hardcoded FAQs remain on some pages |
+| Corporate polish (SEO runtime, media library, FAQ CMS, sitemap) | **Local complete** — CMS-7 covers via asset upload; CMS-10 sitemap + redirects; PDF resource files remain HTTPS URL |
 
 **One-line:** Backend CMS authority is production-shaped for localhost; all 12 admin CMS modules route to live APIs. Remaining gaps are **deferred polish** (media library, FAQ/sitemap CMS), not broken admin→public pipes.
 
@@ -88,9 +88,9 @@ Legend: **wired** = admin ↔ API ↔ DB ↔ public consumer working for core CR
 | Blog | `/admin/cms/blog` | `/blog`, `/blog/[slug]` | **wired** | publishDate preserve + SEO metadata (CMS-5) |
 | News | `/admin/cms/news` | `/news`, `/news/[id]` | **wired** | draft/publish (CMS-6) |
 | Careers | `/admin/cms/careers` | `/careers` + applications | **wired** | `postedDate` date-only (CMS-1) |
-| Resources | `/admin/cms/resources` | `/resources` | **wired** | URL-only assets; media library deferred (CMS-7) |
+| Resources | `/admin/cms/resources` | `/resources` | **complete** | Cover via CMS upload; file URL remains HTTPS |
 | About | `/admin/cms/about` | `/about-us` via settings | **wired** | Values/timeline as raw JSON |
-| Governance | `/admin/cms/governance` | Legal pages + newsletter | **wired** | Admin legal GET (CMS-9) |
+| Governance | `/admin/cms/governance` | Legal pages + newsletter + redirects | **complete** | Admin legal GET; `urlRedirects` + sitemap |
 
 ---
 
@@ -131,10 +131,10 @@ Canonical **admin write** keys (Site Settings → `updateSettings`): `phone`, `e
 
 | ID | Finding | Notes |
 | --- | --- | --- |
-| CMS-P2-1 | No first-party media library | **CMS-7 deferred** — URL-only honesty labels |
+| CMS-P2-1 | No first-party media library | **DONE (CMS-7)** — blog/news/resource covers via CMS asset upload |
 | CMS-P2-2 | Team `avatarUrl` decorative | **DONE (CMS-8)** |
 | CMS-P2-3 | FAQ not CMS-owned | **DONE for practice areas** (CMS FAQs JSON); sitemap/redirects still deferred |
-| CMS-P2-4 | No sitemap / redirects CMS | **CMS-10 deferred** (sitemap/redirects only) |
+| CMS-P2-4 | No sitemap / redirects CMS | **DONE (CMS-10)** — `app/sitemap.ts` + governance redirects |
 | CMS-P2-5 | Nav soft-delete children | **DONE (CMS-9)** — cascade proven |
 | CMS-P2-6 | Live chat script | Intentionally retired — keep disabled |
 
@@ -171,10 +171,10 @@ Do **not** duplicate PHASE_8_2 authority work. Same pattern as CRM-0…6 / APT-0
 | **CMS-4** | P1 | Consume or remove write-only settings (logo/firmName/hours/announcement/maintenance/cookies/GA) | **DONE 2026-08-07** |
 | **CMS-5** | P1 | Preserve blog `publishDate`; apply SEO to public metadata | **DONE 2026-08-07** |
 | **CMS-6** | P1 | News draft/publish filter mirroring blog | **DONE 2026-08-07** |
-| **CMS-7** | P2 | Media upload via existing quarantine/storage for covers/resources | **DEFERRED** — URL-only honesty |
+| **CMS-7** | P2 | Media upload via existing quarantine/storage for covers/resources | **DONE 2026-08-07** — blog/news/resource covers |
 | **CMS-8** | P2 | Team: remove dead avatar URL; deep-link Users avatar; clarify caps UI | **DONE 2026-08-07** |
 | **CMS-9** | P2 | Admin legal GET; nav soft-delete children | **DONE 2026-08-07** |
-| **CMS-10** | P2 | Practice-area FAQ ownership done; sitemap/redirects/preview still deferred | **PARTIAL** |
+| **CMS-10** | P2 | Sitemap + redirects | **DONE 2026-08-07** — `sitemap.ts` + `urlRedirects` |
 
 ---
 
@@ -280,9 +280,9 @@ npm run cms:verify-local
 
 ---
 
-### CMS-7 — Media library — **DEFERRED**
+### CMS-7 — Media library — **DONE 2026-08-07**
 
-URL-only fields kept with honesty copy on blog/resources/branding. First-party quarantine upload not built (reuse documents stack when prioritized).
+Blog/news/resource **cover images** use CMS asset upload intents (`blog_cover`, `news_image`, `resource_cover`). Resource **file** downloads remain HTTPS URLs (PDF not in image-only CMS asset MIME allowlist).
 
 ---
 
@@ -302,13 +302,13 @@ Removed editable Avatar URL; display Users avatar; deep-link `/admin/users`.
 
 ---
 
-### CMS-10 — FAQ / sitemap / redirects — **PARTIAL**
+### CMS-10 — FAQ / sitemap / redirects — **DONE 2026-08-07**
 
-Practice-area FAQs are CMS-owned (`practice_areas.faqs` + admin editor + public list/detail). Sitemap manager, redirects module, and preview remain deferred.
+Practice-area FAQs are CMS-owned. Public `sitemap.xml` from published CMS content. Admin redirects via settings key `urlRedirects` (governance tab) + `.local/cms-redirects.json` cache consumed by `proxy.ts`.
 
 ---
 
 ## 10. Report status
 
-**CMS-0…CMS-6, CMS-8, CMS-9 done.** Practice-area FAQ ownership done. **CMS-7** and remaining CMS-10 (sitemap/redirects) deferred.
-`cms:verify-local` PASS with footer, blog, news draft, legal GET, nav cascade, and practice-area slug/FAQ/icon flags.
+**CMS-0…CMS-10 done for local production-shaped scope.** Resource PDF binary upload remains HTTPS URL-only by design (image MIME gate on CMS assets).
+`cms:verify-local` PASS includes `cmsBlogCoverUploadOk` and `cmsRedirectsOk`.

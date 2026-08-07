@@ -7,6 +7,7 @@ import { useCmsCommands, useNews } from "@/client/queries/cms";
 import { Plus, Edit, Trash2, Search, CheckCircle2, Newspaper } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog.tsx";
 import { toast } from "sonner";
+import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
 
 type NewsType = "award" | "press_release" | "firm_news";
 
@@ -333,14 +334,14 @@ export default function AdminCMSNews() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 min-w-0">
-                <label className="text-sm font-semibold">Image URL</label>
-                <Input
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="min-w-0"
+                <CmsImageUploadField
+                  label="Image"
+                  purpose="news_image"
+                  value={formData.imageUrl || undefined}
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url ?? "" })}
+                  previewClassName="mt-2 h-20 w-full max-w-xs rounded-md object-cover border"
+                  hint="Upload JPEG/PNG or paste HTTPS / CMS asset URL."
                 />
-                <p className="text-xs text-muted-foreground">External HTTPS URL only — first-party media library deferred.</p>
               </div>
               <div className="space-y-2 min-w-0">
                 <label className="text-sm font-semibold">External Link</label>
