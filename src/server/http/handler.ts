@@ -39,12 +39,17 @@ export function withApiHandler(route: string, handler: ApiHandler) {
     const logger = createLogger({ requestId, route, method: request.method });
     try {
       const response = await handler({ request, requestId, logger });
-      response.headers.set(REQUEST_ID_HEADER, requestId);
+      const headers = new Headers(response.headers);
+      headers.set(REQUEST_ID_HEADER, requestId);
       logger.info("http.request.completed", {
         status: response.status,
         durationMs: Math.round(performance.now() - startedAt),
       });
-      return response;
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
     } catch (error) {
       const response = errorResponse(error, requestId);
       response.headers.set(REQUEST_ID_HEADER, requestId);

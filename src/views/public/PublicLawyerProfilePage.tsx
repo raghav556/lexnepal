@@ -17,7 +17,7 @@ export default function PublicLawyerProfilePage() {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading profile...</div>;
   }
   
-  const lawyer = team.find(m => m._id === id);
+  const lawyer = team.find((m) => (m._id ?? m.id) === id);
   
   if (!lawyer) {
     return (

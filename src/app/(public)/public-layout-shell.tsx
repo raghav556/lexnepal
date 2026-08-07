@@ -11,6 +11,7 @@ import {
   Scale,
   Phone,
   Mail,
+  MapPin,
   ArrowRight,
   Facebook,
   Linkedin,
@@ -19,19 +20,33 @@ import {
   Twitter,
   Video,
   ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicHeaderAuth } from "@/components/auth/PublicHeaderAuth";
 import { ChatbotWidget } from "@/components/ui/ChatbotWidget";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
-import { useCmsCommands, useCmsSettings } from "@/client/queries/cms";
+import { useCmsCommands } from "@/client/queries/cms";
+import { PublicCmsSettingsProvider, usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { queryKeys } from "@/client/queries/query-keys";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  DEFAULT_PRIMARY_CTA_HREF,
+  DEFAULT_PRIMARY_CTA_LABEL,
+  DEFAULT_PRIMARY_CTA_SHORT_LABEL,
+  DEFAULT_PRIVACY_POLICY_URL,
+  DEFAULT_TERMS_OF_SERVICE_URL,
+} from "@/shared/public-routes";
 
 export type PublicNavEntry = Record<string, unknown>;
-type PublicNavLink = { label: string; href: string; openInNewTab?: boolean };
+type PublicNavLink = {
+  label: string;
+  href: string;
+  openInNewTab?: boolean;
+  children?: PublicNavLink[];
+};
 
 function NavSkeleton({ count = 7 }: { count?: number }) {
   return (
@@ -50,15 +65,50 @@ function NavSkeleton({ count = 7 }: { count?: number }) {
 const navLinkClass =
   "px-2.5 xl:px-3 2xl:px-3.5 py-1.5 rounded-full text-xs xl:text-[13px] 2xl:text-sm font-medium transition-all duration-300 whitespace-nowrap";
 
+function entryId(entry: PublicNavEntry): string {
+  return String(entry.id ?? entry._id ?? "");
+}
+
+function toLeafLink(entry: PublicNavEntry): PublicNavLink {
+  return {
+    label: String(entry.label ?? ""),
+    href: String(entry.url ?? "/"),
+    openInNewTab: Boolean(entry.openInNewTab),
+  };
+}
+
+/** Build top-level links with optional dropdown children; orphans are dropped. */
 function mapCmsNav(entries: PublicNavEntry[]): PublicNavLink[] {
-  return entries
-    .filter((l) => l.isActive !== false)
+  const active = entries.filter((l) => l.isActive !== false);
+  const byId = new Map(active.map((l) => [entryId(l), l]));
+  const childrenOf = new Map<string, PublicNavEntry[]>();
+
+  for (const entry of active) {
+    const parentId = entry.parentId ? String(entry.parentId) : "";
+    if (!parentId || !byId.has(parentId)) continue;
+    const list = childrenOf.get(parentId) ?? [];
+    list.push(entry);
+    childrenOf.set(parentId, list);
+  }
+
+  return active
+    .filter((e) => !e.parentId)
     .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
-    .map((l) => ({
-      label: String(l.label ?? ""),
-      href: String(l.url ?? "/"),
-      openInNewTab: Boolean(l.openInNewTab),
-    }));
+    .map((e) => {
+      const kids = (childrenOf.get(entryId(e)) ?? [])
+        .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
+        .map(toLeafLink);
+      const link = toLeafLink(e);
+      return kids.length > 0 ? { ...link, children: kids } : link;
+    });
+}
+
+function isExternalHref(href: string, openInNewTab?: boolean) {
+  return openInNewTab || /^https?:\/\//.test(href);
+}
+
+function isPlaceholderHref(href: string) {
+  return !href || href === "#";
 }
 
 function usePublicNav(location: "header" | "footer_col_1" | "footer_col_2", initial?: PublicNavEntry[]) {
@@ -69,8 +119,9 @@ function usePublicNav(location: "header" | "footer_col_1" | "footer_col_2", init
         query: { location },
         signal,
       }),
-    initialData: initial,
-    staleTime: 60_000,
+    placeholderData: initial,
+    staleTime: 0,
+    refetchOnMount: "always" as const,
     retry: 2,
   });
 }
@@ -83,7 +134,7 @@ function FooterNavList({ links }: { links: PublicNavLink[] }) {
     <>
       {links.map((l) => (
         <li key={`footer-${l.label}-${l.href}`}>
-          {l.openInNewTab || /^https?:\/\//.test(l.href) ? (
+          {isExternalHref(l.href, l.openInNewTab) ? (
             <a
               href={l.href}
               target="_blank"
@@ -106,9 +157,233 @@ function FooterNavList({ links }: { links: PublicNavLink[] }) {
   );
 }
 
+function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: string }) {
+  const children = link.children ?? [];
+  if (children.length === 0) {
+    if (isExternalHref(link.href, link.openInNewTab)) {
+      return (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(navLinkClass, "text-muted-foreground hover:text-primary hover:bg-muted/50")}
+        >
+          {link.label}
+        </a>
+      );
+    }
+    const isActive = pathname === link.href;
+    return (
+      <Link
+        href={link.href}
+        className={cn(
+          navLinkClass,
+          isActive
+            ? "bg-background text-primary shadow-sm"
+            : "text-muted-foreground hover:text-primary hover:bg-muted/50",
+        )}
+      >
+        {link.label}
+      </Link>
+    );
+  }
+
+  const childActive = children.some((c) => pathname === c.href);
+  const triggerClass = cn(
+    navLinkClass,
+    "inline-flex items-center gap-1",
+    childActive
+      ? "bg-background text-primary shadow-sm"
+      : "text-muted-foreground hover:text-primary hover:bg-muted/50",
+  );
+
+  return (
+    <div className="relative group">
+      {isPlaceholderHref(link.href) || isExternalHref(link.href, link.openInNewTab) ? (
+        <button type="button" className={triggerClass} aria-haspopup="menu">
+          {link.label}
+          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+        </button>
+      ) : (
+        <Link href={link.href} className={triggerClass} aria-haspopup="menu">
+          {link.label}
+          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+        </Link>
+      )}
+      <div
+        role="menu"
+        className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full pt-2 z-50 min-w-[10rem]"
+      >
+        <div className="rounded-lg border border-border bg-background shadow-lg py-1">
+          {children.map((child) =>
+            isExternalHref(child.href, child.openInNewTab) ? (
+              <a
+                key={`${child.label}-${child.href}`}
+                role="menuitem"
+                href={child.href}
+                target="_blank"
+                rel="noreferrer"
+                className="block px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:bg-muted/50 whitespace-nowrap"
+              >
+                {child.label}
+              </a>
+            ) : (
+              <Link
+                key={`${child.label}-${child.href}`}
+                role="menuitem"
+                href={child.href}
+                className={cn(
+                  "block px-3 py-2 text-sm whitespace-nowrap hover:bg-muted/50",
+                  pathname === child.href ? "text-primary font-medium" : "text-muted-foreground hover:text-primary",
+                )}
+              >
+                {child.label}
+              </Link>
+            ),
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileNavItem({
+  link,
+  pathname,
+  onNavigate,
+}: {
+  link: PublicNavLink;
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const children = link.children ?? [];
+  const [open, setOpen] = useState(false);
+
+  if (children.length === 0) {
+    if (isExternalHref(link.href, link.openInNewTab)) {
+      return (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noreferrer"
+          className="block text-sm font-medium text-foreground hover:text-primary"
+          onClick={onNavigate}
+        >
+          {link.label}
+        </a>
+      );
+    }
+    return (
+      <Link
+        href={link.href}
+        className={cn(
+          "block text-sm font-medium transition-colors",
+          pathname === link.href ? "text-primary" : "text-foreground hover:text-primary",
+        )}
+        onClick={onNavigate}
+      >
+        {link.label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between text-sm font-medium text-foreground hover:text-primary"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>{link.label}</span>
+        <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="pl-3 space-y-1 border-l border-border ml-1">
+          {!isPlaceholderHref(link.href) &&
+            (isExternalHref(link.href, link.openInNewTab) ? (
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-sm text-muted-foreground hover:text-primary py-1"
+                onClick={onNavigate}
+              >
+                {link.label} overview
+              </a>
+            ) : (
+              <Link
+                href={link.href}
+                className={cn(
+                  "block text-sm py-1",
+                  pathname === link.href ? "text-primary" : "text-muted-foreground hover:text-primary",
+                )}
+                onClick={onNavigate}
+              >
+                {link.label} overview
+              </Link>
+            ))}
+          {children.map((child) =>
+            isExternalHref(child.href, child.openInNewTab) ? (
+              <a
+                key={`m-${child.label}-${child.href}`}
+                href={child.href}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-sm text-muted-foreground hover:text-primary py-1"
+                onClick={onNavigate}
+              >
+                {child.label}
+              </a>
+            ) : (
+              <Link
+                key={`m-${child.label}-${child.href}`}
+                href={child.href}
+                className={cn(
+                  "block text-sm py-1",
+                  pathname === child.href ? "text-primary" : "text-muted-foreground hover:text-primary",
+                )}
+                onClick={onNavigate}
+              >
+                {child.label}
+              </Link>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const COOKIE_KEY = "lexnepal_cookie_consent";
 
 export function PublicLayoutShell({
+  children,
+  initialHeaderNav,
+  initialFooterCol1 = [],
+  initialFooterCol2 = [],
+  initialSettings = {},
+}: {
+  children: React.ReactNode;
+  initialHeaderNav: PublicNavEntry[];
+  initialFooterCol1?: PublicNavEntry[];
+  initialFooterCol2?: PublicNavEntry[];
+  initialSettings?: Record<string, unknown>;
+}) {
+  return (
+    <PublicCmsSettingsProvider initialSettings={initialSettings}>
+      <PublicLayoutShellInner
+        initialHeaderNav={initialHeaderNav}
+        initialFooterCol1={initialFooterCol1}
+        initialFooterCol2={initialFooterCol2}
+      >
+        {children}
+      </PublicLayoutShellInner>
+    </PublicCmsSettingsProvider>
+  );
+}
+
+function PublicLayoutShellInner({
   children,
   initialHeaderNav,
   initialFooterCol1 = [],
@@ -119,7 +394,7 @@ export function PublicLayoutShell({
   initialFooterCol1?: PublicNavEntry[];
   initialFooterCol2?: PublicNavEntry[];
 }) {
-  const settings = useCmsSettings("public");
+  const settings = usePublicCmsSettings();
   const { data: headerNav } = usePublicNav("header", initialHeaderNav);
   const { data: footerCol1Nav } = usePublicNav("footer_col_1", initialFooterCol1);
   const { data: footerCol2Nav } = usePublicNav("footer_col_2", initialFooterCol2);
@@ -132,8 +407,8 @@ export function PublicLayoutShell({
   const [cookieDismissed, setCookieDismissed] = useState(true);
   const pathname = usePathname();
 
-  const firmName = String(settings?.firmName || "Srimar Law");
-  const tagline = String(settings?.tagline || "Attorneys at Law");
+  const firmName = String(settings?.firmName ?? "");
+  const tagline = String(settings?.tagline ?? "");
   const logoUrl = typeof settings?.logoUrl === "string" ? settings.logoUrl : "";
   const businessHours = String(settings?.businessHoursText || "Office Hours: Sun-Fri 9AM-6PM");
   const footerTitle1 = String(settings?.footerCol1Title || "Quick Links");
@@ -143,6 +418,12 @@ export function PublicLayoutShell({
   const footer1Links = useMemo(() => mapCmsNav(footerCol1Nav ?? []), [footerCol1Nav]);
   const footer2Links = useMemo(() => mapCmsNav(footerCol2Nav ?? []), [footerCol2Nav]);
   const showNavSkeleton = navLinks.length === 0;
+
+  const ctaLabel = String(settings?.primaryCtaLabel || DEFAULT_PRIMARY_CTA_LABEL);
+  const ctaShortLabel = String(settings?.primaryCtaShortLabel || DEFAULT_PRIMARY_CTA_SHORT_LABEL);
+  const ctaHref = String(settings?.primaryCtaHref || DEFAULT_PRIMARY_CTA_HREF);
+  const privacyHref = String(settings?.privacyPolicyUrl || DEFAULT_PRIVACY_POLICY_URL);
+  const termsHref = String(settings?.termsOfServiceUrl || DEFAULT_TERMS_OF_SERVICE_URL);
 
   const gaId =
     typeof settings?.googleAnalyticsId === "string" &&
@@ -275,16 +556,16 @@ export function PublicLayoutShell({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-y-2">
           <div className="flex flex-wrap gap-4 sm:gap-6">
             <a
-              href={`tel:${settings?.phone || "+97701XXXXXXX"}`}
+              href={settings?.phone ? `tel:${settings.phone}` : undefined}
               className="flex items-center gap-1.5 hover:text-accent transition-colors"
             >
-              <Phone className="w-3.5 h-3.5" /> {settings?.phone || "+977 01 XXXXXXX"}
+              <Phone className="w-3.5 h-3.5" /> {String(settings?.phone ?? "")}
             </a>
             <a
-              href={`mailto:${settings?.email || "info@Srimar Law.com.np"}`}
+              href={settings?.email ? `mailto:${settings.email}` : undefined}
               className="flex items-center gap-1.5 hover:text-accent transition-colors"
             >
-              <Mail className="w-3.5 h-3.5" /> {settings?.email || "info@Srimar Law.com.np"}
+              <Mail className="w-3.5 h-3.5" /> {String(settings?.email ?? "")}
             </a>
           </div>
           <div className="flex items-center gap-4">
@@ -354,36 +635,9 @@ export function PublicLayoutShell({
                   className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border/50 bg-muted/20 max-w-full"
                   aria-label="Main navigation"
                 >
-                  {navLinks.map((l) => {
-                    const isActive = pathname === l.href;
-                    if (l.openInNewTab || /^https?:\/\//.test(l.href)) {
-                      return (
-                        <a
-                          key={`${l.label}-${l.href}`}
-                          href={l.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={cn(navLinkClass, "text-muted-foreground hover:text-primary hover:bg-muted/50")}
-                        >
-                          {l.label}
-                        </a>
-                      );
-                    }
-                    return (
-                      <Link
-                        key={`${l.label}-${l.href}`}
-                        href={l.href}
-                        className={cn(
-                          navLinkClass,
-                          isActive
-                            ? "bg-background text-primary shadow-sm"
-                            : "text-muted-foreground hover:text-primary hover:bg-muted/50",
-                        )}
-                      >
-                        {l.label}
-                      </Link>
-                    );
-                  })}
+                  {navLinks.map((l) => (
+                    <DesktopNavItem key={`${l.label}-${l.href}`} link={l} pathname={pathname} />
+                  ))}
                 </nav>
               )}
             </div>
@@ -395,9 +649,9 @@ export function PublicLayoutShell({
                 size="sm"
                 className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm font-medium shrink-0 text-xs xl:text-sm px-3 xl:px-4"
               >
-                <Link href="/consultation">
-                  <span className="hidden 2xl:inline">Book Consultation</span>
-                  <span className="2xl:hidden">Book Now</span>
+                <Link href={ctaHref}>
+                  <span className="hidden 2xl:inline">{ctaLabel}</span>
+                  <span className="2xl:hidden">{ctaShortLabel}</span>
                   <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
                 </Link>
               </Button>
@@ -428,32 +682,14 @@ export function PublicLayoutShell({
                 ))}
               </div>
             ) : (
-              navLinks.map((l) =>
-                /^https?:\/\//.test(l.href) || l.openInNewTab ? (
-                  <a
-                    key={`m-${l.label}-${l.href}`}
-                    href={l.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block text-sm font-medium text-foreground hover:text-primary"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {l.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={`m-${l.label}-${l.href}`}
-                    href={l.href}
-                    className={cn(
-                      "block text-sm font-medium transition-colors",
-                      pathname === l.href ? "text-primary" : "text-foreground hover:text-primary",
-                    )}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {l.label}
-                  </Link>
-                ),
-              )
+              navLinks.map((l) => (
+                <MobileNavItem
+                  key={`m-${l.label}-${l.href}`}
+                  link={l}
+                  pathname={pathname}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              ))
             )}
             <div className="pt-2 flex flex-col gap-3">
               <PublicHeaderAuth mobile />
@@ -462,8 +698,8 @@ export function PublicLayoutShell({
                 size="sm"
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm font-medium"
               >
-                <Link href="/consultation">
-                  Book Consultation <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                <Link href={ctaHref}>
+                  {ctaLabel} <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
                 </Link>
               </Button>
             </div>
@@ -489,8 +725,7 @@ export function PublicLayoutShell({
                 <span className="font-serif text-xl font-bold truncate">{firmName}</span>
               </div>
               <p className="text-sm text-primary-foreground/70 max-w-xs mb-4 break-words [overflow-wrap:anywhere]">
-                {tagline ||
-                  "Nepal's premier legal practice. Trusted advocates across Kathmandu."}
+                {tagline}
               </p>
               <div className="flex gap-3 flex-wrap">
                 {settings?.facebookUrl && (
@@ -523,6 +758,26 @@ export function PublicLayoutShell({
                     <Twitter className="w-4 h-4" />
                   </a>
                 )}
+                {settings?.instagramUrl && (
+                  <a
+                    href={settings.instagramUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-9 h-9 rounded-full bg-primary-foreground/10 hover:bg-accent/20 flex items-center justify-center transition-colors"
+                  >
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                )}
+                {settings?.youtubeUrl && (
+                  <a
+                    href={settings.youtubeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-9 h-9 rounded-full bg-primary-foreground/10 hover:bg-accent/20 flex items-center justify-center transition-colors"
+                  >
+                    <Youtube className="w-4 h-4" />
+                  </a>
+                )}
               </div>
             </div>
 
@@ -544,6 +799,11 @@ export function PublicLayoutShell({
               <div>
                 <h3 className="font-serif text-lg font-semibold mb-4">Contact</h3>
                 <ul className="space-y-2 text-sm text-primary-foreground/70">
+                  {settings?.address && (
+                    <li className="flex items-start gap-2 break-words [overflow-wrap:anywhere]">
+                      <MapPin className="w-4 h-4 shrink-0 mt-0.5" /> {String(settings.address)}
+                    </li>
+                  )}
                   {settings?.phone && (
                     <li className="flex items-center gap-2 break-words [overflow-wrap:anywhere]">
                       <Phone className="w-4 h-4 shrink-0" /> {settings.phone}
@@ -593,6 +853,18 @@ export function PublicLayoutShell({
               </div>
             </div>
           </div>
+
+          <div className="mt-8 pt-6 border-t border-primary-foreground/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-primary-foreground/60">
+            <span>© {new Date().getFullYear()} {firmName || "Law Firm"}. All rights reserved.</span>
+            <div className="flex flex-wrap gap-4">
+              <Link href={privacyHref} className="hover:text-accent transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href={termsHref} className="hover:text-accent transition-colors">
+                Terms of Service
+              </Link>
+            </div>
+          </div>
         </div>
       </footer>
 
@@ -600,7 +872,7 @@ export function PublicLayoutShell({
         <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 rounded-lg border border-border bg-background shadow-lg p-4 space-y-3">
           <p className="text-sm text-muted-foreground">
             We use cookies to improve your experience on this site. See our{" "}
-            <Link href={String(settings.privacyPolicyUrl || "/privacy")} className="underline">
+            <Link href={privacyHref} className="underline">
               privacy policy
             </Link>
             .

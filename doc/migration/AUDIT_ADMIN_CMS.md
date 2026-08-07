@@ -14,10 +14,10 @@
 | --- | --- |
 | Domain authority (PG + `/api/v1/cms*` + `cms:verify-local`) | **Done** (`PHASE_8_2`) |
 | Admin routes (12 CMS pages under `/admin/cms`) | **Present** and linked from admin layout |
-| Public E2E connectivity (admin save → API → public read) | **Mostly wired** with **blocking product bugs** |
-| Corporate polish (SEO runtime, footer cols, media library, FAQ CMS, etc.) | **Incomplete / write-only / missing** |
+| Public E2E connectivity (admin save → API → public read) | **Wired locally** — CMS-0…9 fixes applied; run `cms:verify-local` |
+| Corporate polish (SEO runtime, media library, FAQ CMS, sitemap) | **Partial** — CMS-7/10 deferred; hardcoded FAQs remain on some pages |
 
-**One-line:** Backend CMS authority is production-shaped; public site polish is blocked by **settings key mismatches**, **unused footer/SEO/ops settings**, and a **careers `postedDate` validation bug**. Treat remaining work as product phases **CMS-0…CMS-10**, not another Phase 8.2 rebuild.
+**One-line:** Backend CMS authority is production-shaped for localhost; all 12 admin CMS modules route to live APIs. Remaining gaps are **deferred polish** (media library, FAQ/sitemap CMS), not broken admin→public pipes.
 
 ---
 

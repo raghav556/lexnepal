@@ -1,6 +1,6 @@
 import { requireSession } from "@/server/auth/runtime";
 import { buildAuditContext } from "@/server/audit/context";
-import { cmsCollectionSchema, inputSchemaFor } from "@/server/http/cms-validation";
+import { cmsCollectionSchema, inputSchemaFor, patchInputSchemaFor } from "@/server/http/cms-validation";
 import { withApiHandler } from "@/server/http/handler";
 import { jsonResponse } from "@/server/http/response";
 import { parseJson } from "@/server/http/validation";
@@ -17,7 +17,7 @@ export const PATCH = (request: Request, context: Context) =>
         principal,
         collection,
         cmsIdSchema.parse(params.id),
-        await parseJson(handled, inputSchemaFor(collection)),
+        await parseJson(handled, patchInputSchemaFor(collection)),
         buildAuditContext(handled, requestId, principal),
       ),
     });

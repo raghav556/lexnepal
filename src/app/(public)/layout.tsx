@@ -3,6 +3,10 @@ import type { ReactNode } from "react";
 import { getCmsService } from "@/server/services/cms-service";
 import { PublicLayoutShell, type PublicNavEntry } from "./public-layout-shell";
 
+/** CMS content must refresh on every request — never bake admin edits into a static shell. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function loadNav(location: string): Promise<PublicNavEntry[]> {
   try {
     return (await getCmsService().listPublic(
@@ -14,10 +18,18 @@ async function loadNav(location: string): Promise<PublicNavEntry[]> {
   }
 }
 
+async function loadSettings(): Promise<Record<string, unknown>> {
+  try {
+    return (await getCmsService().getPublicSettings()) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const settings = await getCmsService().getPublicSettings();
-    const firmName = String(settings.firmName || "Srimar Law");
+    const settings = await loadSettings();
+    const firmName = String(settings.firmName || "Law Firm");
     const format = typeof settings.seoTitleFormat === "string" ? settings.seoTitleFormat : "";
     const template = format.includes("%s") ? format : `%s | ${firmName}`;
     const description =
@@ -32,17 +44,18 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   } catch {
     return {
-      title: "Srimar Law",
+      title: "Law Firm",
       description: "Legal practice in Nepal",
     };
   }
 }
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
-  const [initialHeaderNav, initialFooterCol1, initialFooterCol2] = await Promise.all([
+  const [initialHeaderNav, initialFooterCol1, initialFooterCol2, initialSettings] = await Promise.all([
     loadNav("header"),
     loadNav("footer_col_1"),
     loadNav("footer_col_2"),
+    loadSettings(),
   ]);
 
   return (
@@ -50,6 +63,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       initialHeaderNav={initialHeaderNav}
       initialFooterCol1={initialFooterCol1}
       initialFooterCol2={initialFooterCol2}
+      initialSettings={initialSettings}
     >
       {children}
     </PublicLayoutShell>

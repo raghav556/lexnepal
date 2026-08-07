@@ -4,7 +4,8 @@ import { RevealText, FadeInUp, HoverGlowCard, PREMIUM_EASE } from "@/components/
 import { ArrowRight, Shield, Clock, Award, Users, Phone, MapPin, ChevronDown, MessageSquare, FileCheck, Gavel, Briefcase, Scale, Building2, Smartphone, Download } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { useBlogPosts, useCmsSettings, usePracticeAreas, usePublicTeam, useTestimonials } from "@/client/queries/cms";
+import { useBlogPosts, usePracticeAreas, usePublicTeam, useTestimonials } from "@/client/queries/cms";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
 import { resolvePublicTitle } from "@/shared/leadership";
 import { useState, useEffect, useRef } from "react";
@@ -111,7 +112,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function HomePage() {
-  const settings = useCmsSettings("public");
+  const settings = usePublicCmsSettings();
+  const firmName = String(settings?.firmName ?? "Our Firm");
   const practiceAreas = usePracticeAreas({ isActive: true }, "public") || [];
   const testimonials = useTestimonials({ isApproved: true }, "public") || [];
   const publicTeam = usePublicTeam() || [];
@@ -369,7 +371,7 @@ export default function HomePage() {
       <section className="py-12 sm:py-16 lg:py-20 bg-secondary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
           <div className="text-center mb-8 sm:mb-12">
-            <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">Why Srimar Law</RevealText>
+            <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">Why {firmName}</RevealText>
             <FadeInUp delay={0.1}>
               <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-1">We combine legal excellence with modern technology so you always know where your matter stands.</p>
             </FadeInUp>
@@ -485,11 +487,11 @@ export default function HomePage() {
                   </div>
                 </FadeInUp>
                 <RevealText as="h2" delay={0.2} className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-                  {settings.mobileAppTitle || "Srimar Law Mobile App"}
+                  {settings?.mobileAppTitle || `${firmName} Mobile App`}
                 </RevealText>
                 <FadeInUp delay={0.3}>
                   <p className="text-base sm:text-lg text-primary-foreground/80 max-w-xl leading-relaxed mx-auto md:mx-0">
-                    {settings.mobileAppDescription || "Get legal assistance at your fingertips. Coming soon to iOS and Android."}
+                    {settings?.mobileAppDescription || "Get legal assistance at your fingertips. Coming soon to iOS and Android."}
                   </p>
                 </FadeInUp>
 
@@ -526,7 +528,7 @@ export default function HomePage() {
                       <div className="h-10 w-10 rounded-xl bg-accent text-accent-foreground flex items-center justify-center">
                         <Scale className="w-6 h-6" />
                       </div>
-                      <h3 className="font-serif font-bold text-lg sm:text-xl">Srimar Law</h3>
+                      <h3 className="font-serif font-bold text-lg sm:text-xl">{firmName}</h3>
                       <div className="space-y-2">
                         <div className="h-16 sm:h-24 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground text-xs">Case Updates</div>
                         <div className="h-16 sm:h-24 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground text-xs">Direct Messaging</div>
@@ -550,7 +552,7 @@ export default function HomePage() {
             <div className="text-center mb-8 sm:mb-12">
               <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">Client Stories</RevealText>
               <FadeInUp delay={0.1}>
-                <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-1">What our clients say about working with Srimar Law.</p>
+                <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-1">What our clients say about working with {firmName}.</p>
               </FadeInUp>
             </div>
 
@@ -785,8 +787,10 @@ export default function HomePage() {
             </div>
           </FadeInUp>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-primary-foreground/60">
-            <span className="inline-flex items-center justify-center gap-1.5 break-all"><Phone className="w-3.5 h-3.5 shrink-0" /> {settings?.phone || "+977 01 XXXXXXX"}</span>
-            <span className="inline-flex items-start sm:items-center justify-center gap-1.5 text-center sm:text-left max-w-sm mx-auto"><MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 sm:mt-0" /> <span className="break-words">{settings?.address || "Thapathali, M8QF+22X, Swet Binayak Marg, Kathmandu, Nepal"}</span></span>
+            <span className="inline-flex items-center justify-center gap-1.5 break-all"><Phone className="w-3.5 h-3.5 shrink-0" /> {settings?.phone ?? ""}</span>
+            {settings?.address && (
+              <span className="inline-flex items-start sm:items-center justify-center gap-1.5 text-center sm:text-left max-w-sm mx-auto"><MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 sm:mt-0" /> <span className="break-words">{settings.address}</span></span>
+            )}
           </div>
         </div>
       </section>

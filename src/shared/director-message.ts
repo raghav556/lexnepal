@@ -16,14 +16,12 @@ export const DEFAULT_DIRECTOR_MESSAGE: DirectorMessageSettings = {
   isVisible: true,
   sectionTitle: "Message from Managing Partner",
   message:
-    "At Srimar Law, we believe every client deserves clarity, integrity, and relentless advocacy. " +
+    "We believe every client deserves clarity, integrity, and relentless advocacy. " +
     "Our firm combines deep courtroom experience with modern transparency — so you always know where your matter stands.",
-  name: "Adv. Rajesh Sharma",
+  name: "Managing Partner",
   designation: "Managing Partner",
-  photoUrl:
-    "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80",
-  signatureUrl:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Joe_Biden_signature.svg/320px-Joe_Biden_signature.svg.png",
+  photoUrl: undefined,
+  signatureUrl: undefined,
   ctaLabel: "View Full Profile",
 };
 
@@ -64,8 +62,9 @@ export function resolveDirectorProfile(
     : undefined;
 
   const name = member?.name ?? member?.fullName ?? config.name;
+  // Homepage CMS photo wins when set (local upload or URL); fall back to linked team avatar.
   const photoUrl =
-    member?.avatarUrl ?? member?.avatar ?? config.photoUrl ?? undefined;
+    config.photoUrl ?? member?.avatarUrl ?? member?.avatar ?? undefined;
   const designation =
     config.designation.trim() || resolvePublicTitle(member) || DEFAULT_DIRECTOR_MESSAGE.designation;
   const profileHref = config.teamMemberId ? `/lawyers/${config.teamMemberId}` : "/lawyers";

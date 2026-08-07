@@ -47,7 +47,7 @@ export default function AdminCMSTestimonials() {
     try {
       const payload = {
         clientName: formData.name,
-        company: formData.company || null,
+        ...(formData.company.trim() ? { company: formData.company.trim() } : {}),
         quote: formData.text,
         rating: formData.rating,
         isApproved: formData.isApproved,

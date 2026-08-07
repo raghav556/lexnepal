@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useCmsSettings } from "@/client/queries/cms";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 
 export function ThemeEngine() {
-  const settings = useCmsSettings("public");
+  const settings = usePublicCmsSettings();
 
   useEffect(() => {
     if (settings) {

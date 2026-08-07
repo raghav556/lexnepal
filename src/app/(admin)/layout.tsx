@@ -169,7 +169,7 @@ function AdminMobileChrome() {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark min-h-screen text-foreground">
+    <div className="dark min-h-screen bg-background text-foreground">
       <PortalRoleGuard
         allowed="admin"
         title="Admin Console"
@@ -179,9 +179,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <IdleSessionGuard />
         <div className="flex h-screen overflow-hidden bg-background">
           <AdminDesktopSidebar />
-          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
             <AdminMobileChrome />
-            <main className="flex-1 min-w-0 overflow-auto bg-background">
+            <main className="flex-1 min-w-0 overflow-auto bg-background text-foreground">
               {children}
             </main>
           </div>

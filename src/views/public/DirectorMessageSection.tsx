@@ -12,11 +12,25 @@ import {
 type DirectorMessageSectionProps = {
   settings?: Record<string, unknown>;
   team?: Array<Record<string, unknown>>;
+  /** Admin editor: render even when hidden on the public site. */
+  previewMode?: boolean;
 };
 
-export function DirectorMessageSection({ settings, team = [] }: DirectorMessageSectionProps) {
+export function DirectorMessageSection({
+  settings,
+  team = [],
+  previewMode = false,
+}: DirectorMessageSectionProps) {
   const config = parseDirectorMessage(settings?.director_message);
-  if (!config?.isVisible || !config.message.trim()) return null;
+  if (!config?.message.trim()) {
+    if (!previewMode) return null;
+    return (
+      <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        Add a director message to preview this section.
+      </div>
+    );
+  }
+  if (!config.isVisible && !previewMode) return null;
 
   const { name, photoUrl, designation, profileHref } = resolveDirectorProfile(
     config,
@@ -26,6 +40,11 @@ export function DirectorMessageSection({ settings, team = [] }: DirectorMessageS
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-secondary relative overflow-hidden">
+      {previewMode && !config.isVisible && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-amber-500/90 text-amber-950 text-xs font-medium px-3 py-1 shadow">
+          Hidden on public site — enable &quot;Show on homepage&quot; to publish
+        </div>
+      )}
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{

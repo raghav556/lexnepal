@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   bigint,
@@ -799,6 +800,37 @@ export const avatarUploadIntents = pgTable(
     uniqueIndex("avatar_upload_intents_quarantine_key_unique").on(table.quarantineKey),
     index("avatar_upload_intents_firm_status_idx").on(table.firmId, table.status, table.expiresAt),
     index("avatar_upload_intents_user_idx").on(table.firmId, table.userId),
+  ],
+);
+
+export const cmsAssetUploadIntents = pgTable(
+  "cms_asset_upload_intents",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    purpose: text("purpose").notNull(),
+    originalFileName: text("original_file_name").notNull(),
+    declaredMimeType: text("declared_mime_type").notNull(),
+    declaredSizeBytes: bigint("declared_size_bytes", { mode: "number" }).notNull(),
+    expectedSha256: text("expected_sha256"),
+    actualSha256: text("actual_sha256"),
+    quarantineKey: text("quarantine_key").notNull(),
+    protectedKey: text("protected_key"),
+    status: uploadIntentStatusEnum("status").default("pending").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    failureCode: text("failure_code"),
+    failureDetails: text("failure_details"),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("cms_asset_upload_intents_quarantine_key_unique").on(table.quarantineKey),
+    index("cms_asset_upload_intents_firm_status_idx").on(table.firmId, table.status, table.expiresAt),
+    index("cms_asset_upload_intents_creator_idx").on(table.firmId, table.createdBy),
   ],
 );
 
@@ -2082,11 +2114,13 @@ export const navigation = pgTable(
     ...lifecycleColumns(),
   },
   (table) => [
-    uniqueIndex("navigation_firm_location_order_unique").on(
-      table.firmId,
-      table.location,
-      table.order,
-    ),
+    // Sibling-scoped order: roots (parent_id IS NULL) and children share separate order spaces.
+    uniqueIndex("navigation_firm_location_root_order_unique")
+      .on(table.firmId, table.location, table.order)
+      .where(sql`${table.parentId} is null`),
+    uniqueIndex("navigation_firm_location_child_order_unique")
+      .on(table.firmId, table.location, table.parentId, table.order)
+      .where(sql`${table.parentId} is not null`),
     index("navigation_firm_parent_idx").on(table.firmId, table.parentId),
   ],
 );

@@ -303,7 +303,7 @@ export class PostgresCmsRepository {
       return toDto({ ...created, requirements });
     });
   }
-  async updateCareer(firmId: string, id: string, input: CareerInput, audit: AuditContext) {
+  async updateCareer(firmId: string, id: string, input: Partial<CareerInput>, audit: AuditContext) {
     return database.transaction(async (tx) => {
       const { requirements, ...career } = input;
       const [updated] = await tx
@@ -312,20 +312,32 @@ export class PostgresCmsRepository {
         .where(and(eq(careers.id, id), eq(careers.firmId, firmId), isNull(careers.deletedAt)))
         .returning();
       if (!updated) return null;
-      await tx
-        .delete(careerRequirements)
-        .where(and(eq(careerRequirements.careerId, id), eq(careerRequirements.firmId, firmId)));
-      if (requirements.length)
-        await tx.insert(careerRequirements).values(
-          requirements.map((requirement, position) => ({
-            firmId,
-            careerId: id,
-            requirement,
-            position,
-          })),
-        );
+      let nextRequirements = requirements;
+      if (requirements !== undefined) {
+        await tx
+          .delete(careerRequirements)
+          .where(and(eq(careerRequirements.careerId, id), eq(careerRequirements.firmId, firmId)));
+        if (requirements.length) {
+          await tx.insert(careerRequirements).values(
+            requirements.map((requirement, position) => ({
+              firmId,
+              careerId: id,
+              requirement,
+              position,
+            })),
+          );
+        }
+      } else {
+        nextRequirements = (
+          await tx
+            .select({ requirement: careerRequirements.requirement })
+            .from(careerRequirements)
+            .where(and(eq(careerRequirements.careerId, id), eq(careerRequirements.firmId, firmId)))
+            .orderBy(asc(careerRequirements.position))
+        ).map((row) => row.requirement);
+      }
       await writeAudit(tx, audit, "cms.career_updated", "career", id, null);
-      return toDto({ ...updated, requirements });
+      return toDto({ ...updated, requirements: nextRequirements ?? [] });
     });
   }
   deleteCareer(firmId: string, id: string, audit: AuditContext) {
@@ -537,7 +549,11 @@ export class PostgresCmsRepository {
   ) {
     return database.transaction(async (tx) => {
       const targets = await tx
-        .select({ id: navigation.id })
+        .select({
+          id: navigation.id,
+          parentId: navigation.parentId,
+          location: navigation.location,
+        })
         .from(navigation)
         .where(
           and(
@@ -547,6 +563,9 @@ export class PostgresCmsRepository {
           ),
         );
       if (targets.length !== 2) return false;
+      const [a, b] = targets;
+      // Only swap among siblings (same location + parent).
+      if (a.location !== b.location || a.parentId !== b.parentId) return false;
       await tx
         .update(navigation)
         .set({ order: -1, updatedAt: audit.occurredAt })
@@ -617,16 +636,24 @@ export class PostgresCmsRepository {
   }
 
   async listPublicTeam(firmId: string) {
+    return this.listTeamProfiles(firmId, { publicOnly: true });
+  }
+
+  async listAdminTeam(firmId: string) {
+    return this.listTeamProfiles(firmId, { publicOnly: false });
+  }
+
+  private async listTeamProfiles(firmId: string, options: { publicOnly: boolean }) {
     const team = await database
       .select()
       .from(users)
       .where(
         and(
           eq(users.firmId, firmId),
-          eq(users.isPublicFacing, true),
           eq(users.isActive, true),
           isNull(users.deletedAt),
           sql`${users.role} <> 'client'`,
+          options.publicOnly ? eq(users.isPublicFacing, true) : undefined,
         ),
       )
       .orderBy(asc(users.name));
@@ -671,7 +698,11 @@ export class PostgresCmsRepository {
       return toDto({
         id: row.id,
         name: row.name,
+        email: row.email,
         role: row.role,
+        isPublicFacing: row.isPublicFacing,
+        isPending: row.isPending,
+        isActive: row.isActive,
         avatar: avatarUrl,
         avatarUrl,
         bio: row.bio,

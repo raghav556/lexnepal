@@ -70,6 +70,7 @@ export const queryKeys = {
     newsItem: (id: string) => ["cms", "public", "news-item", id] as const,
     legal: (slug: string) => ["cms", "public", "legal", slug] as const,
     team: ["cms", "public", "team"] as const,
+    adminTeam: ["cms", "admin", "team"] as const,
     applications: (filters: unknown) => ["cms", "admin", "applications", filters] as const,
   },
   financial: {

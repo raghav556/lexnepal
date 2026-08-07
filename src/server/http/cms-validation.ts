@@ -28,4 +28,16 @@ export function inputSchemaFor(collection: CmsCollection) {
   if (collection === "resources") return resourceInputSchema;
   return navigationInputSchema;
 }
+function objectSchemaForPatch(schema: z.ZodTypeAny): z.ZodObject<z.ZodRawShape> {
+  if (schema instanceof z.ZodEffects) {
+    return objectSchemaForPatch(schema._def.schema);
+  }
+  if (schema instanceof z.ZodObject) {
+    return schema;
+  }
+  throw new Error("Unsupported CMS patch schema");
+}
+export function patchInputSchemaFor(collection: CmsCollection) {
+  return objectSchemaForPatch(inputSchemaFor(collection)).partial();
+}
 import "server-only";

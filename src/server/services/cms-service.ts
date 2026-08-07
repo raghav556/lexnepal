@@ -4,7 +4,7 @@ import type { AuthPrincipal } from "@/server/auth/types";
 import type { AuditContext } from "@/server/audit/context";
 import { requireCapability, requireFirmContext } from "@/server/policies/authorization";
 import { PostgresCmsRepository } from "@/server/repositories/cms-repository";
-import type {
+import {
   ApplicationInput,
   BlogPostInput,
   CareerInput,
@@ -16,6 +16,7 @@ import type {
   ResourceInput,
   TeamProfileInput,
   TestimonialInput,
+  filterPublicCmsSettings,
 } from "@/shared/contracts/cms";
 import { AppError } from "@/shared/errors/api-error";
 
@@ -35,6 +36,14 @@ type CollectionInput =
   | CareerInput
   | ResourceInput
   | NavigationInput;
+type PatchCollectionInput =
+  | Partial<PracticeAreaInput>
+  | Partial<TestimonialInput>
+  | Partial<BlogPostInput>
+  | Partial<NewsInput>
+  | Partial<CareerInput>
+  | Partial<ResourceInput>
+  | Partial<NavigationInput>;
 
 export class CmsService {
   constructor(private readonly repository = new PostgresCmsRepository()) {}
@@ -52,7 +61,7 @@ export class CmsService {
   }
 
   async getPublicSettings() {
-    return sanitizeSettings(await this.repository.getSettings(await this.publicFirmId()));
+    return filterPublicCmsSettings(await this.repository.getSettings(await this.publicFirmId()));
   }
   async getAdminSettings(principal: AuthPrincipal) {
     return this.repository.getSettings(this.managerFirmId(principal));
@@ -131,27 +140,42 @@ export class CmsService {
     principal: AuthPrincipal,
     collection: CmsCollection,
     id: string,
-    input: CollectionInput,
+    input: PatchCollectionInput,
     audit: AuditContext,
   ) {
     const firmId = this.managerFirmId(principal);
     const result =
       collection === "practice-areas"
-        ? await this.repository.updatePracticeArea(firmId, id, input as PracticeAreaInput, audit)
+        ? await this.repository.updatePracticeArea(
+            firmId,
+            id,
+            input as Partial<PracticeAreaInput>,
+            audit,
+          )
         : collection === "testimonials"
-          ? await this.repository.updateTestimonial(firmId, id, input as TestimonialInput, audit)
+          ? await this.repository.updateTestimonial(
+              firmId,
+              id,
+              input as Partial<TestimonialInput>,
+              audit,
+            )
           : collection === "blog-posts"
-            ? await this.repository.updateBlogPost(firmId, id, input as BlogPostInput, audit)
+            ? await this.repository.updateBlogPost(firmId, id, input as Partial<BlogPostInput>, audit)
             : collection === "news"
-              ? await this.repository.updateNews(firmId, id, input as NewsInput, audit)
+              ? await this.repository.updateNews(firmId, id, input as Partial<NewsInput>, audit)
               : collection === "careers"
-                ? await this.repository.updateCareer(firmId, id, input as CareerInput, audit)
+                ? await this.repository.updateCareer(firmId, id, input as Partial<CareerInput>, audit)
                 : collection === "resources"
-                  ? await this.repository.updateResource(firmId, id, input as ResourceInput, audit)
+                  ? await this.repository.updateResource(
+                      firmId,
+                      id,
+                      input as Partial<ResourceInput>,
+                      audit,
+                    )
                   : await this.repository.updateNavigation(
                       firmId,
                       id,
-                      input as NavigationInput,
+                      input as Partial<NavigationInput>,
                       audit,
                     );
     if (!result) throw new AppError("NOT_FOUND", "CMS item was not found", 404);
@@ -271,7 +295,6 @@ export class CmsService {
     input: TeamProfileInput,
     audit: AuditContext,
   ) {
-    requireCapability(principal, "users.manage");
     const result = await this.repository.updateTeamProfile(
       this.managerFirmId(principal),
       userId,
@@ -280,6 +303,9 @@ export class CmsService {
     );
     if (!result) throw new AppError("NOT_FOUND", "Team member was not found", 404);
     return result;
+  }
+  async listAdminTeam(principal: AuthPrincipal) {
+    return this.repository.listAdminTeam(this.managerFirmId(principal));
   }
   reorderNavigation(
     principal: AuthPrincipal,
@@ -290,13 +316,6 @@ export class CmsService {
   }
 }
 
-function sanitizeSettings(settings: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(settings).filter(
-      ([key]) => !/(secret|token|password|private|script|apiKey)/i.test(key),
-    ),
-  );
-}
 function parseBoolean(value: string | null) {
   return value === "true" ? true : value === "false" ? false : undefined;
 }

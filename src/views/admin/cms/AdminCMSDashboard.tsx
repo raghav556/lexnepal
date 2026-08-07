@@ -7,6 +7,7 @@ import { useCmsCommands, useCmsSettings } from "@/client/queries/cms";
 import { Save, Globe, Phone, Mail, MapPin, Image as ImageIcon, Palette, Search, Smartphone, AlertCircle, Shield, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
+import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
 
 // Helper for real-time image preview
 const ImagePreview = ({ url, fallbackText }: { url: string; fallbackText: string }) => {
@@ -60,6 +61,7 @@ export default function AdminCMSDashboard() {
     announcementVisible: false, announcementText: "", announcementLink: "",
     businessHoursText: "", timezone: "Asia/Kathmandu", emergencyPhone: "", emergencyText: "",
     privacyPolicyUrl: "", termsOfServiceUrl: "", cookieConsentEnabled: true,
+    primaryCtaLabel: "", primaryCtaShortLabel: "", primaryCtaHref: "",
     maintenanceModeEnabled: false, maintenanceMessage: "", facebookPixelId: "", liveChatWidgetScript: ""
   });
 
@@ -77,7 +79,8 @@ export default function AdminCMSDashboard() {
         mobileAppBannerVisible: settings.mobileAppBannerVisible || false, mobileAppTitle: settings.mobileAppTitle || "Srimar Law Mobile App", mobileAppDescription: settings.mobileAppDescription || "Get legal assistance at your fingertips. Coming soon to iOS and Android.", mobileAppPlayStoreUrl: settings.mobileAppPlayStoreUrl || "", mobileAppAppStoreUrl: settings.mobileAppAppStoreUrl || "",
         announcementVisible: settings.announcementVisible || false, announcementText: settings.announcementText || "", announcementLink: settings.announcementLink || "",
         businessHoursText: settings.businessHoursText || "", timezone: settings.timezone || "Asia/Kathmandu", emergencyPhone: settings.emergencyPhone || "", emergencyText: settings.emergencyText || "",
-        privacyPolicyUrl: settings.privacyPolicyUrl || "", termsOfServiceUrl: settings.termsOfServiceUrl || "", cookieConsentEnabled: settings.cookieConsentEnabled ?? true,
+        privacyPolicyUrl: settings.privacyPolicyUrl || "/privacy-policy", termsOfServiceUrl: settings.termsOfServiceUrl || "/terms", cookieConsentEnabled: settings.cookieConsentEnabled ?? true,
+        primaryCtaLabel: settings.primaryCtaLabel || "Book Consultation", primaryCtaShortLabel: settings.primaryCtaShortLabel || "Book Now", primaryCtaHref: settings.primaryCtaHref || "/consultation",
         maintenanceModeEnabled: settings.maintenanceModeEnabled || false, maintenanceMessage: settings.maintenanceMessage || "", facebookPixelId: settings.facebookPixelId || "", liveChatWidgetScript: settings.liveChatWidgetScript || ""
       };
       setFormData(data);
@@ -171,6 +174,20 @@ export default function AdminCMSDashboard() {
                       <label className="text-sm font-semibold">Tagline / Slogan</label>
                       <Input type="text" value={formData.tagline} onChange={(e) => setFormData({ ...formData, tagline: e.target.value })} />
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border">
+                      <div className="grid gap-2 md:col-span-1">
+                        <label className="text-sm font-semibold">Header CTA Label</label>
+                        <Input type="text" value={formData.primaryCtaLabel} onChange={(e) => setFormData({ ...formData, primaryCtaLabel: e.target.value })} placeholder="Book Consultation" />
+                      </div>
+                      <div className="grid gap-2 md:col-span-1">
+                        <label className="text-sm font-semibold">CTA Short Label</label>
+                        <Input type="text" value={formData.primaryCtaShortLabel} onChange={(e) => setFormData({ ...formData, primaryCtaShortLabel: e.target.value })} placeholder="Book Now" />
+                      </div>
+                      <div className="grid gap-2 md:col-span-1">
+                        <label className="text-sm font-semibold">CTA Destination</label>
+                        <Input type="text" value={formData.primaryCtaHref} onChange={(e) => setFormData({ ...formData, primaryCtaHref: e.target.value })} placeholder="/consultation" />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </FadeInUp>
@@ -222,25 +239,47 @@ export default function AdminCMSDashboard() {
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
                     <CardTitle className="text-lg sm:text-xl">Brand Assets (Media)</CardTitle>
-                    <CardDescription>Upload or link media files to customize the site's look and feel.</CardDescription>
+                    <CardDescription>
+                      Upload from your device or paste a URL. Images are scanned and stored securely, then shown on the
+                      public site after you save.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold">Firm Logo URL</label>
-                      <Input type="url" value={formData.logoUrl} onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" />
-                      <p className="text-xs text-muted-foreground">External HTTPS URL — shown in header/footer. First-party media library deferred.</p>
+                      <CmsImageUploadField
+                        label="Firm Logo"
+                        purpose="logo"
+                        value={formData.logoUrl || undefined}
+                        onChange={(logoUrl) => setFormData({ ...formData, logoUrl: logoUrl ?? "" })}
+                        placeholder="Upload or https://..."
+                        hint="Shown in the public header and footer. JPEG or PNG, max 5 MB."
+                        hideInlinePreview
+                      />
                       <ImagePreview url={formData.logoUrl} fallbackText="No Logo Provided" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold">Favicon URL</label>
-                      <Input type="url" value={formData.faviconUrl} onChange={(e) => setFormData({ ...formData, faviconUrl: e.target.value })} placeholder="https://example.com/favicon.ico" />
+                      <CmsImageUploadField
+                        label="Favicon"
+                        purpose="favicon"
+                        value={formData.faviconUrl || undefined}
+                        onChange={(faviconUrl) => setFormData({ ...formData, faviconUrl: faviconUrl ?? "" })}
+                        placeholder="Upload or https://..."
+                        hint="Browser tab icon. Prefer a square PNG."
+                        hideInlinePreview
+                      />
                       <ImagePreview url={formData.faviconUrl} fallbackText="No Favicon Provided" />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Hero Background Image URL</label>
-                      <Input type="url" value={formData.heroImageUrl} onChange={(e) => setFormData({ ...formData, heroImageUrl: e.target.value })} placeholder="https://example.com/hero-bg.jpg" />
+                      <CmsImageUploadField
+                        label="Hero Background Image"
+                        purpose="hero_image"
+                        value={formData.heroImageUrl || undefined}
+                        onChange={(heroImageUrl) => setFormData({ ...formData, heroImageUrl: heroImageUrl ?? "" })}
+                        placeholder="Upload or https://..."
+                        hint="Homepage hero background. Leave blank to use the default gradient."
+                        hideInlinePreview
+                      />
                       <ImagePreview url={formData.heroImageUrl} fallbackText="No Hero Image Provided" />
-                      <p className="text-xs text-muted-foreground mt-1">Leave blank to use the default gradient.</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -452,11 +491,11 @@ export default function AdminCMSDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="grid gap-2">
                         <label className="text-sm font-semibold">Privacy Policy URL</label>
-                        <Input type="url" value={formData.privacyPolicyUrl} onChange={(e) => setFormData({ ...formData, privacyPolicyUrl: e.target.value })} placeholder="/privacy" />
+                        <Input type="text" value={formData.privacyPolicyUrl} onChange={(e) => setFormData({ ...formData, privacyPolicyUrl: e.target.value })} placeholder="/privacy-policy" />
                       </div>
                       <div className="grid gap-2">
                         <label className="text-sm font-semibold">Terms of Service URL</label>
-                        <Input type="url" value={formData.termsOfServiceUrl} onChange={(e) => setFormData({ ...formData, termsOfServiceUrl: e.target.value })} placeholder="/terms" />
+                        <Input type="text" value={formData.termsOfServiceUrl} onChange={(e) => setFormData({ ...formData, termsOfServiceUrl: e.target.value })} placeholder="/terms" />
                       </div>
                     </div>
                   </CardContent>

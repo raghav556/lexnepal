@@ -721,11 +721,19 @@
   },
   {
     "table": "navigation",
-    "index": "navigation_firm_location_order_unique",
+    "index": "navigation_firm_location_root_order_unique",
     "unique": true,
-    "columnsOrExpression": "firm_id,location,display_order",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Enforce navigation business or tenant uniqueness"
+    "columnsOrExpression": "firm_id,location,display_order WHERE parent_id IS NULL",
+    "migration": "drizzle/0017_navigation_sibling_order_unique.sql",
+    "queryPattern": "Enforce root navigation order uniqueness per location"
+  },
+  {
+    "table": "navigation",
+    "index": "navigation_firm_location_child_order_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,location,parent_id,display_order WHERE parent_id IS NOT NULL",
+    "migration": "drizzle/0017_navigation_sibling_order_unique.sql",
+    "queryPattern": "Enforce sibling navigation order uniqueness under a parent"
   },
   {
     "table": "navigation",

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLeadCommands } from "@/client/queries/crm";
-import { useCmsSettings } from "@/client/queries/cms";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { Link } from "@/client/navigation";
@@ -36,7 +36,7 @@ const pad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const { createPublicLead } = useLeadCommands();
-  const settings = useCmsSettings("public");
+  const settings = usePublicCmsSettings();
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -75,7 +75,7 @@ export default function ContactPage() {
             <span className="block mb-2 font-medium">Need immediate assistance?</span>
             Call us directly at{" "}
             <strong className="text-foreground text-base break-all">
-              {settings?.phone || "+977-9860520520"}
+              {settings?.phone ?? ""}
             </strong>
           </div>
           <Button
@@ -94,32 +94,30 @@ export default function ContactPage() {
     {
       icon: Phone,
       label: "Call Us",
-      value: settings?.phone || "+977-9860520520",
-      sub: settings?.businessHoursText || "Sun–Fri 9:00 AM – 6:00 PM",
+      value: settings?.phone ?? "",
+      sub: settings?.businessHoursText ?? "",
     },
     {
       icon: Mail,
       label: "Email Us",
-      value: settings?.email || "mail@srimarlaw.com.np",
+      value: settings?.email ?? "",
       sub: "Response within 24 hours",
     },
     {
       icon: MapPin,
       label: "Visit Us",
-      value:
-        settings?.address ||
-        "Thapathali, M8QF+22X, Swet Binayak Marg, Kathmandu",
-      sub: "Nepal 44600",
+      value: settings?.address ?? "",
+      sub: "Nepal",
     },
     {
       icon: Clock,
       label: "Office Hours",
-      value: settings?.businessHoursText || "Sun–Fri: 9:00 AM – 6:00 PM",
+      value: settings?.businessHoursText ?? "",
       sub: settings?.emergencyPhone
         ? `Emergency: ${settings.emergencyPhone}`
-        : "Sat: Closed",
+        : "",
     },
-  ];
+  ].filter((card) => card.value || card.sub);
 
   return (
     <div className="min-h-screen bg-background w-full max-w-[100vw] min-w-0 overflow-x-clip">
@@ -200,8 +198,8 @@ export default function ContactPage() {
               {/* Non-absolute iframe — prevents Maps UI from sticking under the header */}
               <div className="w-full h-[220px] sm:h-[280px] md:h-[300px] rounded-2xl overflow-hidden border border-border/50 shadow-sm bg-muted relative isolate">
                 <iframe
-                  title="Srimar Law office location"
-                  src="https://maps.google.com/maps?q=Srimar+Law,+Thapathali,+Swet+Binayak+Marg,+Kathmandu&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  title="Office location"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(String(settings?.address ?? "Kathmandu, Nepal"))}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

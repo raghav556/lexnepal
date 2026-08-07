@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Save, UserCircle2 } from "lucide-react";
+import { AlertTriangle, Save, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { useCmsCommands, useCmsSettings } from "@/client/queries/cms";
-import { usePublicTeam } from "@/client/queries/cms";
+import { useAdminTeam, useCmsCommands, useCmsSettings } from "@/client/queries/cms";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,39 +10,55 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   DEFAULT_DIRECTOR_MESSAGE,
   filterLeadershipTeam,
+  parseDirectorMessage,
   resolveDirectorProfile,
   resolvePublicTitle,
   type DirectorMessageSettings,
 } from "@/shared/director-message";
 import { LEADERSHIP_TITLE_EXAMPLES } from "@/shared/leadership";
+import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
+import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
 
 export default function AdminCMSHomepage() {
   const settings = useCmsSettings("admin") || {};
-  const team = usePublicTeam() || [];
-  const leadershipTeam = useMemo(() => filterLeadershipTeam(team), [team]);
+  const adminTeam = useAdminTeam() || [];
+  const leadershipTeam = useMemo(() => filterLeadershipTeam(adminTeam), [adminTeam]);
   const { updateSettings } = useCmsCommands();
   const [form, setForm] = useState<DirectorMessageSettings>(DEFAULT_DIRECTOR_MESSAGE);
+  const [initialForm, setInitialForm] = useState<DirectorMessageSettings>(DEFAULT_DIRECTOR_MESSAGE);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const raw = settings.director_message as DirectorMessageSettings | undefined;
-    if (raw && typeof raw === "object" && raw.message) {
-      setForm({ ...DEFAULT_DIRECTOR_MESSAGE, ...raw });
+    const parsed = parseDirectorMessage(settings.director_message);
+    if (parsed) {
+      setForm(parsed);
+      setInitialForm(parsed);
     }
   }, [settings.director_message]);
 
   const preview = useMemo(
-    () => resolveDirectorProfile(form, team as Parameters<typeof resolveDirectorProfile>[1]),
-    [form, team],
+    () => resolveDirectorProfile(form, adminTeam as Parameters<typeof resolveDirectorProfile>[1]),
+    [form, adminTeam],
   );
 
+  const linkedMember = useMemo(
+    () =>
+      form.teamMemberId
+        ? adminTeam.find((m: { _id?: string; id?: string }) => (m._id ?? m.id) === form.teamMemberId)
+        : undefined,
+    [adminTeam, form.teamMemberId],
+  );
+
+  const hasUnsavedChanges = JSON.stringify(form) !== JSON.stringify(initialForm);
+
   const handleTeamChange = (teamMemberId: string) => {
-    const member = leadershipTeam.find((t: any) => (t._id ?? t.id) === teamMemberId);
+    const member = leadershipTeam.find((t: { _id?: string; id?: string }) => (t._id ?? t.id) === teamMemberId);
     setForm((prev) => ({
       ...prev,
       teamMemberId: teamMemberId || undefined,
-      name: member?.name ?? member?.fullName ?? prev.name,
-      photoUrl: member?.avatarUrl ?? member?.avatar ?? prev.photoUrl,
+      name: member?.name ?? prev.name,
+      // Keep an explicit homepage photo; only seed from avatar when none is set yet.
+      photoUrl: prev.photoUrl || member?.avatarUrl || member?.avatar || undefined,
       designation: member ? resolvePublicTitle(member) : prev.designation,
     }));
   };
@@ -58,7 +73,13 @@ export default function AdminCMSHomepage() {
       await updateSettings({
         settings: [{ key: "director_message", value: form }],
       });
+      setInitialForm(form);
       toast.success("Homepage director message saved.");
+      if (form.teamMemberId && linkedMember && linkedMember.isPublicFacing === false) {
+        toast.warning(
+          "The linked team member is not public-facing — profile link will 404 until you feature them in CMS → Team.",
+        );
+      }
     } catch {
       toast.error("Failed to save director message.");
     } finally {
@@ -72,14 +93,33 @@ export default function AdminCMSHomepage() {
         <div className="min-w-0">
           <h2 className="text-xl sm:text-3xl font-bold tracking-tight font-serif">Homepage — Director Message</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Photo, message, and signature shown on the public homepage. Links to the director&apos;s profile page.
+            Director message block on the public homepage (<code className="text-xs">/</code>). Hero, tagline, and
+            mobile-app banner are managed under{" "}
+            <a href="/admin/cms" className="text-primary underline-offset-2 hover:underline">
+              Site Settings
+            </a>
+            .
           </p>
         </div>
         <Button onClick={handleSave} disabled={isSaving} className="shrink-0 w-full sm:w-auto">
           <Save className="w-4 h-4 mr-2" />
-          Save Changes
+          {isSaving ? "Saving..." : hasUnsavedChanges ? "Save Changes" : "Saved"}
         </Button>
       </div>
+
+      {form.teamMemberId && linkedMember && linkedMember.isPublicFacing === false && (
+        <div className="flex gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-100">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p>
+            <strong>{linkedMember.name}</strong> is not public-facing. The &quot;View profile&quot; button will not
+            work until you feature them on{" "}
+            <a href="/admin/cms/team" className="underline font-medium">
+              CMS → Team
+            </a>
+            .
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -124,16 +164,18 @@ export default function AdminCMSHomepage() {
               value={form.teamMemberId ?? ""}
               onChange={(e) => handleTeamChange(e.target.value)}
             >
-              <option value="">— Manual entry (links to /lawyers) —</option>
-              {leadershipTeam.map((member: any) => (
-                <option key={member._id ?? member.id} value={member._id ?? member.id}>
-                  {member.name ?? member.fullName} — {resolvePublicTitle(member)}
+              <option value="">— Manual entry (links to /lawyers directory) —</option>
+              {leadershipTeam.map((member: Record<string, unknown>) => (
+                <option key={String(member._id ?? member.id)} value={String(member._id ?? member.id)}>
+                  {String(member.name ?? "")}
+                  {member.isPublicFacing === false ? " (not public yet)" : ""} —{" "}
+                  {resolvePublicTitle(member as { role?: string; leadershipTitle?: string | null })}
                 </option>
               ))}
             </select>
             {leadershipTeam.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                No public partners or senior associates yet. Mark a team member as Public in CMS → Team.
+                No partners or senior associates in this firm yet. Add staff in Admin → Users, then set their role.
               </p>
             )}
           </div>
@@ -161,28 +203,22 @@ export default function AdminCMSHomepage() {
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Photo URL</Label>
-              <Input
-                value={form.photoUrl ?? ""}
-                onChange={(e) => setForm((p) => ({ ...p, photoUrl: e.target.value || undefined }))}
-                placeholder="https://..."
-              />
-              {preview.photoUrl && (
-                <img src={preview.photoUrl} alt="Preview" className="mt-2 h-24 w-24 rounded-xl object-cover border" />
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Signature image URL</Label>
-              <Input
-                value={form.signatureUrl ?? ""}
-                onChange={(e) => setForm((p) => ({ ...p, signatureUrl: e.target.value || undefined }))}
-                placeholder="https://... (PNG with transparent background)"
-              />
-              {form.signatureUrl && (
-                <img src={form.signatureUrl} alt="Signature preview" className="mt-2 h-10 object-contain" />
-              )}
-            </div>
+            <CmsImageUploadField
+              label="Photo"
+              purpose="director_photo"
+              value={form.photoUrl}
+              onChange={(photoUrl) => setForm((p) => ({ ...p, photoUrl }))}
+              hint="Upload from your device or paste a URL. Used on the public homepage. If empty, falls back to the linked team member's avatar."
+            />
+            <CmsImageUploadField
+              label="Signature image"
+              purpose="director_signature"
+              value={form.signatureUrl}
+              onChange={(signatureUrl) => setForm((p) => ({ ...p, signatureUrl }))}
+              placeholder="https://... (PNG with transparent background)"
+              hint="Upload a PNG signature or paste a URL."
+              previewClassName="mt-2 h-10 object-contain"
+            />
           </div>
           <div className="space-y-2">
             <Label>Button label</Label>
@@ -210,6 +246,20 @@ export default function AdminCMSHomepage() {
             onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
             placeholder="Write the director's message..."
             className="resize-y min-h-[140px]"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Live preview</CardTitle>
+          <CardDescription>Matches the public homepage section at <code>/</code> (below the hero).</CardDescription>
+        </CardHeader>
+        <CardContent className="rounded-xl border border-border overflow-hidden bg-muted/20 p-0">
+          <DirectorMessageSection
+            previewMode
+            settings={{ director_message: form }}
+            team={adminTeam}
           />
         </CardContent>
       </Card>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog.tsx";
-import { Plus, Briefcase, Users, Trash2, Edit, CheckCircle2, XCircle, FileText, ExternalLink, Mail, Phone, Clock, PlusCircle } from "lucide-react";
+import { Plus, Briefcase, Users, Trash2, Edit, CheckCircle2, XCircle, FileText, Mail, Phone, Clock, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
 import { todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
@@ -27,6 +27,7 @@ export default function AdminCMSCareers() {
   const updateAppStatus = ({ id, status }: any) => cms.updateApplicationStatus(id, status);
 
   const [activeTab, setActiveTab] = useState("jobs");
+  const [coverLetterPreview, setCoverLetterPreview] = useState<string | null>(null);
   
   // Job Form State
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -324,14 +325,13 @@ export default function AdminCMSCareers() {
                             </a>
                           )}
                           {app.coverLetter && (
-                            <a
-                              href={app.coverLetter}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => setCoverLetterPreview(app.coverLetter)}
                               className="text-xs text-muted-foreground hover:text-primary hover:underline flex items-center gap-1"
                             >
-                              <ExternalLink className="w-3 h-3" /> Cover Letter
-                            </a>
+                              <FileText className="w-3 h-3" /> Cover Letter
+                            </button>
                           )}
                         </div>
                       </div>
@@ -403,14 +403,13 @@ export default function AdminCMSCareers() {
                                 </a>
                               )}
                               {app.coverLetter && (
-                                <a
-                                  href={app.coverLetter}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() => setCoverLetterPreview(app.coverLetter)}
                                   className="text-xs text-muted-foreground hover:text-primary hover:underline flex items-center gap-1"
                                 >
-                                  <ExternalLink className="w-3 h-3" /> Cover Letter
-                                </a>
+                                  <FileText className="w-3 h-3" /> Cover Letter
+                                </button>
                               )}
                               {!app.resumeUrl && !app.coverLetter && (
                                 <span className="text-xs text-muted-foreground">No documents</span>
@@ -566,6 +565,23 @@ export default function AdminCMSCareers() {
             </Button>
             <Button onClick={handleSaveJob} className="gap-2 w-full sm:w-auto">
               <CheckCircle2 className="w-4 h-4" /> {editingJobId ? "Update Job" : "Post Job"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={coverLetterPreview !== null} onOpenChange={(open) => !open && setCoverLetterPreview(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Cover Letter</DialogTitle>
+            <DialogDescription>Applicant cover letter text</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm text-foreground">
+            {coverLetterPreview}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCoverLetterPreview(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

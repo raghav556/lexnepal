@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
+import { useAdminTeam } from "@/client/queries/cms";
 import { queryKeys } from "@/client/queries/query-keys";
 import type {
   AuditEventDto,
@@ -260,7 +261,7 @@ export function useProfileCommands() {
 
 /** Public team profile editing — identity create/invite lives only on /admin/users. */
 export function useCmsTeamIdentityBridge() {
-  const users = useUsers();
+  const users = useAdminTeam();
   const client = useQueryClient();
   const invalidate = async () => {
     await Promise.all([

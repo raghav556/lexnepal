@@ -98,8 +98,8 @@ export const navigationInputSchema = z.object({
     .min(1)
     .max(2_000)
     .refine(
-      (value) => value.startsWith("/") || /^https:\/\//.test(value),
-      "Navigation URL must be relative or HTTPS",
+      (value) => value === "#" || value.startsWith("/") || /^https:\/\//.test(value),
+      "Navigation URL must be relative, HTTPS, or # for dropdown parents",
     ),
   location: z.enum(["header", "footer_col_1", "footer_col_2"]),
   order: z.number().int().min(0).max(10_000),
@@ -138,6 +138,25 @@ export const teamProfileInputSchema = z
   })
   .refine((value) => Object.keys(value).length > 0, "At least one profile field is required");
 
+export function isForbiddenCmsSettingKey(key: string) {
+  const lower = key.toLowerCase();
+  if (["secret", "token", "password", "apikey"].some((part) => lower.includes(part))) return true;
+  if (/script$/i.test(key)) return true;
+  if (/^private/i.test(key)) return true;
+  return false;
+}
+
+/** Strip sensitive keys from public CMS settings responses (not admin). */
+export function filterPublicCmsSettings(settings: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(settings).filter(([key]) => !isForbiddenCmsSettingKey(key)),
+  );
+}
+
+function isForbiddenCmsSettingKeyInternal(key: string) {
+  return isForbiddenCmsSettingKey(key);
+}
+
 const safeSettingKey = z
   .string()
   .trim()
@@ -145,7 +164,7 @@ const safeSettingKey = z
   .max(100)
   .regex(/^[A-Za-z][A-Za-z0-9_]*$/)
   .refine(
-    (key) => !/(secret|token|password|private|script|apiKey)/i.test(key),
+    (key) => !isForbiddenCmsSettingKeyInternal(key),
     "Sensitive or executable CMS setting keys are forbidden",
   );
 const jsonValueSchema: z.ZodType<unknown> = z.lazy(() =>

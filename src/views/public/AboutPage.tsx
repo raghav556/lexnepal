@@ -3,7 +3,7 @@ import { Link } from "@/client/navigation";
 import { Scale, Shield, Users, Target, Award, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { useCmsSettings } from "@/client/queries/cms";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 
 const ICON_MAP: Record<string, any> = {
   Scale, Shield, Users, Target, Award
@@ -26,12 +26,13 @@ const DEFAULT_TIMELINE = [
 const sectionPad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 
 export default function AboutPage() {
-  const settings = useCmsSettings("public") || {};
+  const settings = usePublicCmsSettings() || {};
+  const firmName = String(settings.firmName ?? "Our Firm");
   const data = settings.about_page || {};
 
   const heroTitle = data.hero?.title || "Modernizing Legal Practice in Nepal";
   const heroDescription = data.hero?.description || "We combine decades of courtroom experience with cutting-edge technology to deliver transparent, efficient, and results-driven legal services.";
-  const missionText = data.mission?.text || "At Srimar Law, we believe that access to quality legal representation should not be a privilege. Our mission is to provide every client — from individuals facing personal legal challenges to multinational corporations navigating Nepal's regulatory landscape — with the same level of dedication, expertise, and transparency.";
+  const missionText = data.mission?.text || heroDescription;
   
   const valuesList = data.values || DEFAULT_VALUES;
   const timelineList = data.timeline || DEFAULT_TIMELINE;
@@ -50,7 +51,7 @@ export default function AboutPage() {
           >
             <div className="inline-flex max-w-full items-center gap-2 bg-accent/20 text-accent px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6">
               <Scale className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">About Srimar Law</span>
+              <span className="truncate">About {firmName}</span>
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight mb-4 sm:mb-6 break-words">
               {heroTitle}

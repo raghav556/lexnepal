@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAppointments, useAppointmentCommands, useAvailableSlots } from "@/client/queries/crm";
+import { useStaffDirectory } from "@/client/queries/identity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -50,9 +51,8 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { toast } from "sonner";
-import { FadeInUp } from "@/components/ui/animations.tsx";
-import { useStaffDirectory } from "@/client/queries/identity";
-import { todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
+import { formatAppointmentDate, todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
+import { DEFAULT_APPOINTMENT_SLOTS } from "@/shared/crm/appointment-slots.ts";
 
 type AptRow = {
   id?: string;
@@ -596,8 +596,7 @@ export default function AdminAppointmentsPage() {
           <Loader2 className="w-5 h-5 animate-spin" /> Loading appointments…
         </div>
       ) : viewMode === "calendar" ? (
-        <FadeInUp>
-          <Card className="overflow-hidden border-border/50 shadow-sm">
+          <Card className="overflow-hidden border-border/50 shadow-sm py-0 gap-0">
             <CardHeader className="bg-muted/30 border-b pb-4 flex flex-row items-center justify-between gap-2 space-y-0">
               <div className="flex items-center gap-2">
                 <Button
@@ -731,7 +730,6 @@ export default function AdminAppointmentsPage() {
               </div>
             </CardContent>
           </Card>
-        </FadeInUp>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {paginatedItems.length === 0 ? (
@@ -746,10 +744,10 @@ export default function AdminAppointmentsPage() {
               const id = aptKey(apt);
               const highlighted = highlightId === id;
               return (
-                <FadeInUp key={id}>
                   <Card
+                    key={id}
                     id={`appointment-${id}`}
-                    className={`overflow-hidden border transition-colors ${
+                    className={`overflow-hidden border py-0 gap-0 transition-colors ${
                       apt.status === "cancelled"
                         ? "opacity-70 bg-muted/30 border-dashed"
                         : "border-border"
@@ -964,23 +962,24 @@ export default function AdminAppointmentsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                </FadeInUp>
               );
             })
           )}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={goToPage}
-            onNextPage={nextPage}
-            onPrevPage={prevPage}
-          />
           {filteredAppointments.length > 0 && (
-            <p className="text-center text-xs text-muted-foreground">
-              Showing {(currentPage - 1) * itemsPerPage + 1}–
-              {Math.min(currentPage * itemsPerPage, filteredAppointments.length)} of{" "}
-              {filteredAppointments.length}
-            </p>
+            <div className="flex flex-col items-center gap-1 pt-2 pb-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                onNextPage={nextPage}
+                onPrevPage={prevPage}
+              />
+              <p className="text-center text-xs text-muted-foreground">
+                Showing {(currentPage - 1) * itemsPerPage + 1}–
+                {Math.min(currentPage * itemsPerPage, filteredAppointments.length)} of{" "}
+                {filteredAppointments.length}
+              </p>
+            </div>
           )}
         </div>
       )}

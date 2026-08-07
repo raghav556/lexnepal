@@ -6,6 +6,7 @@ export const JOB_TYPES = [
   "document.ocr",
   "document.thumbnail",
   "identity.avatar_scan",
+  "cms.asset_scan",
   "kyc.malware_scan",
   "communication.email",
   "communication.sms",

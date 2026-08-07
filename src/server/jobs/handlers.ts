@@ -24,6 +24,7 @@ import type {
 import { getDocumentStorageRuntime } from "@/server/storage/runtime";
 import { getServerEnvironment } from "@/server/env";
 import { getAvatarService } from "@/server/services/avatar-service";
+import { getCmsAssetService } from "@/server/services/cms-asset-service";
 import { getKycService } from "@/server/services/kyc-service";
 
 const database = getDatabase();
@@ -34,6 +35,7 @@ export function createJobHandlers(): ReadonlyMap<JobType, JobHandler> {
     ["document.malware_scan", handleMalwareScan],
     ["document.cleanup", handleDocumentCleanup],
     ["identity.avatar_scan", handleAvatarScan],
+    ["cms.asset_scan", handleCmsAssetScan],
     ["kyc.malware_scan", handleKycScan],
     ["reminder.task", handleTaskReminders],
     ["reminder.hearing", handleHearingReminders],
@@ -82,6 +84,12 @@ async function handleAvatarScan({ job }: JobExecutionContext) {
   const parsed = z.object({ avatarIntentId: z.string().uuid() }).safeParse(job.payload);
   if (!parsed.success) throw new PermanentJobError("Invalid avatar-scan payload");
   return getAvatarService().process(parsed.data.avatarIntentId, job.firmId);
+}
+
+async function handleCmsAssetScan({ job }: JobExecutionContext) {
+  const parsed = z.object({ cmsAssetIntentId: z.string().uuid() }).safeParse(job.payload);
+  if (!parsed.success) throw new PermanentJobError("Invalid CMS asset scan payload");
+  return getCmsAssetService().process(parsed.data.cmsAssetIntentId, job.firmId);
 }
 
 async function handleKycScan({ job }: JobExecutionContext) {

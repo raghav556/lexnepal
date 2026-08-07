@@ -43,11 +43,19 @@ export const useResources = (filters: Filters = {}, scope: "public" | "admin" = 
 export const useNavigation = (filters: Filters = {}, scope: "public" | "admin" = "public") =>
   useCmsCollection("navigation", filters, scope);
 
-export function useCmsSettings(scope: "public" | "admin" = "public") {
+export function useCmsSettings(
+  scope: "public" | "admin" = "public",
+  initialData?: Record<string, unknown>,
+) {
   return useQuery({
     queryKey: queryKeys.cms.settings(scope),
     queryFn: ({ signal }) =>
       apiClient.request<Record<string, any>>(`${basePath(scope)}/settings`, { signal }),
+    // Public: SSR seeds UI without locking the query — always refetch so admin CMS edits show.
+    // Admin: keep initialData + short stale window for editor stability.
+    ...(scope === "public"
+      ? { placeholderData: initialData, staleTime: 0, refetchOnMount: "always" as const }
+      : { initialData, staleTime: 15_000 }),
   }).data;
 }
 
@@ -89,6 +97,13 @@ export function usePublicTeam() {
   return useQuery({
     queryKey: queryKeys.cms.team,
     queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/public/cms/team", { signal }),
+  }).data;
+}
+
+export function useAdminTeam() {
+  return useQuery({
+    queryKey: queryKeys.cms.adminTeam,
+    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/cms/team", { signal }),
   }).data;
 }
 
