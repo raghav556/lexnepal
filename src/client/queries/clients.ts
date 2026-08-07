@@ -117,6 +117,21 @@ export function useClientCommands() {
       await invalidate();
       return result;
     },
+    async grantPortalAccess(clientId: string) {
+      const result = await apiClient.request<{
+        client: ClientDto;
+        user: { id: string; email: string | null; isPending: boolean; isActive: boolean };
+        created: boolean;
+        linked: boolean;
+        inviteSent: boolean;
+        alreadyLinked: boolean;
+      }>(`/api/v1/clients/${clientId}/portal-access`, { method: "POST" });
+      await Promise.all([
+        invalidate(),
+        queryClient.invalidateQueries({ queryKey: queryKeys.identity.all }),
+      ]);
+      return result;
+    },
   };
 }
 

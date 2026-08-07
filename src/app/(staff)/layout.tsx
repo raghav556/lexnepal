@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Scale, LayoutDashboard, FolderOpen, CalendarDays, FileText, CheckSquare, Clock, Users, Menu, X, Calendar, BookOpen, MessageSquare } from "lucide-react";
+import { Scale, LayoutDashboard, FolderOpen, CalendarDays, FileText, CheckSquare, Clock, Users, Menu, X, Calendar, BookOpen, MessageSquare, UserCog, KanbanSquare } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CommandCenter } from "@/components/ui/CommandCenter";
@@ -22,6 +22,7 @@ const NAV: NavItem[] = [
   { label: "Dashboard", i18nKey: "nav.dashboard", href: "/staff", icon: LayoutDashboard },
   { label: "Tasks", i18nKey: "nav.tasks", href: "/staff/tasks", icon: CheckSquare },
   { label: "Time Tracker", i18nKey: "nav.time", href: "/staff/time", icon: Clock },
+  { label: "HR", i18nKey: "nav.hr", href: "/staff/hr", icon: UserCog },
 
   { heading: "Legal Practice" },
   { label: "Cases", i18nKey: "nav.cases", href: "/staff/cases", icon: FolderOpen },
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   { label: "Research Vault", i18nKey: "nav.research", href: "/staff/research", icon: BookOpen },
 
   { heading: "Client Relations" },
+  { label: "CRM", i18nKey: "nav.crm", href: "/staff/crm", icon: KanbanSquare },
   { label: "Clients", i18nKey: "nav.clients", href: "/staff/clients", icon: Users },
   { label: "Appointments", i18nKey: "nav.appointments", href: "/staff/appointments", icon: Calendar },
 ];

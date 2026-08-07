@@ -46,6 +46,30 @@
       "sha256": "e0bd3df980168ff938c8efd22d5db8a7c8e64130eb2885b59e2c3967878b1196"
     },
     {
+      "file": "drizzle/0011_leadership_title.sql",
+      "sha256": "a33ff35a96ec8ff07e37c57c5011b8ec26950e7c6e515a0f9fc193f04287d994"
+    },
+    {
+      "file": "drizzle/0012_leave_balances.sql",
+      "sha256": "6a795bed8cd71c17e2490d5899fa49ff5ead6b38100c1e8b99277d7fe094d293"
+    },
+    {
+      "file": "drizzle/0013_payroll_runs.sql",
+      "sha256": "a6c1faab6eab410a2787b7a59c3200561fe39e55fc5724e3322091895b7182d9"
+    },
+    {
+      "file": "drizzle/0014_appointment_lead_id.down.sql",
+      "sha256": "8c1f264a02e6d0636db275ea237a04a4218fada146ae8c851b88e5934224cbcf"
+    },
+    {
+      "file": "drizzle/0014_appointment_lead_id.sql",
+      "sha256": "0ee21ce96dc4e05b8317aa1f5125918d987a521ee4ba24e1963bb1c0ba58d685"
+    },
+    {
+      "file": "drizzle/0015_news_status.sql",
+      "sha256": "f4bd86ede135221187d8fb4561de2514b611f5d2a38f1028cded9836835e1f10"
+    },
+    {
       "file": "drizzle/down/0001_initial_schema.down.sql",
       "sha256": "4367363f78813d4ec20f09e454d8f772d84a70b1fb55db528ef273896421b766"
     },
@@ -76,6 +100,22 @@
     {
       "file": "drizzle/down/0010_research_citations.down.sql",
       "sha256": "51ddc175cda4f0ee88da6967f926e851297f974e0b187690a23d8382fc4c2900"
+    },
+    {
+      "file": "drizzle/down/0011_leadership_title.down.sql",
+      "sha256": "48de19c43ea472d49362cf93cc1dd1bf69c1ac4a1ba510bded9cd978fe9f60b2"
+    },
+    {
+      "file": "drizzle/down/0012_leave_balances.down.sql",
+      "sha256": "791c6455e359a26ef045f4e7d1410490d0f3e2677b30aed1698890f1e66e39b4"
+    },
+    {
+      "file": "drizzle/down/0013_payroll_runs.down.sql",
+      "sha256": "89ca33933ccc3e98dcbf8648c3061f0f12c4c855ccc179151c18882cf0bef05f"
+    },
+    {
+      "file": "drizzle/down/0015_news_status.down.sql",
+      "sha256": "0ce794ea6750c4d01faf0c96cc7631dbab2cbb1366581474710daf21e6237e22"
     }
   ]
 }

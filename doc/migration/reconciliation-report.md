@@ -7629,3 +7629,34 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 - archive=doc/migration/archive/convex-decommission/convex-source.zip
 - requiredComplete=A1,A3,A4,A5,A6,A7,A8,C1,C2,C3,C4,C5,C8,C9,C11,C12
 
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-07T01:21:31.870Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A8 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C6 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 partial_local: checklist present; safe waves C5/C6/C11/C12/A8 complete_local.
+- Full Convex decommission (A3–A6, C1–C4, C8–C10) remains DEFER until rollback window.
+- convexResidualFiles=0
+

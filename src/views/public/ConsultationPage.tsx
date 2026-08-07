@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAppointmentCommands } from "@/client/queries/crm";
+import { useAppointmentCommands, useAvailableSlots } from "@/client/queries/crm";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { Link, useSearchParams } from "@/client/navigation";
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle, Calendar, Clock, ShieldCheck, Scale, PhoneCall, Mail, Check, ChevronDown } from "lucide-react";
 import { PRACTICE_AREAS } from "@/lib/lex-constants.ts";
 import { cn } from "@/lib/utils.ts";
+import { formatAppointmentDate, todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
 
 const schema = z.object({
   clientName: z.string().min(2, "Name required"),
@@ -84,13 +85,29 @@ export default function ConsultationPage() {
   const lawyerId = searchParams.get("lawyerId") || undefined;
   
   const [submitted, setSubmitted] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [submittedDate, setSubmittedDate] = useState("");
+  const [submittedSlot, setSubmittedSlot] = useState("");
   const { createAppointment } = useAppointmentCommands();
+  const firmToday = todayIsoInFirmTz();
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { clientName: "", clientEmail: "", clientPhone: "", practiceArea: "", date: "", timeSlot: "", notes: "", assignedLawyerId: lawyerId as any },
+    defaultValues: { clientName: "", clientEmail: "", clientPhone: "", practiceArea: "", date: "", timeSlot: "", notes: "", assignedLawyerId: lawyerId as string | undefined },
   });
+
+  const watchedDate = form.watch("date");
+  const watchedSlot = form.watch("timeSlot");
+  const { data: availableSlots = [], isLoading: slotsLoading } = useAvailableSlots(
+    watchedDate || undefined,
+    lawyerId,
+  );
+
+  useEffect(() => {
+    if (!watchedSlot) return;
+    if (availableSlots.length > 0 && !availableSlots.includes(watchedSlot)) {
+      form.setValue("timeSlot", "");
+    }
+  }, [availableSlots, watchedSlot, form]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -98,28 +115,45 @@ export default function ConsultationPage() {
         ...data,
         assignedLawyerId: data.assignedLawyerId ? data.assignedLawyerId : undefined,
       });
-      setSelectedDate(data.date);
+      setSubmittedDate(data.date);
+      setSubmittedSlot(data.timeSlot);
       setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch {
-      toast.error("Failed to submit. Please try again or call us directly.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to submit. Please try again or call us directly.",
+      );
     }
   };
 
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center py-24 px-4">
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }} 
-          animate={{ scale: 1, opacity: 1 }} 
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           className="max-w-lg w-full bg-card border border-border shadow-2xl rounded-3xl p-10 text-center"
         >
-          <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-accent" />
+          <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-amber-600" />
           </div>
           <h2 className="font-serif text-4xl font-bold text-foreground mb-4">Request Received</h2>
-          <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-            Thank you! Your consultation request for <strong>{selectedDate}</strong> has been received securely. Our team will contact you shortly to confirm the appointment.
+          <p className="text-muted-foreground text-lg mb-4 leading-relaxed">
+            Thank you. Your consultation request for{" "}
+            <strong className="text-foreground">
+              {formatAppointmentDate(submittedDate)}
+            </strong>
+            {submittedSlot ? (
+              <>
+                {" "}
+                at <strong className="text-foreground">{submittedSlot}</strong>
+              </>
+            ) : null}{" "}
+            is <strong className="text-foreground">pending</strong> confirmation.
+          </p>
+          <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
+            Our team will contact you shortly to confirm the slot. The time is not locked until you
+            hear from us.
           </p>
           <div className="bg-muted/50 rounded-xl p-6 text-sm text-muted-foreground mb-8">
             <span className="block mb-2 font-medium">Need immediate assistance?</span>
@@ -282,7 +316,9 @@ export default function ConsultationPage() {
             <Card className="border-border shadow-2xl rounded-2xl overflow-hidden bg-card">
               <div className="bg-muted/30 px-8 py-6 border-b border-border">
                 <h2 className="font-serif text-2xl font-bold text-foreground">Secure Your Appointment</h2>
-                <p className="text-sm text-muted-foreground mt-1">Fill out the form below and we will confirm your time slot.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Request a slot below. Bookings stay pending until our team confirms (Nepal time).
+                </p>
               </div>
               <CardContent className="p-8">
                 <Form {...form}>
@@ -341,7 +377,16 @@ export default function ConsultationPage() {
                         <FormItem>
                           <FormLabel className="text-foreground/80">Preferred Date</FormLabel>
                           <FormControl>
-                            <Input type="date" className="h-12 bg-muted/20" min={new Date().toISOString().split("T")[0]} {...field} />
+                            <Input
+                              type="date"
+                              className="h-12 bg-muted/20"
+                              min={firmToday}
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                form.setValue("timeSlot", "");
+                              }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -349,19 +394,40 @@ export default function ConsultationPage() {
                       <FormField control={form.control} name="timeSlot" render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-foreground/80">Preferred Time</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={!watchedDate || slotsLoading || availableSlots.length === 0}
+                          >
                             <FormControl>
                               <SelectTrigger className="h-12 bg-muted/20">
-                                <SelectValue placeholder="Select time slot" />
+                                <SelectValue
+                                  placeholder={
+                                    !watchedDate
+                                      ? "Pick a date first"
+                                      : slotsLoading
+                                        ? "Loading slots…"
+                                        : availableSlots.length === 0
+                                          ? "No slots available"
+                                          : "Select time slot"
+                                  }
+                                />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="10:00 AM">10:00 AM</SelectItem>
-                              <SelectItem value="11:30 AM">11:30 AM</SelectItem>
-                              <SelectItem value="02:00 PM">02:00 PM</SelectItem>
-                              <SelectItem value="03:30 PM">03:30 PM</SelectItem>
+                              {availableSlots.map((slot) => (
+                                <SelectItem key={slot} value={slot}>
+                                  {slot}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
+                          {watchedDate && !slotsLoading && availableSlots.length === 0 ? (
+                            <p className="text-xs text-muted-foreground pt-1">
+                              No open slots that day
+                              {lawyerId ? " for this lawyer" : ""}. Try another date.
+                            </p>
+                          ) : null}
                           <FormMessage />
                         </FormItem>
                       )} />

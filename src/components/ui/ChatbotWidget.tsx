@@ -80,7 +80,7 @@ export function ChatbotWidget() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { createLead } = useLeadCommands();
+  const { createPublicLead } = useLeadCommands();
 
   // Lead capture state
   const [leadName, setLeadName] = useState("");
@@ -168,7 +168,7 @@ export function ChatbotWidget() {
     
     setSubmittingLead(true);
     try {
-      await createLead.mutateAsync({
+      await createPublicLead.mutateAsync({
         fullName: leadName,
         email: leadContact.includes("@") ? leadContact : undefined,
         phone: !leadContact.includes("@") ? leadContact : undefined,

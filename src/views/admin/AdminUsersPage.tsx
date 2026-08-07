@@ -1,7 +1,11 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { useAuditEvents, useIdentityCommands, useSessions, useUsers } from "@/client/queries/identity";
+import { useClients } from "@/client/queries/clients";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -11,9 +15,30 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
 import { Label } from "@/components/ui/label.tsx";
-import { User, AlertTriangle, Check, X, Search, Ban, Activity, Mail, Phone, CalendarDays, UserPlus, FileText, Key, Clock, ShieldCheck, MailWarning, History, Briefcase, Download, Trash2, LogOut } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet.tsx";
+import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
+import {
+  User,
+  AlertTriangle,
+  Check,
+  X,
+  Search,
+  Ban,
+  UserPlus,
+  Key,
+  Clock,
+  ShieldCheck,
+  MailWarning,
+  History,
+  Briefcase,
+  Download,
+  LogOut,
+  ExternalLink,
+  RotateCcw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
+import { inviteEmailQueuedMessage } from "@/lib/invite-copy.ts";
 import type { UserRole } from "@/hooks/use-current-user.ts";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -27,12 +52,21 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 const ALL_ROLES: UserRole[] = [
-  "partner", "senior_associate", "associate", "paralegal", "intern", "admin", "client",
+  "partner",
+  "senior_associate",
+  "associate",
+  "paralegal",
+  "intern",
+  "admin",
+  "client",
 ];
 
-function exportUsersCsv(users: any[]) {
+const STAFF_ROLES = ["partner", "senior_associate", "associate", "paralegal", "intern"] as const;
+const PUBLIC_ROLES = ["partner", "senior_associate", "associate", "paralegal"] as const;
+
+function exportUsersCsv(list: any[]) {
   const headers = ["Name", "Email", "Role", "Phone", "Bar Council", "Status", "Last Login"];
-  const rows = users.map((u) => [
+  const rows = list.map((u) => [
     u.name ?? "",
     u.email ?? "",
     u.role ?? "",
@@ -41,7 +75,9 @@ function exportUsersCsv(users: any[]) {
     u.isPending ? "Pending" : u.isActive ? "Active" : "Suspended",
     u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "",
   ]);
-  const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const csv = [headers, ...rows]
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -51,9 +87,21 @@ function exportUsersCsv(users: any[]) {
   URL.revokeObjectURL(url);
 }
 
+function statusLabel(u: any) {
+  if (u.isPending) return "Pending";
+  if (!u.isActive) return "Suspended";
+  return "Active";
+}
+
+function userKey(u: { _id?: string; id?: string }) {
+  return String(u._id ?? u.id ?? "");
+}
+
 export default function AdminUsersPage() {
   const users = useUsers();
-  const { updateUser, createUser, resendInvitation, sendPasswordReset, archiveUser, revokeAllSessions, resetMfa } = useIdentityCommands();
+  const crmClients = useClients();
+  const { updateUser, createUser, resendInvitation, sendPasswordReset, revokeAllSessions, resetMfa } =
+    useIdentityCommands();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftRole, setDraftRole] = useState<UserRole>("client");
@@ -65,16 +113,41 @@ export default function AdminUsersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: "", email: "", role: "client" as UserRole, phone: "", barCouncilNumber: "" });
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    email: "",
+    role: "associate" as UserRole,
+    phone: "",
+    barCouncilNumber: "",
+  });
 
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
-    name: "", email: "", phone: "", barCouncilNumber: "", barCouncilExpiry: "", practiceAreas: "",
+    name: "",
+    email: "",
+    phone: "",
+    barCouncilNumber: "",
+    barCouncilExpiry: "",
   });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
-  const userActivity = useAuditEvents(selectedUser ? { userId: selectedUser._id } : {});
-  const userSessions = useSessions(selectedUser?._id);
+  const userActivity = useAuditEvents(selectedUser ? { userId: userKey(selectedUser) } : {});
+  const userSessions = useSessions(selectedUser ? userKey(selectedUser) : undefined);
+
+  const linkedCrmClient = useMemo(() => {
+    if (!selectedUser || selectedUser.role !== "client" || !crmClients) return null;
+    const id = userKey(selectedUser);
+    return crmClients.find((c) => c.userId === id) ?? null;
+  }, [selectedUser, crmClients]);
+
+  const isPublicTeamEligible =
+    selectedUser && PUBLIC_ROLES.includes(selectedUser.role as (typeof PUBLIC_ROLES)[number]);
+  const isHrEligible =
+    selectedUser &&
+    selectedUser.role !== "client" &&
+    selectedUser.role !== "admin";
 
   useEffect(() => {
     if (selectedUser) {
@@ -83,8 +156,9 @@ export default function AdminUsersPage() {
         email: selectedUser.email || "",
         phone: selectedUser.phone || "",
         barCouncilNumber: selectedUser.barCouncilNumber || "",
-        barCouncilExpiry: selectedUser.barCouncilExpiry ? selectedUser.barCouncilExpiry.slice(0, 10) : "",
-        practiceAreas: (selectedUser.practiceAreas || []).join(", "),
+        barCouncilExpiry: selectedUser.barCouncilExpiry
+          ? selectedUser.barCouncilExpiry.slice(0, 10)
+          : "",
       });
     }
   }, [selectedUser]);
@@ -105,8 +179,10 @@ export default function AdminUsersPage() {
     setSaving(true);
     try {
       await updateUser(userId, { role: draftRole });
-      toast.success("Role updated successfully");
+      toast.success("Role updated");
       setEditingId(null);
+      if (selectedUser && userKey(selectedUser) === userId)
+        setSelectedUser({ ...selectedUser, role: draftRole });
     } catch {
       toast.error("Failed to update role");
     } finally {
@@ -116,7 +192,7 @@ export default function AdminUsersPage() {
 
   const handleCreateUser = async () => {
     if (!createForm.name || !createForm.email) {
-      toast.error("Name and Email are required");
+      toast.error("Name and email are required");
       return;
     }
     try {
@@ -129,9 +205,9 @@ export default function AdminUsersPage() {
         phone: createForm.phone || undefined,
         barCouncilNumber: createForm.barCouncilNumber || undefined,
       });
-      toast.success("Invitation queued. Open local Mailpit to retrieve it.");
+      toast.success(inviteEmailQueuedMessage("setup"));
       setIsCreateOpen(false);
-      setCreateForm({ name: "", email: "", role: "client", phone: "", barCouncilNumber: "" });
+      setCreateForm({ name: "", email: "", role: "associate", phone: "", barCouncilNumber: "" });
     } catch {
       toast.error("Failed to invite user");
     }
@@ -139,10 +215,12 @@ export default function AdminUsersPage() {
 
   const handleResendInvitation = async (user: any) => {
     try {
-      await resendInvitation(user._id);
-      toast.success(`Invitation resent to ${user.email}`);
+      await resendInvitation(userKey(user));
+      toast.success(
+        user.isPending ? inviteEmailQueuedMessage("resent") : inviteEmailQueuedMessage("reset"),
+      );
     } catch {
-      toast.error("Failed to resend invitation");
+      toast.error("Failed to resend email");
     }
   };
 
@@ -150,22 +228,14 @@ export default function AdminUsersPage() {
     if (!selectedUser) return;
     setSavingProfile(true);
     try {
-      const practiceAreas = editForm.practiceAreas
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      await updateUser(selectedUser._id, {
+      await updateUser(userKey(selectedUser), {
         name: editForm.name,
         email: editForm.email,
         phone: editForm.phone || undefined,
         barCouncilNumber: editForm.barCouncilNumber || undefined,
         barCouncilExpiry: editForm.barCouncilExpiry || undefined,
       });
-      setSelectedUser({
-        ...selectedUser,
-        ...editForm,
-        practiceAreas,
-      });
+      setSelectedUser({ ...selectedUser, ...editForm });
       toast.success("Profile updated");
     } catch {
       toast.error("Failed to update profile");
@@ -174,71 +244,143 @@ export default function AdminUsersPage() {
     }
   };
 
-  const toggleUserStatus = async (user: any) => {
+  const applyStatus = async (user: any, isActive: boolean) => {
     try {
-      await updateUser(user._id, { isActive: !user.isActive });
-      toast.success(`User ${!user.isActive ? "reactivated" : "suspended"} successfully`);
-      if (selectedUser && selectedUser._id === user._id) {
-        setSelectedUser({ ...selectedUser, isActive: !user.isActive });
+      await updateUser(userKey(user), { isActive });
+      toast.success(isActive ? "Account reactivated" : "Account suspended");
+      if (selectedUser && userKey(selectedUser) === userKey(user)) {
+        setSelectedUser({ ...selectedUser, isActive });
       }
     } catch {
-      toast.error("Failed to update user status");
+      toast.error("Failed to update account status");
     }
+  };
+
+  const askToggleStatus = (user: any) => {
+    const suspending = user.isActive;
+    setConfirm({
+      title: suspending ? `Suspend ${user.name}?` : `Reactivate ${user.name}?`,
+      description: suspending
+        ? "They will lose portal access immediately and active sessions will be revoked."
+        : "They will regain portal access with their current role.",
+      confirmLabel: suspending ? "Suspend" : "Reactivate",
+      destructive: suspending,
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        try {
+          await applyStatus(user, !user.isActive);
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   };
 
   const handleSendPasswordReset = async (user: any) => {
     try {
-      await sendPasswordReset(user._id);
-      toast.success(`Password reset link sent to ${user.email}`);
+      await sendPasswordReset(userKey(user));
+      toast.success(inviteEmailQueuedMessage("reset"));
     } catch {
       toast.error("Failed to send password reset");
     }
   };
 
-  const handleArchiveUser = async () => {
+  const askRevokeSessions = () => {
     if (!selectedUser) return;
-    if (!window.confirm(`Archive ${selectedUser.name}? They will lose access.`)) return;
-    try {
-      await archiveUser(selectedUser._id);
-      toast.success("User archived");
-      setSelectedUser(null);
-    } catch {
-      toast.error("Failed to archive user");
-    }
+    setConfirm({
+      title: "Revoke all sessions?",
+      description: `${selectedUser.name} will be signed out on every device.`,
+      confirmLabel: "Revoke sessions",
+      destructive: true,
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        try {
+          const result = (await revokeAllSessions(userKey(selectedUser))) as {
+            revoked?: number;
+            count?: number;
+          };
+          toast.success(`Revoked ${result.revoked ?? result.count ?? 0} session(s)`);
+        } catch {
+          toast.error("Failed to revoke sessions");
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   };
 
-  const handleRevokeAllSessions = async () => {
+  const askResetMfa = () => {
     if (!selectedUser) return;
-    try {
-      const result = await revokeAllSessions(selectedUser._id) as { revoked?: number; count?: number };
-      toast.success(`Revoked ${result.revoked ?? result.count ?? 0} session(s)`);
-    } catch {
-      toast.error("Failed to revoke sessions");
-    }
+    setConfirm({
+      title: `Reset MFA for ${selectedUser.name}?`,
+      description: "All sessions will be revoked. They must enroll MFA again at next sign-in.",
+      confirmLabel: "Reset MFA",
+      destructive: true,
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        try {
+          await resetMfa(userKey(selectedUser));
+          toast.success("MFA reset");
+          setSelectedUser({ ...selectedUser, twoFactorEnabled: false });
+        } catch {
+          toast.error("Failed to reset MFA");
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   };
 
-  const handleResetMfa = async () => {
-    if (!selectedUser || !window.confirm(`Reset MFA for ${selectedUser.name}? All sessions will be revoked.`)) return;
-    try {
-      await resetMfa(selectedUser._id);
-      toast.success("MFA reset; the user must enroll again at next sign-in");
-      setSelectedUser({ ...selectedUser, twoFactorEnabled: false });
-    } catch { toast.error("Failed to reset MFA"); }
-  };
-
-  const handleBulkAction = async (action: "suspend" | "resend_invite") => {
+  const askBulk = (action: "suspend" | "reactivate" | "resend_invite") => {
     const userIds = Array.from(selectedIds);
     if (userIds.length === 0) return;
-    try {
-      await Promise.all(userIds.map((userId) => action === "suspend" ? updateUser(userId, { isActive: false }) : resendInvitation(userId)));
-      toast.success(`Updated ${userIds.length} user(s)`);
-      setSelectedIds(new Set());
-    } catch {
-      toast.error("Bulk action failed");
-    }
+    const labels = {
+      suspend: {
+        title: `Suspend ${userIds.length} user(s)?`,
+        description: "Selected accounts lose portal access and active sessions are revoked.",
+        confirmLabel: "Suspend",
+        destructive: true,
+      },
+      reactivate: {
+        title: `Reactivate ${userIds.length} user(s)?`,
+        description: "Selected accounts regain portal access.",
+        confirmLabel: "Reactivate",
+        destructive: false,
+      },
+      resend_invite: {
+        title: `Resend setup email to ${userIds.length} user(s)?`,
+        description: "Each selected account receives a setup or password-reset email.",
+        confirmLabel: "Send emails",
+        destructive: false,
+      },
+    }[action];
+
+    setConfirm({
+      ...labels,
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        try {
+          await Promise.all(
+            userIds.map((userId) =>
+              action === "suspend"
+                ? updateUser(userId, { isActive: false })
+                : action === "reactivate"
+                  ? updateUser(userId, { isActive: true })
+                  : resendInvitation(userId),
+            ),
+          );
+          toast.success(`Updated ${userIds.length} user(s)`);
+          setSelectedIds(new Set());
+        } catch {
+          toast.error("Bulk action failed");
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   };
 
-  const toggleSelect = (e: React.MouseEvent, id: string) => {
+  const toggleSelect = (e: React.MouseEvent | React.ChangeEvent, id: string) => {
     e.stopPropagation();
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -248,25 +390,31 @@ export default function AdminUsersPage() {
     });
   };
 
-  const filteredUsers = users?.filter(u => {
-    const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          u.barCouncilNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all"
-      ? true
-      : statusFilter === "pending"
-        ? u.isPending
-        : statusFilter === "active"
-          ? (u.isActive && !u.isPending)
-          : !u.isActive;
-
-    const matchesTab = activeTab === "staff" ? ['partner', 'senior_associate', 'associate', 'paralegal', 'intern'].includes(u.role)
-      : activeTab === "clients" ? u.role === 'client'
-      : activeTab === "admins" ? u.role === 'admin'
-      : true;
-
-    return matchesSearch && matchesStatus && matchesTab;
-  }) || [];
+  const filteredUsers =
+    users?.filter((u) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.barCouncilNumber?.toLowerCase().includes(q);
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "pending"
+            ? u.isPending
+            : statusFilter === "active"
+              ? u.isActive && !u.isPending
+              : !u.isActive;
+      const matchesTab =
+        activeTab === "staff"
+          ? STAFF_ROLES.includes(u.role as (typeof STAFF_ROLES)[number])
+          : activeTab === "clients"
+            ? u.role === "client"
+            : activeTab === "admins"
+              ? u.role === "admin"
+              : true;
+      return matchesSearch && matchesStatus && matchesTab;
+    }) || [];
 
   const {
     paginatedItems,
@@ -275,8 +423,8 @@ export default function AdminUsersPage() {
     goToPage,
     nextPage,
     prevPage,
-    resetPagination
-  } = usePagination(filteredUsers, 10);
+    resetPagination,
+  } = usePagination(filteredUsers, 15);
 
   useEffect(() => {
     resetPagination();
@@ -284,30 +432,64 @@ export default function AdminUsersPage() {
   }, [searchQuery, statusFilter, activeTab]);
 
   const totalUsers = users?.length || 0;
-  const pendingUsers = users?.filter(u => u.isPending).length || 0;
-  const totalClients = users?.filter(u => u.role === 'client').length || 0;
-  const totalStaff = users?.filter(u => ['partner', 'senior_associate', 'associate', 'paralegal'].includes(u.role)).length || 0;
+  const pendingUsers = users?.filter((u) => u.isPending).length || 0;
+  const totalClients = users?.filter((u) => u.role === "client").length || 0;
+  const totalStaff =
+    users?.filter(
+      (u) =>
+        STAFF_ROLES.includes(u.role as (typeof STAFF_ROLES)[number]) && u.isActive && !u.isPending,
+    ).length || 0;
 
   const kpiCards = [
     { label: "Total Users", value: totalUsers, icon: User, iconClass: "bg-primary/10 text-primary" },
-    { label: "Active Staff", value: totalStaff, icon: Briefcase, iconClass: "bg-blue-500/10 text-blue-500" },
-    { label: "Pending Invites", value: pendingUsers, icon: Clock, iconClass: "bg-amber-500/10 text-amber-500" },
-    { label: "Clients", value: totalClients, icon: UserPlus, iconClass: "bg-green-500/10 text-green-500" },
+    {
+      label: "Active Staff",
+      value: totalStaff,
+      icon: Briefcase,
+      iconClass: "bg-blue-500/10 text-blue-500",
+    },
+    {
+      label: "Pending Invites",
+      value: pendingUsers,
+      icon: Clock,
+      iconClass: "bg-amber-500/10 text-amber-500",
+    },
+    {
+      label: "Clients",
+      value: totalClients,
+      icon: UserPlus,
+      iconClass: "bg-green-500/10 text-green-500",
+    },
   ];
+
+  const pageIds = paginatedItems.map((u) => userKey(u)).filter(Boolean);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+  const toggleSelectAllPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-4 w-full min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Users & Roles</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage staff, clients, and administrators.</p>
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
+            Directory
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Firm identity console — invite, roles, access, and linked records.
+          </p>
         </div>
         <Button size="sm" onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto shrink-0">
-          <UserPlus className="w-4 h-4 mr-2" /> Invite User
+          <UserPlus className="w-4 h-4 mr-2" /> Invite user
         </Button>
       </div>
 
-      {/* KPI: label+number left, icon top-right — avoids cramped wrapping next to icon on narrow phones */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpiCards.map(({ label, value, icon: Icon, iconClass }) => (
           <Card key={label} className="bg-card min-w-0 overflow-hidden">
@@ -321,7 +503,9 @@ export default function AdminUsersPage() {
                     {value}
                   </p>
                 </div>
-                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg shrink-0 flex items-center justify-center ${iconClass}`}>
+                <div
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg shrink-0 flex items-center justify-center ${iconClass}`}
+                >
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
@@ -335,7 +519,6 @@ export default function AdminUsersPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search name, email, bar…"
-            title="Search by name, email, or bar council number"
             className="pl-9 h-9 w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -344,17 +527,22 @@ export default function AdminUsersPage() {
         <div className="w-full sm:w-48 shrink-0">
           <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
             <SelectTrigger className="h-9 w-full">
-              <SelectValue placeholder="Filter Status" />
+              <SelectValue placeholder="Filter status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active Only</SelectItem>
-              <SelectItem value="pending">Pending Only</SelectItem>
-              <SelectItem value="suspended">Suspended Only</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" size="sm" className="h-9 w-full sm:w-auto shrink-0" onClick={() => exportUsersCsv(filteredUsers)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-full sm:w-auto shrink-0"
+          onClick={() => exportUsersCsv(filteredUsers)}
+        >
           <Download className="w-4 h-4 mr-2" /> Export CSV
         </Button>
       </div>
@@ -362,35 +550,210 @@ export default function AdminUsersPage() {
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-3 rounded-xl border border-border">
           <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
-          <Button variant="outline" size="sm" onClick={() => handleBulkAction("suspend")}>
+          <Button variant="outline" size="sm" onClick={() => askBulk("suspend")}>
             <Ban className="w-4 h-4 mr-1" /> Suspend
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleBulkAction("resend_invite")}>
-            <MailWarning className="w-4 h-4 mr-1" /> Resend Invite
+          <Button variant="outline" size="sm" onClick={() => askBulk("reactivate")}>
+            <RotateCcw className="w-4 h-4 mr-1" /> Reactivate
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Clear</Button>
+          <Button variant="outline" size="sm" onClick={() => askBulk("resend_invite")}>
+            <MailWarning className="w-4 h-4 mr-1" /> Resend email
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+            Clear
+          </Button>
         </div>
       )}
 
       {users === undefined && (
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
         </div>
       )}
 
-      {filteredUsers !== undefined && (
+      {users !== undefined && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4 h-auto w-full grid grid-cols-3 gap-1">
-            <TabsTrigger value="staff" className="text-xs sm:text-sm px-1 sm:px-3">Staff</TabsTrigger>
-            <TabsTrigger value="clients" className="text-xs sm:text-sm px-1 sm:px-3">Clients</TabsTrigger>
-            <TabsTrigger value="admins" className="text-xs sm:text-sm px-1 sm:px-3">Admins</TabsTrigger>
+            <TabsTrigger value="staff" className="text-xs sm:text-sm px-1 sm:px-3">
+              Staff
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="text-xs sm:text-sm px-1 sm:px-3">
+              Clients
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="text-xs sm:text-sm px-1 sm:px-3">
+              Admins
+            </TabsTrigger>
           </TabsList>
 
-          <div className="grid grid-cols-1 gap-3">
-            {paginatedItems.map(renderUserCard)}
-            {paginatedItems.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground text-sm">No users found in this category.</div>
-            )}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[720px]">
+                <thead className="bg-muted/40 text-muted-foreground border-b border-border">
+                  <tr>
+                    <th scope="col" className="px-3 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        onChange={toggleSelectAllPage}
+                        className="h-4 w-4 rounded border-border"
+                        aria-label="Select page"
+                      />
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-medium">Person</th>
+                    <th scope="col" className="px-3 py-3 font-medium">Role</th>
+                    <th scope="col" className="px-3 py-3 font-medium">Status</th>
+                    <th scope="col" className="px-3 py-3 font-medium">Last login</th>
+                    <th scope="col" className="px-3 py-3 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginatedItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">
+                        No users match these filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedItems.map((u) => {
+                      const barExpiryDate = u.barCouncilExpiry
+                        ? new Date(u.barCouncilExpiry)
+                        : null;
+                      const isExpiringSoon =
+                        barExpiryDate &&
+                        barExpiryDate < new Date(Date.now() + 90 * 86400000);
+                      const rowId = userKey(u);
+                      const isEditing = editingId === rowId;
+                      const isSelected = selectedIds.has(rowId);
+                      const isRowOpen = selectedUser ? userKey(selectedUser) === rowId : false;
+
+                      return (
+                        <tr
+                          key={rowId}
+                          className={`cursor-pointer transition-colors hover:bg-muted/30 ${
+                            !u.isActive ? "opacity-70" : ""
+                          } ${isRowOpen ? "bg-primary/5" : ""} ${isSelected ? "bg-muted/40" : ""}`}
+                          onClick={() => setSelectedUser(u)}
+                        >
+                          <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => toggleSelect(e, rowId)}
+                              className="h-4 w-4 rounded border-border"
+                              aria-label={`Select ${u.name}`}
+                            />
+                          </td>
+                          <td className="px-3 py-3 min-w-0">
+                            <div className="font-medium text-foreground truncate max-w-[220px]">
+                              {u.name ?? "Unnamed"}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[240px]">
+                              {u.email ?? "—"}
+                            </div>
+                            {u.barCouncilNumber && (
+                              <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                Bar {u.barCouncilNumber}
+                                {isExpiringSoon && (
+                                  <span className="inline-flex items-center gap-0.5 text-amber-600">
+                                    <AlertTriangle className="w-3 h-3" /> soon
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                            {isEditing ? (
+                              <div className="flex items-center gap-1">
+                                <Select
+                                  value={draftRole}
+                                  onValueChange={(v) => setDraftRole(v as UserRole)}
+                                >
+                                  <SelectTrigger className="h-8 text-xs w-36">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ALL_ROLES.map((r) => (
+                                      <SelectItem key={r} value={r}>
+                                        {ROLE_LABELS[r]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-green-600"
+                                  disabled={saving}
+                                  onClick={(e) => saveRole(e, rowId)}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={cancelEdit}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="text-left"
+                                onClick={(e) => startEdit(e, rowId, u.role)}
+                              >
+                                <Badge className={`text-xs ${ROLE_COLORS[u.role]}`}>
+                                  {ROLE_LABELS[u.role]}
+                                </Badge>
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-3 py-3">
+                            {u.isPending ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400"
+                              >
+                                Pending
+                              </Badge>
+                            ) : !u.isActive ? (
+                              <Badge variant="destructive" className="text-[10px]">
+                                Suspended
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] border-green-600/40 text-green-700 dark:text-green-400"
+                              >
+                                Active
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {u.lastLoginAt
+                              ? new Date(u.lastLoginAt).toLocaleString()
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => setSelectedUser(u)}
+                            >
+                              Open
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <Pagination
@@ -399,7 +762,7 @@ export default function AdminUsersPage() {
             onPageChange={goToPage}
             onNextPage={nextPage}
             onPrevPage={prevPage}
-            className="mt-6"
+            className="mt-4"
           />
         </Tabs>
       )}
@@ -407,284 +770,304 @@ export default function AdminUsersPage() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Invite New User</DialogTitle>
+            <DialogTitle>Invite user</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label>Full Name</Label>
-              <Input value={createForm.name} onChange={(e) => setCreateForm({...createForm, name: e.target.value})} placeholder="Jane Doe" />
+              <Label>Full name</Label>
+              <Input
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                placeholder="Jane Doe"
+              />
             </div>
             <div className="grid gap-2">
-              <Label>Email Address</Label>
-              <Input type="email" value={createForm.email} onChange={(e) => setCreateForm({...createForm, email: e.target.value})} placeholder="jane@example.com" />
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                placeholder="jane@firm.example"
+              />
             </div>
             <div className="grid gap-2">
-              <Label>Phone Number</Label>
-              <Input value={createForm.phone} onChange={(e) => setCreateForm({...createForm, phone: e.target.value})} placeholder="+977..." />
+              <Label>Phone</Label>
+              <Input
+                value={createForm.phone}
+                onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                placeholder="+977…"
+              />
             </div>
             <div className="grid gap-2">
-              <Label>System Role</Label>
-              <Select value={createForm.role} onValueChange={(v: any) => setCreateForm({...createForm, role: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Role</Label>
+              <Select
+                value={createForm.role}
+                onValueChange={(v: any) => setCreateForm({ ...createForm, role: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {ALL_ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
+                  {ALL_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            {['partner', 'senior_associate', 'associate', 'paralegal'].includes(createForm.role) && (
+            {PUBLIC_ROLES.includes(createForm.role as (typeof PUBLIC_ROLES)[number]) && (
               <div className="grid gap-2">
-                <Label>Bar Council Number</Label>
-                <Input value={createForm.barCouncilNumber} onChange={(e) => setCreateForm({...createForm, barCouncilNumber: e.target.value})} placeholder="Optional" />
+                <Label>Bar council number</Label>
+                <Input
+                  value={createForm.barCouncilNumber}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, barCouncilNumber: e.target.value })
+                  }
+                  placeholder="Optional"
+                />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateUser}>Send Invitation</Button>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateUser}>Send invitation</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
-        <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
-          {selectedUser && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-xl">{selectedUser.name}</div>
-                    <div className="flex gap-2 mt-1 flex-wrap">
-                      <Badge className={`text-xs ${ROLE_COLORS[selectedUser.role]}`}>{ROLE_LABELS[selectedUser.role]}</Badge>
-                      {selectedUser.isPending && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10"><Clock className="w-3 h-3 mr-1"/>Pending</Badge>}
-                      {!selectedUser.isActive && <Badge variant="destructive" className="text-xs">Suspended</Badge>}
-                    </div>
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
-
-              <div className="py-4 space-y-6">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Edit Profile</h4>
-                  <div className="grid gap-3">
-                    <div className="grid gap-1">
-                      <Label className="text-xs">Name</Label>
-                      <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label className="text-xs">Email</Label>
-                      <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label className="text-xs">Phone</Label>
-                      <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-                    </div>
-                    {selectedUser.role !== 'client' && selectedUser.role !== 'admin' && (
-                      <>
-                        <div className="grid gap-1">
-                          <Label className="text-xs">Bar Council Number</Label>
-                          <Input value={editForm.barCouncilNumber} onChange={(e) => setEditForm({ ...editForm, barCouncilNumber: e.target.value })} />
-                        </div>
-                        <div className="grid gap-1">
-                          <Label className="text-xs">Bar Council Expiry</Label>
-                          <Input type="date" value={editForm.barCouncilExpiry} onChange={(e) => setEditForm({ ...editForm, barCouncilExpiry: e.target.value })} />
-                        </div>
-                        <div className="grid gap-1">
-                          <Label className="text-xs">Practice Areas (comma-separated)</Label>
-                          <Input value={editForm.practiceAreas} onChange={(e) => setEditForm({ ...editForm, practiceAreas: e.target.value })} placeholder="Corporate Law, Litigation" />
-                        </div>
-                      </>
-                    )}
-                    <Button size="sm" onClick={handleSaveProfile} disabled={savingProfile}>Save Profile</Button>
-                  </div>
+      <Sheet open={Boolean(selectedUser)} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        {selectedUser && (
+          <SheetContent
+            onClose={() => setSelectedUser(null)}
+            title={
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5 text-primary" />
                 </div>
-
-                {selectedUser.lastLoginAt && (
-                  <div className="flex items-center gap-3 text-sm text-foreground">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    Last login: {new Date(selectedUser.lastLoginAt).toLocaleString()}
+                <div className="min-w-0">
+                  <div className="font-serif text-lg font-bold text-foreground truncate">
+                    {selectedUser.name}
                   </div>
-                )}
-
-                {selectedUser.role !== 'client' && selectedUser.role !== 'admin' && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Professional Info</h4>
-                    <div className="flex items-center gap-3 text-sm text-foreground">
-                      <Briefcase className="w-4 h-4 text-muted-foreground" /> Practice Area: {selectedUser.practiceAreas?.join(", ") || "—"}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Security</h4>
-                  <div className="flex items-center justify-between text-sm text-foreground">
-                    <div className="flex items-center gap-3">
-                      <ShieldCheck className={`w-4 h-4 ${selectedUser.twoFactorEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
-                      Two-Factor Auth
-                    </div>
-                    {selectedUser.twoFactorEnabled ? (
-                      <Badge variant="outline" className="text-[10px] text-green-600 border-green-600 bg-green-50">Enabled</Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-[10px]">Disabled</Badge>
-                    )}
-                  </div>
-                  {selectedUser.twoFactorEnabled && <Button variant="outline" size="sm" onClick={handleResetMfa}><ShieldCheck className="w-4 h-4 mr-2" /> Reset MFA & Sessions</Button>}
-                  {(userSessions?.length ?? 0) > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">{userSessions!.length} active session(s)</p>
-                      <Button variant="outline" size="sm" onClick={handleRevokeAllSessions}>
-                        <LogOut className="w-4 h-4 mr-2" /> Revoke All Sessions
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent Activity</h4>
-                  {userActivity === undefined ? (
-                    <Skeleton className="h-12 w-full" />
-                  ) : userActivity.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No activity recorded.</p>
-                  ) : (
-                    userActivity.slice(0, 5).map((log: any) => (
-                      <div key={log._id} className="flex items-start gap-3 text-sm">
-                        <History className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                        <div>
-                          <span className="text-muted-foreground">{new Date(log.createdAt).toLocaleString()}:</span>{" "}
-                          {log.action}{log.details ? ` — ${log.details}` : ""}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  <div className="flex items-center gap-3 text-sm text-foreground">
-                    <Activity className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Account Status:</span> {selectedUser.isActive ? "Active (Can Login)" : "Suspended (No Access)"}
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start text-foreground"
-                      onClick={() => {
-                        if (selectedUser.isPending) {
-                          handleResendInvitation(selectedUser);
-                        } else {
-                          handleSendPasswordReset(selectedUser);
-                        }
-                      }}
-                    >
-                      {selectedUser.isPending ? <MailWarning className="w-4 h-4 mr-2 text-amber-500" /> : <Key className="w-4 h-4 mr-2 text-muted-foreground" />}
-                      {selectedUser.isPending ? "Resend Invitation Email" : "Send Password Reset Link"}
-                    </Button>
+                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                    <Badge className={`text-xs ${ROLE_COLORS[selectedUser.role]}`}>
+                      {ROLE_LABELS[selectedUser.role]}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {statusLabel(selectedUser)}
+                    </Badge>
                   </div>
                 </div>
               </div>
-
-              <DialogFooter className="flex justify-between sm:justify-between items-center border-t border-border pt-4 mt-2 flex-wrap gap-2">
-                <div className="flex gap-2">
-                  <Button
-                    variant={selectedUser.isActive ? "destructive" : "default"}
-                    onClick={() => toggleUserStatus(selectedUser)}
-                  >
-                    <Ban className="w-4 h-4 mr-2" />
-                    {selectedUser.isActive ? "Suspend Account" : "Reactivate Account"}
-                  </Button>
-                  <Button variant="outline" className="text-destructive" onClick={handleArchiveUser}>
-                    <Trash2 className="w-4 h-4 mr-2" /> Archive
+            }
+          >
+            <div className="space-y-6 pb-8">
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Profile
+                </h4>
+                <div className="grid gap-3">
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Email</Label>
+                    <Input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Phone</Label>
+                    <Input
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    />
+                  </div>
+                  {selectedUser.role !== "client" && selectedUser.role !== "admin" && (
+                    <>
+                      <div className="grid gap-1">
+                        <Label className="text-xs">Bar council number</Label>
+                        <Input
+                          value={editForm.barCouncilNumber}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, barCouncilNumber: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label className="text-xs">Bar council expiry</Label>
+                        <Input
+                          type="date"
+                          value={editForm.barCouncilExpiry}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, barCouncilExpiry: e.target.value })
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
+                  <Button size="sm" onClick={handleSaveProfile} disabled={savingProfile}>
+                    Save profile
                   </Button>
                 </div>
-                <Button variant="outline" onClick={() => setSelectedUser(null)}>Close</Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+              </section>
+
+              <section className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Linked records
+                </h4>
+                <div className="flex flex-col gap-2">
+                  {isPublicTeamEligible && (
+                    <Button variant="outline" size="sm" className="justify-start" asChild>
+                      <Link href="/admin/cms/team">
+                        <ExternalLink className="w-4 h-4 mr-2" /> Public website profile
+                      </Link>
+                    </Button>
+                  )}
+                  {selectedUser.role === "client" && (
+                    <Button variant="outline" size="sm" className="justify-start" asChild>
+                      <Link href="/admin/clients">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        {linkedCrmClient
+                          ? `CRM client: ${linkedCrmClient.fullName}`
+                          : "CRM clients (grant portal)"}
+                      </Link>
+                    </Button>
+                  )}
+                  {isHrEligible && (
+                    <Button variant="outline" size="sm" className="justify-start" asChild>
+                      <Link href="/admin/hr">
+                        <ExternalLink className="w-4 h-4 mr-2" /> HR / payroll
+                      </Link>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="justify-start" asChild>
+                    <Link href="/admin/audit">
+                      <ExternalLink className="w-4 h-4 mr-2" /> Firm audit log
+                    </Link>
+                  </Button>
+                </div>
+              </section>
+
+              {selectedUser.lastLoginAt && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Last login {new Date(selectedUser.lastLoginAt).toLocaleString()}
+                </p>
+              )}
+
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Security & sessions
+                </h4>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck
+                      className={`w-4 h-4 ${selectedUser.twoFactorEnabled ? "text-green-500" : "text-muted-foreground"}`}
+                    />
+                    Two-factor auth
+                  </span>
+                  {selectedUser.twoFactorEnabled ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] text-green-700 border-green-600/50"
+                    >
+                      Enabled
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Disabled
+                    </Badge>
+                  )}
+                </div>
+                {selectedUser.twoFactorEnabled && (
+                  <Button variant="outline" size="sm" onClick={askResetMfa}>
+                    <ShieldCheck className="w-4 h-4 mr-2" /> Reset MFA & sessions
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {userSessions?.length ?? 0} active session(s)
+                </p>
+                {(userSessions?.length ?? 0) > 0 && (
+                  <Button variant="outline" size="sm" onClick={askRevokeSessions}>
+                    <LogOut className="w-4 h-4 mr-2" /> Revoke all sessions
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() =>
+                    selectedUser.isPending
+                      ? handleResendInvitation(selectedUser)
+                      : handleSendPasswordReset(selectedUser)
+                  }
+                >
+                  {selectedUser.isPending ? (
+                    <MailWarning className="w-4 h-4 mr-2 text-amber-500" />
+                  ) : (
+                    <Key className="w-4 h-4 mr-2" />
+                  )}
+                  {selectedUser.isPending ? "Resend setup email" : "Send password reset"}
+                </Button>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Recent activity
+                </h4>
+                {userActivity === undefined ? (
+                  <Skeleton className="h-12 w-full" />
+                ) : userActivity.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No activity recorded.</p>
+                ) : (
+                  userActivity.slice(0, 5).map((log: any) => (
+                    <div key={log._id} className="flex items-start gap-2 text-sm">
+                      <History className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-muted-foreground">
+                          {new Date(log.createdAt).toLocaleString()}:
+                        </span>{" "}
+                        {log.action}
+                        {log.details ? ` — ${log.details}` : ""}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </section>
+
+              <div className="pt-2 border-t border-border flex flex-wrap gap-2">
+                <Button
+                  variant={selectedUser.isActive ? "destructive" : "default"}
+                  onClick={() => askToggleStatus(selectedUser)}
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  {selectedUser.isActive ? "Suspend account" : "Reactivate account"}
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        )}
+      </Sheet>
+
+      <ConfirmDialog
+        state={confirm}
+        busy={confirmBusy}
+        onOpenChange={(open) => {
+          if (!open) setConfirm(null);
+        }}
+      />
     </div>
   );
-
-  function renderUserCard(u: any) {
-    const barExpiryDate = u.barCouncilExpiry ? new Date(u.barCouncilExpiry) : null;
-    const isExpiringSoon = barExpiryDate && barExpiryDate < new Date(Date.now() + 90 * 86400000);
-    const isEditing = editingId === u._id;
-    const isSelected = selectedIds.has(u._id);
-
-    return (
-      <Card
-        key={u._id}
-        className={`hover:shadow-md transition-all cursor-pointer ${!u.isActive ? "opacity-60 grayscale-[0.5]" : ""} ${isSelected ? "ring-2 ring-primary" : ""}`}
-        onClick={() => setSelectedUser(u)}
-      >
-        <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-          <div className="flex items-center gap-3 min-w-0 w-full">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onClick={(e) => toggleSelect(e, u._id)}
-              onChange={() => {}}
-              className="h-4 w-4 rounded border-border shrink-0"
-            />
-            <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
-              <User className="w-4 h-4 text-accent" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <p className={`text-sm font-semibold truncate max-w-full ${!u.isActive ? "line-through text-muted-foreground" : u.isPending ? "text-amber-600 dark:text-amber-500" : "text-foreground"}`}>
-                  {u.name ?? "Unnamed"}
-                </p>
-                {u.isPending && <Badge variant="outline" className="text-[10px] h-4 px-1 border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10"><Clock className="w-3 h-3 mr-1"/>Pending</Badge>}
-                {!u.isActive && <Badge variant="destructive" className="text-[10px] h-4 px-1">Suspended</Badge>}
-                <Badge className={`text-[10px] sm:text-xs ${ROLE_COLORS[u.role]}`}>{ROLE_LABELS[u.role]}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{u.email ?? "\u2014"}</p>
-              {u.barCouncilNumber && (
-                <div className="flex flex-wrap items-center gap-1 mt-0.5">
-                  <p className="text-xs text-muted-foreground">Bar: {u.barCouncilNumber}</p>
-                  {isExpiringSoon && (
-                    <span className="flex items-center gap-0.5 text-xs text-amber-500">
-                      <AlertTriangle className="w-3 h-3" /> Expires soon
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto pl-7 sm:pl-0">
-            {isEditing ? (
-              <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 w-full sm:w-auto">
-                <Select value={draftRole} onValueChange={(v) => setDraftRole(v as UserRole)}>
-                  <SelectTrigger className="h-8 text-xs flex-1 sm:flex-none sm:w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ALL_ROLES.map((r) => (
-                      <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:text-green-600 shrink-0" disabled={saving} onClick={(e) => saveRole(e, u._id)}>
-                  <Check className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground shrink-0" onClick={(e) => cancelEdit(e)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-8 w-full sm:w-auto"
-                onClick={(e) => startEdit(e, u._id, u.role)}
-              >
-                Edit Role
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 }

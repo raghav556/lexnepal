@@ -70,6 +70,11 @@ export const systemSettingsSchema = z.object({
   defaultLanguage: z.enum(["en", "ne"]),
   clientPortalEnabled: z.boolean(),
   onlineBookingEnabled: z.boolean(),
+  /**
+   * Preference for staff “Add meeting link” paste hints.
+   * Does not auto-generate Meet/Zoom rooms — links are always entered manually.
+   */
+  defaultMeetingPlatform: z.enum(["manual", "google_meet", "zoom"]),
 });
 
 export const updateSystemSettingsSchema = systemSettingsSchema

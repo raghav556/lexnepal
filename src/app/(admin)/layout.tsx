@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { AlertTriangle, Activity, FileText, Settings, Shield, Menu, X, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, DollarSign, BarChart3, Scale, Navigation, Newspaper } from "lucide-react";
+import { AlertTriangle, Activity, FileText, Settings, Shield, Menu, X, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, Contact, DollarSign, BarChart3, Scale, Navigation, Newspaper } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
@@ -24,6 +24,7 @@ const NAV: NavItem[] = [
   { heading: "Firm & People" },
   { label: "Conflict Checker", i18nKey: "nav.conflict_checker", href: "/admin/conflict-checker", icon: AlertTriangle },
   { label: "Users", i18nKey: "nav.users", href: "/admin/users", icon: Users },
+  { label: "Clients", i18nKey: "nav.clients", href: "/admin/clients", icon: Contact },
   { label: "HR", i18nKey: "nav.hr", href: "/admin/hr", icon: UserCheck },
   { label: "CRM", i18nKey: "nav.crm", href: "/admin/crm", icon: BarChart3 },
   { label: "Appointments", i18nKey: "nav.appointments", href: "/admin/appointments", icon: Calendar },

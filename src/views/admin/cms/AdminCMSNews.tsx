@@ -26,6 +26,7 @@ export default function AdminCMSNews() {
     content: "",
     date: new Date().toISOString().slice(0, 10),
     type: "firm_news" as NewsType,
+    status: "draft" as "draft" | "published",
     linkUrl: "",
     imageUrl: "",
   });
@@ -49,6 +50,7 @@ export default function AdminCMSNews() {
         content: item.content || "",
         date: item.date?.slice?.(0, 10) || item.date || new Date().toISOString().slice(0, 10),
         type: item.type || "firm_news",
+        status: item.status || "published",
         linkUrl: item.linkUrl || "",
         imageUrl: item.imageUrl || "",
       });
@@ -60,6 +62,7 @@ export default function AdminCMSNews() {
         content: "",
         date: new Date().toISOString().slice(0, 10),
         type: "firm_news",
+        status: "draft",
         linkUrl: "",
         imageUrl: "",
       });
@@ -79,6 +82,7 @@ export default function AdminCMSNews() {
         content: formData.content,
         date: formData.date,
         type: formData.type,
+        status: formData.status,
         linkUrl: formData.linkUrl || undefined,
         imageUrl: formData.imageUrl || undefined,
       };
@@ -159,6 +163,12 @@ export default function AdminCMSNews() {
                     <Badge variant="outline" className="whitespace-nowrap text-[10px]">
                       {typeLabel(item.type)}
                     </Badge>
+                    <Badge
+                      variant={item.status === "published" ? "default" : "secondary"}
+                      className="whitespace-nowrap text-[10px]"
+                    >
+                      {item.status === "published" ? "Published" : "Draft"}
+                    </Badge>
                     <span className="text-xs text-muted-foreground tabular-nums">{item.date}</span>
                   </div>
                 </div>
@@ -210,9 +220,17 @@ export default function AdminCMSNews() {
                       <div className="text-xs text-muted-foreground truncate max-w-md">{item.excerpt}</div>
                     </td>
                     <td className="px-4 lg:px-6 py-4">
-                      <Badge variant="outline" className="whitespace-nowrap">
-                        {typeLabel(item.type)}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="whitespace-nowrap w-fit">
+                          {typeLabel(item.type)}
+                        </Badge>
+                        <Badge
+                          variant={item.status === "published" ? "default" : "secondary"}
+                          className="whitespace-nowrap w-fit"
+                        >
+                          {item.status === "published" ? "Published" : "Draft"}
+                        </Badge>
+                      </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 text-muted-foreground whitespace-nowrap tabular-nums">
                       {item.date}
@@ -256,7 +274,7 @@ export default function AdminCMSNews() {
                 className="min-w-0"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2 min-w-0">
                 <label className="text-sm font-semibold">Type</label>
                 <select
@@ -267,6 +285,22 @@ export default function AdminCMSNews() {
                   <option value="firm_news">Firm News</option>
                   <option value="award">Award</option>
                   <option value="press_release">Press Release</option>
+                </select>
+              </div>
+              <div className="space-y-2 min-w-0">
+                <label className="text-sm font-semibold">Status</label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      status: e.target.value as "draft" | "published",
+                    })
+                  }
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
                 </select>
               </div>
               <div className="space-y-2 min-w-0">
@@ -306,6 +340,7 @@ export default function AdminCMSNews() {
                   placeholder="https://..."
                   className="min-w-0"
                 />
+                <p className="text-xs text-muted-foreground">External HTTPS URL only — first-party media library deferred.</p>
               </div>
               <div className="space-y-2 min-w-0">
                 <label className="text-sm font-semibold">External Link</label>

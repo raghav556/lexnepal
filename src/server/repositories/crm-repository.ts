@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, ne, type SQL } from "drizzle-orm";
+import { and, asc, eq, ilike, isNull, ne, or, type SQL } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
 import { getDatabase } from "@/server/db/client";
 import {
@@ -8,7 +8,6 @@ import {
   clients,
   firms,
   leads,
-  notifications,
 } from "@/server/db/schema";
 import type {
   AppointmentAssignInput,
@@ -24,19 +23,12 @@ import type {
   LeadListInput,
   LeadUpdateInput,
 } from "@/shared/contracts/crm";
+import { DEFAULT_APPOINTMENT_SLOTS } from "@/shared/crm/appointment-slots";
 import { AppError } from "@/shared/errors/api-error";
 
 const database = getDatabase();
 
-/** Match Convex `listAvailableSlots` base slots. */
-export const DEFAULT_APPOINTMENT_SLOTS = [
-  "10:00 AM",
-  "11:00 AM",
-  "01:30 PM",
-  "03:00 PM",
-  "04:30 PM",
-] as const;
-
+export { DEFAULT_APPOINTMENT_SLOTS };
 function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
   const output: Record<string, unknown> = { ...row, _id: row.id };
   for (const [key, value] of Object.entries(output)) {
@@ -84,15 +76,36 @@ export class CrmRepository {
   }
 
   async listLeads(firmId: string, filters: LeadListInput = {}) {
-    const conditions: SQL[] = [eq(leads.firmId, firmId)];
+    const conditions: SQL[] = [eq(leads.firmId, firmId), isNull(leads.deletedAt)];
     if (filters.status) conditions.push(eq(leads.status, filters.status));
     if (filters.assignedTo) conditions.push(eq(leads.assignedTo, filters.assignedTo));
+    if (filters.source) conditions.push(eq(leads.source, filters.source));
+    if (filters.q) {
+      const pattern = `%${filters.q}%`;
+      conditions.push(
+        or(
+          ilike(leads.fullName, pattern),
+          ilike(leads.email, pattern),
+          ilike(leads.phone, pattern),
+        )!,
+      );
+    }
     const rows = await database
       .select()
       .from(leads)
       .where(and(...conditions))
       .orderBy(asc(leads.createdAt));
     return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
+  }
+
+  async getLead(firmId: string, leadId: string) {
+    const [row] = await database
+      .select()
+      .from(leads)
+      .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId), isNull(leads.deletedAt)))
+      .limit(1);
+    if (!row) throw new AppError("NOT_FOUND", "Lead was not found", 404);
+    return toDto(row as unknown as Record<string, unknown>);
   }
 
   async createLead(firmId: string, data: LeadCreateInput, audit?: AuditContext) {
@@ -136,7 +149,7 @@ export class CrmRepository {
     const [row] = await database
       .update(leads)
       .set(updates)
-      .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)))
+      .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId), isNull(leads.deletedAt)))
       .returning();
     if (!row) throw new AppError("NOT_FOUND", "Lead was not found", 404);
     await database.insert(auditLog).values({
@@ -161,7 +174,7 @@ export class CrmRepository {
       const [lead] = await tx
         .select()
         .from(leads)
-        .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)));
+        .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId), isNull(leads.deletedAt)));
       if (!lead) throw new AppError("NOT_FOUND", "Lead was not found", 404);
       if (lead.convertedClientId) {
         throw new AppError("CONFLICT", "Lead already converted", 409);
@@ -202,7 +215,7 @@ export class CrmRepository {
     const [row] = await database
       .update(leads)
       .set({ intakeToken: token, intakeSubmitted: false, updatedAt: new Date() })
-      .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId)))
+      .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId), isNull(leads.deletedAt)))
       .returning();
     if (!row) throw new AppError("NOT_FOUND", "Lead was not found", 404);
     await database.insert(auditLog).values({
@@ -218,7 +231,11 @@ export class CrmRepository {
   }
 
   async getIntakeByToken(token: string) {
-    const [lead] = await database.select().from(leads).where(eq(leads.intakeToken, token)).limit(1);
+    const [lead] = await database
+      .select()
+      .from(leads)
+      .where(and(eq(leads.intakeToken, token), isNull(leads.deletedAt)))
+      .limit(1);
     if (!lead) return null;
     return {
       lead: {
@@ -234,7 +251,11 @@ export class CrmRepository {
   }
 
   async submitIntake(token: string, payload: IntakeSubmitInput) {
-    const [lead] = await database.select().from(leads).where(eq(leads.intakeToken, token)).limit(1);
+    const [lead] = await database
+      .select()
+      .from(leads)
+      .where(and(eq(leads.intakeToken, token), isNull(leads.deletedAt)))
+      .limit(1);
     if (!lead) throw new AppError("NOT_FOUND", "Invalid or expired intake link", 404);
     if (lead.intakeSubmitted) throw new AppError("CONFLICT", "Intake already submitted", 409);
 
@@ -265,14 +286,61 @@ export class CrmRepository {
       .where(eq(leads.id, lead.id))
       .returning();
 
-    return { success: true as const, leadId: row!.id, _id: row!.id };
+    return {
+      success: true as const,
+      leadId: row!.id,
+      _id: row!.id,
+      firmId: lead.firmId,
+      fullName: row!.fullName,
+      assignedTo: lead.assignedTo,
+    };
+  }
+
+  async getClientLinkForUser(firmId: string, userId: string) {
+    const [row] = await database
+      .select({ id: clients.id, email: clients.email })
+      .from(clients)
+      .where(
+        and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)),
+      )
+      .limit(1);
+    return row ?? null;
+  }
+
+  async getAppointment(firmId: string, appointmentId: string) {
+    const [row] = await database
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.id, appointmentId),
+          eq(appointments.firmId, firmId),
+          isNull(appointments.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
+    return toDto(row as unknown as Record<string, unknown>);
   }
 
   async listAppointments(firmId: string, filters: AppointmentListInput = {}) {
-    const conditions: SQL[] = [eq(appointments.firmId, firmId)];
+    const conditions: SQL[] = [eq(appointments.firmId, firmId), isNull(appointments.deletedAt)];
     if (filters.status) conditions.push(eq(appointments.status, filters.status));
     if (filters.assignedLawyerId) {
       conditions.push(eq(appointments.assignedLawyerId, filters.assignedLawyerId));
+    }
+    if (filters.leadId) conditions.push(eq(appointments.leadId, filters.leadId));
+    if (filters.clientId) {
+      if (filters.clientEmail) {
+        conditions.push(
+          or(
+            eq(appointments.clientId, filters.clientId),
+            and(isNull(appointments.clientId), eq(appointments.clientEmail, filters.clientEmail)),
+          )!,
+        );
+      } else {
+        conditions.push(eq(appointments.clientId, filters.clientId));
+      }
     }
     const rows = await database
       .select()
@@ -287,6 +355,7 @@ export class CrmRepository {
       eq(appointments.firmId, firmId),
       eq(appointments.date, input.date),
       ne(appointments.status, "cancelled"),
+      isNull(appointments.deletedAt),
     ];
     if (input.assignedLawyerId) {
       conditions.push(eq(appointments.assignedLawyerId, input.assignedLawyerId));
@@ -300,35 +369,72 @@ export class CrmRepository {
   }
 
   async createAppointment(firmId: string, data: AppointmentCreateInput, audit?: AuditContext) {
-    const [row] = await database
-      .insert(appointments)
-      .values({
-        firmId,
-        clientName: data.clientName,
-        clientEmail: data.clientEmail || null,
-        clientPhone: data.clientPhone,
-        clientId: data.clientId ?? null,
-        practiceArea: data.practiceArea,
-        date: data.date,
-        timeSlot: data.timeSlot,
-        notes: data.notes ?? null,
-        assignedLawyerId: data.assignedLawyerId ?? null,
-        status: "pending",
-      })
-      .returning();
-    if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create appointment", 500);
-    if (audit) {
-      await database.insert(auditLog).values({
-        firmId: audit.firmId,
-        userId: audit.actorId,
-        action: "appointment.created",
-        resource: "appointments",
-        resourceId: row.id,
-        ipAddress: audit.ipAddress,
-        requestId: audit.requestId,
-      });
-    }
-    return toDto(row as unknown as Record<string, unknown>);
+    return database.transaction(async (tx) => {
+      let leadId = data.leadId ?? null;
+      if (leadId) {
+        const [lead] = await tx
+          .select()
+          .from(leads)
+          .where(and(eq(leads.id, leadId), eq(leads.firmId, firmId), isNull(leads.deletedAt)))
+          .limit(1);
+        if (!lead) throw new AppError("NOT_FOUND", "Lead was not found", 404);
+        if (lead.status === "converted") {
+          throw new AppError(
+            "VALIDATION_FAILED",
+            "Cannot schedule consultation for a converted lead",
+            400,
+          );
+        }
+      }
+
+      const [row] = await tx
+        .insert(appointments)
+        .values({
+          firmId,
+          clientName: data.clientName,
+          clientEmail: data.clientEmail || null,
+          clientPhone: data.clientPhone,
+          clientId: data.clientId ?? null,
+          leadId,
+          practiceArea: data.practiceArea,
+          date: data.date,
+          timeSlot: data.timeSlot,
+          notes: data.notes ?? null,
+          assignedLawyerId: data.assignedLawyerId ?? null,
+          status: "pending",
+        })
+        .returning();
+      if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create appointment", 500);
+
+      if (leadId) {
+        await tx
+          .update(leads)
+          .set({ status: "consultation_scheduled", updatedAt: new Date() })
+          .where(
+            and(
+              eq(leads.id, leadId),
+              eq(leads.firmId, firmId),
+              isNull(leads.deletedAt),
+              ne(leads.status, "converted"),
+              ne(leads.status, "lost"),
+            ),
+          );
+      }
+
+      if (audit) {
+        await tx.insert(auditLog).values({
+          firmId: audit.firmId,
+          userId: audit.actorId,
+          action: "appointment.created",
+          resource: "appointments",
+          resourceId: row.id,
+          details: leadId ? `lead:${leadId}` : null,
+          ipAddress: audit.ipAddress,
+          requestId: audit.requestId,
+        });
+      }
+      return toDto(row as unknown as Record<string, unknown>);
+    });
   }
 
   async bookConsultation(firmId: string, data: AppointmentBookInput, audit: AuditContext) {
@@ -370,35 +476,15 @@ export class CrmRepository {
       const [row] = await tx
         .update(appointments)
         .set(updates)
-        .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
+        .where(
+          and(
+            eq(appointments.id, appointmentId),
+            eq(appointments.firmId, firmId),
+            isNull(appointments.deletedAt),
+          ),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
-
-      if (input.status === "confirmed" && row.assignedLawyerId) {
-        await tx.insert(notifications).values({
-          firmId,
-          userId: row.assignedLawyerId,
-          title: "Appointment confirmed",
-          body: `${row.clientName} — ${row.date} ${row.timeSlot}`,
-          type: "system",
-          relatedId: row.id,
-          link: `/admin/appointments`,
-        });
-      }
-      if (input.status === "confirmed" && row.clientEmail) {
-        await writeAudit(
-          tx,
-          audit,
-          "comms.email",
-          "appointment",
-          row.id,
-          JSON.stringify({
-            to: row.clientEmail,
-            subject: "Consultation confirmed",
-            meetingLink: input.meetingLink || row.meetingLink,
-          }),
-        );
-      }
 
       await writeAudit(tx, audit, "appointment.status", "appointments", row.id, input.status);
       return { success: true as const, ...toDto(row as unknown as Record<string, unknown>) };
@@ -414,7 +500,13 @@ export class CrmRepository {
     const [row] = await database
       .update(appointments)
       .set({ assignedLawyerId: input.assignedLawyerId, updatedAt: new Date() })
-      .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
+      .where(
+        and(
+          eq(appointments.id, appointmentId),
+          eq(appointments.firmId, firmId),
+          isNull(appointments.deletedAt),
+        ),
+      )
       .returning();
     if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
     await database.insert(auditLog).values({
@@ -439,7 +531,13 @@ export class CrmRepository {
     const [row] = await database
       .update(appointments)
       .set({ date: input.date, timeSlot: input.timeSlot, updatedAt: new Date() })
-      .where(and(eq(appointments.id, appointmentId), eq(appointments.firmId, firmId)))
+      .where(
+        and(
+          eq(appointments.id, appointmentId),
+          eq(appointments.firmId, firmId),
+          isNull(appointments.deletedAt),
+        ),
+      )
       .returning();
     if (!row) throw new AppError("NOT_FOUND", "Appointment was not found", 404);
     await database.insert(auditLog).values({

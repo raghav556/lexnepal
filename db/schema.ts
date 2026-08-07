@@ -230,6 +230,7 @@ export const leaveTypeEnum = pgEnum("leave_type", [
   "unpaid",
 ]);
 export const reviewStatusEnum = pgEnum("review_status", ["pending", "approved", "rejected"]);
+export const payrollRunStatusEnum = pgEnum("payroll_run_status", ["draft", "finalized"]);
 export const notificationTypeEnum = pgEnum("notification_type", [
   "hearing_reminder",
   "task_due",
@@ -280,6 +281,7 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "hired",
 ]);
 export const newsTypeEnum = pgEnum("news_type", ["award", "press_release", "firm_news"]);
+export const newsStatusEnum = pgEnum("news_status", ["draft", "published"]);
 export const blogStatusEnum = pgEnum("blog_status", ["draft", "published"]);
 export const navigationLocationEnum = pgEnum("navigation_location", [
   "header",
@@ -1505,6 +1507,7 @@ export const appointments = pgTable(
     clientEmail: text("client_email"),
     clientPhone: text("client_phone").notNull(),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
     practiceArea: text("practice_area").notNull(),
     date: date("appointment_date").notNull(),
     timeSlot: text("time_slot").notNull(),
@@ -1518,6 +1521,7 @@ export const appointments = pgTable(
     index("appointments_firm_date_idx").on(table.firmId, table.date),
     index("appointments_firm_status_idx").on(table.firmId, table.status),
     index("appointments_firm_assigned_idx").on(table.firmId, table.assignedLawyerId),
+    index("appointments_firm_lead_idx").on(table.firmId, table.leadId),
   ],
 );
 export const attendance = pgTable(
@@ -1562,6 +1566,75 @@ export const leaveRequests = pgTable(
   (table) => [
     index("leave_requests_firm_user_idx").on(table.firmId, table.userId),
     index("leave_requests_firm_status_idx").on(table.firmId, table.status),
+  ],
+);
+export const leaveBalances = pgTable(
+  "leave_balances",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    type: leaveTypeEnum("type").notNull(),
+    year: integer("year").notNull(),
+    entitledDays: integer("entitled_days").notNull(),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("leave_balances_firm_user_type_year_unique").on(
+      table.firmId,
+      table.userId,
+      table.type,
+      table.year,
+    ),
+    index("leave_balances_firm_user_year_idx").on(table.firmId, table.userId, table.year),
+  ],
+);
+export const payrollRuns = pgTable(
+  "payroll_runs",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    periodStart: date("period_start").notNull(),
+    periodEnd: date("period_end").notNull(),
+    label: text("label"),
+    status: payrollRunStatusEnum("status").default("draft").notNull(),
+    generatedBy: uuid("generated_by").references(() => users.id, { onDelete: "set null" }),
+    finalizedBy: uuid("finalized_by").references(() => users.id, { onDelete: "set null" }),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    index("payroll_runs_firm_period_idx").on(table.firmId, table.periodStart, table.periodEnd),
+    index("payroll_runs_firm_status_idx").on(table.firmId, table.status),
+  ],
+);
+export const payrollRunLines = pgTable(
+  "payroll_run_lines",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => payrollRuns.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    role: text("role").notNull(),
+    gross: integer("gross").notNull(),
+    pf: integer("pf").notNull(),
+    pfEmployer: integer("pf_employer").notNull(),
+    ssf: integer("ssf").notNull(),
+    tax: integer("tax").notNull(),
+    net: integer("net").notNull(),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("payroll_run_lines_run_user_unique").on(table.runId, table.userId),
+    index("payroll_run_lines_firm_user_idx").on(table.firmId, table.userId),
+    index("payroll_run_lines_firm_run_idx").on(table.firmId, table.runId),
   ],
 );
 export const auditLog = pgTable(
@@ -1958,6 +2031,7 @@ export const newsAndAwards = pgTable(
     content: text("content").notNull(),
     publicationDate: date("publication_date").notNull(),
     type: newsTypeEnum("type").notNull(),
+    status: newsStatusEnum("status").default("published").notNull(),
     linkUrl: text("link_url"),
     imageUrl: text("image_url"),
     ...lifecycleColumns(),
@@ -1965,6 +2039,7 @@ export const newsAndAwards = pgTable(
   (table) => [
     index("news_and_awards_firm_type_idx").on(table.firmId, table.type),
     index("news_and_awards_firm_date_idx").on(table.firmId, table.publicationDate),
+    index("news_and_awards_firm_status_idx").on(table.firmId, table.status),
   ],
 );
 export const blogPosts = pgTable(

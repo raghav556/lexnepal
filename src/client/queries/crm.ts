@@ -4,11 +4,19 @@ import { apiClient } from "@/client/api/client";
 import { ApiClientError, normalizeApiError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
 
-export function useLeads(filters?: { status?: string; assignedTo?: string }) {
+export function useLeads(filters?: {
+  status?: string;
+  assignedTo?: string;
+  source?: string;
+  q?: string;
+}) {
+  const query = Object.fromEntries(
+    Object.entries(filters ?? {}).filter(([, value]) => value !== undefined && value !== ""),
+  );
   const next = useQuery({
-    queryKey: queryKeys.crm.leads(filters),
+    queryKey: queryKeys.crm.leads(query),
     queryFn: ({ signal }) =>
-      apiClient.request<any[]>("/api/v1/leads", { query: { ...filters }, signal }),
+      apiClient.request<any[]>("/api/v1/leads", { query, signal }),
   });
   return { data: next.data ?? [], isLoading: next.isLoading };
 }
@@ -20,7 +28,17 @@ export function useLeadCommands() {
   const createLead = useMutation({
     mutationFn: async (data: any) => {
       try {
-        // Public website / chatbot captures go through the public firm endpoint.
+        return await apiClient.request("/api/v1/leads", { method: "POST", body: data });
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+
+  const createPublicLead = useMutation({
+    mutationFn: async (data: any) => {
+      try {
         return await apiClient.request("/api/v1/public/leads", { method: "POST", body: data });
       } catch (error) {
         throw normalizeApiError(error);
@@ -106,7 +124,7 @@ export function useLeadCommands() {
     },
   });
 
-  return { createLead, updateLead, convertToClient, generateIntakeLink, submitIntake };
+  return { createLead, createPublicLead, updateLead, convertToClient, generateIntakeLink, submitIntake };
 }
 
 export function useIntakeByToken(token: string | null) {
@@ -129,18 +147,30 @@ export function useIntakeByToken(token: string | null) {
   return { data: next.data, isLoading: next.isLoading };
 }
 
-export function useAppointments(filters?: { status?: string; assignedLawyerId?: string }) {
+export function useAppointments(filters?: {
+  status?: string;
+  assignedLawyerId?: string;
+  leadId?: string;
+}) {
+  const query = Object.fromEntries(
+    Object.entries(filters ?? {}).filter(([, value]) => value !== undefined && value !== ""),
+  );
   const next = useQuery({
-    queryKey: queryKeys.crm.appointments(filters),
+    queryKey: queryKeys.crm.appointments(query),
     queryFn: ({ signal }) =>
-      apiClient.request<any[]>("/api/v1/appointments", { query: { ...filters }, signal }),
+      apiClient.request<any[]>("/api/v1/appointments", { query, signal }),
   });
-  return { data: next.data ?? [], isLoading: next.isLoading };
+  return {
+    data: next.data ?? [],
+    isLoading: next.isLoading,
+    isError: next.isError,
+    error: next.error,
+  };
 }
 
 export function useAvailableSlots(date?: string, assignedLawyerId?: string) {
   const next = useQuery({
-    queryKey: queryKeys.crm.availableSlots(date!),
+    queryKey: queryKeys.crm.availableSlots(date!, assignedLawyerId),
     queryFn: ({ signal }) =>
       apiClient.request<string[]>("/api/v1/appointments/slots", {
         query: { date, assignedLawyerId },

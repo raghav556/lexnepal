@@ -74,3 +74,5 @@ AUTH_SESSION_TTL_SECONDS=28800
 
 - Local `npm run start` with `NODE_ENV=production` on `http://localhost` will set `Secure` cookies that browsers may refuse over plain HTTP — use `npm run rebuild:start` / next start only for true HTTPS staging, or keep local verification on development mode for cookie Secure.
 - Idle timeout (Phase 6) for admin/staff remains client-side; production still depends on short session TTL + MFA for high-privilege roles.
+- **Email / Mailpit:** Local SMTP capture (`:1025` / `:8025`) is for development only. Production hosts must not show Mailpit-oriented invite or HR copy (see `src/lib/invite-copy.ts`). HR leave emails use the same durable `communication.email` queue as identity (`PHASE_8_11_HR.md` / HR-6).
+- Related product track: [`PHASE_8_11_HR.md`](./PHASE_8_11_HR.md) + [`AUDIT_ADMIN_HR.md`](./AUDIT_ADMIN_HR.md).

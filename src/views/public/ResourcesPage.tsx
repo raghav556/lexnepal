@@ -10,7 +10,7 @@ import { BookOpen, Download, Lock, FileText } from "lucide-react";
 import { toast } from "sonner";
 export default function ResourcesPage() {
   const resources = useResources({}, "public");
-  const { createLead } = useLeadCommands();
+  const { createPublicLead } = useLeadCommands();
   const { incrementDownload } = useCmsCommands();
   
   const [selectedRes, setSelectedRes] = useState<any>(null);
@@ -37,7 +37,7 @@ export default function ResourcesPage() {
     if (isGated) {
       setIsSubmitting(true);
       try {
-        await createLead.mutateAsync({
+        await createPublicLead.mutateAsync({
           fullName: name,
           email: email,
           source: "website",

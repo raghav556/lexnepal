@@ -182,7 +182,9 @@ export default function AdminCMSDashboard() {
                 <Card className="border-border">
                   <CardHeader className="bg-muted/30 border-b pb-4">
                     <CardTitle className="text-lg sm:text-xl">Theme Engine</CardTitle>
-                    <CardDescription>Select the primary color scheme that drives the entire application.</CardDescription>
+                    <CardDescription>
+                      Saved for branding reference. Live theme tokens use OKLCH design tokens and are not overridden by this hex yet.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
                     <div className="grid gap-4">
@@ -226,6 +228,7 @@ export default function AdminCMSDashboard() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold">Firm Logo URL</label>
                       <Input type="url" value={formData.logoUrl} onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" />
+                      <p className="text-xs text-muted-foreground">External HTTPS URL — shown in header/footer. First-party media library deferred.</p>
                       <ImagePreview url={formData.logoUrl} fallbackText="No Logo Provided" />
                     </div>
                     <div className="space-y-2">

@@ -9,6 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Plus, Briefcase, Users, Trash2, Edit, CheckCircle2, XCircle, FileText, ExternalLink, Mail, Phone, Clock, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
+import { todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
+
+/** Contract expects YYYY-MM-DD (z.string().date()), not ISO datetime. */
+function normalizePostedDate(value?: string | null): string {
+  if (value && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  return todayIsoInFirmTz();
+}
 
 export default function AdminCMSCareers() {
   const careers = useCareers({}, "admin") || [];
@@ -62,10 +69,17 @@ export default function AdminCMSCareers() {
       const payload = { ...jobForm, requirements: cleanRequirements };
 
       if (editingJobId) {
-        await updateJob({ id: editingJobId as any, ...payload, postedDate: new Date().toISOString() });
+        const existing = careers.find((j: { _id?: string; id?: string; postedDate?: string }) =>
+          String(j._id || j.id) === editingJobId,
+        );
+        await updateJob({
+          id: editingJobId as any,
+          ...payload,
+          postedDate: normalizePostedDate(existing?.postedDate),
+        });
         toast.success("Job updated successfully.");
       } else {
-        await createJob({ ...payload, postedDate: new Date().toISOString() });
+        await createJob({ ...payload, postedDate: todayIsoInFirmTz() });
         toast.success("Job posted successfully.");
       }
       setIsJobModalOpen(false);

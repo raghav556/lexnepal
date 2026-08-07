@@ -378,23 +378,81 @@ export class PostgresMattersRepository {
   private async validateLinkedUser(firmId: string, userId: string | null | undefined) {
     if (!userId) return;
     const [user] = await database
-      .select({ role: users.role })
+      .select({ role: users.role, isActive: users.isActive, isPending: users.isPending })
       .from(users)
-      .where(
-        and(
-          eq(users.id, userId),
-          eq(users.firmId, firmId),
-          eq(users.isActive, true),
-          isNull(users.deletedAt),
-        ),
-      )
+      .where(and(eq(users.id, userId), eq(users.firmId, firmId), isNull(users.deletedAt)))
       .limit(1);
-    if (!user || user.role !== "client")
+    // Pending invites are inactive until activation — still valid portal links.
+    if (!user || user.role !== "client" || (!user.isActive && !user.isPending))
       throw new AppError(
         "VALIDATION_FAILED",
-        "Linked user must be an active client in the same firm",
+        "Linked user must be a client account in the same firm (active or awaiting activation)",
         400,
       );
+  }
+
+  /** Returns another CRM client already linked to this portal user, if any. */
+  async findOtherClientLinkedToUser(firmId: string, userId: string, excludeClientId?: string) {
+    const rows = await database
+      .select({ id: clients.id, fullName: clients.fullName })
+      .from(clients)
+      .where(and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)))
+      .limit(5);
+    return rows.find((row) => row.id !== excludeClientId) ?? null;
+  }
+
+  async findClientByEmail(firmId: string, email: string) {
+    const normalized = email.trim().toLowerCase();
+    const [row] = await database
+      .select()
+      .from(clients)
+      .where(
+        and(eq(clients.firmId, firmId), ilike(clients.email, normalized), isNull(clients.deletedAt)),
+      )
+      .limit(1);
+    return row ? clientDto(row, false) : null;
+  }
+
+  /**
+   * When inviting a client-role identity from Users: link an unlinked CRM row by email,
+   * or create a minimal individual client so `/client` has a record.
+   */
+  async ensureClientForPortalUser(
+    firmId: string,
+    user: { id: string; email: string | null; name: string | null; phone?: string | null },
+    audit: AuditContext,
+  ) {
+    if (!user.email) return null;
+    const existingByUser = await this.getClientByUser(firmId, user.id, false);
+    if (existingByUser) return existingByUser;
+
+    const byEmail = await this.findClientByEmail(firmId, user.email);
+    if (byEmail) {
+      const linkedUserId = typeof byEmail.userId === "string" ? byEmail.userId : null;
+      if (linkedUserId && linkedUserId !== user.id) {
+        throw new AppError(
+          "CONFLICT",
+          "A CRM client with this email is already linked to another portal account",
+          409,
+        );
+      }
+      if (!linkedUserId) {
+        return this.updateClient(firmId, String(byEmail._id), { userId: user.id }, audit);
+      }
+      return byEmail;
+    }
+
+    return this.createClient(
+      firmId,
+      {
+        type: "individual",
+        fullName: (user.name?.trim() || user.email) as string,
+        email: user.email,
+        phone: user.phone ?? null,
+        userId: user.id,
+      },
+      audit,
+    );
   }
 
   private async validateCaseRelationships(

@@ -189,7 +189,11 @@ export class PostgresCmsRepository {
     return this.softDelete(blogPosts, firmId, id, audit, "blog_post");
   }
 
-  async listNews(firmId: string, type?: "award" | "press_release" | "firm_news") {
+  async listNews(
+    firmId: string,
+    type?: "award" | "press_release" | "firm_news",
+    status?: "draft" | "published",
+  ) {
     const rows = await database
       .select()
       .from(newsAndAwards)
@@ -198,17 +202,23 @@ export class PostgresCmsRepository {
           eq(newsAndAwards.firmId, firmId),
           isNull(newsAndAwards.deletedAt),
           type ? eq(newsAndAwards.type, type) : undefined,
+          status ? eq(newsAndAwards.status, status) : undefined,
         ),
       )
       .orderBy(desc(newsAndAwards.publicationDate));
     return rows.map((row) => toDto({ ...row, date: row.publicationDate }));
   }
-  async getNewsItem(firmId: string, id: string) {
+  async getNewsItem(firmId: string, id: string, status?: "draft" | "published") {
     const [row] = await database
       .select()
       .from(newsAndAwards)
       .where(
-        and(eq(newsAndAwards.firmId, firmId), eq(newsAndAwards.id, id), isNull(newsAndAwards.deletedAt)),
+        and(
+          eq(newsAndAwards.firmId, firmId),
+          eq(newsAndAwards.id, id),
+          isNull(newsAndAwards.deletedAt),
+          status ? eq(newsAndAwards.status, status) : undefined,
+        ),
       )
       .limit(1);
     return row ? toDto({ ...row, date: row.publicationDate }) : null;

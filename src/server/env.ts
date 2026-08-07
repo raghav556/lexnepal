@@ -80,8 +80,11 @@ export function getServerEnvironment(): ServerEnvironment {
       ["BETTER_AUTH_URL", parsed.data.BETTER_AUTH_URL],
       ["APP_PUBLIC_URL", parsed.data.APP_PUBLIC_URL],
     ] as const) {
-      if (value && !value.startsWith("https://")) {
-        throw new Error(`${name} must use https:// in production`);
+      if (!value) continue;
+      const isLocalHttp =
+        value.startsWith("http://localhost") || value.startsWith("http://127.0.0.1");
+      if (!value.startsWith("https://") && !isLocalHttp) {
+        throw new Error(`${name} must use https:// in production (localhost HTTP is allowed for local start)`);
       }
     }
   }

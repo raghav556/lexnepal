@@ -34,6 +34,7 @@ export default function AdminCMSBlog() {
     content: "",
     coverImageUrl: "",
     status: "draft" as "draft" | "published",
+    publishDate: "",
     seoTitle: "",
     seoDescription: "",
   });
@@ -56,6 +57,7 @@ export default function AdminCMSBlog() {
         content: post.content,
         coverImageUrl: post.coverImageUrl || "",
         status: post.status || "draft",
+        publishDate: post.publishDate || "",
         seoTitle: post.seoTitle || "",
         seoDescription: post.seoDescription || "",
       });
@@ -63,7 +65,7 @@ export default function AdminCMSBlog() {
       setEditingId(null);
       setFormData({ 
         title: "", slug: "", category: "General", excerpt: "", 
-        content: "", coverImageUrl: "", status: "draft", seoTitle: "", seoDescription: "" 
+        content: "", coverImageUrl: "", status: "draft", publishDate: "", seoTitle: "", seoDescription: "" 
       });
     }
     setEditorTab("write");
@@ -73,10 +75,22 @@ export default function AdminCMSBlog() {
   const handleSave = async () => {
     if (!user) return;
     try {
+      const publishDate =
+        formData.status === "published"
+          ? formData.publishDate || new Date().toISOString()
+          : "";
       const payload = {
-        ...formData,
+        title: formData.title,
+        slug: formData.slug,
+        category: formData.category,
+        excerpt: formData.excerpt,
+        content: formData.content,
+        coverImageUrl: formData.coverImageUrl || undefined,
+        status: formData.status,
+        seoTitle: formData.seoTitle || undefined,
+        seoDescription: formData.seoDescription || undefined,
         author: user.name || user.email || "Admin",
-        publishDate: formData.status === "published" ? new Date().toISOString() : "",
+        publishDate,
       };
 
       if (editingId) {
@@ -332,6 +346,7 @@ export default function AdminCMSBlog() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Cover Image URL</label>
                 <Input type="url" value={formData.coverImageUrl} onChange={e => setFormData({...formData, coverImageUrl: e.target.value})} placeholder="https://..." />
+                <p className="text-xs text-muted-foreground">External HTTPS URL only — first-party media library deferred.</p>
                 {formData.coverImageUrl && (
                   <img src={formData.coverImageUrl} alt="Cover" className="w-full h-24 object-cover rounded-md border border-border mt-2" />
                 )}

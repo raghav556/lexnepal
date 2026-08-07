@@ -74,11 +74,14 @@ export function useNewsItem(id: string) {
   }).data;
 }
 
-export function useLegalPage(slug: "privacy-policy" | "terms") {
+export function useLegalPage(
+  slug: "privacy-policy" | "terms",
+  scope: "public" | "admin" = "public",
+) {
   return useQuery({
-    queryKey: queryKeys.cms.legal(slug),
+    queryKey: [...queryKeys.cms.legal(slug), scope],
     queryFn: ({ signal }) =>
-      apiClient.request<any>(`/api/v1/public/cms/legal-pages/${slug}`, { signal }),
+      apiClient.request<any>(`${basePath(scope)}/legal-pages/${slug}`, { signal }),
   }).data;
 }
 

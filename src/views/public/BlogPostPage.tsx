@@ -1,3 +1,5 @@
+"use client";
+
 import { motion, useScroll, useSpring } from "motion/react";
 import { useParams, Link, useNavigate } from "@/client/navigation";
 import { useBlogPost, useBlogPosts } from "@/client/queries/cms";

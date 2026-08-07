@@ -128,33 +128,53 @@ export async function provisionLocalIdentity(input: {
     .update(authUsers)
     .set({ emailVerified: true, updatedAt: new Date() })
     .where(eq(authUsers.email, input.email));
+  // First-time invites land on /setup-account (same Better Auth reset token).
+  // Forgotten-password flows use /reset-password via requestLocalPasswordResetForLexUser.
   await auth.api.requestPasswordReset({
     body: {
       email: input.email,
-      redirectTo: new URL("/reset-password", getServerEnvironment().APP_PUBLIC_URL).toString(),
+      redirectTo: new URL("/setup-account", getServerEnvironment().APP_PUBLIC_URL).toString(),
     },
   });
 }
 
-export async function requestLocalPasswordResetForLexUser(lexnepalUserId: string): Promise<void> {
+export async function requestLocalPasswordResetForLexUser(
+  lexnepalUserId: string,
+  options?: { redirectPath?: string },
+): Promise<void> {
   const [identity] = await getDatabase()
     .select({ email: authUsers.email })
     .from(authUsers)
     .where(eq(authUsers.lexnepalUserId, lexnepalUserId))
     .limit(1);
   if (!identity) throw new Error("LOCAL_IDENTITY_NOT_PROVISIONED");
+  const redirectPath = options?.redirectPath ?? "/reset-password";
   await getLocalAuth().api.requestPasswordReset({
     body: {
       email: identity.email,
-      redirectTo: new URL("/reset-password", getServerEnvironment().APP_PUBLIC_URL).toString(),
+      redirectTo: new URL(redirectPath, getServerEnvironment().APP_PUBLIC_URL).toString(),
     },
   });
 }
 
 async function activateLinkedUser(user: { id: string; [key: string]: unknown }): Promise<void> {
-  const linkedId = typeof user.lexnepalUserId === "string" ? user.lexnepalUserId : undefined;
-  if (!linkedId) throw new Error("Verified identity is not linked to LexNepal");
-  await getDatabase()
+  let linkedId = typeof user.lexnepalUserId === "string" ? user.lexnepalUserId : undefined;
+  if (!linkedId && typeof user.id === "string") {
+    const [row] = await getDatabase()
+      .select({ lexnepalUserId: authUsers.lexnepalUserId })
+      .from(authUsers)
+      .where(eq(authUsers.id, user.id))
+      .limit(1);
+    linkedId = row?.lexnepalUserId ?? undefined;
+  }
+  if (!linkedId) {
+    throw new Error(
+      `Identity activation failed: auth user ${String(user.id)} is not linked to LexNepal`,
+    );
+  }
+
+  const now = new Date();
+  const [updated] = await getDatabase()
     .update(users)
     .set({
       tokenIdentifier: `local:${user.id}`,
@@ -162,9 +182,35 @@ async function activateLinkedUser(user: { id: string; [key: string]: unknown }):
       isActive: true,
       activationToken: null,
       inviteExpiresAt: null,
-      updatedAt: new Date(),
+      updatedAt: now,
     })
-    .where(eq(users.id, linkedId));
+    .where(eq(users.id, linkedId))
+    .returning({ id: users.id, firmId: users.firmId, email: users.email });
+
+  if (!updated) {
+    throw new Error(`Identity activation failed: LexNepal user ${linkedId} was not found`);
+  }
+
+  // Best-effort security audit — never block activation if audit insert fails.
+  try {
+    const { auditLog } = await import("@/server/db/schema");
+    await getDatabase()
+      .insert(auditLog)
+      .values({
+        firmId: updated.firmId,
+        userId: updated.id,
+        action: "auth.invite_activated",
+        resource: "auth",
+        resourceId: updated.id,
+        details: updated.email ? `email=${updated.email}` : null,
+        ipAddress: null,
+        requestId: "password-reset-hook",
+        createdAt: now,
+        updatedAt: now,
+      });
+  } catch {
+    // ignore
+  }
 }
 
 /** Local defaults plus production URLs from env (no trailing slash). */

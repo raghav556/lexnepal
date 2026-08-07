@@ -222,6 +222,7 @@ export default function AdminCMSResources() {
                 placeholder="https://.../file.pdf"
                 className="min-w-0"
               />
+              <p className="text-xs text-muted-foreground">External HTTPS URL only — first-party media library deferred.</p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Cover Image URL (optional)</label>

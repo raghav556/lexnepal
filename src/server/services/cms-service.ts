@@ -71,7 +71,7 @@ export class CmsService {
       case "blog-posts":
         return this.repository.listBlogPosts(firmId, "published");
       case "news":
-        return this.repository.listNews(firmId, parseNewsType(query.get("type")));
+        return this.repository.listNews(firmId, parseNewsType(query.get("type")), "published");
       case "careers":
         return this.repository.listCareers(firmId, true);
       case "resources":
@@ -90,7 +90,11 @@ export class CmsService {
       case "blog-posts":
         return this.repository.listBlogPosts(firmId, parseBlogStatus(query.get("status")));
       case "news":
-        return this.repository.listNews(firmId, parseNewsType(query.get("type")));
+        return this.repository.listNews(
+          firmId,
+          parseNewsType(query.get("type")),
+          parseBlogStatus(query.get("status")),
+        );
       case "careers":
         return this.repository.listCareers(firmId, parseBoolean(query.get("isActive")));
       case "resources":
@@ -183,12 +187,17 @@ export class CmsService {
     return row;
   }
   async getPublicNewsItem(id: string) {
-    const row = await this.repository.getNewsItem(await this.publicFirmId(), id);
+    const row = await this.repository.getNewsItem(await this.publicFirmId(), id, "published");
     if (!row) throw new AppError("NOT_FOUND", "News item was not found", 404);
     return row;
   }
   async getLegalPage(slug: "privacy-policy" | "terms") {
     const row = await this.repository.getLegalPage(await this.publicFirmId(), slug);
+    if (!row) throw new AppError("NOT_FOUND", "Legal page was not found", 404);
+    return row;
+  }
+  async getAdminLegalPage(principal: AuthPrincipal, slug: "privacy-policy" | "terms") {
+    const row = await this.repository.getLegalPage(this.managerFirmId(principal), slug);
     if (!row) throw new AppError("NOT_FOUND", "Legal page was not found", 404);
     return row;
   }

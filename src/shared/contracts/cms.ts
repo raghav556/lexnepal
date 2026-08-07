@@ -49,6 +49,7 @@ export const newsInputSchema = z.object({
   content: z.string().min(1).max(100_000),
   date: dateOnly,
   type: z.enum(["award", "press_release", "firm_news"]),
+  status: z.enum(["draft", "published"]).default("draft"),
   linkUrl: optionalUrl,
   imageUrl: optionalUrl,
 });
@@ -107,13 +108,10 @@ export const navigationInputSchema = z.object({
   openInNewTab: z.boolean().optional(),
 });
 export const newsletterInputSchema = z.object({ email: z.string().trim().email().max(320) });
+/** Public profile fields only — identity email/role/create live on /admin/users. */
 export const teamProfileInputSchema = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
-    email: z.string().trim().email().max(320).optional(),
-    role: z
-      .enum(["partner", "senior_associate", "associate", "paralegal", "intern", "admin"])
-      .optional(),
     isPublicFacing: z.boolean().optional(),
     bio: z.string().trim().max(2_000).optional().nullable(),
     longBio: z.string().trim().max(20_000).optional().nullable(),

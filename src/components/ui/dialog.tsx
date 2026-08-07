@@ -4,7 +4,7 @@ import { X } from "lucide-react"
 export function Dialog({ open, onOpenChange, children }: any) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child) && (child.type as any).displayName === "DialogContent") {
           return React.cloneElement(child as any, { onClose: () => onOpenChange(false) });
@@ -24,6 +24,8 @@ export function DialogTrigger({ children, asChild }: any) {
 const DialogContent = React.forwardRef<HTMLDivElement, any>(({ className, children, onClose, ...props }, ref) => (
   <div
     ref={ref}
+    role="dialog"
+    aria-modal="true"
     className={`bg-card border border-border rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-4 animate-in fade-in-50 zoom-in-95 ${className || ""}`}
     {...props}
   >

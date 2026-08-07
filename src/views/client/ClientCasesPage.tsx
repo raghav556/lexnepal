@@ -32,6 +32,23 @@ export default function ClientCasesPage() {
     );
   }
 
+  if (clientRecord === null) {
+    return (
+      <div className="p-4 sm:p-6 space-y-4">
+        <h1 className="font-serif text-2xl font-bold text-foreground">My Cases</h1>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon"><FolderOpen /></EmptyMedia>
+            <EmptyTitle>No client profile linked</EmptyTitle>
+            <EmptyDescription>
+              Your portal account is not linked to a firm client record yet. Ask the firm to grant portal access from their Clients list.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-4">
       <h1 className="font-serif text-2xl font-bold text-foreground">My Cases</h1>

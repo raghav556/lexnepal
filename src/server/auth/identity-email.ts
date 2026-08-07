@@ -20,18 +20,26 @@ export async function enqueueIdentityEmail(input: {
     .limit(1);
   if (!linked) throw new Error("Identity email user is not linked to LexNepal");
   const digest = createHash("sha256").update(input.url).digest("hex");
+  // Invite provision uses Better Auth password-reset with redirectTo=/setup-account.
+  const isInviteSetup = input.url.includes("/setup-account");
+  const purposeKey = isInviteSetup ? "invite" : input.purpose;
   await getJobRepository().enqueue({
     firmId: linked.firmId,
     actorUserId: linked.actorUserId,
     type: "communication.email",
-    idempotencyKey: `identity:${input.purpose}:${digest}`,
+    idempotencyKey: `identity:${purposeKey}:${digest}`,
     payload: {
       to: input.email,
       subject:
-        input.purpose === "verify"
+        purposeKey === "invite"
           ? "Activate your LexNepal account"
-          : "Reset your LexNepal password",
-      text: `${input.name},\n\n${input.purpose === "verify" ? "Activate your account" : "Reset your password"}:\n${input.url}\n\nIf you did not request this, contact your firm administrator.`,
+          : purposeKey === "verify"
+            ? "Verify your LexNepal email"
+            : "Reset your LexNepal password",
+      text:
+        purposeKey === "invite"
+          ? `${input.name},\n\nYou have been invited to LexNepal. Set your password to activate your account:\n${input.url}\n\nIf you did not expect this invitation, contact your firm administrator.`
+          : `${input.name},\n\n${purposeKey === "verify" ? "Verify your email" : "Reset your password"}:\n${input.url}\n\nIf you did not request this, contact your firm administrator.`,
     },
     maxAttempts: 5,
     timeoutSeconds: 60,

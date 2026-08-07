@@ -5,6 +5,7 @@ import {
   intakeSubmitSchema,
   leadConvertSchema,
   leadCreateSchema,
+  leadListSchema,
   leadUpdateSchema,
 } from "../../src/shared/contracts/crm";
 
@@ -20,6 +21,13 @@ describe("CRM input contracts", () => {
     expect(leadCreateSchema.safeParse({ fullName: "" }).success).toBe(false);
     expect(leadUpdateSchema.safeParse({ status: "contacted" }).success).toBe(true);
     expect(leadUpdateSchema.safeParse({ status: "bogus" }).success).toBe(false);
+  });
+
+  it("validates lead list filters", () => {
+    expect(leadListSchema.safeParse({ status: "new", source: "phone", q: "ada" }).success).toBe(
+      true,
+    );
+    expect(leadListSchema.safeParse({ source: "bogus" }).success).toBe(false);
   });
 
   it("validates convert and intake", () => {
@@ -45,6 +53,7 @@ describe("CRM input contracts", () => {
         practiceArea: "Corporate",
         date: "2026-08-10",
         timeSlot: "10:00 AM",
+        leadId: "61000000-0000-4000-8000-000000000099",
       }).success,
     ).toBe(true);
     expect(appointmentSlotsSchema.safeParse({ date: "2026-08-10" }).success).toBe(true);

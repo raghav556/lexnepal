@@ -2,6 +2,7 @@ export const queryKeys = {
   identity: {
     all: ["identity"] as const,
     me: ["identity", "me"] as const,
+    sessionCapabilities: ["identity", "session", "capabilities"] as const,
     users: (role?: string) => ["identity", "users", role ?? "all"] as const,
     directory: ["identity", "directory"] as const,
     settings: ["identity", "settings"] as const,
@@ -83,7 +84,8 @@ export const queryKeys = {
     all: ["crm"] as const,
     leads: (filters?: unknown) => ["crm", "leads", filters] as const,
     appointments: (filters?: unknown) => ["crm", "appointments", filters] as const,
-    availableSlots: (date: string) => ["crm", "available-slots", date] as const,
+    availableSlots: (date: string, assignedLawyerId?: string) =>
+      ["crm", "available-slots", date, assignedLawyerId ?? null] as const,
   },
   envelopes: {
     all: ["envelopes"] as const,
@@ -95,6 +97,10 @@ export const queryKeys = {
     all: ["hr"] as const,
     attendance: (filters?: unknown) => ["hr", "attendance", filters] as const,
     leaveRequests: (filters?: unknown) => ["hr", "leave-requests", filters] as const,
+    leaveBalances: (filters?: unknown) => ["hr", "leave-balances", filters] as const,
     payroll: ["hr", "payroll"] as const,
+    payrollRuns: (filters?: unknown) => ["hr", "payroll-runs", filters] as const,
+    payrollRun: (id?: string) => ["hr", "payroll-run", id] as const,
+    payslips: ["hr", "payslips"] as const,
   },
 } as const;

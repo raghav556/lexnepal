@@ -80,11 +80,8 @@ export class IdentityService {
   async createUser(principal: AuthPrincipal, input: CreateUserInput, audit: AuditContext) {
     requireCapability(principal, "users.manage");
     try {
-      const user = await this.repository.createUser(
-        requireFirmContext(principal).firmId,
-        input,
-        audit,
-      );
+      const firmId = requireFirmContext(principal).firmId;
+      const user = await this.repository.createUser(firmId, input, audit);
       if (input.invite) {
         if (!input.email)
           throw new AppError("VALIDATION_FAILED", "Email is required for an invitation", 400);
@@ -94,7 +91,75 @@ export class IdentityService {
           email: input.email,
         });
       }
+      if (user.role === "client") {
+        const { PostgresMattersRepository } = await import(
+          "@/server/repositories/matters-repository"
+        );
+        await new PostgresMattersRepository().ensureClientForPortalUser(
+          firmId,
+          {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            phone: input.phone ?? null,
+          },
+          audit,
+        );
+      }
       return user;
+    } catch (error) {
+      if (error instanceof Error && error.message === "USER_EMAIL_CONFLICT")
+        throw new AppError("CONFLICT", "A user with this email already exists in this firm", 409);
+      throw error;
+    }
+  }
+
+  /**
+   * Invite or reuse a client-role identity for CRM portal grant.
+   * Allowed with `clients.manage` (staff client ops) or `users.manage`.
+   */
+  async inviteOrGetClientIdentity(
+    principal: AuthPrincipal,
+    input: { name: string; email: string; phone?: string | null },
+    audit: AuditContext,
+  ) {
+    if (
+      !principal.capabilities.has("clients.manage") &&
+      !principal.capabilities.has("users.manage")
+    ) {
+      throw new AppError("FORBIDDEN", "Access denied: missing permission clients.manage", 403);
+    }
+    const firmId = requireFirmContext(principal).firmId;
+    const existing = await this.repository.getUserByEmail(firmId, input.email);
+    if (existing) {
+      if (existing.role !== "client") {
+        throw new AppError(
+          "CONFLICT",
+          "That email already belongs to a non-client account — use a different email",
+          409,
+        );
+      }
+      return { user: existing, created: false as const };
+    }
+    try {
+      const user = await this.repository.createUser(
+        firmId,
+        {
+          name: input.name,
+          email: input.email,
+          role: "client",
+          isPublicFacing: false,
+          invite: true,
+          phone: input.phone ?? undefined,
+        },
+        audit,
+      );
+      await provisionLocalIdentity({
+        lexnepalUserId: user.id,
+        name: user.name ?? input.name,
+        email: input.email,
+      });
+      return { user, created: true as const };
     } catch (error) {
       if (error instanceof Error && error.message === "USER_EMAIL_CONFLICT")
         throw new AppError("CONFLICT", "A user with this email already exists in this firm", 409);
@@ -120,12 +185,18 @@ export class IdentityService {
     return user;
   }
   async sendPasswordReset(principal: AuthPrincipal, userId: string, audit: AuditContext) {
-    requireCapability(principal, "users.manage");
     const user = await this.repository.getUser(requireFirmContext(principal).firmId, userId);
     if (!user) throw new AppError("NOT_FOUND", "User was not found", 404);
+    const canManageUsers = principal.capabilities.has("users.manage");
+    const canInviteClients =
+      principal.capabilities.has("clients.manage") && user.role === "client";
+    if (!canManageUsers && !canInviteClients) {
+      throw new AppError("FORBIDDEN", "Access denied: missing permission users.manage", 403);
+    }
     if (!user.email) throw new AppError("CONFLICT", "User has no email address", 409);
+    const redirectPath = user.isPending ? "/setup-account" : "/reset-password";
     try {
-      await requestLocalPasswordResetForLexUser(userId);
+      await requestLocalPasswordResetForLexUser(userId, { redirectPath });
     } catch (error) {
       if (error instanceof Error && error.message === "LOCAL_IDENTITY_NOT_PROVISIONED") {
         await provisionLocalIdentity({
@@ -135,7 +206,11 @@ export class IdentityService {
         });
       } else throw error;
     }
-    await this.repository.recordSecurityAction(audit, "users.password_reset_requested", userId);
+    await this.repository.recordSecurityAction(
+      audit,
+      user.isPending ? "users.invite_resent" : "users.password_reset_requested",
+      userId,
+    );
   }
   async resetMfa(principal: AuthPrincipal, userId: string, audit: AuditContext) {
     requireCapability(principal, "users.manage");

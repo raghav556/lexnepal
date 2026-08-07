@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   defaultLanguage: "en",
   clientPortalEnabled: true,
   onlineBookingEnabled: true,
+  defaultMeetingPlatform: "manual",
 };
 
 export class PostgresIdentityRepository {
@@ -106,6 +107,18 @@ export class PostgresIdentityRepository {
       .select()
       .from(users)
       .where(and(eq(users.firmId, firmId), eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+    return row ? toUserDto(row) : null;
+  }
+
+  async getUserByEmail(firmId: string, email: string): Promise<UserDto | null> {
+    const normalized = email.trim().toLowerCase();
+    const [row] = await this.database
+      .select()
+      .from(users)
+      .where(
+        and(eq(users.firmId, firmId), sql`lower(${users.email}) = ${normalized}`, isNull(users.deletedAt)),
+      )
       .limit(1);
     return row ? toUserDto(row) : null;
   }

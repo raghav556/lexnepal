@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
 function LegalEditor({ slug }: { slug: "privacy-policy" | "terms" }) {
-  const page = useLegalPage(slug) as any;
+  const page = useLegalPage(slug, "admin") as any;
   const { upsertLegal } = useCmsCommands();
   const [form, setForm] = useState({ title: "", content: "" });
   useEffect(() => { if (page) setForm({ title: page.title ?? "", content: page.content ?? "" }); }, [page]);

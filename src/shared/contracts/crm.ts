@@ -29,6 +29,8 @@ export const clientTypeSchema = z.enum(["individual", "corporate"]);
 export const leadListSchema = z.object({
   status: leadStatusSchema.optional(),
   assignedTo: uuidSchema.optional(),
+  source: leadSourceSchema.optional(),
+  q: z.string().trim().max(200).optional(),
 });
 
 export const leadCreateSchema = z.object({
@@ -67,6 +69,9 @@ export const intakeSubmitSchema = z.object({
 export const appointmentListSchema = z.object({
   status: appointmentStatusSchema.optional(),
   assignedLawyerId: uuidSchema.optional(),
+  leadId: uuidSchema.optional(),
+  /** Staff/admin filter; clients never control this — service forces their linked client. */
+  clientId: uuidSchema.optional(),
 });
 
 export const appointmentSlotsSchema = z.object({
@@ -79,6 +84,7 @@ export const appointmentCreateSchema = z.object({
   clientEmail: optionalText(320),
   clientPhone: z.string().trim().min(1).max(40),
   clientId: uuidSchema.optional().nullable(),
+  leadId: uuidSchema.optional().nullable(),
   practiceArea: z.string().trim().min(1).max(200),
   date: z.string().date(),
   timeSlot: z.string().trim().min(1).max(40),
@@ -107,10 +113,14 @@ export type LeadCreateInput = z.infer<typeof leadCreateSchema>;
 export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>;
 export type LeadConvertInput = z.infer<typeof leadConvertSchema>;
 export type IntakeSubmitInput = z.infer<typeof intakeSubmitSchema>;
-export type AppointmentListInput = z.infer<typeof appointmentListSchema>;
+export type AppointmentListInput = z.infer<typeof appointmentListSchema> & {
+  /** Internal: match legacy rows with no clientId but same email */
+  clientEmail?: string | null;
+};
 export type AppointmentSlotsInput = z.infer<typeof appointmentSlotsSchema>;
 export type AppointmentCreateInput = z.infer<typeof appointmentCreateSchema>;
 export type AppointmentBookInput = z.infer<typeof appointmentBookSchema>;
 export type AppointmentStatusUpdateInput = z.infer<typeof appointmentStatusUpdateSchema>;
 export type AppointmentAssignInput = z.infer<typeof appointmentAssignSchema>;
 export type AppointmentRescheduleInput = z.infer<typeof appointmentRescheduleSchema>;
+

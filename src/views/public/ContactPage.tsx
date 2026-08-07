@@ -35,7 +35,7 @@ const pad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
-  const { createLead } = useLeadCommands();
+  const { createPublicLead } = useLeadCommands();
   const settings = useCmsSettings("public");
 
   const form = useForm<FormData>({
@@ -45,7 +45,7 @@ export default function ContactPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await createLead.mutateAsync({ ...data, source: "website" });
+      await createPublicLead.mutateAsync({ ...data, source: "website" });
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
@@ -75,7 +75,7 @@ export default function ContactPage() {
             <span className="block mb-2 font-medium">Need immediate assistance?</span>
             Call us directly at{" "}
             <strong className="text-foreground text-base break-all">
-              {settings?.contactPhone || "+977-9860520520"}
+              {settings?.phone || "+977-9860520520"}
             </strong>
           </div>
           <Button
@@ -94,28 +94,30 @@ export default function ContactPage() {
     {
       icon: Phone,
       label: "Call Us",
-      value: settings?.contactPhone || "+977-9860520520",
-      sub: "Sun–Fri 9:00 AM – 6:00 PM",
+      value: settings?.phone || "+977-9860520520",
+      sub: settings?.businessHoursText || "Sun–Fri 9:00 AM – 6:00 PM",
     },
     {
       icon: Mail,
       label: "Email Us",
-      value: settings?.contactEmail || "mail@srimarlaw.com.np",
+      value: settings?.email || "mail@srimarlaw.com.np",
       sub: "Response within 24 hours",
     },
     {
       icon: MapPin,
       label: "Visit Us",
       value:
-        settings?.contactAddress ||
+        settings?.address ||
         "Thapathali, M8QF+22X, Swet Binayak Marg, Kathmandu",
       sub: "Nepal 44600",
     },
     {
       icon: Clock,
       label: "Office Hours",
-      value: "Sun–Fri: 9:00 AM – 6:00 PM",
-      sub: "Sat: Closed",
+      value: settings?.businessHoursText || "Sun–Fri: 9:00 AM – 6:00 PM",
+      sub: settings?.emergencyPhone
+        ? `Emergency: ${settings.emergencyPhone}`
+        : "Sat: Closed",
     },
   ];
 

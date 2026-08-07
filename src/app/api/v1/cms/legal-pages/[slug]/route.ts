@@ -6,6 +6,16 @@ import { parseJson } from "@/server/http/validation";
 import { getCmsService } from "@/server/services/cms-service";
 import { legalPageInputSchema, legalSlugSchema } from "@/shared/contracts/cms";
 type Context = { params: Promise<{ slug: string }> };
+export const GET = (request: Request, context: Context) =>
+  withApiHandler("/api/v1/cms/legal-pages/:slug", async ({ request: handled }) => {
+    const principal = await requireSession(handled);
+    return jsonResponse({
+      data: await getCmsService().getAdminLegalPage(
+        principal,
+        legalSlugSchema.parse((await context.params).slug),
+      ),
+    });
+  })(request);
 export const PUT = (request: Request, context: Context) =>
   withApiHandler("/api/v1/cms/legal-pages/:slug", async ({ request: handled, requestId }) => {
     const principal = await requireSession(handled);

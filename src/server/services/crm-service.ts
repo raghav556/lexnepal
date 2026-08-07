@@ -7,6 +7,17 @@ import {
   requireFirmContext,
 } from "@/server/policies/authorization";
 import { CrmRepository } from "@/server/repositories/crm-repository";
+import { PostgresIdentityRepository } from "@/server/repositories/identity-repository";
+import {
+  notifyAppointmentAssigned,
+  notifyAppointmentBooked,
+  notifyAppointmentClientStatus,
+  notifyAppointmentRescheduled,
+  notifyIntakeSubmitted,
+  notifyLeadAssigned,
+  notifyPublicLeadCreated,
+} from "@/server/services/crm-notifications";
+import { DEFAULT_APPOINTMENT_SLOTS } from "@/shared/crm/appointment-slots";
 import type {
   AppointmentAssignInput,
   AppointmentBookInput,
@@ -24,6 +35,9 @@ import type {
 import { AppError } from "@/shared/errors/api-error";
 
 const repository = new CrmRepository();
+const identityRepository = new PostgresIdentityRepository();
+
+const CANON_SLOTS = new Set<string>(DEFAULT_APPOINTMENT_SLOTS);
 
 function requireStaff(principal: AuthPrincipal) {
   if (principal.user.role === "client") {
@@ -34,6 +48,44 @@ function requireStaff(principal: AuthPrincipal) {
 function requireCrmManager(principal: AuthPrincipal) {
   requireStaff(principal);
   requireCapability(principal, "clients.manage");
+}
+
+function canManageAllLeads(principal: AuthPrincipal) {
+  return principal.capabilities.has("clients.manage");
+}
+
+function assertCanonTimeSlot(timeSlot: string) {
+  if (!CANON_SLOTS.has(timeSlot)) {
+    throw new AppError(
+      "VALIDATION_FAILED",
+      `Invalid time slot. Allowed: ${DEFAULT_APPOINTMENT_SLOTS.join(", ")}`,
+      400,
+    );
+  }
+}
+
+/** Non-managers only see / mutate leads assigned to themselves (HR-style scoping). */
+function scopedLeadListFilters(principal: AuthPrincipal, filters: LeadListInput): LeadListInput {
+  if (canManageAllLeads(principal)) return filters;
+  return { ...filters, assignedTo: principal.user.id };
+}
+
+function assertLeadAssigneeAccess(
+  principal: AuthPrincipal,
+  lead: { assignedTo?: unknown },
+) {
+  if (canManageAllLeads(principal)) return;
+  if (lead.assignedTo !== principal.user.id) {
+    throw new AppError("FORBIDDEN", "You can only access leads assigned to you", 403);
+  }
+}
+
+function scopedAppointmentListFilters(
+  principal: AuthPrincipal,
+  filters: AppointmentListInput,
+): AppointmentListInput {
+  if (canManageAllLeads(principal)) return filters;
+  return { ...filters, assignedLawyerId: principal.user.id };
 }
 
 export class CrmService {
@@ -49,17 +101,33 @@ export class CrmService {
   async listLeads(principal: AuthPrincipal, filters: LeadListInput) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
-    return repository.listLeads(firmId, filters);
+    return repository.listLeads(firmId, scopedLeadListFilters(principal, filters));
   }
 
   async createLeadPublic(input: LeadCreateInput) {
-    return repository.createLead(await this.publicFirmId(), input);
+    const firmId = await this.publicFirmId();
+    const lead = await repository.createLead(firmId, input);
+    await notifyPublicLeadCreated({
+      firmId,
+      lead: {
+        id: String(lead.id ?? lead._id),
+        fullName: String(lead.fullName),
+        source: String(lead.source),
+        assignedTo: (lead.assignedTo as string | null | undefined) ?? null,
+        practiceAreaInterest:
+          (lead.practiceAreaInterest as string | null | undefined) ?? null,
+      },
+    });
+    return lead;
   }
 
   async createLead(principal: AuthPrincipal, input: LeadCreateInput, audit: AuditContext) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
-    return repository.createLead(firmId, input, audit);
+    const payload = canManageAllLeads(principal)
+      ? input
+      : { ...input, assignedTo: principal.user.id };
+    return repository.createLead(firmId, payload, audit);
   }
 
   async updateLead(
@@ -70,7 +138,37 @@ export class CrmService {
   ) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
-    return repository.updateLead(firmId, leadId, input, audit);
+    const previous = await repository.getLead(firmId, leadId);
+    assertLeadAssigneeAccess(principal, { assignedTo: previous.assignedTo });
+
+    let patch = input;
+    if (!canManageAllLeads(principal)) {
+      // Assignees may update status/notes only — not reassign the lead.
+      if (input.assignedTo !== undefined && input.assignedTo !== principal.user.id) {
+        throw new AppError("FORBIDDEN", "You cannot reassign leads", 403);
+      }
+      const { assignedTo: _ignored, ...rest } = input;
+      patch = rest;
+    }
+
+    const updated = await repository.updateLead(firmId, leadId, patch, audit);
+    if (
+      canManageAllLeads(principal) &&
+      input.assignedTo !== undefined &&
+      input.assignedTo &&
+      input.assignedTo !== previous.assignedTo
+    ) {
+      await notifyLeadAssigned({
+        firmId,
+        actorUserId: principal.user.id,
+        lead: {
+          id: leadId,
+          fullName: String(updated.fullName ?? previous.fullName),
+        },
+        assignedTo: input.assignedTo,
+      });
+    }
+    return updated;
   }
 
   async convertToClient(
@@ -87,6 +185,8 @@ export class CrmService {
   async generateIntakeLink(principal: AuthPrincipal, leadId: string, audit: AuditContext) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
+    const lead = await repository.getLead(firmId, leadId);
+    assertLeadAssigneeAccess(principal, { assignedTo: lead.assignedTo });
     return repository.generateIntakeLink(firmId, leadId, audit);
   }
 
@@ -95,14 +195,37 @@ export class CrmService {
   }
 
   async submitIntake(token: string, input: IntakeSubmitInput) {
-    return repository.submitIntake(token, input);
+    const result = await repository.submitIntake(token, input);
+    await notifyIntakeSubmitted({
+      firmId: result.firmId,
+      lead: {
+        id: result.leadId,
+        fullName: result.fullName,
+        assignedTo: result.assignedTo,
+      },
+    });
+    return {
+      success: result.success,
+      leadId: result.leadId,
+      _id: result._id,
+    };
   }
 
   async listAppointments(principal: AuthPrincipal, filters: AppointmentListInput) {
     const { firmId } = requireFirmContext(principal);
-    // Booking page (clients) and staff calendars share this list; clients filter client-side.
-    if (principal.user.role !== "client") requireStaff(principal);
-    return repository.listAppointments(firmId, filters);
+
+    if (principal.user.role === "client") {
+      const linked = await repository.getClientLinkForUser(firmId, principal.user.id);
+      if (!linked) return [];
+      return repository.listAppointments(firmId, {
+        status: filters.status,
+        clientId: linked.id,
+        clientEmail: linked.email,
+      });
+    }
+
+    requireStaff(principal);
+    return repository.listAppointments(firmId, scopedAppointmentListFilters(principal, filters));
   }
 
   async listAvailableSlots(input: AppointmentSlotsInput, principal?: AuthPrincipal | null) {
@@ -113,7 +236,31 @@ export class CrmService {
   }
 
   async createAppointmentPublic(input: AppointmentCreateInput) {
-    return repository.createAppointment(await this.publicFirmId(), input);
+    const firmId = await this.publicFirmId();
+    const settings = await identityRepository.getSettings(firmId);
+    if (!settings.onlineBookingEnabled) {
+      throw new AppError(
+        "SERVICE_UNAVAILABLE",
+        "Online appointment booking is currently disabled",
+        503,
+      );
+    }
+    assertCanonTimeSlot(input.timeSlot);
+    const created = await repository.createAppointment(firmId, input);
+    await notifyAppointmentBooked({
+      firmId,
+      source: "public",
+      appointment: {
+        id: String(created.id ?? created._id),
+        clientName: String(created.clientName),
+        clientEmail: (created.clientEmail as string | null | undefined) ?? null,
+        practiceArea: (created.practiceArea as string | null | undefined) ?? null,
+        date: String(created.date),
+        timeSlot: String(created.timeSlot),
+        assignedLawyerId: (created.assignedLawyerId as string | null | undefined) ?? null,
+      },
+    });
+    return created;
   }
 
   async createAppointment(
@@ -123,6 +270,7 @@ export class CrmService {
   ) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
+    assertCanonTimeSlot(input.timeSlot);
     return repository.createAppointment(firmId, input, audit);
   }
 
@@ -132,7 +280,25 @@ export class CrmService {
     audit: AuditContext,
   ) {
     const { firmId } = requireFirmContext(principal);
-    return repository.bookConsultation(firmId, input, audit);
+    assertCanonTimeSlot(input.timeSlot);
+    const created = await repository.bookConsultation(firmId, input, audit);
+    if (principal.user.role === "client") {
+      await notifyAppointmentBooked({
+        firmId,
+        source: "client",
+        actorUserId: principal.user.id,
+        appointment: {
+          id: String(created.id ?? created._id),
+          clientName: String(created.clientName),
+          clientEmail: (created.clientEmail as string | null | undefined) ?? null,
+          practiceArea: (created.practiceArea as string | null | undefined) ?? null,
+          date: String(created.date),
+          timeSlot: String(created.timeSlot),
+          assignedLawyerId: (created.assignedLawyerId as string | null | undefined) ?? null,
+        },
+      });
+    }
+    return created;
   }
 
   async updateAppointmentStatus(
@@ -143,7 +309,32 @@ export class CrmService {
   ) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
-    return repository.updateAppointmentStatus(firmId, appointmentId, input, audit);
+    const previous = await repository.getAppointment(firmId, appointmentId);
+    const updated = await repository.updateAppointmentStatus(firmId, appointmentId, input, audit);
+    const prevStatus = String(previous.status ?? "");
+    if (
+      prevStatus !== input.status &&
+      (input.status === "confirmed" || input.status === "cancelled")
+    ) {
+      await notifyAppointmentClientStatus({
+        firmId,
+        actorUserId: principal.user.id,
+        status: input.status,
+        appointment: {
+          id: appointmentId,
+          clientName: String(previous.clientName),
+          clientEmail: (previous.clientEmail as string | null | undefined) ?? null,
+          practiceArea: (previous.practiceArea as string | null | undefined) ?? null,
+          date: String(previous.date),
+          timeSlot: String(previous.timeSlot),
+          meetingLink:
+            (input.meetingLink as string | null | undefined) ??
+            (previous.meetingLink as string | null | undefined) ??
+            null,
+        },
+      });
+    }
+    return updated;
   }
 
   async assignLawyer(
@@ -154,7 +345,25 @@ export class CrmService {
   ) {
     requireCrmManager(principal);
     const { firmId } = requireFirmContext(principal);
-    return repository.assignLawyer(firmId, appointmentId, input, audit);
+    const previous = await repository.getAppointment(firmId, appointmentId);
+    const updated = await repository.assignLawyer(firmId, appointmentId, input, audit);
+    if (input.assignedLawyerId !== previous.assignedLawyerId) {
+      await notifyAppointmentAssigned({
+        firmId,
+        actorUserId: principal.user.id,
+        assignedLawyerId: input.assignedLawyerId,
+        appointment: {
+          id: appointmentId,
+          clientName: String(previous.clientName),
+          clientEmail: (previous.clientEmail as string | null | undefined) ?? null,
+          practiceArea: (previous.practiceArea as string | null | undefined) ?? null,
+          date: String(previous.date),
+          timeSlot: String(previous.timeSlot),
+          assignedLawyerId: input.assignedLawyerId,
+        },
+      });
+    }
+    return updated;
   }
 
   async rescheduleAppointment(
@@ -165,7 +374,28 @@ export class CrmService {
   ) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
-    return repository.rescheduleAppointment(firmId, appointmentId, input, audit);
+    assertCanonTimeSlot(input.timeSlot);
+    const previous = await repository.getAppointment(firmId, appointmentId);
+    const updated = await repository.rescheduleAppointment(firmId, appointmentId, input, audit);
+    const prevDate = String(previous.date);
+    const prevSlot = String(previous.timeSlot);
+    if (prevDate !== input.date || prevSlot !== input.timeSlot) {
+      await notifyAppointmentRescheduled({
+        firmId,
+        actorUserId: principal.user.id,
+        previousDate: prevDate,
+        previousTimeSlot: prevSlot,
+        appointment: {
+          id: appointmentId,
+          clientName: String(previous.clientName),
+          clientEmail: (previous.clientEmail as string | null | undefined) ?? null,
+          practiceArea: (previous.practiceArea as string | null | undefined) ?? null,
+          date: input.date,
+          timeSlot: input.timeSlot,
+        },
+      });
+    }
+    return updated;
   }
 }
 

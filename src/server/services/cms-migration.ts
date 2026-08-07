@@ -322,13 +322,22 @@ export async function migrateCmsExport(input: {
               content: textValue(row.content)!,
               publicationDate: dateOnly(row.date),
               type: enumValue(row.type, ["award", "press_release", "firm_news"])!,
+              status:
+                enumValue(row.status, ["draft", "published"]) ??
+                (row.published === false || row.isDraft === true ? "draft" : "published"),
               linkUrl: textValue(row.linkUrl),
               imageUrl: textValue(row.imageUrl),
               createdAt: dateValue(row._creationTime),
             })
             .onConflictDoUpdate({
               target: newsAndAwards.legacyConvexId,
-              set: { title: textValue(row.title)!, updatedAt: new Date() },
+              set: {
+                title: textValue(row.title)!,
+                status:
+                  enumValue(row.status, ["draft", "published"]) ??
+                  (row.published === false || row.isDraft === true ? "draft" : "published"),
+                updatedAt: new Date(),
+              },
             }),
         migrated,
         exceptions,

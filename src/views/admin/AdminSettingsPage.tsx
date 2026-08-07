@@ -53,38 +53,54 @@ export default function AdminSettingsPage() {
     defaultLanguage: "en",
     clientPortalEnabled: true,
     onlineBookingEnabled: true,
+    defaultMeetingPlatform: "manual" as "manual" | "google_meet" | "zoom",
     integrations: {
       smsProvider: "none",
       smsKeys: { token: "", accountSid: "", authToken: "" },
       activePayments: ["bank_transfer"] as string[],
-      paymentKeys: { esewaMerchantId: "", khaltiSecretKey: "", bankName: "", accountName: "", accountNumber: "", branch: "" },
-      videoProvider: "google_meet",
-      videoKeys: { clientId: "", clientSecret: "" }
-    }
+      paymentKeys: {
+        esewaMerchantId: "",
+        khaltiSecretKey: "",
+        bankName: "",
+        accountName: "",
+        accountNumber: "",
+        branch: "",
+      },
+    },
   });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (settings) {
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         defaultHourlyRate: settings.defaultHourlyRate || "5000",
         vatRate: settings.vatRate || "13",
         invoicePaymentTerms: settings.invoicePaymentTerms || "14",
         defaultLanguage: settings.defaultLanguage || "en",
         clientPortalEnabled: settings.clientPortalEnabled ?? true,
         onlineBookingEnabled: settings.onlineBookingEnabled ?? true,
-        integrations: (settings as typeof settings & { integrations?: typeof formData.integrations }).integrations || formData.integrations
-      });
+        defaultMeetingPlatform: settings.defaultMeetingPlatform ?? "manual",
+      }));
     }
-  }, [JSON.stringify(settings)]);
+  }, [settings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await updateSettings(formData as any);
+      // Persist only contracted system settings — do not pretend integrations blobs are saved.
+      await updateSettings({
+        defaultHourlyRate: formData.defaultHourlyRate,
+        vatRate: formData.vatRate,
+        invoicePaymentTerms: formData.invoicePaymentTerms,
+        defaultLanguage: formData.defaultLanguage as "en" | "ne",
+        clientPortalEnabled: formData.clientPortalEnabled,
+        onlineBookingEnabled: formData.onlineBookingEnabled,
+        defaultMeetingPlatform: formData.defaultMeetingPlatform,
+      });
       toast.success("System settings updated successfully.");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update system settings.");
     } finally {
       setIsSaving(false);
@@ -175,15 +191,18 @@ export default function AdminSettingsPage() {
               />
             </div>
             <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 pr-4">
                 <Label className="text-base">Online Appointments</Label>
-                <p className="text-sm text-muted-foreground">Allow prospective clients to book consultations directly from the public website.</p>
+                <p className="text-sm text-muted-foreground">
+                  Allow prospective clients to book from the public website. When off, public booking
+                  is rejected by the API (HTTP 503). Linked client-portal booking is unchanged.
+                </p>
               </div>
               <input 
                 type="checkbox" 
                 checked={formData.onlineBookingEnabled}
                 onChange={(e) => setFormData({ ...formData, onlineBookingEnabled: e.target.checked })}
-                className="w-5 h-5 accent-primary" 
+                className="w-5 h-5 accent-primary shrink-0" 
               />
             </div>
           </CardContent>
@@ -220,83 +239,31 @@ export default function AdminSettingsPage() {
               <MessageSquare className="w-5 h-5 text-primary" />
               SMS Providers
             </CardTitle>
-            <CardDescription>Configure SMS integration for automated alerts (Appointments, Reminders).</CardDescription>
+            <CardDescription>
+              Appointment SMS alerts are not connected yet. Confirm / cancel / reschedule notices use
+              email today (local Mailpit on development hosts only).
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground space-y-2">
+              <p className="font-medium text-foreground">
+                Coming later — do not enter provider tokens expecting delivery.
+              </p>
+              <p>
+                Sparrow / Aakash / Twilio wiring for appointment reminders is deferred. Saving
+                Settings will not enable SMS.
+              </p>
+            </div>
             <div className="grid gap-2">
               <Label>Active Provider</Label>
-              <select 
-                value={formData.integrations.smsProvider}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  integrations: { ...formData.integrations, smsProvider: e.target.value }
-                })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <select
+                disabled
+                value="none"
+                className="flex h-10 w-full rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed"
               >
-                <option value="none">None (Disabled)</option>
-                <option value="sparrow">Sparrow SMS (Nepal)</option>
-                <option value="aakash">Aakash SMS (Nepal)</option>
-                <option value="twilio">Twilio (International)</option>
+                <option value="none">None (SMS disabled)</option>
               </select>
             </div>
-
-            {formData.integrations.smsProvider === "sparrow" && (
-              <div className="grid gap-2 p-4 border rounded-md bg-muted/20">
-                <Label>Sparrow Token</Label>
-                <Input 
-                  type="password" 
-                  placeholder="Enter your Sparrow SMS Token"
-                  value={formData.integrations.smsKeys.token}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    integrations: { ...formData.integrations, smsKeys: { ...formData.integrations.smsKeys, token: e.target.value } }
-                  })}
-                />
-              </div>
-            )}
-
-            {formData.integrations.smsProvider === "aakash" && (
-              <div className="grid gap-2 p-4 border rounded-md bg-muted/20">
-                <Label>Aakash SMS Auth Token</Label>
-                <Input 
-                  type="password" 
-                  placeholder="Enter your Aakash SMS Auth Token"
-                  value={formData.integrations.smsKeys.authToken}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    integrations: { ...formData.integrations, smsKeys: { ...formData.integrations.smsKeys, authToken: e.target.value } }
-                  })}
-                />
-              </div>
-            )}
-
-            {formData.integrations.smsProvider === "twilio" && (
-              <div className="grid gap-4 p-4 border rounded-md bg-muted/20">
-                <div className="grid gap-2">
-                  <Label>Account SID</Label>
-                  <Input 
-                    placeholder="ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                    value={formData.integrations.smsKeys.accountSid}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      integrations: { ...formData.integrations, smsKeys: { ...formData.integrations.smsKeys, accountSid: e.target.value } }
-                    })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Auth Token</Label>
-                  <Input 
-                    type="password"
-                    placeholder="Your Auth Token"
-                    value={formData.integrations.smsKeys.authToken}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      integrations: { ...formData.integrations, smsKeys: { ...formData.integrations.smsKeys, authToken: e.target.value } }
-                    })}
-                  />
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -306,7 +273,10 @@ export default function AdminSettingsPage() {
               <Wallet className="w-5 h-5 text-primary" />
               Payment Gateways
             </CardTitle>
-            <CardDescription>Enable multiple payment methods for client invoices.</CardDescription>
+            <CardDescription>
+              Local UI sketch for invoice methods. Gateway credentials are not persisted or charged
+              through this form yet — billing uses its own payment flows.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* eSewa */}
@@ -439,7 +409,9 @@ export default function AdminSettingsPage() {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                             toast.success(`Uploaded ${file.name} successfully!`);
+                            toast.message(
+                              "QR upload is not connected yet — file was not stored.",
+                            );
                           }
                         }}
                       />
@@ -457,57 +429,33 @@ export default function AdminSettingsPage() {
               <Video className="w-5 h-5 text-primary" />
               Online Meeting Platforms
             </CardTitle>
-            <CardDescription>Default platform for automatically generating consultation meeting links.</CardDescription>
+            <CardDescription>
+              Preference for staff “Add meeting link” paste hints. Links are always entered manually —
+              Meet/Zoom rooms are not auto-generated.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <div className="grid gap-2">
-              <Label>System Default Platform</Label>
-              <select 
-                value={formData.integrations.videoProvider}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  integrations: { ...formData.integrations, videoProvider: e.target.value }
-                })}
+              <Label>Default platform hint</Label>
+              <select
+                value={formData.defaultMeetingPlatform}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    defaultMeetingPlatform: e.target.value as "manual" | "google_meet" | "zoom",
+                  })
+                }
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="google_meet">Google Meet (Recommended for Workspace)</option>
-                <option value="zoom">Zoom</option>
-                <option value="manual">Manual Entry (Skype, WeChat, Phone)</option>
+                <option value="manual">Manual / any URL</option>
+                <option value="google_meet">Google Meet (paste hint)</option>
+                <option value="zoom">Zoom (paste hint)</option>
               </select>
             </div>
-
-            {formData.integrations.videoProvider === "zoom" && (
-              <div className="grid gap-4 p-4 border rounded-md bg-muted/20">
-                <div className="grid gap-2">
-                  <Label>Zoom Client ID</Label>
-                  <Input 
-                    placeholder="OAuth Client ID"
-                    value={formData.integrations.videoKeys.clientId}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      integrations: { ...formData.integrations, videoKeys: { ...formData.integrations.videoKeys, clientId: e.target.value } }
-                    })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Zoom Client Secret</Label>
-                  <Input 
-                    type="password"
-                    placeholder="OAuth Client Secret"
-                    value={formData.integrations.videoKeys.clientSecret}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      integrations: { ...formData.integrations, videoKeys: { ...formData.integrations.videoKeys, clientSecret: e.target.value } }
-                    })}
-                  />
-                </div>
-              </div>
-            )}
-            {formData.integrations.videoProvider === "google_meet" && (
-              <div className="p-4 border rounded-md bg-muted/20 text-sm text-muted-foreground">
-                Google Meet integration requires authenticating via Google Workspace. API key configuration is not required. It will automatically generate Meet links on behalf of the Firm's Google Calendar.
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Saved with system settings and shown when confirming appointments. OAuth auto-create is
+              not available.
+            </p>
           </CardContent>
         </Card>
       </TabsContent>

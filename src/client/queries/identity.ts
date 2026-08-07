@@ -258,16 +258,18 @@ export function useProfileCommands() {
   };
 }
 
-/** Public team profile editing remains part of the Phase 8.2 CMS vertical slice. */
+/** Public team profile editing — identity create/invite lives only on /admin/users. */
 export function useCmsTeamIdentityBridge() {
   const users = useUsers();
-  const identity = useIdentityCommands();
   const client = useQueryClient();
-  const invalidate = () => client.invalidateQueries({ queryKey: queryKeys.cms.all });
+  const invalidate = async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: queryKeys.cms.all }),
+      client.invalidateQueries({ queryKey: queryKeys.identity.all }),
+    ]);
+  };
   return {
     users: users ?? [],
-    createUser: async (input: Record<string, unknown>) =>
-      identity.createUser({ ...(input as CreateUserInput), invite: true }),
     updateTeamMember: async ({
       userId,
       ...input
@@ -279,7 +281,15 @@ export function useCmsTeamIdentityBridge() {
       await invalidate();
       return result;
     },
-    deleteUser: async ({ userId }: { userId: string }) => identity.archiveUser(userId),
+    /** Hide from public site — does not suspend the identity account. */
+    removeFromPublicTeam: async ({ userId }: { userId: string }) => {
+      const result = await apiClient.request(`/api/v1/cms/team/${userId}`, {
+        method: "PATCH",
+        body: { isPublicFacing: false },
+      });
+      await invalidate();
+      return result;
+    },
     togglePublicStatus: async ({
       userId,
       isPublicFacing,

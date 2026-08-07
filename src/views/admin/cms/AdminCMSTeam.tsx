@@ -1,16 +1,19 @@
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { useCmsTeamIdentityBridge } from "@/client/queries/identity";
-import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, Trash2, X } from "lucide-react";
+import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, EyeOff, X, ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
 import { LEADERSHIP_TITLE_EXAMPLES, isLeadershipRole } from "@/shared/leadership";
 
+const PUBLIC_ELIGIBLE_ROLES = ["partner", "senior_associate", "associate", "paralegal"] as const;
+
 export default function AdminCMSTeam() {
-  const { users, createUser, updateTeamMember, deleteUser, togglePublicStatus } = useCmsTeamIdentityBridge();
+  const { users, updateTeamMember, removeFromPublicTeam, togglePublicStatus } = useCmsTeamIdentityBridge();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,22 +21,32 @@ export default function AdminCMSTeam() {
 
   const filteredUsers = useMemo(() => {
     return users.filter((u: any) => {
-      // Only partners, associates, and paralegals usually go on the public page
-      const isEligibleRole = ["partner", "senior_associate", "associate", "paralegal"].includes(u.role);
+      const isEligibleRole = PUBLIC_ELIGIBLE_ROLES.includes(u.role);
       if (!isEligibleRole) return false;
-      
+
       const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
       const matchesRole = roleFilter === "all" || u.role === roleFilter;
       return matchesSearch && matchesRole;
     });
   }, [users, searchQuery, roleFilter]);
 
+  /** Staff who can be featured but are not yet public-facing. */
+  const featureCandidates = useMemo(() => {
+    return users.filter(
+      (u: any) =>
+        PUBLIC_ELIGIBLE_ROLES.includes(u.role) &&
+        !u.isPublicFacing &&
+        u.isActive &&
+        !u.isPending,
+    );
+  }, [users]);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [isFeaturePickerOpen, setIsFeaturePickerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"basic" | "professional" | "education">("basic");
-  
+
   // Form State
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -54,20 +67,7 @@ export default function AdminCMSTeam() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  const openCreateModal = () => {
-    setModalMode("create");
-    setEditingId(null);
-    setFormData({
-      name: "", email: "", role: "associate", isPublicFacing: false,
-      bio: "", longBio: "", leadershipTitle: "", avatarUrl: "", linkedinUrl: "", twitterUrl: "", publicEmail: "", barCouncilNumber: "",
-      practiceAreas: [], notableCases: [], education: [],
-    });
-    setActiveTab("basic");
-    setIsModalOpen(true);
-  };
-
   const openEditModal = (user: any) => {
-    setModalMode("edit");
     setEditingId(user._id);
     setFormData({
       name: user.name || "",
@@ -90,50 +90,53 @@ export default function AdminCMSTeam() {
     setIsModalOpen(true);
   };
 
+  const featureUser = async (user: any) => {
+    try {
+      await togglePublicStatus({ userId: user._id, isPublicFacing: true });
+      setIsFeaturePickerOpen(false);
+      openEditModal({ ...user, isPublicFacing: true });
+      toast.success(`${user.name} is now public. Complete their profile details.`);
+    } catch {
+      toast.error("Could not feature this person on the public site.");
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingId) return;
     setIsSaving(true);
     try {
-      if (modalMode === "create") {
-        await createUser({
-          name: formData.name,
-          email: formData.email,
-          role: formData.role as any,
-          isPublicFacing: formData.isPublicFacing,
-          invite: false,
-        });
-        toast.success("Team member created successfully. You can now edit their details.");
-      } else if (editingId) {
-        await updateTeamMember({
-          userId: editingId as any,
-          ...formData,
-        });
-        toast.success("Team member updated successfully.");
-      }
+      const { email: _email, role: _role, avatarUrl: _avatarUrl, ...publicProfile } = formData;
+      await updateTeamMember({
+        userId: editingId,
+        ...publicProfile,
+      });
+      toast.success("Public profile updated.");
       setIsModalOpen(false);
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while saving.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to completely remove this team member? This action cannot be undone.")) {
-      try {
-        await deleteUser({ userId: id as any });
-        toast.success("Team member deleted.");
-      } catch (e) {
-        toast.error("Failed to delete user.");
-      }
+  const handleRemoveFromPublic = async (id: string, name: string) => {
+    if (!window.confirm(`Hide ${name} from the public website? Their login account stays active.`)) {
+      return;
+    }
+    try {
+      await removeFromPublicTeam({ userId: id });
+      toast.success("Removed from public team (account still active).");
+    } catch {
+      toast.error("Failed to update public visibility.");
     }
   };
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      await togglePublicStatus({ userId: id as any, isPublicFacing: !currentStatus });
-      toast.success(`User is now ${!currentStatus ? 'Public' : 'Hidden'}.`);
-    } catch (e) {
+      await togglePublicStatus({ userId: id, isPublicFacing: !currentStatus });
+      toast.success(`User is now ${!currentStatus ? "Public" : "Hidden"}.`);
+    } catch {
       toast.error("Failed to update status.");
     }
   };
@@ -171,16 +174,36 @@ export default function AdminCMSTeam() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 min-w-0">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">
-            <span className="sm:hidden">Team Roster</span>
-            <span className="hidden sm:inline">Team Roster Management</span>
+            <span className="sm:hidden">Public team</span>
+            <span className="hidden sm:inline">Public team profiles</span>
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Manage public profiles, credentials, and visibility of your legal team.
+            Edit website bios, practice areas, and visibility. Invite or change roles in{" "}
+            <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+              Users
+            </Link>
+            .
           </p>
         </div>
-        <Button onClick={openCreateModal} className="gap-2 w-full md:w-auto shrink-0">
-          <Plus className="w-4 h-4" /> Add Team Member
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+          <Button variant="outline" asChild className="w-full md:w-auto">
+            <Link href="/admin/users">
+              <ExternalLink className="w-4 h-4 mr-2" /> Invite in Users
+            </Link>
+          </Button>
+          <Button
+            onClick={() => setIsFeaturePickerOpen(true)}
+            className="gap-2 w-full md:w-auto"
+            disabled={featureCandidates.length === 0}
+            title={
+              featureCandidates.length === 0
+                ? "Invite staff in Users first, or all eligible people are already public"
+                : undefined
+            }
+          >
+            <Plus className="w-4 h-4" /> Feature on website
+          </Button>
+        </div>
       </div>
 
       {/* Controls */}
@@ -265,11 +288,11 @@ export default function AdminCMSTeam() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(user._id)}
-                    title="Delete"
+                    className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleRemoveFromPublic(user._id, user.name)}
+                    title="Hide from public website"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <EyeOff className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -345,10 +368,11 @@ export default function AdminCMSTeam() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDelete(user._id)}
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveFromPublic(user._id, user.name)}
+                          title="Hide from public website"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <EyeOff className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>
@@ -365,10 +389,10 @@ export default function AdminCMSTeam() {
         <DialogContent className="max-w-3xl max-h-[90vh] w-[calc(100%-1.5rem)] sm:w-full overflow-hidden flex flex-col p-0 border-border bg-background">
           <div className="p-4 sm:p-6 border-b border-border bg-muted/30 min-w-0">
             <h2 className="text-lg sm:text-2xl font-serif font-bold text-foreground break-words">
-              {modalMode === "create" ? "Add New Team Member" : `Edit ${formData.name}'s Profile`}
+              Edit {formData.name || "team member"}&apos;s public profile
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
-              Fill out the information below to update the public roster.
+              Website bio, credentials, and practice areas. Role and invite changes stay in Users.
             </p>
           </div>
 
@@ -406,17 +430,15 @@ export default function AdminCMSTeam() {
                     <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Ramesh Badal" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Role</label>
-                    <select 
-                      className="w-full bg-background border border-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                      value={formData.role}
-                      onChange={e => setFormData({...formData, role: e.target.value})}
-                    >
-                      <option value="partner">Partner</option>
-                      <option value="senior_associate">Senior Associate</option>
-                      <option value="associate">Associate</option>
-                      <option value="paralegal">Paralegal</option>
-                    </select>
+                    <label className="text-sm font-medium text-foreground">Role (identity)</label>
+                    <Input value={formData.role?.replace(/_/g, " ") || ""} disabled className="capitalize bg-muted/40" />
+                    <p className="text-xs text-muted-foreground">
+                      Change role when inviting or editing in{" "}
+                      <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+                        Users
+                      </Link>
+                      .
+                    </p>
                   </div>
                 </div>
 
@@ -448,8 +470,24 @@ export default function AdminCMSTeam() {
                     <Input value={formData.publicEmail} onChange={e => setFormData({...formData, publicEmail: e.target.value})} placeholder="e.g. ramesh@lexnepal.com" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Avatar URL</label>
-                    <Input value={formData.avatarUrl} onChange={e => setFormData({...formData, avatarUrl: e.target.value})} placeholder="https://..." />
+                    <label className="text-sm font-medium text-foreground">Avatar</label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted border border-border shrink-0">
+                        {formData.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={formData.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Avatars are managed in{" "}
+                        <a href="/admin/users" className="underline text-foreground">
+                          Users
+                        </a>
+                        . This field is display-only.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -577,6 +615,57 @@ export default function AdminCMSTeam() {
             <Button onClick={handleSave} disabled={isSaving} className="gap-2 w-full sm:w-auto">
               <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Changes"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feature existing identity on the public site */}
+      <Dialog open={isFeaturePickerOpen} onOpenChange={setIsFeaturePickerOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0">
+          <div className="p-4 sm:p-5 border-b border-border">
+            <h2 className="text-lg font-serif font-bold text-foreground">Feature on website</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Choose an existing staff account. New people must be invited in Users first.
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 sm:p-3">
+            {featureCandidates.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">
+                No eligible staff left to feature.{" "}
+                <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+                  Invite someone in Users
+                </Link>
+                .
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {featureCandidates.map((user: any) => (
+                  <li key={user._id}>
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 rounded-md transition-colors"
+                      onClick={() => featureUser(user)}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                        {user.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <UserCircle className="w-6 h-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground truncate">{user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate capitalize">
+                          {user.role?.replace(/_/g, " ")} · {user.email}
+                        </p>
+                      </div>
+                      <Plus className="w-4 h-4 text-primary shrink-0" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </DialogContent>
       </Dialog>

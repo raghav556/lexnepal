@@ -1,3 +1,12 @@
 "use client";
 
-export { default } from "@/views/auth/MfaEnrollmentPage";
+import { Suspense } from "react";
+import MfaEnrollmentPage from "@/views/auth/MfaEnrollmentPage";
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <MfaEnrollmentPage />
+    </Suspense>
+  );
+}

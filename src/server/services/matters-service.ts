@@ -62,6 +62,92 @@ export class MattersService {
     return repository.updateClient(requireFirmContext(principal).firmId, clientId, input, audit);
   }
 
+  /**
+   * Grant client portal access: ensure a client-role identity exists, link `clients.userId`,
+   * and (re)send the setup email when the account is still pending.
+   */
+  async grantPortalAccess(principal: AuthPrincipal, clientId: string, audit: AuditContext) {
+    requireCapability(principal, "clients.manage");
+    const firmId = requireFirmContext(principal).firmId;
+    const client = await repository.getClient(firmId, clientId, false);
+    if (!client) throw new AppError("NOT_FOUND", "Client was not found", 404);
+
+    const email = typeof client.email === "string" ? client.email.trim() : "";
+    if (!email) {
+      throw new AppError(
+        "VALIDATION_FAILED",
+        "Add an email on this CRM client before granting portal access",
+        400,
+      );
+    }
+
+    const fullName = String(client.fullName);
+    const phone = typeof client.phone === "string" ? client.phone : null;
+    const existingUserId = typeof client.userId === "string" ? client.userId : null;
+
+    const { getIdentityService } = await import("@/server/services/identity-service");
+    const identity = getIdentityService();
+    const identityRepo = new (
+      await import("@/server/repositories/identity-repository")
+    ).PostgresIdentityRepository();
+
+    let userId: string | null = existingUserId;
+    let created = false;
+    let linked = false;
+
+    if (userId) {
+      const other = await repository.findOtherClientLinkedToUser(firmId, userId, clientId);
+      if (other) {
+        throw new AppError(
+          "CONFLICT",
+          `Portal user is already linked to another client (${other.fullName})`,
+          409,
+        );
+      }
+    } else {
+      const invited = await identity.inviteOrGetClientIdentity(
+        principal,
+        {
+          name: fullName,
+          email,
+          phone,
+        },
+        audit,
+      );
+      userId = invited.user.id;
+      created = invited.created;
+
+      const other = await repository.findOtherClientLinkedToUser(firmId, userId, clientId);
+      if (other) {
+        throw new AppError(
+          "CONFLICT",
+          `That email's portal account is already linked to ${other.fullName}`,
+          409,
+        );
+      }
+
+      await repository.updateClient(firmId, clientId, { userId }, audit);
+      linked = true;
+    }
+
+    const user = await identityRepo.getUser(firmId, userId);
+    if (!user) throw new AppError("NOT_FOUND", "Linked portal user was not found", 404);
+
+    // New invites already receive setup mail from provisionLocalIdentity — avoid a duplicate.
+    if (!created) {
+      await identity.sendPasswordReset(principal, userId, audit);
+    }
+
+    return {
+      client: await repository.getClient(firmId, clientId, false),
+      user,
+      created,
+      linked,
+      inviteSent: true as const,
+      alreadyLinked: Boolean(existingUserId) && !linked,
+    };
+  }
+
   async updateMyClient(
     principal: AuthPrincipal,
     input: { phone?: string | null; address?: string | null },
