@@ -76,7 +76,11 @@ export class CmsService {
       case "practice-areas":
         return this.repository.listPracticeAreas(firmId, true);
       case "testimonials":
-        return this.repository.listTestimonials(firmId, true);
+        return this.repository.listTestimonials(
+          firmId,
+          true,
+          parseBoolean(query.get("showOnHome")),
+        );
       case "blog-posts":
         return this.repository.listBlogPosts(firmId, "published");
       case "news":
@@ -95,7 +99,11 @@ export class CmsService {
       case "practice-areas":
         return this.repository.listPracticeAreas(firmId, parseBoolean(query.get("isActive")));
       case "testimonials":
-        return this.repository.listTestimonials(firmId, parseBoolean(query.get("isApproved")));
+        return this.repository.listTestimonials(
+          firmId,
+          parseBoolean(query.get("isApproved")),
+          parseBoolean(query.get("showOnHome")),
+        );
       case "blog-posts":
         return this.repository.listBlogPosts(firmId, parseBlogStatus(query.get("status")));
       case "news":

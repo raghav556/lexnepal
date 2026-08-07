@@ -1120,6 +1120,14 @@
     "queryPattern": "Firm-scoped testimonials status queue or filter"
   },
   {
+    "table": "testimonials",
+    "index": "testimonials_firm_approved_order_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,is_approved,display_order",
+    "migration": "drizzle/0019_testimonials_homepage.sql",
+    "queryPattern": "Firm-scoped approved testimonials ordered for homepage"
+  },
+  {
     "table": "time_entries",
     "index": "time_entries_firm_case_idx",
     "unique": false,

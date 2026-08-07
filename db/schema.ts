@@ -1866,9 +1866,18 @@ export const testimonials = pgTable(
     rating: integer("rating"),
     isApproved: boolean("is_approved").default(false).notNull(),
     avatarUrl: text("avatar_url"),
+    displayOrder: integer("display_order").default(0).notNull(),
+    showOnHome: boolean("show_on_home").default(true).notNull(),
     ...lifecycleColumns(),
   },
-  (table) => [index("testimonials_firm_approved_idx").on(table.firmId, table.isApproved)],
+  (table) => [
+    index("testimonials_firm_approved_idx").on(table.firmId, table.isApproved),
+    index("testimonials_firm_approved_order_idx").on(
+      table.firmId,
+      table.isApproved,
+      table.displayOrder,
+    ),
+  ],
 );
 export const documentTemplates = pgTable(
   "document_templates",

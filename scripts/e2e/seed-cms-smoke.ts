@@ -5,9 +5,9 @@
 import { eq, inArray } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getServerEnvironment } from "../../src/server/env";
-import { firms, navigation, newsAndAwards, cmsSettings, practiceAreas } from "../../db/schema";
+import { firms, navigation, newsAndAwards, cmsSettings, practiceAreas, testimonials } from "../../db/schema";
 import { DEFAULT_DIRECTOR_MESSAGE } from "../../src/shared/director-message";
-import { seedBrandAssets, seedDirectorMessageAssets } from "./seed-cms-assets";
+import { seedBrandAssets, seedDirectorMessageAssets, seedPromotedCmsAsset } from "./seed-cms-assets";
 
 const SMOKE_NEWS_LEGACY_ID = "e2e_smoke_news_1";
 
@@ -182,6 +182,65 @@ const PRACTICE_AREAS_SEED = [
   },
 ] as const;
 
+const TESTIMONIALS_SEED = [
+  {
+    legacyConvexId: "e2e_smoke_t1",
+    clientName: "Rajesh Shrestha",
+    company: "Shrestha Group",
+    quote:
+      "LexNepal guided our corporate restructuring with clarity and precision. We felt informed at every step.",
+    rating: 5,
+    isApproved: true,
+    showOnHome: true,
+    displayOrder: 1,
+    withAvatar: true,
+  },
+  {
+    legacyConvexId: "e2e_smoke_t2",
+    clientName: "Anita Gurung",
+    company: "Himalayan Exports",
+    quote: "Professional, responsive, and deeply knowledgeable about Nepal commercial law.",
+    rating: 5,
+    isApproved: true,
+    showOnHome: true,
+    displayOrder: 2,
+    withAvatar: false,
+  },
+  {
+    legacyConvexId: "e2e_smoke_t3",
+    clientName: "Bikash Thapa",
+    company: null as string | null,
+    quote: "They handled our dispute with diligence and achieved a fair settlement.",
+    rating: 4,
+    isApproved: true,
+    showOnHome: true,
+    displayOrder: 3,
+    withAvatar: false,
+  },
+  {
+    legacyConvexId: "e2e_smoke_t4",
+    clientName: "Sita Maharjan",
+    company: "Valley Tech Pvt. Ltd.",
+    quote: "Excellent counsel for our employment and compliance matters.",
+    rating: 5,
+    isApproved: true,
+    showOnHome: false,
+    displayOrder: 4,
+    withAvatar: false,
+  },
+  {
+    legacyConvexId: "e2e_smoke_t5",
+    clientName: "Pending Review Client",
+    company: "Draft Co.",
+    quote: "This draft should not appear on the public homepage until approved.",
+    rating: 3,
+    isApproved: false,
+    showOnHome: true,
+    displayOrder: 5,
+    withAvatar: false,
+  },
+] as const;
+
 async function upsertSetting(firmId: string, key: string, value: unknown) {
   const db = getDatabase();
   await db
@@ -317,6 +376,29 @@ export async function seedCmsSmoke() {
     practiceAreaIds.push(row!.id);
   }
 
+  const testimonialIds: string[] = [];
+  const tLegacyIds = TESTIMONIALS_SEED.map((item) => item.legacyConvexId);
+  await db.delete(testimonials).where(inArray(testimonials.legacyConvexId, [...tLegacyIds]));
+  const avatarUrl = await seedPromotedCmsAsset(firm.id, "testimonial_avatar");
+  for (const item of TESTIMONIALS_SEED) {
+    const [row] = await db
+      .insert(testimonials)
+      .values({
+        firmId: firm.id,
+        legacyConvexId: item.legacyConvexId,
+        clientName: item.clientName,
+        company: item.company,
+        quote: item.quote,
+        rating: item.rating,
+        isApproved: item.isApproved,
+        showOnHome: item.showOnHome,
+        displayOrder: item.displayOrder,
+        avatarUrl: item.withAvatar ? avatarUrl : null,
+      })
+      .returning({ id: testimonials.id });
+    testimonialIds.push(row!.id);
+  }
+
   const directorAssets = await seedDirectorMessageAssets(firm.id);
   await upsertSetting(firm.id, "director_message", {
     ...DEFAULT_DIRECTOR_MESSAGE,
@@ -354,6 +436,7 @@ export async function seedCmsSmoke() {
     newsId: news!.id,
     navigationIds: navIds,
     practiceAreaIds,
+    testimonialIds,
     directorAssets,
     brandAssets,
   };

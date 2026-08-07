@@ -83,7 +83,7 @@ Legend: **wired** = admin ↔ API ↔ DB ↔ public consumer working for core CR
 | Homepage | `/admin/cms/homepage` | Director message on Home | **wired** (narrow) | Only director message — not full section CMS |
 | Navigation | `/admin/cms/navigation` | Header + footer cols | **wired** (CMS-3) | Footer uses `footer_col_*` + titles |
 | Practice areas | `/admin/cms/practice-areas` | Home + `/practice-areas` + `/practice-areas/[slug]` + consultation/CRM/chatbot | **complete** | FAQs, order, cover, SEO, slug detail owned by CMS |
-| Testimonials | `/admin/cms/testimonials` | Home (approved) | **wired** | — |
+| Testimonials | `/admin/cms/testimonials` | Home (approved + showOnHome) | **complete** | Order, avatar CMS assets, rating fidelity, seed/verify |
 | Public Team | `/admin/cms/team` | Home, `/lawyers`, profiles | **wired** | Avatar via Users (CMS-8) |
 | Blog | `/admin/cms/blog` | `/blog`, `/blog/[slug]` | **wired** | publishDate preserve + SEO metadata (CMS-5) |
 | News | `/admin/cms/news` | `/news`, `/news/[id]` | **wired** | draft/publish (CMS-6) |

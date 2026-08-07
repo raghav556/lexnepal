@@ -142,7 +142,7 @@ export class PostgresCmsRepository {
     return this.softDelete(practiceAreas, firmId, id, audit, "practice_area");
   }
 
-  async listTestimonials(firmId: string, isApproved?: boolean) {
+  async listTestimonials(firmId: string, isApproved?: boolean, showOnHome?: boolean) {
     const rows = await database
       .select()
       .from(testimonials)
@@ -151,13 +151,20 @@ export class PostgresCmsRepository {
           eq(testimonials.firmId, firmId),
           isNull(testimonials.deletedAt),
           isApproved === undefined ? undefined : eq(testimonials.isApproved, isApproved),
+          showOnHome === undefined ? undefined : eq(testimonials.showOnHome, showOnHome),
         ),
       )
-      .orderBy(desc(testimonials.createdAt));
+      .orderBy(asc(testimonials.displayOrder), desc(testimonials.createdAt));
     return rows.map(toDto);
   }
   createTestimonial(firmId: string, input: TestimonialInput, audit: AuditContext) {
-    return this.createAudited(testimonials, firmId, normalizeEmpty(input), audit, "testimonial");
+    return this.createAudited(
+      testimonials,
+      firmId,
+      mapTestimonialInput(input),
+      audit,
+      "testimonial",
+    );
   }
   updateTestimonial(
     firmId: string,
@@ -169,7 +176,7 @@ export class PostgresCmsRepository {
       testimonials,
       firmId,
       id,
-      normalizeEmpty(input),
+      mapTestimonialInput(input),
       audit,
       "testimonial",
     );
@@ -909,6 +916,13 @@ function mapPracticeAreaInput(input: Partial<PracticeAreaInput>) {
   return normalizeEmpty({
     ...input,
     ...(input.faqs !== undefined ? { faqs: input.faqs } : {}),
+    ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
+    ...(input.showOnHome !== undefined ? { showOnHome: input.showOnHome } : {}),
+  });
+}
+function mapTestimonialInput(input: Partial<TestimonialInput>) {
+  return normalizeEmpty({
+    ...input,
     ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
     ...(input.showOnHome !== undefined ? { showOnHome: input.showOnHome } : {}),
   });

@@ -837,6 +837,161 @@ try {
     { params: Promise.resolve({ collection: "practice-areas", id: paId }) },
   );
 
+  // Testimonials: approved-only public, showOnHome filter, order, rating, avatar contract.
+  const tStamp = Date.now().toString(36);
+  const tCreateApproved = await adminCollectionPost(
+    new Request("http://local/api/v1/cms/testimonials", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        clientName: `Verify Client ${tStamp}`,
+        company: "Verify Co",
+        quote: "Verify quote for homepage.",
+        rating: 4,
+        isApproved: true,
+        showOnHome: true,
+        displayOrder: 10,
+        avatarUrl: "/api/v1/public/cms/assets/00000000-0000-4000-8000-000000000099",
+      }),
+    }),
+    { params: Promise.resolve({ collection: "testimonials" }) },
+  );
+  if (tCreateApproved.status !== 201) {
+    throw new Error(`Testimonial create failed: ${tCreateApproved.status} ${await tCreateApproved.text()}`);
+  }
+  const tApprovedBody = (await tCreateApproved.json()) as {
+    data: { id?: string; _id?: string; rating?: number; avatarUrl?: string; displayOrder?: number };
+  };
+  const tApprovedId = tApprovedBody.data.id || tApprovedBody.data._id;
+  if (!tApprovedId) throw new Error("Approved testimonial missing id");
+  if (tApprovedBody.data.rating !== 4) throw new Error("Testimonial rating not persisted");
+  if (
+    tApprovedBody.data.avatarUrl !==
+    "/api/v1/public/cms/assets/00000000-0000-4000-8000-000000000099"
+  ) {
+    throw new Error("Testimonial avatar CMS asset URL rejected or mangled");
+  }
+
+  const tCreateHidden = await adminCollectionPost(
+    new Request("http://local/api/v1/cms/testimonials", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        clientName: `Hidden Client ${tStamp}`,
+        quote: "Should not be public.",
+        rating: 2,
+        isApproved: false,
+        showOnHome: true,
+        displayOrder: 11,
+      }),
+    }),
+    { params: Promise.resolve({ collection: "testimonials" }) },
+  );
+  if (tCreateHidden.status !== 201) {
+    throw new Error(`Hidden testimonial create failed: ${tCreateHidden.status}`);
+  }
+  const tHiddenBody = (await tCreateHidden.json()) as { data: { id?: string; _id?: string } };
+  const tHiddenId = tHiddenBody.data.id || tHiddenBody.data._id;
+  if (!tHiddenId) throw new Error("Hidden testimonial missing id");
+
+  const tCreateOffHome = await adminCollectionPost(
+    new Request("http://local/api/v1/cms/testimonials", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        clientName: `Off-home Client ${tStamp}`,
+        quote: "Approved but not on home.",
+        rating: 5,
+        isApproved: true,
+        showOnHome: false,
+        displayOrder: 12,
+      }),
+    }),
+    { params: Promise.resolve({ collection: "testimonials" }) },
+  );
+  if (tCreateOffHome.status !== 201) {
+    throw new Error(`Off-home testimonial create failed: ${tCreateOffHome.status}`);
+  }
+  const tOffHomeBody = (await tCreateOffHome.json()) as { data: { id?: string; _id?: string } };
+  const tOffHomeId = tOffHomeBody.data.id || tOffHomeBody.data._id;
+  if (!tOffHomeId) throw new Error("Off-home testimonial missing id");
+
+  const publicTestimonials = await publicCollectionGet(
+    new Request("http://local/api/v1/public/cms/testimonials"),
+    { params: Promise.resolve({ collection: "testimonials" }) },
+  );
+  const publicTBody = (await publicTestimonials.json()) as {
+    data: Array<{
+      clientName?: string;
+      isApproved?: boolean;
+      showOnHome?: boolean;
+      displayOrder?: number;
+      rating?: number;
+      avatarUrl?: string | null;
+    }>;
+  };
+  if (publicTBody.data.some((row) => row.isApproved === false)) {
+    throw new Error("Public testimonials leaked unapproved rows");
+  }
+  if (!publicTBody.data.some((row) => row.clientName === `Verify Client ${tStamp}`)) {
+    throw new Error("Public testimonials missing approved verify row");
+  }
+  if (publicTBody.data.some((row) => row.clientName === `Hidden Client ${tStamp}`)) {
+    throw new Error("Public testimonials included hidden verify row");
+  }
+
+  const publicHomeTestimonials = await publicCollectionGet(
+    new Request("http://local/api/v1/public/cms/testimonials?showOnHome=true"),
+    { params: Promise.resolve({ collection: "testimonials" }) },
+  );
+  const publicHomeBody = (await publicHomeTestimonials.json()) as {
+    data: Array<{ clientName?: string; showOnHome?: boolean; displayOrder?: number; rating?: number }>;
+  };
+  if (publicHomeBody.data.some((row) => row.showOnHome === false)) {
+    throw new Error("Public showOnHome=true leaked off-home rows");
+  }
+  if (publicHomeBody.data.some((row) => row.clientName === `Off-home Client ${tStamp}`)) {
+    throw new Error("Off-home verify row appeared in showOnHome=true list");
+  }
+  if (!publicHomeBody.data.some((row) => row.clientName === `Verify Client ${tStamp}` && row.rating === 4)) {
+    throw new Error("Homepage testimonials missing verify rating");
+  }
+  for (let i = 1; i < publicHomeBody.data.length; i++) {
+    const prev = publicHomeBody.data[i - 1]?.displayOrder ?? 0;
+    const next = publicHomeBody.data[i]?.displayOrder ?? 0;
+    if (next < prev) throw new Error("Public testimonials not ordered by displayOrder ascending");
+  }
+  const avatarOk = publicHomeBody.data.every((row) => {
+    if (!row.avatarUrl) return true;
+    return (
+      /^https?:\/\//.test(String(row.avatarUrl)) ||
+      /^\/api\/v1\/public\/cms\/assets\/[0-9a-fA-F-]{36}$/.test(String(row.avatarUrl))
+    );
+  });
+  if (!avatarOk) throw new Error("Public testimonial avatarUrl failed contract check");
+
+  await adminItemDelete(
+    new Request(`http://local/api/v1/cms/testimonials/${tApprovedId}`, {
+      method: "DELETE",
+      headers: { cookie },
+    }),
+    { params: Promise.resolve({ collection: "testimonials", id: tApprovedId }) },
+  );
+  await adminItemDelete(
+    new Request(`http://local/api/v1/cms/testimonials/${tHiddenId}`, {
+      method: "DELETE",
+      headers: { cookie },
+    }),
+    { params: Promise.resolve({ collection: "testimonials", id: tHiddenId }) },
+  );
+  await adminItemDelete(
+    new Request(`http://local/api/v1/cms/testimonials/${tOffHomeId}`, {
+      method: "DELETE",
+      headers: { cookie },
+    }),
+    { params: Promise.resolve({ collection: "testimonials", id: tOffHomeId }) },
+  );
+
   const [actor] = await database
     .select({ id: users.id })
     .from(users)
@@ -872,6 +1027,11 @@ try {
       practiceAreaSlugOk: true,
       practiceAreaFaqsOk: true,
       practiceAreaIconAliasOk: true,
+      testimonialsApprovedOnlyOk: true,
+      testimonialsShowOnHomeOk: true,
+      testimonialsOrderOk: true,
+      testimonialsRatingOk: true,
+      testimonialsAvatarContractOk: true,
       adminTeamRosterOk: true,
       actor: actor.id,
     })}\n`,

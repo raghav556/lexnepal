@@ -26,7 +26,7 @@ export function useCmsCollection(
     queryKey: queryKeys.cms.collection(scope, collection, filters),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>(`${basePath(scope)}/${collection}`, { query: filters, signal }),
-    ...(scope === "public" && collection === "practice-areas"
+    ...(scope === "public" && (collection === "practice-areas" || collection === "testimonials")
       ? { staleTime: 0, refetchOnMount: "always" as const }
       : {}),
   }).data;

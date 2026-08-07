@@ -120,7 +120,20 @@ export default function HomePage() {
     );
     return list.slice(0, 6);
   }, [practiceAreasRaw]);
-  const testimonials = useTestimonials({ isApproved: true }, "public") || [];
+  const testimonialsRaw =
+    useTestimonials({ isApproved: true, showOnHome: true }, "public") || [];
+  const testimonials = useMemo(() => {
+    const list = [...testimonialsRaw];
+    list.sort(
+      (
+        a: { displayOrder?: number; createdAt?: string },
+        b: { displayOrder?: number; createdAt?: string },
+      ) =>
+        (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+        String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
+    );
+    return list;
+  }, [testimonialsRaw]);
   const publicTeam = usePublicTeam() || [];
   const allPosts = useBlogPosts({ status: "published" }, "public") || [];
   const recentPosts = allPosts.slice(0, 3);
@@ -570,15 +583,40 @@ export default function HomePage() {
                 const name = String(t.clientName ?? t.name ?? "Client");
                 const quote = String(t.quote ?? t.text ?? "");
                 const company = t.company ? String(t.company) : "";
+                const rating = Math.min(5, Math.max(0, Number(t.rating ?? 5)));
+                const avatarUrl = t.avatarUrl ? String(t.avatarUrl) : "";
                 return (
                 <FadeInUp key={t._id ?? t.id ?? `${name}-${i}`} delay={i * 0.1}>
                   <HoverGlowCard className="h-full rounded-xl">
                     <Card className="h-full border-border bg-card relative z-10 transition-colors duration-300">
                       <CardContent className="p-6">
-                        <div className="flex gap-1 mb-4">{Array.from({ length: 5 }).map((_, j) => <span key={j} className="text-accent text-sm">{"\u2605"}</span>)}</div>
+                        <div className="flex gap-1 mb-4" aria-label={`${rating} of 5 stars`}>
+                          {Array.from({ length: 5 }).map((_, j) => (
+                            <span
+                              key={j}
+                              className={
+                                j < rating
+                                  ? "text-accent text-sm"
+                                  : "text-muted-foreground/30 text-sm"
+                              }
+                            >
+                              {"\u2605"}
+                            </span>
+                          ))}
+                        </div>
                         <p className="text-sm text-muted-foreground mb-4 italic leading-relaxed">{`"${quote}"`}</p>
                         <div className="flex items-center gap-3 pt-3 border-t border-border">
-                          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">{name.charAt(0)}</div>
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt=""
+                              className="w-8 h-8 rounded-full object-cover border border-border"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
+                              {name.charAt(0)}
+                            </div>
+                          )}
                           <div>
                             <div className="font-semibold text-sm text-foreground">{name}</div>
                             {company ? <div className="text-xs text-muted-foreground">{company}</div> : null}
@@ -598,6 +636,8 @@ export default function HomePage() {
                 const name = String(t.clientName ?? t.name ?? "Client");
                 const quote = String(t.quote ?? t.text ?? "");
                 const company = t.company ? String(t.company) : "";
+                const rating = Math.min(5, Math.max(0, Number(t.rating ?? 5)));
+                const avatarUrl = t.avatarUrl ? String(t.avatarUrl) : "";
                 return (
                 <div
                   key={t._id ?? t.id ?? `${name}-${i}`}
@@ -606,18 +646,35 @@ export default function HomePage() {
                 >
                   <Card>
                     <CardContent className="p-5 sm:p-6">
-                      <div className="flex gap-1 mb-4">
+                      <div className="flex gap-1 mb-4" aria-label={`${rating} of 5 stars`}>
                         {Array.from({ length: 5 }).map((_, j) => (
-                          <span key={j} className="text-accent text-sm">{"\u2605"}</span>
+                          <span
+                            key={j}
+                            className={
+                              j < rating
+                                ? "text-accent text-sm"
+                                : "text-muted-foreground/30 text-sm"
+                            }
+                          >
+                            {"\u2605"}
+                          </span>
                         ))}
                       </div>
                       <p className="text-sm text-muted-foreground mb-4 italic leading-relaxed break-words">
                         {`"${quote}"`}
                       </p>
                       <div className="flex items-center gap-3 pt-3 border-t border-border min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs shrink-0">
-                          {name.charAt(0)}
-                        </div>
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover border border-border shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-xs shrink-0">
+                            {name.charAt(0)}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <div className="font-semibold text-sm text-foreground truncate">{name}</div>
                           {company ? <div className="text-xs text-muted-foreground truncate">{company}</div> : null}
