@@ -8,13 +8,13 @@ export async function generateMetadata(): Promise<Metadata> {
     const title = String(settings.newsHeroTitle || "News & Awards");
     const description = String(
       settings.newsHeroSubtitle ||
-        "Firm news, press coverage, and awards from LexNepal advocates.",
+        "Firm news, press coverage, and awards from Srimar Law advocates.",
     );
     return { title, description };
   } catch {
     return {
       title: "News & Awards",
-      description: "Firm news, press coverage, and awards from LexNepal advocates.",
+      description: "Firm news, press coverage, and awards from Srimar Law advocates.",
     };
   }
 }

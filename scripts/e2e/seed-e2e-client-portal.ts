@@ -21,17 +21,35 @@ export async function seedE2eClientPortal() {
   const [clientUser] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.firmId, firmId), eq(users.email, E2E_USERS.client.email), isNull(users.deletedAt)))
+    .where(
+      and(
+        eq(users.firmId, firmId),
+        eq(users.email, E2E_USERS.client.email),
+        isNull(users.deletedAt),
+      ),
+    )
     .limit(1);
   const [staffUser] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.firmId, firmId), eq(users.email, E2E_USERS.staff.email), isNull(users.deletedAt)))
+    .where(
+      and(
+        eq(users.firmId, firmId),
+        eq(users.email, E2E_USERS.staff.email),
+        isNull(users.deletedAt),
+      ),
+    )
     .limit(1);
   const [staff2User] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.firmId, firmId), eq(users.email, E2E_USERS.staff2.email), isNull(users.deletedAt)))
+    .where(
+      and(
+        eq(users.firmId, firmId),
+        eq(users.email, E2E_USERS.staff2.email),
+        isNull(users.deletedAt),
+      ),
+    )
     .limit(1);
   if (!clientUser || !staffUser) {
     throw new Error("E2E client/staff users missing after seedE2eUsers");
@@ -81,7 +99,9 @@ export async function seedE2eClientPortal() {
   const [existingCase] = await db
     .select()
     .from(cases)
-    .where(and(eq(cases.firmId, firmId), eq(cases.caseNumber, CASE_NUMBER), isNull(cases.deletedAt)))
+    .where(
+      and(eq(cases.firmId, firmId), eq(cases.caseNumber, CASE_NUMBER), isNull(cases.deletedAt)),
+    )
     .limit(1);
 
   let caseId: string;
@@ -235,7 +255,9 @@ export async function seedE2eClientPortal() {
   };
 }
 
-const invokedDirectly = process.argv[1]?.replace(/\\/g, "/").endsWith("/scripts/e2e/seed-e2e-client-portal.ts");
+const invokedDirectly = process.argv[1]
+  ?.replace(/\\/g, "/")
+  .endsWith("/scripts/e2e/seed-e2e-client-portal.ts");
 if (invokedDirectly) {
   try {
     const result = await seedE2eClientPortal();

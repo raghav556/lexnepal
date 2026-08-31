@@ -93,7 +93,11 @@ export class FinancialService {
     await requireCaseAccess(principal, input.caseId, security);
     const client = await security.getClient(input.clientId);
     assertResourceInFirm(principal, client?.firmId, "Client was not found");
-    return repository.createInvoiceFromTimeEntries(requireFirmContext(principal).firmId, input, audit);
+    return repository.createInvoiceFromTimeEntries(
+      requireFirmContext(principal).firmId,
+      input,
+      audit,
+    );
   }
 
   async updateInvoiceStatus(
@@ -154,7 +158,11 @@ export class FinancialService {
     return repository.listTimeEntries(firmId, filters);
   }
 
-  async createTimeEntry(principal: AuthPrincipal, input: TimeEntryCreateInput, audit: AuditContext) {
+  async createTimeEntry(
+    principal: AuthPrincipal,
+    input: TimeEntryCreateInput,
+    audit: AuditContext,
+  ) {
     requireStaffWriter(principal);
     await requireCaseAccess(principal, input.caseId, security);
     return repository.createTimeEntry(

@@ -63,8 +63,7 @@ export function resolveDirectorProfile(
 
   const name = member?.name ?? member?.fullName ?? config.name;
   // Homepage CMS photo wins when set (local upload or URL); fall back to linked team avatar.
-  const photoUrl =
-    config.photoUrl ?? member?.avatarUrl ?? member?.avatar ?? undefined;
+  const photoUrl = config.photoUrl ?? member?.avatarUrl ?? member?.avatar ?? undefined;
   const designation =
     config.designation.trim() || resolvePublicTitle(member) || DEFAULT_DIRECTOR_MESSAGE.designation;
   const profileHref = config.teamMemberId ? `/lawyers/${config.teamMemberId}` : "/lawyers";

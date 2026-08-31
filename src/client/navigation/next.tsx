@@ -29,7 +29,9 @@ export function useNavigate(): NavigateFunction {
   );
 }
 
-export function useParams<T extends Record<string, string | undefined> = Record<string, string | undefined>>(): T {
+export function useParams<
+  T extends Record<string, string | undefined> = Record<string, string | undefined>,
+>(): T {
   return useNextParams() as T;
 }
 

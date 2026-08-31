@@ -28,7 +28,10 @@ import { ChatbotWidget } from "@/components/ui/ChatbotWidget";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { useCmsCommands } from "@/client/queries/cms";
-import { PublicCmsSettingsProvider, usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import {
+  PublicCmsSettingsProvider,
+  usePublicCmsSettings,
+} from "@/client/queries/public-cms-settings";
 import { queryKeys } from "@/client/queries/query-keys";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -58,7 +61,10 @@ function NavSkeleton({ count = 7 }: { count?: number }) {
       aria-label="Loading navigation"
     >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-7 w-12 lg:w-14 xl:w-16 rounded-full bg-muted/60 animate-pulse shrink-0" />
+        <div
+          key={i}
+          className="h-7 w-12 lg:w-14 xl:w-16 rounded-full bg-muted/60 animate-pulse shrink-0"
+        />
       ))}
     </div>
   );
@@ -114,7 +120,10 @@ function isPlaceholderHref(href: string) {
   return !href || href === "#";
 }
 
-function usePublicNav(location: "header" | "footer_col_1" | "footer_col_2", initial?: PublicNavEntry[]) {
+function usePublicNav(
+  location: "header" | "footer_col_1" | "footer_col_2",
+  initial?: PublicNavEntry[],
+) {
   return useQuery({
     queryKey: queryKeys.cms.collection("public", "navigation", { location }),
     queryFn: ({ signal }) =>
@@ -180,7 +189,8 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
 
   useEffect(() => () => clearCloseTimer(), []);
   useEffect(() => {
-    setOpen(false);
+    const timeout = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(timeout);
   }, [pathname]);
 
   useEffect(() => {
@@ -224,7 +234,9 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
     );
   }
 
-  const childActive = children.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`));
+  const childActive = children.some(
+    (c) => pathname === c.href || pathname.startsWith(`${c.href}/`),
+  );
   const triggerActive = childActive || (!isPlaceholderHref(link.href) && pathname === link.href);
   const triggerClass = cn(
     navLinkClass,
@@ -255,7 +267,9 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
           onClick={() => setOpen((v) => !v)}
         >
           {link.label}
-          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 transition-transform", open && "rotate-180")} />
+          <ChevronDown
+            className={cn("w-3.5 h-3.5 opacity-70 transition-transform", open && "rotate-180")}
+          />
         </button>
       ) : (
         <Link
@@ -272,14 +286,18 @@ function DesktopNavItem({ link, pathname }: { link: PublicNavLink; pathname: str
           }}
         >
           {link.label}
-          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 transition-transform", open && "rotate-180")} />
+          <ChevronDown
+            className={cn("w-3.5 h-3.5 opacity-70 transition-transform", open && "rotate-180")}
+          />
         </Link>
       )}
       <div
         role="menu"
         className={cn(
           "absolute left-1/2 -translate-x-1/2 top-full pt-2 z-[60] transition-opacity duration-150",
-          open ? "visible opacity-100 pointer-events-auto" : "invisible opacity-0 pointer-events-none",
+          open
+            ? "visible opacity-100 pointer-events-auto"
+            : "invisible opacity-0 pointer-events-none",
           isMega ? "min-w-[18rem]" : "min-w-[11rem]",
         )}
       >
@@ -394,7 +412,9 @@ function MobileNavItem({
                 href={link.href}
                 className={cn(
                   "block text-sm py-1",
-                  pathname === link.href ? "text-primary" : "text-muted-foreground hover:text-primary",
+                  pathname === link.href
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary",
                 )}
                 onClick={onNavigate}
               >
@@ -419,7 +439,9 @@ function MobileNavItem({
                 href={child.href}
                 className={cn(
                   "block text-sm py-1",
-                  pathname === child.href ? "text-primary" : "text-muted-foreground hover:text-primary",
+                  pathname === child.href
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary",
                 )}
                 onClick={onNavigate}
               >
@@ -476,7 +498,7 @@ function PublicLayoutShellInner({
   const { data: headerNav } = usePublicNav("header", initialHeaderNav);
   const { data: footerCol1Nav } = usePublicNav("footer_col_1", initialFooterCol1);
   const { data: footerCol2Nav } = usePublicNav("footer_col_2", initialFooterCol2);
-  const practiceAreasLive = usePracticeAreas({ isActive: true }, "public") || [];
+  const practiceAreasLive = usePracticeAreas({ isActive: true }, "public");
   const { subscribe: subscribeNewsletter } = useCmsCommands();
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -495,9 +517,12 @@ function PublicLayoutShellInner({
 
   const navLinks = useMemo(() => {
     const base = mapCmsNav(headerNav ?? []);
-    const paChildren: PublicNavLink[] = [...practiceAreasLive]
+    const paChildren: PublicNavLink[] = [...(practiceAreasLive ?? [])]
       .sort(
-        (a: { displayOrder?: number; title?: string }, b: { displayOrder?: number; title?: string }) =>
+        (
+          a: { displayOrder?: number; title?: string },
+          b: { displayOrder?: number; title?: string },
+        ) =>
           (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
           String(a.title ?? "").localeCompare(String(b.title ?? "")),
       )
@@ -537,11 +562,14 @@ function PublicLayoutShellInner({
       : null;
 
   useEffect(() => {
-    try {
-      setCookieDismissed(localStorage.getItem(COOKIE_KEY) === "1");
-    } catch {
-      setCookieDismissed(false);
-    }
+    const timeout = window.setTimeout(() => {
+      try {
+        setCookieDismissed(localStorage.getItem(COOKIE_KEY) === "1");
+      } catch {
+        setCookieDismissed(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const handleNewsletterSubmit = async (e: FormEvent) => {
@@ -554,7 +582,9 @@ function PublicLayoutShellInner({
     setIsSubscribing(true);
     try {
       const result = (await subscribeNewsletter(email)) as { alreadySubscribed?: boolean };
-      toast.success(result?.alreadySubscribed ? "You are already subscribed." : "Thanks for subscribing!");
+      toast.success(
+        result?.alreadySubscribed ? "You are already subscribed." : "Thanks for subscribing!",
+      );
       setNewsletterEmail("");
     } catch {
       toast.error("Failed to subscribe. Please try again.");
@@ -626,7 +656,10 @@ function PublicLayoutShellInner({
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-clip">
       {gaId && (
         <>
-          <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+            strategy="afterInteractive"
+          />
           <Script id="ga-init" strategy="afterInteractive">{`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -654,7 +687,10 @@ function PublicLayoutShellInner({
       {settings?.announcementVisible && settings?.announcementText && (
         <div className="bg-accent text-accent-foreground text-sm py-2 px-4 text-center">
           {settings.announcementLink ? (
-            <a href={String(settings.announcementLink)} className="underline-offset-2 hover:underline">
+            <a
+              href={String(settings.announcementLink)}
+              className="underline-offset-2 hover:underline"
+            >
               {String(settings.announcementText)}
             </a>
           ) : (
@@ -684,22 +720,52 @@ function PublicLayoutShellInner({
             <div className="hidden lg:flex items-center gap-4">
               <div className="w-px h-4 bg-primary-foreground/20" />
               <div className="flex gap-3">
-                <a href={settings?.facebookUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors">
+                <a
+                  href={settings?.facebookUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
                   <Facebook className="w-4 h-4" />
                 </a>
-                <a href={settings?.linkedinUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors">
+                <a
+                  href={settings?.linkedinUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
                   <Linkedin className="w-4 h-4" />
                 </a>
-                <a href={settings?.twitterUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors">
+                <a
+                  href={settings?.twitterUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
                   <Twitter className="w-4 h-4" />
                 </a>
-                <a href={settings?.instagramUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors">
+                <a
+                  href={settings?.instagramUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
                   <Instagram className="w-4 h-4" />
                 </a>
-                <a href={settings?.youtubeUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors">
+                <a
+                  href={settings?.youtubeUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
                   <Youtube className="w-4 h-4" />
                 </a>
-                <a href={settings?.tiktokUrl || "#"} target="_blank" rel="noreferrer" className="hover:text-accent transition-colors">
+                <a
+                  href={settings?.tiktokUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
                   <Video className="w-4 h-4" />
                 </a>
               </div>
@@ -723,7 +789,11 @@ function PublicLayoutShellInner({
             >
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={firmName} className="h-8 sm:h-9 md:h-8 lg:h-9 xl:h-10 w-auto object-contain shrink-0" />
+                <img
+                  src={logoUrl}
+                  alt={firmName}
+                  className="h-8 sm:h-9 md:h-8 lg:h-9 xl:h-10 w-auto object-contain shrink-0"
+                />
               ) : (
                 <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 rounded-lg bg-primary flex items-center justify-center shadow-sm shrink-0">
                   <Scale className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
@@ -833,7 +903,11 @@ function PublicLayoutShellInner({
               <div className="flex items-center gap-2 mb-4 min-w-0">
                 {logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoUrl} alt={firmName} className="h-8 w-auto object-contain shrink-0" />
+                  <img
+                    src={logoUrl}
+                    alt={firmName}
+                    className="h-8 w-auto object-contain shrink-0"
+                  />
                 ) : (
                   <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
                     <Scale className="w-4 h-4 text-accent-foreground" />
@@ -956,7 +1030,7 @@ function PublicLayoutShellInner({
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     placeholder="you@example.com"
                     aria-label="Email address"
-                    className="w-full rounded-md bg-primary-foreground/10 border border-primary-foreground/20 px-3 py-2 text-sm placeholder:text-primary-foreground/40 focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="w-full rounded-md bg-primary-foreground/10 border border-primary-foreground/20 px-3 py-2 text-sm text-primary-foreground placeholder:text-primary-foreground/70 focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                   <Button
                     type="submit"
@@ -972,7 +1046,9 @@ function PublicLayoutShellInner({
           </div>
 
           <div className="mt-8 pt-6 border-t border-primary-foreground/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-primary-foreground/60">
-            <span>© {new Date().getFullYear()} {firmName || "Law Firm"}. All rights reserved.</span>
+            <span>
+              © {new Date().getFullYear()} {firmName || "Law Firm"}. All rights reserved.
+            </span>
             <div className="flex flex-wrap gap-4">
               <Link href={privacyHref} className="hover:text-accent transition-colors">
                 Privacy Policy

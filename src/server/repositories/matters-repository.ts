@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import {
   auditLog,
@@ -20,15 +20,8 @@ import type {
 } from "@/shared/contracts/matters";
 import { AppError } from "@/shared/errors/api-error";
 import type { CaseDto } from "@/shared/contracts/domains";
-import type {
-  ConflictOfficialSearchInput,
-  ConflictPreviewInput,
-  ConflictSearchScope,
-} from "@/shared/contracts/conflicts";
-import {
-  runConflictSearch,
-  runMatterBundleSearch,
-} from "@/server/services/conflict-search";
+import type { ConflictSearchScope } from "@/shared/contracts/conflicts";
+import { runConflictSearch, runMatterBundleSearch } from "@/server/services/conflict-search";
 
 const database = getDatabase();
 
@@ -437,7 +430,11 @@ export class PostgresMattersRepository {
       .select()
       .from(clients)
       .where(
-        and(eq(clients.firmId, firmId), ilike(clients.email, normalized), isNull(clients.deletedAt)),
+        and(
+          eq(clients.firmId, firmId),
+          ilike(clients.email, normalized),
+          isNull(clients.deletedAt),
+        ),
       )
       .limit(1);
     return row ? clientDto(row, false) : null;
@@ -567,7 +564,4 @@ function toDto(row: Record<string, unknown>) {
   delete output.legacyConvexId;
   delete output.deletedAt;
   return output;
-}
-function escapeLike(value: string) {
-  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }

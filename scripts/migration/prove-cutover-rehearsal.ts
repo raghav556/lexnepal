@@ -132,10 +132,13 @@ async function rehearseDomain(
     for (let i = 0; i < item.extraArgs.length; i++) {
       const arg = item.extraArgs[i]!;
       cliBase.push(arg);
-      if (arg.startsWith("--") && item.extraArgs[i + 1] && !item.extraArgs[i + 1]!.startsWith("--")) {
+      if (
+        arg.startsWith("--") &&
+        item.extraArgs[i + 1] &&
+        !item.extraArgs[i + 1]!.startsWith("--")
+      ) {
         const val = item.extraArgs[++i]!;
-        const looksLikePath =
-          val.includes("/") || val.includes("\\") || /\.(json|csv)$/i.test(val);
+        const looksLikePath = val.includes("/") || val.includes("\\") || /\.(json|csv)$/i.test(val);
         cliBase.push(looksLikePath ? path.resolve(val) : val);
       }
     }
@@ -157,9 +160,7 @@ async function rehearseDomain(
 
     // 4. Reconcile + CLI verify
     const verify = await runCli(["verify", "--domain", item.domain]);
-    const reconcile = item.noOpImport
-      ? { code: 0 }
-      : await runCli(["reconcile", ...cliBase]);
+    const reconcile = item.noOpImport ? { code: 0 } : await runCli(["reconcile", ...cliBase]);
     if (verify.code !== 0) notes.push("cli-verify=warn");
     reconcileOk = reconcile.code === 0;
     if (!reconcileOk && !item.noOpImport) throw new Error("reconcile failed");
@@ -170,9 +171,7 @@ async function rehearseDomain(
     flagNextOk = flags.ok;
     notes.push(`flags=${flags.detail}`);
     if (!flagNextOk) {
-      throw new Error(
-        `Backend flags must be next before cutover acceptance: ${flags.detail}`,
-      );
+      throw new Error(`Backend flags must be next before cutover acceptance: ${flags.detail}`);
     }
     notes.push("convex=read-only-via-flag-next");
 
@@ -201,12 +200,7 @@ async function rehearseDomain(
     }
 
     passed =
-      backupOk &&
-      writeFreezeOk &&
-      deltaImportOk &&
-      reconcileOk &&
-      flagNextOk &&
-      rollbackPracticeOk;
+      backupOk && writeFreezeOk && deltaImportOk && reconcileOk && flagNextOk && rollbackPracticeOk;
   } catch (error) {
     notes.push(error instanceof Error ? error.message : String(error));
     passed = false;
@@ -237,9 +231,7 @@ async function rehearseDomain(
 try {
   const rehearsalId = `r6-${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const only = process.env.CUTOVER_DOMAIN?.trim();
-  const domains = only
-    ? CUTOVER_DOMAINS.filter((d) => d.domain === only)
-    : CUTOVER_DOMAINS;
+  const domains = only ? CUTOVER_DOMAINS.filter((d) => d.domain === only) : CUTOVER_DOMAINS;
   if (only && domains.length === 0) {
     throw new Error(`Unknown CUTOVER_DOMAIN=${only}`);
   }

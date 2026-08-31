@@ -98,11 +98,7 @@ export class EnvelopeRepository {
   }
 
   static async expireIfNeeded(env: typeof signatureEnvelopes.$inferSelect) {
-    if (
-      env.status === "sent" &&
-      env.expiresAt &&
-      env.expiresAt.getTime() < Date.now()
-    ) {
+    if (env.status === "sent" && env.expiresAt && env.expiresAt.getTime() < Date.now()) {
       const db = getDatabase();
       const [updated] = await db
         .update(signatureEnvelopes)
@@ -565,7 +561,12 @@ export class EnvelopeRepository {
     return { verified: true as const, challengeId: challenge.id };
   }
 
-  static async assertOtpVerified(firmId: string, userId: string, documentId: string, challengeId: string) {
+  static async assertOtpVerified(
+    firmId: string,
+    userId: string,
+    documentId: string,
+    challengeId: string,
+  ) {
     const db = getDatabase();
     const [challenge] = await db
       .select()
@@ -616,14 +617,11 @@ export class EnvelopeRepository {
     const db = getDatabase();
     const doc = await this.resolveDocument(firmId, documentId);
     if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
-    if (doc.isTemplate) throw new AppError("CONFLICT", "Templates cannot be sent for signature", 409);
+    if (doc.isTemplate)
+      throw new AppError("CONFLICT", "Templates cannot be sent for signature", 409);
     const signerId = intendedSignerUserId;
     if (!signerId) {
-      throw new AppError(
-        "VALIDATION_FAILED",
-        "No signer found — pass intendedSignerUserId",
-        422,
-      );
+      throw new AppError("VALIDATION_FAILED", "No signer found — pass intendedSignerUserId", 422);
     }
     const [signer] = await db
       .select()

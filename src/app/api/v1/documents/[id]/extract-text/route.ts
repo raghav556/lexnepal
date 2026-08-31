@@ -8,13 +8,10 @@ function idFrom(request: Request) {
   return uuidSchema.parse(new URL(request.url).pathname.split("/").filter(Boolean).at(-2));
 }
 
-export const POST = withApiHandler(
-  "/api/v1/documents/:id/extract-text",
-  async ({ request }) => {
-    const principal = await requireSession(request);
-    return jsonResponse(
-      { data: await getDocumentService().requestTextExtraction(principal, idFrom(request)) },
-      { status: 202 },
-    );
-  },
-);
+export const POST = withApiHandler("/api/v1/documents/:id/extract-text", async ({ request }) => {
+  const principal = await requireSession(request);
+  return jsonResponse(
+    { data: await getDocumentService().requestTextExtraction(principal, idFrom(request)) },
+    { status: 202 },
+  );
+});

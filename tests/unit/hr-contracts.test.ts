@@ -65,23 +65,15 @@ describe("HR input contracts", () => {
   });
 
   it("validates leave review statuses (no pending)", () => {
-    expect(
-      leaveReviewSchema.safeParse({ leaveRequestId, status: "approved" }).success,
-    ).toBe(true);
-    expect(
-      leaveReviewSchema.safeParse({ leaveRequestId, status: "rejected" }).success,
-    ).toBe(true);
-    expect(
-      leaveReviewSchema.safeParse({ leaveRequestId, status: "pending" }).success,
-    ).toBe(false);
+    expect(leaveReviewSchema.safeParse({ leaveRequestId, status: "approved" }).success).toBe(true);
+    expect(leaveReviewSchema.safeParse({ leaveRequestId, status: "rejected" }).success).toBe(true);
+    expect(leaveReviewSchema.safeParse({ leaveRequestId, status: "pending" }).success).toBe(false);
   });
 
   it("validates base salary nonnegative and max", () => {
     expect(setBaseSalarySchema.safeParse({ userId, baseSalary: 0 }).success).toBe(true);
     expect(setBaseSalarySchema.safeParse({ userId, baseSalary: 75_000 }).success).toBe(true);
     expect(setBaseSalarySchema.safeParse({ userId, baseSalary: -1 }).success).toBe(false);
-    expect(
-      setBaseSalarySchema.safeParse({ userId, baseSalary: 100_000_001 }).success,
-    ).toBe(false);
+    expect(setBaseSalarySchema.safeParse({ userId, baseSalary: 100_000_001 }).success).toBe(false);
   });
 });

@@ -63,9 +63,7 @@ export class CommunicationRepository {
           userId: messageReads.userId,
         })
         .from(messageReads)
-        .where(
-          and(eq(messageReads.firmId, firmId), inArray(messageReads.messageId, messageIds)),
-        );
+        .where(and(eq(messageReads.firmId, firmId), inArray(messageReads.messageId, messageIds)));
       for (const read of reads) {
         (readByMap[read.messageId] ??= []).push(read.userId);
       }
@@ -327,7 +325,14 @@ export class CommunicationRepository {
       userId: string;
       title: string;
       body: string;
-      type: "hearing_reminder" | "task_due" | "invoice_sent" | "payment_received" | "document_request" | "message" | "system";
+      type:
+        | "hearing_reminder"
+        | "task_due"
+        | "invoice_sent"
+        | "payment_received"
+        | "document_request"
+        | "message"
+        | "system";
       relatedId?: string | null;
       link?: string | null;
     },

@@ -27,7 +27,8 @@ export function useAuthCallback(options: AuthCallbackOptions) {
   useEffect(() => {
     // Check URL for auth params
     const params = new URLSearchParams(window.location.search);
-    const hasAuthParams = params.has("code") || params.has("state") || window.location.hash.includes("access_token");
+    const hasAuthParams =
+      params.has("code") || params.has("state") || window.location.hash.includes("access_token");
 
     if (!hasAuthParams) {
       onNoAuthParams();

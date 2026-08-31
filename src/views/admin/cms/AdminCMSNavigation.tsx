@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useCmsCommands, useCmsSettings, useNavigation } from "@/client/queries/cms";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
@@ -12,6 +11,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog.tsx";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
+import {
+  DashboardButton,
+  DashboardListSkeleton,
+  DashboardSection,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { toast } from "sonner";
 import {
   Plus,
@@ -56,14 +62,11 @@ export default function AdminCMSNavigation() {
   const settings = useCmsSettings("admin");
   const cms = useCmsCommands();
   const createLink = (body: NavForm) => cms.create("navigation", body);
-  const updateLink = ({ id, ...body }: NavForm & { id: string }) => cms.update("navigation", id, body);
+  const updateLink = ({ id, ...body }: NavForm & { id: string }) =>
+    cms.update("navigation", id, body);
   const deleteLink = ({ id }: { id: string }) => cms.remove("navigation", id);
-  const reorderLinks = (body: {
-    id1: string;
-    order1: number;
-    id2: string;
-    order2: number;
-  }) => cms.reorder(body);
+  const reorderLinks = (body: { id1: string; order1: number; id2: string; order2: number }) =>
+    cms.reorder(body);
   const updateSettings = (body: { settings: Array<{ key: string; value: string }> }) =>
     cms.updateSettings(body);
 
@@ -94,23 +97,24 @@ export default function AdminCMSNavigation() {
 
   const nextSiblingOrder = (location: LinkLocation, parentId?: string | null) => {
     const siblings = (links || []).filter(
-      (l) =>
-        l.location === location &&
-        (parentId ? l.parentId === parentId : !l.parentId),
+      (l) => l.location === location && (parentId ? l.parentId === parentId : !l.parentId),
     );
     return siblings.length;
   };
 
-  const handleOpenModal = (location: LinkLocation = "header", link?: {
-    _id: string;
-    label: string;
-    url: string;
-    location: LinkLocation;
-    order: number;
-    isActive: boolean;
-    parentId?: string;
-    openInNewTab?: boolean;
-  }) => {
+  const handleOpenModal = (
+    location: LinkLocation = "header",
+    link?: {
+      _id: string;
+      label: string;
+      url: string;
+      location: LinkLocation;
+      order: number;
+      isActive: boolean;
+      parentId?: string;
+      openInNewTab?: boolean;
+    },
+  ) => {
     if (link) {
       setEditingId(link._id);
       setFormData({
@@ -158,7 +162,8 @@ export default function AdminCMSNavigation() {
   const handleDelete = (id: string) => {
     setConfirm({
       title: "Delete navigation link?",
-      description: "Child dropdown links will also be deleted. This cannot be undone from the admin UI.",
+      description:
+        "Child dropdown links will also be deleted. This cannot be undone from the admin UI.",
       confirmLabel: "Delete",
       destructive: true,
       onConfirm: async () => {
@@ -246,7 +251,7 @@ export default function AdminCMSNavigation() {
     depth?: number;
   }) => (
     <div
-      className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 p-3 bg-muted/30 border border-border rounded-lg group min-w-0 ${
+      className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 p-3 bg-dashboard-neutral-soft/30 border border-dashboard-border rounded-lg group min-w-0 ${
         depth > 0 ? "ml-3 sm:ml-6 border-l-2 border-l-primary/30 relative" : ""
       } ${!link.isActive ? "opacity-50" : ""}`}
     >
@@ -256,7 +261,7 @@ export default function AdminCMSNavigation() {
             type="button"
             disabled={index === 0}
             onClick={() => handleReorder(index, "up", list)}
-            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+            className="p-1.5 hover:bg-dashboard-neutral-soft rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
             aria-label="Move up"
           >
             <ChevronUp className="w-4 h-4" />
@@ -265,7 +270,7 @@ export default function AdminCMSNavigation() {
             type="button"
             disabled={index === list.length - 1}
             onClick={() => handleReorder(index, "down", list)}
-            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+            className="p-1.5 hover:bg-dashboard-neutral-soft rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
             aria-label="Move down"
           >
             <ChevronDown className="w-4 h-4" />
@@ -274,7 +279,9 @@ export default function AdminCMSNavigation() {
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="break-words">{link.label}</span>
-            {link.openInNewTab && <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />}
+            {link.openInNewTab && (
+              <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+            )}
             {!link.isActive && (
               <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
                 Hidden
@@ -320,139 +327,139 @@ export default function AdminCMSNavigation() {
   );
 
   return (
-    <div className="p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 pb-24 w-full min-w-0 overflow-x-hidden">
-      <div className="min-w-0">
-        <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Navigation & Menus</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Build and organize your public website header and footer menus. Header links may include
-          dropdown children; footer columns are flat lists.
-        </p>
-      </div>
-
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      loading={!links}
+      loadingLabel="Loading navigation…"
+      eyebrow="Content management"
+      title="Navigation & Menus"
+      description="Build and organize your public website header and footer menus. Header links may include dropdown children; footer columns are flat lists."
+      icon={Navigation}
+      contentClassName="max-w-6xl mx-auto pb-24 animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 min-w-0">
         <div className="lg:col-span-2 space-y-4 sm:space-y-6 min-w-0">
-          <Card className="border-border shadow-sm min-w-0 overflow-hidden">
-            <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6">
-              <div className="min-w-0">
-                <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                  <Navigation className="w-5 h-5 text-primary shrink-0" /> Header Menu
-                </CardTitle>
-                <CardDescription>Main top navigation bar with optional dropdowns.</CardDescription>
-              </div>
-              <Button
-                onClick={() => handleOpenModal("header")}
-                size="sm"
-                className="gap-2 w-full sm:w-auto shrink-0"
-              >
+          <DashboardSection
+            className="min-w-0"
+            title="Header Menu"
+            description="Main top navigation bar with optional dropdowns."
+            icon={Navigation}
+            actions={
+              <DashboardButton onClick={() => handleOpenModal("header")} size="sm">
                 <Plus className="w-4 h-4" /> Add Link
-              </Button>
-            </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 space-y-3 px-3 sm:px-6">
-              {!links ? (
-                <div className="animate-pulse space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-muted/50 rounded-lg" />
-                  ))}
-                </div>
-              ) : headerLinks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-border rounded-lg">
-                  <Navigation className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                  <p>No header links defined.</p>
-                </div>
-              ) : (
-                headerLinks.map((link, idx) => {
-                  const children = getChildLinks(link._id);
-                  return (
-                    <div key={link._id} className="space-y-2 min-w-0">
-                      <LinkRow link={link} index={idx} list={headerLinks} />
-                      {children.map((child, cIdx) => (
-                        <LinkRow key={child._id} link={child} index={cIdx} list={children} depth={1} />
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenChildModal(link._id)}
-                        className="ml-3 sm:ml-6 w-[calc(100%-0.75rem)] sm:w-auto text-xs font-medium inline-flex items-center justify-center sm:justify-start gap-1.5 text-muted-foreground hover:text-primary transition-colors py-2 px-2 rounded-md border border-dashed border-border hover:border-primary/40"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add Dropdown Item
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
+              </DashboardButton>
+            }
+          >
+            {!links ? (
+              <DashboardListSkeleton rows={3} />
+            ) : headerLinks.length === 0 ? (
+              <EmptyState
+                title="No header links"
+                description="Add links to build your public header menu."
+                icon={Navigation}
+                action={
+                  <DashboardButton onClick={() => handleOpenModal("header")} size="sm">
+                    <Plus className="w-4 h-4" /> Add Link
+                  </DashboardButton>
+                }
+              />
+            ) : (
+              headerLinks.map((link, idx) => {
+                const children = getChildLinks(link._id);
+                return (
+                  <div key={link._id} className="space-y-2 min-w-0">
+                    <LinkRow link={link} index={idx} list={headerLinks} />
+                    {children.map((child, cIdx) => (
+                      <LinkRow
+                        key={child._id}
+                        link={child}
+                        index={cIdx}
+                        list={children}
+                        depth={1}
+                      />
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenChildModal(link._id)}
+                      className="ml-3 sm:ml-6 w-[calc(100%-0.75rem)] sm:w-auto text-xs font-medium inline-flex items-center justify-center sm:justify-start gap-1.5 text-muted-foreground hover:text-primary transition-colors py-2 px-2 rounded-md border border-dashed border-dashboard-border hover:border-primary/40"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Dropdown Item
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </DashboardSection>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 sm:gap-6 min-w-0">
-          <Card className="border-border shadow-sm min-w-0 overflow-hidden h-full">
-            <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col gap-3 px-3 sm:px-6">
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <CardTitle className="text-xs sm:text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider min-w-0">
-                  <LayoutTemplate className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Footer Column 1</span>
-                </CardTitle>
-                <Button
-                  onClick={() => handleOpenModal("footer_col_1")}
-                  size="sm"
-                  variant="outline"
-                  className="h-9 w-9 p-0 shrink-0"
-                  title="Add link"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              <Input
-                value={footerTitle1}
-                onChange={(e) => setFooterTitle1(e.target.value)}
-                onBlur={() => handleSaveFooterTitle("footerCol1Title", footerTitle1)}
-                className="font-bold text-base sm:text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors"
-                placeholder="Column Title (e.g. Quick Links)"
-              />
-            </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 space-y-2 px-3 sm:px-6">
+          <DashboardSection
+            className="min-w-0 h-full"
+            title="Footer Column 1"
+            icon={LayoutTemplate}
+            actions={
+              <Button
+                onClick={() => handleOpenModal("footer_col_1")}
+                size="sm"
+                variant="outline"
+                className="h-9 w-9 p-0 shrink-0"
+                title="Add link"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            }
+          >
+            <Input
+              value={footerTitle1}
+              onChange={(e) => setFooterTitle1(e.target.value)}
+              onBlur={() => handleSaveFooterTitle("footerCol1Title", footerTitle1)}
+              className="font-bold text-base sm:text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors mb-4"
+              placeholder="Column Title (e.g. Quick Links)"
+            />
+            <div className="space-y-2">
               {footer1Links.map((link, idx) => (
                 <LinkRow key={link._id} link={link} index={idx} list={footer1Links} />
               ))}
               {footer1Links.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">Empty column</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardSection>
 
-          <Card className="border-border shadow-sm min-w-0 overflow-hidden h-full">
-            <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col gap-3 px-3 sm:px-6">
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <CardTitle className="text-xs sm:text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider min-w-0">
-                  <Layers className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Footer Column 2</span>
-                </CardTitle>
-                <Button
-                  onClick={() => handleOpenModal("footer_col_2")}
-                  size="sm"
-                  variant="outline"
-                  className="h-9 w-9 p-0 shrink-0"
-                  title="Add link"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              <Input
-                value={footerTitle2}
-                onChange={(e) => setFooterTitle2(e.target.value)}
-                onBlur={() => handleSaveFooterTitle("footerCol2Title", footerTitle2)}
-                className="font-bold text-base sm:text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors"
-                placeholder="Column Title (e.g. Our Services)"
-              />
-            </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 space-y-2 px-3 sm:px-6">
+          <DashboardSection
+            className="min-w-0 h-full"
+            title="Footer Column 2"
+            icon={Layers}
+            actions={
+              <Button
+                onClick={() => handleOpenModal("footer_col_2")}
+                size="sm"
+                variant="outline"
+                className="h-9 w-9 p-0 shrink-0"
+                title="Add link"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            }
+          >
+            <Input
+              value={footerTitle2}
+              onChange={(e) => setFooterTitle2(e.target.value)}
+              onBlur={() => handleSaveFooterTitle("footerCol2Title", footerTitle2)}
+              className="font-bold text-base sm:text-lg bg-transparent border-transparent hover:border-input focus:border-input px-2 h-auto py-1 -ml-2 transition-colors mb-4"
+              placeholder="Column Title (e.g. Our Services)"
+            />
+            <div className="space-y-2">
               {footer2Links.map((link, idx) => (
                 <LinkRow key={link._id} link={link} index={idx} list={footer2Links} />
               ))}
               {footer2Links.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">Empty column</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardSection>
         </div>
       </div>
 
@@ -517,7 +524,7 @@ export default function AdminCMSNavigation() {
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 border border-border p-3 rounded-lg bg-muted/20">
+                <div className="flex items-center gap-3 border border-dashboard-border p-3 rounded-lg bg-dashboard-neutral-soft/20">
                   <div className="flex-1">
                     <p className="text-sm font-medium">Visible</p>
                   </div>
@@ -528,10 +535,10 @@ export default function AdminCMSNavigation() {
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                     />
-                    <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                    <div className="w-9 h-5 bg-dashboard-neutral-soft peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                   </label>
                 </div>
-                <div className="flex items-center gap-3 border border-border p-3 rounded-lg bg-muted/20">
+                <div className="flex items-center gap-3 border border-dashboard-border p-3 rounded-lg bg-dashboard-neutral-soft/20">
                   <div className="flex-1">
                     <p className="text-sm font-medium">New Tab</p>
                   </div>
@@ -540,11 +547,9 @@ export default function AdminCMSNavigation() {
                       type="checkbox"
                       className="sr-only peer"
                       checked={formData.openInNewTab}
-                      onChange={(e) =>
-                        setFormData({ ...formData, openInNewTab: e.target.checked })
-                      }
+                      onChange={(e) => setFormData({ ...formData, openInNewTab: e.target.checked })}
                     />
-                    <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                    <div className="w-9 h-5 bg-dashboard-neutral-soft peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                   </label>
                 </div>
               </div>
@@ -573,6 +578,6 @@ export default function AdminCMSNavigation() {
           if (!open) setConfirm(null);
         }}
       />
-    </div>
+    </PortalPageShell>
   );
 }

@@ -22,9 +22,15 @@ import { useI18n } from "@/lib/i18n-context.tsx";
 import { TaskCard } from "@/components/tasks/TaskCard.tsx";
 import { DueDateFields } from "@/components/tasks/DueDateFields.tsx";
 import { TaskCalendarView } from "@/components/tasks/TaskCalendarView.tsx";
-import { useStaffDirectory } from "@/client/queries/identity";
+import { useSessionCapabilities, useStaffDirectory } from "@/client/queries/identity";
 import { useDocuments } from "@/client/queries/documents";
 import { TaskWorkloadView } from "@/components/tasks/TaskWorkloadView.tsx";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardSection,
+  PortalPageShell,
+} from "@/components/dashboard";
 import {
   PRIORITY_COLORS,
   TASK_STATUS_LABELS,
@@ -48,6 +54,8 @@ type ViewMode = "kanban" | "list" | "calendar" | "workload";
 export default function StaffTasksPage() {
   const { t } = useI18n();
   const currentUser = useCurrentUser();
+  const capabilities = useSessionCapabilities();
+  const canViewTeamWorkload = capabilities?.includes("cases.view_all") === true;
   const [view, setView] = useState<ViewMode>("kanban");
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const tasks = useTasks({ includeArchived: showArchivedOnly || undefined }) || [];
@@ -57,14 +65,8 @@ export default function StaffTasksPage() {
   const hearings = useHearings({}) || [];
   const documents = useDocuments({}) || [];
 
-  const {
-    createTask,
-    archiveTask,
-    restoreTask,
-    deleteTask,
-    addComment,
-    scanOverdueReminders,
-  } = useTaskCommands();
+  const { createTask, archiveTask, restoreTask, deleteTask, addComment, scanOverdueReminders } =
+    useTaskCommands();
   const updateTask = useUpdateTask();
   const { createTimeEntry: createTimeEntryMutation } = useTimeEntryCommands();
 
@@ -124,7 +126,6 @@ export default function StaffTasksPage() {
 
   useEffect(() => {
     resetPagination();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     view,
     scope,
@@ -470,52 +471,64 @@ export default function StaffTasksPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-foreground">{t("tasks.title")}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {filteredTasks.length} {t("tasks.shown")} · {tasks.length} {t("tasks.total")}
-          </p>
-        </div>
+    <PortalPageShell
+      portal="staff"
+      decorated
+      showTodayDate
+      eyebrow="Work management"
+      titleKey="portal.tasks.title"
+      descriptionKey="portal.tasks.description"
+      heroChildren={
+        <p className="text-xs text-dashboard-hero-muted">
+          {filteredTasks.length} {t("tasks.shown")} · {tasks.length} {t("tasks.total")}
+        </p>
+      }
+      actions={
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={handleScanOverdue} disabled={scanning}>
+          <DashboardButton
+            variant="secondary"
+            size="sm"
+            onClick={handleScanOverdue}
+            disabled={scanning}
+          >
             {scanning ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Bell className="w-4 h-4 mr-1" />
             )}
             {t("tasks.due_scan")}
-          </Button>
-          <Button
-            variant={view === "kanban" ? "default" : "secondary"}
+          </DashboardButton>
+          <DashboardButton
+            variant={view === "kanban" ? "primary" : "secondary"}
             size="sm"
             onClick={() => setView("kanban")}
           >
             {t("tasks.view_kanban")}
-          </Button>
-          <Button
-            variant={view === "list" ? "default" : "secondary"}
+          </DashboardButton>
+          <DashboardButton
+            variant={view === "list" ? "primary" : "secondary"}
             size="sm"
             onClick={() => setView("list")}
           >
             {t("tasks.view_list")}
-          </Button>
-          <Button
-            variant={view === "calendar" ? "default" : "secondary"}
+          </DashboardButton>
+          <DashboardButton
+            variant={view === "calendar" ? "primary" : "secondary"}
             size="sm"
             onClick={() => setView("calendar")}
           >
             {t("tasks.view_calendar")}
-          </Button>
-          <Button
-            variant={view === "workload" ? "default" : "secondary"}
-            size="sm"
-            onClick={() => setView("workload")}
-          >
-            {t("tasks.view_workload")}
-          </Button>
-          <Button
+          </DashboardButton>
+          {canViewTeamWorkload && (
+            <DashboardButton
+              variant={view === "workload" ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => setView("workload")}
+            >
+              {t("tasks.view_workload")}
+            </DashboardButton>
+          )}
+          <DashboardButton
             size="sm"
             onClick={() => {
               resetCreateForm();
@@ -523,105 +536,107 @@ export default function StaffTasksPage() {
             }}
           >
             <Plus className="w-4 h-4 mr-1" /> {t("tasks.new")}
-          </Button>
+          </DashboardButton>
         </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-2 lg:items-end bg-secondary/20 border border-border/50 rounded-xl p-3">
-        <div className="flex gap-1 shrink-0">
+      }
+    >
+      <DashboardSection title="Filters">
+        <DashboardFilterBar className="items-end">
+          <div className="flex gap-1 shrink-0">
+            <Button
+              size="sm"
+              variant={scope === "mine" ? "default" : "secondary"}
+              onClick={() => setScope("mine")}
+            >
+              My Tasks
+            </Button>
+            <Button
+              size="sm"
+              variant={scope === "all" ? "default" : "secondary"}
+              onClick={() => setScope("all")}
+            >
+              All
+            </Button>
+          </div>
+          <Input
+            className="h-9 text-xs lg:max-w-[200px]"
+            placeholder="Search title, case…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+            value={filterAssignee}
+            onChange={(e) => setFilterAssignee(e.target.value)}
+          >
+            <option value="">All assignees</option>
+            {staffUsers.map((u: any) => (
+              <option key={u._id} value={u._id}>
+                {u.name || u.email}
+              </option>
+            ))}
+          </select>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+          >
+            <option value="">All priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+            value={filterCase}
+            onChange={(e) => setFilterCase(e.target.value)}
+          >
+            <option value="">All cases</option>
+            {cases.map((c: any) => (
+              <option key={c._id} value={c._id}>
+                [{c.caseNumber}] {c.title}
+              </option>
+            ))}
+          </select>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">All statuses</option>
+            {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((s) => (
+              <option key={s} value={s}>
+                {TASK_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
           <Button
             size="sm"
-            variant={scope === "mine" ? "default" : "secondary"}
-            onClick={() => setScope("mine")}
+            variant={filterOverdue ? "destructive" : "secondary"}
+            onClick={() => setFilterOverdue((v) => !v)}
           >
-            My Tasks
+            Overdue
           </Button>
           <Button
             size="sm"
-            variant={scope === "all" ? "default" : "secondary"}
-            onClick={() => setScope("all")}
+            variant={showCancelledColumn ? "default" : "secondary"}
+            onClick={() => setShowCancelledColumn((v) => !v)}
           >
-            All
+            Cancelled
           </Button>
-        </div>
-        <Input
-          className="h-9 text-xs lg:max-w-[200px]"
-          placeholder="Search title, case…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
-          value={filterAssignee}
-          onChange={(e) => setFilterAssignee(e.target.value)}
-        >
-          <option value="">All assignees</option>
-          {staffUsers.map((u: any) => (
-            <option key={u._id} value={u._id}>
-              {u.name || u.email}
-            </option>
-          ))}
-        </select>
-        <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
-          value={filterPriority}
-          onChange={(e) => setFilterPriority(e.target.value)}
-        >
-          <option value="">All priorities</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
-          value={filterCase}
-          onChange={(e) => setFilterCase(e.target.value)}
-        >
-          <option value="">All cases</option>
-          {cases.map((c: any) => (
-            <option key={c._id} value={c._id}>
-              [{c.caseNumber}] {c.title}
-            </option>
-          ))}
-        </select>
-        <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="">All statuses</option>
-          {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((s) => (
-            <option key={s} value={s}>
-              {TASK_STATUS_LABELS[s]}
-            </option>
-          ))}
-        </select>
-        <Button
-          size="sm"
-          variant={filterOverdue ? "destructive" : "secondary"}
-          onClick={() => setFilterOverdue((v) => !v)}
-        >
-          Overdue
-        </Button>
-        <Button
-          size="sm"
-          variant={showCancelledColumn ? "default" : "secondary"}
-          onClick={() => setShowCancelledColumn((v) => !v)}
-        >
-          Cancelled
-        </Button>
-        <Button
-          size="sm"
-          variant={showArchivedOnly ? "default" : "secondary"}
-          onClick={() => setShowArchivedOnly((v) => !v)}
-        >
-          <Archive className="w-3.5 h-3.5 mr-1" /> Archived
-        </Button>
-        <Button size="sm" variant="ghost" onClick={clearFilters}>
-          Reset
-        </Button>
-      </div>
+          <Button
+            size="sm"
+            variant={showArchivedOnly ? "default" : "secondary"}
+            onClick={() => setShowArchivedOnly((v) => !v)}
+          >
+            <Archive className="w-3.5 h-3.5 mr-1" /> Archived
+          </Button>
+          <Button size="sm" variant="ghost" onClick={clearFilters}>
+            Reset
+          </Button>
+        </DashboardFilterBar>
+      </DashboardSection>
 
       {view === "kanban" && (
         <div
@@ -709,7 +724,7 @@ export default function StaffTasksPage() {
 
       {view === "calendar" && <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} />}
 
-      {view === "workload" && (
+      {view === "workload" && canViewTeamWorkload && (
         <TaskWorkloadView
           workload={workload as any[]}
           users={users}
@@ -1242,6 +1257,6 @@ export default function StaffTasksPage() {
           </div>
         </div>
       )}
-    </div>
+    </PortalPageShell>
   );
 }

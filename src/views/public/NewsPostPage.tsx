@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { motion, useScroll, useSpring } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { useNews, useNewsItem } from "@/client/queries/cms";
+import { serializeJsonLd } from "@/shared/seo/serialize-json-ld";
 import { Link } from "@/client/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,9 +66,7 @@ export default function NewsPostPage({ slug }: { slug: string }) {
     if (!item) return [];
     const type = String(item.type ?? "");
     const id = newsId(item);
-    return allNews
-      .filter((n) => newsId(n) !== id && String(n.type ?? "") === type)
-      .slice(0, 3);
+    return allNews.filter((n) => newsId(n) !== id && String(n.type ?? "") === type).slice(0, 3);
   }, [allNews, item]);
 
   const copyLink = async () => {
@@ -135,7 +134,7 @@ export default function NewsPostPage({ slug }: { slug: string }) {
     <article className="min-h-screen bg-background overflow-x-clip pb-16 relative">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <motion.div
@@ -183,12 +182,8 @@ export default function NewsPostPage({ slug }: { slug: string }) {
 
             {item.imageUrl ? (
               <div className="rounded-2xl overflow-hidden border border-border bg-secondary/30 aspect-[16/9] max-h-80">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={String(item.imageUrl)}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+                {}
+                <img src={String(item.imageUrl)} alt="" className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-accent/5 aspect-[16/9] max-h-64 flex items-center justify-center">
@@ -270,9 +265,13 @@ export default function NewsPostPage({ slug }: { slug: string }) {
               <CardContent className="p-6 space-y-4">
                 <h2 className="font-serif text-xl font-bold">Need legal advice?</h2>
                 <p className="text-sm text-primary-foreground/75">
-                  Book a consultation with a LexNepal advocate for guidance tailored to your matter.
+                  Book a consultation with a Srimar Law advocate for guidance tailored to your
+                  matter.
                 </p>
-                <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button
+                  asChild
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                >
                   <Link href="/consultation" className="gap-2">
                     Book Consultation <ArrowRight className="w-4 h-4" />
                   </Link>
@@ -289,7 +288,9 @@ export default function NewsPostPage({ slug }: { slug: string }) {
 
             {related.length > 0 && (
               <div className="space-y-3">
-                <h2 className="font-serif text-lg font-bold text-foreground">Related {newsTypeLabel(type)}</h2>
+                <h2 className="font-serif text-lg font-bold text-foreground">
+                  Related {newsTypeLabel(type)}
+                </h2>
                 <ul className="space-y-3">
                   {related.map((n) => (
                     <li key={newsId(n)}>
@@ -297,8 +298,12 @@ export default function NewsPostPage({ slug }: { slug: string }) {
                         href={newsHref(n)}
                         className="block rounded-xl border border-border p-3 hover:border-accent/40 transition-colors"
                       >
-                        <p className="text-sm font-medium text-foreground line-clamp-2">{n.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{formatNewsDate(n.date)}</p>
+                        <p className="text-sm font-medium text-foreground line-clamp-2">
+                          {n.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatNewsDate(n.date)}
+                        </p>
                       </Link>
                     </li>
                   ))}

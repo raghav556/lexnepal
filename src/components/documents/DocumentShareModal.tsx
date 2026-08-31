@@ -1,8 +1,20 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { toast } from "sonner";
 import {
   useDocumentShares,
@@ -167,7 +179,11 @@ export function DocumentShareModal({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Input readOnly value={shareLink} className="h-10 bg-secondary/50 font-mono text-xs" />
+                <Input
+                  readOnly
+                  value={shareLink}
+                  className="h-10 bg-secondary/50 font-mono text-xs"
+                />
                 <Button variant="outline" className="shrink-0 h-10 px-3" onClick={copyToClipboard}>
                   <Copy className="w-4 h-4" />
                 </Button>

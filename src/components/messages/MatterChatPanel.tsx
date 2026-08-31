@@ -91,9 +91,9 @@ export function MatterChatPanel({
 
   const [draft, setDraft] = useState("");
   const [isInternal, setIsInternal] = useState(forcedInternal);
-  const [pendingAttachments, setPendingAttachments] = useState<{ name: string; storageId: string }[]>(
-    [],
-  );
+  const [pendingAttachments, setPendingAttachments] = useState<
+    { name: string; storageId: string }[]
+  >([]);
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -104,7 +104,6 @@ export function MatterChatPanel({
 
   useEffect(() => {
     if (caseId) markMessagesRead.mutate({ caseId });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mark on thread change only
   }, [caseId, messages.length]);
 
   useEffect(() => {
@@ -195,7 +194,10 @@ export function MatterChatPanel({
               const attachments: string[] = msg.attachmentIds || [];
 
               return (
-                <div key={msg._id || msg.id} className={cn("flex w-full", isMe ? "justify-end" : "justify-start")}>
+                <div
+                  key={msg._id || msg.id}
+                  className={cn("flex w-full", isMe ? "justify-end" : "justify-start")}
+                >
                   <div
                     className={cn(
                       "rounded-xl px-3.5 py-2.5 max-w-[85%] text-xs shadow-2xs border",
@@ -228,10 +230,14 @@ export function MatterChatPanel({
                     <div
                       className={cn(
                         "text-[9px] mt-1 opacity-75 font-semibold",
-                        isMe && !msg.isInternal ? "text-primary-foreground/90" : "text-muted-foreground",
+                        isMe && !msg.isInternal
+                          ? "text-primary-foreground/90"
+                          : "text-muted-foreground",
                       )}
                     >
-                      {isMe ? "You" : sender?.name || (mode === "client" ? "Legal team" : "Unknown")}{" "}
+                      {isMe
+                        ? "You"
+                        : sender?.name || (mode === "client" ? "Legal team" : "Unknown")}{" "}
                       &bull; {formattedTime}
                     </div>
                   </div>
@@ -316,7 +322,16 @@ export function MatterChatPanel({
   );
 
   if (!bordered) {
-    return <div className={cn("flex flex-col h-full min-h-[320px] border rounded-xl overflow-hidden", className)}>{body}</div>;
+    return (
+      <div
+        className={cn(
+          "flex flex-col h-full min-h-[320px] border rounded-xl overflow-hidden",
+          className,
+        )}
+      >
+        {body}
+      </div>
+    );
   }
 
   return (

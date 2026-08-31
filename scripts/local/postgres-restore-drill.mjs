@@ -45,7 +45,13 @@ function ensureBackup(backupRoot) {
   if (dumps.length) return;
   const backup = spawnSync(
     "powershell",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(root, "scripts/local/postgres-backup.ps1")],
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      join(root, "scripts/local/postgres-backup.ps1"),
+    ],
     { cwd: root, encoding: "utf8", shell: false },
   );
   if (backup.status !== 0) throw new Error(`Backup failed: ${backup.stderr || backup.stdout}`);
@@ -74,23 +80,31 @@ function main() {
   const createdb = pgBin("createdb.exe");
   const pgRestore = pgBin("pg_restore.exe");
 
-  run(psql, [
-    "-h",
-    host,
-    "-p",
-    port,
-    "-U",
-    user,
-    "-d",
-    "postgres",
-    "-c",
-    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${drillDb}' AND pid <> pg_backend_pid();`,
-  ], env);
+  run(
+    psql,
+    [
+      "-h",
+      host,
+      "-p",
+      port,
+      "-U",
+      user,
+      "-d",
+      "postgres",
+      "-c",
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${drillDb}' AND pid <> pg_backend_pid();`,
+    ],
+    env,
+  );
   run(dropdb, ["-h", host, "-p", port, "-U", user, "--if-exists", drillDb], env);
   const create = run(createdb, ["-h", host, "-p", port, "-U", user, "-O", user, drillDb], env);
   if (create.status !== 0) throw new Error(`createdb failed: ${create.stderr}`);
 
-  run(pgRestore, ["-h", host, "-p", port, "-U", user, "-d", drillDb, "--no-owner", "--no-acl", latest], env);
+  run(
+    pgRestore,
+    ["-h", host, "-p", port, "-U", user, "-d", drillDb, "--no-owner", "--no-acl", latest],
+    env,
+  );
 
   const count = run(
     psql,

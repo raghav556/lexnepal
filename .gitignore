@@ -12,6 +12,8 @@ coverage
 .migration-state.json
 .migration-reports/
 logs/migration-*.log
+/.dev-server.*.log
+/build-*.log
 exports/
 *.tmp
 tmp/

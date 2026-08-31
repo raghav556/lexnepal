@@ -27,10 +27,7 @@ export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
 };
 
 /** Overdue when Gregorian dueDate is before today and task is not done/cancelled. */
-export function isTaskOverdue(task: {
-  status?: string;
-  dueDate?: string | null;
-}): boolean {
+export function isTaskOverdue(task: { status?: string; dueDate?: string | null }): boolean {
   if (!task.dueDate) return false;
   if (task.status === "done" || task.status === "cancelled") return false;
   const due = new Date(task.dueDate);

@@ -373,7 +373,10 @@ describe("protected downloads and storage migration", () => {
     );
     await expect(
       downloads.createAuthorizedDownload(principal(), "document-1"),
-    ).rejects.toMatchObject({ code: "FORBIDDEN", message: "Document is not available for download" });
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Document is not available for download",
+    });
   });
 
   it("preserves source count and SHA-256 during legacy storage migration", async () => {

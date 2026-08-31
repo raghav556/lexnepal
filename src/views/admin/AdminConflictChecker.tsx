@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import {
@@ -30,36 +29,42 @@ import {
   useConflictStats,
   useRecentConflictChecks,
 } from "@/client/queries/cases";
-import {
-  ConflictHitList,
-  ConflictRiskSummary,
-} from "@/components/conflicts/ConflictHitList";
+import { ConflictHitList, ConflictRiskSummary } from "@/components/conflicts/ConflictHitList";
 import type { ConflictHitDto } from "@/shared/contracts/domains";
-import type {
-  ConflictOfficialResultDto,
-  ConflictSearchScope,
-} from "@/shared/contracts/conflicts";
+import type { ConflictOfficialResultDto, ConflictSearchScope } from "@/shared/contracts/conflicts";
 import { cn } from "@/lib/utils";
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
 
-function StatusBadge({ status }: { status: string }) {
+function ConflictStatusLabel({ status }: { status: string }) {
   if (status === "cleared") {
     return (
-      <span className="text-xs font-semibold text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full inline-flex items-center gap-1">
-        <CheckCircle2 className="w-3 h-3" /> Cleared
-      </span>
+      <DashboardStatusLabel
+        tone="success"
+        label="Cleared"
+        icon={CheckCircle2}
+        className="text-xs"
+      />
     );
   }
   if (status === "conflict") {
     return (
-      <span className="text-xs font-semibold text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 rounded-full inline-flex items-center gap-1">
-        <XCircle className="w-3 h-3" /> Conflict
-      </span>
+      <DashboardStatusLabel tone="danger" label="Conflict" icon={XCircle} className="text-xs" />
     );
   }
   return (
-    <span className="text-xs font-semibold text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-1 rounded-full inline-flex items-center gap-1">
-      <AlertTriangle className="w-3 h-3" /> Pending review
-    </span>
+    <DashboardStatusLabel
+      tone="warning"
+      label="Pending review"
+      icon={AlertTriangle}
+      className="text-xs"
+    />
   );
 }
 
@@ -156,10 +161,7 @@ export default function AdminConflictChecker() {
   };
 
   return (
-    <div
-      className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 sm:space-y-8 w-full min-w-0 conflict-report-root"
-      ref={reportRef}
-    >
+    <div className="conflict-report-root w-full min-w-0" ref={reportRef}>
       <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
@@ -168,70 +170,70 @@ export default function AdminConflictChecker() {
         }
       `}</style>
 
-      <div className="print:hidden min-w-0 space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-accent" />
-          </div>
-          <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">
-              Enterprise Conflict Intelligence
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Multi-source clearance across clients, matters, CRM leads, and consultation requests.
-            </p>
+      <PortalPageShell
+        portal="admin"
+        className="max-w-6xl mx-auto print:hidden"
+        eyebrow="Compliance intelligence"
+        title="Enterprise conflict intelligence"
+        description="Multi-source clearance across clients, matters, CRM leads, and consultation requests."
+        icon={ShieldCheck}
+        metrics={
+          stats
+            ? [
+                {
+                  label: "Checks this month",
+                  value: stats.checksThisMonth,
+                  icon: BarChart3,
+                  tone: DASHBOARD_METRIC_TONES.cases,
+                },
+                {
+                  label: "Total logged",
+                  value: stats.totalChecks,
+                  icon: ShieldAlert,
+                  tone: "information",
+                },
+                {
+                  label: "Pending review",
+                  value: stats.pendingReviews,
+                  icon: Clock,
+                  tone: "warning",
+                },
+                {
+                  label: "Cleared",
+                  value: stats.clearedCount,
+                  icon: CheckCircle2,
+                  tone: "success",
+                },
+                {
+                  label: "Conflicts flagged",
+                  value: stats.conflictCount,
+                  icon: XCircle,
+                  tone: "danger",
+                },
+              ]
+            : undefined
+        }
+      >
+        <div className="hidden print:block mb-8 border-b pb-4">
+          <h1 className="text-2xl font-bold text-black">Conflict Clearance Report</h1>
+          <p className="text-sm text-gray-600">Generated {new Date().toLocaleString()}</p>
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <strong>Search query:</strong> {searchQuery}
+            </div>
+            <div>
+              <strong>Total hits:</strong> {result?.summary.total ?? 0}
+            </div>
+            <div>
+              <strong>High-risk hits:</strong> {result?.summary.high ?? 0}
+            </div>
+            <div>
+              <strong>Check ID:</strong> {activeCheckId ?? "—"}
+            </div>
           </div>
         </div>
-      </div>
 
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 print:hidden">
-          {[
-            { label: "Checks this month", value: stats.checksThisMonth, icon: BarChart3 },
-            { label: "Total logged", value: stats.totalChecks, icon: ShieldAlert },
-            { label: "Pending review", value: stats.pendingReviews, icon: Clock },
-            { label: "Cleared", value: stats.clearedCount, icon: CheckCircle2 },
-            { label: "Conflicts flagged", value: stats.conflictCount, icon: XCircle },
-          ].map(({ label, value, icon: Icon }) => (
-            <Card key={label} className="border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-                  <Icon className="w-4 h-4 text-accent/70" />
-                </div>
-                <p className="text-2xl font-bold mt-2">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <div className="hidden print:block mb-8 border-b pb-4">
-        <h1 className="text-2xl font-bold text-black">Conflict Clearance Report</h1>
-        <p className="text-sm text-gray-600">Generated {new Date().toLocaleString()}</p>
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <strong>Search query:</strong> {searchQuery}
-          </div>
-          <div>
-            <strong>Total hits:</strong> {result?.summary.total ?? 0}
-          </div>
-          <div>
-            <strong>High-risk hits:</strong> {result?.summary.high ?? 0}
-          </div>
-          <div>
-            <strong>Check ID:</strong> {activeCheckId ?? "—"}
-          </div>
-        </div>
-      </div>
-
-      <Card className="border-border/50 shadow-sm print:hidden">
-        <CardHeader className="bg-secondary/20 border-b pb-4">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <Search className="w-5 h-5 text-accent" /> Official conflict search
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-4">
+        <DashboardSection title="Official conflict search" icon={Search} className="print:hidden">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -242,12 +244,12 @@ export default function AdminConflictChecker() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button type="submit" disabled={isSearching} className="h-11 bg-accent hover:bg-accent/90">
+            <DashboardButton type="submit" disabled={isSearching} className="h-11">
               {isSearching ? "Searching…" : "Run official check"}
-            </Button>
+            </DashboardButton>
           </form>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-4">
             <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1">
               <Filter className="w-3.5 h-3.5" /> Sources:
             </span>
@@ -259,7 +261,7 @@ export default function AdminConflictChecker() {
                 className={cn(
                   "text-xs px-3 py-1 rounded-full border transition-colors",
                   scope[key]
-                    ? "bg-accent/10 border-accent/30 text-accent"
+                    ? "bg-dashboard-primary-soft border-dashboard-primary/35 text-dashboard-primary"
                     : "bg-muted/30 border-border text-muted-foreground",
                 )}
               >
@@ -267,115 +269,121 @@ export default function AdminConflictChecker() {
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Official checks are audit-logged with your identity, timestamp, and hit summary. Use before
-            accepting any new matter or client engagement.
+          <p className="text-xs text-muted-foreground mt-4">
+            Official checks are audit-logged with your identity, timestamp, and hit summary. Use
+            before accepting any new matter or client engagement.
           </p>
-        </CardContent>
-      </Card>
+        </DashboardSection>
 
-      {result && !isSearching && (
-        <FadeInUp>
-          <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-              <div>
-                <h2 className="font-semibold text-lg">
-                  Results for{" "}
-                  <span className="text-accent italic break-all">"{result.query}"</span>
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Checked {new Date(result.searchedAt).toLocaleString()} · Check ID{" "}
-                  <span className="font-mono text-xs">{activeCheckId}</span>
-                </p>
+        {result && !isSearching && (
+          <FadeInUp>
+            <div className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    Results for{" "}
+                    <span className="text-accent italic break-all">
+                      &ldquo;{result.query}&rdquo;
+                    </span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Checked {new Date(result.searchedAt).toLocaleString()} · Check ID{" "}
+                    <span className="font-mono text-xs">{activeCheckId}</span>
+                  </p>
+                </div>
+                <DashboardButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="print:hidden"
+                >
+                  <Download className="w-4 h-4 mr-2" /> Export clearance report
+                </DashboardButton>
               </div>
-              <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden">
-                <Download className="w-4 h-4 mr-2" /> Export clearance report
-              </Button>
-            </div>
 
-            <ConflictRiskSummary summary={result.summary} />
+              <ConflictRiskSummary summary={result.summary} />
 
-            {result.summary.total === 0 ? (
-              <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900/40 p-8 text-center">
-                <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
-                <h3 className="text-xl font-bold text-green-800 dark:text-green-300">
-                  Clear — no matching records
-                </h3>
-                <p className="text-sm text-green-700/80 dark:text-green-400/80 mt-2 max-w-lg mx-auto">
-                  No clients, matters, leads, or consultation requests matched this query across
-                  selected sources. Clearance auto-logged as cleared.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/40 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 print:hidden">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="font-bold text-red-800 dark:text-red-300">
-                        {result.summary.high > 0
-                          ? "High-risk matches require partner review"
-                          : "Potential conflicts detected"}
-                      </h4>
-                      <p className="text-sm text-red-700/80 dark:text-red-400/80 mt-1">
-                        Review each hit, open linked records, then record your clearance decision.
-                      </p>
+              {result.summary.total === 0 ? (
+                <div
+                  className={`rounded-xl border p-8 text-center ${DASHBOARD_TONE_PANEL_CLASSES.success}`}
+                >
+                  <CheckCircle2 className="w-12 h-12 text-dashboard-success mx-auto mb-3" />
+                  <h3 className="text-xl font-bold text-dashboard-success">
+                    Clear — no matching records
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto">
+                    No clients, matters, leads, or consultation requests matched this query across
+                    selected sources. Clearance auto-logged as cleared.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={`rounded-lg border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 print:hidden ${DASHBOARD_TONE_PANEL_CLASSES.danger}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-dashboard-danger mt-0.5 shrink-0" />
+                      <div>
+                        <h4 className="font-bold text-dashboard-danger">
+                          {result.summary.high > 0
+                            ? "High-risk matches require partner review"
+                            : "Potential conflicts detected"}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Review each hit, open linked records, then record your clearance decision.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                      <DashboardButton variant="outline" onClick={() => openDecision("conflict")}>
+                        <XCircle className="w-4 h-4 mr-2" /> Flag conflict
+                      </DashboardButton>
+                      <DashboardButton onClick={() => openDecision("cleared")}>
+                        <CheckCircle2 className="w-4 h-4 mr-2" /> Grant clearance
+                      </DashboardButton>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                    <Button variant="outline" className="border-red-300 text-red-700" onClick={() => openDecision("conflict")}>
-                      <XCircle className="w-4 h-4 mr-2" /> Flag conflict
-                    </Button>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => openDecision("cleared")}>
-                      <CheckCircle2 className="w-4 h-4 mr-2" /> Grant clearance
-                    </Button>
+
+                  <div className="flex flex-wrap gap-2 print:hidden">
+                    <select
+                      className="text-sm border border-input rounded-md px-2 py-1.5 bg-background"
+                      value={severityFilter}
+                      onChange={(e) => setSeverityFilter(e.target.value as typeof severityFilter)}
+                    >
+                      <option value="all">All severities</option>
+                      <option value="high">High only</option>
+                      <option value="medium">Medium only</option>
+                      <option value="low">Low only</option>
+                    </select>
+                    <select
+                      className="text-sm border border-input rounded-md px-2 py-1.5 bg-background"
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                    >
+                      <option value="all">All types</option>
+                      {hitTypes.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
 
-                <div className="flex flex-wrap gap-2 print:hidden">
-                  <select
-                    className="text-sm border border-input rounded-md px-2 py-1.5 bg-background"
-                    value={severityFilter}
-                    onChange={(e) => setSeverityFilter(e.target.value as typeof severityFilter)}
-                  >
-                    <option value="all">All severities</option>
-                    <option value="high">High only</option>
-                    <option value="medium">Medium only</option>
-                    <option value="low">Low only</option>
-                  </select>
-                  <select
-                    className="text-sm border border-input rounded-md px-2 py-1.5 bg-background"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                  >
-                    <option value="all">All types</option>
-                    {hitTypes.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <ConflictHitList hits={filteredHits} />
+                </>
+              )}
+            </div>
+          </FadeInUp>
+        )}
 
-                <ConflictHitList hits={filteredHits} />
-              </>
-            )}
-          </div>
-        </FadeInUp>
-      )}
-
-      <div className="print:hidden space-y-4">
-        <h3 className="text-lg font-bold font-serif flex items-center gap-2">
-          <Clock className="w-5 h-5 text-accent" /> Audit trail — recent checks
-        </h3>
-        {recentChecks.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No official conflict checks logged yet.
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="overflow-hidden">
+        <DashboardSection title="Audit trail — recent checks" icon={Clock} className="print:hidden">
+          {recentChecks.length === 0 ? (
+            <EmptyState
+              title="No conflict checks yet"
+              description="Official conflict checks will appear here once logged."
+              icon={Clock}
+            />
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[720px]">
                 <thead className="bg-muted/50 text-muted-foreground uppercase text-xs border-b">
@@ -393,10 +401,12 @@ export default function AdminConflictChecker() {
                       <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                         {new Date(check.timestamp ?? check.checkedAt).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 font-medium max-w-xs truncate">"{check.searchQuery}"</td>
+                      <td className="px-4 py-3 font-medium max-w-xs truncate">
+                        &ldquo;{check.searchQuery}&rdquo;
+                      </td>
                       <td className="px-4 py-3">{check.hitsCount}</td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={check.status} />
+                        <ConflictStatusLabel status={check.status} />
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{check.runByName}</td>
                     </tr>
@@ -404,9 +414,9 @@ export default function AdminConflictChecker() {
                 </tbody>
               </table>
             </div>
-          </Card>
-        )}
-      </div>
+          )}
+        </DashboardSection>
+      </PortalPageShell>
 
       <Dialog open={decisionOpen} onOpenChange={setDecisionOpen}>
         <DialogContent>
@@ -428,9 +438,12 @@ export default function AdminConflictChecker() {
             <Button variant="outline" onClick={() => setDecisionOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitDecision} disabled={isDeciding || !decisionNotes.trim()}>
+            <DashboardButton
+              onClick={submitDecision}
+              disabled={isDeciding || !decisionNotes.trim()}
+            >
               {isDeciding ? "Saving…" : "Save decision"}
-            </Button>
+            </DashboardButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -87,9 +87,7 @@ async function main() {
 
   const isDryRun = values["dry-run"] || false;
   const batchSize = values["batch-size"] ? parseInt(values["batch-size"], 10) : undefined;
-  const exportPath = path.resolve(
-    values["export-path"] || defaultExportPathForDomain(domainName),
-  );
+  const exportPath = path.resolve(values["export-path"] || defaultExportPathForDomain(domainName));
   const firmMapPath = values["firm-map"] ? path.resolve(values["firm-map"]) : undefined;
   const options = {
     exportPath,
@@ -99,9 +97,7 @@ async function main() {
     storageManifestPath: values["storage-manifest"]
       ? path.resolve(values["storage-manifest"])
       : undefined,
-    storageOutputDir: values["storage-output"]
-      ? path.resolve(values["storage-output"])
-      : undefined,
+    storageOutputDir: values["storage-output"] ? path.resolve(values["storage-output"]) : undefined,
     resume: values.resume || false,
     force: values.force || false,
   };

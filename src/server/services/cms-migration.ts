@@ -293,7 +293,8 @@ export async function migrateCmsExport(input: {
                   .toLowerCase()
                   .replace(/[^a-z0-9]+/g, "-")
                   .replace(/^-+|-+$/g, "")
-                  .slice(0, 120) || "resource",
+                  .slice(0, 120) ||
+                "resource",
               description: textValue(row.description)!,
               category: textValue(row.category)!,
               coverImageUrl: textValue(row.coverImageUrl),
@@ -445,11 +446,7 @@ export async function migrateCmsExport(input: {
         async (id) => {
           const label = textValue(row.label)!;
           const url = textValue(row.url)!;
-          const location = enumValue(row.location, [
-            "header",
-            "footer_col_1",
-            "footer_col_2",
-          ])!;
+          const location = enumValue(row.location, ["header", "footer_col_1", "footer_col_2"])!;
           const order = numberValue(row.order) ?? 0;
           const isActive = boolValue(row.isActive, true);
           const openInNewTab = boolValue(row.openInNewTab, false);

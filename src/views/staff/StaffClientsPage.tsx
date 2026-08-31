@@ -9,13 +9,28 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
-import { Card, CardContent } from "@/components/ui/card.tsx";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeaderCell,
+  DashboardTableRow,
+  EmptyState,
+  PortalPageShell,
+  StatusBadge,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Label } from "@/components/ui/label.tsx";
-import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
   Select,
   SelectContent,
@@ -59,10 +74,12 @@ import { inviteEmailQueuedMessage } from "@/lib/invite-copy.ts";
 import type { ClientDto } from "@/shared/contracts/domains";
 
 const KYC_BADGE: Record<string, string> = {
-  verified: "bg-green-500/10 text-green-700 border-green-500/20",
-  submitted: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
-  pending: "bg-muted text-muted-foreground border-border",
-  rejected: "bg-red-500/10 text-red-700 border-red-500/20",
+  verified:
+    "bg-dashboard-success-soft text-dashboard-success-foreground border-dashboard-success/35",
+  submitted:
+    "bg-dashboard-warning-soft text-dashboard-warning-foreground border-dashboard-warning/35",
+  pending: "bg-dashboard-neutral-soft text-dashboard-neutral-foreground border-dashboard-border",
+  rejected: "bg-dashboard-danger-soft text-dashboard-danger-foreground border-dashboard-danger/35",
 };
 
 function clientKey(c: { _id?: string; id?: string }) {
@@ -208,11 +225,7 @@ export default function StaffClientsPage() {
       const matchesKyc = kycFilter === "all" || c.kycStatus === kycFilter;
       const matchesType = typeFilter === "all" || c.type === typeFilter;
       const matchesPortal =
-        portalFilter === "all"
-          ? true
-          : portalFilter === "linked"
-            ? Boolean(c.userId)
-            : !c.userId;
+        portalFilter === "all" ? true : portalFilter === "linked" ? Boolean(c.userId) : !c.userId;
       const matchesStatus =
         statusFilter === "all"
           ? true
@@ -223,15 +236,8 @@ export default function StaffClientsPage() {
     });
   }, [clients, search, kycFilter, typeFilter, portalFilter, statusFilter]);
 
-  const {
-    paginatedItems,
-    currentPage,
-    totalPages,
-    goToPage,
-    nextPage,
-    prevPage,
-    resetPagination,
-  } = usePagination(filteredClients, 15);
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } =
+    usePagination(filteredClients, 15);
 
   useEffect(() => {
     resetPagination();
@@ -293,8 +299,7 @@ export default function StaffClientsPage() {
         phone: editForm.phone || null,
         address: editForm.address || null,
         type: editForm.type,
-        companyName:
-          editForm.type === "corporate" ? editForm.companyName || null : null,
+        companyName: editForm.type === "corporate" ? editForm.companyName || null : null,
         registrationNumber:
           editForm.type === "corporate" ? editForm.registrationNumber || null : null,
         notes: editForm.notes || null,
@@ -411,68 +416,65 @@ export default function StaffClientsPage() {
       label: "Total clients",
       value: kpi.total,
       icon: Users,
-      iconClass: "bg-primary/10 text-primary",
+      iconClass: "bg-dashboard-primary-soft text-dashboard-primary",
     },
     {
       label: "KYC awaiting",
       value: kpi.kycQueue,
       icon: ShieldCheck,
-      iconClass: "bg-amber-500/10 text-amber-600",
+      iconClass: "bg-dashboard-warning-soft text-dashboard-warning",
     },
     {
       label: "Portal linked",
       value: kpi.portalLinked,
       icon: KeyRound,
-      iconClass: "bg-sky-500/10 text-sky-600",
+      iconClass: "bg-dashboard-information-soft text-dashboard-information",
     },
     {
       label: "Active matters",
       value: kpi.activeMatters,
       icon: FolderOpen,
-      iconClass: "bg-green-500/10 text-green-600",
+      iconClass: "bg-dashboard-success-soft text-dashboard-success",
     },
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 min-w-0 w-full overflow-x-clip">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            CRM records, KYC review, and client portal access — one directory for admin and staff.
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto shrink-0">
+    <PortalPageShell
+      portal={isAdminSurface ? "admin" : "staff"}
+      decorated={!isAdminSurface}
+      showTodayDate={!isAdminSurface}
+      loading={clientsData === undefined}
+      loadingLabel="Loading clients…"
+      eyebrow="Client directory"
+      title="Clients"
+      description="CRM records, KYC review, and client portal access — one directory for admin and staff."
+      icon={Users}
+      metrics={kpiCards.map((card) => ({
+        label: card.label,
+        value: clientsData === undefined ? "—" : String(card.value),
+        icon: card.icon,
+        tone:
+          card.label === "KYC awaiting"
+            ? DASHBOARD_METRIC_TONES.signatures
+            : card.label === "Portal linked"
+              ? "information"
+              : card.label === "Active matters"
+                ? DASHBOARD_METRIC_TONES.cases
+                : "primary",
+        helperText: card.label,
+      }))}
+      actions={
+        <DashboardButton
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          className="w-full sm:w-auto shrink-0"
+        >
           <Plus className="w-4 h-4 mr-1" /> New client
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpiCards.map(({ label, value, icon: Icon, iconClass }) => (
-          <Card key={label} className="bg-card min-w-0 overflow-hidden">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] sm:text-xs text-muted-foreground font-medium leading-snug">
-                    {label}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1 tabular-nums leading-none">
-                    {clientsData === undefined ? "—" : value}
-                  </p>
-                </div>
-                <div
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg shrink-0 flex items-center justify-center ${iconClass}`}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3 bg-card p-3 rounded-xl border border-border min-w-0">
-        <div className="flex flex-col lg:flex-row gap-3 min-w-0">
+        </DashboardButton>
+      }
+    >
+      <DashboardSection title="Search & filters">
+        <DashboardFilterBar>
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -491,10 +493,8 @@ export default function StaffClientsPage() {
           >
             <Download className="w-4 h-4 mr-2" /> Export CSV
           </Button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <Select value={kycFilter} onValueChange={(v: any) => setKycFilter(v)}>
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9 w-full sm:w-[140px]">
               <SelectValue placeholder="KYC" />
             </SelectTrigger>
             <SelectContent>
@@ -506,7 +506,7 @@ export default function StaffClientsPage() {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9 w-full sm:w-[140px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -516,7 +516,7 @@ export default function StaffClientsPage() {
             </SelectContent>
           </Select>
           <Select value={portalFilter} onValueChange={(v: any) => setPortalFilter(v)}>
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9 w-full sm:w-[140px]">
               <SelectValue placeholder="Portal" />
             </SelectTrigger>
             <SelectContent>
@@ -526,7 +526,7 @@ export default function StaffClientsPage() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9 w-full sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -535,144 +535,126 @@ export default function StaffClientsPage() {
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </DashboardFilterBar>
+      </DashboardSection>
 
       {clientsData === undefined ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
+        <DashboardListSkeleton rows={5} />
       ) : (
         <>
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[780px]">
-                <thead className="bg-muted/40 text-muted-foreground border-b border-border">
+          <DashboardSection title="Client directory" className="!p-0 overflow-hidden">
+            <DashboardTable>
+              <DashboardTableHead>
+                <tr>
+                  <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Type</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>KYC</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Portal</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Matters</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell className="text-right">
+                    Actions
+                  </DashboardTableHeaderCell>
+                </tr>
+              </DashboardTableHead>
+              <DashboardTableBody>
+                {paginatedItems.length === 0 ? (
                   <tr>
-                    <th scope="col" className="px-3 py-3 font-medium">
-                      Client
-                    </th>
-                    <th scope="col" className="px-3 py-3 font-medium">
-                      Type
-                    </th>
-                    <th scope="col" className="px-3 py-3 font-medium">
-                      KYC
-                    </th>
-                    <th scope="col" className="px-3 py-3 font-medium">
-                      Portal
-                    </th>
-                    <th scope="col" className="px-3 py-3 font-medium">
-                      Matters
-                    </th>
-                    <th scope="col" className="px-3 py-3 font-medium text-right">
-                      Actions
-                    </th>
+                    <DashboardTableCell colSpan={6}>
+                      <EmptyState
+                        title="No clients match"
+                        description={
+                          clients.length === 0
+                            ? "Click New client to add one."
+                            : "Try adjusting your filters."
+                        }
+                        icon={Users}
+                        className="border-0"
+                      />
+                    </DashboardTableCell>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paginatedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">
-                        No clients match these filters.{" "}
-                        {clients.length === 0 ? "Click “New client” to add one." : null}
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedItems.map((c) => {
-                      const id = clientKey(c);
-                      const matterCount = activeCaseCountByClient.get(id) ?? 0;
-                      const isOpen = selectedClient ? clientKey(selectedClient) === id : false;
-                      return (
-                        <tr
-                          key={id}
-                          className={cn(
-                            "cursor-pointer transition-colors hover:bg-muted/30",
-                            c.isActive === false && "opacity-70",
-                            isOpen && "bg-primary/5",
-                          )}
-                          onClick={() => setSelectedClient(c)}
-                        >
-                          <td className="px-3 py-3 min-w-0">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                                {c.type === "corporate" ? (
-                                  <Building2 className="w-4 h-4 text-accent" />
-                                ) : (
-                                  <User className="w-4 h-4 text-accent" />
-                                )}
+                ) : (
+                  paginatedItems.map((c) => {
+                    const id = clientKey(c);
+                    const matterCount = activeCaseCountByClient.get(id) ?? 0;
+                    const isOpen = selectedClient ? clientKey(selectedClient) === id : false;
+                    return (
+                      <DashboardTableRow
+                        key={id}
+                        striped
+                        className={cn(
+                          "cursor-pointer",
+                          c.isActive === false && "opacity-70",
+                          isOpen && "bg-dashboard-primary-soft/50",
+                        )}
+                        onClick={() => setSelectedClient(c)}
+                      >
+                        <DashboardTableCell className="min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-dashboard-primary-soft flex items-center justify-center shrink-0">
+                              {c.type === "corporate" ? (
+                                <Building2 className="w-4 h-4 text-dashboard-primary" />
+                              ) : (
+                                <User className="w-4 h-4 text-dashboard-primary" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-foreground truncate max-w-[220px]">
+                                {c.fullName}
                               </div>
-                              <div className="min-w-0">
-                                <div className="font-medium text-foreground truncate max-w-[220px]">
-                                  {c.fullName}
-                                </div>
-                                <div className="text-xs text-muted-foreground truncate max-w-[240px]">
-                                  {c.email || "No email"}
-                                  {c.phone ? ` · ${c.phone}` : ""}
-                                </div>
+                              <div className="text-xs text-muted-foreground truncate max-w-[240px]">
+                                {c.email || "No email"}
+                                {c.phone ? ` · ${c.phone}` : ""}
                               </div>
                             </div>
-                          </td>
-                          <td className="px-3 py-3">
-                            <Badge variant="secondary" className="text-xs capitalize">
-                              {c.type}
-                            </Badge>
-                            {c.isActive === false && (
-                              <Badge variant="outline" className="text-[10px] ml-1">
-                                Inactive
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="px-3 py-3">
-                            <span
-                              className={cn(
-                                "text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1 border",
-                                KYC_BADGE[c.kycStatus] || KYC_BADGE.pending,
-                              )}
-                            >
-                              {c.kycStatus === "verified" && <Check className="w-2.5 h-2.5" />}
-                              {c.kycStatus === "submitted" && <ClockIcon className="w-2.5 h-2.5" />}
-                              {c.kycStatus === "rejected" && <XCircle className="w-2.5 h-2.5" />}
-                              {c.kycStatus}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span
-                              className={cn(
-                                "text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full border",
-                                c.userId
-                                  ? "bg-sky-500/10 text-sky-800 border-sky-500/20"
-                                  : "bg-muted text-muted-foreground border-border",
-                              )}
-                            >
-                              {c.userId ? "Linked" : "None"}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">
-                            {matterCount}
-                          </td>
-                          <td
-                            className="px-3 py-3 text-right"
-                            onClick={(e) => e.stopPropagation()}
+                          </div>
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <StatusBadge tone="neutral" className="text-xs capitalize">
+                            {c.type}
+                          </StatusBadge>
+                          {c.isActive === false && (
+                            <StatusBadge tone="warning" className="text-[10px] ml-1">
+                              Inactive
+                            </StatusBadge>
+                          )}
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <DashboardStatusLabel
+                            status={c.kycStatus}
+                            className="text-[10px] uppercase"
+                          />
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <StatusBadge
+                            tone={c.userId ? "information" : "neutral"}
+                            className="text-[10px] uppercase"
                           >
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 text-xs"
-                              onClick={() => setSelectedClient(c)}
-                            >
-                              Open
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                            {c.userId ? "Linked" : "None"}
+                          </StatusBadge>
+                        </DashboardTableCell>
+                        <DashboardTableCell className="text-xs text-muted-foreground tabular-nums">
+                          {matterCount}
+                        </DashboardTableCell>
+                        <DashboardTableCell
+                          className="text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setSelectedClient(c)}
+                          >
+                            Open
+                          </Button>
+                        </DashboardTableCell>
+                      </DashboardTableRow>
+                    );
+                  })
+                )}
+              </DashboardTableBody>
+            </DashboardTable>
+          </DashboardSection>
 
           <Pagination
             currentPage={currentPage}
@@ -820,7 +802,9 @@ export default function StaffClientsPage() {
                     variant="outline"
                     size="sm"
                     className="justify-start"
-                    disabled={grantingPortalId === clientKey(selectedClient) || !selectedClient.email}
+                    disabled={
+                      grantingPortalId === clientKey(selectedClient) || !selectedClient.email
+                    }
                     onClick={() => handleGrantPortal(selectedClient)}
                   >
                     {grantingPortalId === clientKey(selectedClient) ? (
@@ -1173,6 +1157,6 @@ export default function StaffClientsPage() {
           if (!open) setConfirm(null);
         }}
       />
-    </div>
+    </PortalPageShell>
   );
 }

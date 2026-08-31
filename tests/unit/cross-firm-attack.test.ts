@@ -159,10 +159,18 @@ describe("R4.3 cross-firm attack tests", () => {
 
     const actor = principal();
     expect(() =>
-      assertResourceInFirm(actor, firmScopedFind(FIRM_A, invoices, "inv-b")?.firmId, "Invoice was not found"),
+      assertResourceInFirm(
+        actor,
+        firmScopedFind(FIRM_A, invoices, "inv-b")?.firmId,
+        "Invoice was not found",
+      ),
     ).toThrowError(/Invoice was not found/);
     expect(() =>
-      assertResourceInFirm(actor, firmScopedFind(FIRM_A, invoices, "inv-a")?.firmId, "Invoice was not found"),
+      assertResourceInFirm(
+        actor,
+        firmScopedFind(FIRM_A, invoices, "inv-a")?.firmId,
+        "Invoice was not found",
+      ),
     ).not.toThrow();
   });
 
@@ -182,7 +190,10 @@ describe("R4.3 cross-firm attack tests", () => {
           }),
         }),
       ),
-    ).rejects.toMatchObject({ code: "NOT_FOUND", message: expect.stringMatching(/Case was not found/) });
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: expect.stringMatching(/Case was not found/),
+    });
   });
 
   it("rejects foreign firm ids through assertResourceInFirm without disclosing ownership", () => {
@@ -191,7 +202,8 @@ describe("R4.3 cross-firm attack tests", () => {
       assertResourceInFirm(actor, FIRM_B, "Lead was not found");
       throw new Error("expected assertResourceInFirm to throw");
     } catch (error) {
-      if (error instanceof Error && error.message === "expected assertResourceInFirm to throw") throw error;
+      if (error instanceof Error && error.message === "expected assertResourceInFirm to throw")
+        throw error;
       expect(error).toBeInstanceOf(AppError);
       expect(error).toMatchObject({ code: "NOT_FOUND", message: "Lead was not found" });
       expect(String((error as AppError).message)).not.toMatch(/firm-B|Cross-firm/i);

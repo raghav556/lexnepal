@@ -59,7 +59,9 @@ try {
   const cookie = await signIn("boundary-a@example.invalid");
   const headers = { cookie, "content-type": "application/json" };
 
-  const invoicesResponse = await listInvoices(new Request("http://local/api/v1/financial/invoices", { headers }));
+  const invoicesResponse = await listInvoices(
+    new Request("http://local/api/v1/financial/invoices", { headers }),
+  );
   const timeResponse = await listTimeEntries(
     new Request("http://local/api/v1/financial/time-entries", { headers }),
   );
@@ -79,7 +81,9 @@ try {
   if (!expensesResponse.ok) throw new Error(`Expenses list failed: ${expensesResponse.status}`);
   if (!statsResponse.ok) throw new Error(`Expense stats failed: ${statsResponse.status}`);
 
-  const invoiceBody = (await invoicesResponse.json()) as { data: Array<{ invoiceNumber: string; total: number }> };
+  const invoiceBody = (await invoicesResponse.json()) as {
+    data: Array<{ invoiceNumber: string; total: number }>;
+  };
   const timeBody = (await timeResponse.json()) as { data: Array<{ _id: string; date?: string }> };
   const trustBody = (await trustResponse.json()) as { data: Array<{ amount: number }> };
   const expenseBody = (await expensesResponse.json()) as { data: Array<{ category: string }> };
@@ -101,7 +105,11 @@ try {
 
   const [invoice] = invoiceBody.data;
   const caseId = (
-    await database.select({ caseId: invoices.caseId }).from(invoices).where(eq(invoices.firmId, firmA)).limit(1)
+    await database
+      .select({ caseId: invoices.caseId })
+      .from(invoices)
+      .where(eq(invoices.firmId, firmA))
+      .limit(1)
   )[0]?.caseId;
   if (!caseId) throw new Error("No case linked for create-time test");
 
@@ -120,15 +128,23 @@ try {
     }),
   );
   if (!createResponse.ok) {
-    throw new Error(`Create time entry failed: ${createResponse.status} ${await createResponse.text()}`);
+    throw new Error(
+      `Create time entry failed: ${createResponse.status} ${await createResponse.text()}`,
+    );
   }
 
-  const [timeCount] = await database.select({ id: timeEntries.id }).from(timeEntries).where(eq(timeEntries.firmId, firmA));
+  const [timeCount] = await database
+    .select({ id: timeEntries.id })
+    .from(timeEntries)
+    .where(eq(timeEntries.firmId, firmA));
   const [trustCount] = await database
     .select({ id: trustTransactions.id })
     .from(trustTransactions)
     .where(eq(trustTransactions.firmId, firmA));
-  const [expenseCount] = await database.select({ id: expenses.id }).from(expenses).where(eq(expenses.firmId, firmA));
+  const [expenseCount] = await database
+    .select({ id: expenses.id })
+    .from(expenses)
+    .where(eq(expenses.firmId, firmA));
   if (!timeCount || !trustCount || !expenseCount || !invoice) {
     throw new Error("Expected firm-scoped financial rows after migration");
   }

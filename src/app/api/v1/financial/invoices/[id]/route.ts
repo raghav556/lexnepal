@@ -16,15 +16,18 @@ export const GET = withApiHandler("/api/v1/financial/invoices/:id", async ({ req
   });
 });
 
-export const PATCH = withApiHandler("/api/v1/financial/invoices/:id", async ({ request, requestId }) => {
-  const principal = await requireSession(request);
-  const input = invoiceStatusUpdateSchema.parse(await request.json());
-  return jsonResponse({
-    data: await getFinancialService().updateInvoiceStatus(
-      principal,
-      idFrom(request),
-      input,
-      buildAuditContext(request, requestId, principal),
-    ),
-  });
-});
+export const PATCH = withApiHandler(
+  "/api/v1/financial/invoices/:id",
+  async ({ request, requestId }) => {
+    const principal = await requireSession(request);
+    const input = invoiceStatusUpdateSchema.parse(await request.json());
+    return jsonResponse({
+      data: await getFinancialService().updateInvoiceStatus(
+        principal,
+        idFrom(request),
+        input,
+        buildAuditContext(request, requestId, principal),
+      ),
+    });
+  },
+);

@@ -4,10 +4,7 @@ import { saveDomainReport, loadDomainReport } from "../report-store";
 import { appendReconciliationReport } from "../report-writer";
 import { Reconciler } from "../reconcile";
 import type { DomainMigrationReport } from "../types";
-import {
-  detailsFromReport,
-  loadFileSha256Rows,
-} from "../reconciliation-details";
+import { detailsFromReport, loadFileSha256Rows } from "../reconciliation-details";
 import { countStorageObjects, runStorageConvertAndMigrate } from "../storage-run";
 
 /**

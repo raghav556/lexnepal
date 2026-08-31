@@ -48,18 +48,16 @@ describe("Envelopes input contracts", () => {
 
   it("validates OTP issue and verify payloads", () => {
     expect(envelopeOtpIssueSchema.safeParse({ documentId }).success).toBe(true);
-    expect(
-      envelopeOtpIssueSchema.safeParse({ documentId, envelopeId: challengeId }).success,
-    ).toBe(true);
+    expect(envelopeOtpIssueSchema.safeParse({ documentId, envelopeId: challengeId }).success).toBe(
+      true,
+    );
     expect(envelopeOtpIssueSchema.safeParse({ documentId: "bad" }).success).toBe(false);
 
-    expect(
-      envelopeOtpVerifySchema.safeParse({ challengeId, code: "123456" }).success,
-    ).toBe(true);
+    expect(envelopeOtpVerifySchema.safeParse({ challengeId, code: "123456" }).success).toBe(true);
     expect(envelopeOtpVerifySchema.safeParse({ challengeId, code: "12" }).success).toBe(false);
-    expect(
-      envelopeOtpVerifySchema.safeParse({ challengeId, code: "x".repeat(13) }).success,
-    ).toBe(false);
+    expect(envelopeOtpVerifySchema.safeParse({ challengeId, code: "x".repeat(13) }).success).toBe(
+      false,
+    );
     expect(
       envelopeOtpVerifySchema.safeParse({ challengeId: "not-uuid", code: "123456" }).success,
     ).toBe(false);
@@ -83,14 +81,14 @@ describe("Envelopes input contracts", () => {
     };
     expect(documentSignSchema.safeParse(valid).success).toBe(true);
     expect(documentSignSchema.safeParse({ ...valid, consentAccepted: false }).success).toBe(true);
-    expect(
-      documentSignSchema.safeParse({ ...valid, consentAccepted: undefined }).success,
-    ).toBe(false);
-    expect(
-      documentSignSchema.safeParse({ ...valid, signatureMethod: "stamp" }).success,
-    ).toBe(false);
-    expect(
-      documentSignSchema.safeParse({ ...valid, documentSha256: "deadbeef" }).success,
-    ).toBe(false);
+    expect(documentSignSchema.safeParse({ ...valid, consentAccepted: undefined }).success).toBe(
+      false,
+    );
+    expect(documentSignSchema.safeParse({ ...valid, signatureMethod: "stamp" }).success).toBe(
+      false,
+    );
+    expect(documentSignSchema.safeParse({ ...valid, documentSha256: "deadbeef" }).success).toBe(
+      false,
+    );
   });
 });

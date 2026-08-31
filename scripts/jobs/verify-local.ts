@@ -174,7 +174,11 @@ const recoveryWorker = new DurableJobWorker(
             details: { pass: handlerPasses },
           })
           .onConflictDoNothing({
-            target: [durableJobEffects.firmId, durableJobEffects.jobId, durableJobEffects.effectKey],
+            target: [
+              durableJobEffects.firmId,
+              durableJobEffects.jobId,
+              durableJobEffects.effectKey,
+            ],
           })
           .returning({ id: durableJobEffects.id });
         // Re-run after recovery must not insert a second effect row.
@@ -187,7 +191,11 @@ const recoveryWorker = new DurableJobWorker(
             details: { pass: handlerPasses, replay: true },
           })
           .onConflictDoNothing({
-            target: [durableJobEffects.firmId, durableJobEffects.jobId, durableJobEffects.effectKey],
+            target: [
+              durableJobEffects.firmId,
+              durableJobEffects.jobId,
+              durableJobEffects.effectKey,
+            ],
           });
         return { recovered: true, effectInserted: Boolean(effect) };
       },

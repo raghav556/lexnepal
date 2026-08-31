@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 async function signInStaff(page: Page) {
+  await prepareE2eAuth(page, E2E_USERS.staff.email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(E2E_USERS.staff.email);
   await page.locator("#password").fill(E2E_PASSWORD);
@@ -28,8 +30,10 @@ test.describe("Staff appointments", () => {
     // CRM stays separate — calendar is not absorbed into staff CRM.
     await page.goto("/staff/crm");
     await expect(
-      page.getByRole("heading", { name: /CRM — Lead Pipeline|My leads/i }),
-    ).toBeVisible({ timeout: 15_000 });
+      page.getByRole("heading", { name: /CRM (?:&|—) Lead Pipeline|My leads/i }),
+    ).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByRole("heading", { name: /My Appointments/i })).toHaveCount(0);
   });
 });

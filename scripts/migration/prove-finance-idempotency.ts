@@ -114,7 +114,11 @@ try {
     .select({ value: count() })
     .from(payments)
     .where(
-      and(eq(payments.firmId, firmA), eq(payments.invoiceId, invoice.id), eq(payments.status, "completed")),
+      and(
+        eq(payments.firmId, firmA),
+        eq(payments.invoiceId, invoice.id),
+        eq(payments.status, "completed"),
+      ),
     );
   const pay3 = await payInvoice(
     new Request(`http://local/api/v1/financial/invoices/${invoice.id}/pay`, {
@@ -132,7 +136,11 @@ try {
     .select({ value: count() })
     .from(payments)
     .where(
-      and(eq(payments.firmId, firmA), eq(payments.invoiceId, invoice.id), eq(payments.status, "completed")),
+      and(
+        eq(payments.firmId, firmA),
+        eq(payments.invoiceId, invoice.id),
+        eq(payments.status, "completed"),
+      ),
     );
   if (afterPaidReplay[0].value !== beforePaidReplay[0].value) {
     throw new Error("Already-paid replay double-posted a payment");
@@ -176,7 +184,9 @@ try {
   const [trustRows] = await database
     .select({ value: count() })
     .from(trustTransactions)
-    .where(and(eq(trustTransactions.firmId, firmA), eq(trustTransactions.idempotencyKey, trustKey)));
+    .where(
+      and(eq(trustTransactions.firmId, firmA), eq(trustTransactions.idempotencyKey, trustKey)),
+    );
   if (trustRows.value !== 1) {
     throw new Error(`Expected 1 trust row for key, got ${trustRows.value}`);
   }

@@ -1,9 +1,9 @@
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Placeholder from '@tiptap/extension-placeholder'
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button.tsx";
 import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote } from "lucide-react";
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 interface TipTapEditorProps {
   value: string;
@@ -12,7 +12,7 @@ interface TipTapEditorProps {
 
 const MenuBar = ({ editor }: { editor: any }) => {
   if (!editor) {
-    return null
+    return null;
   }
 
   return (
@@ -22,7 +22,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         size="icon"
         onClick={() => editor.chain().focus().toggleBold().run()}
         disabled={!editor.can().chain().focus().toggleBold().run()}
-        className={editor.isActive('bold') ? 'bg-muted' : ''}
+        className={editor.isActive("bold") ? "bg-muted" : ""}
       >
         <Bold className="w-4 h-4" />
       </Button>
@@ -31,7 +31,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         size="icon"
         onClick={() => editor.chain().focus().toggleItalic().run()}
         disabled={!editor.can().chain().focus().toggleItalic().run()}
-        className={editor.isActive('italic') ? 'bg-muted' : ''}
+        className={editor.isActive("italic") ? "bg-muted" : ""}
       >
         <Italic className="w-4 h-4" />
       </Button>
@@ -40,7 +40,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         variant="ghost"
         size="icon"
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        className={editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}
+        className={editor.isActive("heading", { level: 1 }) ? "bg-muted" : ""}
       >
         <Heading1 className="w-4 h-4" />
       </Button>
@@ -48,7 +48,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         variant="ghost"
         size="icon"
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
+        className={editor.isActive("heading", { level: 2 }) ? "bg-muted" : ""}
       >
         <Heading2 className="w-4 h-4" />
       </Button>
@@ -57,7 +57,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         variant="ghost"
         size="icon"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+        className={editor.isActive("bulletList") ? "bg-muted" : ""}
       >
         <List className="w-4 h-4" />
       </Button>
@@ -65,7 +65,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
         variant="ghost"
         size="icon"
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+        className={editor.isActive("orderedList") ? "bg-muted" : ""}
       >
         <ListOrdered className="w-4 h-4" />
       </Button>
@@ -73,20 +73,20 @@ const MenuBar = ({ editor }: { editor: any }) => {
         variant="ghost"
         size="icon"
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        className={editor.isActive('blockquote') ? 'bg-muted' : ''}
+        className={editor.isActive("blockquote") ? "bg-muted" : ""}
       >
         <Quote className="w-4 h-4" />
       </Button>
     </div>
-  )
-}
+  );
+};
 
 export function TipTapEditor({ value, onChange }: TipTapEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: 'Write your template content here...',
+        placeholder: "Write your template content here...",
       }),
     ],
     content: value,
@@ -95,7 +95,8 @@ export function TipTapEditor({ value, onChange }: TipTapEditorProps) {
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4 min-h-[300px]',
+        class:
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4 min-h-[300px]",
       },
     },
   });
@@ -115,5 +116,5 @@ export function TipTapEditor({ value, onChange }: TipTapEditorProps) {
         <EditorContent editor={editor} />
       </div>
     </div>
-  )
+  );
 }

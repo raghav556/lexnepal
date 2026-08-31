@@ -5,6 +5,7 @@ import { motion, useScroll, useSpring } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { useBlogPost, useBlogPosts, useCmsCommands } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import { serializeJsonLd } from "@/shared/seo/serialize-json-ld";
 import { Link } from "@/client/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -167,7 +168,7 @@ export default function BlogPostPage({ slug }: { slug: string }) {
     <article className="min-h-screen bg-background overflow-x-clip pb-16 relative">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <motion.div
@@ -220,7 +221,7 @@ export default function BlogPostPage({ slug }: { slug: string }) {
 
             {post.coverImageUrl && (
               <div className="rounded-2xl overflow-hidden border border-border bg-secondary/30 aspect-[16/9] max-h-80">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {}
                 <img
                   src={String(post.coverImageUrl)}
                   alt=""
@@ -296,7 +297,7 @@ export default function BlogPostPage({ slug }: { slug: string }) {
               <div className="text-center sm:text-left min-w-0">
                 <h3 className="font-serif text-xl font-bold text-foreground mb-2">{author}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  LexNepal advocates share clear, actionable insights on navigating Nepal&apos;s
+                  Srimar Law advocates share clear, actionable insights on navigating Nepal&apos;s
                   legal system — from corporate counsel to litigation guidance.
                 </p>
                 <Button asChild variant="outline" className="gap-2">
@@ -340,7 +341,7 @@ export default function BlogPostPage({ slug }: { slug: string }) {
                 <Scale className="w-8 h-8 text-accent" />
                 <h2 className="font-serif text-lg font-bold">Need legal advice?</h2>
                 <p className="text-sm text-muted-foreground">
-                  Reading about the law is a start. Get tailored advice from a LexNepal advocate.
+                  Reading about the law is a start. Get tailored advice from a Srimar Law advocate.
                 </p>
                 <Button asChild className="w-full bg-accent hover:bg-accent/90">
                   <Link href="/consultation" className="gap-2">
@@ -378,7 +379,6 @@ export default function BlogPostPage({ slug }: { slug: string }) {
                 </form>
               </div>
             </motion.div>
-
           </aside>
         </div>
       </div>

@@ -48,7 +48,7 @@ export function ConfirmDialog({
                   onOpenChange(false);
                 }}
               >
-                {busy ? "Working…" : state.confirmLabel ?? "Confirm"}
+                {busy ? "Working…" : (state.confirmLabel ?? "Confirm")}
               </Button>
             </DialogFooter>
           </>

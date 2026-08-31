@@ -51,7 +51,8 @@ async function signInAndCollectCookies() {
 function verifyCookieAttributes(cookie) {
   const issues = [];
   if (!cookie.httpOnly) issues.push("missing HttpOnly");
-  if ((cookie.sameSite ?? "").toLowerCase() !== "lax") issues.push(`SameSite=${cookie.sameSite ?? "unset"}`);
+  if ((cookie.sameSite ?? "").toLowerCase() !== "lax")
+    issues.push(`SameSite=${cookie.sameSite ?? "unset"}`);
   if (cookie.path !== "/") issues.push(`Path=${cookie.path ?? "unset"}`);
   if (IS_PRODUCTION && !cookie.secure) issues.push("missing Secure in production");
   if (!IS_PRODUCTION && cookie.secure) issues.push("Secure should be off in local development");

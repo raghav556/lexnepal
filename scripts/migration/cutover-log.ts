@@ -68,11 +68,7 @@ export async function latestCutoverResults(): Promise<Map<string, CutoverLogRow>
   const map = new Map<string, CutoverLogRow>();
   try {
     const text = await fs.readFile(CUTOVER_LOG_CSV, "utf8");
-    const lines = text
-      .trim()
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .slice(1);
+    const lines = text.trim().split(/\r?\n/).filter(Boolean).slice(1);
     for (const line of lines) {
       const cols = parseCsvLine(line);
       if (cols.length < 14) continue;

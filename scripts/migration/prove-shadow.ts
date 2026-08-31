@@ -5,8 +5,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { closeDatabase } from "../../src/server/db/client";
-import { migrateIdentityExport, shadowReadIdentityExport } from "../../src/server/services/identity-migration";
-import { migrateMattersExport, shadowReadMattersExport } from "../../src/server/services/matters-migration";
+import {
+  migrateIdentityExport,
+  shadowReadIdentityExport,
+} from "../../src/server/services/identity-migration";
+import {
+  migrateMattersExport,
+  shadowReadMattersExport,
+} from "../../src/server/services/matters-migration";
 import {
   migrateFinancialExport,
   shadowReadFinancialExport,

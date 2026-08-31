@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useCmsCommands, useCmsSettings, useLegalPage, useNewsletterSubscribers } from "@/client/queries/cms";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  useCmsCommands,
+  useCmsSettings,
+  useLegalPage,
+  useNewsletterSubscribers,
+} from "@/client/queries/cms";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Shield, Trash2 } from "lucide-react";
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  PortalPageShell,
+} from "@/components/dashboard";
 import type { CmsRedirect } from "@/shared/contracts/cms";
 
 function LegalEditor({ slug }: { slug: "privacy-policy" | "terms" }) {
@@ -27,14 +36,14 @@ function LegalEditor({ slug }: { slug: "privacy-policy" | "terms" }) {
     }
   };
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{slug === "terms" ? "Terms of Service" : "Privacy Policy"}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <DashboardSection title={slug === "terms" ? "Terms of Service" : "Privacy Policy"}>
+      <div className="space-y-4">
         <div>
           <Label>Title</Label>
-          <Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
+          <Input
+            value={form.title}
+            onChange={(event) => setForm({ ...form, title: event.target.value })}
+          />
         </div>
         <div>
           <Label>Content</Label>
@@ -44,9 +53,9 @@ function LegalEditor({ slug }: { slug: "privacy-policy" | "terms" }) {
             onChange={(event) => setForm({ ...form, content: event.target.value })}
           />
         </div>
-        <Button onClick={() => void save()}>Publish legal page</Button>
-      </CardContent>
-    </Card>
+        <DashboardButton onClick={() => void save()}>Publish legal page</DashboardButton>
+      </div>
+    </DashboardSection>
   );
 }
 
@@ -89,17 +98,17 @@ function RedirectsEditor() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>URL redirects</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Root-relative paths (e.g. /old-page → /about-us). Permanent uses HTTP 308.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <DashboardSection
+      title="URL redirects"
+      description="Root-relative paths (e.g. /old-page → /about-us). Permanent uses HTTP 308."
+    >
+      <div className="space-y-3">
         {rows.length === 0 && <p className="text-sm text-muted-foreground">No redirects yet.</p>}
         {rows.map((row, idx) => (
-          <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto] items-end border rounded-lg p-3">
+          <div
+            key={idx}
+            className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto] items-end border rounded-lg p-3"
+          >
             <div className="grid gap-1">
               <Label>From</Label>
               <Input
@@ -156,12 +165,18 @@ function RedirectsEditor() {
           >
             <Plus className="w-4 h-4 mr-1" /> Add redirect
           </Button>
-          <Button type="button" size="sm" disabled={busy} onClick={() => void save()}>
+          <DashboardButton
+            type="button"
+            size="sm"
+            disabled={busy}
+            onClick={() => void save()}
+            state={busy ? "loading" : undefined}
+          >
             {busy ? "Saving…" : "Save redirects"}
-          </Button>
+          </DashboardButton>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </DashboardSection>
   );
 }
 
@@ -169,13 +184,16 @@ export default function AdminCMSGovernance() {
   const subscribers = useNewsletterSubscribers() || [];
   const { updateSubscriber } = useCmsCommands();
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-serif font-bold">Legal & Newsletter</h1>
-        <p className="text-muted-foreground">
-          Manage public legal notices, newsletter consent, and URL redirects.
-        </p>
-      </div>
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      eyebrow="Content management"
+      title="Legal & Newsletter"
+      description="Manage public legal notices, newsletter consent, and URL redirects."
+      icon={Shield}
+      contentClassName="max-w-6xl mx-auto"
+    >
       <Tabs defaultValue="privacy">
         <TabsList>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
@@ -190,47 +208,52 @@ export default function AdminCMSGovernance() {
           <LegalEditor slug="terms" />
         </TabsContent>
         <TabsContent value="newsletter">
-          <Card>
-            <CardHeader>
-              <CardTitle>Newsletter subscribers</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <DashboardSection title="Newsletter subscribers">
+            <div className="space-y-2">
               {subscribers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No subscribers.</p>
               ) : (
-                subscribers.map((subscriber: { _id: string; email: string; subscribedAt: string; isActive: boolean }) => (
-                  <div
-                    key={subscriber._id}
-                    className="flex items-center justify-between gap-3 border rounded p-3"
-                  >
-                    <div>
-                      <p className="font-medium">{subscriber.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Subscribed {new Date(subscriber.subscribedAt).toLocaleString()}
-                      </p>
+                subscribers.map(
+                  (subscriber: {
+                    _id: string;
+                    email: string;
+                    subscribedAt: string;
+                    isActive: boolean;
+                  }) => (
+                    <div
+                      key={subscriber._id}
+                      className="flex items-center justify-between gap-3 border rounded p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{subscriber.email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Subscribed {new Date(subscriber.subscribedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DashboardStatusLabel
+                          tone={subscriber.isActive ? "success" : "neutral"}
+                          label={subscriber.isActive ? "Active" : "Unsubscribed"}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateSubscriber(subscriber._id, !subscriber.isActive)}
+                        >
+                          {subscriber.isActive ? "Unsubscribe" : "Reactivate"}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={subscriber.isActive ? "default" : "secondary"}>
-                        {subscriber.isActive ? "Active" : "Unsubscribed"}
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateSubscriber(subscriber._id, !subscriber.isActive)}
-                      >
-                        {subscriber.isActive ? "Unsubscribe" : "Reactivate"}
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  ),
+                )
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardSection>
         </TabsContent>
         <TabsContent value="redirects">
           <RedirectsEditor />
         </TabsContent>
       </Tabs>
-    </div>
+    </PortalPageShell>
   );
 }

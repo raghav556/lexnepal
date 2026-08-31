@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { useResource, useResources, useCmsCommands } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import { serializeJsonLd } from "@/shared/seo/serialize-json-ld";
 import { Link } from "@/client/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,14 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  ArrowRight,
-  BookOpen,
-  ChevronRight,
-  Download,
-  FileText,
-  Lock,
-} from "lucide-react";
+import { ArrowRight, BookOpen, ChevronRight, Download, FileText, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fileTypeLabelFromUrl } from "@/shared/resources-visibility";
@@ -127,7 +121,7 @@ export default function ResourceDetailPage({ slug }: { slug: string }) {
     <div className="min-h-screen bg-background overflow-x-clip pb-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
@@ -169,7 +163,6 @@ export default function ResourceDetailPage({ slug }: { slug: string }) {
 
             <div className="rounded-2xl overflow-hidden border border-border bg-secondary/30 aspect-[16/9] max-h-80">
               {resource.coverImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={String(resource.coverImageUrl)}
                   alt=""

@@ -15,12 +15,12 @@ describe("Identity input contracts", () => {
       isPublicFacing: true,
       invite: true,
     };
-    
+
     expect(createUserSchema.safeParse(validUser).success).toBe(true);
-    
+
     // Invalid email
     expect(createUserSchema.safeParse({ ...validUser, email: "not-an-email" }).success).toBe(false);
-    
+
     // Invalid role
     expect(createUserSchema.safeParse({ ...validUser, role: "invalid-role" }).success).toBe(false);
   });
@@ -39,12 +39,14 @@ describe("Identity input contracts", () => {
       clientPortalEnabled: true,
       onlineBookingEnabled: false,
     };
-    
+
     expect(updateSystemSettingsSchema.safeParse(validSettings).success).toBe(true);
-    
+
     // Invalid numeric formats
     expect(updateSystemSettingsSchema.safeParse({ defaultHourlyRate: "abc" }).success).toBe(false);
-    expect(updateSystemSettingsSchema.safeParse({ invoicePaymentTerms: "30 days" }).success).toBe(false);
+    expect(updateSystemSettingsSchema.safeParse({ invoicePaymentTerms: "30 days" }).success).toBe(
+      false,
+    );
   });
 
   it("validates audit query limits", () => {

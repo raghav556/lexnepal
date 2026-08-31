@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useQuery as useTanstackQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
+import { useSessionCapabilities } from "@/client/queries/identity";
 import { queryKeys } from "@/client/queries/query-keys";
 import type { ListTasksInput, TaskDto } from "@/shared/contracts/domains";
 
@@ -48,10 +49,16 @@ export function useTask(taskId: string | null): TaskDto | undefined {
 }
 
 export function useTaskWorkload(): unknown[] | undefined {
-  return useTanstackQuery({
+  const capabilities = useSessionCapabilities();
+  const canViewTeamWorkload = capabilities?.includes("cases.view_all") === true;
+  const workload = useTanstackQuery({
     queryKey: queryKeys.tasks.workload,
     queryFn: ({ signal }) => apiClient.request<unknown[]>("/api/v1/tasks/workload", { signal }),
-  }).data;
+    enabled: canViewTeamWorkload,
+    retry: false,
+  });
+  if (capabilities === undefined) return undefined;
+  return canViewTeamWorkload ? workload.data : [];
 }
 
 export function useTaskComments(taskId: string | null): unknown[] | undefined {

@@ -176,11 +176,7 @@ export class DocumentService {
     return { jobId: job.id, status: job.status, queued: created };
   }
 
-  async createShare(
-    principal: AuthPrincipal,
-    documentId: string,
-    input: DocumentShareCreateInput,
-  ) {
+  async createShare(principal: AuthPrincipal, documentId: string, input: DocumentShareCreateInput) {
     requireCapability(principal, "documents.share");
     await requireDocumentAccess(principal, documentId, security);
     const { firmId } = requireFirmContext(principal);
@@ -221,7 +217,10 @@ export class DocumentService {
     await DocumentRepository.patchShare(resolved.shareId, {
       downloadsCount: resolved.downloadsCount + 1,
     });
-    const url = await getDocumentStorageRuntime().storage.createDownloadUrl(resolved.storageKey, 300);
+    const url = await getDocumentStorageRuntime().storage.createDownloadUrl(
+      resolved.storageKey,
+      300,
+    );
     return { isPasswordRequired: false as const, url };
   }
 }

@@ -3,10 +3,7 @@ import type { AuditContext } from "@/server/audit/context";
 import type { AuthPrincipal } from "@/server/auth/types";
 import { requireCapability, requireFirmContext } from "@/server/policies/authorization";
 import { HrRepository } from "@/server/repositories/hr-repository";
-import {
-  notifyLeaveReviewed,
-  notifyLeaveSubmitted,
-} from "@/server/services/hr-notifications";
+import { notifyLeaveReviewed, notifyLeaveSubmitted } from "@/server/services/hr-notifications";
 import type {
   AttendanceListInput,
   AttendanceUpsertInput,
@@ -38,10 +35,7 @@ function requireStaff(principal: AuthPrincipal) {
   }
 }
 
-function scopedSelfFilter<T extends { userId?: string }>(
-  principal: AuthPrincipal,
-  filters: T,
-): T {
+function scopedSelfFilter<T extends { userId?: string }>(principal: AuthPrincipal, filters: T): T {
   if (principal.capabilities.has("hr.manage")) return filters;
   return { ...filters, userId: principal.user.id };
 }
@@ -73,19 +67,10 @@ export class HrService {
     return repository.listLeaveRequests(firmId, scopedSelfFilter(principal, filters));
   }
 
-  async createLeaveRequest(
-    principal: AuthPrincipal,
-    input: LeaveCreateInput,
-    audit: AuditContext,
-  ) {
+  async createLeaveRequest(principal: AuthPrincipal, input: LeaveCreateInput, audit: AuditContext) {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
-    const leave = await repository.createLeaveRequest(
-      firmId,
-      principal.user.id,
-      input,
-      audit,
-    );
+    const leave = await repository.createLeaveRequest(firmId, principal.user.id, input, audit);
     await notifyLeaveSubmitted({
       firmId,
       actorUserId: principal.user.id,
@@ -95,11 +80,7 @@ export class HrService {
     return leave;
   }
 
-  async reviewLeaveRequest(
-    principal: AuthPrincipal,
-    input: LeaveReviewInput,
-    audit: AuditContext,
-  ) {
+  async reviewLeaveRequest(principal: AuthPrincipal, input: LeaveReviewInput, audit: AuditContext) {
     requireCapability(principal, "hr.manage");
     const { firmId } = requireFirmContext(principal);
     const leave = await repository.reviewLeaveRequest(

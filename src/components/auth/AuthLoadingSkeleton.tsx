@@ -8,10 +8,14 @@ type AuthLoadingSkeletonProps = {
 };
 
 /** Shared auth-resolving placeholder for headers, guards, and profile shells. */
-export function AuthLoadingSkeleton({ className, label = "Loading account" }: AuthLoadingSkeletonProps) {
+export function AuthLoadingSkeleton({
+  className,
+  label = "Loading account",
+}: AuthLoadingSkeletonProps) {
   return (
     <div
       className={cn("h-9 rounded-md bg-muted/50 animate-pulse shrink-0", className)}
+      role="status"
       aria-busy="true"
       aria-label={label}
     />
@@ -25,6 +29,7 @@ export function AuthGuardSkeleton({ dark = false }: { dark?: boolean }) {
         "min-h-screen flex flex-col items-center justify-center gap-3 bg-background px-4",
         dark && "dark text-foreground",
       )}
+      role="status"
       aria-busy="true"
       aria-label="Checking your session"
     >
@@ -36,7 +41,12 @@ export function AuthGuardSkeleton({ dark = false }: { dark?: boolean }) {
 
 export function ProfileLoadingSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 p-6" aria-busy="true" aria-label="Loading profile">
+    <div
+      className="mx-auto w-full max-w-4xl space-y-6 p-6"
+      role="status"
+      aria-busy="true"
+      aria-label="Loading profile"
+    >
       <div className="h-28 rounded-xl bg-muted/40 animate-pulse" />
       <div className="grid gap-4 md:grid-cols-2">
         <div className="h-48 rounded-xl bg-muted/30 animate-pulse" />

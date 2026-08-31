@@ -143,7 +143,9 @@ export function useTimeEntryCommands() {
     mutationFn: async (data: { id?: string; entryId?: string }) => {
       try {
         const id = String(data.id ?? data.entryId ?? "");
-        return await apiClient.request(`/api/v1/financial/time-entries/${id}`, { method: "DELETE" });
+        return await apiClient.request(`/api/v1/financial/time-entries/${id}`, {
+          method: "DELETE",
+        });
       } catch (error) {
         throw normalizeApiError(error);
       }

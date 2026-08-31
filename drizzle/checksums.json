@@ -70,6 +70,58 @@
       "sha256": "f4bd86ede135221187d8fb4561de2514b611f5d2a38f1028cded9836835e1f10"
     },
     {
+      "file": "drizzle/0016_cms_asset_upload_intents.sql",
+      "sha256": "e5220671cb902925ebb5c77e7441747fd5abf7a9cd940ac37cb0554cb7cae2df"
+    },
+    {
+      "file": "drizzle/0017_navigation_sibling_order_unique.sql",
+      "sha256": "8d40d9190e1e5874c89d9a82878bb64440a98eddd52421f24e5b4b48c778e461"
+    },
+    {
+      "file": "drizzle/0018_practice_areas_corporate.sql",
+      "sha256": "5a47331c5cab2bf37c8650bd5a224aff1fbf85207aeb491e8138c22bf3a58196"
+    },
+    {
+      "file": "drizzle/0019_testimonials_homepage.sql",
+      "sha256": "767eae95773ff8401beb316507cb0066016ee8e91fae5ef4c09b38e71e8e58fd"
+    },
+    {
+      "file": "drizzle/0020_dm_threads.sql",
+      "sha256": "fa2b9927b1fde48e9216484acdcfdfc83c8745d2c137bc3630bccc98253f0f94"
+    },
+    {
+      "file": "drizzle/0021_team_public_profile.down.sql",
+      "sha256": "bbc40aa90e401e541a7fe44e721b8b81e131a42a019397d194f0fa87ba62657c"
+    },
+    {
+      "file": "drizzle/0021_team_public_profile.sql",
+      "sha256": "8e6a83486c1a79407130f56cecfee862a7ee1979fdb4157e2d9e890e9dfcef76"
+    },
+    {
+      "file": "drizzle/0022_resources_premium.down.sql",
+      "sha256": "e739896c4b745325622018a2ff1c595f7297ecb93b799e4de358550be03dca51"
+    },
+    {
+      "file": "drizzle/0022_resources_premium.sql",
+      "sha256": "cd1cd18be299cf20f8aa1ea823cda1c1b8a86260b496306278dc65dd50c9b4ee"
+    },
+    {
+      "file": "drizzle/0023_blog_editorial.down.sql",
+      "sha256": "e77812acc8d464e8c4bb51180e02e5cf9d517aef1fb432a17d7b3a9a845b2ac8"
+    },
+    {
+      "file": "drizzle/0023_blog_editorial.sql",
+      "sha256": "cb4b424a1112230640e35d6663e1459a317f14384c255df6d0dc5f1657a50291"
+    },
+    {
+      "file": "drizzle/0024_news_premium.down.sql",
+      "sha256": "d9096114551e66ccec3f91d735176e74e8135485529ca60e93fcde5d9ee9d19e"
+    },
+    {
+      "file": "drizzle/0024_news_premium.sql",
+      "sha256": "a6e24c6652bf97322a8df10928e04a6c2a666a39bfc64b6244d6d86455a33a56"
+    },
+    {
       "file": "drizzle/down/0001_initial_schema.down.sql",
       "sha256": "4367363f78813d4ec20f09e454d8f772d84a70b1fb55db528ef273896421b766"
     },
@@ -116,6 +168,10 @@
     {
       "file": "drizzle/down/0015_news_status.down.sql",
       "sha256": "0ce794ea6750c4d01faf0c96cc7631dbab2cbb1366581474710daf21e6237e22"
+    },
+    {
+      "file": "drizzle/down/0020_dm_threads.down.sql",
+      "sha256": "fee29201383b95fd82ae16317777abcab25c7a8f916a15ad3640b2ae1b79ee60"
     }
   ]
 }

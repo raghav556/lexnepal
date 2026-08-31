@@ -2,10 +2,7 @@ import "server-only";
 import type { AuditContext } from "@/server/audit/context";
 import type { AuthPrincipal } from "@/server/auth/types";
 import { getServerEnvironment } from "@/server/env";
-import {
-  requireCapability,
-  requireFirmContext,
-} from "@/server/policies/authorization";
+import { requireCapability, requireFirmContext } from "@/server/policies/authorization";
 import { CrmRepository } from "@/server/repositories/crm-repository";
 import { PostgresIdentityRepository } from "@/server/repositories/identity-repository";
 import {
@@ -70,10 +67,7 @@ function scopedLeadListFilters(principal: AuthPrincipal, filters: LeadListInput)
   return { ...filters, assignedTo: principal.user.id };
 }
 
-function assertLeadAssigneeAccess(
-  principal: AuthPrincipal,
-  lead: { assignedTo?: unknown },
-) {
+function assertLeadAssigneeAccess(principal: AuthPrincipal, lead: { assignedTo?: unknown }) {
   if (canManageAllLeads(principal)) return;
   if (lead.assignedTo !== principal.user.id) {
     throw new AppError("FORBIDDEN", "You can only access leads assigned to you", 403);
@@ -114,8 +108,7 @@ export class CrmService {
         fullName: String(lead.fullName),
         source: String(lead.source),
         assignedTo: (lead.assignedTo as string | null | undefined) ?? null,
-        practiceAreaInterest:
-          (lead.practiceAreaInterest as string | null | undefined) ?? null,
+        practiceAreaInterest: (lead.practiceAreaInterest as string | null | undefined) ?? null,
       },
     });
     return lead;

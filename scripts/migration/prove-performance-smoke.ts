@@ -74,10 +74,7 @@ try {
     reconciliation: {
       passed,
       checks: Object.fromEntries(
-        results.map((row) => [
-          row.name,
-          { source: row.budgetMs, target: Math.round(row.ms) },
-        ]),
+        results.map((row) => [row.name, { source: row.budgetMs, target: Math.round(row.ms) }]),
       ),
     },
   };

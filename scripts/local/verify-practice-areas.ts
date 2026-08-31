@@ -30,7 +30,9 @@ async function main() {
 
   const listRes = await fetch(`${BASE}/api/v1/public/cms/practice-areas`);
   if (!listRes.ok) throw new Error(`Public list failed: ${listRes.status}`);
-  const listBody = (await listRes.json()) as { data: Array<{ title: string; slug: string; isActive?: boolean }> };
+  const listBody = (await listRes.json()) as {
+    data: Array<{ title: string; slug: string; isActive?: boolean }>;
+  };
   const areas = listBody.data || [];
   if (areas.length < 1) throw new Error("Expected at least one public practice area");
   console.log(`2. Public list OK (${areas.length})`);
@@ -41,7 +43,8 @@ async function main() {
   console.log(`3. Detail OK — ${sample.title}`);
 
   const missing = await fetch(`${BASE}/api/v1/public/cms/practice-areas/does-not-exist-pa`);
-  if (missing.status !== 404) throw new Error(`Expected 404 for missing slug, got ${missing.status}`);
+  if (missing.status !== 404)
+    throw new Error(`Expected 404 for missing slug, got ${missing.status}`);
   console.log("4. Missing slug → 404");
 
   const db = getDatabase();
@@ -68,10 +71,16 @@ async function main() {
 
   const inactiveRes = await fetch(`${BASE}/api/v1/public/cms/practice-areas/${sample.slug}`);
   if (inactiveRes.status !== 404) {
-    await db.update(practiceAreas).set({ isActive: true, updatedAt: new Date() }).where(eq(practiceAreas.id, row.id));
+    await db
+      .update(practiceAreas)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(practiceAreas.id, row.id));
     throw new Error(`Expected inactive slug 404, got ${inactiveRes.status}`);
   }
-  await db.update(practiceAreas).set({ isActive: true, updatedAt: new Date() }).where(eq(practiceAreas.id, row.id));
+  await db
+    .update(practiceAreas)
+    .set({ isActive: true, updatedAt: new Date() })
+    .where(eq(practiceAreas.id, row.id));
   console.log("5. Inactive slug → 404 (restored)");
 
   const teamRes = await fetch(
@@ -109,7 +118,9 @@ async function main() {
   };
   await repo.updatePracticeArea(firm.id, row.id, { slug: newSlug }, audit);
   const redirects = readCmsRedirectsCache();
-  const hit = redirects.find((r) => r.from === `/practice-areas/${oldSlug}` && r.to === `/practice-areas/${newSlug}`);
+  const hit = redirects.find(
+    (r) => r.from === `/practice-areas/${oldSlug}` && r.to === `/practice-areas/${newSlug}`,
+  );
   if (!hit) {
     await repo.updatePracticeArea(firm.id, row.id, { slug: oldSlug }, audit);
     throw new Error("Slug rename did not write urlRedirects cache entry");

@@ -150,9 +150,7 @@ export class PostgresSecurityRepository implements SessionRepository, Authorizat
     const rows = await this.database
       .select({ id: cases.id })
       .from(cases)
-      .where(
-        and(eq(cases.firmId, firmId), eq(cases.clientId, clientId), isNull(cases.deletedAt)),
-      );
+      .where(and(eq(cases.firmId, firmId), eq(cases.clientId, clientId), isNull(cases.deletedAt)));
     return rows.map((row) => row.id);
   }
 

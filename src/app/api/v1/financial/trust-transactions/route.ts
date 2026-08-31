@@ -9,7 +9,9 @@ import { trustCreateSchema, trustListSchema } from "@/shared/contracts/financial
 export const GET = withApiHandler("/api/v1/financial/trust-transactions", async ({ request }) => {
   const principal = await requireSession(request);
   const input = trustListSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-  return jsonResponse({ data: await getFinancialService().listTrustTransactions(principal, input) });
+  return jsonResponse({
+    data: await getFinancialService().listTrustTransactions(principal, input),
+  });
 });
 
 export const POST = withApiHandler(

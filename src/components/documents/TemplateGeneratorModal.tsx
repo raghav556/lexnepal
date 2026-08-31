@@ -1,15 +1,34 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Loader2, FileSignature, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCase, useCases } from "@/client/queries/cases";
 import { useUploadDocument } from "@/client/queries/documents";
 import { useDocumentTemplates } from "@/client/queries/templates";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { generatePdfFromHtml } from "@/lib/pdfGenerator.ts";
 
-export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function TemplateGeneratorModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const cases = useCases({}) || [];
   const templates = useDocumentTemplates();
   const uploadDocument = useUploadDocument();
@@ -25,31 +44,52 @@ export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; o
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setSelectedTemplates(next);
-  }
+  };
 
   const handleGenerate = async () => {
     if (selectedTemplates.size === 0) return toast.error("Please select at least one template.");
     setIsGenerating(true);
-    
+
     try {
-      const selected = templates.filter(t => selectedTemplates.has(t._id));
-      
+      const selected = templates.filter((t) => selectedTemplates.has(t._id));
+
       for (const template of selected) {
         // 1. Map Variables
         let htmlContent = template.htmlContent;
         if (selectedCaseData) {
-          htmlContent = htmlContent.replace(/{{client\.name}}/g, selectedCaseData.client?.fullName || "________________");
-          htmlContent = htmlContent.replace(/{{client\.phone}}/g, selectedCaseData.client?.phone || "________________");
-          htmlContent = htmlContent.replace(/{{client\.address}}/g, selectedCaseData.client?.address || "________________");
-          htmlContent = htmlContent.replace(/{{case\.number}}/g, selectedCaseData.caseNumber || "________________");
-          htmlContent = htmlContent.replace(/{{case\.title}}/g, selectedCaseData.title || "________________");
-          htmlContent = htmlContent.replace(/{{case\.court}}/g, selectedCaseData.court || "________________");
-          htmlContent = htmlContent.replace(/{{lawyer\.name}}/g, selectedCaseData.lawyer?.name || "________________");
+          htmlContent = htmlContent.replace(
+            /{{client\.name}}/g,
+            selectedCaseData.client?.fullName || "________________",
+          );
+          htmlContent = htmlContent.replace(
+            /{{client\.phone}}/g,
+            selectedCaseData.client?.phone || "________________",
+          );
+          htmlContent = htmlContent.replace(
+            /{{client\.address}}/g,
+            selectedCaseData.client?.address || "________________",
+          );
+          htmlContent = htmlContent.replace(
+            /{{case\.number}}/g,
+            selectedCaseData.caseNumber || "________________",
+          );
+          htmlContent = htmlContent.replace(
+            /{{case\.title}}/g,
+            selectedCaseData.title || "________________",
+          );
+          htmlContent = htmlContent.replace(
+            /{{case\.court}}/g,
+            selectedCaseData.court || "________________",
+          );
+          htmlContent = htmlContent.replace(
+            /{{lawyer\.name}}/g,
+            selectedCaseData.lawyer?.name || "________________",
+          );
         } else {
           // If no case is selected, replace variables with blanks for manual filling
           htmlContent = htmlContent.replace(/{{.*?}}/g, "________________");
         }
-        
+
         // General Variables
         const d = new Date();
         htmlContent = htmlContent.replace(/{{today_gregorian}}/g, d.toLocaleDateString());
@@ -101,22 +141,30 @@ export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; o
               {templates.map((t: any) => {
                 const isSelected = selectedTemplates.has(t._id);
                 return (
-                  <div 
-                    key={t._id} 
+                  <div
+                    key={t._id}
                     onClick={() => toggleTemplate(t._id)}
-                    className={`p-3 border rounded-lg cursor-pointer transition-all flex items-start gap-3 ${isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50'}`}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all flex items-start gap-3 ${isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "hover:border-primary/50"}`}
                   >
-                    <FileText className={`w-5 h-5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <FileText
+                      className={`w-5 h-5 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
+                    />
                     <div className="flex-1">
-                      <p className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{t.title}</p>
+                      <p
+                        className={`text-sm font-bold ${isSelected ? "text-primary" : "text-foreground"}`}
+                      >
+                        {t.title}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
                     </div>
                     {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                   </div>
-                )
+                );
               })}
               {templates.length === 0 && (
-                <div className="p-4 text-center text-muted-foreground border rounded-lg">No templates available. Create some in the Admin console.</div>
+                <div className="p-4 text-center text-muted-foreground border rounded-lg">
+                  No templates available. Create some in the Admin console.
+                </div>
               )}
             </div>
           </div>
@@ -130,18 +178,28 @@ export function TemplateGeneratorModal({ isOpen, onClose }: { isOpen: boolean; o
               <SelectContent>
                 <SelectItem value="general">-- Firm General (No Case) --</SelectItem>
                 {cases.map((c: any) => (
-                  <SelectItem key={c._id} value={c._id}>{c.caseNumber} - {c.title}</SelectItem>
+                  <SelectItem key={c._id} value={c._id}>
+                    {c.caseNumber} - {c.title}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Variables like client name and case number will be auto-filled if a case is selected.</p>
+            <p className="text-xs text-muted-foreground">
+              Variables like client name and case number will be auto-filled if a case is selected.
+            </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isGenerating}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={isGenerating}>
+            Cancel
+          </Button>
           <Button onClick={handleGenerate} disabled={isGenerating || selectedTemplates.size === 0}>
-            {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : `Generate ${selectedTemplates.size > 0 ? selectedTemplates.size : ''} Document(s)`}
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              `Generate ${selectedTemplates.size > 0 ? selectedTemplates.size : ""} Document(s)`
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

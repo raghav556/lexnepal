@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Loader2, CheckCircle2, XCircle, Receipt } from "lucide-react";
 import Link from "next/link";
 import { useInvoiceCommands } from "@/client/queries/financial";
 import { formatNPR } from "@/lib/lex-constants.ts";
+import { DashboardButton, DashboardSection, PortalPageShell } from "@/components/dashboard";
 
 export default function ClientBillingReturnPage() {
   const params = useSearchParams();
-  const router = useRouter();
   const { payInvoice } = useInvoiceCommands();
   const [status, setStatus] = useState<"pending" | "ok" | "error">("pending");
   const [message, setMessage] = useState("Confirming payment…");
@@ -46,35 +44,46 @@ export default function ClientBillingReturnPage() {
         });
         sessionStorage.removeItem(`pay-pending-${key}`);
         setStatus("ok");
-        setMessage(
-          amount
-            ? `Payment of ${formatNPR(amount)} confirmed.`
-            : "Payment confirmed.",
-        );
+        setMessage(amount ? `Payment of ${formatNPR(amount)} confirmed.` : "Payment confirmed.");
       } catch (err: unknown) {
         setStatus("error");
         setMessage(err instanceof Error ? err.message : "Could not confirm payment.");
       }
     })();
-  }, [params, payInvoice, router]);
+  }, [params, payInvoice]);
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
-      <Card>
-        <CardContent className="p-8 flex flex-col items-center text-center gap-3">
-          {status === "pending" ? (
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          ) : status === "ok" ? (
-            <CheckCircle2 className="w-8 h-8 text-green-600" />
-          ) : (
-            <XCircle className="w-8 h-8 text-destructive" />
-          )}
-          <p className="text-sm font-medium">{message}</p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/client/billing">Back to billing</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <PortalPageShell
+      portal="client"
+      eyebrow="Payment Confirmation"
+      title="Payment Verification"
+      description="Processing your digital gateway transaction response."
+      icon={Receipt}
+    >
+      <div className="max-w-lg mx-auto">
+        <DashboardSection>
+          <div className="flex flex-col items-center text-center gap-3 py-6">
+            {status === "pending" ? (
+              <Loader2 className="w-10 h-10 animate-spin text-dashboard-primary" />
+            ) : status === "ok" ? (
+              <CheckCircle2 className="w-10 h-10 text-dashboard-success" />
+            ) : (
+              <XCircle className="w-10 h-10 text-dashboard-danger" />
+            )}
+            <p className="text-base font-semibold text-foreground">{message}</p>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              {status === "ok"
+                ? "Your fee record has been updated in real-time. You can download your official tax invoice PDF from the billing portal."
+                : status === "pending"
+                  ? "Please wait while our server reconciles the gateway transaction."
+                  : "If funds were deducted from your wallet, please contact our accounts desk with your transaction reference."}
+            </p>
+            <DashboardButton asChild variant="outline" size="sm" className="mt-2">
+              <Link href="/client/billing">Back to billing</Link>
+            </DashboardButton>
+          </div>
+        </DashboardSection>
+      </div>
+    </PortalPageShell>
   );
 }

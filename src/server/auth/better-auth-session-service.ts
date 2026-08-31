@@ -13,7 +13,7 @@ export class BetterAuthSessionService {
     const linkedId = (session.user as typeof session.user & { lexnepalUserId?: string })
       .lexnepalUserId;
     if (!linkedId)
-      throw new AppError("UNAUTHENTICATED", "The identity is not linked to LexNepal", 401);
+      throw new AppError("UNAUTHENTICATED", "The identity is not linked to Srimar Law", 401);
     const user = await this.repository.findUserById(linkedId);
     if (!user || !user.isActive || user.isPending)
       throw new AppError("FORBIDDEN", "Account is unavailable", 403);

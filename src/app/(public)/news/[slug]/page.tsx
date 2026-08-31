@@ -11,9 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const cms = getCmsService();
     const item = (
-      isUuidParam(slug)
-        ? await cms.getPublicNewsItem(slug)
-        : await cms.getPublicNewsBySlug(slug)
+      isUuidParam(slug) ? await cms.getPublicNewsItem(slug) : await cms.getPublicNewsBySlug(slug)
     ) as {
       title?: string;
       excerpt?: string;
@@ -23,9 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       slug?: string;
     };
     const title = String(item.seoTitle || item.title || "News");
-    const description = String(
-      item.seoDescription || item.excerpt || "News from LexNepal",
-    );
+    const description = String(item.seoDescription || item.excerpt || "News from Srimar Law");
     const image = item.imageUrl || undefined;
     return {
       title,

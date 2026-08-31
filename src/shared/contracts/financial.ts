@@ -73,7 +73,11 @@ export const timeEntryListSchema = z.object({
 export const timeEntryCreateSchema = z.object({
   caseId: uuidSchema,
   description: z.string().trim().min(1).max(5000),
-  minutes: z.coerce.number().int().positive().max(24 * 60),
+  minutes: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(24 * 60),
   isBillable: z.boolean().default(true),
   date: z.string().date(),
   ratePerHour: moneySchema,

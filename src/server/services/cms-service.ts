@@ -136,7 +136,11 @@ export class CmsService {
     let result: Record<string, unknown> | null | undefined;
     switch (collection) {
       case "practice-areas":
-        result = await this.repository.createPracticeArea(firmId, input as PracticeAreaInput, audit);
+        result = await this.repository.createPracticeArea(
+          firmId,
+          input as PracticeAreaInput,
+          audit,
+        );
         break;
       case "testimonials":
         result = await this.repository.createTestimonial(firmId, input as TestimonialInput, audit);
@@ -186,11 +190,21 @@ export class CmsService {
               audit,
             )
           : collection === "blog-posts"
-            ? await this.repository.updateBlogPost(firmId, id, input as Partial<BlogPostInput>, audit)
+            ? await this.repository.updateBlogPost(
+                firmId,
+                id,
+                input as Partial<BlogPostInput>,
+                audit,
+              )
             : collection === "news"
               ? await this.repository.updateNews(firmId, id, input as Partial<NewsInput>, audit)
               : collection === "careers"
-                ? await this.repository.updateCareer(firmId, id, input as Partial<CareerInput>, audit)
+                ? await this.repository.updateCareer(
+                    firmId,
+                    id,
+                    input as Partial<CareerInput>,
+                    audit,
+                  )
                 : collection === "resources"
                   ? await this.repository.updateResource(
                       firmId,
@@ -258,10 +272,7 @@ export class CmsService {
     if (!row) throw new AppError("NOT_FOUND", "Resource was not found", 404);
     return row;
   }
-  async requestResourceDownload(
-    id: string,
-    input: { fullName?: string; email?: string } = {},
-  ) {
+  async requestResourceDownload(id: string, input: { fullName?: string; email?: string } = {}) {
     const firmId = await this.publicFirmId();
     const resource = await this.repository.getPublishedResourceById(firmId, id);
     if (!resource) throw new AppError("NOT_FOUND", "Resource was not found", 404);
@@ -383,11 +394,7 @@ export class CmsService {
     return this.repository.listStaffBlogPosts(firmId, actorId);
   }
 
-  async createStaffBlogPost(
-    principal: AuthPrincipal,
-    input: BlogPostInput,
-    audit: AuditContext,
-  ) {
+  async createStaffBlogPost(principal: AuthPrincipal, input: BlogPostInput, audit: AuditContext) {
     const { firmId, actorId } = this.requireContentSubmit(principal);
     if (input.status === "published" || input.status === "pending_review") {
       throw new AppError("FORBIDDEN", "Staff cannot publish posts directly", 403);

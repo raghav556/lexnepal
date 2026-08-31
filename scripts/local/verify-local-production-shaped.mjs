@@ -68,9 +68,12 @@ const steps = quick ? CORE : full ? FULL : STANDARD;
 function runNpm(script) {
   const started = Date.now();
   return new Promise((resolve) => {
-    const child = spawn("npm", ["run", script], {
+    const npmCli = process.env.npm_execpath;
+    if (!npmCli) {
+      throw new Error("npm_execpath is unavailable; run this harness through npm");
+    }
+    const child = spawn(process.execPath, [npmCli, "run", script], {
       cwd: root,
-      shell: true,
       env: process.env,
     });
     let out = "";
@@ -110,9 +113,7 @@ async function main() {
       ms,
       tail,
     });
-    console.log(
-      `\n<<< ${step.id}: ${code === 0 ? "PASS" : "FAIL"} (${ms}ms, exit ${code}) >>>\n`,
-    );
+    console.log(`\n<<< ${step.id}: ${code === 0 ? "PASS" : "FAIL"} (${ms}ms, exit ${code}) >>>\n`);
   }
 
   const passed = results.filter((r) => r.ok).length;

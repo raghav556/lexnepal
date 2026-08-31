@@ -22,24 +22,42 @@ export type PortalAccountMenuProps = {
   variant: "dropdown" | "drawer";
   fallbackName?: string;
   showLanguageToggle?: boolean;
+  /** Render the trigger in light-on-dark mode (for dark sidebar backgrounds) */
+  darkTrigger?: boolean;
   /** Close mobile drawer or run after navigation */
   onAction?: () => void;
   className?: string;
 };
 
-function AccountAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null | undefined }) {
+function AccountAvatar({
+  name,
+  avatarUrl,
+  dark,
+}: {
+  name: string;
+  avatarUrl: string | null | undefined;
+  dark?: boolean;
+}) {
   if (avatarUrl) {
     return (
       <img
         src={avatarUrl}
         alt=""
-        className="size-8 shrink-0 rounded-full object-cover ring-1 ring-border/60"
+        className={cn(
+          "size-8 shrink-0 rounded-full object-cover ring-1",
+          dark ? "ring-white/20" : "ring-border/60",
+        )}
       />
     );
   }
   return (
-    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-      <UserIcon className="size-4 text-primary" />
+    <div
+      className={cn(
+        "flex size-8 shrink-0 items-center justify-center rounded-full",
+        dark ? "bg-white/15" : "bg-primary/10",
+      )}
+    >
+      <UserIcon className={cn("size-4", dark ? "text-blue-200" : "text-primary")} />
     </div>
   );
 }
@@ -49,19 +67,30 @@ function AccountIdentity({
   email,
   avatarUrl,
   compact,
+  dark,
 }: {
   name: string;
   email?: string | null;
   avatarUrl: string | null | undefined;
   compact?: boolean;
+  dark?: boolean;
 }) {
   return (
     <div className={cn("flex items-center gap-3", compact && "min-w-0")}>
-      <AccountAvatar name={name} avatarUrl={avatarUrl} />
+      <AccountAvatar name={name} avatarUrl={avatarUrl} dark={dark} />
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-xs font-medium text-sidebar-foreground">{name}</p>
+        <p className={cn("truncate text-xs font-medium", dark ? "text-white" : "text-foreground")}>
+          {name}
+        </p>
         {email ? (
-          <p className="truncate text-[10px] text-sidebar-foreground/50">{email}</p>
+          <p
+            className={cn(
+              "truncate text-[10px]",
+              dark ? "text-blue-200/60" : "text-muted-foreground",
+            )}
+          >
+            {email}
+          </p>
         ) : null}
       </div>
     </div>
@@ -73,6 +102,7 @@ export function PortalAccountMenu({
   variant,
   fallbackName = "Account",
   showLanguageToggle = false,
+  darkTrigger = false,
   onAction,
   className,
 }: PortalAccountMenuProps) {
@@ -111,7 +141,9 @@ export function PortalAccountMenu({
 
   if (variant === "drawer") {
     return (
-      <div className={cn("shrink-0 border-t border-sidebar-border bg-sidebar px-4 py-4", className)}>
+      <div
+        className={cn("shrink-0 border-t border-sidebar-border bg-sidebar px-4 py-4", className)}
+      >
         <AccountIdentity name={displayName} email={email} avatarUrl={avatarUrl} compact />
         <div className="mt-3 space-y-1">
           <Link
@@ -159,13 +191,29 @@ export function PortalAccountMenu({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+              darkTrigger
+                ? "hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-blue-400/50"
+                : "hover:bg-sidebar-accent",
+            )}
           >
-            <AccountIdentity name={displayName} email={email} avatarUrl={avatarUrl} compact />
-            <ChevronUp className="size-4 shrink-0 text-sidebar-foreground/50" />
+            <AccountIdentity
+              name={displayName}
+              email={email}
+              avatarUrl={avatarUrl}
+              compact
+              dark={darkTrigger}
+            />
+            <ChevronUp
+              className={cn(
+                "size-4 shrink-0",
+                darkTrigger ? "text-blue-300/50" : "text-sidebar-foreground/50",
+              )}
+            />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56" side="top">
+        <DropdownMenuContent align="start" side="top" className="w-full min-w-[220px] mb-2">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
@@ -175,11 +223,15 @@ export function PortalAccountMenu({
           </DropdownMenuItem>
           {showLanguageToggle ? (
             <DropdownMenuItem onClick={toggleLanguage} className="cursor-pointer">
-              <Globe className="mr-2 size-4" /> Language ({language === "en" ? "नेपाली" : "English"})
+              <Globe className="mr-2 size-4" /> Language ({language === "en" ? "नेपाली" : "English"}
+              )
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => void handleSignOutEverywhere()} className="cursor-pointer">
+          <DropdownMenuItem
+            onClick={() => void handleSignOutEverywhere()}
+            className="cursor-pointer"
+          >
             <ShieldOff className="mr-2 size-4" /> Sign out everywhere
           </DropdownMenuItem>
           <DropdownMenuItem

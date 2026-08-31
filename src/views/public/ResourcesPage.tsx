@@ -183,7 +183,11 @@ export default function ResourcesPage() {
       <div className={`${pad} mt-6 sm:mt-8`}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {[
-            { icon: ShieldCheck, label: "Advocate-authored", desc: "Prepared by LexNepal counsel" },
+            {
+              icon: ShieldCheck,
+              label: "Advocate-authored",
+              desc: "Prepared by Srimar Law counsel",
+            },
             { icon: Scale, label: "Nepal-focused", desc: "Practical local guidance" },
             { icon: BookOpen, label: "Free library", desc: "Guides & whitepapers" },
           ].map(({ icon: Icon, label, desc }) => (
@@ -256,7 +260,9 @@ export default function ResourcesPage() {
           <div className="text-center py-16 px-4 border border-dashed border-border rounded-2xl">
             <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
             <h2 className="font-serif text-xl font-bold mb-2">No resources match</h2>
-            <p className="text-sm text-muted-foreground mb-6">Try clearing search or category filters.</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Try clearing search or category filters.
+            </p>
             <Button variant="outline" onClick={clearFilters}>
               Clear filters
             </Button>
@@ -282,7 +288,6 @@ export default function ResourcesPage() {
                     <Card className="h-full overflow-hidden border-border hover:shadow-lg transition-shadow flex flex-col">
                       <div className="h-40 w-full bg-secondary/40 relative overflow-hidden">
                         {res.coverImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={String(res.coverImageUrl)}
                             alt=""
@@ -383,10 +388,15 @@ export default function ResourcesPage() {
             Need advice tailored to your matter?
           </h2>
           <p className="text-sm text-primary-foreground/70 mb-6">
-            Download our guides, then book a consultation with an advocate who knows your practice area.
+            Download our guides, then book a consultation with an advocate who knows your practice
+            area.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href="/consultation" className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>
@@ -417,7 +427,8 @@ export default function ResourcesPage() {
           <DialogHeader>
             <DialogTitle>Unlock {selected?.title}</DialogTitle>
             <DialogDescription>
-              Share your details and we will email follow-up if helpful. Your download starts immediately.
+              Share your details and we will email follow-up if helpful. Your download starts
+              immediately.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleGatedSubmit} className="space-y-4">
@@ -446,7 +457,11 @@ export default function ResourcesPage() {
               <Button type="button" variant="outline" onClick={() => setSelected(null)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-accent hover:bg-accent/90">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-accent hover:bg-accent/90"
+              >
                 {isSubmitting ? "Unlocking…" : "Download"}
               </Button>
             </DialogFooter>

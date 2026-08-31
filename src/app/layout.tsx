@@ -4,8 +4,8 @@ import "../index.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "LexNepal",
-  description: "LexNepal Next.js migration foundation",
+  title: "Srimar Law",
+  description: "Srimar Law — trusted legal counsel in Nepal",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -17,4 +17,3 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     </html>
   );
 }
-

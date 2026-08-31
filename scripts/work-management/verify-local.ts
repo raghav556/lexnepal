@@ -19,7 +19,8 @@ async function signIn(email: string) {
     body: { email, password },
     asResponse: true,
   });
-  if (!response.ok) throw new Error(`Sign-in failed for ${email}. Run npm run auth:verify-boundary first.`);
+  if (!response.ok)
+    throw new Error(`Sign-in failed for ${email}. Run npm run auth:verify-boundary first.`);
   const cookie = response.headers.get("set-cookie");
   if (!cookie) throw new Error("Session cookie missing");
   return cookie;
@@ -58,8 +59,12 @@ try {
   const cookie = await signIn("boundary-a@example.invalid");
   const headers = { cookie };
   const tasksResponse = await listTasks(new Request("http://local/api/v1/tasks", { headers }));
-  const hearingsResponse = await listHearings(new Request("http://local/api/v1/hearings", { headers }));
-  const researchResponse = await listResearch(new Request("http://local/api/v1/research", { headers }));
+  const hearingsResponse = await listHearings(
+    new Request("http://local/api/v1/hearings", { headers }),
+  );
+  const researchResponse = await listResearch(
+    new Request("http://local/api/v1/research", { headers }),
+  );
   const overdueResponse = await scanOverdue(
     new Request("http://local/api/v1/tasks/overdue-reminders", { method: "POST", headers }),
   );
@@ -70,14 +75,22 @@ try {
   if (!overdueResponse.ok) throw new Error(`Overdue scan failed: ${overdueResponse.status}`);
 
   const taskBody = (await tasksResponse.json()) as { data: Array<{ _id: string; title: string }> };
-  const hearingBody = (await hearingsResponse.json()) as { data: Array<{ _id: string; time?: string }> };
-  const researchBody = (await researchResponse.json()) as { data: Array<{ _id: string; tags?: string[] }> };
+  const hearingBody = (await hearingsResponse.json()) as {
+    data: Array<{ _id: string; time?: string }>;
+  };
+  const researchBody = (await researchResponse.json()) as {
+    data: Array<{ _id: string; tags?: string[] }>;
+  };
   const overdueBody = (await overdueResponse.json()) as { data: { sent: number } };
 
   if (!taskBody.data.some((row) => row.title.includes("Prepare hearing brief"))) {
     throw new Error("Migrated task was not visible through Next.js tasks API");
   }
-  if (!hearingBody.data.some((row) => row.time === "10:30" || (row as { hearingTime?: string }).hearingTime === "10:30")) {
+  if (
+    !hearingBody.data.some(
+      (row) => row.time === "10:30" || (row as { hearingTime?: string }).hearingTime === "10:30",
+    )
+  ) {
     throw new Error("Migrated hearing time alias missing from API DTO");
   }
   if (!researchBody.data.some((row) => (row.tags ?? []).includes("fixture"))) {
@@ -87,8 +100,14 @@ try {
     throw new Error("Overdue reminder scan did not return a sent count");
   }
 
-  const [taskCount] = await database.select({ id: tasks.id }).from(tasks).where(eq(tasks.firmId, firmA));
-  const [hearingCount] = await database.select({ id: hearings.id }).from(hearings).where(eq(hearings.firmId, firmA));
+  const [taskCount] = await database
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(eq(tasks.firmId, firmA));
+  const [hearingCount] = await database
+    .select({ id: hearings.id })
+    .from(hearings)
+    .where(eq(hearings.firmId, firmA));
   const [researchCount] = await database
     .select({ id: researchNotes.id })
     .from(researchNotes)

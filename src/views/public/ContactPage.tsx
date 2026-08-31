@@ -71,7 +71,7 @@ export default function ContactPage() {
   const heroTitle = String(settings?.contactHeroTitle || "Get in Touch");
   const heroSubtitle = String(
     settings?.contactHeroSubtitle ||
-      "Reach LexNepal for general inquiries, legal support, press, or partnership opportunities.",
+      "Reach Srimar Law for general inquiries, legal support, press, or partnership opportunities.",
   );
 
   const onSubmit = async (data: FormData) => {
@@ -115,7 +115,10 @@ export default function ContactPage() {
             Call us directly at{" "}
             <strong className="text-foreground text-base break-all">
               {settings?.phone ? (
-                <a href={`tel:${String(settings.phone).replace(/\s+/g, "")}`} className="hover:text-accent">
+                <a
+                  href={`tel:${String(settings.phone).replace(/\s+/g, "")}`}
+                  className="hover:text-accent"
+                >
                   {String(settings.phone)}
                 </a>
               ) : (
@@ -150,7 +153,7 @@ export default function ContactPage() {
       label: "Call Us",
       value: phone,
       href: phone ? `tel:${phone.replace(/\s+/g, "")}` : undefined,
-      sub: hours || "LexNepal reception",
+      sub: hours || "Srimar Law reception",
     },
     {
       icon: Mail,
@@ -183,7 +186,7 @@ export default function ContactPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-accent text-sm font-medium tracking-wide uppercase mb-3"
           >
-            LexNepal
+            Srimar Law
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
@@ -274,7 +277,8 @@ export default function ContactPage() {
                 Our Office
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4 sm:mb-6 break-words">
-                Visit LexNepal in Kathmandu. We validate parking for scheduled client consultations.
+                Visit Srimar Law in Kathmandu. We validate parking for scheduled client
+                consultations.
               </p>
 
               <div className="w-full h-[220px] sm:h-[280px] md:h-[300px] rounded-2xl overflow-hidden border border-border/50 shadow-sm bg-muted relative isolate">
@@ -304,7 +308,7 @@ export default function ContactPage() {
                   {[
                     "We receive your secure message as a CRM lead.",
                     "Our intake team reviews your inquiry.",
-                    "We route it to the appropriate LexNepal advocate.",
+                    "We route it to the appropriate Srimar Law advocate.",
                     "You receive a response within 24 business hours.",
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2.5 sm:gap-3 min-w-0">
@@ -495,10 +499,14 @@ export default function ContactPage() {
             Prefer to speak with an advocate?
           </h2>
           <p className="text-sm text-primary-foreground/70 mb-6">
-            Send a message here, or book a free consultation with a LexNepal advocate.
+            Send a message here, or book a free consultation with a Srimar Law advocate.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href="/consultation" className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>

@@ -78,7 +78,11 @@ try {
   if (forceImport.code !== 0) throw new Error("baseline --force import failed");
   const afterForce = await attendanceCount();
   const checkpointImported = await readCheckpoint("hr");
-  if (!checkpointImported || checkpointImported.status !== "imported" || !checkpointImported.passed) {
+  if (
+    !checkpointImported ||
+    checkpointImported.status !== "imported" ||
+    !checkpointImported.passed
+  ) {
     throw new Error(`expected imported checkpoint, got ${JSON.stringify(checkpointImported)}`);
   }
 

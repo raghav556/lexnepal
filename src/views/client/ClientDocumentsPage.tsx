@@ -2,24 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { FileText, Download, Upload, Loader2, Eye } from "lucide-react";
-import { Badge } from "@/components/ui/badge.tsx";
+import { FileText, Download, Upload, Loader2, Eye, Filter, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input.tsx";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useDocuments, useUploadDocument, useDownloadDocument } from "@/client/queries/documents";
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
-import { cn } from "@/lib/utils.ts";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.tsx";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { Pagination } from "@/components/ui/pagination.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import {
   Select,
   SelectContent,
@@ -27,6 +19,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeaderCell,
+  DashboardTableRow,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 const DOC_TYPES = [
   "pleading",
@@ -37,22 +46,14 @@ const DOC_TYPES = [
   "other",
 ] as const;
 
-const TYPE_COLORS: Record<string, string> = {
-  pleading: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  evidence: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  contract: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  affidavit: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  correspondence: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  other: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-};
-
 function DownloadButton({ documentId }: { documentId: string }) {
   const downloadDocument = useDownloadDocument();
   const [busy, setBusy] = useState(false);
   return (
-    <Button
+    <DashboardButton
       variant="ghost"
       size="sm"
+      className="h-7 w-7 p-0"
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -65,9 +66,14 @@ function DownloadButton({ documentId }: { documentId: string }) {
           setBusy(false);
         }
       }}
+      title="Download file"
     >
-      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-    </Button>
+      {busy ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : (
+        <Download className="w-3.5 h-3.5" />
+      )}
+    </DashboardButton>
   );
 }
 
@@ -82,14 +88,14 @@ function DocPreviewBody({
 }) {
   if (url === null) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground gap-2 min-h-[240px]">
-        <Loader2 className="w-4 h-4 animate-spin" /> Loading preview…
+      <div className="flex-1 flex items-center justify-center text-sm text-dashboard-neutral gap-2 min-h-[240px]">
+        <Loader2 className="w-4 h-4 animate-spin text-dashboard-primary" /> Loading preview…
       </div>
     );
   }
   if (!url) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground p-6 text-center min-h-[240px]">
+      <div className="flex-1 flex items-center justify-center text-sm text-dashboard-neutral p-6 text-center min-h-[240px]">
         Preview unavailable for this file.
       </div>
     );
@@ -97,7 +103,11 @@ function DocPreviewBody({
   if (mimeType.startsWith("image/")) {
     return (
       <div className="flex-1 overflow-auto p-2">
-        <img src={url} alt={title} className="max-w-full mx-auto rounded" />
+        <img
+          src={url}
+          alt={title}
+          className="max-w-full mx-auto rounded-lg border border-dashboard-border"
+        />
       </div>
     );
   }
@@ -106,19 +116,19 @@ function DocPreviewBody({
       <iframe
         title={title}
         src={url}
-        className="flex-1 w-full min-h-[320px] rounded border bg-background"
+        className="flex-1 w-full min-h-[360px] rounded-lg border border-dashboard-border bg-dashboard-panel"
       />
     );
   }
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center min-h-[240px]">
-      <FileText className="w-10 h-10 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">Preview not supported for this file type.</p>
-      <Button asChild variant="outline" size="sm">
+      <FileText className="w-10 h-10 text-dashboard-neutral" />
+      <p className="text-sm text-dashboard-neutral">Preview not supported for this file type.</p>
+      <DashboardButton asChild variant="outline" size="sm">
         <a href={url} target="_blank" rel="noreferrer">
           Open file
         </a>
-      </Button>
+      </DashboardButton>
     </div>
   );
 }
@@ -153,258 +163,420 @@ export default function ClientDocumentsPage() {
   useEffect(() => {
     if (!uploadCaseId && cases.length > 0) {
       const active = cases.find((c: any) => c.status === "active") || cases[0];
-      setUploadCaseId(active._id);
+      if (active) setUploadCaseId(active._id);
     }
   }, [cases, uploadCaseId]);
 
-  const listFilters = useMemo(() => {
-    if (filterCaseId && filterCaseId !== "all") return { caseId: filterCaseId };
+  const queryArgs = useMemo(() => {
+    if (filterCaseId !== "all") return { caseId: filterCaseId };
     return {};
   }, [filterCaseId]);
 
-  const allDocs = useDocuments(listFilters) || [];
-  const myUserId = currentUser?._id || currentUser?.id;
-  const clientDocs = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return allDocs.filter((d: any) => {
-      if (filterType !== "all" && d.type !== filterType) return false;
-      if (sourceFilter === "mine" && d.uploadedBy !== myUserId) return false;
-      if (sourceFilter === "firm" && d.uploadedBy === myUserId) return false;
-      if (q && !String(d.title || "").toLowerCase().includes(q)) return false;
+  const docs = useDocuments(queryArgs) || [];
+
+  const filteredDocs = useMemo(() => {
+    return docs.filter((doc: any) => {
+      if (filterType !== "all" && doc.type !== filterType) return false;
+      if (sourceFilter === "mine" && doc.uploaderId !== currentUser?._id) return false;
+      if (sourceFilter === "firm" && doc.uploaderId === currentUser?._id) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchesTitle = (doc.title || "").toLowerCase().includes(q);
+        const matchesType = (doc.type || "").toLowerCase().includes(q);
+        if (!matchesTitle && !matchesType) return false;
+      }
       return true;
     });
-  }, [allDocs, filterType, sourceFilter, search, myUserId]);
+  }, [docs, filterType, sourceFilter, search, currentUser?._id]);
 
-  useEffect(() => {
-    if (!previewDoc) {
-      setPreviewUrl(null);
-      return;
-    }
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage } = usePagination({
+    items: filteredDocs,
+    itemsPerPage: 8,
+  });
+
+  const handleOpenPreview = async (doc: any) => {
+    setPreviewDoc(doc);
     setPreviewUrl(null);
-    void downloadDocument(previewDoc._id)
-      .then((url) => setPreviewUrl(url ? String(url) : ""))
-      .catch(() => setPreviewUrl(""));
-  }, [previewDoc?._id]);
-
-  const uploadFile = async (file: File) => {
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Files cannot exceed 50 MB.");
-      return;
-    }
-    if (!uploadCaseId) {
-      toast.error("Select a matter before uploading.");
-      return;
-    }
-
-    setIsUploading(true);
     try {
-      await uploadDocument({
-        file,
-        caseId: uploadCaseId,
-        title: file.name,
-        type: uploadType,
-        isPrivileged: false,
-        confidentialityLevel: "public",
-      });
-      toast.success("Document uploaded and quarantined for security scanning.");
+      const url = await downloadDocument(doc._id);
+      setPreviewUrl(url ? String(url) : "");
+    } catch {
+      toast.error("Failed to load document preview.");
+      setPreviewUrl("");
+    }
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (!uploadCaseId) {
+      toast.error("Please select a case for this document.");
+      return;
+    }
+    setIsUploading(true);
+    let successCount = 0;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        await uploadDocument({
+          file,
+          title: file.name,
+          type: uploadType,
+          caseId: uploadCaseId,
+        });
+        successCount++;
+      }
+      toast.success(
+        successCount === 1
+          ? "Document uploaded securely."
+          : `${successCount} documents uploaded securely.`,
+      );
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload document.");
+      toast.error(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await uploadFile(file);
-  };
-
-  if (clientRecord === null) {
+  if (currentUser === undefined || clientRecord === undefined) {
     return (
-      <div className="p-4 sm:p-6 text-sm text-muted-foreground">
-        No client profile is linked to this account. Contact the firm to view documents.
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading your documents…"
+        title="Documents"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
-  return (
-    <div className="p-4 sm:p-6 space-y-4 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="font-serif text-2xl font-bold text-foreground">My Documents</h1>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <Select value={uploadCaseId} onValueChange={setUploadCaseId}>
-            <SelectTrigger className="w-full sm:w-[200px] h-9">
-              <SelectValue placeholder="Matter" />
-            </SelectTrigger>
-            <SelectContent>
-              {cases.map((c: any) => (
-                <SelectItem key={c._id} value={c._id}>
-                  [{c.caseNumber}] {c.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={uploadType} onValueChange={(v) => setUploadType(v as (typeof DOC_TYPES)[number])}>
-            <SelectTrigger className="w-full sm:w-[140px] h-9">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {DOC_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading || !uploadCaseId}>
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4 mr-1" />
-            )}
-            Upload
-          </Button>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.xlsx,.pptx,.jpg,.jpeg,.png,.tif,.tiff,.txt"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by title…"
-          className="h-9 sm:max-w-xs"
-        />
-        <Select value={filterCaseId} onValueChange={setFilterCaseId}>
-          <SelectTrigger className="w-full sm:w-[220px] h-9">
-            <SelectValue placeholder="Filter matter" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All matters</SelectItem>
-            {cases.map((c: any) => (
-              <SelectItem key={c._id} value={c._id}>
-                [{c.caseNumber}] {c.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full sm:w-[160px] h-9">
-            <SelectValue placeholder="Filter type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {DOC_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as typeof sourceFilter)}>
-          <SelectTrigger className="w-full sm:w-[160px] h-9">
-            <SelectValue placeholder="Source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All sources</SelectItem>
-            <SelectItem value="firm">From firm</SelectItem>
-            <SelectItem value="mine">Uploaded by you</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div
-        className={cn(
-          "rounded-xl border border-dashed p-6 text-center transition-colors",
-          dragOver ? "border-primary bg-primary/5" : "border-border bg-secondary/10",
-        )}
-        onDragEnter={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          const file = e.dataTransfer.files?.[0];
-          if (file) void uploadFile(file);
-        }}
+  if (clientRecord === null) {
+    return (
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Vault & Filings"
+        title="Documents"
+        description="Access and upload court pleadings, evidence, and filings."
+        icon={FileText}
       >
-        <Upload className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
-        <p className="text-sm text-muted-foreground">
-          Drag and drop a file here, or use Upload above. Select a matter first.
-        </p>
-      </div>
+        <EmptyState
+          title="No client profile linked"
+          description="Your account is not linked to a client profile yet. Contact the firm to access your document vault."
+          icon={FileText}
+        />
+      </PortalPageShell>
+    );
+  }
 
-      <div className="space-y-3">
-        {clientDocs.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No Documents Yet</EmptyTitle>
-              <EmptyDescription>
-                Documents shared by your legal team will appear here. You can also upload files
-                directly.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          clientDocs.map((doc: any) => {
-            const matchedCase = cases.find((c: any) => c._id === doc.caseId);
-            const scan = doc.uploadStatus || doc.status;
-            return (
-              <Card key={doc._id}>
-                <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FileText className="w-4 h-4 shrink-0" />
-                      <span className="break-words">{doc.title}</span>
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {matchedCase?.title || "Case"} · {doc.mimeType}
-                      {scan ? ` · ${scan}` : ""}
-                    </p>
+  const pendingSigs = docs.filter(
+    (d: any) => d.requiresSignature && d.signatureStatus === "pending",
+  ).length;
+  const myUploads = docs.filter((d: any) => d.uploaderId === currentUser?._id).length;
+
+  const metrics = [
+    {
+      label: "Total Documents",
+      value: String(docs.length),
+      icon: FileText,
+      tone: DASHBOARD_METRIC_TONES.documents,
+      helperText: "Matter files on record",
+    },
+    {
+      label: "Awaiting Signature",
+      value: String(pendingSigs),
+      tone: pendingSigs > 0 ? ("warning" as const) : ("success" as const),
+      helperText: "Digital signature queue",
+    },
+    {
+      label: "Uploaded by You",
+      value: String(myUploads),
+      tone: "information" as const,
+      helperText: "Client submissions",
+    },
+    {
+      label: "Shared by Firm",
+      value: String(docs.length - myUploads),
+      tone: "neutral" as const,
+      helperText: "Pleadings & orders",
+    },
+  ];
+
+  return (
+    <PortalPageShell
+      portal="client"
+      decorated
+      showTodayDate
+      eyebrow="Vault & Filings"
+      title="Documents"
+      description="Access court filings, evidence, and documents shared between you and your legal team."
+      icon={FileText}
+      metrics={metrics}
+    >
+      <DashboardSection
+        title="Upload Document"
+        description="Share evidence, IDs, or forms directly with your assigned lawyer"
+        icon={Upload}
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Matter</label>
+              <Select value={uploadCaseId} onValueChange={setUploadCaseId}>
+                <SelectTrigger className="w-full bg-dashboard-panel h-9 text-xs">
+                  <SelectValue placeholder="Select a matter…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cases.map((c: any) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      [{c.caseNumber}] {c.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Document Type</label>
+              <Select
+                value={uploadType}
+                onValueChange={(val) => setUploadType(val as (typeof DOC_TYPES)[number])}
+              >
+                <SelectTrigger className="w-full bg-dashboard-panel h-9 text-xs capitalize">
+                  <SelectValue placeholder="Document category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOC_TYPES.map((t) => (
+                    <SelectItem key={t} value={t} className="capitalize">
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              handleFiles(e.dataTransfer.files);
+            }}
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+              dragOver
+                ? "border-dashboard-primary bg-dashboard-primary-soft"
+                : "border-dashboard-border bg-dashboard-panel hover:border-dashboard-primary/50"
+            }`}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+            <div className="flex flex-col items-center gap-2">
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-8 h-8 animate-spin text-dashboard-primary" />
+                  <p className="text-sm font-semibold text-foreground">Uploading files securely…</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-dashboard-primary-soft flex items-center justify-center text-dashboard-primary">
+                    <Upload className="w-5 h-5" />
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Badge className={TYPE_COLORS[doc.type] || TYPE_COLORS.other}>{doc.type}</Badge>
-                    <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(doc)} title="Preview">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <DownloadButton documentId={doc._id} />
-                  </div>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  {currentUser?.name ? `Visible to ${currentUser.name}` : "Client document"}
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Drop files here or click to browse
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    PDF, DOCX, JPG, PNG up to 25MB (Encrypted storage)
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </DashboardSection>
+
+      <DashboardSection
+        title="Document Library"
+        description={`Showing ${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"}`}
+        icon={FileText}
+      >
+        <div className="space-y-4">
+          <DashboardFilterBar className="justify-between">
+            <div className="relative w-full sm:max-w-[280px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-9 bg-dashboard-panel h-9 text-xs"
+                placeholder="Search documents..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={filterCaseId} onValueChange={setFilterCaseId}>
+                <SelectTrigger className="w-[180px] bg-dashboard-panel h-9 text-xs">
+                  <SelectValue placeholder="All Matters" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Matters</SelectItem>
+                  {cases.map((c: any) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-[140px] bg-dashboard-panel h-9 text-xs capitalize">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {DOC_TYPES.map((t) => (
+                    <SelectItem key={t} value={t} className="capitalize">
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex bg-dashboard-neutral-soft p-1 rounded-lg border border-dashboard-border">
+                {(["all", "firm", "mine"] as const).map((source) => (
+                  <button
+                    key={source}
+                    onClick={() => setSourceFilter(source)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                      sourceFilter === source
+                        ? "bg-dashboard-panel text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {source === "all" ? "All" : source === "firm" ? "Firm" : "My Uploads"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </DashboardFilterBar>
+
+          {docs === undefined ? (
+            <DashboardListSkeleton rows={4} />
+          ) : filteredDocs.length === 0 ? (
+            <EmptyState
+              title="No documents found"
+              description="No documents match the selected filters."
+              icon={FileText}
+            />
+          ) : (
+            <div className="space-y-4">
+              <DashboardTable>
+                <DashboardTableHead>
+                  <DashboardTableRow>
+                    <DashboardTableHeaderCell>Document Title</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Category</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Source</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell className="text-right">
+                      Actions
+                    </DashboardTableHeaderCell>
+                  </DashboardTableRow>
+                </DashboardTableHead>
+                <DashboardTableBody>
+                  {paginatedItems.map((doc: any) => {
+                    const matchedCase = cases.find((c: any) => c._id === doc.caseId);
+                    const isMine = doc.uploaderId === currentUser?._id;
+                    return (
+                      <DashboardTableRow key={doc._id} striped>
+                        <DashboardTableCell>
+                          <div className="flex items-center gap-2.5">
+                            <FileText className="w-4 h-4 text-dashboard-primary shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-semibold text-foreground text-xs truncate max-w-[240px]">
+                                {doc.title}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {doc.mimeType || "File"}
+                              </p>
+                            </div>
+                          </div>
+                        </DashboardTableCell>
+                        <DashboardTableCell className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {matchedCase ? matchedCase.title : "General"}
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <DashboardStatusLabel
+                            status={doc.type}
+                            className="text-[10px] uppercase"
+                          />
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                              isMine
+                                ? "bg-dashboard-primary-soft text-dashboard-primary"
+                                : "bg-dashboard-neutral-soft text-dashboard-neutral"
+                            }`}
+                          >
+                            {isMine ? "You" : "Legal Team"}
+                          </span>
+                        </DashboardTableCell>
+                        <DashboardTableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <DashboardButton
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => handleOpenPreview(doc)}
+                              title="Preview document"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </DashboardButton>
+                            <DownloadButton documentId={doc._id} />
+                          </div>
+                        </DashboardTableCell>
+                      </DashboardTableRow>
+                    );
+                  })}
+                </DashboardTableBody>
+              </DashboardTable>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                onNextPage={nextPage}
+                onPrevPage={prevPage}
+              />
+            </div>
+          )}
+        </div>
+      </DashboardSection>
 
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] max-h-[90dvh] flex flex-col">
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="break-words pr-6">{previewDoc?.title}</DialogTitle>
+            <DialogTitle className="truncate pr-6 text-base font-serif">
+              {previewDoc?.title || "Document preview"}
+            </DialogTitle>
           </DialogHeader>
-          <DocPreviewBody
-            url={previewUrl}
-            mimeType={previewDoc?.mimeType || ""}
-            title={previewDoc?.title || ""}
-          />
+          {previewDoc ? (
+            <DocPreviewBody
+              url={previewUrl}
+              mimeType={previewDoc.mimeType || ""}
+              title={previewDoc.title || "document"}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

@@ -179,8 +179,14 @@ export async function computeFinancialTotals(exportPath: string): Promise<Financ
   const targetTrustTotal = sumMoney(targetTrust, (r) => r.amount);
   const sourceTimeMinutes = sumNumber(sourceTime, (r) => r.minutes);
   const targetTimeMinutes = sumNumber(targetTime, (r) => r.minutes);
-  const sourceTimeValue = sumMoney(sourceTime, (r) => (Number(r.minutes ?? 0) / 60) * Number(r.ratePerHour ?? 0));
-  const targetTimeValue = sumMoney(targetTime, (r) => (Number(r.minutes ?? 0) / 60) * Number(r.ratePerHour ?? 0));
+  const sourceTimeValue = sumMoney(
+    sourceTime,
+    (r) => (Number(r.minutes ?? 0) / 60) * Number(r.ratePerHour ?? 0),
+  );
+  const targetTimeValue = sumMoney(
+    targetTime,
+    (r) => (Number(r.minutes ?? 0) / 60) * Number(r.ratePerHour ?? 0),
+  );
 
   return [
     moneyRow("invoices.total", sourceInvoiceTotal, targetInvoiceTotal),
@@ -257,7 +263,8 @@ export async function findMissingFinancialIds(exportPath: string): Promise<Missi
       .where(inArray(schema.legacyConvexId, legacyIds));
     const have = new Set(present.map((r) => r.legacy).filter(Boolean));
     for (const id of legacyIds) {
-      if (!have.has(id)) missing.push({ table, id, reason: "legacyConvexId not found in Postgres" });
+      if (!have.has(id))
+        missing.push({ table, id, reason: "legacyConvexId not found in Postgres" });
     }
   }
   return missing;

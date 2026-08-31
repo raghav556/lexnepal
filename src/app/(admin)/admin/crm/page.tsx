@@ -1,3 +1,7 @@
 "use client";
 
-export { default } from "@/views/admin/AdminCRMPage";
+import AdminCRMPage from "@/views/admin/AdminCRMPage";
+
+export default function AdminCrmRoute() {
+  return <AdminCRMPage portal="admin" />;
+}

@@ -37,14 +37,20 @@ export function PracticeAreaConsultSidebar({
         <ul className="pt-2 space-y-2 text-sm text-muted-foreground border-t border-border">
           {phone ? (
             <li>
-              <a href={`tel:${phone}`} className="inline-flex items-center gap-2 hover:text-primary">
+              <a
+                href={`tel:${phone}`}
+                className="inline-flex items-center gap-2 hover:text-primary"
+              >
                 <Phone className="w-4 h-4 shrink-0" /> {phone}
               </a>
             </li>
           ) : null}
           {email ? (
             <li>
-              <a href={`mailto:${email}`} className="inline-flex items-center gap-2 hover:text-primary break-all">
+              <a
+                href={`mailto:${email}`}
+                className="inline-flex items-center gap-2 hover:text-primary break-all"
+              >
                 <Mail className="w-4 h-4 shrink-0" /> {email}
               </a>
             </li>
@@ -115,7 +121,6 @@ export function PracticeAreaLawyersList({
             <li key={id}>
               <Link href={`/lawyers/${id}`} className="flex items-center gap-3 group min-w-0">
                 {avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={String(avatar)}
                     alt=""

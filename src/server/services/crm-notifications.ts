@@ -130,9 +130,7 @@ async function notifyRecipients(input: {
   linkFor?: (role: UserRole) => string;
 }) {
   for (const recipient of input.recipients) {
-    const link = input.linkFor
-      ? input.linkFor(recipient.role)
-      : crmLinkForRole(recipient.role);
+    const link = input.linkFor ? input.linkFor(recipient.role) : crmLinkForRole(recipient.role);
     await notifications.createNotification(input.firmId, {
       userId: recipient.id,
       title: input.title,
@@ -403,7 +401,7 @@ export async function notifyAppointmentClientStatus(input: {
         actorUserId: input.actorUserId,
         to,
         subject: "Consultation confirmed",
-        body: `Your consultation on ${when} has been confirmed.${linkLine}\n\n— LexNepal`,
+        body: `Your consultation on ${when} has been confirmed.${linkLine}\n\n— Srimar Law`,
         relatedId: input.appointment.id,
         purpose: "appointment_confirmed",
       });
@@ -415,7 +413,7 @@ export async function notifyAppointmentClientStatus(input: {
       actorUserId: input.actorUserId,
       to,
       subject: "Consultation cancelled",
-      body: `Your consultation on ${when} has been cancelled. Please contact the firm to reschedule if needed.\n\n— LexNepal`,
+      body: `Your consultation on ${when} has been cancelled. Please contact the firm to reschedule if needed.\n\n— Srimar Law`,
       relatedId: input.appointment.id,
       purpose: "appointment_cancelled",
     });
@@ -447,7 +445,7 @@ export async function notifyAppointmentRescheduled(input: {
       actorUserId: input.actorUserId,
       to,
       subject: "Consultation rescheduled",
-      body: `Your consultation has been moved from ${input.previousDate} at ${input.previousTimeSlot} to ${input.appointment.date} at ${input.appointment.timeSlot}.\n\n— LexNepal`,
+      body: `Your consultation has been moved from ${input.previousDate} at ${input.previousTimeSlot} to ${input.appointment.date} at ${input.appointment.timeSlot}.\n\n— Srimar Law`,
       relatedId: input.appointment.id,
       purpose: "appointment_rescheduled",
     });

@@ -32,18 +32,18 @@ Report file (gitignored): `.migration-reports/local-production-shaped.json`
 
 ## Checklist
 
-| Area | Proof | Status |
-| --- | --- | --- |
-| Master harness | `verify:local-production-shaped` | done |
-| PG backup/restore drill | `local:pg:backup` + `local:pg:restore-drill` | done (2026-08-07) |
-| Storage / ClamAV | `storage:verify-pipeline` | done |
-| Jobs | `jobs:verify-local` | done |
-| Auth | `verify:auth-production` + boundary | done |
-| Domains | harness domains group | done (run `--full` for all) |
-| CMS-7 media uploads | blog/news/resource covers + `cmsBlogCoverUploadOk` | done |
-| CMS-10 sitemap/redirects | `app/sitemap.ts` + governance `urlRedirects` + `cmsRedirectsOk` | done |
-| Convex gone | `migration:prove-decommission-status` | green |
-| Cloud fence | `productionReady: false` | must stay false |
+| Area                     | Proof                                                           | Status                      |
+| ------------------------ | --------------------------------------------------------------- | --------------------------- |
+| Master harness           | `verify:local-production-shaped`                                | done                        |
+| PG backup/restore drill  | `local:pg:backup` + `local:pg:restore-drill`                    | done (2026-08-07)           |
+| Storage / ClamAV         | `storage:verify-pipeline`                                       | done                        |
+| Jobs                     | `jobs:verify-local`                                             | done                        |
+| Auth                     | `verify:auth-production` + boundary                             | done                        |
+| Domains                  | harness domains group                                           | done (run `--full` for all) |
+| CMS-7 media uploads      | blog/news/resource covers + `cmsBlogCoverUploadOk`              | done                        |
+| CMS-10 sitemap/redirects | `app/sitemap.ts` + governance `urlRedirects` + `cmsRedirectsOk` | done                        |
+| Convex gone              | `migration:prove-decommission-status`                           | green                       |
+| Cloud fence              | `productionReady: false`                                        | must stay false             |
 
 ---
 
@@ -93,10 +93,11 @@ Hosting, managed Postgres HA/PITR, Hercules IdP/JWKS, live email/SMS, vault-mana
 
 ## Baseline run log
 
-| When | Mode | Result | Notes |
-| --- | --- | --- | --- |
-| 2026-08-07 | infra + auth + cms | PASS | backup/restore, storage pipeline, auth-production, cms:verify-local (+ CMS-7/10 flags) |
-| 2026-08-07 | `migration:prove-cutover-rehearsal` | PASS | Implicit `VITE_BACKEND_*=next` after Convex decommission; CMS nav order-slot reclaim |
-| 2026-08-07 | `verify:local-production-shaped` | **PASS 15/15** | standard mode; cutover green; cloud fence `productionReady: false` intact |
+| When       | Mode                                       | Result         | Notes                                                                                                                             |
+| ---------- | ------------------------------------------ | -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-07 | infra + auth + cms                         | PASS           | backup/restore, storage pipeline, auth-production, cms:verify-local (+ CMS-7/10 flags)                                            |
+| 2026-08-07 | `migration:prove-cutover-rehearsal`        | PASS           | Implicit `VITE_BACKEND_*=next` after Convex decommission; CMS nav order-slot reclaim                                              |
+| 2026-08-07 | `verify:local-production-shaped`           | **PASS 15/15** | standard mode; cutover green; cloud fence `productionReady: false` intact                                                         |
+| 2026-08-31 | `verify:local-production-shaped -- --full` | **PASS 23/23** | all infrastructure, auth, domain, migration, retry, idempotency, tenant and 83-route URL proofs green; cloud fence remains intact |
 
 **Flag note:** After R8 decommission, unset `VITE_BACKEND_*` means Next-only (`next` implicit). Explicit `convex`/`shadow` still fails the cutover prove.

@@ -7,9 +7,8 @@ import { ArrowRight, BookOpen, ChevronDown, ChevronRight, HelpCircle } from "luc
 import { usePracticeArea, usePracticeAreas, usePublicTeam } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
-import {
-  consultationHrefForPracticeArea,
-} from "@/shared/practice-areas-visibility";
+import { serializeJsonLd } from "@/shared/seo/serialize-json-ld";
+import { consultationHrefForPracticeArea } from "@/shared/practice-areas-visibility";
 import {
   PracticeAreaConsultSidebar,
   PracticeAreaLawyersList,
@@ -119,12 +118,11 @@ export default function PracticeAreaDetailPage({ slug }: { slug: string }) {
     <div className="w-full min-w-0 overflow-x-clip">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <section className="relative bg-primary overflow-hidden">
         {area.coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={String(area.coverImageUrl)}
             alt=""
@@ -211,7 +209,9 @@ export default function PracticeAreaDetailPage({ slug }: { slug: string }) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <h2 className="font-serif text-2xl font-bold text-foreground mb-4">Common questions</h2>
+                <h2 className="font-serif text-2xl font-bold text-foreground mb-4">
+                  Common questions
+                </h2>
                 <div className="border border-border rounded-xl px-4 sm:px-5 bg-card">
                   {faqs.map((faq, i) => (
                     <FAQAccordionItem
@@ -245,12 +245,7 @@ export default function PracticeAreaDetailPage({ slug }: { slug: string }) {
           </div>
 
           <aside className="space-y-5 lg:sticky lg:top-28 self-start min-w-0">
-            <PracticeAreaConsultSidebar
-              title={title}
-              slug={areaSlug}
-              phone={phone}
-              email={email}
-            />
+            <PracticeAreaConsultSidebar title={title} slug={areaSlug} phone={phone} email={email} />
             <PracticeAreaLawyersList lawyers={lawyers} />
             <PracticeAreaRelatedList areas={allAreas} currentSlug={areaSlug} />
           </aside>
@@ -266,7 +261,11 @@ export default function PracticeAreaDetailPage({ slug }: { slug: string }) {
             Book a consultation or message our intake team — we respond during business hours.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href={consultHref} className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>

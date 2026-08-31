@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { usePracticeAreas, usePublicTeam, usePublicTeamMember } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import { serializeJsonLd } from "@/shared/seo/serialize-json-ld";
 import { resolvePublicTitle } from "@/shared/leadership";
 import { consultationHrefForLawyer } from "@/shared/lawyers-visibility";
 import { normalizePracticeAreaKey } from "@/shared/practice-areas-visibility";
@@ -84,9 +85,7 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
   const languages: string[] = Array.isArray(lawyer.languages) ? lawyer.languages : [];
   const firstArea = practiceAreas[0];
   const consultHref = consultationHrefForLawyer(lawyerId, firstArea);
-  const related = colleagues
-    .filter((m: any) => String(m.id || m._id) !== lawyerId)
-    .slice(0, 4);
+  const related = colleagues.filter((m: any) => String(m.id || m._id) !== lawyerId).slice(0, 4);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -114,7 +113,10 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
 
   return (
     <div className="w-full min-w-0 overflow-x-clip pb-24 lg:pb-0">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
 
       <section className="relative bg-primary overflow-hidden">
         <div
@@ -126,16 +128,24 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-primary-foreground/60 mb-6">
-              <Link href="/" className="hover:text-accent">Home</Link>
+            <nav
+              aria-label="Breadcrumb"
+              className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-primary-foreground/60 mb-6"
+            >
+              <Link href="/" className="hover:text-accent">
+                Home
+              </Link>
               <ChevronRight className="w-3.5 h-3.5" />
-              <Link href="/lawyers" className="hover:text-accent">Our Team</Link>
+              <Link href="/lawyers" className="hover:text-accent">
+                Our Team
+              </Link>
               <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-primary-foreground/90 truncate max-w-[10rem] sm:max-w-none">{lawyer.name}</span>
+              <span className="text-primary-foreground/90 truncate max-w-[10rem] sm:max-w-none">
+                {lawyer.name}
+              </span>
             </nav>
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               {lawyer.avatarUrl || lawyer.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={String(lawyer.avatarUrl || lawyer.avatar)}
                   alt=""
@@ -163,7 +173,11 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                     </Link>
                   </Button>
                   {lawyer.publicEmail && (
-                    <Button asChild variant="secondary" className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
+                    <Button
+                      asChild
+                      variant="secondary"
+                      className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20"
+                    >
                       <a href={`mailto:${lawyer.publicEmail}`} className="gap-2">
                         <Mail className="w-4 h-4" /> Email
                       </a>
@@ -202,14 +216,19 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                           if (slug) {
                             return (
                               <Link key={area} href={`/practice-areas/${slug}`}>
-                                <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground cursor-pointer">
+                                <Badge
+                                  variant="secondary"
+                                  className="hover:bg-primary hover:text-primary-foreground cursor-pointer"
+                                >
                                   {area}
                                 </Badge>
                               </Link>
                             );
                           }
                           return (
-                            <Badge key={area} variant="secondary">{area}</Badge>
+                            <Badge key={area} variant="secondary">
+                              {area}
+                            </Badge>
                           );
                         })}
                       </div>
@@ -227,7 +246,8 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                           <li key={i}>
                             <span className="font-semibold text-foreground">{edu.degree}</span>
                             <span className="text-muted-foreground block">
-                              {edu.institution}{edu.year ? `, ${edu.year}` : ""}
+                              {edu.institution}
+                              {edu.year ? `, ${edu.year}` : ""}
                             </span>
                           </li>
                         ))}
@@ -256,7 +276,9 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                 <Calendar className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-serif text-xl font-bold">Prefer to speak with {String(lawyer.name).split(" ")[0]}?</h3>
+                <h3 className="font-serif text-xl font-bold">
+                  Prefer to speak with {String(lawyer.name).split(" ")[0]}?
+                </h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   Book a consultation and we will reserve time with this advocate when available.
                 </p>
@@ -278,7 +300,10 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
               <p className="text-sm text-muted-foreground">
                 Free initial consultation. Slots are checked against this advocate’s calendar.
               </p>
-              <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+              <Button
+                asChild
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              >
                 <Link href={consultHref} className="gap-2">
                   Book Consultation <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -286,21 +311,30 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
               <ul className="pt-2 space-y-2 text-sm text-muted-foreground border-t border-border">
                 {lawyer.publicPhone && (
                   <li>
-                    <a href={`tel:${lawyer.publicPhone}`} className="inline-flex items-center gap-2 hover:text-primary">
+                    <a
+                      href={`tel:${lawyer.publicPhone}`}
+                      className="inline-flex items-center gap-2 hover:text-primary"
+                    >
                       <Phone className="w-4 h-4" /> {lawyer.publicPhone}
                     </a>
                   </li>
                 )}
                 {lawyer.publicEmail && (
                   <li>
-                    <a href={`mailto:${lawyer.publicEmail}`} className="inline-flex items-center gap-2 hover:text-primary break-all">
+                    <a
+                      href={`mailto:${lawyer.publicEmail}`}
+                      className="inline-flex items-center gap-2 hover:text-primary break-all"
+                    >
                       <Mail className="w-4 h-4 shrink-0" /> {lawyer.publicEmail}
                     </a>
                   </li>
                 )}
                 {!lawyer.publicPhone && settings?.phone && (
                   <li>
-                    <a href={`tel:${settings.phone}`} className="inline-flex items-center gap-2 hover:text-primary">
+                    <a
+                      href={`tel:${settings.phone}`}
+                      className="inline-flex items-center gap-2 hover:text-primary"
+                    >
                       <Phone className="w-4 h-4" /> {String(settings.phone)}
                     </a>
                   </li>
@@ -308,12 +342,22 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
               </ul>
               <div className="flex gap-3 pt-1">
                 {lawyer.linkedinUrl && (
-                  <a href={lawyer.linkedinUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                  <a
+                    href={lawyer.linkedinUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     <Linkedin className="w-5 h-5" />
                   </a>
                 )}
                 {lawyer.twitterUrl && (
-                  <a href={lawyer.twitterUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                  <a
+                    href={lawyer.twitterUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     <Twitter className="w-5 h-5" />
                   </a>
                 )}
@@ -334,7 +378,9 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                 {lawyer.barCouncilExpiry && (
                   <p>
                     <span className="text-muted-foreground">Licence expiry</span>{" "}
-                    <span className="font-medium">{String(lawyer.barCouncilExpiry).slice(0, 10)}</span>
+                    <span className="font-medium">
+                      {String(lawyer.barCouncilExpiry).slice(0, 10)}
+                    </span>
                   </p>
                 )}
                 {lawyer.yearsExperience != null && (
@@ -365,15 +411,22 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                             {String(m.name ?? "?").slice(0, 1)}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium group-hover:text-accent truncate">{m.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{resolvePublicTitle(m)}</p>
+                            <p className="text-sm font-medium group-hover:text-accent truncate">
+                              {m.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {resolvePublicTitle(m)}
+                            </p>
                           </div>
                         </Link>
                       </li>
                     );
                   })}
                 </ul>
-                <Link href="/lawyers" className="inline-flex items-center gap-1.5 text-xs font-medium text-accent mt-4">
+                <Link
+                  href="/lawyers"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-accent mt-4"
+                >
                   View all <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -391,12 +444,21 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
             Book a consultation or contact our intake team for matter intake.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href={consultHref} className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="secondary" className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20"
+            >
               <Link href="/contact">Contact us</Link>
             </Button>
           </div>

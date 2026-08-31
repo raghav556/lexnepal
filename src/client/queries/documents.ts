@@ -19,11 +19,7 @@ async function sha256Hex(file: File): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function uploadViaIntent(input: {
-  file: File;
-  caseId?: string;
-  parentDocumentId?: string;
-}) {
+async function uploadViaIntent(input: { file: File; caseId?: string; parentDocumentId?: string }) {
   const sha256 = await sha256Hex(input.file);
   const intent = await apiClient.request<{
     intentId: string;
@@ -257,7 +253,9 @@ export function useShareDocument(): (input: {
           "/api/v1/documents/" + input.documentId + "/share",
           { method: "POST", body: input.shareData },
         );
-        await queryClient.invalidateQueries({ queryKey: ["documents", "shares", input.documentId] });
+        await queryClient.invalidateQueries({
+          queryKey: ["documents", "shares", input.documentId],
+        });
         return result.token;
       } catch (error) {
         throw normalizeApiError(error);

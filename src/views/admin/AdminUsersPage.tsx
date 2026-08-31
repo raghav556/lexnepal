@@ -4,16 +4,31 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
-import { useAuditEvents, useIdentityCommands, useSessions, useUsers } from "@/client/queries/identity";
+import {
+  useAuditEvents,
+  useIdentityCommands,
+  useSessions,
+  useUsers,
+} from "@/client/queries/identity";
 import { useClients } from "@/client/queries/clients";
-import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Sheet, SheetContent } from "@/components/ui/sheet.tsx";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
@@ -40,16 +55,22 @@ import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
 import { inviteEmailQueuedMessage } from "@/lib/invite-copy.ts";
 import type { UserRole } from "@/hooks/use-current-user.ts";
-
-const ROLE_COLORS: Record<string, string> = {
-  partner: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  senior_associate: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  associate: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400",
-  paralegal: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  intern: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-  admin: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  client: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
-};
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardListSkeleton,
+  DashboardStatusLabel,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeaderCell,
+  DashboardTableRow,
+  EmptyState,
+  PortalPageShell,
+  getDashboardRoleTone,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 const ALL_ROLES: UserRole[] = [
   "partner",
@@ -100,15 +121,23 @@ function userKey(u: { _id?: string; id?: string }) {
 export default function AdminUsersPage() {
   const users = useUsers();
   const crmClients = useClients();
-  const { updateUser, createUser, resendInvitation, sendPasswordReset, revokeAllSessions, resetMfa } =
-    useIdentityCommands();
+  const {
+    updateUser,
+    createUser,
+    resendInvitation,
+    sendPasswordReset,
+    revokeAllSessions,
+    resetMfa,
+  } = useIdentityCommands();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftRole, setDraftRole] = useState<UserRole>("client");
   const [saving, setSaving] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "pending">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "pending">(
+    "all",
+  );
   const [activeTab, setActiveTab] = useState("staff");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -145,9 +174,7 @@ export default function AdminUsersPage() {
   const isPublicTeamEligible =
     selectedUser && PUBLIC_ROLES.includes(selectedUser.role as (typeof PUBLIC_ROLES)[number]);
   const isHrEligible =
-    selectedUser &&
-    selectedUser.role !== "client" &&
-    selectedUser.role !== "admin";
+    selectedUser && selectedUser.role !== "client" && selectedUser.role !== "admin";
 
   useEffect(() => {
     if (selectedUser) {
@@ -416,15 +443,8 @@ export default function AdminUsersPage() {
       return matchesSearch && matchesStatus && matchesTab;
     }) || [];
 
-  const {
-    paginatedItems,
-    currentPage,
-    totalPages,
-    goToPage,
-    nextPage,
-    prevPage,
-    resetPagination,
-  } = usePagination(filteredUsers, 15);
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } =
+    usePagination(filteredUsers, 15);
 
   useEffect(() => {
     resetPagination();
@@ -440,28 +460,6 @@ export default function AdminUsersPage() {
         STAFF_ROLES.includes(u.role as (typeof STAFF_ROLES)[number]) && u.isActive && !u.isPending,
     ).length || 0;
 
-  const kpiCards = [
-    { label: "Total Users", value: totalUsers, icon: User, iconClass: "bg-primary/10 text-primary" },
-    {
-      label: "Active Staff",
-      value: totalStaff,
-      icon: Briefcase,
-      iconClass: "bg-blue-500/10 text-blue-500",
-    },
-    {
-      label: "Pending Invites",
-      value: pendingUsers,
-      icon: Clock,
-      iconClass: "bg-amber-500/10 text-amber-500",
-    },
-    {
-      label: "Clients",
-      value: totalClients,
-      icon: UserPlus,
-      iconClass: "bg-green-500/10 text-green-500",
-    },
-  ];
-
   const pageIds = paginatedItems.map((u) => userKey(u)).filter(Boolean);
   const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
 
@@ -475,46 +473,43 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 w-full min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
-            Directory
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Firm identity console — invite, roles, access, and linked records.
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto shrink-0">
+    <PortalPageShell
+      portal="admin"
+      loading={users === undefined}
+      loadingLabel="Loading directory…"
+      decorated
+      showTodayDate
+      eyebrow="Identity & access"
+      titleKey="portal.users.title"
+      descriptionKey="portal.users.description"
+      icon={User}
+      actions={
+        <DashboardButton
+          size="sm"
+          onClick={() => setIsCreateOpen(true)}
+          className="w-full sm:w-auto shrink-0"
+        >
           <UserPlus className="w-4 h-4 mr-2" /> Invite user
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpiCards.map(({ label, value, icon: Icon, iconClass }) => (
-          <Card key={label} className="bg-card min-w-0 overflow-hidden">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] sm:text-xs text-muted-foreground font-medium leading-snug">
-                    {label}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1 tabular-nums leading-none">
-                    {value}
-                  </p>
-                </div>
-                <div
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg shrink-0 flex items-center justify-center ${iconClass}`}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 bg-card p-3 rounded-xl border border-border min-w-0">
+        </DashboardButton>
+      }
+      metrics={[
+        {
+          label: "Total users",
+          value: totalUsers,
+          icon: User,
+          tone: DASHBOARD_METRIC_TONES.people,
+        },
+        {
+          label: "Active staff",
+          value: totalStaff,
+          icon: Briefcase,
+          tone: DASHBOARD_METRIC_TONES.cases,
+        },
+        { label: "Pending invites", value: pendingUsers, icon: Clock, tone: "warning" },
+        { label: "Clients", value: totalClients, icon: UserPlus, tone: "success" },
+      ]}
+    >
+      <DashboardFilterBar className="bg-card p-3 rounded-xl border border-border min-w-0">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -545,7 +540,7 @@ export default function AdminUsersPage() {
         >
           <Download className="w-4 h-4 mr-2" /> Export CSV
         </Button>
-      </div>
+      </DashboardFilterBar>
 
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-3 rounded-xl border border-border">
@@ -565,13 +560,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {users === undefined && (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      )}
+      {users === undefined && <DashboardListSkeleton rows={5} />}
 
       {users !== undefined && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -587,174 +576,161 @@ export default function AdminUsersPage() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[720px]">
-                <thead className="bg-muted/40 text-muted-foreground border-b border-border">
-                  <tr>
-                    <th scope="col" className="px-3 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={allPageSelected}
-                        onChange={toggleSelectAllPage}
-                        className="h-4 w-4 rounded border-border"
-                        aria-label="Select page"
-                      />
-                    </th>
-                    <th scope="col" className="px-3 py-3 font-medium">Person</th>
-                    <th scope="col" className="px-3 py-3 font-medium">Role</th>
-                    <th scope="col" className="px-3 py-3 font-medium">Status</th>
-                    <th scope="col" className="px-3 py-3 font-medium">Last login</th>
-                    <th scope="col" className="px-3 py-3 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paginatedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-10 text-center text-muted-foreground">
-                        No users match these filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedItems.map((u) => {
-                      const barExpiryDate = u.barCouncilExpiry
-                        ? new Date(u.barCouncilExpiry)
-                        : null;
-                      const isExpiringSoon =
-                        barExpiryDate &&
-                        barExpiryDate < new Date(Date.now() + 90 * 86400000);
-                      const rowId = userKey(u);
-                      const isEditing = editingId === rowId;
-                      const isSelected = selectedIds.has(rowId);
-                      const isRowOpen = selectedUser ? userKey(selectedUser) === rowId : false;
+          {paginatedItems.length === 0 ? (
+            <EmptyState
+              title="No users found"
+              description="No users match these filters."
+              icon={User}
+            />
+          ) : (
+            <DashboardTable>
+              <DashboardTableHead>
+                <tr>
+                  <DashboardTableHeaderCell className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={allPageSelected}
+                      onChange={toggleSelectAllPage}
+                      className="h-4 w-4 rounded border-border"
+                      aria-label="Select page"
+                    />
+                  </DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Person</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Role</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Last login</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell className="text-right">
+                    Actions
+                  </DashboardTableHeaderCell>
+                </tr>
+              </DashboardTableHead>
+              <DashboardTableBody>
+                {paginatedItems.map((u) => {
+                  const barExpiryDate = u.barCouncilExpiry ? new Date(u.barCouncilExpiry) : null;
+                  const isExpiringSoon =
+                    barExpiryDate && barExpiryDate < new Date(Date.now() + 90 * 86400000);
+                  const rowId = userKey(u);
+                  const isEditing = editingId === rowId;
+                  const isSelected = selectedIds.has(rowId);
+                  const isRowOpen = selectedUser ? userKey(selectedUser) === rowId : false;
 
-                      return (
-                        <tr
-                          key={rowId}
-                          className={`cursor-pointer transition-colors hover:bg-muted/30 ${
-                            !u.isActive ? "opacity-70" : ""
-                          } ${isRowOpen ? "bg-primary/5" : ""} ${isSelected ? "bg-muted/40" : ""}`}
+                  return (
+                    <DashboardTableRow
+                      key={rowId}
+                      striped
+                      className={`cursor-pointer ${!u.isActive ? "opacity-70" : ""} ${
+                        isRowOpen ? "bg-dashboard-primary-soft/40" : ""
+                      } ${isSelected ? "bg-dashboard-neutral-soft/60" : ""}`}
+                      onClick={() => setSelectedUser(u)}
+                    >
+                      <DashboardTableCell onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => toggleSelect(e, rowId)}
+                          className="h-4 w-4 rounded border-border"
+                          aria-label={`Select ${u.name}`}
+                        />
+                      </DashboardTableCell>
+                      <DashboardTableCell className="min-w-0">
+                        <div className="font-medium text-foreground truncate max-w-[220px]">
+                          {u.name ?? "Unnamed"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[240px]">
+                          {u.email ?? "—"}
+                        </div>
+                        {u.barCouncilNumber && (
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                            Bar {u.barCouncilNumber}
+                            {isExpiringSoon && (
+                              <span className="inline-flex items-center gap-0.5 text-amber-600">
+                                <AlertTriangle className="w-3 h-3" /> soon
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </DashboardTableCell>
+                      <DashboardTableCell onClick={(e) => e.stopPropagation()}>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <Select
+                              value={draftRole}
+                              onValueChange={(v) => setDraftRole(v as UserRole)}
+                            >
+                              <SelectTrigger className="h-8 text-xs w-36">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ALL_ROLES.map((r) => (
+                                  <SelectItem key={r} value={r}>
+                                    {ROLE_LABELS[r]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-green-600"
+                              disabled={saving}
+                              onClick={(e) => saveRole(e, rowId)}
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={cancelEdit}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-left"
+                            onClick={(e) => startEdit(e, rowId, u.role)}
+                          >
+                            <DashboardStatusLabel
+                              tone={getDashboardRoleTone(u.role)}
+                              label={ROLE_LABELS[u.role]}
+                              className="text-xs"
+                            />
+                          </button>
+                        )}
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        {u.isPending ? (
+                          <DashboardStatusLabel status="pending" className="text-[10px]" />
+                        ) : !u.isActive ? (
+                          <DashboardStatusLabel status="suspended" className="text-[10px]" />
+                        ) : (
+                          <DashboardStatusLabel status="active" className="text-[10px]" />
+                        )}
+                      </DashboardTableCell>
+                      <DashboardTableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "—"}
+                      </DashboardTableCell>
+                      <DashboardTableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
                           onClick={() => setSelectedUser(u)}
                         >
-                          <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => toggleSelect(e, rowId)}
-                              className="h-4 w-4 rounded border-border"
-                              aria-label={`Select ${u.name}`}
-                            />
-                          </td>
-                          <td className="px-3 py-3 min-w-0">
-                            <div className="font-medium text-foreground truncate max-w-[220px]">
-                              {u.name ?? "Unnamed"}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[240px]">
-                              {u.email ?? "—"}
-                            </div>
-                            {u.barCouncilNumber && (
-                              <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                                Bar {u.barCouncilNumber}
-                                {isExpiringSoon && (
-                                  <span className="inline-flex items-center gap-0.5 text-amber-600">
-                                    <AlertTriangle className="w-3 h-3" /> soon
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                            {isEditing ? (
-                              <div className="flex items-center gap-1">
-                                <Select
-                                  value={draftRole}
-                                  onValueChange={(v) => setDraftRole(v as UserRole)}
-                                >
-                                  <SelectTrigger className="h-8 text-xs w-36">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {ALL_ROLES.map((r) => (
-                                      <SelectItem key={r} value={r}>
-                                        {ROLE_LABELS[r]}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 text-green-600"
-                                  disabled={saving}
-                                  onClick={(e) => saveRole(e, rowId)}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={cancelEdit}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className="text-left"
-                                onClick={(e) => startEdit(e, rowId, u.role)}
-                              >
-                                <Badge className={`text-xs ${ROLE_COLORS[u.role]}`}>
-                                  {ROLE_LABELS[u.role]}
-                                </Badge>
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-3 py-3">
-                            {u.isPending ? (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400"
-                              >
-                                Pending
-                              </Badge>
-                            ) : !u.isActive ? (
-                              <Badge variant="destructive" className="text-[10px]">
-                                Suspended
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] border-green-600/40 text-green-700 dark:text-green-400"
-                              >
-                                Active
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                            {u.lastLoginAt
-                              ? new Date(u.lastLoginAt).toLocaleString()
-                              : "—"}
-                          </td>
-                          <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 text-xs"
-                              onClick={() => setSelectedUser(u)}
-                            >
-                              Open
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          Open
+                        </Button>
+                      </DashboardTableCell>
+                    </DashboardTableRow>
+                  );
+                })}
+              </DashboardTableBody>
+            </DashboardTable>
+          )}
 
           <Pagination
             currentPage={currentPage}
@@ -852,12 +828,22 @@ export default function AdminUsersPage() {
                     {selectedUser.name}
                   </div>
                   <div className="flex gap-1.5 mt-1 flex-wrap">
-                    <Badge className={`text-xs ${ROLE_COLORS[selectedUser.role]}`}>
-                      {ROLE_LABELS[selectedUser.role]}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {statusLabel(selectedUser)}
-                    </Badge>
+                    <DashboardStatusLabel
+                      tone={getDashboardRoleTone(selectedUser.role)}
+                      label={ROLE_LABELS[selectedUser.role]}
+                      className="text-xs"
+                    />
+                    <DashboardStatusLabel
+                      label={statusLabel(selectedUser)}
+                      status={
+                        selectedUser.isPending
+                          ? "pending"
+                          : !selectedUser.isActive
+                            ? "suspended"
+                            : "active"
+                      }
+                      className="text-xs"
+                    />
                   </div>
                 </div>
               </div>
@@ -976,16 +962,9 @@ export default function AdminUsersPage() {
                     Two-factor auth
                   </span>
                   {selectedUser.twoFactorEnabled ? (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] text-green-700 border-green-600/50"
-                    >
-                      Enabled
-                    </Badge>
+                    <DashboardStatusLabel tone="success" label="Enabled" className="text-[10px]" />
                   ) : (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Disabled
-                    </Badge>
+                    <DashboardStatusLabel tone="neutral" label="Disabled" className="text-[10px]" />
                   )}
                 </div>
                 {selectedUser.twoFactorEnabled && (
@@ -1068,6 +1047,6 @@ export default function AdminUsersPage() {
           if (!open) setConfirm(null);
         }}
       />
-    </div>
+    </PortalPageShell>
   );
 }

@@ -42,7 +42,9 @@ async function main() {
   }
   console.log("3. Directory page renders");
 
-  const missing = await fetch(`${BASE}/api/v1/public/cms/team/00000000-0000-4000-8000-000000000099`);
+  const missing = await fetch(
+    `${BASE}/api/v1/public/cms/team/00000000-0000-4000-8000-000000000099`,
+  );
   if (missing.status !== 404) throw new Error(`Expected 404 for unknown id, got ${missing.status}`);
   console.log("4. Unknown id → 404");
 
@@ -131,9 +133,7 @@ async function main() {
   }
   console.log("7. Sitemap includes lawyer profile");
 
-  const consult = await fetch(
-    `${BASE}/consultation?lawyerId=${encodeURIComponent(featured.id)}`,
-  );
+  const consult = await fetch(`${BASE}/consultation?lawyerId=${encodeURIComponent(featured.id)}`);
   if (!consult.ok) throw new Error(`Consultation page failed: ${consult.status}`);
   console.log("8. Consultation deep-link page OK");
 

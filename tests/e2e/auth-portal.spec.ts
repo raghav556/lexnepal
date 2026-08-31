@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 type PortalCase = {
   label: string;
@@ -30,6 +31,7 @@ const PORTALS: PortalCase[] = [
 ];
 
 async function signIn(page: Page, email: string) {
+  await prepareE2eAuth(page, email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.locator("#password").fill(E2E_PASSWORD);

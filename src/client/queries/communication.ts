@@ -137,12 +137,7 @@ export function useNotificationCommands() {
 
 export function useEmailCommands() {
   const sendEmail = useMutation({
-    mutationFn: async (args: {
-      to: string;
-      subject: string;
-      body: string;
-      relatedId?: string;
-    }) => {
+    mutationFn: async (args: { to: string; subject: string; body: string; relatedId?: string }) => {
       try {
         return await apiClient.request("/api/v1/communications/email", {
           method: "POST",

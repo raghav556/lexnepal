@@ -5,10 +5,7 @@ import type { AuthPrincipal } from "@/server/auth/types";
 import { getDatabase } from "@/server/db/client";
 import { auditLog } from "@/server/db/schema";
 import { getJobRepository } from "@/server/jobs/runtime";
-import {
-  requireCaseAccess,
-  requireFirmContext,
-} from "@/server/policies/authorization";
+import { requireCaseAccess, requireFirmContext } from "@/server/policies/authorization";
 import { CommunicationRepository } from "@/server/repositories/communication-repository";
 import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
 import type {

@@ -11,17 +11,20 @@ export const GET = withApiHandler("/api/v1/financial/time-entries", async ({ req
   return jsonResponse({ data: await getFinancialService().listTimeEntries(principal, input) });
 });
 
-export const POST = withApiHandler("/api/v1/financial/time-entries", async ({ request, requestId }) => {
-  const principal = await requireSession(request);
-  const input = timeEntryCreateSchema.parse(await request.json());
-  return jsonResponse(
-    {
-      data: await getFinancialService().createTimeEntry(
-        principal,
-        input,
-        buildAuditContext(request, requestId, principal),
-      ),
-    },
-    { status: 201 },
-  );
-});
+export const POST = withApiHandler(
+  "/api/v1/financial/time-entries",
+  async ({ request, requestId }) => {
+    const principal = await requireSession(request);
+    const input = timeEntryCreateSchema.parse(await request.json());
+    return jsonResponse(
+      {
+        data: await getFinancialService().createTimeEntry(
+          principal,
+          input,
+          buildAuditContext(request, requestId, principal),
+        ),
+      },
+      { status: 201 },
+    );
+  },
+);

@@ -24,6 +24,7 @@ const AUTH_HEADERS = {
   "content-type": "application/json",
   origin: BASE.replace(/\/$/, ""),
   referer: `${BASE}/sign-in`,
+  "x-forwarded-for": "127.0.0.33",
 };
 
 function parseCookies(setCookieHeaders: string[]) {
@@ -104,7 +105,10 @@ async function main() {
   );
   clientJar = sendClient.jar;
   const sendClientText = await sendClient.res.text();
-  assert(sendClient.res.ok, `client send failed ${sendClient.res.status}: ${sendClientText.slice(0, 300)}`);
+  assert(
+    sendClient.res.ok,
+    `client send failed ${sendClient.res.status}: ${sendClientText.slice(0, 300)}`,
+  );
 
   const db = getDatabase();
   const [staffUser] = await db
@@ -120,7 +124,10 @@ async function main() {
     .where(and(eq(notifications.userId, staffUser.id), eq(notifications.type, "message")))
     .orderBy(desc(notifications.createdAt))
     .limit(1);
-  assert(staffNotif?.link?.includes("/staff/messages?caseId="), `staff notif link bad: ${staffNotif?.link}`);
+  assert(
+    staffNotif?.link?.includes("/staff/messages?caseId="),
+    `staff notif link bad: ${staffNotif?.link}`,
+  );
   assert(
     staffNotif.link?.includes(seeded.caseId),
     `staff notif caseId mismatch: ${staffNotif.link}`,
@@ -129,9 +136,13 @@ async function main() {
 
   console.log("2. Staff Messages page + Client Reply…");
   const staffJar = await signIn(E2E_USERS.staff.email, E2E_PASSWORD);
-  const pageRes = await fetchWithCookies(`${BASE}/staff/messages?caseId=${seeded.caseId}`, {
-    headers: { cookie: cookieHeader(staffJar) },
-  }, staffJar);
+  const pageRes = await fetchWithCookies(
+    `${BASE}/staff/messages?caseId=${seeded.caseId}`,
+    {
+      headers: { cookie: cookieHeader(staffJar) },
+    },
+    staffJar,
+  );
   assert([200, 307, 308].includes(pageRes.res.status), `staff messages page ${pageRes.res.status}`);
 
   const listRes = await fetchWithCookies(
@@ -155,7 +166,10 @@ async function main() {
     staffJar,
   );
   const sendStaffText = await sendStaff.res.text();
-  assert(sendStaff.res.ok, `staff send failed ${sendStaff.res.status}: ${sendStaffText.slice(0, 300)}`);
+  assert(
+    sendStaff.res.ok,
+    `staff send failed ${sendStaff.res.status}: ${sendStaffText.slice(0, 300)}`,
+  );
 
   const [clientUser] = await db
     .select({ id: users.id })

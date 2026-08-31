@@ -42,7 +42,9 @@ export function TotpEnrollmentPanel({
           {enrollment.secret ? (
             <div>
               <p className="text-xs font-medium text-foreground">Manual entry key</p>
-              <code className="mt-1 block break-all rounded-md bg-muted p-2 text-xs">{enrollment.secret}</code>
+              <code className="mt-1 block break-all rounded-md bg-muted p-2 text-xs">
+                {enrollment.secret}
+              </code>
             </div>
           ) : null}
         </div>
@@ -54,7 +56,9 @@ export function TotpEnrollmentPanel({
           <code className="block whitespace-pre-wrap rounded-md bg-muted p-3 text-xs leading-relaxed">
             {enrollment.backupCodes.join("\n")}
           </code>
-          <p className="text-xs text-muted-foreground">Store these codes securely. They are shown once.</p>
+          <p className="text-xs text-muted-foreground">
+            Store these codes securely. They are shown once.
+          </p>
         </div>
       ) : null}
 

@@ -2,9 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label";
 import { useBlogPosts, useCmsCommands, useCmsSettings } from "@/client/queries/cms";
@@ -37,6 +35,13 @@ import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import ReactMarkdown from "react-markdown";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardSection,
+  DashboardStatusLabel,
+  PortalPageShell,
+} from "@/components/dashboard";
 import type { BlogEditorialStatus } from "@/shared/blog-visibility";
 
 type StatusFilter = "all" | "pending_review" | "published" | "draft" | "rejected";
@@ -142,9 +147,7 @@ export default function AdminCMSBlog() {
     if (!user) return;
     try {
       const publishDate =
-        formData.status === "published"
-          ? formData.publishDate || new Date().toISOString()
-          : "";
+        formData.status === "published" ? formData.publishDate || new Date().toISOString() : "";
       const payload = {
         title: formData.title,
         slug: formData.slug,
@@ -226,59 +229,61 @@ export default function AdminCMSBlog() {
   const statusBadge = (status: string) => {
     if (status === "published") {
       return (
-        <Badge variant="default" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
-          <CheckCircle2 className="w-3 h-3" />
-          {status}
-        </Badge>
+        <DashboardStatusLabel
+          status="published"
+          icon={CheckCircle2}
+          className="uppercase tracking-wider text-[10px] whitespace-nowrap"
+        />
       );
     }
     if (status === "pending_review") {
       return (
-        <Badge variant="secondary" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
-          <Clock className="w-3 h-3" />
-          pending
-        </Badge>
+        <DashboardStatusLabel
+          status="pending_review"
+          label="Pending"
+          icon={Clock}
+          className="uppercase tracking-wider text-[10px] whitespace-nowrap"
+        />
       );
     }
     if (status === "rejected") {
       return (
-        <Badge variant="destructive" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
-          <XCircle className="w-3 h-3" />
-          rejected
-        </Badge>
+        <DashboardStatusLabel
+          status="rejected"
+          icon={XCircle}
+          className="uppercase tracking-wider text-[10px] whitespace-nowrap"
+        />
       );
     }
     return (
-      <Badge variant="outline" className="uppercase tracking-wider text-[10px] gap-1 whitespace-nowrap">
-        <Clock className="w-3 h-3" />
-        {status}
-      </Badge>
+      <DashboardStatusLabel
+        status={status || "draft"}
+        icon={Clock}
+        className="uppercase tracking-wider text-[10px] whitespace-nowrap"
+      />
     );
   };
 
-  const statusLocked =
-    formData.status === "pending_review" || formData.status === "rejected";
+  const statusLocked = formData.status === "pending_review" || formData.status === "rejected";
 
   return (
-    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Blog Articles</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage and publish articles to the public knowledge base.
-          </p>
-        </div>
-        <Button onClick={() => handleOpenModal()} className="gap-2 shrink-0 w-full sm:w-auto">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      eyebrow="Content management"
+      title="Blog Articles"
+      description="Manage and publish articles to the public knowledge base."
+      icon={FileText}
+      actions={
+        <DashboardButton onClick={() => handleOpenModal()} className="w-full sm:w-auto">
           <Plus className="w-4 h-4" /> New Article
-        </Button>
-      </div>
-
-      <Card className="border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Public page chrome</CardTitle>
-          <CardDescription>Hero copy for /blog</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        </DashboardButton>
+      }
+      contentClassName="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
+      <DashboardSection title="Public page chrome" description="Hero copy for /blog">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="blog-hero-title">Hero title</Label>
             <Input
@@ -297,8 +302,8 @@ export default function AdminCMSBlog() {
               onBlur={() => saveHeroSetting("blogHeroSubtitle", heroSubtitle)}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
 
       <div className="flex flex-wrap gap-2">
         {(
@@ -321,17 +326,19 @@ export default function AdminCMSBlog() {
         ))}
       </div>
 
-      <Card className="border-border overflow-hidden min-w-0">
-        <div className="p-3 sm:p-4 border-b border-border bg-muted/30 flex items-center gap-2 min-w-0">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-          <Input
-            type="text"
-            placeholder="Search title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-2 h-8 min-w-0 w-full"
-          />
-        </div>
+      <DashboardSection title="Articles" icon={FileText} className="min-w-0 overflow-hidden">
+        <DashboardFilterBar className="mb-4 border-b border-dashboard-border pb-4">
+          <div className="relative flex-1 min-w-0 flex items-center gap-2">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Input
+              type="text"
+              placeholder="Search title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 min-w-0 w-full"
+            />
+          </div>
+        </DashboardFilterBar>
 
         <div className="md:hidden divide-y divide-border">
           {filteredPosts.length === 0 ? (
@@ -348,12 +355,16 @@ export default function AdminCMSBlog() {
                   <p className="text-xs text-muted-foreground truncate">{post.slug}</p>
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
                     {statusBadge(post.status)}
-                    <Badge variant="outline" className="bg-background text-[10px]">
-                      {post.category}
-                    </Badge>
+                    <DashboardStatusLabel
+                      tone="neutral"
+                      label={post.category}
+                      className="bg-background text-[10px]"
+                    />
                   </div>
                   {post.status === "rejected" && post.reviewNotes ? (
-                    <p className="text-xs text-destructive break-words">Notes: {post.reviewNotes}</p>
+                    <p className="text-xs text-destructive break-words">
+                      Notes: {post.reviewNotes}
+                    </p>
                   ) : null}
                   <p className="text-xs text-muted-foreground">
                     {post.author}
@@ -380,7 +391,12 @@ export default function AdminCMSBlog() {
                       </Button>
                     </>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => handleOpenModal(post)} className="gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenModal(post)}
+                    className="gap-1.5"
+                  >
                     <Edit className="w-4 h-4" /> Edit
                   </Button>
                   <Button
@@ -419,21 +435,30 @@ export default function AdminCMSBlog() {
                 </tr>
               ) : (
                 filteredPosts.map((post: any) => (
-                  <tr key={post._id} className="bg-background hover:bg-muted/30 transition-colors group">
+                  <tr
+                    key={post._id}
+                    className="bg-background hover:bg-muted/30 transition-colors group"
+                  >
                     <td className="px-4 lg:px-6 py-4 min-w-0">
                       <div className="font-semibold text-foreground text-base mb-1 break-words max-w-md">
                         {post.title}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate max-w-xs">{post.slug}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-xs">
+                        {post.slug}
+                      </div>
                       {post.status === "rejected" && post.reviewNotes ? (
-                        <p className="text-xs text-destructive mt-1 line-clamp-2">{post.reviewNotes}</p>
+                        <p className="text-xs text-destructive mt-1 line-clamp-2">
+                          {post.reviewNotes}
+                        </p>
                       ) : null}
                     </td>
                     <td className="px-4 lg:px-6 py-4">{statusBadge(post.status)}</td>
                     <td className="px-4 lg:px-6 py-4">
-                      <Badge variant="outline" className="bg-background whitespace-nowrap">
-                        {post.category}
-                      </Badge>
+                      <DashboardStatusLabel
+                        tone="neutral"
+                        label={post.category}
+                        className="bg-background whitespace-nowrap"
+                      />
                     </td>
                     <td className="px-4 lg:px-6 py-4 font-medium text-muted-foreground whitespace-nowrap">
                       {post.author}
@@ -445,7 +470,11 @@ export default function AdminCMSBlog() {
                       <div className="flex items-center justify-end gap-1 flex-wrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         {post.status === "pending_review" && (
                           <>
-                            <Button size="sm" variant="ghost" onClick={() => handleReview(post._id, "approve")}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleReview(post._id, "approve")}
+                            >
                               <Check className="w-4 h-4 mr-1" /> Approve
                             </Button>
                             <Button
@@ -477,7 +506,7 @@ export default function AdminCMSBlog() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </DashboardSection>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="!max-w-6xl w-[calc(100%-1rem)] sm:w-[95vw] max-w-[95vw] h-[92vh] sm:h-[90vh] flex flex-col bg-background border-border p-0 gap-0 overflow-hidden">
@@ -573,9 +602,7 @@ export default function AdminCMSBlog() {
                   {formData.status === "pending_review" && (
                     <option value="pending_review">Pending review</option>
                   )}
-                  {formData.status === "rejected" && (
-                    <option value="rejected">Rejected</option>
-                  )}
+                  {formData.status === "rejected" && <option value="rejected">Rejected</option>}
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -645,9 +672,7 @@ export default function AdminCMSBlog() {
                     <textarea
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       value={formData.seoDescription}
-                      onChange={(e) =>
-                        setFormData({ ...formData, seoDescription: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })}
                       placeholder="Meta description for search engines"
                     />
                   </div>
@@ -705,6 +730,6 @@ export default function AdminCMSBlog() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

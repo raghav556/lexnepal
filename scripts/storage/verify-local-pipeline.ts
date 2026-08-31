@@ -123,7 +123,9 @@ try {
     Boolean(error) &&
     typeof error === "object" &&
     ((error as { code?: string }).code === "VALIDATION_FAILED" ||
-      String((error as Error).message ?? "").toLowerCase().includes("50 mb"));
+      String((error as Error).message ?? "")
+        .toLowerCase()
+        .includes("50 mb"));
 }
 if (!oversizedDenied) throw new Error("Oversized upload intent was not rejected");
 

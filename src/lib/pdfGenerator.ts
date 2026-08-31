@@ -1,7 +1,11 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import DOMPurify from "dompurify";
 
-export async function generatePdfFromHtml(htmlContent: string, filename: string = "document.pdf"): Promise<File> {
+export async function generatePdfFromHtml(
+  htmlContent: string,
+  filename: string = "document.pdf",
+): Promise<File> {
   // 1. Create an off-screen wrapper for the HTML
   const container = document.createElement("div");
   // Set dimensions similar to A4 page width (e.g. 794px at 96 DPI)
@@ -14,9 +18,9 @@ export async function generatePdfFromHtml(htmlContent: string, filename: string 
   container.style.left = "-9999px";
   container.style.fontFamily = "sans-serif"; // fallback
   // Make sure prose styles are applied if you have a wrapper class
-  container.className = "prose prose-sm"; 
-  container.innerHTML = htmlContent;
-  
+  container.className = "prose prose-sm";
+  container.innerHTML = DOMPurify.sanitize(htmlContent);
+
   document.body.appendChild(container);
 
   try {
@@ -30,23 +34,23 @@ export async function generatePdfFromHtml(htmlContent: string, filename: string 
 
     // 3. Convert Canvas to jsPDF
     const imgData = canvas.toDataURL("image/png");
-    
+
     // A4 dimensions in mm: 210 x 297
     const pdf = new jsPDF("p", "mm", "a4");
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
+
     let position = 0;
     const pageHeight = pdf.internal.pageSize.getHeight();
     let heightLeft = pdfHeight;
-    
-    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+
+    pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
     heightLeft -= pageHeight;
-    
+
     while (heightLeft > 0) {
       position = heightLeft - pdfHeight;
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
       heightLeft -= pageHeight;
     }
 

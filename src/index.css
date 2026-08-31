@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -8,6 +8,7 @@
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-nepali: "Mukta", "Noto Sans Devanagari", "Inter", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -28,6 +29,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-strong: var(--accent-strong);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -45,6 +47,73 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-dashboard-canvas: var(--dashboard-canvas);
+  --color-dashboard-canvas-elevated: var(--dashboard-canvas-elevated);
+  --color-dashboard-panel: var(--dashboard-panel);
+  --color-dashboard-panel-hover: var(--dashboard-panel-hover);
+  --color-dashboard-panel-pressed: var(--dashboard-panel-pressed);
+  --color-dashboard-border: var(--dashboard-border);
+  --color-dashboard-primary: var(--dashboard-primary);
+  --color-dashboard-primary-hover: var(--dashboard-primary-hover);
+  --color-dashboard-primary-pressed: var(--dashboard-primary-pressed);
+  --color-dashboard-primary-foreground: var(--dashboard-primary-foreground);
+  --color-dashboard-primary-soft: var(--dashboard-primary-soft);
+  --color-dashboard-secondary: var(--dashboard-secondary);
+  --color-dashboard-secondary-hover: var(--dashboard-secondary-hover);
+  --color-dashboard-secondary-pressed: var(--dashboard-secondary-pressed);
+  --color-dashboard-secondary-foreground: var(--dashboard-secondary-foreground);
+  --color-dashboard-focus: var(--dashboard-focus);
+  --color-dashboard-accent: var(--dashboard-accent);
+  --color-dashboard-accent-soft: var(--dashboard-accent-soft);
+  --color-dashboard-accent-foreground: var(--dashboard-accent-foreground);
+  --color-dashboard-hero-start: var(--dashboard-hero-start);
+  --color-dashboard-hero-end: var(--dashboard-hero-end);
+  --color-dashboard-hero-foreground: var(--dashboard-hero-foreground);
+  --color-dashboard-hero-muted: var(--dashboard-hero-muted);
+  --color-dashboard-hero-border: var(--dashboard-hero-border);
+  --color-dashboard-chart-grid: var(--dashboard-chart-grid);
+  --color-dashboard-chart-label: var(--dashboard-chart-label);
+  --color-dashboard-tooltip: var(--dashboard-tooltip);
+  --color-dashboard-tooltip-foreground: var(--dashboard-tooltip-foreground);
+  --color-dashboard-success: var(--dashboard-success);
+  --color-dashboard-success-soft: var(--dashboard-success-soft);
+  --color-dashboard-success-foreground: var(--dashboard-success-foreground);
+  --color-dashboard-information: var(--dashboard-information);
+  --color-dashboard-information-soft: var(--dashboard-information-soft);
+  --color-dashboard-information-foreground: var(--dashboard-information-foreground);
+  --color-dashboard-warning: var(--dashboard-warning);
+  --color-dashboard-warning-soft: var(--dashboard-warning-soft);
+  --color-dashboard-warning-foreground: var(--dashboard-warning-foreground);
+  --color-dashboard-danger: var(--dashboard-danger);
+  --color-dashboard-danger-soft: var(--dashboard-danger-soft);
+  --color-dashboard-danger-foreground: var(--dashboard-danger-foreground);
+  --color-dashboard-neutral: var(--dashboard-neutral);
+  --color-dashboard-neutral-soft: var(--dashboard-neutral-soft);
+  --color-dashboard-neutral-foreground: var(--dashboard-neutral-foreground);
+
+  --color-dashboard-sidebar: var(--dashboard-sidebar);
+  --color-dashboard-sidebar-deep: var(--dashboard-sidebar-deep);
+  --color-dashboard-sidebar-bg-from: var(--dashboard-sidebar-bg-from);
+  --color-dashboard-sidebar-bg-to: var(--dashboard-sidebar-bg-to);
+  --color-dashboard-sidebar-foreground: var(--dashboard-sidebar-foreground);
+  --color-dashboard-sidebar-muted: var(--dashboard-sidebar-muted);
+  --color-dashboard-sidebar-heading: var(--dashboard-sidebar-heading);
+  --color-dashboard-sidebar-heading-bar: var(--dashboard-sidebar-heading-bar);
+  --color-dashboard-sidebar-active: var(--dashboard-sidebar-active);
+  --color-dashboard-sidebar-active-foreground: var(--dashboard-sidebar-active-foreground);
+  --color-dashboard-sidebar-active-border: var(--dashboard-sidebar-active-border);
+  --color-dashboard-sidebar-active-icon: var(--dashboard-sidebar-active-icon);
+  --color-dashboard-sidebar-hover: var(--dashboard-sidebar-hover);
+  --color-dashboard-sidebar-border: var(--dashboard-sidebar-border);
+  --color-dashboard-sidebar-badge: var(--dashboard-sidebar-badge);
+  --color-dashboard-sidebar-badge-foreground: var(--dashboard-sidebar-badge-foreground);
+  --color-dashboard-sidebar-brand: var(--dashboard-sidebar-brand);
+  --color-dashboard-sidebar-brand-bg: var(--dashboard-sidebar-brand-bg);
+  --color-dashboard-sidebar-brand-border: var(--dashboard-sidebar-brand-border);
+  --color-dashboard-sidebar-brand-icon: var(--dashboard-sidebar-brand-icon);
+  --color-dashboard-sidebar-brand-glow: var(--dashboard-sidebar-brand-glow);
+  --color-dashboard-sidebar-chevron: var(--dashboard-sidebar-chevron);
+  --color-dashboard-sidebar-focus: var(--dashboard-sidebar-focus);
 
   --animate-marquee: marquee 30s linear infinite;
 
@@ -67,17 +136,18 @@
   --card-foreground: oklch(0.18 0.015 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.015 260);
-  --primary: oklch(0.32 0.06 265);         /* deep navy */
+  --primary: oklch(0.32 0.06 265); /* deep navy */
   --primary-foreground: oklch(0.98 0.004 80);
-  --secondary: oklch(0.94 0.018 80);       /* warm ivory */
+  --secondary: oklch(0.94 0.018 80); /* warm ivory */
   --secondary-foreground: oklch(0.32 0.06 265);
   --muted: oklch(0.94 0.008 80);
-  --muted-foreground: oklch(0.52 0.02 260);
-  --accent: oklch(0.68 0.12 60);           /* gold accent */
+  --muted-foreground: oklch(0.47 0.02 260);
+  --accent: oklch(0.68 0.12 60); /* gold accent */
   --accent-foreground: oklch(0.18 0.015 260);
+  --accent-strong: #8a4f0d; /* accessible gold-brown for text on light surfaces */
   --destructive: oklch(0.58 0.22 27);
   --border: oklch(0.88 0.01 80);
-  --input: oklch(0.96 0.006 80);  /* light warm surface for inputs */
+  --input: oklch(0.96 0.006 80); /* light warm surface for inputs */
   --ring: oklch(0.68 0.12 60);
   --chart-1: oklch(0.68 0.12 60);
   --chart-2: oklch(0.55 0.14 200);
@@ -88,9 +158,9 @@
   --sidebar-foreground: oklch(0.92 0.008 80);
   --sidebar-primary: oklch(0.68 0.12 60);
   --sidebar-primary-foreground: oklch(0.18 0.015 260);
-  --sidebar-accent: oklch(0.30 0.05 265);
+  --sidebar-accent: oklch(0.3 0.05 265);
   --sidebar-accent-foreground: oklch(0.92 0.008 80);
-  --sidebar-border: oklch(0.30 0.04 265);
+  --sidebar-border: oklch(0.3 0.04 265);
   --sidebar-ring: oklch(0.68 0.12 60);
 }
 
@@ -102,7 +172,7 @@
   --card-foreground: oklch(0.93 0.006 80);
   --popover: oklch(0.19 0.018 265);
   --popover-foreground: oklch(0.93 0.006 80);
-  --primary: oklch(0.68 0.12 60);          /* gold as primary in dark */
+  --primary: oklch(0.68 0.12 60); /* gold as primary in dark */
   --primary-foreground: oklch(0.14 0.015 265);
   --secondary: oklch(0.24 0.025 265);
   --secondary-foreground: oklch(0.93 0.006 80);
@@ -110,9 +180,10 @@
   --muted-foreground: oklch(0.62 0.015 260);
   --accent: oklch(0.68 0.12 60);
   --accent-foreground: oklch(0.14 0.015 265);
+  --accent-strong: #f6c453;
   --destructive: oklch(0.65 0.2 22);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(0.22 0.02 265);  /* dark charcoal surface for inputs - not transparent */
+  --input: oklch(0.22 0.02 265); /* dark charcoal surface for inputs - not transparent */
   --ring: oklch(0.68 0.12 60);
   --chart-1: oklch(0.68 0.12 60);
   --chart-2: oklch(0.6 0.15 200);
@@ -123,10 +194,454 @@
   --sidebar-foreground: oklch(0.88 0.008 80);
   --sidebar-primary: oklch(0.68 0.12 60);
   --sidebar-primary-foreground: oklch(0.14 0.015 265);
-  --sidebar-accent: oklch(0.20 0.02 265);
+  --sidebar-accent: oklch(0.2 0.02 265);
   --sidebar-accent-foreground: oklch(0.88 0.008 80);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.68 0.12 60);
+}
+
+/*
+ * Dashboard color architecture.
+ * These values are deliberately scoped: public pages and portal CRUD screens keep
+ * the existing application palette until a dashboard theme class is applied.
+ */
+.dashboard-theme {
+  --dashboard-canvas: #f5f7fc;
+  --dashboard-canvas-elevated: #eef2f9;
+  --dashboard-panel: #ffffff;
+  --dashboard-panel-hover: #f8faff;
+  --dashboard-panel-pressed: #edf2fb;
+  --dashboard-border: #8794aa;
+  --dashboard-primary: #3157d5;
+  --dashboard-primary-hover: #294bc0;
+  --dashboard-primary-pressed: #223fa6;
+  --dashboard-primary-foreground: #ffffff;
+  --dashboard-primary-soft: #e9efff;
+  --dashboard-secondary: #e8edf7;
+  --dashboard-secondary-hover: #dce5f3;
+  --dashboard-secondary-pressed: #ced9ea;
+  --dashboard-secondary-foreground: #172033;
+  --dashboard-focus: #3157d5;
+  --dashboard-accent: #c99523;
+  --dashboard-accent-soft: #fff6dc;
+  --dashboard-accent-foreground: #6b4e08;
+  --dashboard-hero-start: #172554;
+  --dashboard-hero-end: #3157d5;
+  --dashboard-hero-foreground: #ffffff;
+  --dashboard-hero-muted: #dbe7ff;
+  --dashboard-hero-border: #4668d2;
+  --dashboard-chart-grid: #dce3f0;
+  --dashboard-chart-label: #64748b;
+  --dashboard-tooltip: #172033;
+  --dashboard-tooltip-foreground: #f8fafc;
+  --dashboard-success: #059669;
+  --dashboard-success-soft: #e7f8f1;
+  --dashboard-success-foreground: #065f46;
+  --dashboard-information: #2563eb;
+  --dashboard-information-soft: #eaf1ff;
+  --dashboard-information-foreground: #1e40af;
+  --dashboard-warning: #d97706;
+  --dashboard-warning-soft: #fff5db;
+  --dashboard-warning-foreground: #92400e;
+  --dashboard-danger: #c72c4f;
+  --dashboard-danger-soft: #ffedf1;
+  --dashboard-danger-foreground: #9f1239;
+  --dashboard-neutral: #64748b;
+  --dashboard-neutral-soft: #eef2f6;
+  --dashboard-neutral-foreground: #334155;
+  --dashboard-chart-1: #3157d5;
+  --dashboard-chart-2: #059669;
+  --dashboard-chart-3: #8b5cf6;
+  --dashboard-chart-4: #9a6b00;
+  --dashboard-chart-5: #0891b2;
+
+  /* Default sidebar tokens (overridden per-portal) */
+  --dashboard-sidebar: #ffffff;
+  --dashboard-sidebar-deep: #f8faff;
+  --dashboard-sidebar-bg-from: var(--dashboard-sidebar);
+  --dashboard-sidebar-bg-to: var(--dashboard-sidebar-deep);
+  --dashboard-sidebar-foreground: #172033;
+  --dashboard-sidebar-muted: #64748b;
+  --dashboard-sidebar-heading: #64748b;
+  --dashboard-sidebar-heading-bar: #c99523;
+  --dashboard-sidebar-active: #e9efff;
+  --dashboard-sidebar-active-foreground: #172033;
+  --dashboard-sidebar-active-border: rgba(49, 87, 213, 0.25);
+  --dashboard-sidebar-active-icon: #3157d5;
+  --dashboard-sidebar-hover: #f8faff;
+  --dashboard-sidebar-border: #e2e8f0;
+  --dashboard-sidebar-badge: rgba(49, 87, 213, 0.1);
+  --dashboard-sidebar-badge-foreground: #3157d5;
+  --dashboard-sidebar-brand: #3157d5;
+  --dashboard-sidebar-brand-bg: #e9efff;
+  --dashboard-sidebar-brand-border: #a7b9ee;
+  --dashboard-sidebar-brand-icon: #3157d5;
+  --dashboard-sidebar-brand-glow: rgba(49, 87, 213, 0.2);
+  --dashboard-sidebar-chevron: rgba(49, 87, 213, 0.5);
+  --dashboard-sidebar-focus: rgba(49, 87, 213, 0.5);
+}
+
+.dashboard-theme.dashboard-admin {
+  --dashboard-primary: #5b5ce2;
+  --dashboard-primary-hover: #4e4fca;
+  --dashboard-primary-pressed: #4142ad;
+  --dashboard-primary-soft: #edecff;
+  --dashboard-focus: #5b5ce2;
+  --dashboard-accent: #d6ab42;
+  --dashboard-accent-soft: #fff6dc;
+  --dashboard-accent-foreground: #6b4e08;
+  --dashboard-hero-start: #111a35;
+  --dashboard-hero-end: #4c3fb4;
+  --dashboard-hero-foreground: #ffffff;
+  --dashboard-hero-muted: #dddfff;
+  --dashboard-hero-border: #6559c6;
+  --dashboard-chart-1: #9a6b00;
+  --dashboard-chart-2: #059669;
+  --dashboard-chart-3: #5b5ce2;
+  --dashboard-chart-4: #8b5cf6;
+  --dashboard-chart-5: #0891b2;
+
+  /* The admin shell always owns a dark executive sidebar. */
+  --dashboard-sidebar: #101a2c;
+  --dashboard-sidebar-deep: #0c1222;
+  --dashboard-sidebar-bg-from: #101a2c;
+  --dashboard-sidebar-bg-to: #0c1222;
+  --dashboard-sidebar-foreground: #f8fafc;
+  --dashboard-sidebar-muted: #b7c3d6;
+  --dashboard-sidebar-heading: #9eabc1;
+  --dashboard-sidebar-heading-bar: #e4bd5b;
+  --dashboard-sidebar-active: #e9efff;
+  --dashboard-sidebar-active-foreground: #172033;
+  --dashboard-sidebar-active-border: #a7b9ee;
+  --dashboard-sidebar-active-icon: #3157d5;
+  --dashboard-sidebar-hover: #1b2942;
+  --dashboard-sidebar-border: #5d6f90;
+  --dashboard-sidebar-badge: #202d46;
+  --dashboard-sidebar-badge-foreground: #eef2ff;
+  --dashboard-sidebar-brand: #e4bd5b;
+  --dashboard-sidebar-brand-bg: #292852;
+  --dashboard-sidebar-brand-border: #9a7a32;
+  --dashboard-sidebar-brand-icon: #f6c453;
+  --dashboard-sidebar-brand-glow: rgba(228, 189, 91, 0.24);
+  --dashboard-sidebar-chevron: #b7c3d6;
+  --dashboard-sidebar-focus: #e4bd5b;
+}
+
+.dashboard-theme.dashboard-staff {
+  --dashboard-primary: #0e7490;
+  --dashboard-primary-hover: #0c667b;
+  --dashboard-primary-pressed: #09576a;
+  --dashboard-primary-soft: #e1f7fb;
+  --dashboard-focus: #087d99;
+  --dashboard-accent: #d6a323;
+  --dashboard-accent-soft: #fff5d6;
+  --dashboard-accent-foreground: #6f4f04;
+  --dashboard-hero-start: #102348;
+  --dashboard-hero-end: #087d99;
+  --dashboard-hero-foreground: #ffffff;
+  --dashboard-hero-muted: #e6fdff;
+  --dashboard-hero-border: #1698b3;
+  --dashboard-chart-1: #0891b2;
+  --dashboard-chart-2: #3157d5;
+  --dashboard-chart-3: #059669;
+  --dashboard-chart-4: #d97706;
+  --dashboard-chart-5: #8b5cf6;
+}
+
+.dashboard-theme.dashboard-client {
+  --dashboard-primary: #3157d5;
+  --dashboard-primary-hover: #294bc0;
+  --dashboard-primary-pressed: #223fa6;
+  --dashboard-primary-soft: #e9efff;
+  --dashboard-secondary: #e4f3f1;
+  --dashboard-secondary-hover: #d5eae7;
+  --dashboard-secondary-pressed: #c4deda;
+  --dashboard-secondary-foreground: #134e4a;
+  --dashboard-focus: #0f766e;
+  --dashboard-accent: #c99523;
+  --dashboard-accent-soft: #fff6dc;
+  --dashboard-accent-foreground: #6b4e08;
+  --dashboard-hero-start: #172554;
+  --dashboard-hero-end: #0f766e;
+  --dashboard-hero-foreground: #ffffff;
+  --dashboard-hero-muted: #d9f4ef;
+  --dashboard-hero-border: #358b83;
+  --dashboard-chart-1: #3157d5;
+  --dashboard-chart-2: #0f766e;
+  --dashboard-chart-3: #9a6b00;
+  --dashboard-chart-4: #059669;
+  --dashboard-chart-5: #8b5cf6;
+
+  /* Client sidebar: deep royal blue gradient */
+  --dashboard-sidebar: #1e3a6e;
+  --dashboard-sidebar-deep: #0f2040;
+  --dashboard-sidebar-foreground: #ffffff;
+  --dashboard-sidebar-muted: #93b4dc;
+  --dashboard-sidebar-heading: #7ba3d1;
+  --dashboard-sidebar-heading-bar: #5b8ec7;
+  --dashboard-sidebar-active: rgba(59, 130, 246, 0.35);
+  --dashboard-sidebar-active-border: rgba(96, 165, 250, 0.25);
+  --dashboard-sidebar-active-icon: #93c5fd;
+  --dashboard-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --dashboard-sidebar-border: rgba(255, 255, 255, 0.1);
+  --dashboard-sidebar-badge: rgba(255, 255, 255, 0.15);
+  --dashboard-sidebar-badge-foreground: #bfdbfe;
+  --dashboard-sidebar-brand: #3b82f6;
+  --dashboard-sidebar-brand-glow: rgba(59, 130, 246, 0.35);
+  --dashboard-sidebar-chevron: rgba(147, 197, 253, 0.5);
+  --dashboard-sidebar-focus: rgba(96, 165, 250, 0.5);
+}
+
+.dark.dashboard-theme,
+.dark .dashboard-theme {
+  --dashboard-canvas: #0c1222;
+  --dashboard-canvas-elevated: #101a2c;
+  --dashboard-panel: #141d31;
+  --dashboard-panel-hover: #1b2942;
+  --dashboard-panel-pressed: #202f4b;
+  --dashboard-border: #5d6f90;
+  --dashboard-primary-foreground: #ffffff;
+  --dashboard-secondary: #202d46;
+  --dashboard-secondary-hover: #293954;
+  --dashboard-secondary-pressed: #31425e;
+  --dashboard-secondary-foreground: #eef2ff;
+  --dashboard-chart-grid: #2a3854;
+  --dashboard-chart-label: #9eabc1;
+  --dashboard-tooltip: #f8fafc;
+  --dashboard-tooltip-foreground: #172033;
+  --dashboard-accent-soft: #3d331c;
+  --dashboard-accent-foreground: #fde68a;
+  --dashboard-success: #34d399;
+  --dashboard-success-soft: #123c35;
+  --dashboard-success-foreground: #a7f3d0;
+  --dashboard-information: #60a5fa;
+  --dashboard-information-soft: #172e56;
+  --dashboard-information-foreground: #bfdbfe;
+  --dashboard-warning: #fbbf24;
+  --dashboard-warning-soft: #443515;
+  --dashboard-warning-foreground: #fde68a;
+  --dashboard-danger: #fb7185;
+  --dashboard-danger-soft: #4b1e2b;
+  --dashboard-danger-foreground: #fecdd3;
+  --dashboard-neutral: #94a3b8;
+  --dashboard-neutral-soft: #263247;
+  --dashboard-neutral-foreground: #dbe4f0;
+}
+
+.dark.dashboard-theme.dashboard-admin,
+.dark .dashboard-theme.dashboard-admin {
+  color-scheme: dark;
+  --background: #0c1222;
+  --foreground: #f8fafc;
+  --card: #141d31;
+  --card-foreground: #f8fafc;
+  --popover: #141d31;
+  --popover-foreground: #f8fafc;
+  --primary: #7778ff;
+  --primary-foreground: #0c1222;
+  --secondary: #202d46;
+  --secondary-foreground: #eef2ff;
+  --muted: #202f4b;
+  --muted-foreground: #b7c3d6;
+  --accent: #e4bd5b;
+  --accent-foreground: #111a35;
+  --destructive: #fb7185;
+  --border: #5d6f90;
+  --input: #1b2942;
+  --ring: #d6ab42;
+  --chart-1: #e4bd5b;
+  --chart-2: #34d399;
+  --chart-3: #7778ff;
+  --chart-4: #a78bfa;
+  --chart-5: #22d3ee;
+  --sidebar: #101a2c;
+  --sidebar-foreground: #dbe4f0;
+  --sidebar-primary: #7778ff;
+  --sidebar-primary-foreground: #0c1222;
+  --sidebar-accent: #1b2942;
+  --sidebar-accent-foreground: #eef2ff;
+  --sidebar-border: #5d6f90;
+  --sidebar-ring: #d6ab42;
+  --dashboard-primary: #7778ff;
+  --dashboard-primary-hover: #8c8dff;
+  --dashboard-primary-pressed: #6f70ef;
+  --dashboard-primary-soft: #292852;
+  --dashboard-primary-foreground: #0c1222;
+  --dashboard-focus: #d6ab42;
+  --dashboard-accent: #e4bd5b;
+  --dashboard-hero-border: #6e63c9;
+  --dashboard-chart-1: #e4bd5b;
+  --dashboard-chart-2: #34d399;
+  --dashboard-chart-3: #7778ff;
+  --dashboard-chart-4: #a78bfa;
+  --dashboard-chart-5: #22d3ee;
+}
+
+.dark.dashboard-theme.dashboard-staff,
+.dark .dashboard-theme.dashboard-staff {
+  color-scheme: dark;
+  --background: #0c1222;
+  --foreground: #f8fafc;
+  --card: #141d31;
+  --card-foreground: #f8fafc;
+  --popover: #141d31;
+  --popover-foreground: #f8fafc;
+  --primary: #22d3ee;
+  --primary-foreground: #0c1222;
+  --secondary: #202d46;
+  --secondary-foreground: #eef2ff;
+  --muted: #202f4b;
+  --muted-foreground: #b7c3d6;
+  --accent: #60a5fa;
+  --accent-foreground: #0c1222;
+  --destructive: #fb7185;
+  --border: #5d6f90;
+  --input: #1b2942;
+  --ring: #67e8f9;
+  --chart-1: #22d3ee;
+  --chart-2: #60a5fa;
+  --chart-3: #34d399;
+  --chart-4: #fbbf24;
+  --chart-5: #a78bfa;
+  --sidebar: #101a2c;
+  --sidebar-foreground: #dbe4f0;
+  --sidebar-primary: #22d3ee;
+  --sidebar-primary-foreground: #0c1222;
+  --sidebar-accent: #1b2942;
+  --sidebar-accent-foreground: #eef2ff;
+  --sidebar-border: #5d6f90;
+  --sidebar-ring: #67e8f9;
+  --dashboard-primary: #22d3ee;
+  --dashboard-primary-hover: #52ddf1;
+  --dashboard-primary-pressed: #0eb5d0;
+  --dashboard-primary-soft: #153944;
+  --dashboard-primary-foreground: #0c1222;
+  --dashboard-focus: #67e8f9;
+  --dashboard-accent: #f6c453;
+  --dashboard-hero-border: #1ba7c4;
+  --dashboard-chart-1: #22d3ee;
+  --dashboard-chart-2: #60a5fa;
+  --dashboard-chart-3: #34d399;
+  --dashboard-chart-4: #fbbf24;
+  --dashboard-chart-5: #a78bfa;
+}
+
+.dark.dashboard-theme.dashboard-client,
+.dark .dashboard-theme.dashboard-client {
+  --dashboard-primary: #60a5fa;
+  --dashboard-primary-hover: #7db6fb;
+  --dashboard-primary-pressed: #3b82f6;
+  --dashboard-primary-soft: #172e56;
+  --dashboard-primary-foreground: #0c1222;
+  --dashboard-secondary: #173b3a;
+  --dashboard-secondary-hover: #1c4a48;
+  --dashboard-secondary-pressed: #205653;
+  --dashboard-secondary-foreground: #ccfbf1;
+  --dashboard-focus: #2dd4bf;
+  --dashboard-accent: #e4bd5b;
+  --dashboard-chart-1: #60a5fa;
+  --dashboard-chart-2: #2dd4bf;
+  --dashboard-chart-3: #e4bd5b;
+  --dashboard-chart-4: #34d399;
+  --dashboard-chart-5: #a78bfa;
+}
+
+.dashboard-theme {
+  min-height: 100%;
+  background: var(--dashboard-canvas);
+  color: var(--foreground);
+}
+
+/*
+ * Nepal decorative layer for admin/staff consoles.
+ * Saffron, crimson, deep navy, and gold accents with subtle dhaka geometry.
+ */
+.dashboard-nepal {
+  --nepal-saffron: #e8940a;
+  --nepal-crimson: #9f1239;
+  --nepal-navy: #0c1222;
+  --nepal-gold: #d6ab42;
+  --nepal-dhaka-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke='%23d6ab42' stroke-width='0.6' opacity='0.22'%3E%3Cpath d='M0 24h48M24 0v48'/%3E%3Cpath d='M0 0l48 48M48 0L0 48'/%3E%3Ccircle cx='24' cy='24' r='6'/%3E%3C/g%3E%3C/svg%3E");
+  background-image:
+    radial-gradient(
+      circle at 92% 4%,
+      color-mix(in srgb, var(--nepal-saffron) 10%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 4% 96%,
+      color-mix(in srgb, var(--nepal-crimson) 8%, transparent),
+      transparent 30%
+    ),
+    var(--dashboard-canvas);
+}
+
+.dashboard-lang-ne .font-nepali,
+.dashboard-lang-ne [lang="ne"] {
+  font-family: var(--font-nepali);
+}
+
+.dashboard-hero-nepal {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--nepal-navy) 92%, var(--dashboard-hero-start)) 0%,
+    color-mix(in srgb, var(--nepal-crimson) 35%, var(--dashboard-hero-end)) 48%,
+    var(--dashboard-hero-end) 100%
+  );
+}
+
+.dashboard-hero-nepal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--nepal-dhaka-pattern);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.dashboard-hero-nepal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(
+    to bottom,
+    var(--nepal-saffron),
+    var(--nepal-gold),
+    var(--nepal-crimson)
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dashboard-hero-nepal {
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(
+      90deg,
+      var(--nepal-crimson),
+      var(--nepal-gold),
+      var(--nepal-saffron)
+    )
+    1;
+}
+
+.dashboard-hero-nepal .font-serif {
+  text-shadow: 0 1px 18px color-mix(in srgb, var(--nepal-navy) 45%, transparent);
+}
+
+/* Gold milestone rail on metric cards in Nepal-themed consoles */
+.dashboard-nepal [data-slot="metric-card"]::after {
+  content: "";
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.65rem;
+  width: 1.5rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--nepal-gold), var(--nepal-saffron));
+  opacity: 0.75;
 }
 
 @layer base {
@@ -158,10 +673,20 @@
   }
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.6 0.02 260 / 40%); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.6 0.02 260 / 70%); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.6 0.02 260 / 40%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.6 0.02 260 / 70%);
+}
 
 /* A4 court-ready print layout for Trial Briefs */
 @media print {

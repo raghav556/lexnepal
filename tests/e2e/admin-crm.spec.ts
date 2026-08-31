@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 async function signInAdmin(page: Page) {
+  await prepareE2eAuth(page, E2E_USERS.admin.email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(E2E_USERS.admin.email);
   await page.locator("#password").fill(E2E_PASSWORD);
@@ -14,7 +16,7 @@ test.describe("Admin CRM pipeline", () => {
     await signInAdmin(page);
 
     await page.goto("/admin/crm");
-    await expect(page.getByRole("heading", { name: /CRM — Lead Pipeline/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /CRM (?:&|—) Lead Pipeline/i })).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByRole("button", { name: /Add lead/i })).toBeVisible();

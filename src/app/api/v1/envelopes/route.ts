@@ -12,5 +12,8 @@ export const GET = withApiHandler("/api/v1/envelopes", async ({ request }) => {
 export const POST = withApiHandler("/api/v1/envelopes", async ({ request }) => {
   const principal = await requireSession(request);
   const input = envelopeCreateSchema.parse(await request.json());
-  return jsonResponse({ data: await getEnvelopeService().create(principal, input) }, { status: 201 });
+  return jsonResponse(
+    { data: await getEnvelopeService().create(principal, input) },
+    { status: 201 },
+  );
 });

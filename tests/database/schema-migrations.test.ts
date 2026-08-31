@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { convexTableTargets } from "../../db/schema";
 import indexManifest from "../../db/index-manifest.json";
 
-const migrationFiles = [
+const foundationalMigrationFiles = [
   "drizzle/0000_initial_postgresql_schema.sql",
   "drizzle/0001_tenant_integrity_and_checks.sql",
   "drizzle/0002_authentication_sessions.sql",
@@ -19,6 +19,12 @@ const migrationFiles = [
   "drizzle/0009_financial_idempotency.sql",
   "drizzle/0010_research_citations.sql",
 ];
+
+const migrationFiles = fs
+  .readdirSync(path.resolve("drizzle"))
+  .filter((file) => /^\d{4}_.+\.sql$/.test(file) && !file.endsWith(".down.sql"))
+  .sort()
+  .map((file) => path.join("drizzle", file));
 
 async function applySqlFile(database: PGlite, file: string): Promise<void> {
   const sql = fs.readFileSync(path.resolve(file), "utf8");
@@ -54,13 +60,21 @@ describe("PostgreSQL schema migrations", () => {
       "select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by table_name",
     );
     const actual = result.rows.map((row) => row.table_name);
-    expect(actual).toHaveLength(73);
+    expect(actual).toHaveLength(81);
     for (const target of expectedTargets) expect(actual).toContain(target);
     for (const normalized of [
       "case_team_members",
       "client_kyc_files",
+      "cms_asset_upload_intents",
       "document_tag_assignments",
+      "dm_message_attachments",
+      "dm_message_reads",
+      "dm_messages",
+      "dm_threads",
+      "leave_balances",
       "message_reads",
+      "payroll_run_lines",
+      "payroll_runs",
       "task_watchers",
       "template_variables",
     ]) {
@@ -72,7 +86,7 @@ describe("PostgreSQL schema migrations", () => {
     const result = await database.query<{ table_name: string; is_nullable: string }>(
       "select table_name, is_nullable from information_schema.columns where table_schema = 'public' and column_name = 'firm_id'",
     );
-    expect(result.rows).toHaveLength(66);
+    expect(result.rows).toHaveLength(74);
     expect(result.rows.filter((row) => row.is_nullable !== "NO")).toEqual([]);
   });
 
@@ -255,7 +269,8 @@ describe("initial migration rollback", () => {
   it("can remove a clean rehearsal schema", async () => {
     const rollbackDatabase = new PGlite();
     try {
-      for (const migration of migrationFiles) await applySqlFile(rollbackDatabase, migration);
+      for (const migration of foundationalMigrationFiles)
+        await applySqlFile(rollbackDatabase, migration);
       await rollbackDatabase.exec(
         fs.readFileSync(path.resolve("drizzle/down/0010_research_citations.down.sql"), "utf8"),
       );

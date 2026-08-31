@@ -53,9 +53,7 @@ for (const line of lines) {
     sampleUrl = "/__url-preserve-unknown__";
   } else if (vitePath.includes(":") || nextPath.includes("[")) {
     kind = "dynamic";
-    sampleUrl =
-      SAMPLE_BY_VITE[vitePath] ??
-      nextPath.replace(/\[([^\]]+)\]/g, "sample");
+    sampleUrl = SAMPLE_BY_VITE[vitePath] ?? nextPath.replace(/\[([^\]]+)\]/g, "sample");
   }
 
   const fields = [vitePath, nextPath, sampleUrl, kind, "", "same-path"];

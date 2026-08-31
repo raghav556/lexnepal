@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const title = String(settings.practiceAreasHeroTitle || "Practice Areas");
     const description = String(
       settings.practiceAreasHeroSubtitle ||
-        "Explore our legal practice areas and book a consultation with LexNepal advocates.",
+        "Explore our legal practice areas and book a consultation with Srimar Law advocates.",
     );
     return { title, description };
   } catch {

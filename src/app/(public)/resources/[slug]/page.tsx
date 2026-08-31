@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
     const title = String(resource.seoTitle || resource.title || "Resource");
     const description = String(
-      resource.seoDescription || resource.description || "Legal resource from LexNepal",
+      resource.seoDescription || resource.description || "Legal resource from Srimar Law",
     );
     const image = resource.coverImageUrl || undefined;
     return {

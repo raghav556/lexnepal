@@ -5,10 +5,7 @@ import {
   readLegacyIdsFromExport,
   softDeleteByLegacyIds,
 } from "./create-export-domain";
-import {
-  computeFinancialTotals,
-  findMissingFinancialIds,
-} from "../reconciliation-details";
+import { computeFinancialTotals, findMissingFinancialIds } from "../reconciliation-details";
 
 registerExportDomain({
   name: "financial",

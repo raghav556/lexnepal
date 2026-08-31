@@ -15,7 +15,8 @@ import { seedE2eUsers, E2E_USERS } from "../e2e/seed-e2e-users";
 
 const ROOT = process.cwd();
 const MATRIX = path.join(ROOT, "doc/migration/ui-e2e-smoke-matrix.csv");
-const BASE_URL = process.env.E2E_BASE_URL ?? process.env.NEXT_PROOF_BASE_URL ?? "http://127.0.0.1:3001";
+const BASE_URL =
+  process.env.E2E_BASE_URL ?? process.env.NEXT_PROOF_BASE_URL ?? "http://127.0.0.1:3001";
 
 const SMOKE_ROUTES = [
   { area: "cms", path: "/", nextFile: "src/app/(public)/page.tsx" },
@@ -25,13 +26,29 @@ const SMOKE_ROUTES = [
   { area: "cms", path: "/contact", nextFile: "src/app/(public)/contact/page.tsx" },
   { area: "login", path: "/sign-in", nextFile: "src/app/sign-in/page.tsx" },
   { area: "matter", path: "/staff/cases", nextFile: "src/app/(staff)/staff/cases/page.tsx" },
-  { area: "document", path: "/staff/documents", nextFile: "src/app/(staff)/staff/documents/page.tsx" },
+  {
+    area: "document",
+    path: "/staff/documents",
+    nextFile: "src/app/(staff)/staff/documents/page.tsx",
+  },
   { area: "invoice", path: "/admin/finance", nextFile: "src/app/(admin)/admin/finance/page.tsx" },
-  { area: "invoice", path: "/client/billing", nextFile: "src/app/(client)/client/billing/page.tsx" },
-  { area: "signature", path: "/client/signatures", nextFile: "src/app/(client)/client/signatures/page.tsx" },
+  {
+    area: "invoice",
+    path: "/client/billing",
+    nextFile: "src/app/(client)/client/billing/page.tsx",
+  },
+  {
+    area: "signature",
+    path: "/client/signatures",
+    nextFile: "src/app/(client)/client/signatures/page.tsx",
+  },
 ] as const;
 
-function run(command: string, args: string[], env?: NodeJS.ProcessEnv): Promise<{ code: number; stdout: string }> {
+function run(
+  command: string,
+  args: string[],
+  env?: NodeJS.ProcessEnv,
+): Promise<{ code: number; stdout: string }> {
   return new Promise((resolve) => {
     const child = spawn(command, args, {
       cwd: ROOT,

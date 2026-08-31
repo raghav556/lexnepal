@@ -1,7 +1,16 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
-import { auditLog, authUsers, durableJobs, notifications, payrollRuns, users } from "../../db/schema";
+import {
+  auditLog,
+  authUsers,
+  durableJobs,
+  leaveBalances,
+  leaveRequests,
+  notifications,
+  payrollRuns,
+  users,
+} from "../../db/schema";
 import { migrateHrExport } from "../../src/server/services/hr-migration";
 import {
   GET as listAttendance,
@@ -109,6 +118,17 @@ try {
 
   const associate = await ensureFirmAssociate();
 
+  // This verifier is intentionally repeatable. Its dedicated associate survives between
+  // local runs, so remove only that fixture user's prior leave state before asserting
+  // balance arithmetic. Without this reset, earlier approved/pending requests accumulate
+  // and eventually make a healthy implementation look overdrawn.
+  await database
+    .delete(leaveRequests)
+    .where(and(eq(leaveRequests.firmId, firmA), eq(leaveRequests.userId, associate.id)));
+  await database
+    .delete(leaveBalances)
+    .where(and(eq(leaveBalances.firmId, firmA), eq(leaveBalances.userId, associate.id)));
+
   const adminCookie = await signIn("boundary-a@example.invalid");
   const associateCookie = await signIn(associateEmail);
 
@@ -191,7 +211,9 @@ try {
     }),
   );
   if (!attendanceList.ok) {
-    throw new Error(`List attendance failed: ${attendanceList.status} ${await attendanceList.text()}`);
+    throw new Error(
+      `List attendance failed: ${attendanceList.status} ${await attendanceList.text()}`,
+    );
   }
   const attendanceBody = (await attendanceList.json()) as { data: Array<{ status: string }> };
   if (!attendanceBody.data.some((row) => row.status === "present")) {
@@ -222,7 +244,14 @@ try {
     data: Array<{ id: string; status: string; reason: string | null }>;
   };
   const pending = leaveBody.data.find((row) => row.status === "pending") as
-    | { id: string; status: string; reason: string | null; fromDate?: string; toDate?: string; userId?: string }
+    | {
+        id: string;
+        status: string;
+        reason: string | null;
+        fromDate?: string;
+        toDate?: string;
+        userId?: string;
+      }
     | undefined;
   if (!pending) throw new Error("Migrated pending leave missing");
 
@@ -244,9 +273,12 @@ try {
   });
   for (const date of syncedDates) {
     const dayList = await listAttendance(
-      new Request(`http://local/api/v1/hr/attendance?date=${date}&userId=${reviewedBody.data.userId}`, {
-        headers: { cookie: adminCookie },
-      }),
+      new Request(
+        `http://local/api/v1/hr/attendance?date=${date}&userId=${reviewedBody.data.userId}`,
+        {
+          headers: { cookie: adminCookie },
+        },
+      ),
     );
     if (!dayList.ok) throw new Error(`Attendance sync list failed for ${date}`);
     const dayBody = (await dayList.json()) as { data: Array<{ status: string }> };

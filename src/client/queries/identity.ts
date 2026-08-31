@@ -32,13 +32,30 @@ export function useCurrentIdentityUser(): UserDto | null | undefined {
   return useAuthContext().identityUser;
 }
 
-export function useStaffDirectory(): StaffDirectoryEntryDto[] | undefined {
+export function useSessionCapabilities(): string[] | undefined {
   return useQuery({
+    queryKey: queryKeys.identity.sessionCapabilities,
+    queryFn: async ({ signal }) => {
+      const result = await apiClient.request<{ capabilities: string[] }>("/api/v1/auth/session", {
+        signal,
+      });
+      return result.capabilities ?? [];
+    },
+  }).data;
+}
+
+export function useStaffDirectory(): StaffDirectoryEntryDto[] | undefined {
+  const capabilities = useSessionCapabilities();
+  const canViewDirectory = capabilities?.includes("users.view_directory") === true;
+  const directory = useQuery({
     queryKey: queryKeys.identity.directory,
     queryFn: ({ signal }) =>
       apiClient.request<StaffDirectoryEntryDto[]>("/api/v1/users/directory", { signal }),
+    enabled: canViewDirectory,
     retry: false,
-  }).data;
+  });
+  if (capabilities === undefined) return undefined;
+  return canViewDirectory ? directory.data : [];
 }
 
 export function useSystemSettings(): SystemSettings | undefined {
@@ -220,9 +237,12 @@ export function useProfileCommands() {
       return result;
     },
     async revokeAllOtherSessions(userId: string) {
-      const result = await apiClient.request<{ revoked: number }>(`/api/v1/users/${userId}/sessions`, {
-        method: "DELETE",
-      });
+      const result = await apiClient.request<{ revoked: number }>(
+        `/api/v1/users/${userId}/sessions`,
+        {
+          method: "DELETE",
+        },
+      );
       await invalidate();
       return result;
     },
@@ -247,9 +267,12 @@ export function useProfileCommands() {
       form.append("file", file);
       const uploaded = await fetch(intent.upload.url, { method: "POST", body: form });
       if (!uploaded.ok) throw new Error("Object storage rejected the avatar upload");
-      await apiClient.request(`/api/v1/users/me/avatar-upload-intents/${intent.intentId}/complete`, {
-        method: "POST",
-      });
+      await apiClient.request(
+        `/api/v1/users/me/avatar-upload-intents/${intent.intentId}/complete`,
+        {
+          method: "POST",
+        },
+      );
       await invalidate();
     },
     async removeAvatar() {

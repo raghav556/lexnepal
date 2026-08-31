@@ -38,7 +38,13 @@ type PgType = "retainer" | "petition" | "nda" | "general";
 function categoryToType(category: TemplateCategory): PgType {
   if (category === "retainer") return "retainer";
   if (category === "contract") return "nda";
-  if (category === "vakalatnama" || category === "poa" || category === "firad_patra" || category === "jawab" || category === "prastab_patra") {
+  if (
+    category === "vakalatnama" ||
+    category === "poa" ||
+    category === "firad_patra" ||
+    category === "jawab" ||
+    category === "prastab_patra"
+  ) {
     return "petition";
   }
   return "general";
@@ -90,7 +96,13 @@ export class DocumentTemplateService {
 
   async create(
     principal: AuthPrincipal,
-    input: { title: string; description?: string; category: TemplateCategory; htmlContent: string; variables: string[] },
+    input: {
+      title: string;
+      description?: string;
+      category: TemplateCategory;
+      htmlContent: string;
+      variables: string[];
+    },
   ): Promise<DocumentTemplateDto> {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
@@ -115,7 +127,13 @@ export class DocumentTemplateService {
   async update(
     principal: AuthPrincipal,
     id: string,
-    input: { title: string; description?: string; category: TemplateCategory; htmlContent: string; variables: string[] },
+    input: {
+      title: string;
+      description?: string;
+      category: TemplateCategory;
+      htmlContent: string;
+      variables: string[];
+    },
   ): Promise<DocumentTemplateDto> {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
@@ -169,17 +187,22 @@ export class DocumentTemplateService {
         title: "Standard Vakalatnama (Supreme Court)",
         description: "Standard power of attorney for representation in the Supreme Court.",
         category: "vakalatnama",
-        variables: ["client.name", "client.address", "lawyer.name", "lawyer.barNumber", "case.number", "today_bs"],
-        htmlContent:
-          `<h2 style="text-align: center;">श्री सर्वोच्च अदालतमा चढाएको वकालतनामा</h2><p>मुद्दा नं: <strong>{{case.number}}</strong></p><p>निवेदक: <strong>{{client.name}}</strong> (ठेगाना: {{client.address}})</p><p>म/हामीले यस मुद्दामा मेरो/हाम्रो तर्फबाट बहस पैरवी गर्न अधिवक्ता <strong>{{lawyer.name}}</strong> (प्रमाणपत्र नं: {{lawyer.barNumber}}) लाई नियुक्त गरेको छु/छौं।</p><p>मिति: {{today_bs}}</p>`,
+        variables: [
+          "client.name",
+          "client.address",
+          "lawyer.name",
+          "lawyer.barNumber",
+          "case.number",
+          "today_bs",
+        ],
+        htmlContent: `<h2 style="text-align: center;">श्री सर्वोच्च अदालतमा चढाएको वकालतनामा</h2><p>मुद्दा नं: <strong>{{case.number}}</strong></p><p>निवेदक: <strong>{{client.name}}</strong> (ठेगाना: {{client.address}})</p><p>म/हामीले यस मुद्दामा मेरो/हाम्रो तर्फबाट बहस पैरवी गर्न अधिवक्ता <strong>{{lawyer.name}}</strong> (प्रमाणपत्र नं: {{lawyer.barNumber}}) लाई नियुक्त गरेको छु/छौं।</p><p>मिति: {{today_bs}}</p>`,
       },
       {
         title: "Client Retainer Agreement",
         description: "General retainer agreement for new clients.",
         category: "retainer",
         variables: ["client.name", "lawyer.name", "firm.name", "today_gregorian"],
-        htmlContent:
-          `<h2>Retainer Agreement</h2><p>This agreement is made on <strong>{{today_gregorian}}</strong> between <strong>{{client.name}}</strong> (Client) and <strong>{{lawyer.name}}</strong> of {{firm.name}} (Attorney).</p><p>The Client retains the Attorney to provide legal services...</p>`,
+        htmlContent: `<h2>Retainer Agreement</h2><p>This agreement is made on <strong>{{today_gregorian}}</strong> between <strong>{{client.name}}</strong> (Client) and <strong>{{lawyer.name}}</strong> of {{firm.name}} (Attorney).</p><p>The Client retains the Attorney to provide legal services...</p>`,
       },
     ];
 
@@ -215,7 +238,10 @@ export class DocumentTagService {
     }));
   }
 
-  async create(principal: AuthPrincipal, input: { name: string; color?: string }): Promise<DocumentTagDto> {
+  async create(
+    principal: AuthPrincipal,
+    input: { name: string; color?: string },
+  ): Promise<DocumentTagDto> {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
     const db = getDatabase();

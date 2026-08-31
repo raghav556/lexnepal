@@ -16,15 +16,25 @@ import {
   ChevronLeft,
   ExternalLink,
   Copy,
+  HelpCircle,
+  CalendarDays,
 } from "lucide-react";
-import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { toast } from "sonner";
 import {
   addCalendarDaysIso,
   formatAppointmentDate,
   todayIsoInFirmTz,
 } from "@/shared/crm/appointment-dates.ts";
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 export default function ClientBookingPage() {
   const clientRecord = useMyClient();
@@ -41,7 +51,6 @@ export default function ClientBookingPage() {
 
   const { data: availableSlots = [] } = useAvailableSlots(selectedDateIso);
   const { bookConsultation } = useAppointmentCommands();
-  // API scopes clients to their linked clientId (APT-1); no firm-wide list.
   const { data: appointments = [] } = useAppointments({});
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<"in_person" | "virtual" | "phone">("virtual");
@@ -99,337 +108,344 @@ export default function ClientBookingPage() {
   };
 
   const typeDetails = {
-    virtual: { icon: Video, label: "Virtual / Zoom", desc: "A video link will be provided after confirmation" },
-    in_person: { icon: Users, label: "In-Person", desc: "At Srimar Law HQ, Kathmandu" },
-    phone: { icon: Phone, label: "Phone Call", desc: "Lawyer will call your registered number" },
+    virtual: {
+      icon: Video,
+      label: "Virtual / Video",
+      desc: "Secure video conference link provided upon confirmation",
+    },
+    in_person: {
+      icon: Users,
+      label: "In-Person Office",
+      desc: "At Srimar Law Chambers, Kathmandu",
+    },
+    phone: {
+      icon: Phone,
+      label: "Phone Call",
+      desc: "Assigned lawyer will call your registered contact number",
+    },
   };
 
   if (clientRecord === undefined) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading appointment scheduling…"
+        title="Book Consultation"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
   if (clientRecord === null) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
-        No client profile is linked to this account. Contact the firm to book consultations.
-      </div>
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Consultation Desk"
+        title="Book Legal Consultation"
+        description="Schedule a discussion with our advocates."
+        icon={CalendarIcon}
+      >
+        <EmptyState
+          title="No client profile linked"
+          description="Your portal account is not linked to a client profile yet. Contact the firm to book consultations."
+          icon={CalendarIcon}
+        />
+      </PortalPageShell>
     );
   }
+
+  const upcomingAppointments = appointments.filter(
+    (a: any) => a.status === "scheduled" || a.status === "confirmed",
+  );
+
+  const metrics = [
+    {
+      label: "Consultation Modes",
+      value: "3 Options",
+      icon: Video,
+      tone: "primary" as const,
+      helperText: "Virtual, In-Person, Phone",
+    },
+    {
+      label: "Firm Timezone",
+      value: "Asia/Kathmandu",
+      icon: Clock,
+      tone: "information" as const,
+      helperText: "Nepal Standard Time (NPT)",
+    },
+    {
+      label: "Upcoming Appointments",
+      value: String(upcomingAppointments.length),
+      icon: CalendarDays,
+      tone: upcomingAppointments.length > 0 ? ("warning" as const) : ("success" as const),
+      helperText: "Scheduled consultations",
+    },
+  ];
 
   if (showSuccess) {
     return (
-      <div className="p-4 sm:p-8 space-y-6 max-w-4xl mx-auto">
-        <div className="bg-card border border-border rounded-xl p-8 text-center flex flex-col items-center">
-          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-          </div>
-          <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Request received</h2>
-          <p className="text-muted-foreground mb-2 max-w-md">
-            Your {typeDetails[selectedType].label} request for{" "}
-            <strong className="text-foreground">{formatAppointmentDate(selectedDateIso)}</strong> at{" "}
-            <strong className="text-foreground">{selectedTime}</strong> is{" "}
-            <strong className="text-foreground">pending</strong> firm confirmation.
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            You will see it as confirmed here once the firm accepts the slot
-            {selectedType === "virtual" ? ", and any video link will appear on the booking." : "."}
-          </p>
-          <Button
-            onClick={() => {
-              setShowSuccess(false);
-              setSelectedTime(null);
-              setNotes("");
-            }}
-          >
-            Book Another Appointment
-          </Button>
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Consultation Desk"
+        title="Booking Request Submitted"
+        description="Your consultation booking has been recorded."
+        icon={CalendarIcon}
+      >
+        <div className="max-w-2xl mx-auto">
+          <DashboardSection title="Booking Request Submitted">
+            <div className="p-6 sm:p-8 text-center flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 bg-dashboard-success-soft border border-dashboard-success/30 rounded-2xl flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-dashboard-success" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-foreground">
+                Request Received by Firm
+              </h2>
+              <p className="text-dashboard-neutral text-sm max-w-md">
+                Your {typeDetails[selectedType].label} request for{" "}
+                <strong className="text-foreground">
+                  {formatAppointmentDate(selectedDateIso)}
+                </strong>{" "}
+                at <strong className="text-foreground">{selectedTime}</strong> is currently pending
+                confirmation from our scheduling desk.
+              </p>
+              <div className="p-4 bg-dashboard-neutral-soft rounded-xl border border-dashboard-border text-xs text-left w-full space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-dashboard-neutral">Client:</span>
+                  <span className="font-semibold text-foreground">{clientRecord.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dashboard-neutral">Timezone:</span>
+                  <span className="font-semibold text-foreground">Asia/Kathmandu (NPT)</span>
+                </div>
+                {notes && (
+                  <div className="pt-2 border-t border-dashboard-border">
+                    <span className="text-dashboard-neutral block mb-1">Notes:</span>
+                    <p className="italic text-foreground">{notes}</p>
+                  </div>
+                )}
+              </div>
+              <DashboardButton
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  setShowSuccess(false);
+                  setSelectedTime(null);
+                  setNotes("");
+                }}
+              >
+                Book another appointment
+              </DashboardButton>
+            </div>
+          </DashboardSection>
         </div>
-      </div>
+      </PortalPageShell>
     );
   }
 
-  const upcomingAppointments = (appointments as Array<{
-    _id?: string;
-    id?: string;
-    status?: string;
-    date?: string;
-    timeSlot?: string;
-    time?: string;
-    practiceArea?: string;
-    meetingLink?: string | null;
-  }>).filter(
-    (a) =>
-      a.status !== "cancelled" &&
-      a.status !== "completed" &&
-      (a.date ?? "") >= today,
-  );
-
   return (
-    <div className="p-4 sm:p-6 space-y-8 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold font-serif text-primary flex items-center gap-2">
-          <CalendarIcon className="w-6 h-6" /> Book Consultation
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Schedule a meeting with your assigned legal team. Dates use Nepal time (Asia/Kathmandu).
-          New bookings stay pending until the firm confirms.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <PortalPageShell
+      portal="client"
+      decorated
+      showTodayDate
+      eyebrow="Consultation Desk"
+      title="Book Legal Consultation"
+      description="Schedule a confidential in-person or video consultation with our legal advocates in Kathmandu."
+      icon={CalendarIcon}
+      metrics={metrics}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
-            <div className="border-b border-border p-4 bg-muted/30">
-              <h2 className="font-medium text-foreground">1. Select Appointment Type</h2>
-            </div>
-            <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <DashboardSection title="1. Select Consultation Mode">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {(["virtual", "in_person", "phone"] as const).map((type) => {
-                const { icon: Icon, label, desc } = typeDetails[type];
+                const Icon = typeDetails[type].icon;
                 const isSelected = selectedType === type;
                 return (
                   <button
                     key={type}
                     type="button"
                     onClick={() => setSelectedType(type)}
-                    className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 text-center transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 text-center transition-all cursor-pointer ${
                       isSelected
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50 hover:bg-muted"
+                        ? "border-dashboard-primary bg-dashboard-primary-soft"
+                        : "border-dashboard-border bg-dashboard-panel hover:bg-dashboard-panel-hover"
                     }`}
                   >
                     <Icon
-                      className={`w-6 h-6 mb-2 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
+                      className={`w-6 h-6 mb-2 ${isSelected ? "text-dashboard-primary" : "text-dashboard-neutral"}`}
                     />
-                    <span
-                      className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}
-                    >
-                      {label}
+                    <span className="font-bold text-sm text-foreground">
+                      {typeDetails[type].label}
                     </span>
-                    <span className="text-xs text-muted-foreground mt-1">{desc}</span>
+                    <span className="text-[11px] text-dashboard-neutral mt-1 leading-snug">
+                      {typeDetails[type].desc}
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </DashboardSection>
 
-          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
-            <div className="border-b border-border p-4 bg-muted/30 flex items-center justify-between">
-              <h2 className="font-medium text-foreground">2. Select Date & Time</h2>
-              <div className="flex items-center gap-2">
-                <Button
+          <DashboardSection
+            title="2. Choose Date & Time Slot"
+            actions={
+              <span className="text-xs text-dashboard-neutral font-medium">
+                Timezone: Asia/Kathmandu (NPT)
+              </span>
+            }
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-dashboard-neutral-soft rounded-xl border border-dashboard-border">
+                <DashboardButton
                   variant="outline"
                   size="sm"
                   onClick={prevDay}
                   disabled={selectedDateIso <= today}
-                  className="h-8 w-8 p-0"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm font-semibold min-w-[140px] text-center">
-                  {formatAppointmentDate(selectedDateIso)}
-                </span>
-                <Button variant="outline" size="sm" onClick={nextDay} className="h-8 w-8 p-0">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Previous Day
+                </DashboardButton>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-foreground">
+                    {formatAppointmentDate(selectedDateIso)}
+                  </p>
+                  <span className="text-xs text-dashboard-neutral font-mono">
+                    {selectedDateIso}
+                  </span>
+                </div>
+                <DashboardButton variant="outline" size="sm" onClick={nextDay}>
+                  Next Day <ChevronRight className="w-4 h-4 ml-1" />
+                </DashboardButton>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-dashboard-neutral mb-2">
+                  Available Time Slots
+                </p>
+                {availableSlots === undefined ? (
+                  <DashboardListSkeleton rows={2} />
+                ) : availableSlots.length === 0 ? (
+                  <div className="p-6 text-center border border-dashed border-dashboard-border rounded-xl bg-dashboard-neutral-soft/50">
+                    <p className="text-xs text-dashboard-neutral font-medium">
+                      No consultation slots available on this date.
+                    </p>
+                    <DashboardButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={nextDay}
+                      className="mt-2 text-xs"
+                    >
+                      Try next day →
+                    </DashboardButton>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {availableSlots.map((time: string) => {
+                      const isSelected = selectedTime === time;
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          onClick={() => setSelectedTime(time)}
+                          className={`py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-dashboard-primary text-dashboard-primary-foreground border-dashboard-primary shadow-xs"
+                              : "bg-dashboard-panel text-foreground border-dashboard-border hover:border-dashboard-primary/50"
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="p-6">
-              {availableSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No available slots for this date. Try another day.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {availableSlots.map((time: string) => {
-                    const isSelected = selectedTime === time;
-                    return (
-                      <button
-                        key={time}
-                        type="button"
-                        onClick={() => setSelectedTime(time)}
-                        className={`py-2 px-3 rounded-md text-sm font-medium border transition-all ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background text-foreground border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          </DashboardSection>
 
-          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
-            <div className="border-b border-border p-4 bg-muted/30">
-              <h2 className="font-medium text-foreground">3. Additional Notes</h2>
-            </div>
-            <div className="p-4">
-              <textarea
-                className="w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-sm shadow-xs focus-visible:outline-hidden min-h-[100px] resize-y"
-                placeholder="Briefly describe what you'd like to discuss (optional)..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-            <p className="text-xs text-muted-foreground">
-              Submitting requests a slot — it is not confirmed until the firm accepts it.
-            </p>
-            <Button
-              size="lg"
-              onClick={handleBook}
-              disabled={!selectedTime || isSubmitting}
-              className="px-8 gap-2"
-            >
-              {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4" />
-              )}
-              Request Booking
-            </Button>
-          </div>
+          <DashboardSection title="3. Additional Notes (Optional)">
+            <textarea
+              className="w-full min-h-[90px] p-3 text-xs rounded-xl border border-dashboard-border bg-dashboard-panel focus:outline-none focus:ring-2 focus:ring-dashboard-primary"
+              placeholder="Briefly state your matter summary, urgent questions, or reference case number..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </DashboardSection>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-card border border-border rounded-xl p-5 shadow-xs">
-            <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" /> Your Upcoming Appointments
-            </h3>
+          <DashboardSection title="Booking Summary" icon={CheckCircle2}>
+            <div className="space-y-4">
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between py-1.5 border-b border-dashboard-border">
+                  <span className="text-dashboard-neutral">Client:</span>
+                  <span className="font-semibold text-foreground">{clientRecord.fullName}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-dashboard-border">
+                  <span className="text-dashboard-neutral">Format:</span>
+                  <span className="font-semibold text-foreground">
+                    {typeDetails[selectedType].label}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-dashboard-border">
+                  <span className="text-dashboard-neutral">Date:</span>
+                  <span className="font-semibold text-foreground">
+                    {formatAppointmentDate(selectedDateIso)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-dashboard-border">
+                  <span className="text-dashboard-neutral">Time:</span>
+                  <span className="font-semibold text-foreground">
+                    {selectedTime || "Select a slot"}
+                  </span>
+                </div>
+              </div>
 
-            {upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No upcoming appointments.
+              <DashboardButton
+                className="w-full bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground font-semibold"
+                disabled={!selectedTime || isSubmitting}
+                onClick={handleBook}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Confirming...
+                  </>
+                ) : (
+                  "Confirm Booking Request"
+                )}
+              </DashboardButton>
+            </div>
+          </DashboardSection>
+
+          <DashboardSection title="Your Appointments" icon={CalendarDays}>
+            {appointments === undefined ? (
+              <DashboardListSkeleton rows={3} />
+            ) : appointments.length === 0 ? (
+              <p className="text-xs text-dashboard-neutral text-center py-4">
+                No appointments scheduled.
               </p>
             ) : (
-              <div className="space-y-3">
-                {upcomingAppointments.map((apt) => {
-                  const status = apt.status ?? "pending";
-                  return (
-                    <div
-                      key={apt._id || apt.id}
-                      className="p-3 rounded-lg border border-border bg-muted/30 text-sm space-y-2"
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="font-semibold text-foreground">
-                          {apt.date ? formatAppointmentDate(apt.date) : "—"}
-                        </span>
-                        <Badge
-                          variant={
-                            status === "confirmed"
-                              ? "default"
-                              : status === "pending"
-                                ? "secondary"
-                                : "outline"
-                          }
-                          className="text-xs uppercase"
-                        >
-                          {status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-muted-foreground text-xs">
-                          {apt.practiceArea || "Consultation"}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {apt.timeSlot || apt.time}
-                        </Badge>
-                      </div>
-                      {status === "pending" && (
-                        <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                          Waiting for the firm to confirm this slot.
-                        </p>
-                      )}
-                      {status === "confirmed" && apt.meetingLink && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => {
-                              navigator.clipboard.writeText(apt.meetingLink!);
-                              toast.success("Meeting link copied.");
-                            }}
-                          >
-                            <Copy className="w-3 h-3 mr-1" /> Copy link
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => window.open(apt.meetingLink!, "_blank")}
-                          >
-                            <ExternalLink className="w-3 h-3 mr-1" /> Join
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => {
-                              const day = (apt.date || "").replace(/-/g, "");
-                              const lines = [
-                                "BEGIN:VCALENDAR",
-                                "VERSION:2.0",
-                                "BEGIN:VEVENT",
-                                `UID:${apt._id || apt.id}@srimar.law`,
-                                `DTSTART;VALUE=DATE:${day}`,
-                                `SUMMARY:Consultation — ${apt.practiceArea || "Srimar Law"}`,
-                                apt.meetingLink ? `URL:${apt.meetingLink}` : "",
-                                "END:VEVENT",
-                                "END:VCALENDAR",
-                              ].filter(Boolean);
-                              const blob = new Blob([lines.join("\r\n")], {
-                                type: "text/calendar",
-                              });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement("a");
-                              a.href = url;
-                              a.download = "consultation.ics";
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            }}
-                          >
-                            ICS
-                          </Button>
-                        </div>
-                      )}
-                      {status === "confirmed" && !apt.meetingLink && (
-                        <p className="text-[11px] text-muted-foreground">
-                          Confirmed — the firm will share a meeting link if this is virtual.
-                        </p>
-                      )}
+              <div className="space-y-2">
+                {appointments.slice(0, 5).map((apt: any) => (
+                  <DashboardListRow key={apt._id} className="p-3 text-xs flex flex-col gap-1">
+                    <div className="flex justify-between items-center w-full">
+                      <span className="font-semibold text-foreground">{apt.date}</span>
+                      <DashboardStatusLabel status={apt.status} className="text-[10px]" />
                     </div>
-                  );
-                })}
+                    <p className="text-dashboard-neutral text-[11px] w-full">
+                      {apt.timeSlot} · {apt.practiceArea}
+                    </p>
+                  </DashboardListRow>
+                ))}
               </div>
             )}
-          </div>
-
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-              Need Immediate Help?
-            </h3>
-            <p className="text-sm text-blue-800 dark:text-blue-400 mb-4">
-              If you have an urgent legal matter that requires immediate attention, contact the firm
-              through Messages or the public contact page.
-            </p>
-            <Button asChild variant="outline" size="sm" className="border-blue-300">
-              <a href="/contact">Contact the firm</a>
-            </Button>
-          </div>
+          </DashboardSection>
         </div>
       </div>
-    </div>
+    </PortalPageShell>
   );
 }

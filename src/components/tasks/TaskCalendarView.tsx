@@ -3,8 +3,14 @@ import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval,
-  format, isSameDay, isSameMonth,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  format,
+  isSameDay,
+  isSameMonth,
 } from "date-fns";
 import { getBSDate } from "@/lib/bs-calendar.ts";
 import { PRIORITY_COLORS, isTaskOverdue } from "@/lib/task-constants.ts";
@@ -38,11 +44,23 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
       <div className="flex items-center justify-between">
         <h3 className="font-serif text-lg font-bold">{format(currentMonth, "MMMM yyyy")}</h3>
         <div className="flex gap-1">
-          <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => setCurrentMonth((m) => subMonths(m, 1))}>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8"
+            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
+          >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setCurrentMonth(new Date())}>Today</Button>
-          <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => setCurrentMonth((m) => addMonths(m, 1))}>
+          <Button size="sm" variant="ghost" onClick={() => setCurrentMonth(new Date())}>
+            Today
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8"
+            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
+          >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -83,12 +101,16 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
                       isTaskOverdue(t) ? "bg-destructive/15 text-destructive" : "bg-secondary/60",
                     )}
                   >
-                    <Badge className={`text-[8px] px-1 py-0 mr-0.5 ${PRIORITY_COLORS[t.priority]}`}>{t.priority?.[0]}</Badge>
+                    <Badge className={`text-[8px] px-1 py-0 mr-0.5 ${PRIORITY_COLORS[t.priority]}`}>
+                      {t.priority?.[0]}
+                    </Badge>
                     {t.title}
                   </button>
                 ))}
                 {dayTasks.length > 3 && (
-                  <p className="text-[9px] text-muted-foreground px-1">+{dayTasks.length - 3} more</p>
+                  <p className="text-[9px] text-muted-foreground px-1">
+                    +{dayTasks.length - 3} more
+                  </p>
                 )}
               </div>
             </div>

@@ -7,9 +7,17 @@ import { queryKeys } from "@/client/queries/query-keys";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { slugifyBlogTitle, staffCanEditBlogStatus } from "@/shared/blog-visibility";
 import { slugifyNewsTitle } from "@/shared/news-visibility";
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardSection,
+  DashboardStatusLabel,
+  DualDateDisplay,
+  EmptyState,
+  PortalPageShell,
+  StatusBadge,
+} from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +30,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
-import { PenTool, Plus, Edit, Send, Clock, CheckCircle2, XCircle, FileText, Newspaper } from "lucide-react";
+import {
+  PenTool,
+  Plus,
+  Edit,
+  Send,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  FileText,
+  Newspaper,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -80,36 +98,21 @@ const emptyNewsForm = () => ({
   imageUrl: "",
 });
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "published") {
-    return (
-      <Badge variant="default" className="uppercase tracking-wider text-[10px] gap-1">
-        <CheckCircle2 className="w-3 h-3" />
-        published
-      </Badge>
-    );
-  }
-  if (status === "pending_review") {
-    return (
-      <Badge variant="secondary" className="uppercase tracking-wider text-[10px] gap-1">
-        <Clock className="w-3 h-3" />
-        pending review
-      </Badge>
-    );
-  }
-  if (status === "rejected") {
-    return (
-      <Badge variant="destructive" className="uppercase tracking-wider text-[10px] gap-1">
-        <XCircle className="w-3 h-3" />
-        rejected
-      </Badge>
-    );
-  }
+function ContentStatusLabel({ status }: { status: string }) {
+  const icon =
+    status === "published"
+      ? CheckCircle2
+      : status === "pending_review"
+        ? Clock
+        : status === "rejected"
+          ? XCircle
+          : FileText;
   return (
-    <Badge variant="outline" className="uppercase tracking-wider text-[10px] gap-1">
-      <FileText className="w-3 h-3" />
-      draft
-    </Badge>
+    <DashboardStatusLabel
+      status={status}
+      icon={icon}
+      className="uppercase tracking-wider text-[10px] gap-1"
+    />
   );
 }
 
@@ -351,19 +354,14 @@ export default function StaffContentPage() {
   };
 
   return (
-    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground flex items-center gap-2">
-            <PenTool className="w-6 h-6 text-accent shrink-0" />
-            Content
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Draft blog articles and news for admin review. You cannot publish directly.
-          </p>
-        </div>
-      </div>
-
+    <PortalPageShell
+      portal="staff"
+      decorated
+      titleKey="portal.content.title"
+      descriptionKey="portal.content.description"
+      icon={PenTool}
+      className="max-w-7xl mx-auto"
+    >
       <Tabs value={mainTab} onValueChange={setMainTab} className="w-full min-w-0">
         <TabsList className="grid w-full max-w-md grid-cols-2 h-auto">
           <TabsTrigger value="blog" className="gap-1.5">
@@ -376,147 +374,155 @@ export default function StaffContentPage() {
 
         <TabsContent value="blog" className="space-y-4 mt-4">
           <div className="flex justify-end">
-            <Button onClick={openBlogCreate} className="gap-2 w-full sm:w-auto">
+            <DashboardButton onClick={openBlogCreate} className="gap-2 w-full sm:w-auto">
               <Plus className="w-4 h-4" /> New article
-            </Button>
+            </DashboardButton>
           </div>
 
-          <Card className="border-border overflow-hidden min-w-0">
+          <DashboardSection title="Blog articles">
             {postsQuery.isLoading ? (
-              <p className="px-4 py-10 text-center text-sm text-muted-foreground">Loading…</p>
+              <p className="text-center text-sm text-muted-foreground py-10">Loading…</p>
             ) : posts.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-                No articles yet. Create a draft to get started.
-              </p>
+              <EmptyState
+                title="No articles yet"
+                description="Create a draft to get started."
+                icon={FileText}
+              />
             ) : (
-              <div className="divide-y divide-border">
+              <div className="space-y-2">
                 {posts.map((post) => {
                   const canEdit = staffCanEditBlogStatus(post.status);
                   const canSubmit = canEdit;
                   return (
-                    <div key={post._id} className="p-3 sm:p-4 space-y-2 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="min-w-0 space-y-1.5">
-                          <p className="font-semibold text-foreground text-sm sm:text-base break-words">
-                            {post.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">{post.slug}</p>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <StatusBadge status={post.status} />
-                            {post.category ? (
-                              <Badge variant="outline" className="text-[10px]">
-                                {post.category}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          {post.status === "rejected" && post.reviewNotes ? (
-                            <p className="text-xs text-destructive mt-1 break-words">
-                              Review notes: {post.reviewNotes}
-                            </p>
+                    <DashboardListRow
+                      key={post._id}
+                      className="flex-col sm:flex-row items-start gap-3"
+                    >
+                      <div className="min-w-0 space-y-1.5 flex-1">
+                        <p className="font-semibold text-foreground text-sm sm:text-base break-words">
+                          {post.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{post.slug}</p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <ContentStatusLabel status={post.status} />
+                          {post.category ? (
+                            <StatusBadge tone="neutral" className="text-[10px]">
+                              {post.category}
+                            </StatusBadge>
                           ) : null}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
-                          {(canEdit || post.status === "published" || post.status === "pending_review") && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openBlogEdit(post)}
-                              className="gap-1.5"
-                            >
-                              <Edit className="w-4 h-4" />
-                              {canEdit ? "Edit" : "View"}
-                            </Button>
-                          )}
-                          {canSubmit && (
-                            <Button
-                              size="sm"
-                              onClick={() => submitBlog(post._id)}
-                              className="gap-1.5"
-                            >
-                              <Send className="w-4 h-4" /> Submit
-                            </Button>
-                          )}
-                        </div>
+                        {post.status === "rejected" && post.reviewNotes ? (
+                          <p className="text-xs text-dashboard-danger mt-1 break-words">
+                            Review notes: {post.reviewNotes}
+                          </p>
+                        ) : null}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="news" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <Button onClick={openNewsCreate} className="gap-2 w-full sm:w-auto">
-              <Plus className="w-4 h-4" /> New news item
-            </Button>
-          </div>
-
-          <Card className="border-border overflow-hidden min-w-0">
-            {newsQuery.isLoading ? (
-              <p className="px-4 py-10 text-center text-sm text-muted-foreground">Loading…</p>
-            ) : news.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-                No news drafts yet.
-              </p>
-            ) : (
-              <div className="divide-y divide-border">
-                {news.map((item) => {
-                  const canEdit = staffCanEditBlogStatus(item.status);
-                  return (
-                    <div key={item._id} className="p-3 sm:p-4 space-y-2 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="min-w-0 space-y-1.5">
-                          <p className="font-semibold text-foreground text-sm sm:text-base break-words">
-                            {item.title}
-                          </p>
-                          {item.slug ? (
-                            <p className="text-xs text-muted-foreground truncate">{item.slug}</p>
-                          ) : null}
-                          <p className="text-xs text-muted-foreground line-clamp-2">{item.excerpt}</p>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <StatusBadge status={item.status} />
-                            <Badge variant="outline" className="text-[10px]">
-                              {typeLabel(item.type)}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground tabular-nums">
-                              {item.date}
-                            </span>
-                          </div>
-                          {item.status === "rejected" && item.reviewNotes ? (
-                            <p className="text-xs text-destructive mt-1 break-words">
-                              Review notes: {item.reviewNotes}
-                            </p>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        {(canEdit ||
+                          post.status === "published" ||
+                          post.status === "pending_review") && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openNewsEdit(item)}
+                            onClick={() => openBlogEdit(post)}
                             className="gap-1.5"
                           >
                             <Edit className="w-4 h-4" />
                             {canEdit ? "Edit" : "View"}
                           </Button>
-                          {canEdit && (
-                            <Button
-                              size="sm"
-                              onClick={() => submitNews(item._id)}
-                              className="gap-1.5"
-                            >
-                              <Send className="w-4 h-4" /> Submit
-                            </Button>
-                          )}
-                        </div>
+                        )}
+                        {canSubmit && (
+                          <Button
+                            size="sm"
+                            onClick={() => submitBlog(post._id)}
+                            className="gap-1.5"
+                          >
+                            <Send className="w-4 h-4" /> Submit
+                          </Button>
+                        )}
                       </div>
-                    </div>
+                    </DashboardListRow>
                   );
                 })}
               </div>
             )}
-          </Card>
+          </DashboardSection>
+        </TabsContent>
+
+        <TabsContent value="news" className="space-y-4 mt-4">
+          <div className="flex justify-end">
+            <DashboardButton onClick={openNewsCreate} className="gap-2 w-full sm:w-auto">
+              <Plus className="w-4 h-4" /> New news item
+            </DashboardButton>
+          </div>
+
+          <DashboardSection title="News items">
+            {newsQuery.isLoading ? (
+              <p className="text-center text-sm text-muted-foreground py-10">Loading…</p>
+            ) : news.length === 0 ? (
+              <EmptyState
+                title="No news drafts"
+                description="Create a draft to get started."
+                icon={Newspaper}
+              />
+            ) : (
+              <div className="space-y-2">
+                {news.map((item) => {
+                  const canEdit = staffCanEditBlogStatus(item.status);
+                  return (
+                    <DashboardListRow
+                      key={item._id}
+                      className="flex-col sm:flex-row items-start gap-3"
+                    >
+                      <div className="min-w-0 space-y-1.5 flex-1">
+                        <p className="font-semibold text-foreground text-sm sm:text-base break-words">
+                          {item.title}
+                        </p>
+                        {item.slug ? (
+                          <p className="text-xs text-muted-foreground truncate">{item.slug}</p>
+                        ) : null}
+                        <p className="text-xs text-muted-foreground line-clamp-2">{item.excerpt}</p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <ContentStatusLabel status={item.status} />
+                          <StatusBadge tone="information" className="text-[10px]">
+                            {typeLabel(item.type)}
+                          </StatusBadge>
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            <DualDateDisplay isoDate={item.date} />
+                          </span>
+                        </div>
+                        {item.status === "rejected" && item.reviewNotes ? (
+                          <p className="text-xs text-dashboard-danger mt-1 break-words">
+                            Review notes: {item.reviewNotes}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openNewsEdit(item)}
+                          className="gap-1.5"
+                        >
+                          <Edit className="w-4 h-4" />
+                          {canEdit ? "Edit" : "View"}
+                        </Button>
+                        {canEdit && (
+                          <Button
+                            size="sm"
+                            onClick={() => submitNews(item._id)}
+                            className="gap-1.5"
+                          >
+                            <Send className="w-4 h-4" /> Submit
+                          </Button>
+                        )}
+                      </div>
+                    </DashboardListRow>
+                  );
+                })}
+              </div>
+            )}
+          </DashboardSection>
         </TabsContent>
       </Tabs>
 
@@ -525,11 +531,7 @@ export default function StaffContentPage() {
         <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-full max-h-[90vh] overflow-y-auto bg-background border-border">
           <DialogHeader>
             <DialogTitle>
-              {blogReadOnly
-                ? "View article"
-                : editingBlogId
-                  ? "Edit draft"
-                  : "New article draft"}
+              {blogReadOnly ? "View article" : editingBlogId ? "Edit draft" : "New article draft"}
             </DialogTitle>
             <DialogDescription>
               Save as draft, then submit for admin review. Publishing is admin-only.
@@ -625,7 +627,11 @@ export default function StaffContentPage() {
           </div>
           {!blogReadOnly && (
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button variant="ghost" onClick={() => setBlogOpen(false)} className="w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                onClick={() => setBlogOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
               <Button
@@ -653,15 +659,9 @@ export default function StaffContentPage() {
         <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-full max-h-[90vh] overflow-y-auto bg-background border-border">
           <DialogHeader>
             <DialogTitle>
-              {newsReadOnly
-                ? "View news"
-                : editingNewsId
-                  ? "Edit news draft"
-                  : "New news draft"}
+              {newsReadOnly ? "View news" : editingNewsId ? "Edit news draft" : "New news draft"}
             </DialogTitle>
-            <DialogDescription>
-              Staff can only save drafts and submit for review.
-            </DialogDescription>
+            <DialogDescription>Staff can only save drafts and submit for review.</DialogDescription>
           </DialogHeader>
           <div className={cn("space-y-4 py-2", newsReadOnly && "pointer-events-none opacity-90")}>
             <div className="space-y-2">
@@ -698,9 +698,7 @@ export default function StaffContentPage() {
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
                   value={newsForm.type}
-                  onChange={(e) =>
-                    setNewsForm({ ...newsForm, type: e.target.value as NewsType })
-                  }
+                  onChange={(e) => setNewsForm({ ...newsForm, type: e.target.value as NewsType })}
                   disabled={newsReadOnly}
                 >
                   <option value="firm_news">Firm News</option>
@@ -747,7 +745,11 @@ export default function StaffContentPage() {
           </div>
           {!newsReadOnly && (
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button variant="ghost" onClick={() => setNewsOpen(false)} className="w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                onClick={() => setNewsOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
               <Button
@@ -769,6 +771,6 @@ export default function StaffContentPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

@@ -12,15 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import {
-  ArrowRight,
-  BookOpen,
-  Calendar,
-  Clock,
-  Scale,
-  Search,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, Clock, Scale, Search, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const pad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
@@ -185,7 +177,11 @@ export default function BlogPage() {
       <div className={`${pad} mt-6 sm:mt-8`}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {[
-            { icon: ShieldCheck, label: "Advocate-authored", desc: "Written by LexNepal counsel" },
+            {
+              icon: ShieldCheck,
+              label: "Advocate-authored",
+              desc: "Written by Srimar Law counsel",
+            },
             { icon: Scale, label: "Nepal-focused", desc: "Practical local guidance" },
             { icon: BookOpen, label: "Plain language", desc: "Clear legal insights" },
           ].map(({ icon: Icon, label, desc }) => (
@@ -245,7 +241,8 @@ export default function BlogPage() {
             <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
             <h2 className="font-serif text-xl font-bold mb-2">Insights coming soon</h2>
             <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-              We are preparing practical legal articles. Meanwhile, book a consultation or contact us.
+              We are preparing practical legal articles. Meanwhile, book a consultation or contact
+              us.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild>
@@ -280,7 +277,6 @@ export default function BlogPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2">
                       <div className="relative overflow-hidden bg-muted h-44 sm:h-56 lg:h-auto lg:min-h-[320px]">
                         {featured.coverImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={String(featured.coverImageUrl)}
                             alt={String(featured.title ?? "")}
@@ -375,7 +371,6 @@ export default function BlogPage() {
                         <Card className="hover:shadow-lg transition-shadow h-full flex flex-col overflow-hidden border-border py-0 gap-0">
                           <div className="relative h-40 sm:h-48 w-full overflow-hidden bg-muted shrink-0">
                             {post.coverImageUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={String(post.coverImageUrl)}
                                 alt={String(post.title ?? "")}
@@ -451,10 +446,15 @@ export default function BlogPage() {
             Need advice tailored to your matter?
           </h2>
           <p className="text-sm text-primary-foreground/70 mb-6">
-            Read our insights, then book a consultation with an advocate who knows your practice area.
+            Read our insights, then book a consultation with an advocate who knows your practice
+            area.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href="/consultation" className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>

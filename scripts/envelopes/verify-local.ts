@@ -154,9 +154,13 @@ try {
     .limit(1);
   if (!boundaryUser) throw new Error("boundary-a user missing");
 
-  const docsResponse = await listDocuments(new Request("http://local/api/v1/documents", { headers }));
+  const docsResponse = await listDocuments(
+    new Request("http://local/api/v1/documents", { headers }),
+  );
   if (!docsResponse.ok) throw new Error(`Documents list failed: ${docsResponse.status}`);
-  const docsBody = (await docsResponse.json()) as { data: Array<{ _id: string; uploadStatus?: string }> };
+  const docsBody = (await docsResponse.json()) as {
+    data: Array<{ _id: string; uploadStatus?: string }>;
+  };
   const cleanDoc =
     docsBody.data.find((d) => (d as { uploadStatus?: string }).uploadStatus === "clean") ||
     docsBody.data[0];
@@ -177,7 +181,9 @@ try {
       }),
     );
     if (!createResponse.ok) {
-      throw new Error(`Create envelope failed: ${createResponse.status} ${await createResponse.text()}`);
+      throw new Error(
+        `Create envelope failed: ${createResponse.status} ${await createResponse.text()}`,
+      );
     }
     const created = (await createResponse.json()) as { data: { envelopeId: string } };
     const sendResponse = await sendEnvelope(
@@ -203,7 +209,9 @@ try {
     }),
   );
   if (!otpIssueResponse.ok) {
-    throw new Error(`OTP issue failed: ${otpIssueResponse.status} ${await otpIssueResponse.text()}`);
+    throw new Error(
+      `OTP issue failed: ${otpIssueResponse.status} ${await otpIssueResponse.text()}`,
+    );
   }
   const otpIssued = (await otpIssueResponse.json()) as {
     data: { challengeId: string; demoCode: string };
@@ -236,7 +244,9 @@ try {
     }),
   );
   if (!otpVerifyResponse.ok) {
-    throw new Error(`OTP verify failed: ${otpVerifyResponse.status} ${await otpVerifyResponse.text()}`);
+    throw new Error(
+      `OTP verify failed: ${otpVerifyResponse.status} ${await otpVerifyResponse.text()}`,
+    );
   }
   evidence.verify = true;
 
@@ -334,7 +344,9 @@ try {
   evidence.expire = true;
   console.log("expire path ok");
 
-  const listResponse = await listEnvelopes(new Request("http://local/api/v1/envelopes", { headers }));
+  const listResponse = await listEnvelopes(
+    new Request("http://local/api/v1/envelopes", { headers }),
+  );
   if (!listResponse.ok) throw new Error(`List envelopes failed: ${listResponse.status}`);
   const listBody = (await listResponse.json()) as { data: unknown[] };
   if (!Array.isArray(listBody.data) || listBody.data.length < 1) {

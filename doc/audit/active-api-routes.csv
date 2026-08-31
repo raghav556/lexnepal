@@ -1,0 +1,170 @@
+Route,Methods,File,Auth markers,Service imports,Contract imports
+/api/auth/[...all],,src/app/api/auth/[...all]/route.ts,handler/service policy,,
+/api/v1/analytics/dashboard,GET,src/app/api/v1/analytics/dashboard/route.ts,requireSession,@/server/services/analytics-service,
+/api/v1/appointments,GET | POST,src/app/api/v1/appointments/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/appointments/[id]/assign,POST,src/app/api/v1/appointments/[id]/assign/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/appointments/[id]/reschedule,POST,src/app/api/v1/appointments/[id]/reschedule/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/appointments/[id]/status,PATCH,src/app/api/v1/appointments/[id]/status/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/appointments/book,POST,src/app/api/v1/appointments/book/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/appointments/slots,GET,src/app/api/v1/appointments/slots/route.ts,handler/service policy,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/audit-events,GET,src/app/api/v1/audit-events/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/auth/session,GET | POST | DELETE,src/app/api/v1/auth/session/route.ts,requireSession,,
+/api/v1/cases,GET | POST,src/app/api/v1/cases/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/cases/[id],GET | PATCH,src/app/api/v1/cases/[id]/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/cases/[id]/conflict-decision,POST,src/app/api/v1/cases/[id]/conflict-decision/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/clients,GET | POST,src/app/api/v1/clients/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/clients/[id],GET | PATCH,src/app/api/v1/clients/[id]/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/clients/[id]/kyc-files,GET,src/app/api/v1/clients/[id]/kyc-files/route.ts,requireSession,@/server/services/kyc-service,@/shared/contracts/matters
+/api/v1/clients/[id]/kyc-review,POST,src/app/api/v1/clients/[id]/kyc-review/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/clients/[id]/portal-access,POST,src/app/api/v1/clients/[id]/portal-access/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/clients/me,GET | PATCH,src/app/api/v1/clients/me/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/matters
+/api/v1/clients/me/kyc-submissions,POST,src/app/api/v1/clients/me/kyc-submissions/route.ts,requireSession,@/server/services/kyc-service,@/shared/contracts/matters
+/api/v1/clients/me/kyc-upload-intents,POST,src/app/api/v1/clients/me/kyc-upload-intents/route.ts,requireSession,@/server/services/kyc-service,@/shared/contracts/matters
+/api/v1/clients/me/kyc-upload-intents/[intentId],GET,src/app/api/v1/clients/me/kyc-upload-intents/[intentId]/route.ts,requireSession,@/server/services/kyc-service,@/shared/contracts/matters
+/api/v1/clients/me/kyc-upload-intents/[intentId]/complete,POST,src/app/api/v1/clients/me/kyc-upload-intents/[intentId]/complete/route.ts,requireSession,@/server/services/kyc-service,@/shared/contracts/matters
+/api/v1/clients/me/team,GET,src/app/api/v1/clients/me/team/route.ts,requireSession,@/server/services/matters-service,
+/api/v1/cms/[collection],GET | POST,src/app/api/v1/cms/[collection]/route.ts,requireSession,@/server/services/cms-service,
+/api/v1/cms/[collection]/[id],PATCH | DELETE,src/app/api/v1/cms/[collection]/[id]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/applications,GET,src/app/api/v1/cms/applications/route.ts,requireSession,@/server/services/cms-service,
+/api/v1/cms/applications/[id],PATCH,src/app/api/v1/cms/applications/[id]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/asset-upload-intents,POST,src/app/api/v1/cms/asset-upload-intents/route.ts,requireSession,@/server/services/cms-asset-service,
+/api/v1/cms/asset-upload-intents/[intentId],GET,src/app/api/v1/cms/asset-upload-intents/[intentId]/route.ts,requireSession,@/server/services/cms-asset-service,
+/api/v1/cms/asset-upload-intents/[intentId]/complete,POST,src/app/api/v1/cms/asset-upload-intents/[intentId]/complete/route.ts,requireSession,@/server/services/cms-asset-service,
+/api/v1/cms/blog-posts/[id]/review,POST,src/app/api/v1/cms/blog-posts/[id]/review/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/legal-pages/[slug],GET | PUT,src/app/api/v1/cms/legal-pages/[slug]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/navigation/reorder,POST,src/app/api/v1/cms/navigation/reorder/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/news/[id]/review,POST,src/app/api/v1/cms/news/[id]/review/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/newsletter,GET,src/app/api/v1/cms/newsletter/route.ts,requireSession,@/server/services/cms-service,
+/api/v1/cms/newsletter/[id],PATCH,src/app/api/v1/cms/newsletter/[id]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/settings,GET | PUT,src/app/api/v1/cms/settings/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/cms/team,GET,src/app/api/v1/cms/team/route.ts,requireSession,@/server/services/cms-service,
+/api/v1/cms/team/[id],PATCH,src/app/api/v1/cms/team/[id]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/communications/email,POST,src/app/api/v1/communications/email/route.ts,requireSession,@/server/services/communication-service,@/shared/contracts/communication
+/api/v1/conflict-checks,GET,src/app/api/v1/conflict-checks/route.ts,requireSession,@/server/services/matters-service,
+/api/v1/conflict-checks/[id],PATCH,src/app/api/v1/conflict-checks/[id]/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/conflicts | @/shared/contracts/matters
+/api/v1/conflict-checks/preview,POST,src/app/api/v1/conflict-checks/preview/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/conflicts
+/api/v1/conflict-checks/search,POST,src/app/api/v1/conflict-checks/search/route.ts,requireSession,@/server/services/matters-service,@/shared/contracts/conflicts
+/api/v1/dm/threads,GET | POST,src/app/api/v1/dm/threads/route.ts,requireSession,@/server/services/dm-service,@/shared/contracts/dm
+/api/v1/dm/threads/[threadId]/messages,GET | POST,src/app/api/v1/dm/threads/[threadId]/messages/route.ts,requireSession,@/server/services/dm-service,@/shared/contracts/communication | @/shared/contracts/dm
+/api/v1/dm/threads/[threadId]/read,POST,src/app/api/v1/dm/threads/[threadId]/read/route.ts,requireSession,@/server/services/dm-service,@/shared/contracts/communication
+/api/v1/document-tags,GET | POST,src/app/api/v1/document-tags/route.ts,requireSession,@/server/services/document-template-service,
+/api/v1/document-tags/[id],DELETE,src/app/api/v1/document-tags/[id]/route.ts,requireSession,@/server/services/document-template-service,
+/api/v1/document-templates,GET | POST,src/app/api/v1/document-templates/route.ts,requireSession,@/server/services/document-template-service,
+/api/v1/document-templates/[id],PUT | DELETE,src/app/api/v1/document-templates/[id]/route.ts,requireSession,@/server/services/document-template-service,
+/api/v1/document-templates/seed,POST,src/app/api/v1/document-templates/seed/route.ts,requireSession,@/server/services/document-template-service,
+/api/v1/document-upload-intents,POST,src/app/api/v1/document-upload-intents/route.ts,requireSession,,
+/api/v1/document-upload-intents/[intentId]/complete,POST,src/app/api/v1/document-upload-intents/[intentId]/complete/route.ts,requireSession,,
+/api/v1/documents,GET,src/app/api/v1/documents/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id],GET | PATCH | DELETE,src/app/api/v1/documents/[id]/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id]/download,GET,src/app/api/v1/documents/[id]/download/route.ts,requireSession,,
+/api/v1/documents/[id]/extract-text,POST,src/app/api/v1/documents/[id]/extract-text/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id]/restore,POST,src/app/api/v1/documents/[id]/restore/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id]/share,GET | POST | DELETE,src/app/api/v1/documents/[id]/share/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id]/trash,POST,src/app/api/v1/documents/[id]/trash/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/recent,GET,src/app/api/v1/documents/recent/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/search,GET,src/app/api/v1/documents/search/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/envelopes,GET | POST,src/app/api/v1/envelopes/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/[id]/decline,POST,src/app/api/v1/envelopes/[id]/decline/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/[id]/expire,POST,src/app/api/v1/envelopes/[id]/expire/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/[id]/remind,POST,src/app/api/v1/envelopes/[id]/remind/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/[id]/send,POST,src/app/api/v1/envelopes/[id]/send/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/[id]/void,POST,src/app/api/v1/envelopes/[id]/void/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/mark-viewed,POST,src/app/api/v1/envelopes/mark-viewed/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/otp/issue,POST,src/app/api/v1/envelopes/otp/issue/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/otp/verify,POST,src/app/api/v1/envelopes/otp/verify/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/pending,GET,src/app/api/v1/envelopes/pending/route.ts,requireSession,@/server/services/envelope-service,
+/api/v1/envelopes/request-signature,POST,src/app/api/v1/envelopes/request-signature/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/sign,POST,src/app/api/v1/envelopes/sign/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
+/api/v1/envelopes/signers,GET,src/app/api/v1/envelopes/signers/route.ts,requireSession,@/server/services/envelope-service,
+/api/v1/financial/expenses,GET | POST,src/app/api/v1/financial/expenses/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/expenses/[id],DELETE,src/app/api/v1/financial/expenses/[id]/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/expenses/[id]/approve,POST,src/app/api/v1/financial/expenses/[id]/approve/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/expenses/stats,GET,src/app/api/v1/financial/expenses/stats/route.ts,requireSession,@/server/services/financial-service,
+/api/v1/financial/invoices,GET | POST,src/app/api/v1/financial/invoices/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/invoices/[id],GET | PATCH,src/app/api/v1/financial/invoices/[id]/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/invoices/[id]/gateway,POST,src/app/api/v1/financial/invoices/[id]/gateway/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/invoices/[id]/pay,POST,src/app/api/v1/financial/invoices/[id]/pay/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/payments/mine,GET,src/app/api/v1/financial/payments/mine/route.ts,requireSession,@/server/services/financial-service,
+/api/v1/financial/time-entries,GET | POST,src/app/api/v1/financial/time-entries/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/time-entries/[id],DELETE,src/app/api/v1/financial/time-entries/[id]/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/financial/trust-transactions,GET | POST,src/app/api/v1/financial/trust-transactions/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
+/api/v1/firm,GET,src/app/api/v1/firm/route.ts,requireSession,@/server/services/identity-service,
+/api/v1/health,GET,src/app/api/v1/health/route.ts,handler/service policy,,@/shared/contracts/operations
+/api/v1/hearings,GET | POST,src/app/api/v1/hearings/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/hearings/[id],GET | PATCH,src/app/api/v1/hearings/[id]/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/hr/attendance,GET | POST,src/app/api/v1/hr/attendance/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/base-salary,POST,src/app/api/v1/hr/base-salary/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/leave-balances,GET | POST,src/app/api/v1/hr/leave-balances/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/leave-requests,GET | POST,src/app/api/v1/hr/leave-requests/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/leave-requests/review,POST,src/app/api/v1/hr/leave-requests/review/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/payroll,GET,src/app/api/v1/hr/payroll/route.ts,requireSession,@/server/services/hr-service,
+/api/v1/hr/payroll/payslips,GET,src/app/api/v1/hr/payroll/payslips/route.ts,requireSession,@/server/services/hr-service,
+/api/v1/hr/payroll/runs,GET | POST,src/app/api/v1/hr/payroll/runs/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/payroll/runs/[id],GET,src/app/api/v1/hr/payroll/runs/[id]/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/hr/payroll/runs/[id]/finalize,POST,src/app/api/v1/hr/payroll/runs/[id]/finalize/route.ts,requireSession,@/server/services/hr-service,@/shared/contracts/hr
+/api/v1/jobs,GET,src/app/api/v1/jobs/route.ts,requireSession,,
+/api/v1/jobs/[jobId],GET,src/app/api/v1/jobs/[jobId]/route.ts,requireSession,,
+/api/v1/jobs/[jobId]/retry,POST,src/app/api/v1/jobs/[jobId]/retry/route.ts,requireSession,,@/shared/contracts/jobs
+/api/v1/leads,GET | POST,src/app/api/v1/leads/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/leads/[id],PATCH,src/app/api/v1/leads/[id]/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/leads/[id]/convert,POST,src/app/api/v1/leads/[id]/convert/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/leads/[id]/intake-link,POST,src/app/api/v1/leads/[id]/intake-link/route.ts,requireSession,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/messages,GET | POST,src/app/api/v1/messages/route.ts,requireSession,@/server/services/communication-service,@/shared/contracts/communication
+/api/v1/messages/read,POST,src/app/api/v1/messages/read/route.ts,requireSession,@/server/services/communication-service,@/shared/contracts/communication
+/api/v1/messages/unread,GET,src/app/api/v1/messages/unread/route.ts,requireSession,@/server/services/communication-service,@/shared/contracts/communication
+/api/v1/notifications,GET | PATCH,src/app/api/v1/notifications/route.ts,requireSession,@/server/services/communication-service,
+/api/v1/notifications/[id],PATCH,src/app/api/v1/notifications/[id]/route.ts,requireSession,@/server/services/communication-service,@/shared/contracts/communication
+/api/v1/public/appointments,POST,src/app/api/v1/public/appointments/route.ts,handler/service policy,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/public/cms/[collection],GET,src/app/api/v1/public/cms/[collection]/route.ts,handler/service policy,@/server/services/cms-service,
+/api/v1/public/cms/assets/[assetId],GET,src/app/api/v1/public/cms/assets/[assetId]/route.ts,handler/service policy,@/server/services/cms-asset-service,
+/api/v1/public/cms/blog-posts/[slug],GET,src/app/api/v1/public/cms/blog-posts/[slug]/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/careers/[id]/applications,POST,src/app/api/v1/public/cms/careers/[id]/applications/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/legal-pages/[slug],GET,src/app/api/v1/public/cms/legal-pages/[slug]/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/news/[id],GET,src/app/api/v1/public/cms/news/[id]/route.ts,handler/service policy,@/server/services/cms-service,
+/api/v1/public/cms/news/by-slug/[slug],GET,src/app/api/v1/public/cms/news/by-slug/[slug]/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/newsletter,POST,src/app/api/v1/public/cms/newsletter/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/practice-areas/[slug],GET,src/app/api/v1/public/cms/practice-areas/[slug]/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/resources/[slug],GET,src/app/api/v1/public/cms/resources/[slug]/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/resources/download/[id],POST,src/app/api/v1/public/cms/resources/download/[id]/route.ts,handler/service policy,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/public/cms/settings,GET,src/app/api/v1/public/cms/settings/route.ts,handler/service policy,@/server/services/cms-service,
+/api/v1/public/cms/team,GET,src/app/api/v1/public/cms/team/route.ts,handler/service policy,@/server/services/cms-service,
+/api/v1/public/cms/team/[id],GET,src/app/api/v1/public/cms/team/[id]/route.ts,handler/service policy,@/server/services/cms-service,
+/api/v1/public/document-shares/[token],POST,src/app/api/v1/public/document-shares/[token]/route.ts,handler/service policy,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/public/document-shares/[token]/download,POST,src/app/api/v1/public/document-shares/[token]/download/route.ts,handler/service policy,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/public/leads,POST,src/app/api/v1/public/leads/route.ts,handler/service policy,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/public/leads/intake/[token],GET | POST,src/app/api/v1/public/leads/intake/[token]/route.ts,handler/service policy,@/server/services/crm-service,@/shared/contracts/crm
+/api/v1/readiness,GET,src/app/api/v1/readiness/route.ts,handler/service policy,@/server/services/readiness,
+/api/v1/research,GET | POST,src/app/api/v1/research/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/research/[id],GET | PATCH | DELETE,src/app/api/v1/research/[id]/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/settings,GET | PATCH,src/app/api/v1/settings/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/settings/role-permissions,GET | PUT,src/app/api/v1/settings/role-permissions/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/sop-templates,GET | POST,src/app/api/v1/sop-templates/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/sop-templates/hearing-prep,POST,src/app/api/v1/sop-templates/hearing-prep/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/sop-templates/run,POST,src/app/api/v1/sop-templates/run/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/staff/content/blog-posts,GET | POST,src/app/api/v1/staff/content/blog-posts/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/staff/content/blog-posts/[id],PATCH,src/app/api/v1/staff/content/blog-posts/[id]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/staff/content/blog-posts/[id]/submit,POST,src/app/api/v1/staff/content/blog-posts/[id]/submit/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/staff/content/news,GET | POST,src/app/api/v1/staff/content/news/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/staff/content/news/[id],PATCH,src/app/api/v1/staff/content/news/[id]/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/staff/content/news/[id]/submit,POST,src/app/api/v1/staff/content/news/[id]/submit/route.ts,requireSession,@/server/services/cms-service,@/shared/contracts/cms
+/api/v1/tasks,GET | POST,src/app/api/v1/tasks/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/tasks/[id],GET | PATCH | DELETE,src/app/api/v1/tasks/[id]/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/tasks/[id]/archive,POST,src/app/api/v1/tasks/[id]/archive/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/tasks/[id]/comments,GET | POST,src/app/api/v1/tasks/[id]/comments/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/tasks/[id]/restore,POST,src/app/api/v1/tasks/[id]/restore/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management
+/api/v1/tasks/overdue-reminders,POST,src/app/api/v1/tasks/overdue-reminders/route.ts,requireSession,@/server/services/work-management-service,
+/api/v1/tasks/workload,GET,src/app/api/v1/tasks/workload/route.ts,requireSession,@/server/services/work-management-service,
+/api/v1/users,GET | POST,src/app/api/v1/users/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/users/[userId],GET | PATCH | DELETE,src/app/api/v1/users/[userId]/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/users/[userId]/avatar,GET,src/app/api/v1/users/[userId]/avatar/route.ts,requireSession,@/server/services/avatar-service,
+/api/v1/users/[userId]/mfa,DELETE,src/app/api/v1/users/[userId]/mfa/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/users/[userId]/password-reset,POST,src/app/api/v1/users/[userId]/password-reset/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/users/[userId]/sessions,GET | DELETE,src/app/api/v1/users/[userId]/sessions/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/users/directory,GET,src/app/api/v1/users/directory/route.ts,requireSession,@/server/services/identity-service,
+/api/v1/users/me,GET | PATCH,src/app/api/v1/users/me/route.ts,requireSession,@/server/services/identity-service,@/shared/contracts/identity
+/api/v1/users/me/audit-events,GET,src/app/api/v1/users/me/audit-events/route.ts,requireSession,@/server/services/identity-service,
+/api/v1/users/me/avatar,DELETE,src/app/api/v1/users/me/avatar/route.ts,requireSession,@/server/services/avatar-service,
+/api/v1/users/me/avatar-upload-intents,POST,src/app/api/v1/users/me/avatar-upload-intents/route.ts,requireSession,@/server/services/avatar-service,
+/api/v1/users/me/avatar-upload-intents/[intentId]/complete,POST,src/app/api/v1/users/me/avatar-upload-intents/[intentId]/complete/route.ts,requireSession,@/server/services/avatar-service,
+/api/v1/users/me/sessions/[sessionId],DELETE,src/app/api/v1/users/me/sessions/[sessionId]/route.ts,requireSession,@/server/services/identity-service,
+/api/v1/version,GET,src/app/api/v1/version/route.ts,handler/service policy,,@/shared/contracts/operations

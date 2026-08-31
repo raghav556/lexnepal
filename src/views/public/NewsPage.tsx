@@ -12,15 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import {
-  ArrowRight,
-  Award,
-  Calendar,
-  Newspaper,
-  Search,
-  ShieldCheck,
-  Trophy,
-} from "lucide-react";
+import { ArrowRight, Award, Calendar, Newspaper, Search, ShieldCheck, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   NEWS_PAD,
@@ -76,7 +68,7 @@ export default function NewsPage() {
   const heroTitle = String(settings?.newsHeroTitle || "News & Awards");
   const heroSubtitle = String(
     settings?.newsHeroSubtitle ||
-      "Firm announcements, press coverage, and recognition from LexNepal advocates.",
+      "Firm announcements, press coverage, and recognition from Srimar Law advocates.",
   );
 
   const filtered = useMemo(() => {
@@ -134,7 +126,7 @@ export default function NewsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-accent text-sm font-medium tracking-wide uppercase mb-3"
           >
-            LexNepal
+            Srimar Law
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
@@ -260,7 +252,6 @@ export default function NewsPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2">
                       <div className="relative overflow-hidden bg-muted h-44 sm:h-56 lg:h-auto lg:min-h-[320px]">
                         {featured.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={String(featured.imageUrl)}
                             alt={String(featured.title ?? "")}
@@ -324,7 +315,6 @@ export default function NewsPage() {
                           <Card className="h-full overflow-hidden border-border hover:shadow-lg transition-shadow duration-500 py-0 gap-0">
                             <div className="relative h-40 bg-muted overflow-hidden">
                               {item.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={String(item.imageUrl)}
                                   alt=""
@@ -340,7 +330,10 @@ export default function NewsPage() {
                               <div className="flex flex-wrap items-center gap-2 mb-3">
                                 <Badge
                                   variant="outline"
-                                  className={cn("text-[10px]", newsTypeBadgeClass(String(item.type)))}
+                                  className={cn(
+                                    "text-[10px]",
+                                    newsTypeBadgeClass(String(item.type)),
+                                  )}
                                 >
                                   {newsTypeLabel(String(item.type))}
                                 </Badge>
@@ -389,13 +382,18 @@ export default function NewsPage() {
       <section className="py-12 sm:py-16 bg-primary">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-primary-foreground mb-3">
-            Discuss your matter with LexNepal
+            Discuss your matter with Srimar Law
           </h2>
           <p className="text-sm text-primary-foreground/70 mb-6">
-            Follow our updates, then book a consultation with an advocate who knows your practice area.
+            Follow our updates, then book a consultation with an advocate who knows your practice
+            area.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href="/consultation" className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>

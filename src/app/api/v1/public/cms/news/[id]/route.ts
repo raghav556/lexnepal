@@ -9,7 +9,10 @@ export const GET = (request: Request, context: Context) =>
   withApiHandler("/api/v1/public/cms/news/:id", async () =>
     jsonResponse({
       data: await getCmsService().getPublicNewsItem(
-        z.string().uuid().parse((await context.params).id),
+        z
+          .string()
+          .uuid()
+          .parse((await context.params).id),
       ),
     }),
   )(request);

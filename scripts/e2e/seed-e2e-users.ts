@@ -2,7 +2,7 @@
  * Deterministic Better Auth users for R5.7 browser smoke.
  * Local/dev DBs only (`example.invalid` emails).
  */
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { authUsers, firms, users } from "../../db/schema";
@@ -12,6 +12,30 @@ export { E2E_PASSWORD, E2E_USERS };
 
 async function ensureFirmId(): Promise<string> {
   const db = getDatabase();
+  const fixtureEmails = Object.values(E2E_USERS).map((fixture) => fixture.email);
+  const existingFixtureUsers = await db
+    .select({ firmId: users.firmId })
+    .from(users)
+    .where(inArray(users.email, fixtureEmails));
+  const existingFirmIds = [...new Set(existingFixtureUsers.map((user) => user.firmId))];
+  if (existingFirmIds.length > 1) {
+    throw new Error("E2E fixture users are split across firms; repair the local test data first");
+  }
+  if (existingFirmIds[0]) return existingFirmIds[0];
+
+  const publicFirmSlug = process.env.PUBLIC_FIRM_SLUG?.trim();
+  if (publicFirmSlug) {
+    const [publicFirm] = await db
+      .select({ id: firms.id })
+      .from(firms)
+      .where(eq(firms.slug, publicFirmSlug))
+      .limit(1);
+    if (!publicFirm) {
+      throw new Error(`PUBLIC_FIRM_SLUG=${publicFirmSlug} does not identify a local firm`);
+    }
+    return publicFirm.id;
+  }
+
   const [existing] = await db.select({ id: firms.id }).from(firms).limit(1);
   if (existing) return existing.id;
   const [created] = await db
@@ -59,6 +83,7 @@ export async function seedE2eUsers() {
         set: {
           isActive: true,
           isPending: false,
+          deletedAt: null,
           role: fixture.role,
           name: fixture.name,
           updatedAt: new Date(),
@@ -86,7 +111,9 @@ export async function seedE2eUsers() {
   return { firmId, password: E2E_PASSWORD, users: E2E_USERS };
 }
 
-const invokedDirectly = process.argv[1]?.replace(/\\/g, "/").endsWith("/scripts/e2e/seed-e2e-users.ts");
+const invokedDirectly = process.argv[1]
+  ?.replace(/\\/g, "/")
+  .endsWith("/scripts/e2e/seed-e2e-users.ts");
 if (invokedDirectly) {
   try {
     const result = await seedE2eUsers();

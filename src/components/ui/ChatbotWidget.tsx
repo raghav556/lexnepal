@@ -26,26 +26,34 @@ const KNOWLEDGE_BASE = {
   contact: "Email: info@Srimar Law.com | Phone: +977-1-4XXXXXX",
   team: [
     { name: "Senior Partners", role: "Handling complex litigation and major corporate deals." },
-    { name: "Associates", role: "Handling day-to-to legal compliance, drafting, and research." }
+    { name: "Associates", role: "Handling day-to-to legal compliance, drafting, and research." },
   ],
-  consultation: "Initial consultations are available in-person or virtually. You can book directly through our website."
+  consultation:
+    "Initial consultations are available in-person or virtually. You can book directly through our website.",
 };
 
 // Simulated AI Intent Engine
 function evaluateIntent(text: string) {
   const lower = text.toLowerCase();
-  
+
   // Guardrail: Complex Legal Advice
-  if (lower.match(/(divorce|sue|arrest|police|jail|stole|fraud|cheat|murder|rape|crime|court|judge)/)) {
+  if (
+    lower.match(/(divorce|sue|arrest|police|jail|stole|fraud|cheat|murder|rape|crime|court|judge)/)
+  ) {
     return { intent: "complex_case", score: 10 };
   }
-  
+
   const scores = {
     greeting: (lower.match(/(hi|hello|hey|morning|afternoon)/g) || []).length * 2,
     location: (lower.match(/(where|location|address|visit|kathmandu)/g) || []).length * 2,
     hours: (lower.match(/(time|hours|open|close|saturday|sunday)/g) || []).length * 2,
     contact: (lower.match(/(contact|phone|email|call|number)/g) || []).length * 2,
-    practice_areas: (lower.match(/(practice|areas|services|do you handle|corporate|civil|criminal|property|ip|labor)/g) || []).length * 2,
+    practice_areas:
+      (
+        lower.match(
+          /(practice|areas|services|do you handle|corporate|civil|criminal|property|ip|labor)/g,
+        ) || []
+      ).length * 2,
     team: (lower.match(/(lawyer|attorney|advocate|team|who|partner|associate)/g) || []).length * 2,
     consultation: (lower.match(/(book|appointment|consultation|meet|fee|cost)/g) || []).length * 2,
   };
@@ -69,8 +77,9 @@ export function ChatbotWidget() {
     {
       id: "1",
       role: "bot",
-      content: "Hello! Welcome to Srimar Law. I'm your digital assistant. How can I help you today?",
-    }
+      content:
+        "Hello! Welcome to Srimar Law. I'm your digital assistant. How can I help you today?",
+    },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -99,9 +108,12 @@ export function ChatbotWidget() {
 
     const userText = input.trim();
     setInput("");
-    
+
     // Add User Message
-    const newMessages = [...messages, { id: Date.now().toString(), role: "user" as const, content: userText }];
+    const newMessages = [
+      ...messages,
+      { id: Date.now().toString(), role: "user" as const, content: userText },
+    ];
     setMessages(newMessages);
     setIsTyping(true);
 
@@ -109,10 +121,10 @@ export function ChatbotWidget() {
     const processingTime = Math.random() * 800 + 800; // Simulate AI thinking time (800ms - 1600ms)
 
     setTimeout(() => {
-      let botResponse: Message = {
+      const botResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: "bot",
-        content: ""
+        content: "",
       };
 
       const intent = evaluateIntent(userText);
@@ -173,7 +185,7 @@ export function ChatbotWidget() {
           botResponse.isForm = true;
       }
 
-      setMessages(prev => [...prev, botResponse]);
+      setMessages((prev) => [...prev, botResponse]);
       setIsTyping(false);
     }, processingTime);
   };
@@ -181,7 +193,7 @@ export function ChatbotWidget() {
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leadName || !leadContact) return;
-    
+
     setSubmittingLead(true);
     try {
       await createPublicLead.mutateAsync({
@@ -191,10 +203,19 @@ export function ChatbotWidget() {
         practiceAreaInterest: "General Inquiry (Via Chatbot)",
         source: "website",
       });
-      
-      setMessages(prev => [
-        ...prev.map(m => m.isForm ? { ...m, isForm: false, content: "Contact information received." } : m),
-        { id: Date.now().toString(), role: "bot", content: "Thank you, " + leadName.split(' ')[0] + ". We have securely received your details. An advocate will reach out to you shortly." }
+
+      setMessages((prev) => [
+        ...prev.map((m) =>
+          m.isForm ? { ...m, isForm: false, content: "Contact information received." } : m,
+        ),
+        {
+          id: Date.now().toString(),
+          role: "bot",
+          content:
+            "Thank you, " +
+            leadName.split(" ")[0] +
+            ". We have securely received your details. An advocate will reach out to you shortly.",
+        },
       ]);
     } catch (error) {
       console.error(error);
@@ -224,11 +245,15 @@ export function ChatbotWidget() {
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-primary rounded-full" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-primary-foreground leading-tight">Lex Assistant</h3>
-                  <p className="text-[11px] text-primary-foreground/70 font-medium">Typically replies instantly</p>
+                  <h3 className="font-serif font-bold text-primary-foreground leading-tight">
+                    Lex Assistant
+                  </h3>
+                  <p className="text-[11px] text-primary-foreground/70 font-medium">
+                    Typically replies instantly
+                  </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="text-primary-foreground/70 hover:text-primary-foreground bg-transparent hover:bg-primary-foreground/10 p-1.5 rounded-full transition-colors"
                 aria-label="Close Chat"
@@ -240,28 +265,47 @@ export function ChatbotWidget() {
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10">
               {messages.map((msg) => (
-                <div key={msg.id} className={cn("flex flex-col", msg.role === "user" ? "items-end" : "items-start")}>
-                  <div className={cn(
-                    "flex gap-2 max-w-[85%]",
-                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                  )}>
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm",
-                      msg.role === "user" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"
-                    )}>
-                      {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                <div
+                  key={msg.id}
+                  className={cn("flex flex-col", msg.role === "user" ? "items-end" : "items-start")}
+                >
+                  <div
+                    className={cn(
+                      "flex gap-2 max-w-[85%]",
+                      msg.role === "user" ? "flex-row-reverse" : "flex-row",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm",
+                        msg.role === "user"
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {msg.role === "user" ? (
+                        <User className="w-4 h-4" />
+                      ) : (
+                        <Bot className="w-4 h-4" />
+                      )}
                     </div>
-                    <div className={cn(
-                      "p-3 rounded-2xl text-sm shadow-sm",
-                      msg.role === "user" 
-                        ? "bg-accent text-accent-foreground rounded-tr-sm" 
-                        : "bg-card border border-border text-foreground rounded-tl-sm"
-                    )}>
+                    <div
+                      className={cn(
+                        "p-3 rounded-2xl text-sm shadow-sm",
+                        msg.role === "user"
+                          ? "bg-accent text-accent-foreground rounded-tr-sm"
+                          : "bg-card border border-border text-foreground rounded-tl-sm",
+                      )}
+                    >
                       {msg.content}
-                      
+
                       {msg.isLink && msg.linkHref && (
                         <div className="mt-3">
-                          <Button asChild size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="w-full bg-primary hover:bg-primary/90 text-xs"
+                          >
                             <Link href={msg.linkHref} onClick={() => setIsOpen(false)}>
                               {msg.linkText} <ArrowRight className="ml-1 w-3 h-3" />
                             </Link>
@@ -270,25 +314,37 @@ export function ChatbotWidget() {
                       )}
 
                       {msg.isForm && (
-                        <form onSubmit={handleLeadSubmit} className="mt-3 space-y-2 border-t border-border pt-3">
-                          <input 
-                            type="text" 
+                        <form
+                          onSubmit={handleLeadSubmit}
+                          className="mt-3 space-y-2 border-t border-border pt-3"
+                        >
+                          <input
+                            type="text"
                             required
-                            placeholder="Full Name" 
+                            placeholder="Full Name"
                             value={leadName}
-                            onChange={e => setLeadName(e.target.value)}
+                            onChange={(e) => setLeadName(e.target.value)}
                             className="w-full text-xs px-3 py-2 rounded-md border border-input bg-background focus:ring-1 focus:ring-accent outline-none"
                           />
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             required
-                            placeholder="Phone or Email" 
+                            placeholder="Phone or Email"
                             value={leadContact}
-                            onChange={e => setLeadContact(e.target.value)}
+                            onChange={(e) => setLeadContact(e.target.value)}
                             className="w-full text-xs px-3 py-2 rounded-md border border-input bg-background focus:ring-1 focus:ring-accent outline-none"
                           />
-                          <Button type="submit" disabled={submittingLead} size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-8">
-                            {submittingLead ? <Loader2 className="w-3 h-3 animate-spin" /> : "Request Callback"}
+                          <Button
+                            type="submit"
+                            disabled={submittingLead}
+                            size="sm"
+                            className="w-full bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-8"
+                          >
+                            {submittingLead ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              "Request Callback"
+                            )}
                           </Button>
                         </form>
                       )}
@@ -296,17 +352,29 @@ export function ChatbotWidget() {
                   </div>
                 </div>
               ))}
-              
+
               {isTyping && (
                 <div className="flex items-start gap-2 max-w-[85%]">
-                   <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm bg-primary text-primary-foreground">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div className="p-4 rounded-2xl bg-card border border-border rounded-tl-sm flex gap-1 items-center h-[44px]">
-                      <motion.div className="w-1.5 h-1.5 bg-primary/40 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} />
-                      <motion.div className="w-1.5 h-1.5 bg-primary/40 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} />
-                      <motion.div className="w-1.5 h-1.5 bg-primary/40 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} />
-                    </div>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm bg-primary text-primary-foreground">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card border border-border rounded-tl-sm flex gap-1 items-center h-[44px]">
+                    <motion.div
+                      className="w-1.5 h-1.5 bg-primary/40 rounded-full"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
+                    />
+                    <motion.div
+                      className="w-1.5 h-1.5 bg-primary/40 rounded-full"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }}
+                    />
+                    <motion.div
+                      className="w-1.5 h-1.5 bg-primary/40 rounded-full"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }}
+                    />
+                  </div>
                 </div>
               )}
               <div ref={messagesEndRef} />

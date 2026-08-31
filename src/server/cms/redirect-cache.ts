@@ -1,10 +1,7 @@
 import "server-only";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  cmsRedirectsSettingSchema,
-  type CmsRedirect,
-} from "@/shared/contracts/cms";
+import { cmsRedirectsSettingSchema, type CmsRedirect } from "@/shared/contracts/cms";
 
 const REDIRECTS_FILE = join(process.cwd(), ".local", "cms-redirects.json");
 

@@ -50,9 +50,7 @@ export function registerDomain(domain: MigrationDomain) {
 export function getDomain(name: string): MigrationDomain {
   const domain = registeredDomains.get(name);
   if (!domain) {
-    throw new Error(
-      `Domain ${name} not found. Available domains: ${listDomainNames().join(", ")}`,
-    );
+    throw new Error(`Domain ${name} not found. Available domains: ${listDomainNames().join(", ")}`);
   }
   return domain;
 }

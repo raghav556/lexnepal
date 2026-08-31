@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useCmsCommands, useCmsSettings, useResources } from "@/client/queries/cms";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -17,6 +16,7 @@ import { FadeInUp } from "@/components/ui/animations";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+import { DashboardButton, DashboardSection, PortalPageShell } from "@/components/dashboard";
 import { slugifyResourceTitle } from "@/shared/resources-visibility";
 
 type FormState = {
@@ -94,7 +94,8 @@ export default function AdminCMSResources() {
         fileUrl: String(res.fileUrl || ""),
         isGated: Boolean(res.isGated),
         status: res.status === "draft" ? "draft" : "published",
-        publishedDate: String(res.publishedDate || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
+        publishedDate:
+          String(res.publishedDate || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
         seoTitle: String(res.seoTitle || ""),
         seoDescription: String(res.seoDescription || ""),
         displayOrder: String(res.displayOrder ?? 0),
@@ -153,28 +154,23 @@ export default function AdminCMSResources() {
   };
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="font-serif text-xl sm:text-3xl font-bold">Resources CMS</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage whitepapers, legal guides, and downloadable resources.
-          </p>
-        </div>
-        <Button
-          className="bg-accent hover:bg-accent/90 w-full sm:w-auto shrink-0"
-          onClick={() => handleOpenModal()}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Upload Resource
-        </Button>
-      </div>
-
-      <Card className="border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Public page chrome</CardTitle>
-          <CardDescription>Hero copy for /resources</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      eyebrow="Content management"
+      title="Resources CMS"
+      description="Manage whitepapers, legal guides, and downloadable resources."
+      icon={BookOpen}
+      actions={
+        <DashboardButton onClick={() => handleOpenModal()} className="w-full sm:w-auto">
+          <Plus className="w-4 h-4" /> Upload Resource
+        </DashboardButton>
+      }
+      contentClassName="max-w-7xl mx-auto"
+    >
+      <DashboardSection title="Public page chrome" description="Hero copy for /resources">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="resources-hero-title">Hero title</Label>
             <Input
@@ -193,106 +189,103 @@ export default function AdminCMSResources() {
               onBlur={() => saveHeroSetting("resourcesHeroSubtitle", heroSubtitle)}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
 
       <FadeInUp>
-        <Card className="border-border/50 shadow-sm min-w-0 overflow-hidden">
-          <CardHeader className="bg-secondary/20 border-b px-3 sm:px-6 py-3 sm:py-4">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-accent shrink-0" /> Resource Library
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {resources.length === 0 ? (
-              <div className="p-8 sm:p-12 text-center text-muted-foreground flex flex-col items-center">
-                <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20" />
-                <p className="text-sm">
-                  No resources yet. Click &quot;Upload Resource&quot; to add a guide.
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y">
-                {resources.map((res: Record<string, unknown>) => (
-                  <div
-                    key={String(res._id)}
-                    className="p-3 sm:p-4 flex flex-col gap-3 hover:bg-secondary/20 transition-colors min-w-0"
-                  >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-secondary rounded-lg flex items-center justify-center shrink-0">
-                        <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <h4 className="font-bold text-sm sm:text-base break-words leading-snug">
-                          {String(res.title)}
-                        </h4>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                          {String(res.category)} · /{String(res.slug || "")}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                          <span>
-                            Published:{" "}
-                            {res.publishedDate
-                              ? format(new Date(String(res.publishedDate)), "MMM d, yyyy")
-                              : "—"}
-                          </span>
-                          <span className="hidden sm:inline">·</span>
-                          <span className="flex items-center gap-1">
-                            <Download className="w-3 h-3" /> {Number(res.downloads ?? 0)} downloads
-                          </span>
-                        </div>
-                      </div>
+        <DashboardSection
+          title="Resource Library"
+          icon={BookOpen}
+          className="border-dashboard-border/50 shadow-sm min-w-0 overflow-hidden"
+        >
+          {resources.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center text-muted-foreground flex flex-col items-center">
+              <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20" />
+              <p className="text-sm">
+                No resources yet. Click &quot;Upload Resource&quot; to add a guide.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {resources.map((res: Record<string, unknown>) => (
+                <div
+                  key={String(res._id)}
+                  className="p-3 sm:p-4 flex flex-col gap-3 hover:bg-secondary/20 transition-colors min-w-0"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-secondary rounded-lg flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center justify-between gap-2 pl-0 sm:pl-[3.25rem]">
-                      <div className="flex flex-wrap gap-2">
-                        <span
-                          className={`text-xs px-2 py-1 rounded border font-medium ${
-                            res.status === "published"
-                              ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-muted text-muted-foreground border-border"
-                          }`}
-                        >
-                          {res.status === "published" ? "Published" : "Draft"}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h4 className="font-bold text-sm sm:text-base break-words leading-snug">
+                        {String(res.title)}
+                      </h4>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                        {String(res.category)} · /{String(res.slug || "")}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <span>
+                          Published:{" "}
+                          {res.publishedDate
+                            ? format(new Date(String(res.publishedDate)), "MMM d, yyyy")
+                            : "—"}
                         </span>
-                        {res.isGated ? (
-                          <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 font-medium">
-                            Lead Magnet
-                          </span>
-                        ) : (
-                          <span className="text-xs px-2 py-1 rounded bg-secondary text-foreground border border-border font-medium">
-                            Open download
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9"
-                          onClick={() => handleOpenModal(res)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(String(res._id))}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <span className="hidden sm:inline">·</span>
+                        <span className="flex items-center gap-1">
+                          <Download className="w-3 h-3" /> {Number(res.downloads ?? 0)} downloads
+                        </span>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex items-center justify-between gap-2 pl-0 sm:pl-[3.25rem]">
+                    <div className="flex flex-wrap gap-2">
+                      <span
+                        className={`text-xs px-2 py-1 rounded border font-medium ${
+                          res.status === "published"
+                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-dashboard-neutral-soft text-muted-foreground border-dashboard-border"
+                        }`}
+                      >
+                        {res.status === "published" ? "Published" : "Draft"}
+                      </span>
+                      {res.isGated ? (
+                        <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 font-medium">
+                          Lead Magnet
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 rounded bg-secondary text-foreground border border-dashboard-border font-medium">
+                          Open download
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <DashboardButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handleOpenModal(res)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </DashboardButton>
+                      <DashboardButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(String(res._id))}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </DashboardButton>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DashboardSection>
       </FadeInUp>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-lg w-[calc(100%-1rem)] sm:w-full bg-background border-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg w-[calc(100%-1rem)] sm:w-full bg-background border-dashboard-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Resource" : "Upload Resource"}</DialogTitle>
             <DialogDescription>
@@ -439,15 +432,15 @@ export default function AdminCMSResources() {
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <DashboardButton variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
-            </Button>
-            <Button className="bg-accent hover:bg-accent/90" onClick={handleSave}>
+            </DashboardButton>
+            <DashboardButton className="bg-accent hover:bg-accent/90" onClick={handleSave}>
               Save
-            </Button>
+            </DashboardButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

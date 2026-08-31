@@ -11,9 +11,32 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
-import { CheckCircle, Calendar, Clock, ShieldCheck, Scale, PhoneCall, Mail, Check, ChevronDown } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import {
+  CheckCircle,
+  Calendar,
+  Clock,
+  ShieldCheck,
+  Scale,
+  PhoneCall,
+  Mail,
+  Check,
+  ChevronDown,
+} from "lucide-react";
 import { usePracticeAreas, usePublicTeamMember } from "@/client/queries/cms";
 import { cn } from "@/lib/utils.ts";
 import { formatAppointmentDate, todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
@@ -36,33 +59,42 @@ type FormData = z.infer<typeof schema>;
 const FAQS = [
   {
     question: "Is the initial consultation free?",
-    answer: "Yes, our standard 30-minute initial consultations are completely free. We use this time to understand your situation, assess the legal merits, and explain how we can help before you commit to any fees."
+    answer:
+      "Yes, our standard 30-minute initial consultations are completely free. We use this time to understand your situation, assess the legal merits, and explain how we can help before you commit to any fees.",
   },
   {
     question: "Is the information I share confidential?",
-    answer: "Absolutely. Everything you discuss with us during a consultation is strictly confidential and protected by attorney-client privilege, even if you decide not to hire us."
+    answer:
+      "Absolutely. Everything you discuss with us during a consultation is strictly confidential and protected by attorney-client privilege, even if you decide not to hire us.",
   },
   {
     question: "What should I bring to the consultation?",
-    answer: "Please have any relevant documents, contracts, correspondence, or court notices related to your matter ready. A brief timeline of events can also be very helpful."
+    answer:
+      "Please have any relevant documents, contracts, correspondence, or court notices related to your matter ready. A brief timeline of events can also be very helpful.",
   },
   {
     question: "How are your legal fees structured?",
-    answer: "During the consultation, we will provide a clear, transparent breakdown of expected costs. Depending on the case, we offer fixed fees, hourly rates, or retainer agreements."
-  }
+    answer:
+      "During the consultation, we will provide a clear, transparent breakdown of expected costs. Depending on the case, we offer fixed fees, hourly rates, or retainer agreements.",
+  },
 ];
 
-function FaqItem({ faq }: { faq: typeof FAQS[0] }) {
+function FaqItem({ faq }: { faq: (typeof FAQS)[0] }) {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
     <div className="border border-border rounded-xl overflow-hidden bg-card mb-4 transition-all duration-200">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-6 py-4 flex items-center justify-between bg-card hover:bg-muted/50 transition-colors text-left"
       >
         <span className="font-serif font-bold text-lg text-foreground">{faq.question}</span>
-        <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isOpen && "rotate-180")} />
+        <ChevronDown
+          className={cn(
+            "w-5 h-5 text-muted-foreground transition-transform duration-300",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
       <AnimatePresence>
         {isOpen && (
@@ -72,9 +104,7 @@ function FaqItem({ faq }: { faq: typeof FAQS[0] }) {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-6 pb-5 text-muted-foreground leading-relaxed">
-              {faq.answer}
-            </div>
+            <div className="px-6 pb-5 text-muted-foreground leading-relaxed">{faq.answer}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -92,7 +122,8 @@ export default function ConsultationPage() {
     .filter(Boolean);
   const lawyerQuery = usePublicTeamMember(lawyerId);
   const selectedLawyer = lawyerQuery.data;
-  const lawyerInvalid = Boolean(lawyerId) && !lawyerQuery.isLoading && (lawyerQuery.isError || !selectedLawyer);
+  const lawyerInvalid =
+    Boolean(lawyerId) && !lawyerQuery.isLoading && (lawyerQuery.isError || !selectedLawyer);
 
   const [submitted, setSubmitted] = useState(false);
   const [submittedDate, setSubmittedDate] = useState("");
@@ -120,7 +151,10 @@ export default function ConsultationPage() {
       return;
     }
     if (selectedLawyer) {
-      form.setValue("assignedLawyerId", String(selectedLawyer.id || selectedLawyer._id || lawyerId));
+      form.setValue(
+        "assignedLawyerId",
+        String(selectedLawyer.id || selectedLawyer._id || lawyerId),
+      );
       const tags: string[] = Array.isArray(selectedLawyer.practiceAreas)
         ? selectedLawyer.practiceAreas
         : [];
@@ -182,7 +216,9 @@ export default function ConsultationPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: unknown) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to submit. Please try again or call us directly.",
+        err instanceof Error
+          ? err.message
+          : "Failed to submit. Please try again or call us directly.",
       );
     }
   };
@@ -201,9 +237,7 @@ export default function ConsultationPage() {
           <h2 className="font-serif text-4xl font-bold text-foreground mb-4">Request Received</h2>
           <p className="text-muted-foreground text-lg mb-4 leading-relaxed">
             Thank you. Your consultation request for{" "}
-            <strong className="text-foreground">
-              {formatAppointmentDate(submittedDate)}
-            </strong>
+            <strong className="text-foreground">{formatAppointmentDate(submittedDate)}</strong>
             {submittedSlot ? (
               <>
                 {" "}
@@ -218,9 +252,14 @@ export default function ConsultationPage() {
           </p>
           <div className="bg-muted/50 rounded-xl p-6 text-sm text-muted-foreground mb-8">
             <span className="block mb-2 font-medium">Need immediate assistance?</span>
-            Call us directly at <strong className="text-foreground text-base">+977-9860520520</strong>
+            Call us directly at{" "}
+            <strong className="text-foreground text-base">+977-9860520520</strong>
           </div>
-          <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg">
+          <Button
+            asChild
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            size="lg"
+          >
             <Link href="/">Return to Homepage</Link>
           </Button>
         </motion.div>
@@ -232,17 +271,30 @@ export default function ConsultationPage() {
     <div className="min-h-screen bg-background pb-24">
       {/* Immersive Hero Section */}
       <section className="relative bg-primary overflow-hidden pt-24 pb-32">
-        <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "radial-gradient(circle at 70% 30%, oklch(0.75 0.15 60) 0%, transparent 60%)" }} />
+        <div
+          className="absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 70% 30%, oklch(0.75 0.15 60) 0%, transparent 60%)",
+          }}
+        />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto"
+          >
             <div className="inline-flex items-center gap-2 bg-accent/20 text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
               <Scale className="w-4 h-4" /> Free Initial Consultation
             </div>
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
-              Expert Legal Advice,<br/> Tailored to You
+              Expert Legal Advice,
+              <br /> Tailored to You
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/70 max-w-2xl mx-auto leading-relaxed">
-              Book a confidential consultation with our senior advocates. We will review your matter and advise on the clearest, most strategic path forward.
+              Book a confidential consultation with our senior advocates. We will review your matter
+              and advise on the clearest, most strategic path forward.
             </p>
           </motion.div>
         </div>
@@ -254,7 +306,6 @@ export default function ConsultationPage() {
           <Card className="mb-4 border-accent/30 bg-card shadow-lg">
             <CardContent className="p-4 sm:p-5 flex items-center gap-4">
               {selectedLawyer.avatarUrl || selectedLawyer.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={String(selectedLawyer.avatarUrl || selectedLawyer.avatar)}
                   alt=""
@@ -266,12 +317,25 @@ export default function ConsultationPage() {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-accent uppercase tracking-wide">Booking with</p>
-                <p className="font-serif text-lg font-bold text-foreground truncate">{selectedLawyer.name}</p>
-                <p className="text-sm text-muted-foreground truncate">{resolvePublicTitle(selectedLawyer)}</p>
+                <p className="text-xs font-medium text-accent uppercase tracking-wide">
+                  Booking with
+                </p>
+                <p className="font-serif text-lg font-bold text-foreground truncate">
+                  {selectedLawyer.name}
+                </p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {resolvePublicTitle(selectedLawyer)}
+                </p>
               </div>
-              <Button asChild variant="outline" size="sm" className="shrink-0 hidden sm:inline-flex">
-                <Link href={`/lawyers/${selectedLawyer.id || selectedLawyer._id}`}>View profile</Link>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="shrink-0 hidden sm:inline-flex"
+              >
+                <Link href={`/lawyers/${selectedLawyer.id || selectedLawyer._id}`}>
+                  View profile
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -279,13 +343,14 @@ export default function ConsultationPage() {
         {lawyerInvalid && (
           <Card className="mb-4 border-destructive/30 bg-card">
             <CardContent className="p-4 text-sm text-muted-foreground">
-              The selected advocate is unavailable for public booking. You can still request a general consultation.
+              The selected advocate is unavailable for public booking. You can still request a
+              general consultation.
             </CardContent>
           </Card>
         )}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
@@ -328,18 +393,18 @@ export default function ConsultationPage() {
       {/* Main Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
           {/* Left Column: Info */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }} 
-            whileInView={{ opacity: 1, x: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="lg:col-span-5 space-y-6"
           >
             <div className="mb-8">
               <h2 className="font-serif text-3xl font-bold text-foreground mb-4">How it works</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Navigating the legal system in Nepal can be complex. Our goal in the initial consultation is to listen, evaluate your position, and provide actionable clarity.
+                Navigating the legal system in Nepal can be complex. Our goal in the initial
+                consultation is to listen, evaluate your position, and provide actionable clarity.
               </p>
             </div>
 
@@ -355,7 +420,7 @@ export default function ConsultationPage() {
                     "Case assessment by a senior advocate",
                     "Clear explanation of legal options",
                     "Transparent breakdown of expected fees",
-                    "Absolutely no obligation to proceed"
+                    "Absolutely no obligation to proceed",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <div className="mt-1 w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
@@ -401,15 +466,17 @@ export default function ConsultationPage() {
           </motion.div>
 
           {/* Right Column: Form */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }} 
-            whileInView={{ opacity: 1, x: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="lg:col-span-7"
           >
             <Card className="border-border shadow-2xl rounded-2xl overflow-hidden bg-card">
               <div className="bg-muted/30 px-8 py-6 border-b border-border">
-                <h2 className="font-serif text-2xl font-bold text-foreground">Secure Your Appointment</h2>
+                <h2 className="font-serif text-2xl font-bold text-foreground">
+                  Secure Your Appointment
+                </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Request a slot below. Bookings stay pending until our team confirms (Nepal time).
                 </p>
@@ -417,148 +484,206 @@ export default function ConsultationPage() {
               <CardContent className="p-8">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="clientName" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground/80">Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ramesh Shrestha" className="h-12 bg-muted/20" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="clientPhone" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground/80">Phone Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="+977 98XXXXXXXX" className="h-12 bg-muted/20" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                      <FormField
+                        control={form.control}
+                        name="clientName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/80">Full Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ramesh Shrestha"
+                                className="h-12 bg-muted/20"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="clientPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/80">Phone Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="+977 98XXXXXXXX"
+                                className="h-12 bg-muted/20"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                    
-                    <FormField control={form.control} name="clientEmail" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground/80">Email Address (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="you@example.com" className="h-12 bg-muted/20" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    
-                    <FormField control={form.control} name="practiceArea" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground/80">Practice Area</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 bg-muted/20">
-                              <SelectValue placeholder="Select the area of law" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {practiceAreaOptions.length === 0 ? (
-                              <SelectItem value="General Consultation">General Consultation</SelectItem>
-                            ) : (
-                              practiceAreaOptions.map((area) => (
-                                <SelectItem key={area} value={area}>
-                                  {area}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="date" render={({ field }) => (
+
+                    <FormField
+                      control={form.control}
+                      name="clientEmail"
+                      render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground/80">Preferred Date</FormLabel>
+                          <FormLabel className="text-foreground/80">
+                            Email Address (Optional)
+                          </FormLabel>
                           <FormControl>
                             <Input
-                              type="date"
+                              placeholder="you@example.com"
                               className="h-12 bg-muted/20"
-                              min={firmToday}
                               {...field}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                form.setValue("timeSlot", "");
-                              }}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
-                      )} />
-                      <FormField control={form.control} name="timeSlot" render={({ field }) => (
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="practiceArea"
+                      render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground/80">Preferred Time</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={!watchedDate || slotsLoading || availableSlots.length === 0}
-                          >
+                          <FormLabel className="text-foreground/80">Practice Area</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger className="h-12 bg-muted/20">
-                                <SelectValue
-                                  placeholder={
-                                    !watchedDate
-                                      ? "Pick a date first"
-                                      : slotsLoading
-                                        ? "Loading slots…"
-                                        : availableSlots.length === 0
-                                          ? "No slots available"
-                                          : "Select time slot"
-                                  }
-                                />
+                              <SelectTrigger
+                                className="h-12 bg-muted/20"
+                                aria-label="Practice Area"
+                              >
+                                <SelectValue placeholder="Select the area of law" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availableSlots.map((slot) => (
-                                <SelectItem key={slot} value={slot}>
-                                  {slot}
+                              {practiceAreaOptions.length === 0 ? (
+                                <SelectItem value="General Consultation">
+                                  General Consultation
                                 </SelectItem>
-                              ))}
+                              ) : (
+                                practiceAreaOptions.map((area) => (
+                                  <SelectItem key={area} value={area}>
+                                    {area}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
-                          {watchedDate && !slotsLoading && availableSlots.length === 0 ? (
-                            <p className="text-xs text-muted-foreground pt-1">
-                              No open slots that day
-                              {lawyerId ? " for this lawyer" : ""}. Try another date.
-                            </p>
-                          ) : null}
                           <FormMessage />
                         </FormItem>
-                      )} />
+                      )}
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/80">Preferred Date</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                aria-label="Preferred Date"
+                                className="h-12 bg-muted/20"
+                                min={firmToday}
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  form.setValue("timeSlot", "");
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="timeSlot"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/80">Preferred Time</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={!watchedDate || slotsLoading || availableSlots.length === 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger
+                                  className="h-12 bg-muted/20"
+                                  aria-label="Preferred Time"
+                                >
+                                  <SelectValue
+                                    placeholder={
+                                      !watchedDate
+                                        ? "Pick a date first"
+                                        : slotsLoading
+                                          ? "Loading slots…"
+                                          : availableSlots.length === 0
+                                            ? "No slots available"
+                                            : "Select time slot"
+                                    }
+                                  />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {availableSlots.map((slot) => (
+                                  <SelectItem key={slot} value={slot}>
+                                    {slot}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {watchedDate && !slotsLoading && availableSlots.length === 0 ? (
+                              <p className="text-xs text-muted-foreground pt-1">
+                                No open slots that day
+                                {lawyerId ? " for this lawyer" : ""}. Try another date.
+                              </p>
+                            ) : null}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
-                    <FormField control={form.control} name="notes" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground/80">Brief Description of Your Matter</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Please describe your legal matter briefly without sharing highly sensitive details..." 
-                            className="resize-none bg-muted/20" 
-                            rows={4} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground/80">
+                            Brief Description of Your Matter
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Please describe your legal matter briefly without sharing highly sensitive details..."
+                              className="resize-none bg-muted/20"
+                              rows={4}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <div className="pt-4">
-                      <Button type="submit" className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg transition-transform hover:-translate-y-0.5" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? "Submitting Request..." : "Request Consultation"}
+                      <Button
+                        type="submit"
+                        className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg transition-transform hover:-translate-y-0.5"
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {form.formState.isSubmitting
+                          ? "Submitting Request..."
+                          : "Request Consultation"}
                       </Button>
                       <p className="text-sm text-muted-foreground text-center mt-4 flex items-center justify-center gap-2">
-                        <ShieldCheck className="w-4 h-4" /> Your information is strictly confidential.
+                        <ShieldCheck className="w-4 h-4" /> Your information is strictly
+                        confidential.
                       </p>
                     </div>
-
                   </form>
                 </Form>
               </CardContent>
@@ -569,20 +694,34 @@ export default function ConsultationPage() {
 
       {/* FAQ Section */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
-          <h2 className="font-serif text-3xl font-bold text-foreground mb-4">Frequently Asked Questions</h2>
-          <p className="text-muted-foreground">Everything you need to know before you book your consultation.</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-10"
+        >
+          <h2 className="font-serif text-3xl font-bold text-foreground mb-4">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-muted-foreground">
+            Everything you need to know before you book your consultation.
+          </p>
         </motion.div>
-        
+
         <div className="space-y-4">
           {FAQS.map((faq, idx) => (
-            <motion.div key={idx} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }}>
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.1 }}
+            >
               <FaqItem faq={faq} />
             </motion.div>
           ))}
         </div>
       </section>
-
     </div>
   );
 }

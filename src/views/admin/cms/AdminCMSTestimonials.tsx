@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -15,19 +13,16 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { useCmsCommands, useTestimonials } from "@/client/queries/cms";
 import { toast } from "sonner";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Quote,
-  Eye,
-  EyeOff,
-  ChevronUp,
-  ChevronDown,
-  Home,
-} from "lucide-react";
+import { Plus, Edit, Trash2, Quote, Eye, EyeOff, ChevronUp, ChevronDown, Home } from "lucide-react";
 
 type FormState = {
   clientName: string;
@@ -78,8 +73,10 @@ export default function AdminCMSTestimonials() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const filtered = useMemo(() => {
-    if (statusFilter === "public") return sorted.filter((t: { isApproved?: boolean }) => t.isApproved);
-    if (statusFilter === "hidden") return sorted.filter((t: { isApproved?: boolean }) => !t.isApproved);
+    if (statusFilter === "public")
+      return sorted.filter((t: { isApproved?: boolean }) => t.isApproved);
+    if (statusFilter === "hidden")
+      return sorted.filter((t: { isApproved?: boolean }) => !t.isApproved);
     return sorted;
   }, [sorted, statusFilter]);
 
@@ -198,19 +195,23 @@ export default function AdminCMSTestimonials() {
   };
 
   return (
-    <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Client Stories</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage reviews shown in the homepage Client Stories section.
-          </p>
-        </div>
-        <Button onClick={() => handleOpenModal()} className="gap-2 w-full sm:w-auto shrink-0">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      loading={testimonials === undefined}
+      loadingLabel="Loading testimonials…"
+      eyebrow="Content management"
+      title="Client Stories"
+      description="Manage reviews shown in the homepage Client Stories section."
+      icon={Quote}
+      actions={
+        <DashboardButton onClick={() => handleOpenModal()} className="w-full sm:w-auto">
           <Plus className="w-4 h-4" /> Add Story
-        </Button>
-      </div>
-
+        </DashboardButton>
+      }
+      contentClassName="max-w-5xl mx-auto pb-24 animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -231,17 +232,23 @@ export default function AdminCMSTestimonials() {
         ))}
       </div>
 
-      {testimonials === undefined ? (
-        <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-          <p className="text-sm">Loading testimonials…</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-          <Quote className="w-8 h-8 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">
-            {sorted.length === 0 ? "No client stories yet." : "No stories match this filter."}
-          </p>
-        </div>
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={sorted.length === 0 ? "No client stories yet" : "No stories match this filter"}
+          description={
+            sorted.length === 0
+              ? "Add your first client story to feature on the homepage."
+              : "Try a different filter to see more stories."
+          }
+          icon={Quote}
+          action={
+            sorted.length === 0 ? (
+              <DashboardButton onClick={() => handleOpenModal()}>
+                <Plus className="w-4 h-4" /> Add Story
+              </DashboardButton>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
           {filtered.map((t: any, index: number) => {
@@ -250,17 +257,17 @@ export default function AdminCMSTestimonials() {
             const id = String(t._id ?? t.id);
             const rating = Math.min(5, Math.max(0, Number(t.rating ?? 0)));
             return (
-              <Card
+              <DashboardSection
                 key={id}
-                className={`min-w-0 overflow-hidden ${!t.isApproved ? "opacity-60 grayscale" : ""}`}
+                className={`min-w-0 overflow-hidden [&>div]:px-3 [&>div]:sm:px-6 ${!t.isApproved ? "opacity-60 grayscale" : ""}`}
               >
-                <CardHeader className="space-y-3 pb-2 px-3 sm:px-6">
+                <div className="space-y-3 pb-2">
                   <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
                     {t.avatarUrl ? (
                       <img
                         src={String(t.avatarUrl)}
                         alt=""
-                        className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full object-cover border border-border"
+                        className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full object-cover border border-dashboard-border"
                       />
                     ) : (
                       <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
@@ -269,31 +276,28 @@ export default function AdminCMSTestimonials() {
                     )}
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <CardTitle className="text-sm sm:text-base font-semibold break-words leading-snug">
+                        <h3 className="text-sm sm:text-base font-semibold break-words leading-snug">
                           {name}
-                        </CardTitle>
-                        <Badge
-                          variant={t.isApproved ? "default" : "secondary"}
-                          className="shrink-0 whitespace-nowrap gap-1"
-                        >
-                          {t.isApproved ? (
-                            <>
-                              <Eye className="w-3 h-3" /> Public
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="w-3 h-3" /> Hidden
-                            </>
-                          )}
-                        </Badge>
+                        </h3>
+                        <DashboardStatusLabel
+                          tone={t.isApproved ? "success" : "neutral"}
+                          label={t.isApproved ? "Public" : "Hidden"}
+                          icon={t.isApproved ? Eye : EyeOff}
+                          className="shrink-0 whitespace-nowrap"
+                        />
                         {t.showOnHome !== false && (
-                          <Badge variant="outline" className="shrink-0 gap-1">
-                            <Home className="w-3 h-3" /> Home
-                          </Badge>
+                          <DashboardStatusLabel
+                            tone="primary"
+                            label="Home"
+                            icon={Home}
+                            className="shrink-0"
+                          />
                         )}
                       </div>
                       {t.company ? (
-                        <CardDescription className="text-xs break-words">{String(t.company)}</CardDescription>
+                        <p className="text-xs break-words text-muted-foreground">
+                          {String(t.company)}
+                        </p>
                       ) : null}
                     </div>
                     <div className="flex flex-col gap-0.5 shrink-0">
@@ -319,8 +323,8 @@ export default function AdminCMSTestimonials() {
                       </Button>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-6">
+                </div>
+                <div>
                   <div className="flex gap-0.5 mb-2" aria-label={`${rating} of 5 stars`}>
                     {Array.from({ length: 5 }).map((_, i) => (
                       <span
@@ -337,7 +341,7 @@ export default function AdminCMSTestimonials() {
                     &ldquo;{quote}&rdquo;
                   </p>
 
-                  <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                  <div className="flex items-center justify-between gap-2 pt-3 border-t border-dashboard-border">
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -350,11 +354,17 @@ export default function AdminCMSTestimonials() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => void handleToggleApproved({ _id: id, isApproved: Boolean(t.isApproved) })}
+                        onClick={() =>
+                          void handleToggleApproved({ _id: id, isApproved: Boolean(t.isApproved) })
+                        }
                         className="gap-1"
                         title={t.isApproved ? "Hide from public" : "Approve for public"}
                       >
-                        {t.isApproved ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {t.isApproved ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                     <Button
@@ -367,8 +377,8 @@ export default function AdminCMSTestimonials() {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </DashboardSection>
             );
           })}
         </div>
@@ -378,7 +388,9 @@ export default function AdminCMSTestimonials() {
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Testimonial" : "Add Testimonial"}</DialogTitle>
-            <DialogDescription>Configure how this review appears on the homepage.</DialogDescription>
+            <DialogDescription>
+              Configure how this review appears on the homepage.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid gap-2">
@@ -446,7 +458,7 @@ export default function AdminCMSTestimonials() {
                 />
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-dashboard-border">
               <div className="space-y-0.5 min-w-0">
                 <label className="text-sm font-medium">Approved (public)</label>
                 <p className="text-xs text-muted-foreground">Publish to the public website</p>
@@ -458,7 +470,7 @@ export default function AdminCMSTestimonials() {
                 className="w-4 h-4 accent-primary shrink-0"
               />
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-dashboard-border">
               <div className="space-y-0.5 min-w-0">
                 <label className="text-sm font-medium">Show on homepage</label>
                 <p className="text-xs text-muted-foreground">Include in Client Stories carousel</p>
@@ -480,7 +492,11 @@ export default function AdminCMSTestimonials() {
             >
               Cancel
             </Button>
-            <Button onClick={() => void handleSave()} className="w-full sm:w-auto" disabled={saving}>
+            <Button
+              onClick={() => void handleSave()}
+              className="w-full sm:w-auto"
+              disabled={saving}
+            >
               {saving ? "Saving…" : "Save Story"}
             </Button>
           </DialogFooter>
@@ -494,6 +510,6 @@ export default function AdminCMSTestimonials() {
         }}
         busy={confirmBusy}
       />
-    </div>
+    </PortalPageShell>
   );
 }

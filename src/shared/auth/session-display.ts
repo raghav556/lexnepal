@@ -73,8 +73,10 @@ export function scorePassword(password: string): {
   if (/\d/.test(password)) points += 1;
   if (/[^A-Za-z0-9]/.test(password)) points += 1;
 
-  if (points <= 1) return { score: "weak", label: "Weak — add length and mixed characters", percent: 25 };
-  if (points === 2) return { score: "fair", label: "Fair — consider a longer passphrase", percent: 50 };
+  if (points <= 1)
+    return { score: "weak", label: "Weak — add length and mixed characters", percent: 25 };
+  if (points === 2)
+    return { score: "fair", label: "Fair — consider a longer passphrase", percent: 50 };
   if (points === 3 || points === 4) return { score: "good", label: "Good password", percent: 75 };
   return { score: "strong", label: "Strong password", percent: 100 };
 }

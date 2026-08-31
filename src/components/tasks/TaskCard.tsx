@@ -67,7 +67,12 @@ export function TaskCard({
               >
                 {task.title}
               </p>
-              <p className={cn("text-xs truncate", overdue ? "text-destructive" : "text-muted-foreground")}>
+              <p
+                className={cn(
+                  "text-xs truncate",
+                  overdue ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
                 {caseLabel || "General Task"}
                 {due ? ` — Due: ${due}` : ""}
                 {overdue ? " (Overdue)" : ""}
@@ -75,7 +80,9 @@ export function TaskCard({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge className={`text-xs capitalize ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</Badge>
+            <Badge className={`text-xs capitalize ${PRIORITY_COLORS[task.priority]}`}>
+              {task.priority}
+            </Badge>
             <Badge variant="secondary" className="text-xs capitalize">
               {TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
             </Badge>
@@ -124,13 +131,23 @@ export function TaskCard({
               {task.title}
             </p>
             {caseLabel && (
-              <p className="text-xs font-semibold text-muted-foreground truncate mt-0.5">{caseLabel}</p>
+              <p className="text-xs font-semibold text-muted-foreground truncate mt-0.5">
+                {caseLabel}
+              </p>
             )}
             <div className="flex items-center justify-between gap-1.5 mt-2 flex-wrap">
-              <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</Badge>
+              <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[task.priority]}`}>
+                {task.priority}
+              </Badge>
               {due && !done && (
-                <span className={cn("text-[10px]", overdue ? "text-destructive font-semibold" : "text-muted-foreground")}>
-                  Due: {due}{overdue ? " · Overdue" : ""}
+                <span
+                  className={cn(
+                    "text-[10px]",
+                    overdue ? "text-destructive font-semibold" : "text-muted-foreground",
+                  )}
+                >
+                  Due: {due}
+                  {overdue ? " · Overdue" : ""}
                 </span>
               )}
             </div>

@@ -117,7 +117,11 @@ export class PostgresIdentityRepository {
       .select()
       .from(users)
       .where(
-        and(eq(users.firmId, firmId), sql`lower(${users.email}) = ${normalized}`, isNull(users.deletedAt)),
+        and(
+          eq(users.firmId, firmId),
+          sql`lower(${users.email}) = ${normalized}`,
+          isNull(users.deletedAt),
+        ),
       )
       .limit(1);
     return row ? toUserDto(row) : null;

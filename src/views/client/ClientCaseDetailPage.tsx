@@ -1,11 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Button } from "@/components/ui/button.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import {
   ArrowLeft,
@@ -16,6 +13,9 @@ import {
   FolderOpen,
   Loader2,
   MessageSquare,
+  ShieldAlert,
+  User,
+  Scale,
 } from "lucide-react";
 import { useCase } from "@/client/queries/cases";
 import { useMyTeam } from "@/client/queries/clients";
@@ -23,24 +23,24 @@ import { useHearings } from "@/client/queries/hearings";
 import { useDocuments, useDownloadDocument } from "@/client/queries/documents";
 import { useTasks } from "@/client/queries/tasks";
 import { useMessages } from "@/client/queries/communication";
-import { formatTaskDue, PRIORITY_COLORS, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
+import { formatTaskDue, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
-import { useState } from "react";
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  on_hold: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  closed_won: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  closed_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  inquiry: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-};
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 
 function DocDownload({ documentId }: { documentId: string }) {
   const downloadDocument = useDownloadDocument();
   const [busy, setBusy] = useState(false);
   return (
-    <Button
+    <DashboardButton
       variant="ghost"
       size="sm"
       disabled={busy}
@@ -57,7 +57,7 @@ function DocDownload({ documentId }: { documentId: string }) {
       }}
     >
       {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download"}
-    </Button>
+    </DashboardButton>
   );
 }
 
@@ -73,7 +73,8 @@ export default function ClientCaseDetailPage() {
   const messages = messagesResponse?.page || [];
 
   const lawyer = useMemo(
-    () => team.find((u) => u._id === caseData?.assignedLawyerId || u.id === caseData?.assignedLawyerId),
+    () =>
+      team.find((u) => u._id === caseData?.assignedLawyerId || u.id === caseData?.assignedLawyerId),
     [team, caseData?.assignedLawyerId],
   );
 
@@ -93,252 +94,376 @@ export default function ClientCaseDetailPage() {
 
   if (caseData === undefined) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading matter details…"
+        title="Case Details"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
   if (caseData === null) {
     return (
-      <div className="p-6 text-center space-y-3">
-        <h2 className="text-lg font-semibold text-destructive">Matter not found</h2>
-        <p className="text-sm text-muted-foreground">
-          This case is unavailable or is not linked to your portal account.
-        </p>
-        <Button asChild variant="secondary" size="sm">
-          <Link href="/client/cases">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back to cases
-          </Link>
-        </Button>
-      </div>
+      <PortalPageShell
+        portal="client"
+        eyebrow="Case not found"
+        title="Matter unavailable"
+        description="This case is unavailable or is not linked to your portal account."
+        icon={FolderOpen}
+      >
+        <EmptyState
+          title="Case unavailable"
+          description="This case could not be loaded. Please return to your cases list."
+          icon={FolderOpen}
+          action={
+            <DashboardButton asChild variant="outline" size="sm">
+              <Link href="/client/cases">
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back to cases
+              </Link>
+            </DashboardButton>
+          }
+        />
+      </PortalPageShell>
     );
   }
 
+  const metrics = [
+    {
+      label: "Assigned Advocate",
+      value: lawyer?.name || "Unassigned",
+      icon: User,
+      tone: "primary" as const,
+      helperText: lawyer?.email || "Firm advocate",
+    },
+    {
+      label: "Court Jurisdiction",
+      value: caseData.court || "District Court",
+      icon: Scale,
+      tone: "neutral" as const,
+      helperText: caseData.practiceArea,
+    },
+    {
+      label: "Next Hearing",
+      value: nextHearing
+        ? String(
+            (nextHearing as { dateBs?: string; dateGregorian?: string }).dateBs ||
+              (nextHearing as { dateGregorian?: string }).dateGregorian ||
+              "Scheduled",
+          )
+        : "None scheduled",
+      icon: CalendarDays,
+      tone: nextHearing ? ("warning" as const) : ("neutral" as const),
+      helperText: nextHearing?.court || "Upcoming appearance",
+    },
+    {
+      label: "Checklist Progress",
+      value: `${checklistDone} / ${checklist.length}`,
+      icon: CheckSquare,
+      tone:
+        checklistDone === checklist.length && checklist.length > 0
+          ? ("success" as const)
+          : ("information" as const),
+      helperText: `${checklist.length - checklistDone} remaining items`,
+    },
+  ];
+
   return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans min-w-0">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="sm" className="p-1 h-auto">
-          <Link href="/client/cases">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
-        <span className="text-xs text-muted-foreground font-mono">{caseData.caseNumber}</span>
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <Badge
-            className={`text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[caseData.status] || "bg-gray-100 text-gray-800"}`}
-          >
-            {String(caseData.status).replace("_", " ")}
-          </Badge>
-          <Badge variant="outline" className="text-[10px] uppercase">
-            {caseData.practiceArea}
-          </Badge>
+    <PortalPageShell
+      portal="client"
+      showTodayDate
+      eyebrow={`Matter #${caseData.caseNumber}`}
+      title={caseData.title}
+      description={caseData.description || `Active matter in ${caseData.practiceArea}.`}
+      icon={FolderOpen}
+      metrics={metrics}
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <DashboardButton asChild variant="secondary" size="sm">
+            <Link href="/client/cases">
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back to cases
+            </Link>
+          </DashboardButton>
+          <DashboardButton asChild size="sm">
+            <Link href={`/client/messages?caseId=${caseId}`}>
+              <MessageSquare className="w-4 h-4 mr-1.5" /> Message team
+            </Link>
+          </DashboardButton>
         </div>
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {caseData.title}
-        </h1>
-        {caseData.description ? (
-          <p className="text-sm text-muted-foreground mt-2 max-w-3xl leading-relaxed">
-            {caseData.description}
-          </p>
-        ) : null}
-      </div>
-
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1">
+      }
+    >
+      <Tabs defaultValue="overview" className="w-full space-y-4">
+        <TabsList className="flex flex-wrap h-auto gap-1 border border-dashboard-border bg-dashboard-panel p-1 rounded-xl">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="hearings">Hearings</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="checklist">Checklist</TabsTrigger>
+          <TabsTrigger value="hearings">Hearings ({hearings.length})</TabsTrigger>
+          <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
+          <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
+          <TabsTrigger value="checklist">Checklist ({checklist.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
-              { label: "Advocate", value: lawyer?.name || "Unassigned" },
-              { label: "Court", value: caseData.court || "Not specified" },
-              {
-                label: "Next hearing",
-                value: nextHearing
-                  ? String(
-                      (nextHearing as { dateBs?: string; dateGregorian?: string }).dateBs ||
-                        (nextHearing as { dateGregorian?: string }).dateGregorian ||
-                        "Scheduled",
-                    )
-                  : "None scheduled",
-              },
-              {
-                label: "Open checklist",
-                value: `${checklist.length - checklistDone} / ${checklist.length}`,
-              },
-            ].map((stat) => (
-              <Card key={stat.label}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="text-sm font-semibold mt-1 break-words">{stat.value}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
+        <TabsContent value="overview" className="space-y-6 mt-4">
           {pendingSignatures > 0 ? (
-            <Card className="border-amber-200 dark:border-amber-800">
-              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <p className="text-sm">
-                  {pendingSignatures} document{pendingSignatures === 1 ? "" : "s"} awaiting your
-                  signature.
-                </p>
-                <Button asChild size="sm">
-                  <Link href="/client/signatures">Review signatures</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <DashboardSection className="border-dashboard-warning/40 bg-dashboard-warning-soft">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <ShieldAlert className="w-5 h-5 text-dashboard-warning shrink-0" />
+                  <p className="text-sm font-medium text-dashboard-warning-foreground">
+                    {pendingSignatures} document{pendingSignatures === 1 ? "" : "s"} awaiting your
+                    digital signature.
+                  </p>
+                </div>
+                <DashboardButton
+                  asChild
+                  size="sm"
+                  className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground shrink-0"
+                >
+                  <Link href="/client/signatures">Review Signatures</Link>
+                </DashboardButton>
+              </div>
+            </DashboardSection>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/client/documents?caseId=${caseId}`}>
-                <FolderOpen className="w-4 h-4 mr-1" /> All documents
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/client/messages?caseId=${caseId}`}>
-                <MessageSquare className="w-4 h-4 mr-1" /> Open chat
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/client/checklist">
-                <CheckSquare className="w-4 h-4 mr-1" /> Checklist
-              </Link>
-            </Button>
-          </div>
+          <DashboardSection title="Matter Details" description="Jurisdiction and classification">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="p-3 bg-dashboard-neutral-soft rounded-lg border border-dashboard-border">
+                <span className="text-xs text-muted-foreground block">Case Number</span>
+                <span className="text-sm font-mono font-semibold text-foreground">
+                  {caseData.caseNumber}
+                </span>
+              </div>
+              <div className="p-3 bg-dashboard-neutral-soft rounded-lg border border-dashboard-border">
+                <span className="text-xs text-muted-foreground block">Practice Area</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {caseData.practiceArea}
+                </span>
+              </div>
+              <div className="p-3 bg-dashboard-neutral-soft rounded-lg border border-dashboard-border">
+                <span className="text-xs text-muted-foreground block">Status</span>
+                <DashboardStatusLabel status={caseData.status} className="mt-1 text-xs" />
+              </div>
+            </div>
+          </DashboardSection>
+
+          <DashboardSection title="Quick Actions">
+            <div className="flex flex-wrap gap-2">
+              <DashboardButton asChild variant="outline" size="sm">
+                <Link href={`/client/documents?caseId=${caseId}`}>
+                  <FolderOpen className="w-4 h-4 mr-1.5" /> All documents
+                </Link>
+              </DashboardButton>
+              <DashboardButton asChild variant="outline" size="sm">
+                <Link href={`/client/messages?caseId=${caseId}`}>
+                  <MessageSquare className="w-4 h-4 mr-1.5" /> Open chat
+                </Link>
+              </DashboardButton>
+              <DashboardButton asChild variant="outline" size="sm">
+                <Link href="/client/checklist">
+                  <CheckSquare className="w-4 h-4 mr-1.5" /> Checklist
+                </Link>
+              </DashboardButton>
+            </div>
+          </DashboardSection>
         </TabsContent>
 
-        <TabsContent value="hearings" className="mt-4 space-y-3">
-          {hearings.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No hearings on this matter.</p>
-          ) : (
-            hearings.map((h: any) => (
-              <Card key={h._id}>
-                <CardContent className="p-4 flex items-start gap-3">
-                  <CalendarDays className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">
-                      {h.dateBs || h.dateGregorian}
-                      {h.time ? ` · ${h.time}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {h.court || "Court TBD"} · {h.status}
-                      {h.purpose ? ` · ${h.purpose}` : ""}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-4 space-y-3">
-          {documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No documents shared yet.</p>
-          ) : (
-            documents.map((doc: any) => (
-              <Card key={doc._id}>
-                <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FileText className="w-4 h-4 shrink-0" />
-                      <span className="break-words">{doc.title}</span>
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {doc.type} · {doc.mimeType}
-                    </p>
-                  </div>
-                  <DocDownload documentId={doc._id} />
-                </CardHeader>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="messages" className="mt-4 space-y-3">
-          <div className="flex justify-end">
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/client/messages?caseId=${caseId}`}>Open full chat</Link>
-            </Button>
-          </div>
-          {messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No messages yet.</p>
-          ) : (
-            messages.slice(-12).map((msg: any) => {
-              const sender = team.find((u) => u._id === msg.senderId || u.id === msg.senderId);
-              return (
-                <div key={msg._id} className="rounded-lg border p-3 text-sm">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {sender?.name || "Team"} ·{" "}
-                    {msg._creationTime
-                      ? new Date(msg._creationTime).toLocaleString()
-                      : ""}
-                  </p>
-                  <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                </div>
-              );
-            })
-          )}
-        </TabsContent>
-
-        <TabsContent value="checklist" className="mt-4 space-y-2">
-          <p className="text-xs text-muted-foreground mb-2">
-            {checklistDone}/{checklist.length} done
-          </p>
-          {checklist.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No client-visible checklist items.
-            </p>
-          ) : (
-            checklist.map((task: any) => {
-              const isDone = task.status === "done";
-              const due = formatTaskDue(task);
-              return (
-                <div
-                  key={task._id}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border",
-                    isDone ? "bg-secondary/30 opacity-70" : "bg-card",
-                  )}
-                >
-                  {isDone ? (
-                    <CheckSquare className="w-4 h-4 mt-0.5 text-accent shrink-0" />
-                  ) : (
-                    <Circle className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className={cn("text-sm font-semibold", isDone && "line-through text-muted-foreground")}>
-                      {task.title}
-                    </p>
-                    {task.description ? (
-                      <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-2 mt-1.5">
-                      {due ? <span className="text-[10px] text-muted-foreground">Due: {due}</span> : null}
-                      <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[task.priority]}`}>
-                        {task.priority}
-                      </Badge>
-                      <Badge variant="secondary" className="text-[9px]">
-                        {TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
-                      </Badge>
+        <TabsContent value="hearings" className="mt-4 space-y-4">
+          <DashboardSection
+            title="Court Hearings"
+            description="Scheduled dates and appearance records"
+          >
+            {hearings === undefined ? (
+              <DashboardListSkeleton rows={3} />
+            ) : hearings.length === 0 ? (
+              <EmptyState
+                title="No hearings on this matter"
+                description="Hearings scheduled for this court matter will appear here automatically."
+                icon={CalendarDays}
+              />
+            ) : (
+              <div className="space-y-3">
+                {hearings.map((h: any) => (
+                  <DashboardListRow key={h._id}>
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <CalendarDays className="w-5 h-5 text-dashboard-accent mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            {h.dateBs || h.dateGregorian}
+                            {h.time ? ` · ${h.time}` : ""}
+                          </p>
+                          <DashboardStatusLabel status={h.status} className="text-xs" />
+                        </div>
+                        <p className="text-xs text-dashboard-neutral">
+                          {h.court || "Court TBD"}
+                          {h.purpose ? ` · Purpose: ${h.purpose}` : ""}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                  </DashboardListRow>
+                ))}
+              </div>
+            )}
+          </DashboardSection>
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-4 space-y-4">
+          <DashboardSection
+            title="Case Documents"
+            description="Files filed or shared by your legal team"
+          >
+            {documents === undefined ? (
+              <DashboardListSkeleton rows={3} />
+            ) : documents.length === 0 ? (
+              <EmptyState
+                title="No documents shared yet"
+                description="Documents filed or shared by your legal team will appear here."
+                icon={FileText}
+              />
+            ) : (
+              <div className="space-y-3">
+                {documents.map((doc: any) => (
+                  <DashboardListRow key={doc._id}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 flex-1">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <FileText className="w-5 h-5 text-dashboard-primary mt-0.5 shrink-0" />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-sm text-foreground break-words">
+                              {doc.title}
+                            </span>
+                            <DashboardStatusLabel status={doc.type} className="text-xs" />
+                            {doc.requiresSignature ? (
+                              <DashboardStatusLabel
+                                status={doc.signatureStatus}
+                                className="text-xs"
+                              />
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-dashboard-neutral">
+                            {doc.mimeType || "Document"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <DocDownload documentId={doc._id} />
+                      </div>
+                    </div>
+                  </DashboardListRow>
+                ))}
+              </div>
+            )}
+          </DashboardSection>
+        </TabsContent>
+
+        <TabsContent value="messages" className="mt-4 space-y-4">
+          <DashboardSection
+            title="Recent Case Discussion"
+            description="Secure communication with your legal team"
+            actions={
+              <DashboardButton asChild size="sm" variant="outline">
+                <Link href={`/client/messages?caseId=${caseId}`}>Open full chat</Link>
+              </DashboardButton>
+            }
+          >
+            {messages === undefined ? (
+              <DashboardListSkeleton rows={3} />
+            ) : messages.length === 0 ? (
+              <EmptyState
+                title="No messages yet"
+                description="Communicate securely with your assigned advocate and legal team."
+                icon={MessageSquare}
+              />
+            ) : (
+              <div className="space-y-3">
+                {messages.slice(-12).map((msg: any) => {
+                  const sender = team.find((u) => u._id === msg.senderId || u.id === msg.senderId);
+                  return (
+                    <DashboardListRow key={msg._id} className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 text-xs text-dashboard-neutral">
+                        <span className="font-semibold text-foreground">
+                          {sender?.name || "Legal Team"}
+                        </span>
+                        <span>
+                          {msg._creationTime ? new Date(msg._creationTime).toLocaleString() : ""}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                        {msg.content}
+                      </p>
+                    </DashboardListRow>
+                  );
+                })}
+              </div>
+            )}
+          </DashboardSection>
+        </TabsContent>
+
+        <TabsContent value="checklist" className="mt-4 space-y-4">
+          <DashboardSection
+            title="Client Action Checklist"
+            description={`${checklistDone}/${checklist.length} completed`}
+          >
+            {tasks === undefined ? (
+              <DashboardListSkeleton rows={3} />
+            ) : checklist.length === 0 ? (
+              <EmptyState
+                title="No checklist items"
+                description="Any pending client action items will appear here."
+                icon={CheckSquare}
+              />
+            ) : (
+              <div className="space-y-3">
+                {checklist.map((task: any) => {
+                  const isDone = task.status === "done";
+                  const due = formatTaskDue(task);
+                  return (
+                    <DashboardListRow
+                      key={task._id}
+                      className={cn(
+                        "flex items-start gap-3",
+                        isDone && "opacity-75 bg-dashboard-neutral-soft/50",
+                      )}
+                    >
+                      {isDone ? (
+                        <CheckSquare className="w-5 h-5 mt-0.5 text-dashboard-success shrink-0" />
+                      ) : (
+                        <Circle className="w-5 h-5 mt-0.5 text-dashboard-neutral shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <p
+                          className={cn(
+                            "text-sm font-semibold text-foreground",
+                            isDone && "line-through text-dashboard-neutral",
+                          )}
+                        >
+                          {task.title}
+                        </p>
+                        {task.description ? (
+                          <p className="text-xs text-dashboard-neutral leading-relaxed">
+                            {task.description}
+                          </p>
+                        ) : null}
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          {due ? (
+                            <span className="text-[10px] text-dashboard-neutral">Due: {due}</span>
+                          ) : null}
+                          <DashboardStatusLabel status={task.priority} className="text-[10px]" />
+                          <DashboardStatusLabel
+                            status={task.status}
+                            label={TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
+                            className="text-[10px]"
+                          />
+                        </div>
+                      </div>
+                    </DashboardListRow>
+                  );
+                })}
+              </div>
+            )}
+          </DashboardSection>
         </TabsContent>
       </Tabs>
-    </div>
+    </PortalPageShell>
   );
 }

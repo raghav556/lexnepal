@@ -22,16 +22,19 @@ function objectSchemaForPatch(schema: z.ZodTypeAny): z.ZodObject<z.ZodRawShape> 
 const blogPostPatchSchema = objectSchemaForPatch(blogPostInputSchema).partial();
 
 export const PATCH = (request: Request, context: Context) =>
-  withApiHandler("/api/v1/staff/content/blog-posts/:id", async ({ request: handled, requestId }) => {
-    const principal = await requireSession(handled);
-    const id = cmsIdSchema.parse((await context.params).id);
-    const input = await parseJson(handled, blogPostPatchSchema);
-    return jsonResponse({
-      data: await getCmsService().updateStaffBlogPost(
-        principal,
-        id,
-        input,
-        buildAuditContext(handled, requestId, principal),
-      ),
-    });
-  })(request);
+  withApiHandler(
+    "/api/v1/staff/content/blog-posts/:id",
+    async ({ request: handled, requestId }) => {
+      const principal = await requireSession(handled);
+      const id = cmsIdSchema.parse((await context.params).id);
+      const input = await parseJson(handled, blogPostPatchSchema);
+      return jsonResponse({
+        data: await getCmsService().updateStaffBlogPost(
+          principal,
+          id,
+          input,
+          buildAuditContext(handled, requestId, principal),
+        ),
+      });
+    },
+  )(request);

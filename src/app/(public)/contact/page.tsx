@@ -8,14 +8,14 @@ export async function generateMetadata(): Promise<Metadata> {
     const title = String(settings.contactHeroTitle || "Get in Touch");
     const description = String(
       settings.contactHeroSubtitle ||
-        "Reach LexNepal for general inquiries, legal support, press, or partnership opportunities.",
+        "Reach Srimar Law for general inquiries, legal support, press, or partnership opportunities.",
     );
     return { title, description };
   } catch {
     return {
       title: "Get in Touch",
       description:
-        "Reach LexNepal for general inquiries, legal support, press, or partnership opportunities.",
+        "Reach Srimar Law for general inquiries, legal support, press, or partnership opportunities.",
     };
   }
 }

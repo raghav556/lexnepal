@@ -70,13 +70,16 @@ export const taskCategorySchema = z.enum([
 ]);
 export const recurrenceRuleSchema = z.enum(["daily", "weekly", "monthly"]);
 
-const flexibleDateTime = z.preprocess((value) => {
-  if (typeof value !== "string") return value;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return `${trimmed}T00:00:00.000Z`;
-  return trimmed;
-}, z.string().datetime({ offset: true }).optional().nullable());
+const flexibleDateTime = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return `${trimmed}T00:00:00.000Z`;
+    return trimmed;
+  },
+  z.string().datetime({ offset: true }).optional().nullable(),
+);
 
 export const taskCreateSchema = z.object({
   title: z.string().trim().min(1).max(300),

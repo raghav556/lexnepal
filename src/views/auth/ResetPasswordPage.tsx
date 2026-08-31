@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const mode = useMemo(() => (token ? "reset" as const : "request" as const), [token]);
+  const mode = useMemo(() => (token ? ("reset" as const) : ("request" as const)), [token]);
 
   const requestReset = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -35,7 +35,9 @@ export default function ResetPasswordPage() {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(typeof body.message === "string" ? body.message : "Could not send reset email");
+        throw new Error(
+          typeof body.message === "string" ? body.message : "Could not send reset email",
+        );
       }
       setSent(true);
       toast.success("If an account exists for that email, reset instructions were sent.");
@@ -74,11 +76,13 @@ export default function ResetPasswordPage() {
             <ArrowLeft className="size-4" />
             Back to sign in
           </Link>
-          <CardTitle>{mode === "request" ? "Reset your password" : "Choose a new password"}</CardTitle>
+          <CardTitle>
+            {mode === "request" ? "Reset your password" : "Choose a new password"}
+          </CardTitle>
           <CardDescription>
             {mode === "request"
               ? "Enter your work email and we will send a secure reset link if the account exists."
-              : "Set a new password for your LexNepal account."}
+              : "Set a new password for your Srimar Law account."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,8 +90,8 @@ export default function ResetPasswordPage() {
             sent ? (
               <div className="space-y-4 text-sm text-muted-foreground">
                 <p>
-                  Check your inbox for <strong className="text-foreground">{email}</strong>. The link expires
-                  after a short time for security.
+                  Check your inbox for <strong className="text-foreground">{email}</strong>. The
+                  link expires after a short time for security.
                 </p>
                 <Button variant="outline" className="w-full" asChild>
                   <Link href="/sign-in">Return to sign in</Link>

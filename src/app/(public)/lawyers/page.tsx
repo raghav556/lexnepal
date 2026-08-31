@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: String(settings.lawyersHeroTitle || "Our Team"),
       description: String(
         settings.lawyersHeroSubtitle ||
-          "Meet the advocates at LexNepal — licensed counsel across major practice areas.",
+          "Meet the advocates at Srimar Law — licensed counsel across major practice areas.",
       ),
     };
   } catch {

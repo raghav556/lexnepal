@@ -12,8 +12,11 @@ try {
   await db.transaction(async (transaction) => {
     const [firm] = await transaction
       .insert(firms)
-      .values({ name: "LexNepal", slug: "lexnepal", legacyConvexId: "seed_default_firm" })
-      .onConflictDoUpdate({ target: firms.slug, set: { name: "LexNepal", updatedAt: new Date() } })
+      .values({ name: "Srimar Law", slug: "lexnepal", legacyConvexId: "seed_default_firm" })
+      .onConflictDoUpdate({
+        target: firms.slug,
+        set: { name: "Srimar Law", updatedAt: new Date() },
+      })
       .returning({ id: firms.id });
 
     await transaction

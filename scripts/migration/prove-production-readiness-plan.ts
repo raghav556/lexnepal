@@ -16,16 +16,7 @@ const REQUIRED_FILES = [
   "rollback-runbook.md",
 ] as const;
 
-const REQUIRED_ITEMS = [
-  "R7.1",
-  "R7.2",
-  "R7.3",
-  "R7.4",
-  "R7.5",
-  "R7.6",
-  "R7.7",
-  "R7.8",
-] as const;
+const REQUIRED_ITEMS = ["R7.1", "R7.2", "R7.3", "R7.4", "R7.5", "R7.6", "R7.7", "R7.8"] as const;
 
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
@@ -63,12 +54,7 @@ try {
 
   const csvPath = path.join(DOC_MIGRATION_DIR, "production-readiness.csv");
   const text = await fs.readFile(csvPath, "utf8");
-  const rows = text
-    .trim()
-    .split(/\r?\n/)
-    .slice(1)
-    .filter(Boolean)
-    .map(parseCsvLine);
+  const rows = text.trim().split(/\r?\n/).slice(1).filter(Boolean).map(parseCsvLine);
 
   const byItem = new Map(rows.map((r) => [r[0], r]));
   const missingItems = REQUIRED_ITEMS.filter((id) => !byItem.has(id));
@@ -104,9 +90,7 @@ try {
     exceptions: [],
     reconciliation: {
       passed: true,
-      checks: Object.fromEntries(
-        REQUIRED_ITEMS.map((id) => [id, { source: 1, target: 1 }]),
-      ),
+      checks: Object.fromEntries(REQUIRED_ITEMS.map((id) => [id, { source: 1, target: 1 }])),
     },
   };
 

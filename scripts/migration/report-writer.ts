@@ -3,10 +3,7 @@ import path from "node:path";
 import type { DomainMigrationReport } from "./types";
 import { DOC_MIGRATION_DIR, EXCEPTIONS_CSV, RECONCILIATION_REPORT } from "./types";
 import type { ReconcileException } from "./reconcile";
-import {
-  detailsFromReport,
-  type ReconciliationDetails,
-} from "./reconciliation-details";
+import { detailsFromReport, type ReconciliationDetails } from "./reconciliation-details";
 
 export async function appendExceptionsCsv(exceptions: ReconcileException[]) {
   if (exceptions.length === 0) return;
@@ -88,9 +85,7 @@ export async function appendReconciliationReport(input: {
     lines.push("- None");
   } else {
     for (const row of details.missingIds.slice(0, 100)) {
-      lines.push(
-        `- \`${row.table}\` / \`${row.id}\`${row.reason ? ` — ${row.reason}` : ""}`,
-      );
+      lines.push(`- \`${row.table}\` / \`${row.id}\`${row.reason ? ` — ${row.reason}` : ""}`);
     }
     if (details.missingIds.length > 100) {
       lines.push(`- …and ${details.missingIds.length - 100} more (see data-exceptions.csv)`);
@@ -105,9 +100,7 @@ export async function appendReconciliationReport(input: {
     lines.push("- No FK-related exceptions");
   } else {
     for (const issue of details.fkIntegrity.issues.slice(0, 50)) {
-      lines.push(
-        `- \`${issue.table}\`${issue.id ? ` (${issue.id})` : ""} — ${issue.reason}`,
-      );
+      lines.push(`- \`${issue.table}\`${issue.id ? ` (${issue.id})` : ""} — ${issue.reason}`);
     }
     if (details.fkIntegrity.issues.length > 50) {
       lines.push(`- …and ${details.fkIntegrity.issues.length - 50} more`);

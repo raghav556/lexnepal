@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 async function signIn(page: Page, email: string) {
+  await prepareE2eAuth(page, email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.locator("#password").fill(E2E_PASSWORD);
@@ -21,7 +23,7 @@ test.describe("Admin users directory", () => {
     await expect(page.locator("table")).toBeVisible({ timeout: 20_000 });
     await expect(page.locator("table").getByText("Person", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Open" }).first().click();
+    await page.getByRole("button", { name: "Open", exact: true }).first().click();
 
     const drawer = page.locator('[role="dialog"]').filter({ hasText: "Linked records" });
     await expect(drawer).toBeVisible({ timeout: 10_000 });
@@ -44,9 +46,11 @@ test.describe("Admin users directory", () => {
     await page.getByRole("button", { name: /^Cancel$/ }).click();
 
     await page.goto("/admin/clients");
-    await expect(page.getByRole("button", { name: /new client/i })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: /new client/i })).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
     await expect(page.locator("table")).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText("Total clients")).toBeVisible();
+    await expect(page.getByText("Total clients").first()).toBeVisible();
   });
 });

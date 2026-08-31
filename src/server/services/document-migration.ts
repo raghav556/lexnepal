@@ -21,16 +21,18 @@ async function parseJsonlFile(filePath: string): Promise<Record<string, unknown>
 }
 
 function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function asString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function enumOr<T extends string>(value: string | undefined, allowed: readonly T[], fallback: T): T {
+function enumOr<T extends string>(
+  value: string | undefined,
+  allowed: readonly T[],
+  fallback: T,
+): T {
   return value && (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 

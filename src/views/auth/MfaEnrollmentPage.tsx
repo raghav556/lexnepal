@@ -111,15 +111,16 @@ export default function MfaEnrollmentPage() {
             Required MFA enrollment
           </CardTitle>
           <CardDescription>
-            Administrators and partners must enroll an authenticator before accessing LexNepal.
+            Administrators and partners must enroll an authenticator before accessing Srimar Law.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {!totpEnrollment ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Signed in as <span className="font-medium text-foreground">{sessionUser.email}</span>. Confirm your
-                password to generate a QR code for your authenticator app.
+                Signed in as{" "}
+                <span className="font-medium text-foreground">{sessionUser.email}</span>. Confirm
+                your password to generate a QR code for your authenticator app.
               </p>
               <Button className="w-full" onClick={() => setPasswordDialogOpen(true)}>
                 Set up authenticator

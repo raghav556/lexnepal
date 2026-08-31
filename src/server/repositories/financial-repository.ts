@@ -129,7 +129,9 @@ export class PostgresFinancialRepository {
     const [row] = await database
       .select()
       .from(invoices)
-      .where(and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)))
+      .where(
+        and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)),
+      )
       .limit(1);
     return row ? toDto(row as unknown as Record<string, unknown>) : null;
   }
@@ -277,7 +279,11 @@ export class PostgresFinancialRepository {
         .select()
         .from(timeEntries)
         .where(
-          and(eq(timeEntries.id, entryId), eq(timeEntries.firmId, firmId), isNull(timeEntries.deletedAt)),
+          and(
+            eq(timeEntries.id, entryId),
+            eq(timeEntries.firmId, firmId),
+            isNull(timeEntries.deletedAt),
+          ),
         )
         .limit(1);
       if (!existing) throw new AppError("NOT_FOUND", "Time entry was not found", 404);
@@ -306,7 +312,10 @@ export class PostgresFinancialRepository {
         isNull(timeEntries.invoiceId),
         isNull(timeEntries.deletedAt),
       ];
-      let entries = await tx.select().from(timeEntries).where(and(...predicates));
+      let entries = await tx
+        .select()
+        .from(timeEntries)
+        .where(and(...predicates));
       if (input.timeEntryIds?.length) {
         const allowed = new Set(input.timeEntryIds);
         entries = entries.filter((entry) => allowed.has(entry.id));
@@ -376,10 +385,14 @@ export class PostgresFinancialRepository {
         .update(invoices)
         .set({
           status: input.status,
-          paidDate: input.paidDate ?? (input.status === "paid" ? audit.occurredAt.toISOString().slice(0, 10) : null),
+          paidDate:
+            input.paidDate ??
+            (input.status === "paid" ? audit.occurredAt.toISOString().slice(0, 10) : null),
           updatedAt: audit.occurredAt,
         })
-        .where(and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)))
+        .where(
+          and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Invoice was not found", 404);
       await writeAudit(tx, audit, "invoice.status_updated", "invoices", row.id, row.status);
@@ -392,7 +405,9 @@ export class PostgresFinancialRepository {
       const [invoice] = await tx
         .select()
         .from(invoices)
-        .where(and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)))
+        .where(
+          and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)),
+        )
         .limit(1);
       if (!invoice) throw new AppError("NOT_FOUND", "Invoice was not found", 404);
       if (invoice.status === "cancelled") {
@@ -448,8 +463,7 @@ export class PostgresFinancialRepository {
       const paidDate = audit.occurredAt.toISOString().slice(0, 10);
       const amount = input.amount ?? money(invoice.total);
       const gateway = input.gateway ?? "bank_transfer";
-      const referenceNumber =
-        input.referenceNumber ?? `PAY-${String(Date.now()).slice(-8)}`;
+      const referenceNumber = input.referenceNumber ?? `PAY-${String(Date.now()).slice(-8)}`;
 
       const insertValues = {
         firmId,
@@ -536,7 +550,9 @@ export class PostgresFinancialRepository {
       const [invoice] = await tx
         .select()
         .from(invoices)
-        .where(and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)))
+        .where(
+          and(eq(invoices.id, invoiceId), eq(invoices.firmId, firmId), isNull(invoices.deletedAt)),
+        )
         .limit(1);
       if (!invoice) throw new AppError("NOT_FOUND", "Invoice was not found", 404);
 
@@ -733,7 +749,9 @@ export class PostgresFinancialRepository {
           approvedBy,
           updatedAt: audit.occurredAt,
         })
-        .where(and(eq(expenses.id, expenseId), eq(expenses.firmId, firmId), isNull(expenses.deletedAt)))
+        .where(
+          and(eq(expenses.id, expenseId), eq(expenses.firmId, firmId), isNull(expenses.deletedAt)),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Expense was not found", 404);
       await writeAudit(tx, audit, "expense.reviewed", "expenses", row.id, input.status);
@@ -746,7 +764,9 @@ export class PostgresFinancialRepository {
       const [row] = await tx
         .update(expenses)
         .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
-        .where(and(eq(expenses.id, expenseId), eq(expenses.firmId, firmId), isNull(expenses.deletedAt)))
+        .where(
+          and(eq(expenses.id, expenseId), eq(expenses.firmId, firmId), isNull(expenses.deletedAt)),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Expense was not found", 404);
       await writeAudit(tx, audit, "expense.deleted", "expenses", row.id, null);

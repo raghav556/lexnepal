@@ -1,16 +1,32 @@
+"use client";
+
 import { useMemo } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { CheckSquare, Circle, Loader2, ClipboardList, MessageSquare, Calendar } from "lucide-react";
+import {
+  CheckSquare,
+  Circle,
+  ClipboardList,
+  MessageSquare,
+  Calendar,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useTasks } from "@/client/queries/tasks";
 import { cn } from "@/lib/utils.ts";
-import { formatTaskDue, PRIORITY_COLORS, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
+import { formatTaskDue, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty.tsx";
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 /**
  * Client-visible checklist items only (tasks.clientVisible on the client's cases).
@@ -27,115 +43,206 @@ export default function ClientChecklistPage() {
   const checklist = useMemo(
     () =>
       tasks.filter(
-        (t: any) =>
-          t.clientVisible &&
-          t.caseId &&
-          caseIds.has(t.caseId) &&
-          !t.archivedAt &&
-          !t.parentTaskId,
+        (task: any) =>
+          task.clientVisible &&
+          task.caseId &&
+          caseIds.has(task.caseId) &&
+          !task.archivedAt &&
+          !task.parentTaskId,
       ),
     [tasks, caseIds],
   );
 
+  const done = checklist.filter((task: any) => task.status === "done").length;
+  const pending = checklist.length - done;
+  const completionRate = checklist.length > 0 ? Math.round((done / checklist.length) * 100) : 100;
+
   if (clientRecord === undefined) {
     return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading your checklist items…"
+        title="Checklist"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
-  const done = checklist.filter((t: any) => t.status === "done").length;
+  if (clientRecord === null) {
+    return (
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Matter Progress"
+        title="Action Checklist"
+        description="Shared action items and legal milestones."
+        icon={ClipboardList}
+      >
+        <EmptyState
+          title="No client profile linked"
+          description="Your portal account is not linked to a client profile yet. Contact the firm to view case action checklists."
+          icon={ClipboardList}
+        />
+      </PortalPageShell>
+    );
+  }
+
+  const metrics = [
+    {
+      label: "Total Action Items",
+      value: String(checklist.length),
+      icon: ClipboardList,
+      tone: DASHBOARD_METRIC_TONES.cases,
+      helperText: "Matter milestones",
+    },
+    {
+      label: "Completed",
+      value: String(done),
+      icon: CheckCircle2,
+      tone: "success" as const,
+      helperText: `${completionRate}% completed`,
+    },
+    {
+      label: "Pending Action",
+      value: String(pending),
+      icon: Clock,
+      tone: pending > 0 ? ("warning" as const) : ("success" as const),
+      helperText: "In progress items",
+    },
+  ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 font-sans max-w-3xl mx-auto">
-      <div>
-        <h1 className="font-serif text-2xl font-bold text-foreground">{t("tasks.client_checklist")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("tasks.client_checklist_sub")}</p>
-      </div>
-
-      <Card>
-        <CardHeader className="py-3 border-b border-border bg-secondary/20">
-          <CardTitle className="text-sm font-bold flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-primary" />
-              {t("tasks.your_items")}
-            </span>
-            <span className="text-xs font-mono font-normal text-muted-foreground">
-              {done}/{checklist.length} {t("tasks.done")}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 space-y-2">
-          {checklist.length === 0 ? (
-            <Empty className="py-8">
-              <EmptyHeader>
-                <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
-                <EmptyTitle>No shared action items yet</EmptyTitle>
-                <EmptyDescription>
-                  When your legal team shares checklist items on your matters, they appear here.
-                  You can message the firm or book a consultation in the meantime.
-                </EmptyDescription>
-              </EmptyHeader>
-              <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
-                <Button asChild size="sm" variant="outline">
+    <PortalPageShell
+      portal="client"
+      decorated
+      showTodayDate
+      eyebrow="Matter Progress"
+      title="Action Checklist"
+      description="Track shared action items, document submissions, and case milestones managed by your legal team."
+      icon={ClipboardList}
+      metrics={metrics}
+      actions={
+        <DashboardButton asChild size="sm" variant="secondary">
+          <Link href="/client/messages">
+            <MessageSquare className="w-4 h-4 mr-1.5" /> Ask your advocate
+          </Link>
+        </DashboardButton>
+      }
+    >
+      <DashboardSection
+        title="Your action items"
+        description={`Showing ${checklist.length} shared item${checklist.length === 1 ? "" : "s"}`}
+        icon={ClipboardList}
+        actions={
+          <span className="text-xs font-mono font-semibold text-muted-foreground bg-dashboard-neutral-soft px-2.5 py-1 rounded-md border border-dashboard-border">
+            {done}/{checklist.length} {t("tasks.done") || "Done"}
+          </span>
+        }
+      >
+        {tasks === undefined ? (
+          <DashboardListSkeleton rows={4} />
+        ) : checklist.length === 0 ? (
+          <EmptyState
+            title="No shared action items yet"
+            description="When your legal team shares checklist items on your matters, they will appear here. You can message the firm or book a consultation in the meantime."
+            icon={ClipboardList}
+            action={
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <DashboardButton asChild size="sm" variant="outline">
                   <Link href="/client/messages">
-                    <MessageSquare className="w-4 h-4 mr-1" />
+                    <MessageSquare className="w-4 h-4 mr-1.5" />
                     Messages
                   </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
+                </DashboardButton>
+                <DashboardButton asChild size="sm" variant="outline">
                   <Link href="/client/booking">
-                    <Calendar className="w-4 h-4 mr-1" />
+                    <Calendar className="w-4 h-4 mr-1.5" />
                     Book Appointment
                   </Link>
-                </Button>
+                </DashboardButton>
               </div>
-            </Empty>
-          ) : (
-            checklist.map((task: any) => {
+            }
+          />
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1.5 rounded-xl border border-dashboard-border bg-dashboard-panel p-3.5 shadow-xs">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground">Milestone Completion</span>
+                <span className="font-mono font-bold text-dashboard-primary">
+                  {completionRate}% Completed
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-dashboard-neutral-soft">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-dashboard-primary to-dashboard-focus transition-all duration-500"
+                  style={{ width: `${completionRate}%` }}
+                />
+              </div>
+            </div>
+            {checklist.map((task: any) => {
               const matchedCase = cases.find((c: any) => c._id === task.caseId);
               const due = formatTaskDue(task);
               const isDone = task.status === "done";
               return (
-                <div
+                <DashboardListRow
                   key={task._id}
                   className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border",
-                    isDone ? "bg-secondary/30 opacity-70" : "bg-card",
+                    "flex items-start gap-3 p-4",
+                    isDone && "bg-dashboard-neutral-soft/40 opacity-80",
                   )}
                 >
                   {isDone ? (
-                    <CheckSquare className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+                    <CheckSquare className="w-5 h-5 mt-0.5 text-dashboard-success shrink-0" />
                   ) : (
-                    <Circle className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <Circle className="w-5 h-5 mt-0.5 text-dashboard-neutral shrink-0" />
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className={cn("text-sm font-semibold", isDone && "line-through text-muted-foreground")}>
-                      {task.title}
-                    </p>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p
+                        className={cn(
+                          "text-sm font-semibold text-foreground",
+                          isDone && "line-through text-muted-foreground",
+                        )}
+                      >
+                        {task.title}
+                      </p>
+                      {matchedCase ? (
+                        <span className="text-[10px] font-mono text-muted-foreground bg-dashboard-neutral-soft px-1.5 py-0.5 rounded border border-dashboard-border shrink-0">
+                          {matchedCase.caseNumber}
+                        </span>
+                      ) : null}
+                    </div>
                     {task.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {task.description}
+                      </p>
                     )}
-                    <div className="flex flex-wrap gap-2 mt-1.5 items-center">
-                      {matchedCase && (
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          [{matchedCase.caseNumber}]
+                    <div className="flex flex-wrap gap-2 pt-1 items-center">
+                      {due && (
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          Due: {due}
                         </span>
                       )}
-                      {due && <span className="text-[10px] text-muted-foreground">Due: {due}</span>}
-                      <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</Badge>
-                      <Badge variant="secondary" className="text-[9px]">
-                        {TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
-                      </Badge>
+                      <DashboardStatusLabel
+                        status={task.priority}
+                        className="text-[10px] uppercase"
+                      />
+                      <DashboardStatusLabel
+                        status={task.status}
+                        label={TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
+                        className="text-[10px]"
+                      />
                     </div>
                   </div>
-                </div>
+                </DashboardListRow>
               );
-            })
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            })}
+          </div>
+        )}
+      </DashboardSection>
+    </PortalPageShell>
   );
 }

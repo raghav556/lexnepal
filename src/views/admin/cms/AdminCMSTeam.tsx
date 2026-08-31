@@ -1,12 +1,31 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { useCmsTeamIdentityBridge } from "@/client/queries/identity";
 import { usePracticeAreas } from "@/client/queries/cms";
-import { Save, CheckCircle, XCircle, UserCircle, Search, Filter, Plus, Edit2, EyeOff, X, ExternalLink, Trash2 } from "lucide-react";
+import {
+  Save,
+  CheckCircle,
+  XCircle,
+  UserCircle,
+  Search,
+  Filter,
+  Plus,
+  Edit2,
+  EyeOff,
+  X,
+  ExternalLink,
+  Trash2,
+  Users,
+} from "lucide-react";
+import {
+  DashboardFilterBar,
+  DashboardSection,
+  DashboardStatusLabel,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { getDashboardRoleTone } from "@/lib/dashboard-semantics";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
 import { LEADERSHIP_TITLE_EXAMPLES, isLeadershipRole } from "@/shared/leadership";
@@ -14,7 +33,8 @@ import { LEADERSHIP_TITLE_EXAMPLES, isLeadershipRole } from "@/shared/leadership
 const PUBLIC_ELIGIBLE_ROLES = ["partner", "senior_associate", "associate", "paralegal"] as const;
 
 export default function AdminCMSTeam() {
-  const { users, updateTeamMember, removeFromPublicTeam, togglePublicStatus } = useCmsTeamIdentityBridge();
+  const { users, updateTeamMember, removeFromPublicTeam, togglePublicStatus } =
+    useCmsTeamIdentityBridge();
   const cmsPracticeAreas = usePracticeAreas({}, "admin") || [];
   const practiceAreaTitleOptions = cmsPracticeAreas
     .filter((a: { isActive?: boolean }) => a.isActive !== false)
@@ -40,10 +60,7 @@ export default function AdminCMSTeam() {
   const featureCandidates = useMemo(() => {
     return users.filter(
       (u: any) =>
-        PUBLIC_ELIGIBLE_ROLES.includes(u.role) &&
-        !u.isPublicFacing &&
-        u.isActive &&
-        !u.isPending,
+        PUBLIC_ELIGIBLE_ROLES.includes(u.role) && !u.isPublicFacing && u.isActive && !u.isPending,
     );
   }, [users]);
 
@@ -94,9 +111,7 @@ export default function AdminCMSTeam() {
       publicEmail: user.publicEmail || "",
       publicPhone: user.publicPhone || "",
       barCouncilNumber: user.barCouncilNumber || "",
-      barCouncilExpiry: user.barCouncilExpiry
-        ? String(user.barCouncilExpiry).slice(0, 10)
-        : "",
+      barCouncilExpiry: user.barCouncilExpiry ? String(user.barCouncilExpiry).slice(0, 10) : "",
       displayOrder: user.displayOrder ?? 0,
       yearsExperience:
         user.yearsExperience === null || user.yearsExperience === undefined
@@ -147,7 +162,9 @@ export default function AdminCMSTeam() {
   };
 
   const handleRemoveFromPublic = async (id: string, name: string) => {
-    if (!window.confirm(`Hide ${name} from the public website? Their login account stays active.`)) {
+    if (
+      !window.confirm(`Hide ${name} from the public website? Their login account stays active.`)
+    ) {
       return;
     }
     try {
@@ -171,7 +188,11 @@ export default function AdminCMSTeam() {
   const addArrayItem = (field: "practiceAreas" | "notableCases") => {
     setFormData({ ...formData, [field]: [...formData[field], ""] });
   };
-  const updateArrayItem = (field: "practiceAreas" | "notableCases", index: number, value: string) => {
+  const updateArrayItem = (
+    field: "practiceAreas" | "notableCases",
+    index: number,
+    value: string,
+  ) => {
     const newArray = [...formData[field]];
     newArray[index] = value;
     setFormData({ ...formData, [field]: newArray });
@@ -182,7 +203,10 @@ export default function AdminCMSTeam() {
   };
 
   const addEducation = () => {
-    setFormData({ ...formData, education: [...formData.education, { degree: "", institution: "", year: "" }] });
+    setFormData({
+      ...formData,
+      education: [...formData.education, { degree: "", institution: "", year: "" }],
+    });
   };
   const updateEducation = (index: number, key: string, value: string) => {
     const newEdu = [...formData.education];
@@ -195,23 +219,24 @@ export default function AdminCMSTeam() {
   };
 
   return (
-    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">
-            <span className="sm:hidden">Public team</span>
-            <span className="hidden sm:inline">Public team profiles</span>
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Edit website bios, practice areas, and visibility. Invite or change roles in{" "}
-            <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
-              Users
-            </Link>
-            .
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      eyebrow="Content management"
+      title="Public team profiles"
+      description={
+        <>
+          Edit website bios, practice areas, and visibility. Invite or change roles in{" "}
+          <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+            Users
+          </Link>
+          .
+        </>
+      }
+      icon={Users}
+      actions={
+        <>
           <Button variant="outline" asChild className="w-full md:w-auto">
             <Link href="/admin/users">
               <ExternalLink className="w-4 h-4 mr-2" /> Invite in Users
@@ -229,12 +254,12 @@ export default function AdminCMSTeam() {
           >
             <Plus className="w-4 h-4" /> Feature on website
           </Button>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <Card className="bg-card min-w-0 overflow-hidden">
-        <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 min-w-0">
+        </>
+      }
+      contentClassName="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
+      <DashboardSection title="Team roster" icon={UserCircle} className="min-w-0 overflow-hidden">
+        <DashboardFilterBar className="mb-4">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -247,7 +272,7 @@ export default function AdminCMSTeam() {
           <div className="relative w-full sm:w-auto sm:min-w-[200px] shrink-0">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <select
-              className="w-full bg-background text-foreground border border-border rounded-md pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary h-10"
+              className="w-full bg-background text-foreground border border-dashboard-border rounded-md pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary h-10"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
             >
@@ -258,11 +283,7 @@ export default function AdminCMSTeam() {
               <option value="paralegal">Paralegals</option>
             </select>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Roster — cards on phone, table from md up */}
-      <Card className="min-w-0 overflow-hidden">
+        </DashboardFilterBar>
         <div className="md:hidden divide-y divide-border">
           {filteredUsers.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -272,9 +293,13 @@ export default function AdminCMSTeam() {
             filteredUsers.map((user: any) => (
               <div key={user._id} className="p-3 space-y-3 min-w-0">
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-dashboard-border shrink-0">
                     {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <UserCircle className="w-6 h-6 text-primary" />
                     )}
@@ -285,16 +310,18 @@ export default function AdminCMSTeam() {
                       {user.email || "No email provided"}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <Badge variant="outline" className="capitalize">
-                        {user.role.replace("_", " ")}
-                      </Badge>
+                      <DashboardStatusLabel
+                        tone={getDashboardRoleTone(user.role)}
+                        label={user.role.replace("_", " ")}
+                        className="capitalize"
+                      />
                       <button
                         type="button"
                         onClick={() => toggleStatus(user._id, user.isPublicFacing)}
                         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                           user.isPublicFacing
                             ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
-                            : "bg-muted text-muted-foreground border-border"
+                            : "bg-dashboard-neutral-soft text-muted-foreground border-dashboard-border"
                         }`}
                       >
                         {user.isPublicFacing ? (
@@ -308,7 +335,12 @@ export default function AdminCMSTeam() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 pl-[3.25rem]">
-                  <Button variant="outline" size="sm" onClick={() => openEditModal(user)} className="gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditModal(user)}
+                    className="gap-1.5"
+                  >
                     <Edit2 className="w-4 h-4" /> Edit
                   </Button>
                   <Button
@@ -328,7 +360,7 @@ export default function AdminCMSTeam() {
 
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-muted-foreground uppercase border-b border-border">
+            <thead className="bg-dashboard-neutral-soft/50 text-muted-foreground uppercase border-b border-dashboard-border">
               <tr>
                 <th className="px-4 lg:px-6 py-4 font-medium">Team Member</th>
                 <th className="px-4 lg:px-6 py-4 font-medium">Role</th>
@@ -345,12 +377,19 @@ export default function AdminCMSTeam() {
                 </tr>
               ) : (
                 filteredUsers.map((user: any) => (
-                  <tr key={user._id} className="hover:bg-muted/20 transition-colors">
+                  <tr
+                    key={user._id}
+                    className="hover:bg-dashboard-neutral-soft/20 transition-colors"
+                  >
                     <td className="px-4 lg:px-6 py-4 min-w-0">
                       <div className="flex items-center gap-3 lg:gap-4 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-dashboard-border shrink-0">
                           {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                            <img
+                              src={user.avatarUrl}
+                              alt={user.name}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <UserCircle className="w-6 h-6 text-primary" />
                           )}
@@ -364,9 +403,11 @@ export default function AdminCMSTeam() {
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4">
-                      <Badge variant="outline" className="capitalize whitespace-nowrap">
-                        {user.role.replace("_", " ")}
-                      </Badge>
+                      <DashboardStatusLabel
+                        tone={getDashboardRoleTone(user.role)}
+                        label={user.role.replace("_", " ")}
+                        className="capitalize whitespace-nowrap"
+                      />
                     </td>
                     <td className="px-4 lg:px-6 py-4">
                       <button
@@ -375,7 +416,7 @@ export default function AdminCMSTeam() {
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
                           user.isPublicFacing
                             ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 hover:bg-green-500/20"
-                            : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                            : "bg-dashboard-neutral-soft text-muted-foreground border-dashboard-border hover:bg-dashboard-neutral-soft/80"
                         }`}
                       >
                         {user.isPublicFacing ? (
@@ -408,12 +449,12 @@ export default function AdminCMSTeam() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </DashboardSection>
 
       {/* Editor Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] w-[calc(100%-1.5rem)] sm:w-full overflow-hidden flex flex-col p-0 border-border bg-background">
-          <div className="p-4 sm:p-6 border-b border-border bg-muted/30 min-w-0">
+        <DialogContent className="max-w-3xl max-h-[90vh] w-[calc(100%-1.5rem)] sm:w-full overflow-hidden flex flex-col p-0 border-dashboard-border bg-background">
+          <div className="p-4 sm:p-6 border-b border-dashboard-border bg-dashboard-neutral-soft/30 min-w-0">
             <h2 className="text-lg sm:text-2xl font-serif font-bold text-foreground break-words">
               Edit {formData.name || "team member"}&apos;s public profile
             </h2>
@@ -422,7 +463,7 @@ export default function AdminCMSTeam() {
             </p>
           </div>
 
-          <div className="flex border-b border-border px-3 sm:px-6 pt-2 bg-muted/10 gap-3 sm:gap-6 text-xs sm:text-sm font-medium overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+          <div className="flex border-b border-dashboard-border px-3 sm:px-6 pt-2 bg-dashboard-neutral-soft/10 gap-3 sm:gap-6 text-xs sm:text-sm font-medium overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
             <button
               type="button"
               className={`pb-3 border-b-2 transition-colors shrink-0 ${activeTab === "basic" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
@@ -453,14 +494,25 @@ export default function AdminCMSTeam() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Full Name</label>
-                    <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Ramesh Badal" />
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Ramesh Badal"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Role (identity)</label>
-                    <Input value={formData.role?.replace(/_/g, " ") || ""} disabled className="capitalize bg-muted/40" />
+                    <Input
+                      value={formData.role?.replace(/_/g, " ") || ""}
+                      disabled
+                      className="capitalize bg-dashboard-neutral-soft/40"
+                    />
                     <p className="text-xs text-muted-foreground">
                       Change role when inviting or editing in{" "}
-                      <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+                      <Link
+                        href="/admin/users"
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
                         Users
                       </Link>
                       .
@@ -469,7 +521,9 @@ export default function AdminCMSTeam() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Public leadership title</label>
+                  <label className="text-sm font-medium text-foreground">
+                    Public leadership title
+                  </label>
                   <Input
                     value={formData.leadershipTitle}
                     onChange={(e) => setFormData({ ...formData, leadershipTitle: e.target.value })}
@@ -486,14 +540,21 @@ export default function AdminCMSTeam() {
                     ))}
                   </datalist>
                   <p className="text-xs text-muted-foreground">
-                    Used on lawyer profiles, directory, and homepage director message. Partners and senior associates can be featured as firm leadership.
+                    Used on lawyer profiles, directory, and homepage director message. Partners and
+                    senior associates can be featured as firm leadership.
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Public Email (Contact)</label>
-                    <Input value={formData.publicEmail} onChange={e => setFormData({...formData, publicEmail: e.target.value})} placeholder="e.g. ramesh@lexnepal.com" />
+                    <label className="text-sm font-medium text-foreground">
+                      Public Email (Contact)
+                    </label>
+                    <Input
+                      value={formData.publicEmail}
+                      onChange={(e) => setFormData({ ...formData, publicEmail: e.target.value })}
+                      placeholder="e.g. ramesh@srimarlaw.com"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Public Phone</label>
@@ -535,17 +596,24 @@ export default function AdminCMSTeam() {
                         setFormData({ ...formData, displayOrder: Number(e.target.value) || 0 })
                       }
                     />
-                    <p className="text-xs text-muted-foreground">Lower numbers appear first on /lawyers.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Lower numbers appear first on /lawyers.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Avatar</label>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted border border-border shrink-0">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-dashboard-neutral-soft border border-dashboard-border shrink-0">
                         {formData.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={formData.avatarUrl} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={formData.avatarUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
+                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                            N/A
+                          </div>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -560,21 +628,25 @@ export default function AdminCMSTeam() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Short Bio (Displayed on cards)</label>
-                  <textarea 
-                    className="w-full min-h-[80px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  <label className="text-sm font-medium text-foreground">
+                    Short Bio (Displayed on cards)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] bg-background border border-dashboard-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                     value={formData.bio}
-                    onChange={e => setFormData({...formData, bio: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     placeholder="A brief 1-2 sentence introduction..."
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Full Biography (Displayed on individual profile page)</label>
-                  <textarea 
-                    className="w-full min-h-[150px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  <label className="text-sm font-medium text-foreground">
+                    Full Biography (Displayed on individual profile page)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[150px] bg-background border border-dashboard-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                     value={formData.longBio}
-                    onChange={e => setFormData({...formData, longBio: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, longBio: e.target.value })}
                     placeholder="Detailed professional history..."
                   />
                 </div>
@@ -585,33 +657,51 @@ export default function AdminCMSTeam() {
               <div className="space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Bar Council Registration Number</label>
-                    <Input value={formData.barCouncilNumber} onChange={e => setFormData({...formData, barCouncilNumber: e.target.value})} placeholder="e.g. 12345" />
+                    <label className="text-sm font-medium text-foreground">
+                      Bar Council Registration Number
+                    </label>
+                    <Input
+                      value={formData.barCouncilNumber}
+                      onChange={(e) =>
+                        setFormData({ ...formData, barCouncilNumber: e.target.value })
+                      }
+                      placeholder="e.g. 12345"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Bar Council Expiry</label>
+                    <label className="text-sm font-medium text-foreground">
+                      Bar Council Expiry
+                    </label>
                     <Input
                       type="date"
                       value={formData.barCouncilExpiry}
-                      onChange={(e) => setFormData({ ...formData, barCouncilExpiry: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, barCouncilExpiry: e.target.value })
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Years of experience</label>
+                    <label className="text-sm font-medium text-foreground">
+                      Years of experience
+                    </label>
                     <Input
                       type="number"
                       min={0}
                       max={80}
                       value={formData.yearsExperience}
-                      onChange={(e) => setFormData({ ...formData, yearsExperience: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, yearsExperience: e.target.value })
+                      }
                       placeholder="e.g. 12"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Languages (comma-separated)</label>
+                    <label className="text-sm font-medium text-foreground">
+                      Languages (comma-separated)
+                    </label>
                     <Input
                       value={(formData.languages || []).join(", ")}
                       onChange={(e) =>
@@ -631,11 +721,18 @@ export default function AdminCMSTeam() {
                 <div className="space-y-3 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <label className="text-sm font-medium text-foreground">Practice Areas</label>
-                    <Button variant="outline" size="sm" onClick={() => addArrayItem("practiceAreas")} className="w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addArrayItem("practiceAreas")}
+                      className="w-full sm:w-auto"
+                    >
                       <Plus className="w-3 h-3 mr-1" /> Add Area
                     </Button>
                   </div>
-                  {formData.practiceAreas.length === 0 && <p className="text-xs text-muted-foreground italic">No practice areas added.</p>}
+                  {formData.practiceAreas.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">No practice areas added.</p>
+                  )}
                   {formData.practiceAreas.map((area: string, index: number) => (
                     <div key={index} className="flex items-center gap-2 min-w-0">
                       <Input
@@ -645,7 +742,12 @@ export default function AdminCMSTeam() {
                         placeholder="e.g. Corporate Litigation"
                         className="min-w-0"
                       />
-                      <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeArrayItem("practiceAreas", index)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive shrink-0"
+                        onClick={() => removeArrayItem("practiceAreas", index)}
+                      >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -659,21 +761,35 @@ export default function AdminCMSTeam() {
 
                 <div className="space-y-3 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <label className="text-sm font-medium text-foreground">Notable Cases / Achievements</label>
-                    <Button variant="outline" size="sm" onClick={() => addArrayItem("notableCases")} className="w-full sm:w-auto">
+                    <label className="text-sm font-medium text-foreground">
+                      Notable Cases / Achievements
+                    </label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addArrayItem("notableCases")}
+                      className="w-full sm:w-auto"
+                    >
                       <Plus className="w-3 h-3 mr-1" /> Add Case
                     </Button>
                   </div>
-                  {formData.notableCases.length === 0 && <p className="text-xs text-muted-foreground italic">No notable cases added.</p>}
+                  {formData.notableCases.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">No notable cases added.</p>
+                  )}
                   {formData.notableCases.map((caseStr: string, index: number) => (
                     <div key={index} className="flex items-start gap-2 min-w-0">
                       <textarea
-                        className="w-full min-w-0 min-h-[60px] bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                        className="w-full min-w-0 min-h-[60px] bg-background border border-dashboard-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                         value={caseStr}
                         onChange={(e) => updateArrayItem("notableCases", index, e.target.value)}
                         placeholder="e.g. Successfully defended XYZ Corp in a high-profile merger dispute."
                       />
-                      <Button variant="ghost" size="icon" className="text-destructive mt-1 shrink-0" onClick={() => removeArrayItem("notableCases", index)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive mt-1 shrink-0"
+                        onClick={() => removeArrayItem("notableCases", index)}
+                      >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -686,44 +802,77 @@ export default function AdminCMSTeam() {
               <div className="space-y-4 min-w-0">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <label className="text-sm font-medium text-foreground">Education History</label>
-                  <Button variant="outline" size="sm" onClick={addEducation} className="w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addEducation}
+                    className="w-full sm:w-auto"
+                  >
                     <Plus className="w-3 h-3 mr-1" /> Add Education
                   </Button>
                 </div>
                 {formData.education.length === 0 && (
-                  <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground">
+                  <div className="text-center p-8 border border-dashed border-dashboard-border rounded-lg text-muted-foreground">
                     <p className="text-sm">No education records added.</p>
                   </div>
                 )}
                 {formData.education.map((edu: any, index: number) => (
-                  <Card key={index} className="bg-muted/10 border-border/50">
-                    <CardContent className="p-4 flex gap-4 items-start">
+                  <DashboardSection
+                    key={index}
+                    className="bg-dashboard-neutral-soft/10 border-dashboard-border/50 [&>div]:p-4"
+                  >
+                    <div className="flex gap-4 items-start">
                       <div className="flex-1 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">Degree / Qualification</label>
-                            <Input value={edu.degree} onChange={e => updateEducation(index, "degree", e.target.value)} placeholder="e.g. LL.M in Corporate Law" />
+                            <label className="text-xs text-muted-foreground">
+                              Degree / Qualification
+                            </label>
+                            <Input
+                              value={edu.degree}
+                              onChange={(e) => updateEducation(index, "degree", e.target.value)}
+                              placeholder="e.g. LL.M in Corporate Law"
+                            />
                           </div>
                           <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">Year</label>
-                            <Input value={edu.year} onChange={e => updateEducation(index, "year", e.target.value)} placeholder="e.g. 2015" />
+                            <Input
+                              value={edu.year}
+                              onChange={(e) => updateEducation(index, "year", e.target.value)}
+                              placeholder="e.g. 2015"
+                            />
                           </div>
                         </div>
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">Institution</label>
-                          <Input value={edu.institution} onChange={e => updateEducation(index, "institution", e.target.value)} placeholder="e.g. Kathmandu University School of Law" />
+                          <Input
+                            value={edu.institution}
+                            onChange={(e) => updateEducation(index, "institution", e.target.value)}
+                            placeholder="e.g. Kathmandu University School of Law"
+                          />
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-destructive mt-6" onClick={() => removeEducation(index)}><Trash2 className="w-4 h-4"/></Button>
-                    </CardContent>
-                  </Card>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive mt-6"
+                        onClick={() => removeEducation(index)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </DashboardSection>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="p-3 sm:p-6 border-t border-border bg-muted/30 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 rounded-b-lg">
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">
+          <div className="p-3 sm:p-6 border-t border-dashboard-border bg-dashboard-neutral-soft/30 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 rounded-b-lg">
+            <Button
+              variant="ghost"
+              onClick={() => setIsModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={isSaving} className="gap-2 w-full sm:w-auto">
@@ -736,7 +885,7 @@ export default function AdminCMSTeam() {
       {/* Feature existing identity on the public site */}
       <Dialog open={isFeaturePickerOpen} onOpenChange={setIsFeaturePickerOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0">
-          <div className="p-4 sm:p-5 border-b border-border">
+          <div className="p-4 sm:p-5 border-b border-dashboard-border">
             <h2 className="text-lg font-serif font-bold text-foreground">Feature on website</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Choose an existing staff account. New people must be invited in Users first.
@@ -746,7 +895,10 @@ export default function AdminCMSTeam() {
             {featureCandidates.length === 0 ? (
               <p className="text-sm text-muted-foreground p-4 text-center">
                 No eligible staff left to feature.{" "}
-                <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+                <Link
+                  href="/admin/users"
+                  className="text-primary underline-offset-2 hover:underline"
+                >
                   Invite someone in Users
                 </Link>
                 .
@@ -757,12 +909,11 @@ export default function AdminCMSTeam() {
                   <li key={user._id}>
                     <button
                       type="button"
-                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 rounded-md transition-colors"
+                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-dashboard-neutral-soft/50 rounded-md transition-colors"
                       onClick={() => featureUser(user)}
                     >
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-dashboard-neutral-soft flex items-center justify-center shrink-0 overflow-hidden">
                         {user.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <UserCircle className="w-6 h-6 text-muted-foreground" />
@@ -783,6 +934,6 @@ export default function AdminCMSTeam() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

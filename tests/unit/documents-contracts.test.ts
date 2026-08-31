@@ -37,9 +37,7 @@ describe("Documents input contracts", () => {
       }).success,
     ).toBe(true);
     expect(documentSearchSchema.safeParse({ query: "" }).success).toBe(false);
-    expect(
-      documentSearchSchema.safeParse({ query: "x", type: "not-a-type" }).success,
-    ).toBe(false);
+    expect(documentSearchSchema.safeParse({ query: "x", type: "not-a-type" }).success).toBe(false);
   });
 
   it("validates recent limit max and default", () => {

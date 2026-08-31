@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 function firmDateIso(daysAhead: number): string {
   const d = new Date();
@@ -8,6 +9,7 @@ function firmDateIso(daysAhead: number): string {
 }
 
 async function signInAdmin(page: Page) {
+  await prepareE2eAuth(page, E2E_USERS.admin.email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(E2E_USERS.admin.email);
   await page.locator("#password").fill(E2E_PASSWORD);
@@ -20,12 +22,12 @@ test.describe("Admin appointments", () => {
     await signInAdmin(page);
 
     await page.goto("/admin/appointments");
-    await expect(
-      page.getByRole("heading", { name: /Appointments & Calendar/i }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /Appointments & Calendar/i })).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByRole("button", { name: /Book Appointment/i }).first()).toBeVisible();
     await expect(page.getByPlaceholder(/Search client, phone, area/i)).toBeVisible();
-    await expect(page.getByText(/Pending today/i)).toBeVisible();
+    await expect(page.getByText(/Pending today/i).first()).toBeVisible();
 
     // Ownership freeze: CRM pipeline is not embedded here.
     await expect(page.getByRole("heading", { name: /Lead Pipeline/i })).toHaveCount(0);
@@ -35,7 +37,10 @@ test.describe("Admin appointments", () => {
     // Unique far date so prior E2E runs do not exhaust the slot catalog.
     const dateIso = firmDateIso(40 + (stamp % 20));
 
-    await page.getByRole("button", { name: /Book Appointment/i }).first().click();
+    await page
+      .getByRole("button", { name: /Book Appointment/i })
+      .first()
+      .click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: /Book New Appointment/i })).toBeVisible();
 

@@ -8,7 +8,13 @@ export function hashSharePassword(password: string): string {
     throw new Error("Share passwords must be between 10 and 128 characters");
   }
   const salt = randomBytes(16).toString("hex");
-  const derived = pbkdf2Sync(password, Buffer.from(salt, "hex"), SHARE_PASSWORD_ITERATIONS, 32, "sha256");
+  const derived = pbkdf2Sync(
+    password,
+    Buffer.from(salt, "hex"),
+    SHARE_PASSWORD_ITERATIONS,
+    32,
+    "sha256",
+  );
   return `pbkdf2-sha256$${SHARE_PASSWORD_ITERATIONS}$${salt}$${derived.toString("hex")}`;
 }
 
@@ -19,7 +25,13 @@ export function verifySharePassword(password: string, encoded: string): boolean 
     return false;
   }
   const expected = Buffer.from(expectedHex, "hex");
-  const actual = pbkdf2Sync(password, Buffer.from(saltHex, "hex"), iterations, expected.length, "sha256");
+  const actual = pbkdf2Sync(
+    password,
+    Buffer.from(saltHex, "hex"),
+    iterations,
+    expected.length,
+    "sha256",
+  );
   if (actual.length !== expected.length) return false;
   return timingSafeEqual(actual, expected);
 }

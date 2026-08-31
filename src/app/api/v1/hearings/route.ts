@@ -16,7 +16,13 @@ export const POST = withApiHandler("/api/v1/hearings", async ({ request, request
   const principal = await requireSession(request);
   const input = hearingCreateSchema.parse(await request.json());
   return jsonResponse(
-    { data: await getWorkManagementService().createHearing(principal, input, buildAuditContext(request, requestId, principal)) },
+    {
+      data: await getWorkManagementService().createHearing(
+        principal,
+        input,
+        buildAuditContext(request, requestId, principal),
+      ),
+    },
     { status: 201 },
   );
 });

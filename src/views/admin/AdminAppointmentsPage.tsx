@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAppointments, useAppointmentCommands, useAvailableSlots } from "@/client/queries/crm";
 import { useStaffDirectory } from "@/client/queries/identity";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
@@ -53,6 +51,17 @@ import {
 import { toast } from "sonner";
 import { formatAppointmentDate, todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
 import { DEFAULT_APPOINTMENT_SLOTS } from "@/shared/crm/appointment-slots.ts";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardListRow,
+  DashboardSection,
+  DashboardStatusLabel,
+  DualDateDisplay,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
 
 type AptRow = {
   id?: string;
@@ -154,11 +163,7 @@ export default function AdminAppointmentsPage() {
     return f;
   }, [statusFilter, assigneeFilter]);
 
-  const {
-    data: appointments = [],
-    isLoading,
-    isError,
-  } = useAppointments(apiFilters);
+  const { data: appointments = [], isLoading, isError } = useAppointments(apiFilters);
   const users = useStaffDirectory() ?? [];
   const lawyers = users.filter((u) =>
     ["partner", "associate", "senior_associate"].includes(u.role ?? ""),
@@ -258,7 +263,6 @@ export default function AdminAppointmentsPage() {
 
   useEffect(() => {
     resetPagination();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when filters change
   }, [search, statusFilter, assigneeFilter, dateFrom, dateTo]);
 
   useEffect(() => {
@@ -267,7 +271,6 @@ export default function AdminAppointmentsPage() {
     if (idx < 0) return;
     const page = Math.floor(idx / itemsPerPage) + 1;
     if (page !== currentPage) goToPage(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- jump once when highlight or list identity changes
   }, [highlightId, filteredAppointments, itemsPerPage]);
 
   useEffect(() => {
@@ -283,8 +286,7 @@ export default function AdminAppointmentsPage() {
     const all = appointments as AptRow[];
     const pendingToday = all.filter((a) => a.status === "pending" && a.date === today).length;
     const unassigned = all.filter(
-      (a) =>
-        !a.assignedLawyerId && a.status !== "cancelled" && a.status !== "completed",
+      (a) => !a.assignedLawyerId && a.status !== "cancelled" && a.status !== "completed",
     ).length;
     const confirmedUpcoming = all.filter(
       (a) => a.status === "confirmed" && (a.date ?? "") >= today,
@@ -321,11 +323,18 @@ export default function AdminAppointmentsPage() {
     });
   };
 
-  const openMeetingLinkDialog = (id: string, status: "pending" | "confirmed", clientName?: string) => {
+  const openMeetingLinkDialog = (
+    id: string,
+    status: "pending" | "confirmed",
+    clientName?: string,
+  ) => {
     setMeetingLinkTarget({ id, status, clientName });
   };
 
-  const handleStatusUpdate = async (id: string, status: "confirmed" | "completed" | "cancelled") => {
+  const handleStatusUpdate = async (
+    id: string,
+    status: "confirmed" | "completed" | "cancelled",
+  ) => {
     try {
       await updateStatus.mutateAsync({ appointmentId: id, status });
       toast.success(`Appointment marked as ${status}.`);
@@ -425,18 +434,34 @@ export default function AdminAppointmentsPage() {
   };
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-foreground">
-            Appointments & Calendar
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage firm schedule, online consultations, and lawyer assignments.
-          </p>
-        </div>
+    <PortalPageShell
+      portal="admin"
+      loading={isLoading}
+      loadingLabel="Loading appointments…"
+      decorated
+      showTodayDate
+      eyebrow="Scheduling"
+      titleKey="portal.appointments.title"
+      descriptionKey="portal.appointments.description"
+      icon={CalendarIcon}
+      metrics={[
+        { label: "Pending today", value: kpi.pendingToday, icon: Clock, tone: "warning" },
+        {
+          label: "Unassigned",
+          value: kpi.unassigned,
+          icon: UserRound,
+          tone: DASHBOARD_METRIC_TONES.people,
+        },
+        {
+          label: "Confirmed upcoming",
+          value: kpi.confirmedUpcoming,
+          icon: CheckCircle,
+          tone: "success",
+        },
+      ]}
+      actions={
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button
+          <DashboardButton
             type="button"
             variant="outline"
             className="gap-2 flex-1 sm:flex-none"
@@ -447,13 +472,13 @@ export default function AdminAppointmentsPage() {
             }}
           >
             <Download className="w-4 h-4" /> Export CSV
-          </Button>
-          <Button onClick={() => openCreate()} className="gap-2 flex-1 sm:flex-none">
+          </DashboardButton>
+          <DashboardButton onClick={() => openCreate()} className="gap-2 flex-1 sm:flex-none">
             <Plus className="w-4 h-4" /> Book Appointment
-          </Button>
+          </DashboardButton>
         </div>
-      </div>
-
+      }
+    >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
         {(
           [
@@ -482,7 +507,9 @@ export default function AdminAppointmentsPage() {
             type="button"
             onClick={() => applyKpiChip(chip.key)}
             className={`text-left rounded-xl border bg-card px-4 py-3 transition-colors ${
-              chip.active ? "border-primary ring-1 ring-primary/30" : "border-border hover:bg-muted/40"
+              chip.active
+                ? "border-dashboard-primary ring-1 ring-dashboard-primary/30"
+                : "border-border hover:bg-muted/40"
             }`}
           >
             <p className="text-xs text-muted-foreground font-medium">{chip.label}</p>
@@ -491,29 +518,33 @@ export default function AdminAppointmentsPage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border w-full min-w-0">
-        <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg w-full min-w-0">
-          <Button
-            variant={viewMode === "list" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-            className="gap-1.5 min-w-0 h-9 text-xs sm:text-sm"
-          >
-            <List className="w-4 h-4 shrink-0" />
-            <span className="truncate">List</span>
-          </Button>
-          <Button
-            variant={viewMode === "calendar" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("calendar")}
-            className="gap-1.5 min-w-0 h-9 text-xs sm:text-sm"
-          >
-            <CalendarDays className="w-4 h-4 shrink-0" />
-            <span className="truncate">Calendar</span>
-          </Button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row flex-wrap gap-2 min-w-0">
+      <DashboardSection
+        title="Filters & view"
+        icon={Search}
+        actions={
+          <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg w-full sm:w-auto min-w-[200px]">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="gap-1.5 min-w-0 h-9 text-xs sm:text-sm"
+            >
+              <List className="w-4 h-4 shrink-0" />
+              <span className="truncate">List</span>
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+              className="gap-1.5 min-w-0 h-9 text-xs sm:text-sm"
+            >
+              <CalendarDays className="w-4 h-4 shrink-0" />
+              <span className="truncate">Calendar</span>
+            </Button>
+          </div>
+        }
+      >
+        <DashboardFilterBar>
           <div className="relative min-w-0 flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -543,10 +574,10 @@ export default function AdminAppointmentsPage() {
               <SelectItem value="all">All lawyers</SelectItem>
               <SelectItem value="unassigned">Unassigned</SelectItem>
               {lawyers.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.name}
-                  </SelectItem>
-                ))}
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Input
@@ -563,11 +594,7 @@ export default function AdminAppointmentsPage() {
             onChange={(e) => setDateTo(e.target.value)}
             aria-label="To date"
           />
-          {(search ||
-            statusFilter !== "all" ||
-            assigneeFilter !== "all" ||
-            dateFrom ||
-            dateTo) && (
+          {(search || statusFilter !== "all" || assigneeFilter !== "all" || dateFrom || dateTo) && (
             <Button
               type="button"
               variant="ghost"
@@ -584,49 +611,42 @@ export default function AdminAppointmentsPage() {
               Clear
             </Button>
           )}
-        </div>
-      </div>
+        </DashboardFilterBar>
+      </DashboardSection>
 
       {isError ? (
-        <div className="text-center py-12 text-destructive bg-card border border-border rounded-xl">
-          Failed to load appointments. Refresh and try again.
-        </div>
-      ) : isLoading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading appointments…
-        </div>
+        <EmptyState
+          title="Failed to load appointments"
+          description="Refresh and try again."
+          icon={CalendarIcon}
+        />
       ) : viewMode === "calendar" ? (
-          <Card className="overflow-hidden border-border/50 shadow-sm py-0 gap-0">
-            <CardHeader className="bg-muted/30 border-b pb-4 flex flex-row items-center justify-between gap-2 space-y-0">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() =>
-                    setCalendarMonth(new Date(calYear, calMonth - 1, 1))
-                  }
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <CardTitle className="text-xl min-w-[10rem] text-center">
-                  {calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
-                </CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() =>
-                    setCalendarMonth(new Date(calYear, calMonth + 1, 1))
-                  }
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+        <DashboardSection
+          title={calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
+          icon={CalendarDays}
+          className="overflow-hidden"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCalendarMonth(new Date(calYear, calMonth - 1, 1))}
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCalendarMonth(new Date(calYear, calMonth + 1, 1))}
+                aria-label="Next month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -635,338 +655,337 @@ export default function AdminAppointmentsPage() {
               >
                 Today
               </Button>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              <div className="min-w-[720px]">
-                <div className="grid grid-cols-7 border-b border-border text-sm font-medium text-center">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                    <div
-                      key={day}
-                      className="py-3 border-r border-border last:border-0 bg-muted/20 text-muted-foreground"
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                <div
-                  className="grid grid-cols-7 bg-background"
-                  style={{ gridTemplateRows: `repeat(${calendarCells / 7}, minmax(100px, auto))` }}
-                >
-                  {Array.from({ length: calendarCells }).map((_, i) => {
-                    const dayNumber = i - startDayOfWeek + 1;
-                    const isCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;
-                    const dayApts = isCurrentMonth ? getAppointmentsForDay(dayNumber) : [];
-                    const dateStr = isCurrentMonth ? toIsoDate(calYear, calMonth, dayNumber) : "";
-                    const isToday = isCurrentMonth && dateStr === today;
+            </div>
+          }
+        >
+          <div className="overflow-x-auto -mx-5 px-0">
+            <div className="min-w-[720px]">
+              <div className="grid grid-cols-7 border-b border-border text-sm font-medium text-center">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                  <div
+                    key={day}
+                    className="py-3 border-r border-border last:border-0 bg-muted/20 text-muted-foreground"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div
+                className="grid grid-cols-7 bg-background"
+                style={{ gridTemplateRows: `repeat(${calendarCells / 7}, minmax(100px, auto))` }}
+              >
+                {Array.from({ length: calendarCells }).map((_, i) => {
+                  const dayNumber = i - startDayOfWeek + 1;
+                  const isCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;
+                  const dayApts = isCurrentMonth ? getAppointmentsForDay(dayNumber) : [];
+                  const dateStr = isCurrentMonth ? toIsoDate(calYear, calMonth, dayNumber) : "";
+                  const isToday = isCurrentMonth && dateStr === today;
 
-                    return (
-                      <div
-                        key={i}
-                        role={isCurrentMonth ? "button" : undefined}
-                        tabIndex={isCurrentMonth ? 0 : undefined}
-                        onClick={() => isCurrentMonth && onCalendarDayClick(dayNumber)}
-                        onKeyDown={(e) => {
-                          if (!isCurrentMonth) return;
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            onCalendarDayClick(dayNumber);
-                          }
-                        }}
-                        className={`min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-border relative text-left ${
-                          !isCurrentMonth
-                            ? "bg-muted/10 text-muted-foreground/30"
-                            : "bg-background hover:bg-muted/10 transition-colors cursor-pointer"
-                        }`}
-                      >
-                        {isCurrentMonth && (
-                          <>
-                            <div className="flex items-center justify-between mb-1 gap-1">
+                  return (
+                    <div
+                      key={i}
+                      role={isCurrentMonth ? "button" : undefined}
+                      tabIndex={isCurrentMonth ? 0 : undefined}
+                      onClick={() => isCurrentMonth && onCalendarDayClick(dayNumber)}
+                      onKeyDown={(e) => {
+                        if (!isCurrentMonth) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onCalendarDayClick(dayNumber);
+                        }
+                      }}
+                      className={`min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-border relative text-left ${
+                        !isCurrentMonth
+                          ? "bg-muted/10 text-muted-foreground/30"
+                          : "bg-background hover:bg-muted/10 transition-colors cursor-pointer"
+                      }`}
+                    >
+                      {isCurrentMonth && (
+                        <>
+                          <div className="flex items-center justify-between mb-1 gap-1">
+                            <div
+                              className={`text-sm font-medium ${
+                                isToday
+                                  ? "bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
+                                  : ""
+                              }`}
+                            >
+                              {dayNumber}
+                            </div>
+                            <button
+                              type="button"
+                              className="opacity-60 hover:opacity-100 p-0.5 rounded hover:bg-muted"
+                              aria-label={`Book on ${dateStr}`}
+                              onClick={(e) => onCalendarDayBook(e, dayNumber)}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="space-y-1">
+                            {dayApts.slice(0, 3).map((apt) => (
                               <div
-                                className={`text-sm font-medium ${
-                                  isToday
-                                    ? "bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
-                                    : ""
+                                key={aptKey(apt)}
+                                className={`text-xs p-1 rounded truncate border ${
+                                  apt.status === "confirmed"
+                                    ? DASHBOARD_TONE_PANEL_CLASSES.success
+                                    : apt.status === "pending"
+                                      ? DASHBOARD_TONE_PANEL_CLASSES.warning
+                                      : "bg-muted text-muted-foreground border-border"
                                 }`}
                               >
-                                {dayNumber}
+                                {apt.timeSlot} -{" "}
+                                {apt.clientName ? apt.clientName.split(" ")[0] : "Client"}
                               </div>
-                              <button
-                                type="button"
-                                className="opacity-60 hover:opacity-100 p-0.5 rounded hover:bg-muted"
-                                aria-label={`Book on ${dateStr}`}
-                                onClick={(e) => onCalendarDayBook(e, dayNumber)}
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                            <div className="space-y-1">
-                              {dayApts.slice(0, 3).map((apt) => (
-                                <div
-                                  key={aptKey(apt)}
-                                  className={`text-xs p-1 rounded truncate border ${
-                                    apt.status === "confirmed"
-                                      ? "bg-green-500/10 text-green-700 border-green-500/20"
-                                      : apt.status === "pending"
-                                        ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-                                        : "bg-muted text-muted-foreground"
-                                  }`}
-                                >
-                                  {apt.timeSlot} -{" "}
-                                  {apt.clientName ? apt.clientName.split(" ")[0] : "Client"}
-                                </div>
-                              ))}
-                              {dayApts.length > 3 && (
-                                <div className="text-xs text-muted-foreground font-medium pl-1">
-                                  +{dayApts.length - 3} more
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                            ))}
+                            {dayApts.length > 3 && (
+                              <div className="text-xs text-muted-foreground font-medium pl-1">
+                                +{dayApts.length - 3} more
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {paginatedItems.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground bg-card border border-border rounded-xl space-y-3">
-              <p>No appointments match these filters.</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => openCreate()}>
-                <Plus className="w-4 h-4 mr-2" /> Book appointment
-              </Button>
             </div>
+          </div>
+        </DashboardSection>
+      ) : (
+        <DashboardSection title="Appointments" icon={List}>
+          {paginatedItems.length === 0 ? (
+            <EmptyState
+              title="No appointments found"
+              description="No appointments match these filters."
+              icon={CalendarIcon}
+              action={
+                <DashboardButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openCreate()}
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Book appointment
+                </DashboardButton>
+              }
+            />
           ) : (
             paginatedItems.map((apt) => {
               const id = aptKey(apt);
               const highlighted = highlightId === id;
               return (
-                  <Card
-                    key={id}
-                    id={`appointment-${id}`}
-                    className={`overflow-hidden border py-0 gap-0 transition-colors ${
-                      apt.status === "cancelled"
-                        ? "opacity-70 bg-muted/30 border-dashed"
-                        : "border-border"
-                    } ${highlighted ? "ring-2 ring-primary border-primary shadow-md" : ""}`}
-                  >
-                    <CardContent className="p-0">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="bg-secondary/30 p-6 md:w-56 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border relative">
-                          {apt.status === "cancelled" && (
-                            <div className="absolute inset-0 bg-background/50 flex items-center justify-center backdrop-blur-[1px] font-bold text-destructive rotate-[-15deg] text-xl tracking-widest uppercase">
-                              Cancelled
-                            </div>
-                          )}
-                          <CalendarIcon className="w-8 h-8 text-accent mb-2" />
-                          <span className="font-bold text-lg text-foreground">{apt.date}</span>
-                          <div className="flex items-center gap-1.5 text-muted-foreground mt-1 font-medium">
-                            <Clock className="w-4 h-4" />
-                            <span>{apt.timeSlot}</span>
+                <DashboardListRow
+                  key={id}
+                  id={`appointment-${id}`}
+                  className={`flex-col md:flex-row md:items-stretch p-0 overflow-hidden ${
+                    apt.status === "cancelled" ? "opacity-70 border-dashed" : ""
+                  } ${highlighted ? "ring-2 ring-dashboard-primary border-dashboard-primary shadow-md" : ""}`}
+                >
+                  <div className="bg-dashboard-neutral-soft/50 p-4 md:w-52 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-dashboard-border relative shrink-0">
+                    {apt.status === "cancelled" && (
+                      <div className="absolute inset-0 bg-background/50 flex items-center justify-center backdrop-blur-[1px] font-bold text-destructive rotate-[-15deg] text-xl tracking-widest uppercase">
+                        Cancelled
+                      </div>
+                    )}
+                    <CalendarIcon className="w-7 h-7 text-dashboard-primary mb-2" />
+                    <span className="font-bold text-base text-foreground text-center">
+                      {apt.date ? <DualDateDisplay isoDate={apt.date} /> : "—"}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-muted-foreground mt-1 font-medium text-sm">
+                      <Clock className="w-4 h-4" />
+                      <span>{apt.timeSlot}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-serif font-bold text-foreground truncate">
+                            {apt.clientName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground font-medium truncate">
+                            {apt.clientPhone}
+                            {apt.clientEmail && ` • ${apt.clientEmail}`}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {apt.clientId ? (
+                              <Link
+                                href={`/admin/clients?client=${encodeURIComponent(apt.clientId)}`}
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              >
+                                <UserRound className="w-3 h-3" /> Client record
+                              </Link>
+                            ) : null}
+                            {apt.leadId ? (
+                              <Link
+                                href="/admin/crm"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              >
+                                View in CRM
+                              </Link>
+                            ) : null}
                           </div>
                         </div>
+                        <DashboardStatusLabel
+                          status={apt.status}
+                          className="uppercase tracking-wider text-[10px] shrink-0"
+                        />
+                      </div>
 
-                        <div className="p-6 flex-1 flex flex-col justify-between">
-                          <div>
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
-                              <div>
-                                <h3 className="text-xl font-serif font-bold text-foreground">
-                                  {apt.clientName}
-                                </h3>
-                                <p className="text-sm text-muted-foreground font-medium">
-                                  {apt.clientPhone}
-                                  {apt.clientEmail && ` • ${apt.clientEmail}`}
-                                </p>
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {apt.clientId ? (
-                                    <Link
-                                      href={`/admin/clients?client=${encodeURIComponent(apt.clientId)}`}
-                                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                                    >
-                                      <UserRound className="w-3 h-3" /> Client record
-                                    </Link>
-                                  ) : null}
-                                  {apt.leadId ? (
-                                    <Link
-                                      href="/admin/crm"
-                                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                                    >
-                                      View in CRM
-                                    </Link>
-                                  ) : null}
-                                </div>
-                              </div>
-                              <Badge
-                                variant={
-                                  apt.status === "confirmed"
-                                    ? "default"
-                                    : apt.status === "pending"
-                                      ? "secondary"
-                                      : apt.status === "completed"
-                                        ? "outline"
-                                        : "destructive"
-                                }
-                                className="uppercase tracking-wider"
-                              >
-                                {apt.status}
-                              </Badge>
-                            </div>
+                      <div className="mb-4">
+                        {apt.practiceArea ? (
+                          <DashboardStatusLabel
+                            tone="information"
+                            label={apt.practiceArea}
+                            className="mb-2 text-xs"
+                          />
+                        ) : null}
+                        {apt.notes && (
+                          <p className="text-sm text-muted-foreground bg-dashboard-neutral-soft/60 p-3 rounded-md border border-dashboard-border">
+                            {apt.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                            <div className="mb-4">
-                              <Badge variant="outline" className="mb-2 bg-background">
-                                {apt.practiceArea}
-                              </Badge>
-                              {apt.notes && (
-                                <p className="text-sm text-muted-foreground bg-secondary/30 p-3 rounded-md border border-border/50">
-                                  {apt.notes}
-                                </p>
-                              )}
-                            </div>
+                    {apt.meetingLink && apt.status !== "cancelled" && (
+                      <div
+                        className={`mb-4 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${DASHBOARD_TONE_PANEL_CLASSES.information}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-dashboard-information-soft flex items-center justify-center shrink-0">
+                            <Video className="w-4 h-4 text-dashboard-information" />
                           </div>
-
-                          {apt.meetingLink && apt.status !== "cancelled" && (
-                            <div className="mb-4 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                                  <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">
-                                    Virtual Meeting Room Ready
-                                  </p>
-                                  <p className="text-xs text-blue-700/70 dark:text-blue-400/70 truncate max-w-[240px]">
-                                    {apt.meetingLink}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="bg-background"
-                                  onClick={() => copyToClipboard(apt.meetingLink!)}
-                                >
-                                  <Copy className="w-4 h-4 mr-2" /> Copy Link
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  onClick={() => window.open(apt.meetingLink!, "_blank")}
-                                >
-                                  <ExternalLink className="w-4 h-4 mr-2" /> Join
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex flex-wrap items-center justify-between gap-4 mt-2 pt-4 border-t border-border">
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={apt.assignedLawyerId || ""}
-                                onValueChange={(val) => handleAssign(id, val)}
-                                disabled={apt.status === "cancelled" || apt.status === "completed"}
-                              >
-                                <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
-                                  <SelectValue placeholder="Assign Lawyer..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {lawyers.map((l) => (
-                                      <SelectItem key={l.id} value={l.id}>
-                                        {l.name} ({(l.role ?? "").replace("_", " ")})
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                              {apt.status !== "cancelled" && apt.status !== "completed" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setRescheduleData({
-                                      id,
-                                      date: apt.date || "",
-                                      timeSlot: apt.timeSlot || "",
-                                      assignedLawyerId: apt.assignedLawyerId || undefined,
-                                    });
-                                    setIsRescheduleOpen(true);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4 mr-2" /> Reschedule
-                                </Button>
-                              )}
-
-                              {apt.status === "pending" && (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                    onClick={() => requestCancel(apt)}
-                                  >
-                                    <XCircle className="w-4 h-4 mr-2" /> Cancel
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => openMeetingLinkDialog(id, "confirmed", apt.clientName)}
-                                  >
-                                    <Video className="w-4 h-4 mr-2" /> Add Video Link
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                    onClick={() => handleStatusUpdate(id, "confirmed")}
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-2" /> Confirm (In-Person)
-                                  </Button>
-                                </>
-                              )}
-
-                              {apt.status === "confirmed" && (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                    onClick={() => requestCancel(apt)}
-                                  >
-                                    <XCircle className="w-4 h-4 mr-2" /> Cancel
-                                  </Button>
-                                  {!apt.meetingLink && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() =>
-                                        openMeetingLinkDialog(id, "confirmed", apt.clientName)
-                                      }
-                                    >
-                                      <Video className="w-4 h-4 mr-2" /> Add Video Link
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={() => handleStatusUpdate(id, "completed")}
-                                  >
-                                    Mark Completed
-                                  </Button>
-                                </>
-                              )}
-                            </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              Virtual Meeting Room Ready
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[240px]">
+                              {apt.meetingLink}
+                            </p>
                           </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-background"
+                            onClick={() => copyToClipboard(apt.meetingLink!)}
+                          >
+                            <Copy className="w-4 h-4 mr-2" /> Copy Link
+                          </Button>
+                          <DashboardButton
+                            size="sm"
+                            onClick={() => window.open(apt.meetingLink!, "_blank")}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" /> Join
+                          </DashboardButton>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-4 mt-2 pt-4 border-t border-dashboard-border">
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={apt.assignedLawyerId || ""}
+                          onValueChange={(val) => handleAssign(id, val)}
+                          disabled={apt.status === "cancelled" || apt.status === "completed"}
+                        >
+                          <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
+                            <SelectValue placeholder="Assign Lawyer..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lawyers.map((l) => (
+                              <SelectItem key={l.id} value={l.id}>
+                                {l.name} ({(l.role ?? "").replace("_", " ")})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {apt.status !== "cancelled" && apt.status !== "completed" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setRescheduleData({
+                                id,
+                                date: apt.date || "",
+                                timeSlot: apt.timeSlot || "",
+                                assignedLawyerId: apt.assignedLawyerId || undefined,
+                              });
+                              setIsRescheduleOpen(true);
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" /> Reschedule
+                          </Button>
+                        )}
+
+                        {apt.status === "pending" && (
+                          <>
+                            <DashboardButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => requestCancel(apt)}
+                            >
+                              <XCircle className="w-4 h-4 mr-2" /> Cancel
+                            </DashboardButton>
+                            <DashboardButton
+                              size="sm"
+                              onClick={() => openMeetingLinkDialog(id, "confirmed", apt.clientName)}
+                            >
+                              <Video className="w-4 h-4 mr-2" /> Add Video Link
+                            </DashboardButton>
+                            <DashboardButton
+                              size="sm"
+                              onClick={() => handleStatusUpdate(id, "confirmed")}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" /> Confirm (In-Person)
+                            </DashboardButton>
+                          </>
+                        )}
+
+                        {apt.status === "confirmed" && (
+                          <>
+                            <DashboardButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => requestCancel(apt)}
+                            >
+                              <XCircle className="w-4 h-4 mr-2" /> Cancel
+                            </DashboardButton>
+                            {!apt.meetingLink && (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  openMeetingLinkDialog(id, "confirmed", apt.clientName)
+                                }
+                              >
+                                <Video className="w-4 h-4 mr-2" /> Add Video Link
+                              </Button>
+                            )}
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleStatusUpdate(id, "completed")}
+                            >
+                              Mark Completed
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </DashboardListRow>
               );
             })
           )}
           {filteredAppointments.length > 0 && (
-            <div className="flex flex-col items-center gap-1 pt-2 pb-4">
+            <div className="flex flex-col items-center gap-1 pt-2">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -981,7 +1000,7 @@ export default function AdminAppointmentsPage() {
               </p>
             </div>
           )}
-        </div>
+        </DashboardSection>
       )}
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -1088,10 +1107,10 @@ export default function AdminAppointmentsPage() {
                 <SelectContent>
                   <SelectItem value="none">Do not assign yet</SelectItem>
                   {lawyers.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1146,9 +1165,7 @@ export default function AdminAppointmentsPage() {
                 <Label>New Time Slot</Label>
                 <Select
                   value={rescheduleData.timeSlot || undefined}
-                  onValueChange={(val) =>
-                    setRescheduleData({ ...rescheduleData, timeSlot: val })
-                  }
+                  onValueChange={(val) => setRescheduleData({ ...rescheduleData, timeSlot: val })}
                   disabled={!rescheduleData.date || rescheduleSlotsLoading}
                 >
                   <SelectTrigger>
@@ -1205,6 +1222,6 @@ export default function AdminAppointmentsPage() {
           if (!open) setConfirm(null);
         }}
       />
-    </div>
+    </PortalPageShell>
   );
 }

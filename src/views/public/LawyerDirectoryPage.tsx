@@ -69,7 +69,7 @@ export default function LawyerDirectoryPage() {
   const heroTitle = String(settings?.lawyersHeroTitle || "Our Advocates");
   const heroSubtitle = String(
     settings?.lawyersHeroSubtitle ||
-      "Meet the Nepal Bar Council advocates behind LexNepal — specialists across corporate, litigation, and advisory work.",
+      "Meet the Nepal Bar Council advocates behind Srimar Law — specialists across corporate, litigation, and advisory work.",
   );
 
   const filtered = lawyers.filter((l: any) => {
@@ -79,9 +79,7 @@ export default function LawyerDirectoryPage() {
     const areas: string[] = Array.isArray(l.practiceAreas) ? l.practiceAreas : [];
     const matchArea =
       areaFilter === "all" ||
-      areas.some(
-        (tag) => normalizePracticeAreaKey(tag) === normalizePracticeAreaKey(areaFilter),
-      );
+      areas.some((tag) => normalizePracticeAreaKey(tag) === normalizePracticeAreaKey(areaFilter));
     return matchSearch && matchRole && matchArea;
   });
 
@@ -150,9 +148,21 @@ export default function LawyerDirectoryPage() {
       <section className="border-b border-border bg-muted/30">
         <div className={`${pad} py-6 sm:py-8 pb-8 sm:pb-10 grid grid-cols-1 sm:grid-cols-3 gap-4`}>
           {[
-            { icon: Scale, title: "Bar-admitted counsel", text: "Licensed Nepal Bar Council advocates." },
-            { icon: ShieldCheck, title: "Matter-matched teams", text: "Specialists assigned to your case." },
-            { icon: Phone, title: "Direct booking", text: "Request a consultation with a named lawyer." },
+            {
+              icon: Scale,
+              title: "Bar-admitted counsel",
+              text: "Licensed Nepal Bar Council advocates.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "Matter-matched teams",
+              text: "Specialists assigned to your case.",
+            },
+            {
+              icon: Phone,
+              title: "Direct booking",
+              text: "Request a consultation with a named lawyer.",
+            },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -254,7 +264,9 @@ export default function LawyerDirectoryPage() {
           <div className="text-center py-16 px-4 border border-dashed border-border rounded-2xl">
             <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
             <h2 className="font-serif text-xl font-bold mb-2">No advocates match your filters</h2>
-            <p className="text-sm text-muted-foreground mb-6">Try clearing search or role filters.</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Try clearing search or role filters.
+            </p>
             <Button variant="outline" onClick={clearFilters}>
               Clear all filters
             </Button>
@@ -292,7 +304,6 @@ export default function LawyerDirectoryPage() {
                       <CardContent className="p-5 sm:p-6 flex flex-col h-full">
                         <div className="flex items-start gap-3 mb-4">
                           {lawyer.avatarUrl || lawyer.avatar ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={String(lawyer.avatarUrl || lawyer.avatar)}
                               alt=""
@@ -336,24 +347,35 @@ export default function LawyerDirectoryPage() {
                               <Briefcase className="w-3.5 h-3.5 shrink-0" /> {eduLabel}
                             </p>
                           )}
-                          {lawyer.barCouncilNumber && (
-                            <p>Bar No. {lawyer.barCouncilNumber}</p>
-                          )}
+                          {lawyer.barCouncilNumber && <p>Bar No. {lawyer.barCouncilNumber}</p>}
                         </div>
                         <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-border">
                           <div className="flex gap-2">
                             {lawyer.linkedinUrl && (
-                              <a href={lawyer.linkedinUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                              <a
+                                href={lawyer.linkedinUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-muted-foreground hover:text-primary"
+                              >
                                 <Linkedin className="w-4 h-4" />
                               </a>
                             )}
                             {lawyer.twitterUrl && (
-                              <a href={lawyer.twitterUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                              <a
+                                href={lawyer.twitterUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-muted-foreground hover:text-primary"
+                              >
                                 <Twitter className="w-4 h-4" />
                               </a>
                             )}
                             {lawyer.publicEmail && (
-                              <a href={`mailto:${lawyer.publicEmail}`} className="text-muted-foreground hover:text-primary">
+                              <a
+                                href={`mailto:${lawyer.publicEmail}`}
+                                className="text-muted-foreground hover:text-primary"
+                              >
                                 <Mail className="w-4 h-4" />
                               </a>
                             )}
@@ -394,7 +416,11 @@ export default function LawyerDirectoryPage() {
             Book a consultation or send a message — we will match you with the right advocate.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button
+              asChild
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               <Link href="/consultation" className="gap-2">
                 Book Consultation <ArrowRight className="w-4 h-4" />
               </Link>

@@ -77,7 +77,10 @@ export function partitionExceptions(
       if (row.table.toLowerCase() !== ex.table.toLowerCase()) return false;
       if ((row.id || "").toLowerCase() !== (ex.id || "").toLowerCase()) return false;
       if (row.type && row.type.toLowerCase() !== ex.type.toLowerCase()) return false;
-      if (row.reasonContains && !ex.reason.toLowerCase().includes(row.reasonContains.toLowerCase())) {
+      if (
+        row.reasonContains &&
+        !ex.reason.toLowerCase().includes(row.reasonContains.toLowerCase())
+      ) {
         return false;
       }
       return true;

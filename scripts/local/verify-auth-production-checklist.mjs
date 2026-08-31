@@ -132,9 +132,7 @@ async function main() {
     if (!item.ok) allOk = false;
     console.log(`[${mark}] ${item.label}: ${item.detail}`);
   }
-  console.log(
-    `\nSee doc/migration/PHASE_AUTH_7_PRODUCTION.md for owner sign-off.\n`,
-  );
+  console.log(`\nSee doc/migration/PHASE_AUTH_7_PRODUCTION.md for owner sign-off.\n`);
   process.exit(allOk ? 0 : 1);
 }
 

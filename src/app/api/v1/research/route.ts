@@ -14,7 +14,13 @@ export const POST = withApiHandler("/api/v1/research", async ({ request, request
   const principal = await requireSession(request);
   const input = researchCreateSchema.parse(await request.json());
   return jsonResponse(
-    { data: await getWorkManagementService().createResearchNote(principal, input, buildAuditContext(request, requestId, principal)) },
+    {
+      data: await getWorkManagementService().createResearchNote(
+        principal,
+        input,
+        buildAuditContext(request, requestId, principal),
+      ),
+    },
     { status: 201 },
   );
 });

@@ -179,7 +179,9 @@ try {
   }
   if (!slotsResponse.ok) throw new Error(`Slots list failed: ${slotsResponse.status}`);
 
-  const leadsBody = (await leadsResponse.json()) as { data: Array<{ fullName: string; _id: string }> };
+  const leadsBody = (await leadsResponse.json()) as {
+    data: Array<{ fullName: string; _id: string }>;
+  };
   const appointmentsBody = (await appointmentsResponse.json()) as {
     data: Array<{ clientName: string; timeSlot: string; _id: string }>;
   };
@@ -188,7 +190,11 @@ try {
   if (!leadsBody.data.some((row) => row.fullName === "CRM Fixture Lead" && row._id)) {
     throw new Error("Migrated lead missing or missing _id");
   }
-  if (!appointmentsBody.data.some((row) => row.clientName === "CRM Fixture Lead" && row.timeSlot === "10:00 AM")) {
+  if (
+    !appointmentsBody.data.some(
+      (row) => row.clientName === "CRM Fixture Lead" && row.timeSlot === "10:00 AM",
+    )
+  ) {
     throw new Error("Migrated appointment missing");
   }
   if (!slotsBody.data.includes("11:00 AM")) {
@@ -219,7 +225,9 @@ try {
     }),
   );
   if (invalidSlot.status !== 400) {
-    throw new Error(`Expected invalid slot 400, got ${invalidSlot.status} ${await invalidSlot.text()}`);
+    throw new Error(
+      `Expected invalid slot 400, got ${invalidSlot.status} ${await invalidSlot.text()}`,
+    );
   }
 
   const publicLead = await createLeadPublic(
@@ -242,15 +250,17 @@ try {
   const publicLeadId = publicLeadBody.data.id || publicLeadBody.data._id;
 
   const publicLeadNotes = await database
-    .select({ title: notifications.title, relatedId: notifications.relatedId, userId: notifications.userId })
+    .select({
+      title: notifications.title,
+      relatedId: notifications.relatedId,
+      userId: notifications.userId,
+    })
     .from(notifications)
     .where(and(eq(notifications.firmId, firmA), eq(notifications.userId, adminA.id)))
     .orderBy(desc(notifications.createdAt))
     .limit(30);
   if (
-    !publicLeadNotes.some(
-      (n) => n.title === "New website lead" && n.relatedId === publicLeadId,
-    )
+    !publicLeadNotes.some((n) => n.title === "New website lead" && n.relatedId === publicLeadId)
   ) {
     throw new Error(
       `Expected public-lead notification for admin; saw ${JSON.stringify(publicLeadNotes.slice(0, 5))}`,
@@ -295,7 +305,8 @@ try {
     .where(eq(leads.id, softBody.data.id));
 
   const afterDeleteList = await listLeads(new Request("http://local/api/v1/leads", { headers }));
-  if (!afterDeleteList.ok) throw new Error(`List leads after soft-delete failed: ${afterDeleteList.status}`);
+  if (!afterDeleteList.ok)
+    throw new Error(`List leads after soft-delete failed: ${afterDeleteList.status}`);
   const afterDeleteBody = (await afterDeleteList.json()) as { data: Array<{ id: string }> };
   if (afterDeleteBody.data.some((row) => row.id === softBody.data.id)) {
     throw new Error("Soft-deleted lead still returned by GET /api/v1/leads");
@@ -349,7 +360,9 @@ try {
     }),
   );
   if (!publicAppt.ok) {
-    throw new Error(`Public create appointment failed: ${publicAppt.status} ${await publicAppt.text()}`);
+    throw new Error(
+      `Public create appointment failed: ${publicAppt.status} ${await publicAppt.text()}`,
+    );
   }
   const publicApptBody = (await publicAppt.json()) as { data: { id: string; _id?: string } };
   const publicApptId = publicApptBody.data.id || publicApptBody.data._id!;
@@ -378,7 +391,9 @@ try {
     }),
   );
   if (!assignedAppt.ok) {
-    throw new Error(`Assign appointment failed: ${assignedAppt.status} ${await assignedAppt.text()}`);
+    throw new Error(
+      `Assign appointment failed: ${assignedAppt.status} ${await assignedAppt.text()}`,
+    );
   }
   const assignApptNotes = await database
     .select({ title: notifications.title, relatedId: notifications.relatedId })
@@ -418,7 +433,9 @@ try {
     )
     .limit(10);
   if (confirmJobs.length === 0) {
-    throw new Error("Expected communication.email job for appointment confirm (not audit-only stub)");
+    throw new Error(
+      "Expected communication.email job for appointment confirm (not audit-only stub)",
+    );
   }
 
   const rescheduled = await rescheduleAppointment(
@@ -532,7 +549,9 @@ try {
   const byLeadBody = (await byLead.json()) as { data: Array<{ id: string; leadId?: string }> };
   if (
     byLeadBody.data.length === 0 ||
-    !byLeadBody.data.some((row) => row.id === scheduledBody.data.id || row.id === scheduledBody.data._id)
+    !byLeadBody.data.some(
+      (row) => row.id === scheduledBody.data.id || row.id === scheduledBody.data._id,
+    )
   ) {
     throw new Error("leadId filter did not return scheduled appointment");
   }
@@ -635,9 +654,7 @@ try {
     .orderBy(desc(notifications.createdAt))
     .limit(20);
   if (
-    !intakeNotes.some(
-      (n) => n.title === "Intake form submitted" && n.relatedId === intakeLeadId,
-    )
+    !intakeNotes.some((n) => n.title === "Intake form submitted" && n.relatedId === intakeLeadId)
   ) {
     throw new Error(
       `Expected intake notification for assignee; saw ${JSON.stringify(intakeNotes.slice(0, 5))}`,
@@ -680,7 +697,9 @@ try {
 
   const scopedCookie = await signIn(scopedEmail);
   const scopedHeaders = { cookie: scopedCookie, "content-type": "application/json" };
-  const scopedList = await listLeads(new Request("http://local/api/v1/leads", { headers: scopedHeaders }));
+  const scopedList = await listLeads(
+    new Request("http://local/api/v1/leads", { headers: scopedHeaders }),
+  );
   if (!scopedList.ok) throw new Error(`Scoped list failed: ${scopedList.status}`);
   const scopedListBody = (await scopedList.json()) as {
     data: Array<{ id: string; assignedTo?: string | null }>;
@@ -760,9 +779,7 @@ try {
     throw new Error("Non-manager staff saw another lawyer's appointment");
   }
   if (
-    scopedApptsBody.data.some(
-      (row) => row.assignedLawyerId && row.assignedLawyerId !== scoped.id,
-    )
+    scopedApptsBody.data.some((row) => row.assignedLawyerId && row.assignedLawyerId !== scoped.id)
   ) {
     throw new Error("Staff appointment list leaked another assignee");
   }
@@ -808,7 +825,11 @@ try {
       set: { value: true, updatedAt: new Date(), deletedAt: null },
     });
 
-  const [leadCount] = await database.select({ id: leads.id }).from(leads).where(eq(leads.firmId, firmA)).limit(1);
+  const [leadCount] = await database
+    .select({ id: leads.id })
+    .from(leads)
+    .where(eq(leads.firmId, firmA))
+    .limit(1);
   const [apptCount] = await database
     .select({ id: appointments.id })
     .from(appointments)

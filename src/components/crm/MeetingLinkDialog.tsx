@@ -95,7 +95,12 @@ export function MeetingLinkDialog({ target, onOpenChange, onSave }: MeetingLinkD
           <p className="text-[11px] text-muted-foreground">{hint.description}</p>
         </div>
         <DialogFooter>
-          <Button type="button" variant="ghost" disabled={busy} onClick={() => handleOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => handleOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button type="button" disabled={busy} onClick={save}>

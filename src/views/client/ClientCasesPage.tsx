@@ -1,20 +1,32 @@
-import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
-import { FolderOpen, CalendarDays, Loader2 } from "lucide-react";
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
+"use client";
+
+import { useMemo, useState } from "react";
+import { FolderOpen, CalendarDays, Search, UserRound, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useMyClient, useMyTeam } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useHearings } from "@/client/queries/hearings";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
-import Link from "next/link";
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  on_hold: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  closed_won: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  closed_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  inquiry: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-};
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { Pagination } from "@/components/ui/pagination.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeaderCell,
+  DashboardTableRow,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES, getDashboardStatusTone } from "@/lib/dashboard-semantics";
 
 export default function ClientCasesPage() {
   const currentUser = useCurrentUser();
@@ -24,79 +36,301 @@ export default function ClientCasesPage() {
   const users = useMyTeam() || [];
   const hearings = useHearings({}) || [];
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"list" | "table">("list");
+
+  const filteredCases = useMemo(() => {
+    return cases.filter((c: any) => {
+      const matchesSearch =
+        search === "" ||
+        c.title?.toLowerCase().includes(search.toLowerCase()) ||
+        c.caseNumber?.toLowerCase().includes(search.toLowerCase()) ||
+        c.practiceArea?.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [cases, search, statusFilter]);
+
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage } = usePagination({
+    items: filteredCases,
+    itemsPerPage: 8,
+  });
+
+  const activeCount = cases.filter((c: any) => c.status === "active").length;
+  const closedCount = cases.filter((c: any) => c.status === "closed").length;
+  const onHoldCount = cases.filter((c: any) => c.status === "on_hold").length;
+
   if (currentUser === undefined || clientRecord === undefined) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading your legal matters…"
+        title="My Cases"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
   if (clientRecord === null) {
     return (
-      <div className="p-4 sm:p-6 space-y-4">
-        <h1 className="font-serif text-2xl font-bold text-foreground">My Cases</h1>
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon"><FolderOpen /></EmptyMedia>
-            <EmptyTitle>No client profile linked</EmptyTitle>
-            <EmptyDescription>
-              Your portal account is not linked to a firm client record yet. Ask the firm to grant portal access from their Clients list.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </div>
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Matter Management"
+        title="My Cases"
+        description="Track your open matters and legal representation."
+        icon={FolderOpen}
+      >
+        <EmptyState
+          title="No client profile linked"
+          description="Your portal account is not linked to a firm client record yet. Ask the firm to grant portal access from their Clients list."
+          icon={FolderOpen}
+        />
+      </PortalPageShell>
     );
   }
 
+  const metrics = [
+    {
+      label: "Total matters",
+      value: String(cases.length),
+      icon: FolderOpen,
+      tone: DASHBOARD_METRIC_TONES.cases,
+      helperText: "All matters on file",
+    },
+    {
+      label: "Active matters",
+      value: String(activeCount),
+      tone: "information" as const,
+      helperText: "Ongoing proceedings",
+    },
+    {
+      label: "On hold",
+      value: String(onHoldCount),
+      tone: "warning" as const,
+      helperText: "Pending next action",
+    },
+    {
+      label: "Closed / Resolved",
+      value: String(closedCount),
+      tone: "neutral" as const,
+      helperText: "Completed matters",
+    },
+  ];
+
   return (
-    <div className="p-4 sm:p-6 space-y-4">
-      <h1 className="font-serif text-2xl font-bold text-foreground">My Cases</h1>
+    <PortalPageShell
+      portal="client"
+      decorated
+      showTodayDate
+      eyebrow="Matter Overview"
+      title="My Cases"
+      description="Track your open matters, assigned advocates, and upcoming court hearings."
+      icon={FolderOpen}
+      metrics={metrics}
+      actions={
+        <DashboardButton asChild size="sm">
+          <Link href="/client/booking">Request new consultation</Link>
+        </DashboardButton>
+      }
+    >
+      <DashboardSection title="Filter & search matters">
+        <DashboardFilterBar className="justify-between">
+          <div className="relative w-full sm:max-w-[360px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              className="pl-9 bg-dashboard-panel h-9 text-sm"
+              placeholder="Search by case number, title, or practice area..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex bg-dashboard-neutral-soft p-1 rounded-lg border border-dashboard-border">
+              {(["all", "active", "on_hold", "closed"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    statusFilter === status
+                      ? "bg-dashboard-panel text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {status === "all"
+                    ? "All"
+                    : status === "active"
+                      ? "Active"
+                      : status === "on_hold"
+                        ? "On Hold"
+                        : "Closed"}
+                </button>
+              ))}
+            </div>
+            <div className="flex bg-dashboard-neutral-soft p-1 rounded-lg border border-dashboard-border">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                  viewMode === "list"
+                    ? "bg-dashboard-panel text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Cards
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                  viewMode === "table"
+                    ? "bg-dashboard-panel text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Table
+              </button>
+            </div>
+          </div>
+        </DashboardFilterBar>
+      </DashboardSection>
 
-      {cases.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon"><FolderOpen /></EmptyMedia>
-            <EmptyTitle>No cases yet</EmptyTitle>
-            <EmptyDescription>Your cases will appear here once your advocate creates them.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className="space-y-3">
-          {cases.map((c: any) => {
-            const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
-            const nextHearingObj = hearings.find((h: any) => h.caseId === c._id && h.status === "scheduled");
+      <DashboardSection
+        title="Your matters"
+        description={`Showing ${filteredCases.length} matter${filteredCases.length === 1 ? "" : "s"}`}
+        icon={FolderOpen}
+      >
+        {cases === undefined ? (
+          <DashboardListSkeleton rows={4} />
+        ) : filteredCases.length === 0 ? (
+          <EmptyState
+            title="No cases found"
+            description={
+              search || statusFilter !== "all"
+                ? "No matters match your filter criteria."
+                : "Your cases will appear here once your advocate creates them."
+            }
+            icon={FolderOpen}
+          />
+        ) : viewMode === "table" ? (
+          <div className="space-y-4">
+            <DashboardTable>
+              <DashboardTableHead>
+                <DashboardTableRow>
+                  <DashboardTableHeaderCell>Case Number</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Title & Practice Area</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Assigned Advocate</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Court</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell className="text-right">Action</DashboardTableHeaderCell>
+                </DashboardTableRow>
+              </DashboardTableHead>
+              <DashboardTableBody>
+                {paginatedItems.map((c: any) => {
+                  const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
+                  return (
+                    <DashboardTableRow key={c._id} striped>
+                      <DashboardTableCell className="font-mono text-xs font-semibold text-muted-foreground">
+                        {c.caseNumber}
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        <p className="font-semibold text-foreground">{c.title}</p>
+                        <p className="text-xs text-muted-foreground">{c.practiceArea}</p>
+                      </DashboardTableCell>
+                      <DashboardTableCell className="text-xs">
+                        {lawyer?.name || "Unassigned"}
+                      </DashboardTableCell>
+                      <DashboardTableCell className="text-xs text-muted-foreground">
+                        {c.court || "District Court"}
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        <DashboardStatusLabel status={c.status} className="text-xs" />
+                      </DashboardTableCell>
+                      <DashboardTableCell className="text-right">
+                        <DashboardButton asChild size="sm" variant="ghost">
+                          <Link href={`/client/cases/${c._id}`}>
+                            Details <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                          </Link>
+                        </DashboardButton>
+                      </DashboardTableCell>
+                    </DashboardTableRow>
+                  );
+                })}
+              </DashboardTableBody>
+            </DashboardTable>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              onNextPage={nextPage}
+              onPrevPage={prevPage}
+            />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {paginatedItems.map((c: any) => {
+                const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
+                const nextHearingObj = hearings.find(
+                  (h: any) => h.caseId === c._id && h.status === "scheduled",
+                );
 
-            return (
-              <Link key={c._id} href={`/client/cases/${c._id}`} className="block">
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="secondary" className="text-xs font-mono">{c.caseNumber}</Badge>
-                        <Badge className={`text-xs capitalize ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-800"}`}>
-                          {c.status.replace("_", " ")}
-                        </Badge>
-                      </div>
-                      <h3 className="font-semibold text-foreground mb-1">{c.title}</h3>
-                      <p className="text-xs text-muted-foreground">Practice Area: {c.practiceArea}</p>
-                      <p className="text-xs text-muted-foreground">Assigned Advocate: {lawyer ? lawyer.name : "Unassigned"}</p>
-                      <p className="text-xs text-muted-foreground">Court: {c.court || "Not Specified"}</p>
-                      {nextHearingObj && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-accent font-medium">
-                          <CalendarDays className="w-3 h-3" />Next Hearing: {nextHearingObj.dateBs}
+                return (
+                  <Link key={c._id} href={`/client/cases/${c._id}`} className="block group">
+                    <DashboardListRow className="hover:shadow-sm">
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <DashboardStatusLabel
+                            tone="neutral"
+                            label={c.caseNumber}
+                            className="text-xs font-mono"
+                          />
+                          <DashboardStatusLabel status={c.status} className="text-xs" />
+                          <DashboardStatusLabel
+                            tone="information"
+                            label={c.practiceArea}
+                            className="text-xs"
+                          />
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                        <h3 className="font-semibold text-foreground group-hover:text-dashboard-primary transition-colors">
+                          {c.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <UserRound className="w-3.5 h-3.5 text-dashboard-information" />
+                            Advocate: {lawyer ? lawyer.name : "Unassigned"}
+                          </span>
+                          <span>Court: {c.court || "District Court"}</span>
+                        </div>
+                        {nextHearingObj ? (
+                          <div className="flex items-center gap-1.5 text-xs text-dashboard-primary font-medium">
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            Next Hearing: {nextHearingObj.dateBs || nextHearingObj.dateGregorian}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="shrink-0 flex items-center">
+                        <DashboardButton size="sm" variant="ghost" className="pointer-events-none">
+                          View matter <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        </DashboardButton>
+                      </div>
+                    </DashboardListRow>
+                  </Link>
+                );
+              })}
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              onNextPage={nextPage}
+              onPrevPage={prevPage}
+            />
+          </div>
+        )}
+      </DashboardSection>
+    </PortalPageShell>
   );
 }

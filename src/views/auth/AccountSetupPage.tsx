@@ -56,7 +56,7 @@ export default function AccountSetupPage() {
           </Link>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-primary" />
-            Activate your LexNepal account
+            Activate your Srimar Law account
           </CardTitle>
           <CardDescription>
             {hasToken

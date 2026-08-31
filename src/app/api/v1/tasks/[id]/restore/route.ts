@@ -13,6 +13,10 @@ function idFrom(request: Request) {
 export const POST = withApiHandler("/api/v1/tasks/:id/restore", async ({ request, requestId }) => {
   const principal = await requireSession(request);
   return jsonResponse({
-    data: await getWorkManagementService().restoreTask(principal, idFrom(request), buildAuditContext(request, requestId, principal)),
+    data: await getWorkManagementService().restoreTask(
+      principal,
+      idFrom(request),
+      buildAuditContext(request, requestId, principal),
+    ),
   });
 });

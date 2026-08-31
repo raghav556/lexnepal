@@ -8,14 +8,17 @@ import { cmsIdSchema } from "@/shared/contracts/cms";
 type Context = { params: Promise<{ id: string }> };
 
 export const POST = (request: Request, context: Context) =>
-  withApiHandler("/api/v1/staff/content/news/:id/submit", async ({ request: handled, requestId }) => {
-    const principal = await requireSession(handled);
-    const id = cmsIdSchema.parse((await context.params).id);
-    return jsonResponse({
-      data: await getCmsService().submitStaffNews(
-        principal,
-        id,
-        buildAuditContext(handled, requestId, principal),
-      ),
-    });
-  })(request);
+  withApiHandler(
+    "/api/v1/staff/content/news/:id/submit",
+    async ({ request: handled, requestId }) => {
+      const principal = await requireSession(handled);
+      const id = cmsIdSchema.parse((await context.params).id);
+      return jsonResponse({
+        data: await getCmsService().submitStaffNews(
+          principal,
+          id,
+          buildAuditContext(handled, requestId, principal),
+        ),
+      });
+    },
+  )(request);

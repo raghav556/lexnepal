@@ -54,9 +54,7 @@ export async function migrateEnvelopeExport(input: {
   const docRows = await database
     .select({ id: documents.id, firmId: documents.firmId, legacyId: documents.legacyConvexId })
     .from(documents);
-  const docMap = new Map(
-    docRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
-  );
+  const docMap = new Map(docRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]));
 
   const migrated = Object.fromEntries(tables.map((table) => [table, 0]));
   const exceptions: EnvelopeMigrationReport["exceptions"] = [];
@@ -70,9 +68,7 @@ export async function migrateEnvelopeExport(input: {
         const creator = record.createdBy
           ? userMap.get(asString(record.createdBy) ?? "")
           : undefined;
-        const doc = record.documentId
-          ? docMap.get(asString(record.documentId) ?? "")
-          : undefined;
+        const doc = record.documentId ? docMap.get(asString(record.documentId) ?? "") : undefined;
         if (!doc) throw new Error("Envelope document could not be mapped");
         if (!creator) throw new Error("Envelope creator could not be mapped");
         const firmId = resolveFirm(record, input, doc.firmId);
@@ -147,7 +143,9 @@ export async function migrateEnvelopeExport(input: {
             await tx
               .select({ id: signatureEnvelopes.id })
               .from(signatureEnvelopes)
-              .where(inArray(signatureEnvelopes.legacyConvexId, envelopeLegacy ? [envelopeLegacy] : []))
+              .where(
+                inArray(signatureEnvelopes.legacyConvexId, envelopeLegacy ? [envelopeLegacy] : []),
+              )
               .limit(1)
           )[0]?.id;
         if (!envelopePg) throw new Error("Recipient envelope could not be mapped");

@@ -59,9 +59,7 @@ async function main() {
 
   const page = await fetch(`${BASE}/news`);
   if (!page.ok) throw new Error(`/news failed: ${page.status}`);
-  const detailPage = await fetch(
-    `${BASE}/news/lexnepal-named-top-corporate-law-firm-2026`,
-  );
+  const detailPage = await fetch(`${BASE}/news/lexnepal-named-top-corporate-law-firm-2026`);
   if (!detailPage.ok) throw new Error(`News detail page failed: ${detailPage.status}`);
   console.log("5. Public pages render");
 

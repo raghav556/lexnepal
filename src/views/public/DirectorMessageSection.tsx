@@ -54,7 +54,10 @@ export function DirectorMessageSection({
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0 relative z-10">
         <div className="text-center mb-8 sm:mb-10">
-          <RevealText as="h2" className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto">
+          <RevealText
+            as="h2"
+            className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-3 mx-auto"
+          >
             {config.sectionTitle}
           </RevealText>
         </div>
@@ -74,7 +77,9 @@ export function DirectorMessageSection({
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-                        <span className="font-serif text-6xl text-primary/30">{name.charAt(0)}</span>
+                        <span className="font-serif text-6xl text-primary/30">
+                          {name.charAt(0)}
+                        </span>
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-black/10" />
@@ -97,12 +102,14 @@ export function DirectorMessageSection({
                       )}
                       <div>
                         <p className="font-serif text-xl font-bold text-foreground">{name}</p>
-                        <p className="text-sm text-accent font-medium mt-0.5">{designation}</p>
+                        <p className="text-sm text-accent-strong font-medium mt-0.5">
+                          {designation}
+                        </p>
                       </div>
                       <Button
                         asChild
                         variant="outline"
-                        className="w-full sm:w-auto border-accent text-accent hover:bg-accent hover:text-accent-foreground rounded-full gap-2"
+                        className="w-full sm:w-auto border-accent text-primary hover:bg-accent hover:text-accent-foreground rounded-full gap-2"
                       >
                         <Link href={profileHref}>
                           {ctaLabel}

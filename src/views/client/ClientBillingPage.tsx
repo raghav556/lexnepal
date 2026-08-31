@@ -1,17 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Receipt, Download, Loader2, ShieldAlert } from "lucide-react";
+import { Receipt, Download, Loader2, ShieldAlert, CreditCard, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { useSystemSettings } from "@/client/queries/identity";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog.tsx";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { Pagination } from "@/components/ui/pagination.tsx";
 import {
   fetchInvoiceDetail,
   useInvoices,
@@ -19,17 +24,25 @@ import {
   useMyPayments,
   useTrustTransactions,
 } from "@/client/queries/financial";
-
-const STATUS_COLORS: Record<string, string> = {
-  paid: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  sent: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  overdue: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  draft: "bg-gray-100 text-gray-800",
-};
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  DashboardTable,
+  DashboardTableBody,
+  DashboardTableCell,
+  DashboardTableHead,
+  DashboardTableHeaderCell,
+  DashboardTableRow,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 const IS_SANDBOX =
-  process.env.NODE_ENV === "development" ||
-  process.env.NEXT_PUBLIC_PAYMENTS_SANDBOX === "true";
+  process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_PAYMENTS_SANDBOX === "true";
 
 export default function ClientBillingPage() {
   const client = useMyClient();
@@ -48,19 +61,45 @@ export default function ClientBillingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBankInstructions, setShowBankInstructions] = useState(false);
 
+  const {
+    paginatedItems: paginatedInvoices,
+    currentPage: invCurrentPage,
+    totalPages: invTotalPages,
+    goToPage: invGoToPage,
+    nextPage: invNextPage,
+    prevPage: invPrevPage,
+  } = usePagination({ items: invoices, itemsPerPage: 6 });
+
   if (client === undefined) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading your billing portal…"
+        title="Billing & Invoices"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
   if (client === null) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
-        No client profile is linked to your account. Contact the firm to activate billing.
-      </div>
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Financial services"
+        title="Billing & Invoices"
+        description="Review your invoices and trust account ledger."
+        icon={Receipt}
+      >
+        <EmptyState
+          title="No client profile linked"
+          description="No client profile is linked to your account. Contact the firm to activate billing."
+          icon={Receipt}
+        />
+      </PortalPageShell>
     );
   }
 
@@ -75,14 +114,15 @@ export default function ClientBillingPage() {
     0,
   );
 
-  const activePayments: string[] =
-    (systemSettings as typeof systemSettings & { integrations?: { activePayments?: string[] } })
-      ?.integrations?.activePayments || ["bank_transfer", "esewa", "khalti"];
+  const activePayments: string[] = (
+    systemSettings as typeof systemSettings & { integrations?: { activePayments?: string[] } }
+  )?.integrations?.activePayments || ["bank_transfer", "esewa", "khalti"];
 
   const handleDownloadPDF = async (invoice: any) => {
     try {
       const detail = await fetchInvoiceDetail(invoice._id);
-      const caseData = cases.find((c: any) => c._id === detail.caseId || c._id === invoice.caseId) || {};
+      const caseData =
+        cases.find((c: any) => c._id === detail.caseId || c._id === invoice.caseId) || {};
       generateInvoicePDF(detail, client, caseData, detail.lineItems || []);
       toast.success("Tax Invoice PDF generated successfully.");
     } catch {
@@ -127,7 +167,6 @@ export default function ClientBillingPage() {
         return;
       }
 
-      // Sandbox / no redirect URL: confirm immediately and label honestly.
       await payInvoiceMutation.mutateAsync({
         invoiceId: selectedInvoice._id,
         gateway: method,
@@ -149,152 +188,223 @@ export default function ClientBillingPage() {
     }
   };
 
+  const metrics = [
+    {
+      label: "Outstanding Balance",
+      value: formatNPR(outstanding),
+      icon: Receipt,
+      tone: DASHBOARD_METRIC_TONES.balance,
+      helperText: "Due on open invoices",
+    },
+    {
+      label: "Paid Invoices",
+      value: formatNPR(paid),
+      icon: CreditCard,
+      tone: "success" as const,
+      helperText: "Lifetime payments",
+    },
+    {
+      label: "Trust Account Balance",
+      value: formatNPR(trustBalance),
+      icon: ShieldCheck,
+      tone: "primary" as const,
+      helperText: "Escrow funds on hold",
+    },
+    {
+      label: "Total Invoices",
+      value: String(invoices.length),
+      tone: "neutral" as const,
+      helperText: "Issued tax bills",
+    },
+  ];
+
   return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans">
-      <div>
-        <h1 className="font-serif text-2xl font-bold text-foreground">Billing & Escrow</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Manage your invoices, payments, and trust ledger balances.
-          {IS_SANDBOX ? " Gateway buttons run in sandbox confirmation mode." : ""}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Outstanding Balance", value: formatNPR(outstanding), color: "text-red-500" },
-          { label: "Paid Invoices", value: formatNPR(paid), color: "text-green-500" },
-          { label: "Trust Account Balance", value: formatNPR(trustBalance), color: "text-primary" },
-          { label: "Total Invoices", value: String(invoices.length), color: "text-foreground" },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+    <PortalPageShell
+      portal="client"
+      decorated
+      showTodayDate
+      eyebrow="Financial & Ledger"
+      title="Billing & Escrow"
+      description={`Manage your invoices, payments, and trust ledger balances.${IS_SANDBOX ? " Gateway buttons run in sandbox confirmation mode." : ""}`}
+      icon={Receipt}
+      metrics={metrics}
+    >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3 border-b">
-            <CardTitle className="text-base font-semibold font-serif">Invoices</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-4">
-            {invoices.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-8">No invoices found.</p>
-            ) : (
-              invoices.map((inv: any) => {
-                const matchedCase = cases.find((c: any) => c._id === inv.caseId);
-                return (
-                  <div
-                    key={inv._id}
-                    className="flex items-center justify-between p-3 border border-border rounded-lg gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Receipt className="w-5 h-5 text-muted-foreground/60 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{inv.invoiceNumber}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {matchedCase ? matchedCase.title : "Matter"} — Due {inv.dueDate}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <p className="text-sm font-bold">{formatNPR(inv.total)}</p>
-                        <Badge
-                          className={`text-[10px] uppercase ${STATUS_COLORS[inv.status] || "bg-gray-100"}`}
-                        >
-                          {inv.status}
-                        </Badge>
-                      </div>
-                      {inv.status === "sent" || inv.status === "overdue" ? (
-                        <Button
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => {
-                            setSelectedInvoice(inv);
-                            setShowBankInstructions(false);
-                            setPaymentModalOpen(true);
-                          }}
-                        >
-                          Pay Now
-                        </Button>
-                      ) : null}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleDownloadPDF(inv)}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+        <DashboardSection
+          title="Invoices"
+          description={`Showing ${invoices.length} issued bill${invoices.length === 1 ? "" : "s"}`}
+          icon={Receipt}
+          className="lg:col-span-2"
+        >
+          {invoices === undefined ? (
+            <DashboardListSkeleton rows={4} />
+          ) : invoices.length === 0 ? (
+            <EmptyState
+              title="No invoices found"
+              description="Your invoices and fee statements will appear here."
+              icon={Receipt}
+            />
+          ) : (
+            <div className="space-y-4">
+              <DashboardTable>
+                <DashboardTableHead>
+                  <DashboardTableRow>
+                    <DashboardTableHeaderCell>Invoice #</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Matter / Due Date</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Amount</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell className="text-right">
+                      Actions
+                    </DashboardTableHeaderCell>
+                  </DashboardTableRow>
+                </DashboardTableHead>
+                <DashboardTableBody>
+                  {paginatedInvoices.map((inv: any) => {
+                    const matchedCase = cases.find((c: any) => c._id === inv.caseId);
+                    const canPay = inv.status === "sent" || inv.status === "overdue";
+                    return (
+                      <DashboardTableRow key={inv._id} striped>
+                        <DashboardTableCell className="font-mono text-xs font-semibold text-foreground">
+                          {inv.invoiceNumber}
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <p className="font-semibold text-foreground text-xs truncate max-w-[200px]">
+                            {matchedCase ? matchedCase.title : "General Retainer"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Due: {inv.dueDate || "Upon Receipt"}
+                          </p>
+                        </DashboardTableCell>
+                        <DashboardTableCell className="font-bold text-foreground text-xs tabular-nums">
+                          {formatNPR(inv.total)}
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          <DashboardStatusLabel
+                            status={inv.status}
+                            className="text-[10px] uppercase"
+                          />
+                        </DashboardTableCell>
+                        <DashboardTableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {canPay ? (
+                              <DashboardButton
+                                size="sm"
+                                className="text-xs h-7 px-2.5"
+                                onClick={() => {
+                                  setSelectedInvoice(inv);
+                                  setShowBankInstructions(false);
+                                  setPaymentModalOpen(true);
+                                }}
+                              >
+                                Pay
+                              </DashboardButton>
+                            ) : null}
+                            <DashboardButton
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => handleDownloadPDF(inv)}
+                              title="Download Tax Invoice PDF"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </DashboardButton>
+                          </div>
+                        </DashboardTableCell>
+                      </DashboardTableRow>
+                    );
+                  })}
+                </DashboardTableBody>
+              </DashboardTable>
+              <Pagination
+                currentPage={invCurrentPage}
+                totalPages={invTotalPages}
+                onPageChange={invGoToPage}
+                onNextPage={invNextPage}
+                onPrevPage={invPrevPage}
+              />
+            </div>
+          )}
+        </DashboardSection>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-semibold font-serif">Trust Escrow Ledger</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-center gap-2 bg-secondary/35 p-3 rounded-lg border border-dashed text-xs text-muted-foreground">
-                <ShieldAlert className="w-4 h-4 text-accent/80" />
-                <span>Escrow accounts are audited under Bar Council regulations.</span>
+          <DashboardSection
+            title="Trust Escrow Ledger"
+            description="Client funds held in trust"
+            icon={ShieldCheck}
+          >
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 bg-dashboard-secondary p-3 rounded-lg border border-dashed text-xs text-dashboard-secondary-foreground">
+                <ShieldAlert className="w-4 h-4 text-dashboard-accent shrink-0" />
+                <span>Escrow accounts are audited under Nepal Bar Council regulations.</span>
               </div>
-              {trustTransactions.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No escrow trust transactions recorded.
-                </p>
+              {trustTransactions === undefined ? (
+                <DashboardListSkeleton rows={3} />
+              ) : trustTransactions.length === 0 ? (
+                <EmptyState
+                  title="No escrow transactions"
+                  description="No escrow trust transactions recorded."
+                  icon={ShieldCheck}
+                />
               ) : (
-                trustTransactions.map((tx: any) => (
-                  <div key={tx._id} className="p-3 border rounded-lg text-xs space-y-1">
-                    <div className="flex justify-between gap-2">
-                      <span className="font-medium break-words">{tx.description}</span>
-                      <span className={tx.type === "receipt" ? "text-green-600" : "text-red-600"}>
-                        {tx.type === "receipt" ? "+" : "-"}
-                        {formatNPR(tx.amount)}
+                <div className="space-y-2">
+                  {trustTransactions.map((tx: any) => (
+                    <DashboardListRow key={tx._id} className="p-3 text-xs space-y-1">
+                      <div className="flex justify-between gap-2 w-full">
+                        <span className="font-medium break-words">{tx.description}</span>
+                        <span
+                          className={`font-semibold ${
+                            tx.type === "receipt"
+                              ? "text-dashboard-success"
+                              : "text-dashboard-danger"
+                          }`}
+                        >
+                          {tx.type === "receipt" ? "+" : "-"}
+                          {formatNPR(tx.amount)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground w-full">{tx.date}</p>
+                    </DashboardListRow>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DashboardSection>
+
+          <DashboardSection
+            title="Payment History"
+            description="Recent payment confirmations"
+            icon={CreditCard}
+          >
+            {payments === undefined ? (
+              <DashboardListSkeleton rows={3} />
+            ) : payments.length === 0 ? (
+              <EmptyState
+                title="No payments recorded"
+                description="Completed payments will be recorded here."
+                icon={CreditCard}
+              />
+            ) : (
+              <div className="space-y-2">
+                {payments.slice(0, 8).map((p: any) => (
+                  <DashboardListRow key={p._id || p.id} className="p-3 text-xs space-y-1">
+                    <div className="flex justify-between gap-2 items-baseline w-full">
+                      <span className="font-medium capitalize">{p.gateway || "payment"}</span>
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {formatNPR(p.amount)}
                       </span>
                     </div>
-                    <p className="text-muted-foreground">{tx.date}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-semibold font-serif">Payment history</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-2">
-              {payments.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">No payments recorded yet.</p>
-              ) : (
-                payments.slice(0, 12).map((p: any) => (
-                  <div key={p._id || p.id} className="p-3 border rounded-lg text-xs space-y-1.5">
-                    <div className="flex justify-between gap-2 items-baseline">
-                      <span className="font-medium capitalize">{p.gateway || "payment"}</span>
-                      <span className="font-semibold tabular-nums">{formatNPR(p.amount)}</span>
-                    </div>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed w-full">
                       <span className="capitalize">{p.status || "recorded"}</span>
                       {p.referenceNumber ? ` · Ref ${p.referenceNumber}` : ""}
                       {p.paidAt || p.createdAt
                         ? ` · ${new Date(p.paidAt || p.createdAt).toLocaleDateString()}`
                         : ""}
                     </p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  </DashboardListRow>
+                ))}
+              </div>
+            )}
+          </DashboardSection>
         </div>
       </div>
 
@@ -313,33 +423,35 @@ export default function ClientBillingPage() {
           {showBankInstructions ? (
             <div className="space-y-3 text-sm">
               <p className="font-medium">Bank transfer instructions</p>
-              <div className="rounded-lg border bg-secondary/30 p-3 text-xs space-y-1">
+              <div className="rounded-lg border bg-dashboard-neutral-soft p-3 text-xs space-y-1">
                 <p>Bank: Nepal Bank Ltd.</p>
                 <p>Account name: Srimar Law Associates</p>
                 <p>Account number: 0123456789012345</p>
-                <p>
-                  Reference: {selectedInvoice?.invoiceNumber} (include on the transfer memo)
-                </p>
+                <p>Reference: {selectedInvoice?.invoiceNumber} (include on the transfer memo)</p>
               </div>
               <p className="text-xs text-muted-foreground">
                 After transferring, the firm will mark the invoice paid once funds clear. You can
                 keep the PDF as your receipt request.
               </p>
-              <Button variant="outline" onClick={() => setShowBankInstructions(false)}>
+              <DashboardButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBankInstructions(false)}
+              >
                 Back to payment methods
-              </Button>
+              </DashboardButton>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2 pt-2">
               {(["esewa", "khalti", "bank_transfer"] as const)
                 .filter((m) => activePayments.includes(m) || m === "bank_transfer")
                 .map((method) => (
-                  <Button
+                  <DashboardButton
                     key={method}
                     disabled={isProcessing}
                     onClick={() => handleProcessPayment(method)}
                     className="justify-start capitalize"
-                    variant={method === "bank_transfer" ? "outline" : "default"}
+                    variant={method === "bank_transfer" ? "outline" : "primary"}
                   >
                     {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     {method === "bank_transfer"
@@ -347,12 +459,12 @@ export default function ClientBillingPage() {
                       : IS_SANDBOX
                         ? `Sandbox pay with ${method}`
                         : `Pay with ${method}`}
-                  </Button>
+                  </DashboardButton>
                 ))}
             </div>
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

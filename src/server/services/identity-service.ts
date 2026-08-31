@@ -61,14 +61,12 @@ export class IdentityService {
   }
   listDirectory(principal: AuthPrincipal): Promise<StaffDirectoryEntryDto[]> {
     requireCapability(principal, "users.view_directory");
-    return this.repository
-      .listUsers(requireFirmContext(principal).firmId)
-      .then((rows) =>
-        rows
-          .filter((user) => user.role !== "client" && user.isActive && !user.isPending)
-          // `_id` mirrors `id` because directory consumers still match on the legacy key.
-          .map(({ id, name, email, role, avatar }) => ({ id, _id: id, name, email, role, avatar })),
-      );
+    return this.repository.listUsers(requireFirmContext(principal).firmId).then((rows) =>
+      rows
+        .filter((user) => user.role !== "client" && user.isActive && !user.isPending)
+        // `_id` mirrors `id` because directory consumers still match on the legacy key.
+        .map(({ id, name, email, role, avatar }) => ({ id, _id: id, name, email, role, avatar })),
+    );
   }
   async getUser(principal: AuthPrincipal, userId: string) {
     if (principal.user.id !== userId) requireCapability(principal, "users.manage");
@@ -92,9 +90,8 @@ export class IdentityService {
         });
       }
       if (user.role === "client") {
-        const { PostgresMattersRepository } = await import(
-          "@/server/repositories/matters-repository"
-        );
+        const { PostgresMattersRepository } =
+          await import("@/server/repositories/matters-repository");
         await new PostgresMattersRepository().ensureClientForPortalUser(
           firmId,
           {
@@ -188,8 +185,7 @@ export class IdentityService {
     const user = await this.repository.getUser(requireFirmContext(principal).firmId, userId);
     if (!user) throw new AppError("NOT_FOUND", "User was not found", 404);
     const canManageUsers = principal.capabilities.has("users.manage");
-    const canInviteClients =
-      principal.capabilities.has("clients.manage") && user.role === "client";
+    const canInviteClients = principal.capabilities.has("clients.manage") && user.role === "client";
     if (!canManageUsers && !canInviteClients) {
       throw new AppError("FORBIDDEN", "Access denied: missing permission users.manage", 403);
     }

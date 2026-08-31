@@ -37,9 +37,7 @@ export const documentSignSchema = z.object({
   signatureArtifactStorageId: z.string().trim().min(1).max(500).optional(),
   typedSignatureText: z.string().trim().min(1).max(500).optional(),
   consentAccepted: z.boolean(),
-  documentSha256: z
-    .string()
-    .regex(/^[0-9a-f]{64}$/i),
+  documentSha256: z.string().regex(/^[0-9a-f]{64}$/i),
   userAgent: z.string().trim().max(1000).optional(),
   signatureNote: z.string().trim().max(2000).optional(),
   otpChallengeId: uuidSchema,

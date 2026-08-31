@@ -20,15 +20,15 @@ export function useAttendance(filters?: { userId?: string; date?: string }, enab
   return useQuery({
     queryKey: queryKeys.hr.attendance(filters),
     queryFn: ({ signal }) =>
-      apiClient.request<AttendanceDto[]>("/api/v1/hr/attendance", { query: { ...filters }, signal }),
+      apiClient.request<AttendanceDto[]>("/api/v1/hr/attendance", {
+        query: { ...filters },
+        signal,
+      }),
     enabled,
   }).data;
 }
 
-export function useLeaveRequests(
-  filters?: { userId?: string; status?: string },
-  enabled = true,
-) {
+export function useLeaveRequests(filters?: { userId?: string; status?: string }, enabled = true) {
   return useQuery({
     queryKey: queryKeys.hr.leaveRequests(filters),
     queryFn: ({ signal }) =>

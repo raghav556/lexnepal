@@ -46,7 +46,8 @@ Questions about these terms may be directed to the firm via the contact page.`,
 export default function LegalPage() {
   const pathname = usePathname();
   const pathSlug = pathname.replace(/^\//, "").split("/")[0];
-  const validSlug = (pathSlug === "terms" ? "terms" : "privacy-policy") as "privacy-policy" | "terms";
+  const validSlug = (pathSlug === "terms" ? "terms" : "privacy-policy") as
+    "privacy-policy" | "terms";
 
   const page = useLegalPage(validSlug);
   const fallback = FALLBACK[validSlug];
@@ -64,7 +65,9 @@ export default function LegalPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <section className="bg-primary py-16 px-4 text-center">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary-foreground">{title}</h1>
+        <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary-foreground">
+          {title}
+        </h1>
       </section>
       <FadeInUp>
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 prose prose-neutral dark:prose-invert">

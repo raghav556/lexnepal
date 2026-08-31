@@ -844,7 +844,11 @@ export const cmsAssetUploadIntents = pgTable(
   },
   (table) => [
     uniqueIndex("cms_asset_upload_intents_quarantine_key_unique").on(table.quarantineKey),
-    index("cms_asset_upload_intents_firm_status_idx").on(table.firmId, table.status, table.expiresAt),
+    index("cms_asset_upload_intents_firm_status_idx").on(
+      table.firmId,
+      table.status,
+      table.expiresAt,
+    ),
     index("cms_asset_upload_intents_creator_idx").on(table.firmId, table.createdBy),
   ],
 );
@@ -1643,7 +1647,9 @@ export const appointments = pgTable(
     timeSlot: text("time_slot").notNull(),
     notes: text("notes"),
     status: appointmentStatusEnum("status").default("pending").notNull(),
-    assignedLawyerId: uuid("assigned_lawyer_id").references(() => users.id, { onDelete: "set null" }),
+    assignedLawyerId: uuid("assigned_lawyer_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     meetingLink: text("meeting_link"),
     ...lifecycleColumns(),
   },

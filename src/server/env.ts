@@ -84,7 +84,9 @@ export function getServerEnvironment(): ServerEnvironment {
       const isLocalHttp =
         value.startsWith("http://localhost") || value.startsWith("http://127.0.0.1");
       if (!value.startsWith("https://") && !isLocalHttp) {
-        throw new Error(`${name} must use https:// in production (localhost HTTP is allowed for local start)`);
+        throw new Error(
+          `${name} must use https:// in production (localhost HTTP is allowed for local start)`,
+        );
       }
     }
   }

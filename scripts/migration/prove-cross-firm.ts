@@ -14,15 +14,11 @@ const suites = [
 
 function runVitest(files: readonly string[]): Promise<{ code: number; stdout: string }> {
   return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      [
-        "./node_modules/vitest/vitest.mjs",
-        "run",
-        ...files,
-      ],
-      { cwd: process.cwd(), env: process.env, shell: false },
-    );
+    const child = spawn(process.execPath, ["./node_modules/vitest/vitest.mjs", "run", ...files], {
+      cwd: process.cwd(),
+      env: process.env,
+      shell: false,
+    });
     let stdout = "";
     child.stdout.on("data", (c) => {
       stdout += String(c);
@@ -47,9 +43,7 @@ try {
   const report: DomainMigrationReport = {
     source: { crossFirmSuites: suites.length },
     migrated: { crossFirmSuites: passed ? suites.length : 0 },
-    exceptions: passed
-      ? []
-      : [{ table: "cross-firm", id: "vitest", reason: `exit code ${code}` }],
+    exceptions: passed ? [] : [{ table: "cross-firm", id: "vitest", reason: `exit code ${code}` }],
     reconciliation: {
       passed,
       checks: {

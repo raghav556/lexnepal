@@ -199,9 +199,7 @@ export function registerExportDomain(config: ExportDomainConfig): void {
           `${config.name} import reconcile failed (${report.exceptions.length} exception(s))`,
         );
       }
-      await engine.log(
-        `Import complete. checks=${JSON.stringify(report.reconciliation.checks)}`,
-      );
+      await engine.log(`Import complete. checks=${JSON.stringify(report.reconciliation.checks)}`);
     },
 
     reconcile: async (engine, reconciler, options) => {
@@ -334,7 +332,10 @@ async function buildDetails(
   return detailsFromReport(input.report, extra);
 }
 
-export async function readLegacyIdsFromExport(exportPath: string, table: string): Promise<string[]> {
+export async function readLegacyIdsFromExport(
+  exportPath: string,
+  table: string,
+): Promise<string[]> {
   const candidates = [
     path.join(exportPath, table, "documents.jsonl"),
     path.join(exportPath, `${table}.jsonl`),
@@ -345,7 +346,10 @@ export async function readLegacyIdsFromExport(exportPath: string, table: string)
       if (!text) return [];
       const rows = text.startsWith("[")
         ? (JSON.parse(text) as Array<{ _id?: string }>)
-        : text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as { _id?: string });
+        : text
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map((line) => JSON.parse(line) as { _id?: string });
       return rows.map((r) => r._id).filter((id): id is string => Boolean(id));
     } catch (error: unknown) {
       if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") throw error;

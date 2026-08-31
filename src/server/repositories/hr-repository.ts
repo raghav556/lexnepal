@@ -293,7 +293,12 @@ export class HrRepository {
     );
 
     const usage = new Map<string, { used: number; pending: number }>();
-    const bump = (userId: string, type: LeaveType, status: "approved" | "pending", days: number) => {
+    const bump = (
+      userId: string,
+      type: LeaveType,
+      status: "approved" | "pending",
+      days: number,
+    ) => {
       const key = overrideKey(userId, type);
       const cur = usage.get(key) ?? { used: 0, pending: 0 };
       if (status === "approved") cur.used += days;
@@ -565,7 +570,10 @@ export class HrRepository {
     return rows;
   }
 
-  async listPayrollRuns(firmId: string, filters: PayrollRunListInput = {}): Promise<PayrollRunDto[]> {
+  async listPayrollRuns(
+    firmId: string,
+    filters: PayrollRunListInput = {},
+  ): Promise<PayrollRunDto[]> {
     const clauses: SQL[] = [eq(payrollRuns.firmId, firmId), isNull(payrollRuns.deletedAt)];
     if (filters.status) clauses.push(eq(payrollRuns.status, filters.status));
     const runs = await database
@@ -600,7 +608,11 @@ export class HrRepository {
       .select()
       .from(payrollRuns)
       .where(
-        and(eq(payrollRuns.id, runId), eq(payrollRuns.firmId, firmId), isNull(payrollRuns.deletedAt)),
+        and(
+          eq(payrollRuns.id, runId),
+          eq(payrollRuns.firmId, firmId),
+          isNull(payrollRuns.deletedAt),
+        ),
       )
       .limit(1);
     if (!run) throw new AppError("NOT_FOUND", "Payroll run not found", 404);
@@ -671,9 +683,7 @@ export class HrRepository {
       );
     }
 
-    const label =
-      input.label?.trim() ||
-      `${input.periodStart.slice(0, 7)} payroll`;
+    const label = input.label?.trim() || `${input.periodStart.slice(0, 7)} payroll`;
 
     return database.transaction(async (tx) => {
       // Soft-delete prior drafts for the same period so regenerate is clean.
@@ -747,7 +757,11 @@ export class HrRepository {
         .select()
         .from(payrollRuns)
         .where(
-          and(eq(payrollRuns.id, runId), eq(payrollRuns.firmId, firmId), isNull(payrollRuns.deletedAt)),
+          and(
+            eq(payrollRuns.id, runId),
+            eq(payrollRuns.firmId, firmId),
+            isNull(payrollRuns.deletedAt),
+          ),
         )
         .limit(1);
       if (!run) throw new AppError("NOT_FOUND", "Payroll run not found", 404);
@@ -907,10 +921,7 @@ export class HrRepository {
   }
 }
 
-function toPayrollRunDto(
-  row: typeof payrollRuns.$inferSelect,
-  lineCount: number,
-): PayrollRunDto {
+function toPayrollRunDto(row: typeof payrollRuns.$inferSelect, lineCount: number): PayrollRunDto {
   return {
     id: row.id,
     _id: row.id,

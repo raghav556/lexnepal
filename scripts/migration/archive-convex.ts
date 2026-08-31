@@ -55,7 +55,13 @@ async function collectFiles(): Promise<string[]> {
   }
   for (const file of ARCHIVE_FILES) {
     const full = path.join(ROOT, file);
-    if (await fs.access(full).then(() => true, () => false)) files.push(full);
+    if (
+      await fs.access(full).then(
+        () => true,
+        () => false,
+      )
+    )
+      files.push(full);
   }
   return [...new Set(files)].sort();
 }

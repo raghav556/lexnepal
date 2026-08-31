@@ -255,8 +255,7 @@ export class DmRepository {
         .where(eq(dmThreads.id, threadId));
 
       const [thread] = await tx.select().from(dmThreads).where(eq(dmThreads.id, threadId)).limit(1);
-      const peerId =
-        thread!.userLowId === sender.id ? thread!.userHighId : thread!.userLowId;
+      const peerId = thread!.userLowId === sender.id ? thread!.userHighId : thread!.userLowId;
       await tx.insert(notifications).values({
         firmId,
         userId: peerId,

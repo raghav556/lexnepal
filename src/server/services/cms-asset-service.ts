@@ -253,7 +253,10 @@ export class CmsAssetService {
   async createPublicDownload(assetId: string) {
     const publicFirmId = await getCmsService().publicFirmId();
     const [intent] = await database
-      .select({ protectedKey: cmsAssetUploadIntents.protectedKey, status: cmsAssetUploadIntents.status })
+      .select({
+        protectedKey: cmsAssetUploadIntents.protectedKey,
+        status: cmsAssetUploadIntents.status,
+      })
       .from(cmsAssetUploadIntents)
       .where(
         and(

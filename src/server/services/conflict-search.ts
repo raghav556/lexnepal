@@ -313,7 +313,7 @@ function matchClientField(
     notes: string | null;
   },
   query: string,
-  pattern: string,
+  _pattern: string,
 ) {
   const q = query.toLowerCase();
   if (row.fullName?.toLowerCase().includes(q)) return "fullName";

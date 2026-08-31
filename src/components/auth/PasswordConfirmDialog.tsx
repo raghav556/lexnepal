@@ -67,7 +67,12 @@ export function PasswordConfirmDialog({
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={busy}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={busy}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={busy || !password.trim()}>

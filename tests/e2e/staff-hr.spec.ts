@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 async function signIn(page: Page, email: string) {
+  await prepareE2eAuth(page, email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.locator("#password").fill(E2E_PASSWORD);
@@ -38,8 +40,8 @@ test.describe("Staff HR self-service", () => {
     ).toBeVisible();
 
     await page.getByRole("tab", { name: /Payslips/i }).click();
-    await expect(
-      page.getByText(/No finalized payslips|Gross|Finalized/i).first(),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/No finalized payslips|Gross|Finalized/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });

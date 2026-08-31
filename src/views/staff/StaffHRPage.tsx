@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
@@ -21,16 +19,13 @@ import {
 } from "@/client/queries/hr";
 import type { LeaveCreateInput, PayslipDto } from "@/shared/contracts/hr";
 import { nowHrClockLabel } from "@/shared/hr/timezone";
-
-const STATUS_COLORS: Record<string, string> = {
-  present: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  absent: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  leave: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  half_day: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-};
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 
 const LEAVE_TYPES: LeaveCreateInput["type"][] = [
   "annual",
@@ -169,17 +164,21 @@ export default function StaffHRPage() {
 
   if (currentUser === undefined) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell portal="staff" loading loadingLabel="Loading HR workspace…" title="HR">
+        {null}
+      </PortalPageShell>
     );
   }
 
   if (!userId) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
-        Sign in is required to use HR self-service.
-      </div>
+      <PortalPageShell
+        portal="staff"
+        title="HR"
+        description="Sign in is required to use HR self-service."
+      >
+        <EmptyState title="Sign in required" description="Sign in to access HR self-service." />
+      </PortalPageShell>
     );
   }
 
@@ -195,14 +194,13 @@ export default function StaffHRPage() {
     todayRecord?.status === "present" && Boolean(todayRecord.clockIn) && !todayRecord.clockOut;
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 font-sans w-full min-w-0 max-w-none">
-      <div className="min-w-0">
-        <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">HR</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Clock attendance, request leave, and view finalized payslips.
-        </p>
-      </div>
-
+    <PortalPageShell
+      portal="staff"
+      eyebrow="People operations"
+      title="HR"
+      description="Clock attendance, request leave, and view finalized payslips."
+      icon={Clock}
+    >
       <Tabs defaultValue="attendance" className="w-full min-w-0">
         <TabsList className="mb-4 h-auto w-full grid grid-cols-3 gap-1">
           <TabsTrigger value="attendance" className="text-xs sm:text-sm gap-1">
@@ -220,20 +218,13 @@ export default function StaffHRPage() {
         </TabsList>
 
         <TabsContent value="attendance" className="mt-0 space-y-4 min-w-0">
-          <Card className="min-w-0 overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">
-                Today — <span className="text-muted-foreground font-normal">{todayLabel}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <DashboardSection title={`Today — ${todayLabel}`}>
+            <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 {todayRecord ? (
-                  <Badge className={STATUS_COLORS[todayRecord.status] ?? ""}>
-                    {formatType(todayRecord.status)}
-                  </Badge>
+                  <DashboardStatusLabel status={todayRecord.status} />
                 ) : (
-                  <Badge variant="outline">Not recorded</Badge>
+                  <DashboardStatusLabel label="Not recorded" tone="neutral" />
                 )}
                 {todayRecord?.clockIn && (
                   <p className="text-xs text-muted-foreground">
@@ -245,7 +236,7 @@ export default function StaffHRPage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
+                <DashboardButton
                   type="button"
                   size="sm"
                   disabled={busy || !canClockIn}
@@ -257,8 +248,8 @@ export default function StaffHRPage() {
                     <LogIn className="w-4 h-4 mr-1" />
                   )}
                   Clock in
-                </Button>
-                <Button
+                </DashboardButton>
+                <DashboardButton
                   type="button"
                   size="sm"
                   variant="secondary"
@@ -267,23 +258,25 @@ export default function StaffHRPage() {
                 >
                   <LogOut className="w-4 h-4 mr-1" />
                   Clock out
-                </Button>
+                </DashboardButton>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardSection>
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Last 30 days</p>
+          <DashboardSection title="Last 30 days">
             {history.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                  No attendance history yet. Clock in to start your record.
-                </CardContent>
-              </Card>
+              <EmptyState
+                title="No attendance history"
+                description="Clock in to start your record."
+                icon={Clock}
+              />
             ) : (
-              history.map((row) => (
-                <Card key={row.id} className="min-w-0 overflow-hidden">
-                  <CardContent className="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-2">
+                {history.map((row) => (
+                  <div
+                    key={row.id}
+                    className="rounded-xl border border-dashboard-border bg-dashboard-panel p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2 min-w-0"
+                  >
                     <div className="min-w-0">
                       <p className="text-sm font-medium tabular-nums">{row.date}</p>
                       <p className="text-xs text-muted-foreground">
@@ -292,29 +285,22 @@ export default function StaffHRPage() {
                           : "No clock times"}
                       </p>
                     </div>
-                    <Badge className={STATUS_COLORS[row.status] ?? ""}>
-                      {formatType(row.status)}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))
+                    <DashboardStatusLabel status={row.status} />
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
+          </DashboardSection>
         </TabsContent>
 
         <TabsContent value="leave" className="mt-0 space-y-4 min-w-0">
           {leaveBalances.length > 0 ? (
-            <Card className="min-w-0 overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold">
-                  Balances — {balanceYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 sm:grid-cols-2">
+            <DashboardSection title={`Balances — ${balanceYear}`}>
+              <div className="grid gap-2 sm:grid-cols-2">
                 {leaveBalances.map((b) => (
                   <div
                     key={`${b.type}-${b.year}`}
-                    className="rounded-lg border border-border p-3 text-sm"
+                    className="rounded-lg border border-dashboard-border bg-dashboard-panel p-3 text-sm"
                   >
                     <p className="font-medium capitalize">{formatType(b.type)}</p>
                     <p className="text-xs text-muted-foreground mt-1 tabular-nums">
@@ -324,87 +310,82 @@ export default function StaffHRPage() {
                     </p>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </DashboardSection>
           ) : null}
 
-          <Card className="min-w-0 overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Request leave</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-3" onSubmit={handleLeaveSubmit}>
-                <div className="grid gap-3 sm:grid-cols-2">
+          <DashboardSection title="Request leave">
+            <form className="space-y-3" onSubmit={handleLeaveSubmit}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="leave-type">Type</Label>
+                  <select
+                    id="leave-type"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={leaveType}
+                    onChange={(e) => setLeaveType(e.target.value as LeaveCreateInput["type"])}
+                  >
+                    {LEAVE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {formatType(type)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2 grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="leave-type">Type</Label>
-                    <select
-                      id="leave-type"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={leaveType}
-                      onChange={(e) =>
-                        setLeaveType(e.target.value as LeaveCreateInput["type"])
-                      }
-                    >
-                      {LEAVE_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {formatType(type)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5 sm:col-span-2 grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="leave-from">From</Label>
-                      <Input
-                        id="leave-from"
-                        type="date"
-                        value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="leave-to">To</Label>
-                      <Input
-                        id="leave-to"
-                        type="date"
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="leave-reason">Reason (optional)</Label>
+                    <Label htmlFor="leave-from">From</Label>
                     <Input
-                      id="leave-reason"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      maxLength={2000}
-                      placeholder="Brief note for your reviewer"
+                      id="leave-from"
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="leave-to">To</Label>
+                    <Input
+                      id="leave-to"
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      required
                     />
                   </div>
                 </div>
-                <Button type="submit" size="sm" disabled={busy}>
-                  {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-                  Submit request
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="leave-reason">Reason (optional)</Label>
+                  <Input
+                    id="leave-reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    maxLength={2000}
+                    placeholder="Brief note for your reviewer"
+                  />
+                </div>
+              </div>
+              <Button type="submit" size="sm" disabled={busy}>
+                {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                Submit request
+              </Button>
+            </form>
+          </DashboardSection>
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">My requests</p>
+          <DashboardSection title="My requests">
             {ownLeaves.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                  No leave requests yet.
-                </CardContent>
-              </Card>
+              <EmptyState
+                title="No leave requests"
+                description="You have not submitted any leave requests yet."
+              />
             ) : (
-              ownLeaves.map((row) => (
-                <Card key={row.id} className="min-w-0 overflow-hidden" data-testid="leave-request-row">
-                  <CardContent className="p-3 sm:p-4 flex flex-wrap items-start justify-between gap-2">
+              <div className="space-y-2">
+                {ownLeaves.map((row) => (
+                  <div
+                    key={row.id}
+                    className="rounded-xl border border-dashboard-border bg-dashboard-panel p-3 sm:p-4 flex flex-wrap items-start justify-between gap-2 min-w-0"
+                    data-testid="leave-request-row"
+                  >
                     <div className="min-w-0 space-y-1">
                       <p className="text-sm font-semibold capitalize">{formatType(row.type)}</p>
                       <p className="text-xs text-muted-foreground tabular-nums">
@@ -415,74 +396,72 @@ export default function StaffHRPage() {
                         <p className="text-xs text-muted-foreground line-clamp-2">{row.reason}</p>
                       ) : null}
                     </div>
-                    <Badge className={STATUS_COLORS[row.status] ?? ""}>{row.status}</Badge>
-                  </CardContent>
-                </Card>
-              ))
+                    <DashboardStatusLabel status={row.status} />
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
+          </DashboardSection>
         </TabsContent>
 
         <TabsContent value="payroll" className="mt-0 space-y-4 min-w-0">
           {payslips.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                No finalized payslips yet. Your firm HR will publish them after payroll finalize.
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="No payslips yet"
+              description="Your firm HR will publish finalized payslips after payroll finalize."
+              icon={DollarSign}
+            />
           ) : (
             payslips.map((slip) => (
-              <Card
+              <DashboardSection
                 key={`${slip.runId}-${slip.line.id}`}
-                className="min-w-0 overflow-hidden"
+                className="min-w-0"
                 data-testid="payslip-card"
               >
-                <CardContent className="p-3 sm:p-4 space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {slip.label ?? `${slip.periodStart} → ${slip.periodEnd}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground tabular-nums">
-                        {slip.periodStart} → {slip.periodEnd}
-                        {slip.finalizedAt
-                          ? ` · Finalized ${new Date(slip.finalizedAt).toLocaleDateString()}`
-                          : ""}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs print:hidden"
-                      onClick={() => {
-                        setPrintSlip(slip);
-                        setTimeout(() => window.print(), 50);
-                      }}
-                    >
-                      Print
-                    </Button>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {slip.label ?? `${slip.periodStart} → ${slip.periodEnd}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      {slip.periodStart} → {slip.periodEnd}
+                      {slip.finalizedAt
+                        ? ` · Finalized ${new Date(slip.finalizedAt).toLocaleDateString()}`
+                        : ""}
+                    </p>
                   </div>
-                  <div
-                    className={`grid grid-cols-2 gap-x-3 gap-y-1 text-xs ${
-                      printSlip?.runId === slip.runId ? "print:block" : ""
-                    }`}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs print:hidden"
+                    onClick={() => {
+                      setPrintSlip(slip);
+                      setTimeout(() => window.print(), 50);
+                    }}
                   >
-                    <span className="text-muted-foreground">Gross</span>
-                    <span className="text-right tabular-nums">{formatNPR(slip.line.gross)}</span>
-                    <span className="text-muted-foreground">PF (employee)</span>
-                    <span className="text-right tabular-nums">{formatNPR(slip.line.pf)}</span>
-                    <span className="text-muted-foreground">SSF (employer)</span>
-                    <span className="text-right tabular-nums">{formatNPR(slip.line.ssf)}</span>
-                    <span className="text-muted-foreground">Tax</span>
-                    <span className="text-right tabular-nums">{formatNPR(slip.line.tax)}</span>
-                    <span className="font-medium">Net pay</span>
-                    <span className="text-right font-semibold tabular-nums">
-                      {formatNPR(slip.line.net)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                    Print
+                  </Button>
+                </div>
+                <div
+                  className={`grid grid-cols-2 gap-x-3 gap-y-1 text-xs ${
+                    printSlip?.runId === slip.runId ? "print:block" : ""
+                  }`}
+                >
+                  <span className="text-muted-foreground">Gross</span>
+                  <span className="text-right tabular-nums">{formatNPR(slip.line.gross)}</span>
+                  <span className="text-muted-foreground">PF (employee)</span>
+                  <span className="text-right tabular-nums">{formatNPR(slip.line.pf)}</span>
+                  <span className="text-muted-foreground">SSF (employer)</span>
+                  <span className="text-right tabular-nums">{formatNPR(slip.line.ssf)}</span>
+                  <span className="text-muted-foreground">Tax</span>
+                  <span className="text-right tabular-nums">{formatNPR(slip.line.tax)}</span>
+                  <span className="font-medium">Net pay</span>
+                  <span className="text-right font-semibold tabular-nums">
+                    {formatNPR(slip.line.net)}
+                  </span>
+                </div>
+              </DashboardSection>
             ))
           )}
         </TabsContent>
@@ -495,6 +474,6 @@ export default function StaffHRPage() {
         }}
         busy={busy}
       />
-    </div>
+    </PortalPageShell>
   );
 }

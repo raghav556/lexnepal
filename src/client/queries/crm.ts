@@ -15,8 +15,7 @@ export function useLeads(filters?: {
   );
   const next = useQuery({
     queryKey: queryKeys.crm.leads(query),
-    queryFn: ({ signal }) =>
-      apiClient.request<any[]>("/api/v1/leads", { query, signal }),
+    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/leads", { query, signal }),
   });
   return { data: next.data ?? [], isLoading: next.isLoading };
 }
@@ -124,7 +123,14 @@ export function useLeadCommands() {
     },
   });
 
-  return { createLead, createPublicLead, updateLead, convertToClient, generateIntakeLink, submitIntake };
+  return {
+    createLead,
+    createPublicLead,
+    updateLead,
+    convertToClient,
+    generateIntakeLink,
+    submitIntake,
+  };
 }
 
 export function useIntakeByToken(token: string | null) {
@@ -157,8 +163,7 @@ export function useAppointments(filters?: {
   );
   const next = useQuery({
     queryKey: queryKeys.crm.appointments(query),
-    queryFn: ({ signal }) =>
-      apiClient.request<any[]>("/api/v1/appointments", { query, signal }),
+    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/appointments", { query, signal }),
   });
   return {
     data: next.data ?? [],

@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { ExternalLink, IdCard, Scale } from "lucide-react";
 import type { UserDto } from "@/shared/contracts/identity";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { DashboardButton, DashboardSection } from "@/components/dashboard";
 import { usePublicTeam } from "@/client/queries/cms";
 
 type StaffProfileExtrasProps = {
@@ -19,15 +18,12 @@ export function StaffProfileExtras({ user }: StaffProfileExtrasProps) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <IdCard className="size-4 text-primary" />
-            Bar council
-          </CardTitle>
-          <CardDescription>Professional registration on file.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+      <DashboardSection
+        title="Bar council"
+        description="Professional registration on file."
+        icon={IdCard}
+      >
+        <div className="space-y-2 text-sm">
           <p className="font-medium text-foreground">
             {user.barCouncilNumber ?? "Not recorded — ask an administrator to update."}
           </p>
@@ -36,18 +32,16 @@ export function StaffProfileExtras({ user }: StaffProfileExtrasProps) {
               Expires {new Date(user.barCouncilExpiry).toLocaleDateString()}
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
 
-      <Card className="border-border/70 shadow-sm lg:col-span-1">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Scale className="size-4 text-primary" />
-            Practice areas
-          </CardTitle>
-          <CardDescription>From your public team profile (read-only).</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <DashboardSection
+        title="Practice areas"
+        description="From your public team profile (read-only)."
+        icon={Scale}
+        className="lg:col-span-1"
+      >
+        <div>
           {team === undefined ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : practiceAreas.length === 0 ? (
@@ -59,36 +53,33 @@ export function StaffProfileExtras({ user }: StaffProfileExtrasProps) {
               {practiceAreas.map((area) => (
                 <span
                   key={area}
-                  className="rounded-full border border-border/70 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-foreground"
+                  className="rounded-full border border-dashboard-border bg-dashboard-neutral-soft px-2.5 py-1 text-xs font-medium text-foreground"
                 >
                   {area}
                 </span>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ExternalLink className="size-4 text-primary" />
-            Public profile
-          </CardTitle>
-          <CardDescription>How clients see you on the firm website.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <DashboardSection
+        title="Public profile"
+        description="How clients see you on the firm website."
+        icon={ExternalLink}
+      >
+        <div className="space-y-3">
           {previewHref ? (
             <>
               <p className="text-sm text-muted-foreground">
                 Your profile is visible on the public site.
               </p>
-              <Button variant="outline" size="sm" asChild className="w-full">
+              <DashboardButton variant="outline" size="sm" asChild className="w-full">
                 <Link href={previewHref} target="_blank" rel="noopener noreferrer">
                   Preview public profile
-                  <ExternalLink className="size-4" />
+                  <ExternalLink className="size-4 ml-1" />
                 </Link>
-              </Button>
+              </DashboardButton>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -96,8 +87,8 @@ export function StaffProfileExtras({ user }: StaffProfileExtrasProps) {
               profile.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
     </div>
   );
 }

@@ -144,7 +144,9 @@ try {
   const cookie = await signIn("boundary-a@example.invalid");
   const headers = { cookie, "content-type": "application/json" };
 
-  const listResponse = await listDocuments(new Request("http://local/api/v1/documents", { headers }));
+  const listResponse = await listDocuments(
+    new Request("http://local/api/v1/documents", { headers }),
+  );
   if (!listResponse.ok) {
     throw new Error(`Documents list failed: ${listResponse.status} ${await listResponse.text()}`);
   }
@@ -187,7 +189,9 @@ try {
     }
     console.log(`public share ok title=${publicBody.data.title}`);
   } else {
-    console.log("documents list empty after pipeline; share API skipped (pipeline already proved upload)");
+    console.log(
+      "documents list empty after pipeline; share API skipped (pipeline already proved upload)",
+    );
   }
 
   console.log("documents:verify-local passed");

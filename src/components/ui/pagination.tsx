@@ -18,7 +18,7 @@ export function Pagination({
   onPageChange,
   onNextPage,
   onPrevPage,
-  className
+  className,
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -33,11 +33,11 @@ export function Pagination({
       }
     } else {
       if (currentPage <= 3) {
-        pages.push(1, 2, 3, 4, '...', totalPages);
+        pages.push(1, 2, 3, 4, "...", totalPages);
       } else if (currentPage >= totalPages - 2) {
-        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
       } else {
-        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
       }
     }
     return pages;
@@ -58,9 +58,12 @@ export function Pagination({
 
       <div className="flex items-center space-x-1">
         {getPageNumbers().map((page, index) => {
-          if (page === '...') {
+          if (page === "...") {
             return (
-              <span key={`ellipsis-${index}`} className="flex h-8 w-8 items-center justify-center text-muted-foreground">
+              <span
+                key={`ellipsis-${index}`}
+                className="flex h-8 w-8 items-center justify-center text-muted-foreground"
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </span>
             );
@@ -72,7 +75,10 @@ export function Pagination({
               key={page}
               variant={isCurrentPage ? "default" : "outline"}
               size="icon"
-              className={cn("h-8 w-8 text-sm", isCurrentPage ? "" : "text-muted-foreground hover:text-foreground")}
+              className={cn(
+                "h-8 w-8 text-sm",
+                isCurrentPage ? "" : "text-muted-foreground hover:text-foreground",
+              )}
               onClick={() => onPageChange(page as number)}
             >
               {page}

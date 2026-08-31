@@ -18,6 +18,7 @@ const AUTH_HEADERS = {
   "content-type": "application/json",
   origin: BASE.replace(/\/$/, ""),
   referer: `${BASE}/sign-in`,
+  "x-forwarded-for": "127.0.0.31",
 };
 
 function parseCookies(setCookieHeaders: string[]) {
@@ -114,7 +115,10 @@ async function main() {
   );
   jar = createRes.jar;
   const createText = await createRes.res.text();
-  assert(createRes.res.ok, `create client failed ${createRes.res.status}: ${createText.slice(0, 300)}`);
+  assert(
+    createRes.res.ok,
+    `create client failed ${createRes.res.status}: ${createText.slice(0, 300)}`,
+  );
   const created = JSON.parse(createText) as { data: { _id: string; userId?: string | null } };
   const clientId = created.data._id;
   assert(!created.data.userId, "new CRM client should not have userId yet");

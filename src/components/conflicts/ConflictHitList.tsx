@@ -24,7 +24,10 @@ export function ConflictSeverityBadge({
 }) {
   const level = severity ?? "medium";
   return (
-    <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wide", SEVERITY_STYLES[level])}>
+    <Badge
+      variant="outline"
+      className={cn("text-[10px] uppercase tracking-wide", SEVERITY_STYLES[level])}
+    >
       {level} risk
     </Badge>
   );
@@ -71,7 +74,9 @@ export function ConflictHitList({
                         {hit.type}
                       </Badge>
                       {hit.caseNumber && (
-                        <span className="text-xs font-mono text-muted-foreground">{hit.caseNumber}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {hit.caseNumber}
+                        </span>
                       )}
                       {hit.recordStatus && (
                         <span className="text-xs text-muted-foreground">{hit.recordStatus}</span>

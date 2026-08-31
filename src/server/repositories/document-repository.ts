@@ -1,12 +1,7 @@
 import "server-only";
 import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDatabase } from "../db/client";
-import {
-  documents,
-  documentTags,
-  documentTagAssignments,
-  documentShares,
-} from "../db/schema";
+import { documents, documentTags, documentTagAssignments, documentShares } from "../db/schema";
 import { AppError } from "@/shared/errors/api-error";
 import type { DocumentDto } from "@/shared/contracts/domains";
 import type { DocumentSearchInput, DocumentShareCreateInput } from "@/shared/contracts/documents";
@@ -217,7 +212,11 @@ export class DocumentRepository {
     const doc = await this.getDocumentById(firmId, documentId);
     if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
     if ((doc as { isPrivileged?: boolean }).isPrivileged) {
-      throw new AppError("FORBIDDEN", "Privileged documents cannot be shared through public links", 403);
+      throw new AppError(
+        "FORBIDDEN",
+        "Privileged documents cannot be shared through public links",
+        403,
+      );
     }
     if ((doc as { isOnLegalHold?: boolean }).isOnLegalHold) {
       throw new AppError("FORBIDDEN", "Documents on legal hold cannot be publicly shared", 403);
@@ -267,7 +266,12 @@ export class DocumentRepository {
     }));
   }
 
-  static async revokeShare(firmId: string, documentId: string, shareId: string, revokedBy?: string) {
+  static async revokeShare(
+    firmId: string,
+    documentId: string,
+    shareId: string,
+    revokedBy?: string,
+  ) {
     const db = getDatabase();
     const doc = await this.getDocumentById(firmId, documentId);
     if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);

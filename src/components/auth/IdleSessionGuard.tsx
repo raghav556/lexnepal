@@ -101,8 +101,8 @@ export function IdleSessionGuard({ enabled = true }: IdleSessionGuardProps) {
           </DialogTitle>
           <DialogDescription>
             You have been inactive. For security, you will be signed out in{" "}
-            <span className="font-medium text-foreground">{formatIdleCountdown(remainingMs)}</span> unless you
-            continue working.
+            <span className="font-medium text-foreground">{formatIdleCountdown(remainingMs)}</span>{" "}
+            unless you continue working.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

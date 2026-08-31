@@ -66,8 +66,7 @@ export async function shadowReadMattersExport(input: {
       mismatches.push({ table: "clients", id, field: "row", source: "present", target: "missing" });
       continue;
     }
-    const expectedFirm =
-      input.firmMap[asString(source.firmId) ?? ""] ?? input.orphanFirmId ?? null;
+    const expectedFirm = input.firmMap[asString(source.firmId) ?? ""] ?? input.orphanFirmId ?? null;
     pushMismatch(mismatches, "clients", id, "firmId", expectedFirm, target.firmId);
     pushMismatch(
       mismatches,
@@ -110,8 +109,7 @@ export async function shadowReadMattersExport(input: {
       mismatches.push({ table: "cases", id, field: "row", source: "present", target: "missing" });
       continue;
     }
-    const expectedFirm =
-      input.firmMap[asString(source.firmId) ?? ""] ?? input.orphanFirmId ?? null;
+    const expectedFirm = input.firmMap[asString(source.firmId) ?? ""] ?? input.orphanFirmId ?? null;
     pushMismatch(mismatches, "cases", id, "firmId", expectedFirm, target.firmId);
     pushMismatch(
       mismatches,

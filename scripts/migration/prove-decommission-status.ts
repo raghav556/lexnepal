@@ -132,7 +132,10 @@ try {
   await fs.access(ARCHIVE_ZIP);
 
   const convexDir = path.join(ROOT, "convex");
-  const convexExists = await fs.access(convexDir).then(() => true, () => false);
+  const convexExists = await fs.access(convexDir).then(
+    () => true,
+    () => false,
+  );
   if (convexExists) throw new Error("convex/ directory still present — A5 incomplete");
 
   const pkg = JSON.parse(await fs.readFile(path.join(ROOT, "package.json"), "utf8")) as {
@@ -144,12 +147,7 @@ try {
   }
 
   const text = await fs.readFile(CSV, "utf8");
-  const rows = text
-    .trim()
-    .split(/\r?\n/)
-    .slice(1)
-    .filter(Boolean)
-    .map(parseCsvLine);
+  const rows = text.trim().split(/\r?\n/).slice(1).filter(Boolean).map(parseCsvLine);
   const byWave = new Map(rows.map((r) => [r[0], r]));
 
   for (const wave of REQUIRED_COMPLETE) {

@@ -1,19 +1,50 @@
 import { useState, useEffect } from "react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
-import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog.tsx";
-import { 
-  Receipt, Plus, Search, CheckCircle2, XCircle, Trash2, Loader2, Calendar, FolderOpen, CreditCard
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog.tsx";
+import {
+  Receipt,
+  Plus,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+  Loader2,
+  Calendar,
+  FolderOpen,
+  CreditCard,
+  Wallet,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
 import { useExpenses, useExpenseStats, useExpenseCommands } from "@/client/queries/financial";
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
 
 const CATEGORIES: Record<string, string> = {
   office_rent: "Office Rent",
@@ -27,18 +58,16 @@ const CATEGORIES: Record<string, string> = {
   other: "Other Expenses",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800",
-  approved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
-};
-
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR" }).format(amount);
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-NP", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-NP", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function AdminExpensesPage() {
@@ -48,23 +77,32 @@ export default function AdminExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
-  
-  const { data: expenses = [] } = useExpenses({ category: categoryFilter, status: statusFilter });
-  const { data: stats } = useExpenseStats();
+
+  const { data: expenses = [], isLoading: expensesLoading } = useExpenses({
+    category: categoryFilter,
+    status: statusFilter,
+  });
+  const { data: stats, isLoading: statsLoading } = useExpenseStats();
   const cases = useCases({}) || [];
   const users = useStaffDirectory() || [];
 
-  const { createExpense: createExpenseMutation, approveExpense: approveExpenseMutation, deleteExpense: deleteExpenseMutation } = useExpenseCommands();
+  const {
+    createExpense: createExpenseMutation,
+    approveExpense: approveExpenseMutation,
+    deleteExpense: deleteExpenseMutation,
+  } = useExpenseCommands();
 
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Form State
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("office_rent");
   const [caseId, setCaseId] = useState("none");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const isLoading = expensesLoading || statsLoading;
 
   const handleCreate = async () => {
     if (!desc || !amount) {
@@ -79,11 +117,13 @@ export default function AdminExpensesPage() {
         category,
         caseId: caseId === "none" ? undefined : caseId,
         date,
-        submittedBy: currentUserId
+        submittedBy: currentUserId,
       });
       toast.success("Expense submitted successfully");
       setShowModal(false);
-      setDesc(""); setAmount(""); setCaseId("none");
+      setDesc("");
+      setAmount("");
+      setCaseId("none");
     } catch (err: any) {
       toast.error(err.message || "Failed to submit expense");
     } finally {
@@ -110,21 +150,14 @@ export default function AdminExpensesPage() {
     }
   };
 
-  const filtered = expenses.filter(e => {
+  const filtered = expenses.filter((e) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return e.description.toLowerCase().includes(q) || e.amount.toString().includes(q);
   });
 
-  const {
-    paginatedItems,
-    currentPage,
-    totalPages,
-    goToPage,
-    nextPage,
-    prevPage,
-    resetPagination
-  } = usePagination(filtered, 10);
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } =
+    usePagination(filtered, 10);
 
   useEffect(() => {
     resetPagination();
@@ -133,78 +166,52 @@ export default function AdminExpensesPage() {
   const getUserName = (id: string) => users.find((u: any) => u._id === id)?.name || "Unknown";
   const getCaseName = (id: string) => cases.find((c: any) => c._id === id)?.title || id;
 
-  const kpiCards = [
-    {
-      label: "Total Expenses",
-      shortLabel: "Total",
-      value: formatCurrency(stats?.total ?? 0),
-      valueClass: "text-foreground",
-    },
-    {
-      label: "Approved & Paid",
-      shortLabel: "Approved",
-      value: formatCurrency(stats?.approved ?? 0),
-      valueClass: "text-emerald-600 dark:text-emerald-400",
-    },
-    {
-      label: "Pending Approval",
-      shortLabel: "Pending",
-      value: formatCurrency(stats?.pending ?? 0),
-      valueClass: "text-amber-600 dark:text-amber-400",
-      badge: (stats?.pendingCount ?? 0) > 0 ? `${stats?.pendingCount}` : null,
-    },
-    {
-      label: "Case-Linked Costs",
-      shortLabel: "Case-linked",
-      value: formatCurrency(stats?.caseLinked ?? 0),
-      valueClass: "text-foreground",
-      icon: true,
-    },
-  ];
-
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold font-serif text-primary flex items-center gap-2">
-            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
-            <span className="truncate">Expense Tracker</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage office expenses, court disbursements, and track hard costs.
-          </p>
-        </div>
-        <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto shrink-0 gap-2">
+    <PortalPageShell
+      portal="admin"
+      loading={isLoading}
+      loadingLabel="Loading expenses…"
+      eyebrow="Financial operations"
+      title="Expense tracker"
+      description="Manage office expenses, court disbursements, and track hard costs."
+      icon={Receipt}
+      actions={
+        <DashboardButton
+          onClick={() => setShowModal(true)}
+          className="w-full sm:w-auto shrink-0 gap-2"
+        >
           <Plus className="w-4 h-4" /> Add Expense
-        </Button>
-      </div>
-
-      {/* Stats — compact 2×2 on phone so NPR amounts never clip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpiCards.map((s) => (
-          <div
-            key={s.label}
-            className="bg-card border border-border p-3 sm:p-4 rounded-xl shadow-xs min-w-0 overflow-hidden relative"
-          >
-            {s.badge && (
-              <span className="absolute top-2 right-2 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                {s.badge}
-              </span>
-            )}
-            <p className="text-[11px] sm:text-sm font-medium text-muted-foreground mb-1 flex items-center gap-1 pr-6 leading-tight">
-              {s.icon ? <FolderOpen className="w-3 h-3 shrink-0 hidden sm:inline" /> : null}
-              <span className="sm:hidden">{s.shortLabel}</span>
-              <span className="hidden sm:inline">{s.label}</span>
-            </p>
-            <p
-              className={`text-sm sm:text-lg md:text-xl font-bold tabular-nums leading-snug break-words ${s.valueClass}`}
-            >
-              {s.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
+        </DashboardButton>
+      }
+      metrics={[
+        {
+          label: "Total expenses",
+          value: formatCurrency(stats?.total ?? 0),
+          icon: Wallet,
+          tone: DASHBOARD_METRIC_TONES.balance,
+        },
+        {
+          label: "Approved & paid",
+          value: formatCurrency(stats?.approved ?? 0),
+          icon: CheckCircle2,
+          tone: "success",
+        },
+        {
+          label: "Pending approval",
+          value: formatCurrency(stats?.pending ?? 0),
+          icon: Clock,
+          tone: "warning",
+          helperText:
+            (stats?.pendingCount ?? 0) > 0 ? `${stats?.pendingCount} awaiting review` : undefined,
+        },
+        {
+          label: "Case-linked costs",
+          value: formatCurrency(stats?.caseLinked ?? 0),
+          icon: FolderOpen,
+          tone: DASHBOARD_METRIC_TONES.cases,
+        },
+      ]}
+    >
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -223,7 +230,9 @@ export default function AdminExpensesPage() {
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
             {Object.entries(CATEGORIES).map(([val, label]) => (
-              <SelectItem key={val} value={val}>{label}</SelectItem>
+              <SelectItem key={val} value={val}>
+                {label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -240,20 +249,23 @@ export default function AdminExpensesPage() {
         </Select>
       </div>
 
-      {/* Expense List — cards on phone, table from md up */}
-      <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden min-w-0">
+      <DashboardSection title="Expense records" icon={Receipt}>
         {/* Mobile cards */}
-        <div className="md:hidden divide-y divide-border">
+        <div className="md:hidden divide-y divide-border -mx-1">
           {paginatedItems.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No expenses found matching your filters.
-            </p>
+            <EmptyState
+              title="No expenses found"
+              description="No expenses match your current filters."
+              icon={Receipt}
+            />
           ) : (
             paginatedItems.map((exp: any) => (
               <div key={exp._id} className="p-3 space-y-2 min-w-0">
                 <div className="flex items-start justify-between gap-2 min-w-0">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground text-sm break-words">{exp.description}</p>
+                    <p className="font-medium text-foreground text-sm break-words">
+                      {exp.description}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {formatDate(exp.date)} · By {getUserName(exp.submittedBy)}
                     </p>
@@ -269,29 +281,27 @@ export default function AdminExpensesPage() {
                   {exp.caseId && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] gap-1 font-normal max-w-full truncate text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
+                      className={`text-[10px] gap-1 font-normal max-w-full truncate ${DASHBOARD_TONE_PANEL_CLASSES.information}`}
                     >
                       <FolderOpen className="w-2.5 h-2.5 shrink-0" />
                       <span className="truncate">{getCaseName(exp.caseId)}</span>
                     </Badge>
                   )}
-                  <Badge variant="outline" className={`capitalize text-[10px] ${STATUS_COLORS[exp.status]}`}>
-                    {exp.status}
-                  </Badge>
+                  <DashboardStatusLabel status={exp.status} className="text-[10px]" />
                 </div>
                 <div className="flex items-center justify-end gap-1 pt-1">
                   {exp.status === "pending" && (
                     <>
                       <button
                         onClick={() => handleStatusUpdate(exp._id, "approved")}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md"
+                        className="p-2 text-dashboard-success hover:bg-dashboard-success-soft rounded-md"
                         title="Approve"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleStatusUpdate(exp._id, "rejected")}
-                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                        className="p-2 text-dashboard-danger hover:bg-dashboard-danger-soft rounded-md"
                         title="Reject"
                       >
                         <XCircle className="w-4 h-4" />
@@ -312,7 +322,7 @@ export default function AdminExpensesPage() {
         </div>
 
         {/* Desktop / tablet table */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto -mx-1">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
               <tr>
@@ -327,8 +337,12 @@ export default function AdminExpensesPage() {
             <tbody className="divide-y divide-border">
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    No expenses found matching your filters.
+                  <td colSpan={6} className="px-4 py-8">
+                    <EmptyState
+                      title="No expenses found"
+                      description="No expenses match your current filters."
+                      icon={Receipt}
+                    />
                   </td>
                 </tr>
               ) : (
@@ -339,7 +353,9 @@ export default function AdminExpensesPage() {
                     </td>
                     <td className="px-4 py-3 min-w-0">
                       <p className="font-medium text-foreground">{exp.description}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">By {getUserName(exp.submittedBy)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        By {getUserName(exp.submittedBy)}
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1 items-start">
@@ -349,7 +365,7 @@ export default function AdminExpensesPage() {
                         {exp.caseId && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] gap-1 font-normal text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
+                            className={`text-[10px] gap-1 font-normal ${DASHBOARD_TONE_PANEL_CLASSES.information}`}
                           >
                             <FolderOpen className="w-2.5 h-2.5" /> {getCaseName(exp.caseId)}
                           </Badge>
@@ -360,9 +376,7 @@ export default function AdminExpensesPage() {
                       {formatCurrency(exp.amount)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Badge variant="outline" className={`capitalize ${STATUS_COLORS[exp.status]}`}>
-                        {exp.status}
-                      </Badge>
+                      <DashboardStatusLabel status={exp.status} />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
@@ -370,14 +384,14 @@ export default function AdminExpensesPage() {
                           <>
                             <button
                               onClick={() => handleStatusUpdate(exp._id, "approved")}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md"
+                              className="p-1.5 text-dashboard-success hover:bg-dashboard-success-soft rounded-md"
                               title="Approve"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleStatusUpdate(exp._id, "rejected")}
-                              className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                              className="p-1.5 text-dashboard-danger hover:bg-dashboard-danger-soft rounded-md"
                               title="Reject"
                             >
                               <XCircle className="w-4 h-4" />
@@ -406,7 +420,7 @@ export default function AdminExpensesPage() {
           onNextPage={nextPage}
           onPrevPage={prevPage}
         />
-      </div>
+      </DashboardSection>
 
       {/* Create Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -415,21 +429,26 @@ export default function AdminExpensesPage() {
             <DialogTitle>Record New Expense</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Description <span className="text-destructive">*</span></label>
+              <label className="text-xs font-medium text-foreground">
+                Description <span className="text-destructive">*</span>
+              </label>
               <Input
                 placeholder="e.g. Supreme Court Filing Fee"
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
               />
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Amount (NPR) <span className="text-destructive">*</span></label>
+                <label className="text-xs font-medium text-foreground">
+                  Amount (NPR) <span className="text-destructive">*</span>
+                </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rs.</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    Rs.
+                  </span>
                   <Input
                     type="number"
                     className="pl-9"
@@ -440,7 +459,9 @@ export default function AdminExpensesPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Date <span className="text-destructive">*</span></label>
+                <label className="text-xs font-medium text-foreground">
+                  Date <span className="text-destructive">*</span>
+                </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -454,14 +475,18 @@ export default function AdminExpensesPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Category <span className="text-destructive">*</span></label>
+              <label className="text-xs font-medium text-foreground">
+                Category <span className="text-destructive">*</span>
+              </label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(CATEGORIES).map(([val, label]) => (
-                    <SelectItem key={val} value={val}>{label}</SelectItem>
+                    <SelectItem key={val} value={val}>
+                      {label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -479,27 +504,34 @@ export default function AdminExpensesPage() {
                 <SelectContent>
                   <SelectItem value="none">No Case Link (General Office Expense)</SelectItem>
                   {cases.map((c: any) => (
-                    <SelectItem key={c._id} value={c._id}>{c.caseNumber} — {c.title}</SelectItem>
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.caseNumber} — {c.title}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {caseId !== "none" && (
-                <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
+                <p className="text-[10px] text-dashboard-information mt-1">
                   This cost will be tracked as a hard cost disbursement for this case.
                 </p>
               )}
             </div>
-
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={isSubmitting} className="gap-2">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+            <DashboardButton variant="outline" onClick={() => setShowModal(false)}>
+              Cancel
+            </DashboardButton>
+            <DashboardButton onClick={handleCreate} disabled={isSubmitting} className="gap-2">
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CreditCard className="w-4 h-4" />
+              )}
               Submit Expense
-            </Button>
+            </DashboardButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

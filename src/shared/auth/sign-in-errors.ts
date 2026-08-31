@@ -38,7 +38,10 @@ export function formatSignInError(error: unknown): string {
   ) {
     return "Your account is temporarily locked after too many failed attempts. Try again in about 15 minutes.";
   }
-  if (haystack.includes("invalid email or password") || haystack.includes("invalid_email_or_password")) {
+  if (
+    haystack.includes("invalid email or password") ||
+    haystack.includes("invalid_email_or_password")
+  ) {
     return "Incorrect email or password. Check your credentials or use Forgot password.";
   }
   if (haystack.includes("email not verified") || haystack.includes("email_not_verified")) {

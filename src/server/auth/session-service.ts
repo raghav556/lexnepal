@@ -104,7 +104,11 @@ export class SessionService {
     ];
     const user = await this.repository.findUserByTokenIdentifiers([...new Set(candidates)]);
     if (!user)
-      throw new AppError("UNAUTHENTICATED", "No LexNepal account is linked to this identity", 401);
+      throw new AppError(
+        "UNAUTHENTICATED",
+        "No Srimar Law account is linked to this identity",
+        401,
+      );
     assertEnabledUser(user);
     return user;
   }

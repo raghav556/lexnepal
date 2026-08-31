@@ -53,14 +53,14 @@ export async function migrateWorkManagementExport(input: {
   }
 
   const database = getDatabase();
-  
+
   const userRows = await database
     .select({ id: users.id, firmId: users.firmId, legacyId: users.legacyConvexId })
     .from(users);
   const userMap = new Map(
     userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
   );
-  
+
   const caseRows = await database
     .select({ id: cases.id, firmId: cases.firmId, legacyId: cases.legacyConvexId })
     .from(cases);
@@ -70,7 +70,7 @@ export async function migrateWorkManagementExport(input: {
 
   const migrated = Object.fromEntries(tables.map((table) => [table, 0]));
   const exceptions: WorkManagementMigrationReport["exceptions"] = [];
-  
+
   const taskMap = new Map<string, { id: string; firmId: string }>();
   const hearingMap = new Map<string, { id: string; firmId: string }>();
   const researchNoteMap = new Map<string, { id: string; firmId: string }>();
@@ -84,9 +84,9 @@ export async function migrateWorkManagementExport(input: {
         if (!legacyId) throw new Error("Missing legacy ID");
         const caseRecord = caseMap.get(asString(record.caseId) ?? "");
         if (!caseRecord) throw new Error("Case missing");
-        
+
         const firmId = resolveFirm(record, input, caseRecord.firmId);
-        
+
         const [row] = await tx
           .insert(hearings)
           .values({
@@ -95,7 +95,8 @@ export async function migrateWorkManagementExport(input: {
             caseId: caseRecord.id,
             court: asString(record.court) ?? "Unknown",
             judge: asString(record.judge),
-            dateGregorian: dateOnly(record.dateGregorian) ?? new Date().toISOString().split('T')[0]!,
+            dateGregorian:
+              dateOnly(record.dateGregorian) ?? new Date().toISOString().split("T")[0]!,
             dateBs: asString(record.dateBs) ?? "",
             hearingTime: asString(record.hearingTime),
             purpose: asString(record.purpose),
@@ -104,7 +105,25 @@ export async function migrateWorkManagementExport(input: {
             nextDateBs: asString(record.nextDateBs),
             status: enumValue(
               record.status,
-              ["scheduled", "completed", "adjourned", "cancelled", "postponed", "not_reached", "bench_disqualified", "could_not_present", "part_heard", "continuous", "procedural_order", "evidence_exam", "final_judgment", "dismissed", "settled", "archived", "on_hold"] as const,
+              [
+                "scheduled",
+                "completed",
+                "adjourned",
+                "cancelled",
+                "postponed",
+                "not_reached",
+                "bench_disqualified",
+                "could_not_present",
+                "part_heard",
+                "continuous",
+                "procedural_order",
+                "evidence_exam",
+                "final_judgment",
+                "dismissed",
+                "settled",
+                "archived",
+                "on_hold",
+              ] as const,
               "scheduled",
             ),
             notes: asString(record.notes),
@@ -120,7 +139,7 @@ export async function migrateWorkManagementExport(input: {
             },
           })
           .returning({ id: hearings.id, firmId: hearings.firmId });
-        
+
         hearingMap.set(legacyId, row);
         migrated.hearings += 1;
       } catch (error) {
@@ -133,12 +152,12 @@ export async function migrateWorkManagementExport(input: {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
+
         const assignee = userMap.get(asString(record.assignedTo) ?? "");
         const creator = userMap.get(asString(record.createdBy) ?? "");
-        
+
         if (!assignee || !creator) throw new Error("Assignee or creator missing");
-        
+
         let firmId = assignee.firmId;
         const caseRecord = record.caseId ? caseMap.get(asString(record.caseId) ?? "") : null;
         if (caseRecord) {
@@ -147,7 +166,9 @@ export async function migrateWorkManagementExport(input: {
           firmId = resolveFirm(record, input, firmId);
         }
 
-        const hearingRecord = record.hearingId ? hearingMap.get(asString(record.hearingId) ?? "") : null;
+        const hearingRecord = record.hearingId
+          ? hearingMap.get(asString(record.hearingId) ?? "")
+          : null;
 
         const [row] = await tx
           .insert(tasks)
@@ -158,15 +179,31 @@ export async function migrateWorkManagementExport(input: {
             description: asString(record.description),
             assignedTo: assignee.id,
             createdBy: creator.id,
-            status: enumValue(record.status, ["todo", "in_progress", "done", "cancelled"] as const, "todo"),
-            priority: enumValue(record.priority, ["low", "medium", "high", "urgent"] as const, "medium"),
-            category: enumValue(record.category, ["filing", "research", "client", "court", "admin", "other"] as const, "other"),
+            status: enumValue(
+              record.status,
+              ["todo", "in_progress", "done", "cancelled"] as const,
+              "todo",
+            ),
+            priority: enumValue(
+              record.priority,
+              ["low", "medium", "high", "urgent"] as const,
+              "medium",
+            ),
+            category: enumValue(
+              record.category,
+              ["filing", "research", "client", "court", "admin", "other"] as const,
+              "other",
+            ),
             dueDate: toDate(record.dueDate),
             dueDateBs: asString(record.dueDateBs),
             caseId: caseRecord?.id,
             hearingId: hearingRecord?.id,
             isRecurring: asBoolean(record.isRecurring, false),
-            recurrenceRule: enumValue(record.recurrenceRule, ["daily", "weekly", "monthly"] as const, "daily"),
+            recurrenceRule: enumValue(
+              record.recurrenceRule,
+              ["daily", "weekly", "monthly"] as const,
+              "daily",
+            ),
             completedAt: toDate(record.completedAt),
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
@@ -179,7 +216,7 @@ export async function migrateWorkManagementExport(input: {
             },
           })
           .returning({ id: tasks.id, firmId: tasks.firmId });
-          
+
         taskMap.set(legacyId, row);
         migrated.tasks += 1;
       } catch (error) {
@@ -226,15 +263,15 @@ export async function migrateWorkManagementExport(input: {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
+
         const taskRow = taskMap.get(asString(record.taskId) ?? "");
         if (!taskRow) throw new Error("Task missing");
-        
+
         const author = userMap.get(asString(record.authorId) ?? "");
         if (!author) throw new Error("Author missing");
-        
+
         const firmId = resolveFirm(record, input, taskRow.firmId);
-        
+
         await tx
           .insert(taskComments)
           .values({
@@ -253,7 +290,7 @@ export async function migrateWorkManagementExport(input: {
               updatedAt: new Date(),
             },
           });
-          
+
         migrated.taskComments += 1;
       } catch (error) {
         exceptions.push({ table: "taskComments", id: legacyId, reason: message(error) });
@@ -265,12 +302,12 @@ export async function migrateWorkManagementExport(input: {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
+
         const author = userMap.get(asString(record.authorId) ?? "");
         if (!author) throw new Error("Author missing");
-        
+
         const firmId = resolveFirm(record, input, author.firmId);
-        
+
         const [row] = await tx
           .insert(researchNotes)
           .values({
@@ -278,7 +315,18 @@ export async function migrateWorkManagementExport(input: {
             firmId,
             title: asString(record.title) ?? "Migrated Note",
             content: asString(record.content) ?? "",
-            category: enumValue(record.category, ["supreme_court", "high_court", "district_court", "commentary", "procedure", "template_research"] as const, "commentary"),
+            category: enumValue(
+              record.category,
+              [
+                "supreme_court",
+                "high_court",
+                "district_court",
+                "commentary",
+                "procedure",
+                "template_research",
+              ] as const,
+              "commentary",
+            ),
             authorId: author.id,
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
@@ -291,13 +339,14 @@ export async function migrateWorkManagementExport(input: {
             },
           })
           .returning({ id: researchNotes.id, firmId: researchNotes.firmId });
-          
+
         researchNoteMap.set(legacyId, row);
-        
+
         if (Array.isArray(record.tags)) {
           for (const tag of record.tags) {
-            if (typeof tag === 'string' && tag.trim()) {
-               await tx.insert(researchNoteTags)
+            if (typeof tag === "string" && tag.trim()) {
+              await tx
+                .insert(researchNoteTags)
                 .values({
                   firmId,
                   researchNoteId: row.id,
@@ -307,7 +356,7 @@ export async function migrateWorkManagementExport(input: {
             }
           }
         }
-        
+
         migrated.researchNotes += 1;
       } catch (error) {
         exceptions.push({ table: "researchNotes", id: legacyId, reason: message(error) });
@@ -320,7 +369,7 @@ export async function migrateWorkManagementExport(input: {
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
         const firmId = resolveFirm(record, input);
-        
+
         const [row] = await tx
           .insert(sopTemplates)
           .values({
@@ -328,7 +377,11 @@ export async function migrateWorkManagementExport(input: {
             firmId,
             key: asString(record.key) ?? `migrated-${legacyId}`,
             label: asString(record.label) ?? "Migrated SOP",
-            defaultPriority: enumValue(record.defaultPriority, ["low", "medium", "high", "urgent"] as const, "medium"),
+            defaultPriority: enumValue(
+              record.defaultPriority,
+              ["low", "medium", "high", "urgent"] as const,
+              "medium",
+            ),
             practiceArea: asString(record.practiceArea),
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
@@ -341,7 +394,7 @@ export async function migrateWorkManagementExport(input: {
             },
           })
           .returning({ id: sopTemplates.id, firmId: sopTemplates.firmId });
-          
+
         sopTemplateMap.set(legacyId, row);
         migrated.sopTemplates += 1;
       } catch (error) {
@@ -354,12 +407,12 @@ export async function migrateWorkManagementExport(input: {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        
+
         const templateRow = sopTemplateMap.get(asString(record.templateId) ?? "");
         if (!templateRow) throw new Error("Template missing");
-        
+
         const firmId = resolveFirm(record, input, templateRow.firmId);
-        
+
         await tx
           .insert(sopTemplateTasks)
           .values({
@@ -378,7 +431,7 @@ export async function migrateWorkManagementExport(input: {
               updatedAt: new Date(),
             },
           });
-          
+
         migrated.sopTemplateTasks += 1;
       } catch (error) {
         exceptions.push({ table: "sopTemplateTasks", id: legacyId, reason: message(error) });

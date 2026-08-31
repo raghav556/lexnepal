@@ -225,9 +225,7 @@ try {
     }),
   );
   if (contactPut.status !== 200) {
-    throw new Error(
-      `CMS-2 settings put failed: ${contactPut.status} ${await contactPut.text()}`,
-    );
+    throw new Error(`CMS-2 settings put failed: ${contactPut.status} ${await contactPut.text()}`);
   }
   const publicSettingsRes = await publicSettingsGet(
     new Request("http://local/api/v1/public/cms/settings"),
@@ -325,18 +323,19 @@ try {
       data: { intentId: string; upload: { url: string; fields: Record<string, string> } };
     };
     const form = new FormData();
-    Object.entries(intentBody.data.upload.fields).forEach(([key, value]) => form.append(key, value));
-    form.append(
-      "file",
-      new Blob([SEED_CMS_ASSET_PNG], { type: "image/png" }),
-      `${purpose}.png`,
+    Object.entries(intentBody.data.upload.fields).forEach(([key, value]) =>
+      form.append(key, value),
     );
+    form.append("file", new Blob([SEED_CMS_ASSET_PNG], { type: "image/png" }), `${purpose}.png`);
     const storageUpload = await fetch(intentBody.data.upload.url, { method: "POST", body: form });
     if (!storageUpload.ok) {
       throw new Error(`CMS asset storage upload failed (${purpose}): ${storageUpload.status}`);
     }
     const completeResponse = await cmsAssetCompletePost(
-      new Request("http://local/api/v1/cms/asset-upload-intents/x/complete", { method: "POST", headers: { cookie } }),
+      new Request("http://local/api/v1/cms/asset-upload-intents/x/complete", {
+        method: "POST",
+        headers: { cookie },
+      }),
       { params: Promise.resolve({ intentId: intentBody.data.intentId }) },
     );
     if (completeResponse.status !== 200) {
@@ -351,9 +350,12 @@ try {
       throw new Error(`CMS asset not promoted (${purpose}): ${JSON.stringify(completeBody.data)}`);
     }
     const assetId = completeBody.data.publicUrl.replace("/api/v1/public/cms/assets/", "");
-    const publicAsset = await publicCmsAssetGet(new Request(`http://local/api/v1/public/cms/assets/${assetId}`), {
-      params: Promise.resolve({ assetId }),
-    });
+    const publicAsset = await publicCmsAssetGet(
+      new Request(`http://local/api/v1/public/cms/assets/${assetId}`),
+      {
+        params: Promise.resolve({ assetId }),
+      },
+    );
     if (publicAsset.status !== 307) {
       throw new Error(`Public CMS asset redirect failed (${purpose}): ${publicAsset.status}`);
     }
@@ -398,7 +400,13 @@ try {
     data: { director_message?: { message?: string; sectionTitle?: string; isVisible?: boolean } };
   };
   const dm = publicDirectorBody.data.director_message as
-    | { message?: string; sectionTitle?: string; isVisible?: boolean; photoUrl?: string; signatureUrl?: string }
+    | {
+        message?: string;
+        sectionTitle?: string;
+        isVisible?: boolean;
+        photoUrl?: string;
+        signatureUrl?: string;
+      }
     | undefined;
   if (
     !dm ||
@@ -528,6 +536,7 @@ try {
       headers: { cookie, "content-type": "application/json" },
       body: JSON.stringify({
         title: "CMS-6 Draft News",
+        slug: `cms-6-draft-news-${Date.now()}`,
         excerpt: "Should stay private.",
         content: "Draft body for CMS-6.",
         date: postedDate,
@@ -538,7 +547,9 @@ try {
     { params: Promise.resolve({ collection: "news" }) },
   );
   if (draftNews.status !== 201) {
-    throw new Error(`CMS-6 draft news create failed: ${draftNews.status} ${await draftNews.text()}`);
+    throw new Error(
+      `CMS-6 draft news create failed: ${draftNews.status} ${await draftNews.text()}`,
+    );
   }
   const draftNewsBody = (await draftNews.json()) as {
     data: { id?: string; _id?: string; status?: string };
@@ -548,10 +559,9 @@ try {
   if (draftNewsBody.data.status !== "draft") {
     throw new Error(`CMS-6 expected draft status, got ${draftNewsBody.data.status}`);
   }
-  const publicNews = await publicCollectionGet(
-    new Request("http://local/api/v1/public/cms/news"),
-    { params: Promise.resolve({ collection: "news" }) },
-  );
+  const publicNews = await publicCollectionGet(new Request("http://local/api/v1/public/cms/news"), {
+    params: Promise.resolve({ collection: "news" }),
+  });
   const publicNewsBody = (await publicNews.json()) as {
     data: Array<{ id?: string; _id?: string; status?: string }>;
   };
@@ -587,7 +597,9 @@ try {
     { params: Promise.resolve({ collection: "navigation" }) },
   );
   if (parentNav.status !== 201) {
-    throw new Error(`CMS-9 parent nav create failed: ${parentNav.status} ${await parentNav.text()}`);
+    throw new Error(
+      `CMS-9 parent nav create failed: ${parentNav.status} ${await parentNav.text()}`,
+    );
   }
   const parentBody = (await parentNav.json()) as { data: { id?: string; _id?: string } };
   const parentId = parentBody.data.id || parentBody.data._id;
@@ -612,7 +624,9 @@ try {
   if (childNav.status !== 201) {
     throw new Error(`CMS-9 child nav create failed: ${childNav.status} ${await childNav.text()}`);
   }
-  const childBody = (await childNav.json()) as { data: { id?: string; _id?: string; order?: number } };
+  const childBody = (await childNav.json()) as {
+    data: { id?: string; _id?: string; order?: number };
+  };
   const childId = childBody.data.id || childBody.data._id;
   if (!childId) throw new Error("CMS-9 child nav missing id");
 
@@ -653,7 +667,9 @@ try {
     }),
   );
   if (reorderRes.status !== 200) {
-    throw new Error(`CMS-9 sibling reorder failed: ${reorderRes.status} ${await reorderRes.text()}`);
+    throw new Error(
+      `CMS-9 sibling reorder failed: ${reorderRes.status} ${await reorderRes.text()}`,
+    );
   }
   const reorderBody = (await reorderRes.json()) as { data: { success?: boolean } };
   if (!reorderBody.data?.success) {
@@ -865,7 +881,9 @@ try {
     { params: Promise.resolve({ collection: "testimonials" }) },
   );
   if (tCreateApproved.status !== 201) {
-    throw new Error(`Testimonial create failed: ${tCreateApproved.status} ${await tCreateApproved.text()}`);
+    throw new Error(
+      `Testimonial create failed: ${tCreateApproved.status} ${await tCreateApproved.text()}`,
+    );
   }
   const tApprovedBody = (await tCreateApproved.json()) as {
     data: { id?: string; _id?: string; rating?: number; avatarUrl?: string; displayOrder?: number };
@@ -953,7 +971,12 @@ try {
     { params: Promise.resolve({ collection: "testimonials" }) },
   );
   const publicHomeBody = (await publicHomeTestimonials.json()) as {
-    data: Array<{ clientName?: string; showOnHome?: boolean; displayOrder?: number; rating?: number }>;
+    data: Array<{
+      clientName?: string;
+      showOnHome?: boolean;
+      displayOrder?: number;
+      rating?: number;
+    }>;
   };
   if (publicHomeBody.data.some((row) => row.showOnHome === false)) {
     throw new Error("Public showOnHome=true leaked off-home rows");
@@ -961,7 +984,11 @@ try {
   if (publicHomeBody.data.some((row) => row.clientName === `Off-home Client ${tStamp}`)) {
     throw new Error("Off-home verify row appeared in showOnHome=true list");
   }
-  if (!publicHomeBody.data.some((row) => row.clientName === `Verify Client ${tStamp}` && row.rating === 4)) {
+  if (
+    !publicHomeBody.data.some(
+      (row) => row.clientName === `Verify Client ${tStamp}` && row.rating === 4,
+    )
+  ) {
     throw new Error("Homepage testimonials missing verify rating");
   }
   for (let i = 1; i < publicHomeBody.data.length; i++) {

@@ -6,21 +6,57 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 
 const ICON_MAP: Record<string, any> = {
-  Scale, Shield, Users, Target, Award
+  Scale,
+  Shield,
+  Users,
+  Target,
+  Award,
 };
 
 const DEFAULT_VALUES = [
-  { icon: "Shield", title: "Integrity First", desc: "We uphold the highest ethical standards in every case, maintaining complete transparency with our clients." },
-  { icon: "Target", title: "Precision & Diligence", desc: "Every detail matters in law. We leave no stone unturned in building your case and protecting your interests." },
-  { icon: "Users", title: "Client-Centered", desc: "Your goals drive our strategy. We listen first, then craft legal solutions tailored to your specific needs." },
-  { icon: "Award", title: "Excellence in Practice", desc: "Our advocates are among the most experienced in Nepal, registered with the Nepal Bar Council and continuously trained." },
+  {
+    icon: "Shield",
+    title: "Integrity First",
+    desc: "We uphold the highest ethical standards in every case, maintaining complete transparency with our clients.",
+  },
+  {
+    icon: "Target",
+    title: "Precision & Diligence",
+    desc: "Every detail matters in law. We leave no stone unturned in building your case and protecting your interests.",
+  },
+  {
+    icon: "Users",
+    title: "Client-Centered",
+    desc: "Your goals drive our strategy. We listen first, then craft legal solutions tailored to your specific needs.",
+  },
+  {
+    icon: "Award",
+    title: "Excellence in Practice",
+    desc: "Our advocates are among the most experienced in Nepal, registered with the Nepal Bar Council and continuously trained.",
+  },
 ];
 
 const DEFAULT_TIMELINE = [
-  { year: "2010", title: "Firm Founded", desc: "Established in Kathmandu with a vision to modernize legal practice in Nepal." },
-  { year: "2015", title: "50+ Corporate Clients", desc: "Became one of Kathmandu's leading corporate law practices." },
-  { year: "2019", title: "Digital Transformation", desc: "Launched our Client Portal — bringing transparency and 24/7 case access to our clients." },
-  { year: "2024", title: "15+ Advocates Strong", desc: "Grew to a full-service firm covering all major areas of Nepal law." },
+  {
+    year: "2010",
+    title: "Firm Founded",
+    desc: "Established in Kathmandu with a vision to modernize legal practice in Nepal.",
+  },
+  {
+    year: "2015",
+    title: "50+ Corporate Clients",
+    desc: "Became one of Kathmandu's leading corporate law practices.",
+  },
+  {
+    year: "2019",
+    title: "Digital Transformation",
+    desc: "Launched our Client Portal — bringing transparency and 24/7 case access to our clients.",
+  },
+  {
+    year: "2024",
+    title: "15+ Advocates Strong",
+    desc: "Grew to a full-service firm covering all major areas of Nepal law.",
+  },
 ];
 
 const sectionPad = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";
@@ -31,9 +67,11 @@ export default function AboutPage() {
   const data = settings.about_page || {};
 
   const heroTitle = data.hero?.title || "Modernizing Legal Practice in Nepal";
-  const heroDescription = data.hero?.description || "We combine decades of courtroom experience with cutting-edge technology to deliver transparent, efficient, and results-driven legal services.";
+  const heroDescription =
+    data.hero?.description ||
+    "We combine decades of courtroom experience with cutting-edge technology to deliver transparent, efficient, and results-driven legal services.";
   const missionText = data.mission?.text || heroDescription;
-  
+
   const valuesList = data.values || DEFAULT_VALUES;
   const timelineList = data.timeline || DEFAULT_TIMELINE;
 
@@ -41,7 +79,13 @@ export default function AboutPage() {
     <div className="w-full min-w-0 overflow-x-clip">
       {/* Hero */}
       <section className="relative bg-primary overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 30% 70%, oklch(0.75 0.15 60) 0%, transparent 60%), radial-gradient(circle at 70% 30%, oklch(0.75 0.15 60) 0%, transparent 60%)" }} />
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 30% 70%, oklch(0.75 0.15 60) 0%, transparent 60%), radial-gradient(circle at 70% 30%, oklch(0.75 0.15 60) 0%, transparent 60%)",
+          }}
+        />
         <div className={`relative py-14 sm:py-20 md:py-32 ${sectionPad}`}>
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -105,9 +149,21 @@ export default function AboutPage() {
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {[
                   { value: "500+", label: "Cases Won", color: "bg-accent/10 text-accent" },
-                  { value: "20+", label: "Years Experience", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-                  { value: "1,200+", label: "Clients Served", color: "bg-green-500/10 text-green-600 dark:text-green-400" },
-                  { value: "15+", label: "Expert Lawyers", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+                  {
+                    value: "20+",
+                    label: "Years Experience",
+                    color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+                  },
+                  {
+                    value: "1,200+",
+                    label: "Clients Served",
+                    color: "bg-green-500/10 text-green-600 dark:text-green-400",
+                  },
+                  {
+                    value: "15+",
+                    label: "Expert Lawyers",
+                    color: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+                  },
                 ].map((s, i) => (
                   <motion.div
                     key={s.label}
@@ -117,7 +173,9 @@ export default function AboutPage() {
                     transition={{ delay: 0.05 * i, duration: 0.35 }}
                     className="min-w-0"
                   >
-                    <Card className={`border-0 shadow-sm overflow-hidden py-0 gap-0 ${s.color.split(" ")[0]}`}>
+                    <Card
+                      className={`border-0 shadow-sm overflow-hidden py-0 gap-0 ${s.color.split(" ")[0]}`}
+                    >
                       <CardContent className="p-3 sm:p-5 text-center">
                         <div
                           className={`text-xl sm:text-3xl font-serif font-bold tabular-nums ${s.color

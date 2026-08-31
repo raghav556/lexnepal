@@ -58,7 +58,9 @@ export async function migrateCrmExport(input: {
       const legacyId = asString(record._id);
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
-        const assignedUser = record.assignedTo ? userMap.get(asString(record.assignedTo) ?? "") : undefined;
+        const assignedUser = record.assignedTo
+          ? userMap.get(asString(record.assignedTo) ?? "")
+          : undefined;
         const converted = record.convertedClientId
           ? clientMap.get(asString(record.convertedClientId) ?? "")
           : undefined;
@@ -79,7 +81,7 @@ export async function migrateCrmExport(input: {
         const notes = asString(record.notes);
         const intakeToken = asString(record.intakeToken);
         const intakeSubmitted = asBoolean(record.intakeSubmitted, false);
-        
+
         await tx
           .insert(leads)
           .values({
@@ -129,12 +131,14 @@ export async function migrateCrmExport(input: {
       try {
         if (!legacyId) throw new Error("Missing legacy ID");
         const client = record.clientId ? clientMap.get(asString(record.clientId) ?? "") : undefined;
-        const lawyer = record.assignedLawyerId ? userMap.get(asString(record.assignedLawyerId) ?? "") : undefined;
-        
+        const lawyer = record.assignedLawyerId
+          ? userMap.get(asString(record.assignedLawyerId) ?? "")
+          : undefined;
+
         if (client && lawyer && client.firmId !== lawyer.firmId) {
-            throw new Error("Appointment client and assigned lawyer belong to different firms");
+          throw new Error("Appointment client and assigned lawyer belong to different firms");
         }
-        
+
         const firmId = resolveFirm(record, input, client?.firmId ?? lawyer?.firmId);
 
         const clientName = asString(record.clientName) ?? "Migrated Client";

@@ -16,7 +16,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       avatar?: string | null;
     };
     const title = lawyer.name ? `${lawyer.name} | Our Team` : "Advocate Profile";
-    const description = String(lawyer.bio || lawyer.longBio || lawyer.leadershipTitle || "Advocate profile");
+    const description = String(
+      lawyer.bio || lawyer.longBio || lawyer.leadershipTitle || "Advocate profile",
+    );
     const image = lawyer.avatarUrl || lawyer.avatar || undefined;
     return {
       title,

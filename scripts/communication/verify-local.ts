@@ -129,13 +129,18 @@ try {
   if (!emailBody.data.jobId) throw new Error("Email enqueue did not return jobId");
 
   let emailCompleted = false;
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const workerResult = await createJobWorker(`communication-verify-${attempt}`).runOnce();
+  let emailStatus = "missing";
+  let workerAttempt = 0;
+  const emailDeadline = Date.now() + 30_000;
+  while (Date.now() < emailDeadline) {
+    const workerResult = await createJobWorker(`communication-verify-${workerAttempt}`).runOnce();
+    workerAttempt += 1;
     const [job] = await database
       .select({ status: durableJobs.status })
       .from(durableJobs)
       .where(eq(durableJobs.id, emailBody.data.jobId))
       .limit(1);
+    emailStatus = job?.status ?? "missing";
     if (job?.status === "completed") {
       emailCompleted = true;
       break;
@@ -143,10 +148,14 @@ try {
     if (job?.status === "dead_letter" || job?.status === "failed") {
       throw new Error(`Email job ended in status=${job.status}`);
     }
-    if (workerResult === "idle") break;
+    if (workerResult === "idle") {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
   if (!emailCompleted) {
-    throw new Error("Email job did not complete after worker drain. Is Mailpit on :1025?");
+    throw new Error(
+      `Email job did not complete within 30 seconds (status=${emailStatus}). Is Mailpit on :1025?`,
+    );
   }
 
   const mailpit = await fetch(

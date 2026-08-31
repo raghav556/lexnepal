@@ -3,7 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { AlertTriangle, Activity, FileText, Settings, Shield, Menu, X, Globe, PenTool, Briefcase, Calendar, Receipt, Quote, LayoutDashboard, Users, UserCheck, Contact, DollarSign, BarChart3, Scale, Navigation, Newspaper } from "lucide-react";
+import {
+  AlertTriangle,
+  Activity,
+  FileText,
+  Settings,
+  Shield,
+  Menu,
+  X,
+  Globe,
+  PenTool,
+  Briefcase,
+  Calendar,
+  Receipt,
+  Quote,
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  Contact,
+  DollarSign,
+  BarChart3,
+  Scale,
+  Navigation,
+  Newspaper,
+  User as UserIcon,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
@@ -11,23 +35,45 @@ import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
 import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
+import { PortalBrandingProvider } from "@/components/dashboard";
 
-type NavItem = { label?: string; i18nKey?: string; href?: string; icon?: LucideIcon; heading?: string };
+type NavItem = {
+  label?: string;
+  i18nKey?: string;
+  href?: string;
+  icon?: LucideIcon;
+  heading?: string;
+};
 type NavLink = NavItem & { href: string; icon: LucideIcon };
 const isNavLink = (item: NavItem): item is NavLink => Boolean(item.href && item.icon);
 
 const NAV: NavItem[] = [
   { heading: "Overview" },
   { label: "Dashboard", i18nKey: "nav.dashboard", href: "/admin", icon: LayoutDashboard },
-  { label: "Advanced Analytics", i18nKey: "nav.analytics", href: "/admin/analytics", icon: Activity },
+  {
+    label: "Advanced Analytics",
+    i18nKey: "nav.analytics",
+    href: "/admin/analytics",
+    icon: Activity,
+  },
 
   { heading: "Firm & People" },
-  { label: "Conflict Checker", i18nKey: "nav.conflict_checker", href: "/admin/conflict-checker", icon: AlertTriangle },
+  {
+    label: "Conflict Checker",
+    i18nKey: "nav.conflict_checker",
+    href: "/admin/conflict-checker",
+    icon: AlertTriangle,
+  },
   { label: "Users", i18nKey: "nav.users", href: "/admin/users", icon: Users },
   { label: "Clients", i18nKey: "nav.clients", href: "/admin/clients", icon: Contact },
   { label: "HR", i18nKey: "nav.hr", href: "/admin/hr", icon: UserCheck },
   { label: "CRM", i18nKey: "nav.crm", href: "/admin/crm", icon: BarChart3 },
-  { label: "Appointments", i18nKey: "nav.appointments", href: "/admin/appointments", icon: Calendar },
+  {
+    label: "Appointments",
+    i18nKey: "nav.appointments",
+    href: "/admin/appointments",
+    icon: Calendar,
+  },
 
   { heading: "Financials" },
   { label: "Finance", i18nKey: "nav.finance", href: "/admin/finance", icon: DollarSign },
@@ -36,9 +82,24 @@ const NAV: NavItem[] = [
   { heading: "Public CMS" },
   { label: "Site Settings", i18nKey: "nav.site_settings", href: "/admin/cms", icon: Globe },
   { label: "Homepage", href: "/admin/cms/homepage", icon: LayoutDashboard },
-  { label: "Navigation & Menus", i18nKey: "nav.navigation", href: "/admin/cms/navigation", icon: Navigation },
-  { label: "Practice Areas", i18nKey: "nav.practice_areas", href: "/admin/cms/practice-areas", icon: Briefcase },
-  { label: "Testimonials", i18nKey: "nav.testimonials", href: "/admin/cms/testimonials", icon: Quote },
+  {
+    label: "Navigation & Menus",
+    i18nKey: "nav.navigation",
+    href: "/admin/cms/navigation",
+    icon: Navigation,
+  },
+  {
+    label: "Practice Areas",
+    i18nKey: "nav.practice_areas",
+    href: "/admin/cms/practice-areas",
+    icon: Briefcase,
+  },
+  {
+    label: "Testimonials",
+    i18nKey: "nav.testimonials",
+    href: "/admin/cms/testimonials",
+    icon: Quote,
+  },
   { label: "Public Team", i18nKey: "nav.public_team", href: "/admin/cms/team", icon: Users },
   { label: "Blog Articles", i18nKey: "nav.blog_articles", href: "/admin/cms/blog", icon: PenTool },
   { label: "News & Awards", i18nKey: "nav.news_awards", href: "/admin/cms/news", icon: Newspaper },
@@ -48,10 +109,28 @@ const NAV: NavItem[] = [
   { label: "Legal & Newsletter", href: "/admin/cms/governance", icon: Shield },
 
   { heading: "System" },
-  { label: "Doc Generator", i18nKey: "nav.doc_generator", href: "/admin/document-generator", icon: FileText },
-  { label: "Document Templates", i18nKey: "nav.document_templates", href: "/admin/templates", icon: FileText },
+  {
+    label: "Doc Generator",
+    i18nKey: "nav.doc_generator",
+    href: "/admin/document-generator",
+    icon: FileText,
+  },
+  {
+    label: "Document Templates",
+    i18nKey: "nav.document_templates",
+    href: "/admin/templates",
+    icon: FileText,
+  },
   { label: "Audit Log", i18nKey: "nav.audit_log", href: "/admin/audit", icon: Shield },
   { label: "Settings", i18nKey: "nav.settings", href: "/admin/settings", icon: Settings },
+
+  { heading: "Account" },
+  {
+    label: "Profile & Settings",
+    i18nKey: "nav.profile",
+    href: "/admin/profile",
+    icon: UserIcon,
+  },
 ];
 
 function useIsActive() {
@@ -69,37 +148,83 @@ function AdminDesktopSidebar() {
   const isActive = useIsActive();
 
   return (
-    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border shrink-0">
-      <div className="px-4 py-5 border-b border-sidebar-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center"><Scale className="w-4 h-4 text-sidebar-primary-foreground" /></div>
+    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-gradient-to-b from-dashboard-sidebar-bg-from to-dashboard-sidebar-bg-to border-r border-dashboard-sidebar-border shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.25)]">
+      {/* Brand header */}
+      <div className="px-4 py-5 border-b border-dashboard-sidebar-border flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-xl border border-dashboard-sidebar-brand-border bg-dashboard-sidebar-brand-bg flex items-center justify-center shadow-[0_0_12px_var(--dashboard-sidebar-brand-glow)]">
+            <Scale className="size-4 text-dashboard-sidebar-brand-icon" />
+          </div>
           <div>
-            <div className="font-serif text-sm font-bold text-sidebar-primary-foreground">Srimar Law</div>
-            <div className="text-xs text-sidebar-foreground/60">{t("nav.admin_console")}</div>
+            <div className="font-serif text-sm font-bold tracking-tight text-dashboard-sidebar-foreground">
+              Srimar Law
+            </div>
+            <div className="text-[11px] font-medium text-dashboard-sidebar-muted">
+              {t("nav.admin_console")}
+            </div>
           </div>
         </div>
         <NotificationBell />
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {NAV.map((item, idx) => {
           if (item.heading) {
-            return <div key={`heading-${idx}`} className="text-xs font-semibold text-sidebar-foreground/50 mt-5 mb-2 px-3 uppercase tracking-wider">{item.heading}</div>;
+            return (
+              <div
+                key={`heading-${idx}`}
+                className="mt-5 mb-2 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-dashboard-sidebar-heading before:h-3 before:w-0.5 before:rounded-full before:bg-dashboard-sidebar-heading-bar"
+              >
+                {item.heading}
+              </div>
+            );
           }
           if (!isNavLink(item)) return null;
           const { label, i18nKey, href, icon: Icon } = item;
           return (
-            <Link key={href} href={href} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              isActive(href) ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            )}><Icon className="w-4 h-4 shrink-0" />{t(i18nKey!) !== i18nKey ? t(i18nKey!) : label}</Link>
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                isActive(href)
+                  ? "text-dashboard-sidebar-active-foreground bg-dashboard-sidebar-active border border-dashboard-sidebar-active-border shadow-lg"
+                  : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover border border-transparent focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
+              )}
+              style={
+                isActive(href)
+                  ? {
+                      boxShadow:
+                        "0 2px 12px var(--dashboard-sidebar-brand-glow), inset 0 1px 0 var(--dashboard-sidebar-border)",
+                    }
+                  : undefined
+              }
+            >
+              <Icon
+                className={cn(
+                  "w-4 h-4 shrink-0",
+                  isActive(href) ? "text-dashboard-sidebar-active-icon" : "",
+                )}
+              />
+              {(() => {
+                const translated = i18nKey ? t(i18nKey) : "";
+                return translated && translated !== i18nKey ? translated : label;
+              })()}
+            </Link>
           );
         })}
       </nav>
-      <div className="px-3 py-4 border-t border-sidebar-border">
+
+      {/* Account footer */}
+      <div className="px-3 py-4 border-t border-dashboard-sidebar-border">
         <PortalAccountMenu
           profileHref="/admin/profile"
           variant="dropdown"
           fallbackName="Admin"
           showLanguageToggle
+          darkTrigger
+          className="admin-sidebar-account"
         />
       </div>
     </aside>
@@ -121,36 +246,65 @@ function AdminMobileChrome() {
 
   return (
     <>
-      <div className="md:hidden sticky top-0 z-50 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 h-14 shrink-0 w-full">
-        <span className="font-serif font-bold text-sidebar-foreground text-sm">{t("nav.admin_console")}</span>
+      <div className="md:hidden sticky top-0 z-50 bg-dashboard-canvas-elevated/95 backdrop-blur border-b border-dashboard-border flex items-center justify-between px-4 h-14 shrink-0 w-full">
+        <span className="font-serif font-bold text-foreground text-sm">
+          {t("nav.admin_console")}
+        </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setLanguage(language === 'en' ? 'ne' : 'en')}
-            className="w-7 h-7 rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground flex items-center justify-center"
+            onClick={() => setLanguage(language === "en" ? "ne" : "en")}
+            className="w-7 h-7 rounded-full bg-dashboard-primary text-[10px] font-bold text-dashboard-primary-foreground flex items-center justify-center focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+            aria-label={`Switch language to ${language === "en" ? "Nepali" : "English"}`}
           >
-            {language === 'en' ? 'ने' : 'EN'}
+            {language === "en" ? "ने" : "EN"}
           </button>
           <NotificationBell />
-          <button type="button" onClick={() => setOpen((v) => !v)} className="p-1 text-sidebar-foreground" aria-label="Toggle menu">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="p-1 text-foreground focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+            aria-label="Toggle menu"
+          >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {open && (
-        <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-sidebar pt-14">
+        <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-dashboard-canvas-elevated pt-14">
           <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
             {NAV.map((item, idx) => {
               if (item.heading) {
-                return <div key={`mheading-${idx}`} className="text-xs font-semibold text-sidebar-foreground/40 mt-4 mb-1 px-3 uppercase tracking-wider">{item.heading}</div>;
+                return (
+                  <div
+                    key={`mheading-${idx}`}
+                    className="text-xs font-semibold text-muted-foreground mt-4 mb-1 px-3 uppercase tracking-wider"
+                  >
+                    {item.heading}
+                  </div>
+                );
               }
               const { label, i18nKey, href, icon: Icon } = item;
               if (!href || !Icon) return null;
               return (
-                <Link key={href} href={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
-                  isActive(href) ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground"
-                )}><Icon className="w-4 h-4 shrink-0" />{t(i18nKey!) !== i18nKey ? t(i18nKey!) : label}</Link>
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+                    isActive(href)
+                      ? "bg-dashboard-primary-soft text-dashboard-primary"
+                      : "text-dashboard-neutral hover:bg-dashboard-panel-hover hover:text-foreground",
+                  )}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {(() => {
+                    const translated = i18nKey ? t(i18nKey) : "";
+                    return translated && translated !== i18nKey ? translated : label;
+                  })()}
+                </Link>
               );
             })}
           </nav>
@@ -169,24 +323,26 @@ function AdminMobileChrome() {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
-      <PortalRoleGuard
-        allowed="admin"
-        title="Admin Console"
-        description="Restricted access. Please sign in with admin credentials."
-        dark
-      >
-        <IdleSessionGuard />
-        <div className="flex h-screen overflow-hidden bg-background">
-          <AdminDesktopSidebar />
-          <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
-            <AdminMobileChrome />
-            <main className="flex-1 min-w-0 overflow-auto bg-background text-foreground">
-              {children}
-            </main>
+    <PortalBrandingProvider appearance="dark">
+      <div className="dashboard-theme dashboard-admin dashboard-nepal dark min-h-screen bg-dashboard-canvas text-foreground">
+        <PortalRoleGuard
+          allowed="admin"
+          title="Admin Console"
+          description="Restricted access. Please sign in with admin credentials."
+          dark
+        >
+          <IdleSessionGuard />
+          <div className="flex h-screen overflow-hidden bg-dashboard-canvas">
+            <AdminDesktopSidebar />
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-dashboard-canvas">
+              <AdminMobileChrome />
+              <main className="flex-1 min-w-0 overflow-auto bg-dashboard-canvas text-foreground">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-      </PortalRoleGuard>
-    </div>
+        </PortalRoleGuard>
+      </div>
+    </PortalBrandingProvider>
   );
 }

@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { prepareE2eAuth } from "./auth-helpers";
 
 async function signInAdmin(page: Page) {
+  await prepareE2eAuth(page, E2E_USERS.admin.email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(E2E_USERS.admin.email);
   await page.locator("#password").fill(E2E_PASSWORD);
@@ -24,16 +26,16 @@ test.describe("Admin HR console", () => {
       timeout: 15_000,
     });
 
-    const pendingRow = page
-      .getByTestId("admin-leave-row")
-      .filter({ hasText: "pending" })
-      .first();
+    const pendingRow = page.getByTestId("admin-leave-row").filter({ hasText: "pending" }).first();
     if (await pendingRow.count()) {
       await pendingRow.getByRole("button", { name: /Approve/i }).click();
       await expect(page.getByRole("heading", { name: /Approve leave/i })).toBeVisible({
         timeout: 10_000,
       });
-      await page.getByRole("dialog").getByRole("button", { name: /^Approve$/ }).click();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: /^Approve$/ })
+        .click();
       await expect(page.getByText("Leave approved.", { exact: false })).toBeVisible({
         timeout: 15_000,
       });

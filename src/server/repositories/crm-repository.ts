@@ -2,13 +2,7 @@ import "server-only";
 import { and, asc, eq, ilike, isNull, ne, or, type SQL } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
 import { getDatabase } from "@/server/db/client";
-import {
-  appointments,
-  auditLog,
-  clients,
-  firms,
-  leads,
-} from "@/server/db/schema";
+import { appointments, auditLog, clients, firms, leads } from "@/server/db/schema";
 import type {
   AppointmentAssignInput,
   AppointmentBookInput,
@@ -189,7 +183,7 @@ export class CrmRepository {
           fullName: lead.fullName,
           email: lead.email,
           phone: lead.phone,
-          companyName: input.type === "corporate" ? input.companyName ?? null : null,
+          companyName: input.type === "corporate" ? (input.companyName ?? null) : null,
           kycStatus: "pending",
           isActive: true,
           notes: "Converted from lead",
@@ -264,9 +258,7 @@ export class CrmRepository {
       lead.notes,
       payload.address ? `Address: ${payload.address}` : null,
       payload.citizenshipNo ? `Citizenship: ${payload.citizenshipNo}` : null,
-      payload.documentStorageIds?.length
-        ? `Docs: ${payload.documentStorageIds.join(", ")}`
-        : null,
+      payload.documentStorageIds?.length ? `Docs: ${payload.documentStorageIds.join(", ")}` : null,
     ]
       .filter(Boolean)
       .join("\n");
@@ -301,9 +293,7 @@ export class CrmRepository {
     const [row] = await database
       .select({ id: clients.id, email: clients.email })
       .from(clients)
-      .where(
-        and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)),
-      )
+      .where(and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)))
       .limit(1);
     return row ?? null;
   }
@@ -371,7 +361,7 @@ export class CrmRepository {
 
   async createAppointment(firmId: string, data: AppointmentCreateInput, audit?: AuditContext) {
     return database.transaction(async (tx) => {
-      let leadId = data.leadId ?? null;
+      const leadId = data.leadId ?? null;
       if (leadId) {
         const [lead] = await tx
           .select()

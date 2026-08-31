@@ -1,12 +1,32 @@
+"use client";
+
 import React, { useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, ShieldCheck, CheckCircle2, XCircle, Clock, FileText } from "lucide-react";
+import {
+  Upload,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileText,
+  ArrowLeft,
+  ArrowRight,
+  Shield,
+  UserCheck,
+} from "lucide-react";
 import { useClientCommands, useKycFiles, useMyClient } from "@/client/queries/clients";
 import { toast } from "sonner";
-import { RevealText, FadeInUp } from "@/components/ui/animations";
 import { cn } from "@/lib/utils.ts";
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardListSkeleton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 type DocType = "government_id" | "proof_of_address";
 
@@ -25,7 +45,7 @@ function StatusTimeline({ status }: { status: string }) {
   ] as const;
 
   return (
-    <div className="flex items-center gap-1 sm:gap-2 w-full min-w-0">
+    <div className="flex items-center gap-1 sm:gap-3 w-full min-w-0">
       {stages.map((s, i) => {
         const done =
           status === "verified" ||
@@ -40,19 +60,24 @@ function StatusTimeline({ status }: { status: string }) {
           <React.Fragment key={s.key}>
             {i > 0 && (
               <div
-                className={cn("h-0.5 flex-1 min-w-[0.5rem]", done ? "bg-accent" : "bg-border")}
+                className={cn(
+                  "h-0.5 flex-1 min-w-[0.75rem]",
+                  done ? "bg-dashboard-primary" : "bg-dashboard-border",
+                )}
               />
             )}
             <div
               className={cn(
                 "flex flex-col items-center gap-1 shrink-0",
-                current || done ? "text-accent" : "text-muted-foreground",
+                current || done ? "text-dashboard-primary" : "text-dashboard-neutral",
               )}
             >
               <div
                 className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold",
-                  current || done ? "bg-accent text-accent-foreground" : "bg-muted",
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
+                  current || done
+                    ? "bg-dashboard-primary text-dashboard-primary-foreground shadow-xs"
+                    : "bg-dashboard-panel border border-dashboard-border text-dashboard-neutral",
                 )}
               >
                 {i + 1}
@@ -63,9 +88,9 @@ function StatusTimeline({ status }: { status: string }) {
         );
       })}
       {status === "rejected" && (
-        <span className="ml-2 text-[10px] sm:text-xs font-semibold text-destructive shrink-0">
-          Rejected
-        </span>
+        <div className="ml-2 shrink-0">
+          <DashboardStatusLabel status="rejected" className="text-xs" />
+        </div>
       )}
     </div>
   );
@@ -138,37 +163,33 @@ export default function ClientKYCOnboarding() {
 
   const handleSubmit = async () => {
     if (!hasId || !hasAddressProof) {
-      toast.error("Upload both a government ID and proof of address.");
+      toast.error("Both a government ID and proof of address are required.");
       return;
     }
     if (!address.trim() || !idNumber.trim()) {
-      toast.error("Enter your address and ID / citizenship number.");
+      toast.error("Complete your address and ID number.");
       return;
     }
     if (!consentAccepted) {
-      toast.error("Accept the consent statement to continue.");
+      toast.error("You must accept the consent statement.");
       return;
     }
+
     setIsSubmitting(true);
     try {
       await submitKyc({
-        clientId: clientRecord?._id as any,
-        files: uploadedFiles.map((f) => ({
-          storageId: f.storageId,
-          docType: f.docType,
-          fileName: f.name,
-          mimeType: f.mimeType,
-        })),
         address: address.trim(),
         idNumber: idNumber.trim(),
-        consentAccepted: true,
+        consentAccepted,
+        files: uploadedFiles.map((f) => ({
+          storageId: f.storageId,
+        })),
       });
-      toast.success("KYC submitted for firm review.");
+      toast.success("KYC submitted for law firm review.");
       setJustSubmitted(true);
       setWizardOpen(false);
-      setStep(1);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to submit KYC.");
+      toast.error(err?.message || "KYC submission failed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -176,17 +197,34 @@ export default function ClientKYCOnboarding() {
 
   if (clientRecord === undefined) {
     return (
-      <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground">
-        Loading profile...
-      </div>
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading your verification profile…"
+        title="Identity Verification"
+      >
+        <div />
+      </PortalPageShell>
     );
   }
 
   if (clientRecord === null) {
     return (
-      <div className="p-4 sm:p-6 text-sm text-muted-foreground">
-        No client profile is linked to this account. Contact the firm to begin KYC.
-      </div>
+      <PortalPageShell
+        portal="client"
+        decorated
+        showTodayDate
+        eyebrow="Compliance & Security"
+        title="Identity Verification (KYC)"
+        description="Provide identity documents for compliance and secure record keeping."
+        icon={ShieldCheck}
+      >
+        <EmptyState
+          title="No client profile linked"
+          description="Your portal account is not linked to a client profile yet. Contact the firm to begin KYC."
+          icon={ShieldCheck}
+        />
+      </PortalPageShell>
     );
   }
 
@@ -198,107 +236,151 @@ export default function ClientKYCOnboarding() {
       status === "pending" ||
       justSubmitted);
 
-  return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 min-w-0 w-full overflow-x-clip">
-      <div>
-        <RevealText as="h1" className="font-serif text-2xl sm:text-3xl font-bold">
-          Identity Verification
-        </RevealText>
-        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-          Provide identity documents for AML compliance. Files are stored for firm review — this is
-          not a third-party ID verification product.
-        </p>
-      </div>
+  const metrics = [
+    {
+      label: "Verification Status",
+      value:
+        status === "verified"
+          ? "Verified"
+          : status === "submitted" || justSubmitted
+            ? "Under Review"
+            : status === "rejected"
+              ? "Correction Needed"
+              : "Not Started",
+      icon: ShieldCheck,
+      tone:
+        status === "verified"
+          ? ("success" as const)
+          : status === "submitted" || justSubmitted
+            ? ("warning" as const)
+            : status === "rejected"
+              ? ("danger" as const)
+              : ("neutral" as const),
+      helperText: "Nepal AML / Bar compliance",
+    },
+    {
+      label: "Submitted Documents",
+      value: String(kycFiles?.length || 0),
+      icon: FileText,
+      tone: DASHBOARD_METRIC_TONES.documents,
+      helperText: "Encrypted vault copies",
+    },
+    {
+      label: "Client Record",
+      value: clientRecord.fullName,
+      icon: UserCheck,
+      tone: "primary" as const,
+      helperText: clientRecord.email,
+    },
+  ];
 
+  return (
+    <PortalPageShell
+      portal="client"
+      decorated
+      showTodayDate
+      eyebrow="Compliance & Security"
+      title="Identity Verification (KYC)"
+      description="Provide authentic identity documents for Bar Council compliance and secure record keeping. Files are stored securely for law firm review."
+      icon={ShieldCheck}
+      metrics={metrics}
+    >
       {showStatusCard && (
-        <Card className="py-0 gap-0 overflow-hidden">
-          <CardContent className="p-4 sm:p-8 space-y-6">
+        <DashboardSection title="Verification Status">
+          <div className="p-2 sm:p-4 space-y-6">
             <StatusTimeline status={justSubmitted ? "submitted" : status || "pending"} />
-            <div className="text-center space-y-3">
+            <div className="text-center space-y-3 py-2">
               {status === "verified" && (
-                <>
-                  <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
-                  <p className="font-semibold">KYC verified</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your documents are on file with the firm.
+                <div className="space-y-2">
+                  <CheckCircle2 className="w-12 h-12 text-dashboard-success mx-auto" />
+                  <p className="font-semibold text-foreground text-base">KYC Verified & Accepted</p>
+                  <p className="text-sm text-dashboard-neutral max-w-md mx-auto">
+                    Your identity documents are verified and on file with Srimar Law.
                   </p>
-                </>
+                </div>
               )}
               {(status === "submitted" || justSubmitted) && status !== "verified" && (
-                <>
-                  <Clock className="w-12 h-12 text-amber-500 mx-auto" />
-                  <p className="font-semibold">Under review</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-2">
+                  <Clock className="w-12 h-12 text-dashboard-warning mx-auto" />
+                  <p className="font-semibold text-foreground text-base">Under Firm Review</p>
+                  <p className="text-sm text-dashboard-neutral max-w-md mx-auto">
                     Your documents were submitted
                     {(clientRecord as any).kycSubmittedAt
                       ? ` on ${new Date((clientRecord as any).kycSubmittedAt).toLocaleDateString()}`
                       : ""}
-                    . You will be notified when review is complete.
+                    . You will be notified once our compliance team approves your file.
                   </p>
-                </>
+                </div>
               )}
               {status === "rejected" && !justSubmitted && (
-                <>
-                  <XCircle className="w-12 h-12 text-destructive mx-auto" />
-                  <p className="font-semibold text-destructive">KYC rejected</p>
-                  <p className="text-sm text-muted-foreground break-words max-w-md mx-auto">
-                    {(clientRecord as any).kycRejectionReason || "Please contact the firm."}
+                <div className="space-y-2">
+                  <XCircle className="w-12 h-12 text-dashboard-danger mx-auto" />
+                  <p className="font-semibold text-dashboard-danger text-base">
+                    KYC Needs Correction
                   </p>
-                  <Button onClick={openWizard} className="bg-accent hover:bg-accent/90 mt-2">
-                    Resubmit documents
-                  </Button>
-                </>
+                  <p className="text-sm text-dashboard-neutral break-words max-w-md mx-auto">
+                    {(clientRecord as any).kycRejectionReason ||
+                      "Please review and resubmit clear documents."}
+                  </p>
+                  <DashboardButton
+                    onClick={openWizard}
+                    className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground mt-2"
+                  >
+                    Resubmit Documents
+                  </DashboardButton>
+                </div>
               )}
               {status === "pending" && !justSubmitted && (
-                <>
-                  <ShieldCheck className="w-12 h-12 text-muted-foreground mx-auto" />
-                  <p className="font-semibold">KYC not started</p>
-                  <p className="text-sm text-muted-foreground">
-                    Upload your government ID and proof of address to begin verification.
+                <div className="space-y-2">
+                  <ShieldCheck className="w-12 h-12 text-dashboard-neutral mx-auto" />
+                  <p className="font-semibold text-foreground text-base">KYC Not Started</p>
+                  <p className="text-sm text-dashboard-neutral max-w-md mx-auto">
+                    Upload your government ID (Citizenship/Passport) and proof of address to begin
+                    verification.
                   </p>
-                  <Button onClick={openWizard} className="bg-accent hover:bg-accent/90 mt-2">
-                    Start verification
-                  </Button>
-                </>
+                  <DashboardButton
+                    onClick={openWizard}
+                    className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground mt-2"
+                  >
+                    Start Verification
+                  </DashboardButton>
+                </div>
               )}
             </div>
-            {kycFiles && kycFiles.length > 0 && status !== "pending" ? (
-              <div className="border-t border-border pt-4 text-left max-w-md mx-auto space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Submitted files
+
+            {kycFiles === undefined ? (
+              <DashboardListSkeleton rows={2} />
+            ) : kycFiles && kycFiles.length > 0 && status !== "pending" ? (
+              <div className="border-t border-dashboard-border pt-4 text-left max-w-md mx-auto space-y-2">
+                <p className="text-xs font-semibold text-dashboard-neutral uppercase tracking-wide">
+                  Submitted Files
                 </p>
-                <ul className="space-y-1.5">
+                <div className="space-y-2">
                   {kycFiles.map((file: any) => (
-                    <li
+                    <DashboardListRow
                       key={file._id || file.id || file.storageId}
-                      className="flex items-start gap-2 text-sm"
+                      className="flex items-center gap-2 p-2.5"
                     >
-                      <FileText className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                      <span className="break-words min-w-0">
-                        <span className="font-medium">
-                          {file.docType === "government_id" || file.documentType === "government_id"
-                            ? "Government ID"
-                            : file.docType === "proof_of_address" ||
-                                file.documentType === "proof_of_address"
-                              ? "Proof of address"
-                              : "Document"}
-                          :
-                        </span>{" "}
-                        {file.fileName || file.name || file.originalFileName || "Uploaded file"}
-                      </span>
-                    </li>
+                      <FileText className="w-4 h-4 text-dashboard-primary shrink-0" />
+                      <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-foreground truncate">
+                          {file.fileName ||
+                            file.name ||
+                            file.originalFileName ||
+                            "Uploaded document"}
+                        </span>
+                        <DashboardStatusLabel
+                          status={file.docType || file.documentType || "document"}
+                          className="text-[10px]"
+                        />
+                      </div>
+                    </DashboardListRow>
                   ))}
-                </ul>
-              </div>
-            ) : status === "submitted" || status === "verified" || status === "rejected" ? (
-              <div className="border-t border-border pt-4 text-center max-w-md mx-auto">
-                <p className="text-xs text-muted-foreground">
-                  No submitted file metadata is available to display yet.
-                </p>
+                </div>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardSection>
       )}
 
       {wizardOpen && (
@@ -311,219 +393,212 @@ export default function ClientKYCOnboarding() {
             onChange={handleFileChange}
           />
 
-          <FadeInUp delay={0.05}>
-            <Card className="border-border/50 shadow-sm py-0 gap-0 overflow-hidden">
-              <CardHeader className="bg-secondary/20 border-b pb-4 px-4 sm:px-6 pt-4 sm:pt-6">
-                <div className="flex items-start gap-3 min-w-0">
-                  <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-accent shrink-0" />
-                  <div className="min-w-0">
-                    <CardTitle className="text-base sm:text-lg">Document upload</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Upload clear images or PDFs. Access is limited to your account and firm staff.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6 pb-5 sm:pb-6 space-y-6">
-                <div className="grid grid-cols-3 gap-2">
-                  {["Upload", "Details", "Review"].map((label, i) => {
-                    const n = i + 1;
-                    return (
+          <DashboardSection
+            title="KYC Onboarding Wizard"
+            description="Upload clear images or PDFs. Files are encrypted and restricted to compliance staff."
+          >
+            <div className="space-y-6 pt-2">
+              <div className="grid grid-cols-3 gap-2 pb-2 border-b border-dashboard-border">
+                {["1. Upload", "2. Details", "3. Review"].map((label, i) => {
+                  const n = i + 1;
+                  return (
+                    <div
+                      key={label}
+                      className={cn(
+                        "flex flex-col items-center gap-1",
+                        step >= n ? "text-dashboard-primary" : "text-dashboard-neutral",
+                      )}
+                    >
                       <div
-                        key={label}
                         className={cn(
-                          "flex flex-col items-center gap-1",
-                          step >= n ? "text-accent" : "text-muted-foreground",
+                          "w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all",
+                          step >= n
+                            ? "bg-dashboard-primary text-dashboard-primary-foreground"
+                            : "bg-dashboard-panel border border-dashboard-border text-dashboard-neutral",
                         )}
                       >
-                        <div
+                        {n}
+                      </div>
+                      <span className="text-[10px] sm:text-xs font-medium">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {(
+                      [
+                        {
+                          type: "government_id" as DocType,
+                          title: "Government ID",
+                          hint: "Citizenship, passport, or driver's license",
+                        },
+                        {
+                          type: "proof_of_address" as DocType,
+                          title: "Proof of Address",
+                          hint: "Utility bill or bank statement (last 3 months)",
+                        },
+                      ] as const
+                    ).map((zone) => {
+                      const file = uploadedFiles.find((f) => f.docType === zone.type);
+                      return (
+                        <button
+                          key={zone.type}
+                          type="button"
+                          onClick={() => browseFor(zone.type)}
+                          disabled={isUploading}
                           className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
-                            step >= n
-                              ? "bg-accent text-accent-foreground"
-                              : "bg-muted border border-border",
+                            "border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer min-w-0",
+                            file
+                              ? "border-dashboard-primary bg-dashboard-primary-soft"
+                              : "border-dashboard-border bg-dashboard-panel/50 hover:bg-dashboard-panel-hover",
                           )}
                         >
-                          {n}
-                        </div>
-                        <span className="text-[10px] sm:text-xs font-medium">{label}</span>
-                      </div>
-                    );
-                  })}
+                          {file ? (
+                            <CheckCircle2 className="w-8 h-8 text-dashboard-success mb-2" />
+                          ) : (
+                            <Upload className="w-8 h-8 text-dashboard-neutral mb-2" />
+                          )}
+                          <h4 className="font-semibold mb-1 text-sm sm:text-base text-foreground">
+                            {zone.title}
+                          </h4>
+                          <p className="text-xs text-dashboard-neutral mb-2 break-words">
+                            {file ? file.name : zone.hint}
+                          </p>
+                          <span className="text-xs font-semibold text-dashboard-primary">
+                            {isUploading && activeDocType === zone.type
+                              ? "Uploading..."
+                              : file
+                                ? "Replace file"
+                                : "Browse files"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
+                    <DashboardButton variant="outline" onClick={() => setWizardOpen(false)}>
+                      Cancel
+                    </DashboardButton>
+                    <DashboardButton
+                      disabled={!hasId || !hasAddressProof || isUploading}
+                      onClick={() => setStep(2)}
+                      className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
+                    >
+                      Continue <ArrowRight className="w-4 h-4 ml-1.5" />
+                    </DashboardButton>
+                  </div>
                 </div>
+              )}
 
-                {step === 1 && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      {(
-                        [
-                          {
-                            type: "government_id" as DocType,
-                            title: "Government ID",
-                            hint: "Citizenship, passport, or driver's license",
-                          },
-                          {
-                            type: "proof_of_address" as DocType,
-                            title: "Proof of Address",
-                            hint: "Utility bill or bank statement (last 3 months)",
-                          },
-                        ] as const
-                      ).map((zone) => {
-                        const file = uploadedFiles.find((f) => f.docType === zone.type);
-                        return (
-                          <button
-                            key={zone.type}
-                            type="button"
-                            onClick={() => browseFor(zone.type)}
-                            disabled={isUploading}
-                            className={cn(
-                              "border-2 border-dashed rounded-xl p-5 sm:p-8 flex flex-col items-center justify-center text-center transition-colors cursor-pointer min-w-0",
-                              file
-                                ? "border-accent/50 bg-accent/5"
-                                : "border-border hover:bg-secondary/30",
-                            )}
-                          >
-                            {file ? (
-                              <CheckCircle2 className="w-8 h-8 text-accent mb-3" />
-                            ) : (
-                              <Upload className="w-8 h-8 text-muted-foreground mb-3" />
-                            )}
-                            <h4 className="font-semibold mb-1 text-sm sm:text-base">
-                              {zone.title}
-                            </h4>
-                            <p className="text-xs text-muted-foreground mb-3 break-words">
-                              {file ? file.name : zone.hint}
-                            </p>
-                            <span className="text-xs font-medium text-accent">
-                              {isUploading && activeDocType === zone.type
-                                ? "Uploading..."
-                                : file
-                                  ? "Replace file"
-                                  : "Browse files"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-                      <Button variant="outline" onClick={() => setWizardOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        disabled={!hasId || !hasAddressProof || isUploading}
-                        onClick={() => setStep(2)}
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        Continue
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {step === 2 && (
-                  <div className="space-y-4 max-w-lg">
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Residential address</label>
-                      <Input
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        placeholder="Ward, street, municipality, district"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium">
-                        Citizenship / ID / passport number
-                      </label>
-                      <Input
-                        value={idNumber}
-                        onChange={(e) => setIdNumber(e.target.value)}
-                        placeholder="As shown on your government ID"
-                      />
-                    </div>
-                    <label className="flex items-start gap-3 text-sm cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="mt-1 shrink-0"
-                        checked={consentAccepted}
-                        onChange={(e) => setConsentAccepted(e.target.checked)}
-                      />
-                      <span className="text-muted-foreground leading-relaxed">
-                        I confirm these documents are mine (or I am authorized to submit them), and
-                        I consent to Srimar Law storing them for identity verification and AML
-                        compliance (consent version kyc-consent-v1).
-                      </span>
+              {step === 2 && (
+                <div className="space-y-4 max-w-lg">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">
+                      Residential Address in Nepal
                     </label>
-                    <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-                      <Button variant="outline" onClick={() => setStep(1)}>
-                        Back
-                      </Button>
-                      <Button
-                        className="bg-accent hover:bg-accent/90"
-                        disabled={!address.trim() || !idNumber.trim() || !consentAccepted}
-                        onClick={() => setStep(3)}
-                      >
-                        Continue to review
-                      </Button>
-                    </div>
+                    <Input
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="e.g. Ward 4, Baluwatar, Kathmandu"
+                      className="border-dashboard-border bg-dashboard-panel"
+                    />
                   </div>
-                )}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">
+                      Citizenship / Passport / ID Number
+                    </label>
+                    <Input
+                      value={idNumber}
+                      onChange={(e) => setIdNumber(e.target.value)}
+                      placeholder="e.g. 27-01-78-12345"
+                      className="border-dashboard-border bg-dashboard-panel"
+                    />
+                  </div>
+                  <label className="flex items-start gap-3 text-sm cursor-pointer pt-2">
+                    <input
+                      type="checkbox"
+                      className="mt-1 shrink-0 rounded border-dashboard-border"
+                      checked={consentAccepted}
+                      onChange={(e) => setConsentAccepted(e.target.checked)}
+                    />
+                    <span className="text-dashboard-neutral text-xs leading-relaxed">
+                      I confirm these documents are authentic and belong to me (or I am legally
+                      authorized to submit them), and I consent to Srimar Law storing them for
+                      identity verification and AML compliance (consent version kyc-consent-v1).
+                    </span>
+                  </label>
+                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-3">
+                    <DashboardButton variant="outline" onClick={() => setStep(1)}>
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                    </DashboardButton>
+                    <DashboardButton
+                      className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
+                      disabled={!address.trim() || !idNumber.trim() || !consentAccepted}
+                      onClick={() => setStep(3)}
+                    >
+                      Review & Submit <ArrowRight className="w-4 h-4 ml-1.5" />
+                    </DashboardButton>
+                  </div>
+                </div>
+              )}
 
-                {step === 3 && (
-                  <div className="space-y-5">
-                    <div className="bg-secondary/30 p-4 rounded-lg border border-border space-y-3 min-w-0">
-                      <h4 className="font-semibold text-sm">Review before submit</h4>
-                      <ul className="space-y-2">
-                        {uploadedFiles.map((file) => (
-                          <li
-                            key={file.storageId}
-                            className="flex items-start gap-2 text-sm min-w-0"
-                          >
-                            <FileText className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                            <span className="break-words min-w-0">
-                              <span className="font-medium">
-                                {file.docType === "government_id"
-                                  ? "Government ID"
-                                  : "Proof of address"}
-                                :
-                              </span>{" "}
+              {step === 3 && (
+                <div className="space-y-5">
+                  <div className="bg-dashboard-panel border border-dashboard-border p-4 rounded-xl space-y-3 min-w-0">
+                    <h4 className="font-semibold text-sm text-foreground">
+                      Review Information Before Submission
+                    </h4>
+                    <div className="space-y-2">
+                      {uploadedFiles.map((file) => (
+                        <div
+                          key={file.storageId}
+                          className="flex items-center justify-between gap-2 text-sm p-2 rounded-lg bg-dashboard-canvas"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-dashboard-primary shrink-0" />
+                            <span className="truncate text-xs font-medium text-foreground">
                               {file.name}
                             </span>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="pt-2 border-t border-border text-sm space-y-1">
-                        <p>
-                          <span className="text-muted-foreground">Address:</span>{" "}
-                          <span className="break-words">{address}</span>
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">ID number:</span>{" "}
-                          <span className="break-words">{idNumber}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Consent: kyc-consent-v1 accepted
-                        </p>
-                      </div>
+                          </div>
+                          <DashboardStatusLabel status={file.docType} className="text-[10px]" />
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-                      <Button variant="outline" onClick={() => setStep(2)}>
-                        Back
-                      </Button>
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        {isSubmitting ? "Submitting..." : "Submit for verification"}
-                      </Button>
+                    <div className="pt-3 border-t border-dashboard-border text-sm space-y-1 text-dashboard-neutral">
+                      <p>
+                        <span className="font-medium text-foreground">Residential Address:</span>{" "}
+                        <span className="break-words">{address}</span>
+                      </p>
+                      <p>
+                        <span className="font-medium text-foreground">Government ID Number:</span>{" "}
+                        <span className="break-words font-mono">{idNumber}</span>
+                      </p>
+                      <p className="text-xs text-dashboard-success pt-1">
+                        ✓ Consent statement (kyc-consent-v1) accepted
+                      </p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </FadeInUp>
+                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                    <DashboardButton variant="outline" onClick={() => setStep(2)}>
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                    </DashboardButton>
+                    <DashboardButton
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
+                    >
+                      {isSubmitting ? "Submitting to Firm..." : "Submit for Verification"}
+                    </DashboardButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DashboardSection>
         </>
       )}
-    </div>
+    </PortalPageShell>
   );
 }

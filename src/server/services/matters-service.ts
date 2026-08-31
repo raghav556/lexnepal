@@ -54,7 +54,11 @@ export class MattersService {
   async listMyTeam(principal: AuthPrincipal) {
     const { firmId, actorId } = requireFirmContext(principal);
     if (principal.user.role !== "client") {
-      throw new AppError("FORBIDDEN", "Only client portal accounts can list their matter team", 403);
+      throw new AppError(
+        "FORBIDDEN",
+        "Only client portal accounts can list their matter team",
+        403,
+      );
     }
     const client = await repository.getClientByUser(firmId, actorId, false);
     if (!client) return [];

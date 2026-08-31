@@ -34,7 +34,9 @@ export function DueDateFields({
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="space-y-1">
-        <label htmlFor={`${idPrefix}-ad`} className="text-xs font-medium text-foreground">Due Date (AD)</label>
+        <label htmlFor={`${idPrefix}-ad`} className="text-xs font-medium text-foreground">
+          Due Date (AD)
+        </label>
         <Input
           id={`${idPrefix}-ad`}
           type="date"
@@ -43,7 +45,9 @@ export function DueDateFields({
         />
       </div>
       <div className="space-y-1">
-        <label htmlFor={`${idPrefix}-bs`} className="text-xs font-medium text-foreground">Due Date (BS)</label>
+        <label htmlFor={`${idPrefix}-bs`} className="text-xs font-medium text-foreground">
+          Due Date (BS)
+        </label>
         <Input
           id={`${idPrefix}-bs`}
           readOnly

@@ -53,25 +53,24 @@ async function fetchWithCookies(
   const serialized = cookieHeader(jar);
   if (serialized) headers.cookie = serialized;
   const res = await fetch(url, { ...options, headers, redirect: "manual" });
-  const setCookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+  const setCookies =
+    typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
   return { res, jar: mergeCookies(jar, setCookies), setCookies };
 }
 
 async function signIn(email: string, password: string) {
-  const { res, jar } = await fetchWithCookies(
-    `${BASE}/api/auth/sign-in/email`,
-    {
-      method: "POST",
-      headers: AUTH_HEADERS,
-      body: JSON.stringify({ email, password, rememberMe: false }),
-    },
-  );
+  const { res, jar } = await fetchWithCookies(`${BASE}/api/auth/sign-in/email`, {
+    method: "POST",
+    headers: AUTH_HEADERS,
+    body: JSON.stringify({ email, password, rememberMe: false }),
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`sign-in failed ${res.status}: ${text.slice(0, 200)}`);
   }
   const body = (await res.json()) as { twoFactorRedirect?: boolean };
-  if (body.twoFactorRedirect) throw new Error("sign-in requires MFA — use a non-MFA admin for this proof");
+  if (body.twoFactorRedirect)
+    throw new Error("sign-in requires MFA — use a non-MFA admin for this proof");
   return jar;
 }
 
@@ -129,7 +128,10 @@ async function main() {
   };
   const lexUserId = createdBody.data.id;
   assert(createdBody.data.isPending === true, "invited user should be isPending=true");
-  assert(createdBody.data.isActive === false, "invited user should be isActive=false until activation");
+  assert(
+    createdBody.data.isActive === false,
+    "invited user should be isActive=false until activation",
+  );
   console.log(`   created ${lexUserId} (${createdBody.data.role})`);
 
   const db = getDatabase();

@@ -12,7 +12,9 @@ function idFrom(request: Request) {
 
 export const GET = withApiHandler("/api/v1/tasks/:id/comments", async ({ request }) => {
   const principal = await requireSession(request);
-  return jsonResponse({ data: await getWorkManagementService().listComments(principal, idFrom(request)) });
+  return jsonResponse({
+    data: await getWorkManagementService().listComments(principal, idFrom(request)),
+  });
 });
 
 export const POST = withApiHandler("/api/v1/tasks/:id/comments", async ({ request, requestId }) => {
@@ -21,7 +23,13 @@ export const POST = withApiHandler("/api/v1/tasks/:id/comments", async ({ reques
   const body = await request.json();
   const input = taskCommentCreateSchema.parse({ ...body, taskId });
   return jsonResponse(
-    { data: await getWorkManagementService().addComment(principal, input, buildAuditContext(request, requestId, principal)) },
+    {
+      data: await getWorkManagementService().addComment(
+        principal,
+        input,
+        buildAuditContext(request, requestId, principal),
+      ),
+    },
     { status: 201 },
   );
 });

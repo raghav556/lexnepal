@@ -16,8 +16,7 @@ export type DmThreadDto = {
 export function useDmThreads() {
   const next = useQuery({
     queryKey: ["dm", "threads"],
-    queryFn: ({ signal }) =>
-      apiClient.request<DmThreadDto[]>("/api/v1/dm/threads", { signal }),
+    queryFn: ({ signal }) => apiClient.request<DmThreadDto[]>("/api/v1/dm/threads", { signal }),
     refetchInterval: 8_000,
   });
   return { data: next.data ?? [], isLoading: next.isLoading };
@@ -55,11 +54,7 @@ export function useDmCommands() {
   });
 
   const sendMessage = useMutation({
-    mutationFn: async (args: {
-      threadId: string;
-      content: string;
-      attachmentIds?: string[];
-    }) => {
+    mutationFn: async (args: { threadId: string; content: string; attachmentIds?: string[] }) => {
       try {
         return await apiClient.request(`/api/v1/dm/threads/${args.threadId}/messages`, {
           method: "POST",

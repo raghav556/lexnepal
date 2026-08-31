@@ -20,26 +20,37 @@ export class AnalyticsRepository {
   static async getDashboardData(firmId: string): Promise<AnalyticsDashboardDto> {
     const db = getDatabase();
 
-    const [
-      allCases,
-      allInvoices,
-      allClients,
-      allTimeEntries,
-      allLeads,
-      allExpenses,
-      allUsers,
-    ] = await Promise.all([
-      db.select().from(cases).where(and(eq(cases.firmId, firmId), isNull(cases.deletedAt))),
-      db.select().from(invoices).where(and(eq(invoices.firmId, firmId), isNull(invoices.deletedAt))),
-      db.select().from(clients).where(and(eq(clients.firmId, firmId), isNull(clients.deletedAt))),
-      db
-        .select()
-        .from(timeEntries)
-        .where(and(eq(timeEntries.firmId, firmId), isNull(timeEntries.deletedAt))),
-      db.select().from(leads).where(and(eq(leads.firmId, firmId), isNull(leads.deletedAt))),
-      db.select().from(expenses).where(and(eq(expenses.firmId, firmId), isNull(expenses.deletedAt))),
-      db.select().from(users).where(and(eq(users.firmId, firmId), isNull(users.deletedAt))),
-    ]);
+    const [allCases, allInvoices, allClients, allTimeEntries, allLeads, allExpenses, allUsers] =
+      await Promise.all([
+        db
+          .select()
+          .from(cases)
+          .where(and(eq(cases.firmId, firmId), isNull(cases.deletedAt))),
+        db
+          .select()
+          .from(invoices)
+          .where(and(eq(invoices.firmId, firmId), isNull(invoices.deletedAt))),
+        db
+          .select()
+          .from(clients)
+          .where(and(eq(clients.firmId, firmId), isNull(clients.deletedAt))),
+        db
+          .select()
+          .from(timeEntries)
+          .where(and(eq(timeEntries.firmId, firmId), isNull(timeEntries.deletedAt))),
+        db
+          .select()
+          .from(leads)
+          .where(and(eq(leads.firmId, firmId), isNull(leads.deletedAt))),
+        db
+          .select()
+          .from(expenses)
+          .where(and(eq(expenses.firmId, firmId), isNull(expenses.deletedAt))),
+        db
+          .select()
+          .from(users)
+          .where(and(eq(users.firmId, firmId), isNull(users.deletedAt))),
+      ]);
 
     const paidInvoices = allInvoices.filter((i) => i.status === "paid");
     const totalRevenue = paidInvoices.reduce((s, i) => s + money(i.total), 0);

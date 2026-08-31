@@ -4,15 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Loader2, MessageSquare } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Button } from "@/components/ui/button.tsx";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useUnreadMessageCounts } from "@/client/queries/communication";
 import { cn } from "@/lib/utils.ts";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty.tsx";
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardSection,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 
 export default function StaffMessagesPage() {
   const currentUser = useCurrentUser();
@@ -40,9 +44,14 @@ export default function StaffMessagesPage() {
 
   if (currentUser === undefined || currentUser === null) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal="staff"
+        loading
+        loadingLabel="Loading messages…"
+        title="Client messages"
+      >
+        {null}
+      </PortalPageShell>
     );
   }
 
@@ -51,67 +60,84 @@ export default function StaffMessagesPage() {
     clients.find((cl: { _id: string }) => cl._id === selectedCase?.clientId)?.fullName || "Client";
 
   return (
-    <div className="p-4 sm:p-6 h-full font-sans space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-primary" />
-            Client Messages
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Matter-threaded conversations with portal clients. Use Client reply for messages they can see.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+    <PortalPageShell
+      portal="staff"
+      decorated
+      titleKey="portal.messages.title"
+      descriptionKey="portal.messages.description"
+      icon={MessageSquare}
+      actions={
+        <DashboardButton asChild variant="secondary" size="sm" className="hidden sm:inline-flex">
           <Link href="/staff/cases">All cases</Link>
-        </Button>
-      </div>
-
+        </DashboardButton>
+      }
+      contentClassName="space-y-4"
+    >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:h-[calc(100vh-200px)]">
-        <div className={cn("space-y-2 overflow-y-auto", mobileShowChat ? "hidden md:block" : "block")}>
-          {cases.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>No matters assigned</EmptyTitle>
-                <EmptyDescription>Open or get assigned to a case to message clients.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            cases.map((c: any) => {
-              const active = selected === c._id;
-              const unread = unreadByCase[c._id] || 0;
-              const name =
-                clients.find((cl: { _id: string }) => cl._id === c.clientId)?.fullName || "Client";
-              return (
-                <Card
-                  key={c._id}
-                  className={cn(
-                    "cursor-pointer transition-colors border hover:bg-secondary/40",
-                    active && "border-primary bg-primary/5",
-                  )}
-                  onClick={() => {
-                    setSelected(c._id);
-                    setMobileShowChat(true);
-                  }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2">
+        <DashboardSection
+          title="Matter threads"
+          className={cn(
+            "flex flex-col overflow-hidden !p-0",
+            mobileShowChat ? "hidden md:flex" : "flex",
+          )}
+        >
+          <div
+            className={cn(
+              "flex-1 overflow-y-auto p-3 space-y-2",
+              mobileShowChat ? "hidden md:block" : "block",
+            )}
+          >
+            {cases.length === 0 ? (
+              <EmptyState
+                title="No matters assigned"
+                description="Open or get assigned to a case to message clients."
+                icon={MessageSquare}
+                className="m-2 border-0"
+              />
+            ) : (
+              cases.map((c: any) => {
+                const active = selected === c._id;
+                const unread = unreadByCase[c._id] || 0;
+                const name =
+                  clients.find((cl: { _id: string }) => cl._id === c.clientId)?.fullName ||
+                  "Client";
+                return (
+                  <DashboardListRow
+                    key={c._id}
+                    className={cn(
+                      "cursor-pointer p-4",
+                      active && "border-dashboard-primary bg-dashboard-primary-soft",
+                    )}
+                    onClick={() => {
+                      setSelected(c._id);
+                      setMobileShowChat(true);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        setSelected(c._id);
+                        setMobileShowChat(true);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2 w-full">
                       <p className="text-xs font-semibold text-foreground line-clamp-1">
                         [{c.caseNumber}] {c.title}
                       </p>
                       {unread > 0 ? (
-                        <span className="shrink-0 text-[10px] font-bold bg-accent text-accent-foreground rounded-full px-1.5 py-0.5">
+                        <span className="shrink-0 text-[10px] font-bold bg-dashboard-primary text-dashboard-primary-foreground rounded-full px-1.5 py-0.5">
                           {unread}
                         </span>
                       ) : null}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">{name}</p>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
+                  </DashboardListRow>
+                );
+              })
+            )}
+          </div>
+        </DashboardSection>
 
         {selected ? (
           <div
@@ -131,16 +157,21 @@ export default function StaffMessagesPage() {
             />
           </div>
         ) : (
-          <div
+          <DashboardSection
             className={cn(
-              "md:col-span-2 items-center justify-center text-muted-foreground text-sm border rounded-xl bg-secondary/10",
+              "md:col-span-2 items-center justify-center",
               mobileShowChat ? "flex" : "hidden md:flex",
             )}
           >
-            Select a matter on the left
-          </div>
+            <EmptyState
+              title="Select a matter"
+              description="Choose a matter from the list to view client messages."
+              icon={MessageSquare}
+              className="border-0"
+            />
+          </DashboardSection>
         )}
       </div>
-    </div>
+    </PortalPageShell>
   );
 }

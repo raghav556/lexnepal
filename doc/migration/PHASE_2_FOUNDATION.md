@@ -1,5 +1,9 @@
 # Phase 2 Next.js Foundation
 
+> Historical migration record: references below to `dev:legacy` and the Vite shell describe the
+> earlier transition state. That shell is now decommissioned; use the root README and Next.js on
+> port 3001 for current operation.
+
 **Status:** Implemented locally; remote CI and mandatory provider/legal ADRs pending  
 **Implemented:** 2026-08-02  
 **Next.js:** 16.2.12
@@ -15,25 +19,25 @@ The separate Next directory is intentional and documented by ADR-0018. It preven
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Next.js development server on port 3001 |
-| `npm run build` | Next.js production build |
-| `npm run start` | Next.js production server on port 3001 |
-| `npm run dev:legacy` | Existing Vite application on port 3002 |
-| `npm run build:legacy` | Existing Vite production build |
-| `npm run typecheck` | Next foundation TypeScript check |
-| `npm run lint` | Next foundation lint |
-| `npm run format:check` | Foundation formatting check |
-| `npm test` | Unit, integration and migration-characterization tests |
+| Command                | Purpose                                                |
+| ---------------------- | ------------------------------------------------------ |
+| `npm run dev`          | Next.js development server on port 3001                |
+| `npm run build`        | Next.js production build                               |
+| `npm run start`        | Next.js production server on port 3001                 |
+| `npm run dev:legacy`   | Existing Vite application on port 3002                 |
+| `npm run build:legacy` | Existing Vite production build                         |
+| `npm run typecheck`    | Next foundation TypeScript check                       |
+| `npm run lint`         | Next foundation lint                                   |
+| `npm run format:check` | Foundation formatting check                            |
+| `npm test`             | Unit, integration and migration-characterization tests |
 
 ## Operational endpoints
 
-| Endpoint | Purpose | Current readiness semantics |
-|---|---|---|
-| `GET /api/v1/health` | Process liveness | Returns 200 when the process can serve requests |
+| Endpoint                | Purpose              | Current readiness semantics                                                                                                  |
+| ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/health`    | Process liveness     | Returns 200 when the process can serve requests                                                                              |
 | `GET /api/v1/readiness` | Dependency readiness | Foundation mode returns 200 without a database; setting `READINESS_REQUIRE_DATABASE=true` without `DATABASE_URL` returns 503 |
-| `GET /api/v1/version` | Build identification | Returns API, application and Git versions |
+| `GET /api/v1/version`   | Build identification | Returns API, application and Git versions                                                                                    |
 
 Every endpoint is non-cacheable and returns/propagates `x-request-id`. API failures use the shared structured error contract. Logs are JSON, redact sensitive field names and include route, method, status, duration and request ID.
 

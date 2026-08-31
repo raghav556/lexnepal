@@ -81,9 +81,7 @@ async function enqueueLeaveEmail(input: {
 
 function leaveSummary(leave: LeaveRequestDto): string {
   const range =
-    leave.toDate !== leave.fromDate
-      ? `${leave.fromDate} → ${leave.toDate}`
-      : leave.fromDate;
+    leave.toDate !== leave.fromDate ? `${leave.fromDate} → ${leave.toDate}` : leave.fromDate;
   return `${leave.type} (${range})`;
 }
 
@@ -145,7 +143,11 @@ export async function notifyLeaveReviewed(input: {
       })
       .from(users)
       .where(
-        and(eq(users.firmId, input.firmId), eq(users.id, input.leave.userId), isNull(users.deletedAt)),
+        and(
+          eq(users.firmId, input.firmId),
+          eq(users.id, input.leave.userId),
+          isNull(users.deletedAt),
+        ),
       )
       .limit(1);
     if (!requester) return;

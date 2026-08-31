@@ -19,12 +19,14 @@
  */
 
 export function slugifyResourceTitle(title: string): string {
-  return title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120) || "resource";
+  return (
+    title
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 120) || "resource"
+  );
 }
 
 export function fileTypeLabelFromUrl(url: string | null | undefined): string {

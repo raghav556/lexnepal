@@ -7,9 +7,7 @@ import { leaveBalanceListSchema, leaveBalanceUpsertSchema } from "@/shared/contr
 
 export const GET = withApiHandler("/api/v1/hr/leave-balances", async ({ request }) => {
   const principal = await requireSession(request);
-  const input = leaveBalanceListSchema.parse(
-    Object.fromEntries(new URL(request.url).searchParams),
-  );
+  const input = leaveBalanceListSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
   return jsonResponse({ data: await getHrService().listLeaveBalances(principal, input) });
 });
 

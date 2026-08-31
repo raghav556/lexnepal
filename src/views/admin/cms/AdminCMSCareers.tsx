@@ -1,14 +1,38 @@
 import React, { useState } from "react";
 import { useCareers, useCmsCommands, useJobApplications } from "@/client/queries/cms";
-import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog.tsx";
-import { Plus, Briefcase, Users, Trash2, Edit, CheckCircle2, XCircle, FileText, Mail, Phone, Clock, PlusCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog.tsx";
+import {
+  Plus,
+  Briefcase,
+  Users,
+  Trash2,
+  Edit,
+  CheckCircle2,
+  XCircle,
+  FileText,
+  Mail,
+  Phone,
+  Clock,
+  PlusCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations.tsx";
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { todayIsoInFirmTz } from "@/shared/crm/appointment-dates.ts";
 
 /** Contract expects YYYY-MM-DD (z.string().date()), not ISO datetime. */
@@ -28,7 +52,7 @@ export default function AdminCMSCareers() {
 
   const [activeTab, setActiveTab] = useState("jobs");
   const [coverLetterPreview, setCoverLetterPreview] = useState<string | null>(null);
-  
+
   // Job Form State
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -57,8 +81,13 @@ export default function AdminCMSCareers() {
     } else {
       setEditingJobId(null);
       setJobForm({
-        title: "", department: "", location: "Kathmandu, Nepal", type: "full_time",
-        description: "", requirements: [""], isActive: true,
+        title: "",
+        department: "",
+        location: "Kathmandu, Nepal",
+        type: "full_time",
+        description: "",
+        requirements: [""],
+        isActive: true,
       });
     }
     setIsJobModalOpen(true);
@@ -66,12 +95,13 @@ export default function AdminCMSCareers() {
 
   const handleSaveJob = async () => {
     try {
-      const cleanRequirements = jobForm.requirements.filter(r => r.trim() !== "");
+      const cleanRequirements = jobForm.requirements.filter((r) => r.trim() !== "");
       const payload = { ...jobForm, requirements: cleanRequirements };
 
       if (editingJobId) {
-        const existing = careers.find((j: { _id?: string; id?: string; postedDate?: string }) =>
-          String(j._id || j.id) === editingJobId,
+        const existing = careers.find(
+          (j: { _id?: string; id?: string; postedDate?: string }) =>
+            String(j._id || j.id) === editingJobId,
         );
         await updateJob({
           id: editingJobId as any,
@@ -90,7 +120,9 @@ export default function AdminCMSCareers() {
   };
 
   const handleDeleteJob = async (id: string) => {
-    if (confirm("Are you sure you want to delete this job posting? Applications may be orphaned.")) {
+    if (
+      confirm("Are you sure you want to delete this job posting? Applications may be orphaned.")
+    ) {
       try {
         await deleteJob({ id: id as any });
         toast.success("Job deleted.");
@@ -110,7 +142,8 @@ export default function AdminCMSCareers() {
   };
 
   // Dynamic Requirements Logic
-  const addRequirement = () => setJobForm({ ...jobForm, requirements: [...jobForm.requirements, ""] });
+  const addRequirement = () =>
+    setJobForm({ ...jobForm, requirements: [...jobForm.requirements, ""] });
   const updateRequirement = (index: number, val: string) => {
     const newReqs = [...jobForm.requirements];
     newReqs[index] = val;
@@ -122,49 +155,63 @@ export default function AdminCMSCareers() {
     setJobForm({ ...jobForm, requirements: newReqs });
   };
 
-  const formatType = (type: string) => type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const formatType = (type: string) =>
+    type
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
 
   const statusSelectClass = (status: string) =>
     `w-full sm:w-auto h-9 rounded-md border border-input text-xs font-semibold px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
       status === "new" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" : ""
     } ${status === "reviewed" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" : ""} ${
-      status === "interviewed" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" : ""
+      status === "interviewed"
+        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+        : ""
     } ${status === "hired" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : ""} ${
       status === "rejected" ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" : ""
     }`;
 
   return (
-    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Careers & ATS</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage open job positions and review incoming applications.
-          </p>
-        </div>
-        <Button onClick={() => handleOpenJobModal()} className="gap-2 shrink-0 w-full sm:w-auto">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      eyebrow="Content management"
+      title="Careers & ATS"
+      description="Manage open job positions and review incoming applications."
+      icon={Briefcase}
+      actions={
+        <DashboardButton onClick={() => handleOpenJobModal()} className="w-full sm:w-auto">
           <Plus className="w-4 h-4" /> Post New Job
-        </Button>
-      </div>
-
+        </DashboardButton>
+      }
+      contentClassName="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
-        <TabsList className="mb-4 sm:mb-6 w-full max-w-full sm:max-w-md h-auto bg-muted/50 p-1 border border-border rounded-lg grid grid-cols-2 gap-1">
-          <TabsTrigger value="jobs" className="py-2 sm:py-2.5 gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background px-2">
+        <TabsList className="mb-4 sm:mb-6 w-full max-w-full sm:max-w-md h-auto bg-dashboard-neutral-soft/50 p-1 border border-dashboard-border rounded-lg grid grid-cols-2 gap-1">
+          <TabsTrigger
+            value="jobs"
+            className="py-2 sm:py-2.5 gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background px-2"
+          >
             <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             <span className="truncate">Job Postings</span>
           </TabsTrigger>
-          <TabsTrigger value="apps" className="py-2 sm:py-2.5 gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background px-2">
+          <TabsTrigger
+            value="apps"
+            className="py-2 sm:py-2.5 gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background px-2"
+          >
             <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             <span className="truncate">Applications</span>
-            <Badge variant="secondary" className="h-5 px-1.5 shrink-0">
+            <DashboardStatusLabel tone="information" className="h-5 px-1.5 shrink-0 tabular-nums">
               {applications.filter((a: any) => a.status === "new").length}
-            </Badge>
+            </DashboardStatusLabel>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="jobs" className="mt-0 space-y-4 min-w-0">
           <FadeInUp>
-            <Card className="border-border overflow-hidden min-w-0">
+            <DashboardSection className="overflow-hidden min-w-0 [&>div]:p-0">
               {/* Mobile job cards */}
               <div className="md:hidden divide-y divide-border">
                 {careers.length === 0 ? (
@@ -179,13 +226,12 @@ export default function AdminCMSCareers() {
                           <p className="font-semibold text-foreground text-sm break-words flex-1 min-w-0">
                             {job.title}
                           </p>
-                          <Badge
-                            variant={job.isActive ? "default" : "secondary"}
-                            className="uppercase tracking-wider text-[10px] shrink-0 whitespace-nowrap gap-1"
-                          >
-                            {job.isActive ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            {job.isActive ? "Active" : "Closed"}
-                          </Badge>
+                          <DashboardStatusLabel
+                            tone={job.isActive ? "success" : "neutral"}
+                            label={job.isActive ? "Active" : "Closed"}
+                            icon={job.isActive ? CheckCircle2 : XCircle}
+                            className="uppercase tracking-wider text-[10px] shrink-0 whitespace-nowrap"
+                          />
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {job.department} · {formatType(job.type)}
@@ -196,8 +242,13 @@ export default function AdminCMSCareers() {
                           Posted {new Date(job.postedDate).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
-                        <Button variant="outline" size="sm" onClick={() => handleOpenJobModal(job)} className="gap-1.5">
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashboard-border">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenJobModal(job)}
+                          className="gap-1.5"
+                        >
                           <Edit className="w-4 h-4" /> Edit
                         </Button>
                         <Button
@@ -218,7 +269,7 @@ export default function AdminCMSCareers() {
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-muted/50 text-muted-foreground text-xs uppercase font-semibold border-b border-border">
+                  <thead className="bg-muted/50 text-muted-foreground text-xs uppercase font-semibold border-b border-dashboard-border">
                     <tr>
                       <th className="px-4 lg:px-6 py-4">Job Details</th>
                       <th className="px-4 lg:px-6 py-4">Status</th>
@@ -236,34 +287,43 @@ export default function AdminCMSCareers() {
                       </tr>
                     ) : (
                       careers.map((job: any) => (
-                        <tr key={job._id} className="bg-background hover:bg-muted/30 transition-colors group">
+                        <tr
+                          key={job._id}
+                          className="bg-background hover:bg-muted/30 transition-colors group"
+                        >
                           <td className="px-4 lg:px-6 py-4 min-w-0">
                             <div className="font-semibold text-foreground text-base mb-1 break-words max-w-sm">
                               {job.title}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> Posted {new Date(job.postedDate).toLocaleDateString()}
+                              <Clock className="w-3 h-3" /> Posted{" "}
+                              {new Date(job.postedDate).toLocaleDateString()}
                             </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4">
-                            <Badge
-                              variant={job.isActive ? "default" : "secondary"}
+                            <DashboardStatusLabel
+                              tone={job.isActive ? "success" : "neutral"}
+                              label={job.isActive ? "Active" : "Closed"}
+                              icon={job.isActive ? CheckCircle2 : XCircle}
                               className="uppercase tracking-wider text-[10px] whitespace-nowrap"
-                            >
-                              {job.isActive ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
-                              {job.isActive ? "Active" : "Closed"}
-                            </Badge>
+                            />
                           </td>
                           <td className="px-4 lg:px-6 py-4">
                             <div className="font-medium">{job.department}</div>
-                            <div className="text-xs text-muted-foreground">{formatType(job.type)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatType(job.type)}
+                            </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4 text-muted-foreground whitespace-nowrap">
                             {job.location}
                           </td>
                           <td className="px-4 lg:px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="sm" onClick={() => handleOpenJobModal(job)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenJobModal(job)}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button
@@ -282,13 +342,13 @@ export default function AdminCMSCareers() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </DashboardSection>
           </FadeInUp>
         </TabsContent>
 
         <TabsContent value="apps" className="mt-0 space-y-4 min-w-0">
           <FadeInUp>
-            <Card className="border-border overflow-hidden min-w-0">
+            <DashboardSection className="overflow-hidden min-w-0 [&>div]:p-0">
               <div className="md:hidden divide-y divide-border">
                 {applications.length === 0 ? (
                   <p className="px-4 py-10 text-center text-sm text-muted-foreground">
@@ -298,7 +358,9 @@ export default function AdminCMSCareers() {
                   applications.map((app: any) => (
                     <div key={app._id} className="p-3 space-y-3 min-w-0">
                       <div className="min-w-0 space-y-1">
-                        <p className="font-semibold text-foreground text-sm break-words">{app.applicantName}</p>
+                        <p className="font-semibold text-foreground text-sm break-words">
+                          {app.applicantName}
+                        </p>
                         <p className="text-xs text-muted-foreground break-all flex items-center gap-1">
                           <Mail className="w-3 h-3 shrink-0" /> {app.email}
                         </p>
@@ -371,7 +433,10 @@ export default function AdminCMSCareers() {
                       </tr>
                     ) : (
                       applications.map((app: any) => (
-                        <tr key={app._id} className="bg-background hover:bg-muted/30 transition-colors">
+                        <tr
+                          key={app._id}
+                          className="bg-background hover:bg-muted/30 transition-colors"
+                        >
                           <td className="px-4 lg:px-6 py-4 min-w-0">
                             <div className="font-semibold text-foreground">{app.applicantName}</div>
                             <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
@@ -386,7 +451,9 @@ export default function AdminCMSCareers() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 lg:px-6 py-4 font-medium text-foreground">{app.jobTitle}</td>
+                          <td className="px-4 lg:px-6 py-4 font-medium text-foreground">
+                            {app.jobTitle}
+                          </td>
                           <td className="px-4 lg:px-6 py-4 text-muted-foreground whitespace-nowrap">
                             {new Date(app.appliedDate).toLocaleDateString()}
                           </td>
@@ -435,7 +502,7 @@ export default function AdminCMSCareers() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </DashboardSection>
           </FadeInUp>
         </TabsContent>
       </Tabs>
@@ -444,7 +511,9 @@ export default function AdminCMSCareers() {
         <DialogContent className="!max-w-3xl w-[calc(100%-1rem)] sm:w-[95vw] max-h-[92vh] bg-background border-border overflow-hidden flex flex-col p-0 gap-0">
           <DialogHeader className="px-4 sm:px-6 py-4 border-b border-border shrink-0">
             <DialogTitle>{editingJobId ? "Edit Job Posting" : "Post New Job"}</DialogTitle>
-            <DialogDescription>Create a new career opportunity for the public board.</DialogDescription>
+            <DialogDescription>
+              Create a new career opportunity for the public board.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 text-foreground min-w-0">
@@ -522,8 +591,12 @@ export default function AdminCMSCareers() {
             <div className="space-y-3 pt-2 border-t border-border">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <label className="text-sm font-semibold text-foreground">Requirements & Qualifications</label>
-                  <p className="text-xs text-muted-foreground mt-0.5">List specific skills or degrees required.</p>
+                  <label className="text-sm font-semibold text-foreground">
+                    Requirements & Qualifications
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    List specific skills or degrees required.
+                  </p>
                 </div>
                 <Button
                   type="button"
@@ -560,7 +633,11 @@ export default function AdminCMSCareers() {
             </div>
           </div>
           <DialogFooter className="px-4 sm:px-6 py-4 border-t border-border shrink-0 bg-muted/10 flex-col-reverse sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setIsJobModalOpen(false)} className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => setIsJobModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button onClick={handleSaveJob} className="gap-2 w-full sm:w-auto">
@@ -570,7 +647,10 @@ export default function AdminCMSCareers() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={coverLetterPreview !== null} onOpenChange={(open) => !open && setCoverLetterPreview(null)}>
+      <Dialog
+        open={coverLetterPreview !== null}
+        onOpenChange={(open) => !open && setCoverLetterPreview(null)}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Cover Letter</DialogTitle>
@@ -586,6 +666,6 @@ export default function AdminCMSCareers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

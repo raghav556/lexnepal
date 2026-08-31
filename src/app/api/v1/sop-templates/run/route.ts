@@ -9,7 +9,13 @@ export const POST = withApiHandler("/api/v1/sop-templates/run", async ({ request
   const principal = await requireSession(request);
   const input = sopRunSchema.parse(await request.json());
   return jsonResponse(
-    { data: await getWorkManagementService().runSop(principal, input, buildAuditContext(request, requestId, principal)) },
+    {
+      data: await getWorkManagementService().runSop(
+        principal,
+        input,
+        buildAuditContext(request, requestId, principal),
+      ),
+    },
     { status: 201 },
   );
 });

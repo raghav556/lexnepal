@@ -10,8 +10,8 @@ LexNepal uses an isolated native PostgreSQL cluster and a self-hosted MinIO serv
 | MinIO API     | `http://127.0.0.1:9000` | `%LOCALAPPDATA%\LexNepal\MinIO\data`      |
 | MinIO console | `http://127.0.0.1:9001` | Same MinIO data directory                 |
 | ClamAV daemon | `127.0.0.1:3310`        | `%LOCALAPPDATA%\LexNepal\ClamAV`          |
-| Mailpit SMTP  | `127.0.0.1:1025`        | Local invitation/recovery capture          |
-| Mailpit UI    | `http://127.0.0.1:8025` | Same Mailpit process                       |
+| Mailpit SMTP  | `127.0.0.1:1025`        | Local invitation/recovery capture         |
+| Mailpit UI    | `http://127.0.0.1:8025` | Same Mailpit process                      |
 
 Development credentials live in the git-ignored `.env.local`. They are intentionally local-only and must never be reused in staging or production.
 
@@ -46,7 +46,8 @@ npm run local:infra:stop
 
 The start command is idempotent: it initializes the project cluster and database only when missing, then starts PostgreSQL, MinIO, ClamAV and Mailpit if they are not already healthy.
 
-Run the legacy React shell at `http://localhost:3002` with `npm run dev:legacy`; it proxies `/api` to the Next.js server on port 3001. Invitation links return to the React shell through `APP_PUBLIC_URL`.
+The legacy Vite shell has been decommissioned. Next.js on `http://localhost:3001` is the only
+application shell, and `APP_PUBLIC_URL` should point there for localhost invitation links.
 
 Update ClamAV signatures with `npm run local:clamav:update`, then restart the local infrastructure so the daemon reloads them.
 

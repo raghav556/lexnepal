@@ -21,12 +21,7 @@
  * 5. Hidden/non-public id → 404 on GET /team/[id] and profile page.
  */
 
-export const PUBLIC_TEAM_ROLES = [
-  "partner",
-  "senior_associate",
-  "associate",
-  "paralegal",
-] as const;
+export const PUBLIC_TEAM_ROLES = ["partner", "senior_associate", "associate", "paralegal"] as const;
 
 export type PublicTeamRole = (typeof PUBLIC_TEAM_ROLES)[number];
 

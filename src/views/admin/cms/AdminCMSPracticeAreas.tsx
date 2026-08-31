@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -23,6 +21,13 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+import {
+  DashboardButton,
+  DashboardSection,
+  DashboardStatusLabel,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { useCmsCommands, useCmsSettings, usePracticeAreas } from "@/client/queries/cms";
 import {
   PRACTICE_AREA_ICON_OPTIONS,
@@ -92,7 +97,10 @@ export default function AdminCMSPracticeAreas() {
   const sorted = useMemo(
     () =>
       [...(practiceAreas || [])].sort(
-        (a: { displayOrder?: number; title?: string }, b: { displayOrder?: number; title?: string }) =>
+        (
+          a: { displayOrder?: number; title?: string },
+          b: { displayOrder?: number; title?: string },
+        ) =>
           (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
           String(a.title ?? "").localeCompare(String(b.title ?? "")),
       ),
@@ -112,8 +120,7 @@ export default function AdminCMSPracticeAreas() {
 
   useEffect(() => {
     if (!settings) return;
-    if (settings.practiceAreasHeroTitle)
-      setHeroTitle(String(settings.practiceAreasHeroTitle));
+    if (settings.practiceAreasHeroTitle) setHeroTitle(String(settings.practiceAreasHeroTitle));
     if (settings.practiceAreasHeroSubtitle)
       setHeroSubtitle(String(settings.practiceAreasHeroSubtitle));
   }, [settings]);
@@ -242,25 +249,25 @@ export default function AdminCMSPracticeAreas() {
   };
 
   return (
-    <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">Practice Areas</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage legal services shown on the homepage, listing page, and detail pages.
-          </p>
-        </div>
-        <Button onClick={() => handleOpenModal()} className="gap-2 w-full sm:w-auto shrink-0">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      loading={!practiceAreas}
+      loadingLabel="Loading practice areas…"
+      eyebrow="Content management"
+      title="Practice Areas"
+      description="Manage legal services shown on the homepage, listing page, and detail pages."
+      icon={Briefcase}
+      actions={
+        <DashboardButton onClick={() => handleOpenModal()} className="w-full sm:w-auto">
           <Plus className="w-4 h-4" /> Add Practice Area
-        </Button>
-      </div>
-
-      <Card className="border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Public page chrome</CardTitle>
-          <CardDescription>Hero copy for /practice-areas</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        </DashboardButton>
+      }
+      contentClassName="max-w-5xl mx-auto pb-24 animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
+      <DashboardSection title="Public page chrome" description="Hero copy for /practice-areas">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label>Hero title</Label>
             <Input
@@ -277,31 +284,33 @@ export default function AdminCMSPracticeAreas() {
               onBlur={() => saveHeroSetting("practiceAreasHeroSubtitle", heroSubtitle)}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
 
-      {!practiceAreas ? (
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 bg-muted/50 rounded-xl" />
-          ))}
-        </div>
-      ) : sorted.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-          <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">No practice areas yet.</p>
-        </div>
+      {sorted.length === 0 ? (
+        <EmptyState
+          title="No practice areas yet"
+          description="Add your first practice area to show on the public site."
+          icon={Briefcase}
+          action={
+            <DashboardButton onClick={() => handleOpenModal()}>
+              <Plus className="w-4 h-4" /> Add Practice Area
+            </DashboardButton>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
           {sorted.map((pa: Record<string, unknown>, index: number) => {
             const id = String(pa._id || pa.id);
-            const iconName = resolvePracticeAreaIconName(pa as { icon?: string; iconName?: string });
+            const iconName = resolvePracticeAreaIconName(
+              pa as { icon?: string; iconName?: string },
+            );
             return (
-              <Card
+              <DashboardSection
                 key={id}
-                className={`min-w-0 overflow-hidden ${!pa.isActive ? "opacity-60 grayscale" : ""}`}
+                className={`min-w-0 overflow-hidden [&>div]:px-3 [&>div]:sm:px-6 ${!pa.isActive ? "opacity-60 grayscale" : ""}`}
               >
-                <CardHeader className="space-y-3 pb-2 px-3 sm:px-6">
+                <div className="space-y-3 pb-2">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="flex flex-col shrink-0">
                       <button
@@ -324,7 +333,6 @@ export default function AdminCMSPracticeAreas() {
                       </button>
                     </div>
                     {pa.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={String(pa.coverImageUrl)}
                         alt=""
@@ -337,37 +345,29 @@ export default function AdminCMSPracticeAreas() {
                     )}
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <CardTitle className="text-base sm:text-lg font-serif break-words leading-snug">
+                        <h3 className="text-base sm:text-lg font-serif break-words leading-snug">
                           {String(pa.title)}
-                        </CardTitle>
-                        <Badge variant={pa.isActive ? "default" : "secondary"} className="gap-1">
-                          {pa.isActive ? (
-                            <>
-                              <Eye className="w-3 h-3" /> Active
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="w-3 h-3" /> Hidden
-                            </>
-                          )}
-                        </Badge>
+                        </h3>
+                        <DashboardStatusLabel
+                          tone={pa.isActive ? "success" : "neutral"}
+                          label={pa.isActive ? "Active" : "Hidden"}
+                          icon={pa.isActive ? Eye : EyeOff}
+                        />
                         {pa.showOnHome !== false && (
-                          <Badge variant="outline" className="gap-1">
-                            <Home className="w-3 h-3" /> Home
-                          </Badge>
+                          <DashboardStatusLabel tone="primary" label="Home" icon={Home} />
                         )}
                       </div>
-                      <CardDescription className="line-clamp-2 text-xs sm:text-sm">
+                      <p className="line-clamp-2 text-xs sm:text-sm text-muted-foreground">
                         {String(pa.description)}
-                      </CardDescription>
+                      </p>
                       <p className="text-[11px] text-muted-foreground font-mono truncate">
                         /practice-areas/{String(pa.slug)}
                       </p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-6">
-                  <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-border">
+                </div>
+                <div>
+                  <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-dashboard-border">
                     <div className="flex items-center gap-1">
                       <Button
                         variant="outline"
@@ -377,7 +377,13 @@ export default function AdminCMSPracticeAreas() {
                       >
                         <Edit className="w-4 h-4" /> Edit
                       </Button>
-                      <Button variant="ghost" size="sm" asChild className="h-9 w-9 p-0" title="View on site">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="h-9 w-9 p-0"
+                        title="View on site"
+                      >
                         <Link href={`/practice-areas/${String(pa.slug)}`} target="_blank">
                           <ExternalLink className="w-4 h-4" />
                         </Link>
@@ -406,8 +412,8 @@ export default function AdminCMSPracticeAreas() {
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </DashboardSection>
             );
           })}
         </div>
@@ -512,7 +518,7 @@ export default function AdminCMSPracticeAreas() {
                 <p className="text-xs text-muted-foreground">No FAQs yet.</p>
               )}
               {formData.faqs.map((faq, idx) => (
-                <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
+                <div key={idx} className="border border-dashboard-border rounded-lg p-3 space-y-2">
                   <Input
                     value={faq.question}
                     placeholder="Question"
@@ -578,7 +584,7 @@ export default function AdminCMSPracticeAreas() {
               />
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
-              <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border">
+              <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-dashboard-border">
                 <span className="text-sm font-medium">Visible on site</span>
                 <input
                   type="checkbox"
@@ -587,7 +593,7 @@ export default function AdminCMSPracticeAreas() {
                   className="accent-primary"
                 />
               </label>
-              <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border">
+              <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-dashboard-border">
                 <span className="text-sm font-medium">Show on homepage</span>
                 <input
                   type="checkbox"
@@ -599,7 +605,11 @@ export default function AdminCMSPracticeAreas() {
             </div>
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button onClick={handleSave} className="w-full sm:w-auto">
@@ -616,6 +626,6 @@ export default function AdminCMSPracticeAreas() {
           if (!open) setConfirm(null);
         }}
       />
-    </div>
+    </PortalPageShell>
   );
 }

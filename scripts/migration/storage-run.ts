@@ -11,10 +11,7 @@ import { S3ObjectStorage } from "../../src/server/storage/s3-object-storage";
 import { convertConvexStorageExport } from "../../src/server/storage/convex-export-converter";
 import { migrateLegacyStorage } from "../../src/server/storage/storage-migration";
 import type { DomainMigrationReport } from "./types";
-import {
-  detailsFromReport,
-  loadFileSha256Rows,
-} from "./reconciliation-details";
+import { detailsFromReport, loadFileSha256Rows } from "./reconciliation-details";
 
 export async function countStorageObjects(exportPath: string): Promise<number> {
   for (const candidate of [

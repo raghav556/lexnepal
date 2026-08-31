@@ -43,7 +43,9 @@ export function CmsImageUploadField({
       onChange(publicUrl);
       toast.success(`${label} uploaded.`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Failed to upload ${label.toLowerCase()}.`);
+      toast.error(
+        error instanceof Error ? error.message : `Failed to upload ${label.toLowerCase()}.`,
+      );
     } finally {
       setIsUploading(false);
     }

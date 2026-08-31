@@ -1,11 +1,7 @@
 import "server-only";
 
 import { createAuthMiddleware, isAPIError } from "better-auth/api";
-import {
-  readAuthUserId,
-  readLexnepalUserId,
-  recordAuthAudit,
-} from "@/server/auth/auth-audit";
+import { readAuthUserId, readLexnepalUserId, recordAuthAudit } from "@/server/auth/auth-audit";
 
 const verifyTotpHadSession = new WeakMap<object, boolean>();
 
@@ -74,8 +70,7 @@ export const authAuditAfterHook = createAuthMiddleware(async (ctx) => {
     verifyTotpHadSession.delete(ctx as object);
 
     const user = (ctx.context.newSession?.user ?? ctx.context.session?.user) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (!user) return;
 
     if (hadSession) {

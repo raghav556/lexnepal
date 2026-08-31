@@ -9,7 +9,10 @@ import {
   MAX_DOCUMENT_BYTES,
   validateUploadedFile,
 } from "../../src/server/storage/file-validation.ts";
-import { hashSharePassword, verifySharePassword } from "../../src/server/security/share-password.ts";
+import {
+  hashSharePassword,
+  verifySharePassword,
+} from "../../src/server/security/share-password.ts";
 import { DEFAULT_ROLE_PERMISSIONS } from "../../src/server/auth/capabilities.ts";
 
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]);

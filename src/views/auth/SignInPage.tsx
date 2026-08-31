@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "@/client/navigation";
 import { localAuthClient } from "@/client/auth/local-auth-client";
-import { AUTH_IDLE_TIMEOUT, AUTH_REDIRECT_REASON_KEY, AUTH_SESSION_EXPIRED } from "@/client/auth/auth-provider";
+import {
+  AUTH_IDLE_TIMEOUT,
+  AUTH_REDIRECT_REASON_KEY,
+  AUTH_SESSION_EXPIRED,
+} from "@/client/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +58,8 @@ function destinationForRole(role: UserRole, next: string | null): string {
   const home = getPortalForRole(role);
   if (!next) return home;
   if (next === "/admin" || next.startsWith("/admin/")) return role === "admin" ? next : home;
-  if (next === "/staff" || next.startsWith("/staff/")) return STAFF_ROLES.includes(role) ? next : home;
+  if (next === "/staff" || next.startsWith("/staff/"))
+    return STAFF_ROLES.includes(role) ? next : home;
   if (next === "/client" || next.startsWith("/client/")) return role === "client" ? next : home;
   return home;
 }
@@ -65,7 +70,9 @@ export default function SignInPage() {
   const [params] = useSearchParams();
   const explicitNext = useMemo(() => safeNextPath(params.get("next")), [params]);
   const activePortal = useMemo(() => {
-    return parsePortalIntent(routeParams.portal) ?? parsePortalIntent(params.get("portal")) ?? "client";
+    return (
+      parsePortalIntent(routeParams.portal) ?? parsePortalIntent(params.get("portal")) ?? "client"
+    );
   }, [routeParams.portal, params]);
 
   const [email, setEmail] = useState("");
@@ -118,7 +125,9 @@ export default function SignInPage() {
       } else {
         const result = await localAuthClient.signIn.email({ email, password, rememberMe });
         if (result.error) throw result.error;
-        if ((result.data as typeof result.data & { twoFactorRedirect?: boolean })?.twoFactorRedirect) {
+        if (
+          (result.data as typeof result.data & { twoFactorRedirect?: boolean })?.twoFactorRedirect
+        ) {
           setNeedsTwoFactor(true);
           return;
         }
@@ -130,7 +139,8 @@ export default function SignInPage() {
         navigate(`/mfa-enroll${next}`);
         return;
       }
-      if (!response.ok) throw new Error(session.error?.message ?? "Session could not be established");
+      if (!response.ok)
+        throw new Error(session.error?.message ?? "Session could not be established");
       const role = session.data?.user?.role as UserRole | undefined;
       if (!role) throw new Error("Session did not include a user role");
       const dest = destinationForRole(role, explicitNext);
@@ -198,9 +208,11 @@ export default function SignInPage() {
               </span>
               <div>
                 <p className="font-serif text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl">
-                  LexNepal
+                  Srimar Law
                 </p>
-                <p className="text-xs tracking-[0.18em] text-accent uppercase">Legal practice platform</p>
+                <p className="text-xs tracking-[0.18em] text-accent uppercase">
+                  Legal practice platform
+                </p>
               </div>
             </div>
           </div>
@@ -212,8 +224,7 @@ export default function SignInPage() {
               transition={{ duration: 1, ease: PREMIUM_EASE, delay: 0.15 }}
               className="font-serif text-3xl leading-[1.15] font-bold text-balance sm:text-4xl lg:text-5xl"
             >
-              Secure access to your{" "}
-              <span className="text-accent">legal practice</span>
+              Secure access to your <span className="text-accent">legal practice</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -251,7 +262,7 @@ export default function SignInPage() {
           </div>
 
           <p className="relative z-10 mt-10 text-xs text-primary-foreground/45 lg:mt-0">
-            © {new Date().getFullYear()} LexNepal · Kathmandu, Nepal
+            © {new Date().getFullYear()} Srimar Law · Kathmandu, Nepal
           </p>
         </motion.aside>
 
@@ -314,7 +325,9 @@ export default function SignInPage() {
                   {!explicitNext ? (
                     <p className="mt-2 text-[11px] text-muted-foreground">
                       After sign-in, you’ll open{" "}
-                      <span className="font-medium text-foreground">{PORTAL_HOME[activePortal]}</span>
+                      <span className="font-medium text-foreground">
+                        {PORTAL_HOME[activePortal]}
+                      </span>
                     </p>
                   ) : null}
                 </div>
@@ -329,8 +342,7 @@ export default function SignInPage() {
                     Password: <code className="text-foreground">E2E-Smoke-Only-2026!</code>
                   </p>
                   <p className="mt-2">
-                    Email:{" "}
-                    <code className="text-foreground">{DEMO_EMAILS[activePortal]}</code>
+                    Email: <code className="text-foreground">{DEMO_EMAILS[activePortal]}</code>
                   </p>
                 </div>
               ) : null}
@@ -360,7 +372,9 @@ export default function SignInPage() {
                       maxLength={8}
                       placeholder="000000"
                       value={code}
-                      onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                      onChange={(event) =>
+                        setCode(event.target.value.replace(/\D/g, "").slice(0, 8))
+                      }
                       required
                       className="h-12 border-border/80 bg-background/80 font-mono text-lg tracking-[0.35em] shadow-none"
                     />
@@ -423,7 +437,11 @@ export default function SignInPage() {
                           className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
                           aria-label={showPassword ? "Hide password" : "Show password"}
                         >
-                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          {showPassword ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
                         </button>
                       </div>
                     </div>

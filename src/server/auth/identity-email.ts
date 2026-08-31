@@ -32,13 +32,13 @@ export async function enqueueIdentityEmail(input: {
       to: input.email,
       subject:
         purposeKey === "invite"
-          ? "Activate your LexNepal account"
+          ? "Activate your Srimar Law account"
           : purposeKey === "verify"
-            ? "Verify your LexNepal email"
-            : "Reset your LexNepal password",
+            ? "Verify your Srimar Law email"
+            : "Reset your Srimar Law password",
       text:
         purposeKey === "invite"
-          ? `${input.name},\n\nYou have been invited to LexNepal. Set your password to activate your account:\n${input.url}\n\nIf you did not expect this invitation, contact your firm administrator.`
+          ? `${input.name},\n\nYou have been invited to Srimar Law. Set your password to activate your account:\n${input.url}\n\nIf you did not expect this invitation, contact your firm administrator.`
           : `${input.name},\n\n${purposeKey === "verify" ? "Verify your email" : "Reset your password"}:\n${input.url}\n\nIf you did not request this, contact your firm administrator.`,
     },
     maxAttempts: 5,

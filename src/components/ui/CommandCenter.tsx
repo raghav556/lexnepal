@@ -3,15 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  X,
-  MessageCircle,
-  FileText,
-  ChevronLeft,
-  ExternalLink,
-  Users,
-  Lock,
-} from "lucide-react";
+import { X, MessageCircle, FileText, ChevronLeft, ExternalLink, Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useCases } from "@/client/queries/cases";
@@ -42,9 +34,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const myId = currentUser?._id || currentUser?.id;
-  const peers = staff.filter(
-    (u: any) => u && u._id !== myId && u.role !== "client",
-  );
+  const peers = staff.filter((u: any) => u && u._id !== myId && u.role !== "client");
 
   useEffect(() => {
     if (!isOpen) setMobileShowChat(false);
@@ -172,7 +162,9 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
                             <p className="text-xs font-semibold truncate">
                               [{c.caseNumber}] {c.title}
                             </p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{c.practiceArea}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {c.practiceArea}
+                            </p>
                           </div>
                         </div>
                       </button>

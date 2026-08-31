@@ -6,7 +6,6 @@ import {
   researchCreateSchema,
 } from "../../src/shared/contracts/work-management";
 
-
 describe("Work Management input contracts", () => {
   it("validates hearing creation rules", () => {
     const validHearing = {
@@ -16,12 +15,16 @@ describe("Work Management input contracts", () => {
       dateBs: "2083-06-24",
       hearingTime: "10:30",
     };
-    
+
     expect(hearingCreateSchema.safeParse(validHearing).success).toBe(true);
-    
+
     // Invalid time format
-    expect(hearingCreateSchema.safeParse({ ...validHearing, hearingTime: "10-30" }).success).toBe(false);
-    expect(hearingCreateSchema.safeParse({ ...validHearing, hearingTime: "10:30 AM" }).success).toBe(false);
+    expect(hearingCreateSchema.safeParse({ ...validHearing, hearingTime: "10-30" }).success).toBe(
+      false,
+    );
+    expect(
+      hearingCreateSchema.safeParse({ ...validHearing, hearingTime: "10:30 AM" }).success,
+    ).toBe(false);
   });
 
   it("validates task creation limits and date-only due dates", () => {
@@ -32,13 +35,13 @@ describe("Work Management input contracts", () => {
       category: "court",
       dueDate: "2026-10-10",
     };
-    
+
     const parsed = taskCreateSchema.safeParse(validTask);
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.dueDate).toBe("2026-10-10T00:00:00.000Z");
     }
-    
+
     // Invalid priority
     expect(taskCreateSchema.safeParse({ ...validTask, priority: "very-high" }).success).toBe(false);
   });
@@ -61,11 +64,13 @@ describe("Work Management input contracts", () => {
       content: "Details",
       tags: ["tag1", "tag2"],
     };
-    
+
     expect(researchCreateSchema.safeParse(validResearch).success).toBe(true);
-    
+
     // Too many tags
     const manyTags = Array.from({ length: 25 }, (_, i) => `tag${i}`);
-    expect(researchCreateSchema.safeParse({ ...validResearch, tags: manyTags }).success).toBe(false);
+    expect(researchCreateSchema.safeParse({ ...validResearch, tags: manyTags }).success).toBe(
+      false,
+    );
   });
 });

@@ -6,15 +6,7 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Link } from "@/client/navigation";
-import {
-  ArrowRight,
-  BookOpen,
-  ChevronDown,
-  Phone,
-  Scale,
-  Search,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown, Phone, Scale, Search, ShieldCheck } from "lucide-react";
 import { usePracticeAreas } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
@@ -60,14 +52,18 @@ export default function PracticeAreasPage() {
   const filtered = useMemo(() => {
     const list = [...(practiceAreas || [])];
     list.sort(
-      (a: { displayOrder?: number; title?: string }, b: { displayOrder?: number; title?: string }) =>
+      (
+        a: { displayOrder?: number; title?: string },
+        b: { displayOrder?: number; title?: string },
+      ) =>
         (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
         String(a.title ?? "").localeCompare(String(b.title ?? "")),
     );
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((area: Record<string, unknown>) => {
-      const hay = `${area.title ?? ""} ${area.description ?? ""} ${area.longDescription ?? ""}`.toLowerCase();
+      const hay =
+        `${area.title ?? ""} ${area.description ?? ""} ${area.longDescription ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [practiceAreas, query]);
@@ -114,9 +110,21 @@ export default function PracticeAreasPage() {
       <section className="border-b border-border bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           {[
-            { icon: Scale, title: "Specialized counsel", text: "Advocates matched to your matter." },
-            { icon: ShieldCheck, title: "Confidential advice", text: "Privilege from the first conversation." },
-            { icon: Phone, title: "Clear next steps", text: "Strategy and fees explained upfront." },
+            {
+              icon: Scale,
+              title: "Specialized counsel",
+              text: "Advocates matched to your matter.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "Confidential advice",
+              text: "Privilege from the first conversation.",
+            },
+            {
+              icon: Phone,
+              title: "Clear next steps",
+              text: "Strategy and fees explained upfront.",
+            },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-3 min-w-0">
               <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -134,9 +142,13 @@ export default function PracticeAreasPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">Our practice areas</h2>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">
+              Our practice areas
+            </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {practiceAreas ? `${filtered.length} active ${filtered.length === 1 ? "area" : "areas"}` : "Loading…"}
+              {practiceAreas
+                ? `${filtered.length} active ${filtered.length === 1 ? "area" : "areas"}`
+                : "Loading…"}
             </p>
           </div>
           <div className="relative w-full sm:w-72">
@@ -194,7 +206,6 @@ export default function PracticeAreasPage() {
                   <Card className="hover:shadow-lg transition-all duration-300 group h-full sm:hover:-translate-y-1 overflow-hidden py-0 gap-0">
                     <CardContent className="p-0 flex flex-col h-full min-w-0">
                       {area.coverImageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={String(area.coverImageUrl)}
                           alt=""

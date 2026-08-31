@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { useCareers, useCmsCommands } from "@/client/queries/cms";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RevealText, FadeInUp, HoverGlowCard } from "@/components/ui/animations";
@@ -54,12 +60,16 @@ export default function CareersPage() {
       <section className="bg-primary py-24 px-4 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-accent via-primary to-primary"></div>
         <div className="relative max-w-4xl mx-auto z-10">
-          <RevealText as="h1" className="text-5xl md:text-6xl font-serif font-bold text-primary-foreground mb-6">
+          <RevealText
+            as="h1"
+            className="text-5xl md:text-6xl font-serif font-bold text-primary-foreground mb-6"
+          >
             Join Our Team
           </RevealText>
           <FadeInUp delay={0.1}>
             <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto">
-              We are always looking for exceptional talent to join our dedicated team of legal professionals in Kathmandu.
+              We are always looking for exceptional talent to join our dedicated team of legal
+              professionals in Kathmandu.
             </p>
           </FadeInUp>
         </div>
@@ -70,27 +80,39 @@ export default function CareersPage() {
           <FadeInUp delay={0.1}>
             <div className="text-center">
               <h3 className="font-bold text-xl mb-3">Excellence</h3>
-              <p className="text-muted-foreground">We work on complex, high-stakes matters requiring intellectual rigor and dedication.</p>
+              <p className="text-muted-foreground">
+                We work on complex, high-stakes matters requiring intellectual rigor and dedication.
+              </p>
             </div>
           </FadeInUp>
           <FadeInUp delay={0.2}>
             <div className="text-center">
               <h3 className="font-bold text-xl mb-3">Mentorship</h3>
-              <p className="text-muted-foreground">Learn directly from industry-leading partners through our structured mentorship programs.</p>
+              <p className="text-muted-foreground">
+                Learn directly from industry-leading partners through our structured mentorship
+                programs.
+              </p>
             </div>
           </FadeInUp>
           <FadeInUp delay={0.3}>
             <div className="text-center">
               <h3 className="font-bold text-xl mb-3">Impact</h3>
-              <p className="text-muted-foreground">Contribute to cases that shape industries and create meaningful impact for our clients.</p>
+              <p className="text-muted-foreground">
+                Contribute to cases that shape industries and create meaningful impact for our
+                clients.
+              </p>
             </div>
           </FadeInUp>
         </div>
 
-        <RevealText as="h2" className="text-3xl font-serif font-bold mb-10 text-center">Open Positions</RevealText>
-        
+        <RevealText as="h2" className="text-3xl font-serif font-bold mb-10 text-center">
+          Open Positions
+        </RevealText>
+
         {jobs === undefined ? (
-          <div className="flex justify-center"><div className="animate-spin h-8 w-8 border-4 border-accent border-t-transparent rounded-full" /></div>
+          <div className="flex justify-center">
+            <div className="animate-spin h-8 w-8 border-4 border-accent border-t-transparent rounded-full" />
+          </div>
         ) : jobs.length === 0 ? (
           <div className="text-center text-muted-foreground py-10 bg-secondary/50 rounded-xl">
             <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -105,41 +127,57 @@ export default function CareersPage() {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle className="text-2xl font-bold font-serif mb-2">{job.title}</CardTitle>
+                          <CardTitle className="text-2xl font-bold font-serif mb-2">
+                            {job.title}
+                          </CardTitle>
                           <CardDescription className="flex items-center gap-4 text-sm">
-                            <span className="flex items-center gap-1"><Briefcase className="w-4 h-4"/> {job.department}</span>
-                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4"/> {job.location}</span>
-                            <span className="flex items-center gap-1 capitalize"><Clock className="w-4 h-4"/> {job.type.replace('_', ' ')}</span>
+                            <span className="flex items-center gap-1">
+                              <Briefcase className="w-4 h-4" /> {job.department}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" /> {job.location}
+                            </span>
+                            <span className="flex items-center gap-1 capitalize">
+                              <Clock className="w-4 h-4" /> {job.type.replace("_", " ")}
+                            </span>
                           </CardDescription>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mb-6 line-clamp-3">{job.description}</p>
-                      
-                      <Dialog open={selectedJob?._id === job._id} onOpenChange={(open) => {
-                        if (!open) {
-                          setSelectedJob(null);
-                          resetForm();
-                        }
-                      }}>
+
+                      <Dialog
+                        open={selectedJob?._id === job._id}
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            setSelectedJob(null);
+                            resetForm();
+                          }
+                        }}
+                      >
                         <DialogTrigger asChild>
-                          <Button variant="outline" onClick={() => setSelectedJob(job)}>View Details & Apply</Button>
+                          <Button variant="outline" onClick={() => setSelectedJob(job)}>
+                            View Details & Apply
+                          </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle className="text-2xl font-serif">{job.title}</DialogTitle>
                             <div className="flex gap-4 text-sm text-muted-foreground mt-2">
-                              <span>{job.department}</span> • <span>{job.location}</span> • <span className="capitalize">{job.type.replace('_', ' ')}</span>
+                              <span>{job.department}</span> • <span>{job.location}</span> •{" "}
+                              <span className="capitalize">{job.type.replace("_", " ")}</span>
                             </div>
                           </DialogHeader>
-                          
+
                           <div className="py-6 space-y-6">
                             <div>
                               <h4 className="font-bold mb-2">About the Role</h4>
-                              <p className="text-sm text-muted-foreground whitespace-pre-line">{job.description}</p>
+                              <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                {job.description}
+                              </p>
                             </div>
-                            
+
                             {job.requirements && job.requirements.length > 0 && (
                               <div>
                                 <h4 className="font-bold mb-2">Requirements</h4>
@@ -161,7 +199,9 @@ export default function CareersPage() {
                                       required
                                       placeholder="John Doe"
                                       value={form.applicantName}
-                                      onChange={(e) => setForm({ ...form, applicantName: e.target.value })}
+                                      onChange={(e) =>
+                                        setForm({ ...form, applicantName: e.target.value })
+                                      }
                                     />
                                   </div>
                                   <div className="space-y-2">
@@ -190,20 +230,33 @@ export default function CareersPage() {
                                     type="url"
                                     placeholder="https://... (link to your resume PDF)"
                                     value={form.resumeUrl}
-                                    onChange={(e) => setForm({ ...form, resumeUrl: e.target.value })}
+                                    onChange={(e) =>
+                                      setForm({ ...form, resumeUrl: e.target.value })
+                                    }
                                   />
-                                  <p className="text-xs text-muted-foreground">Paste a public link to your resume if you do not have file upload available.</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Paste a public link to your resume if you do not have file
+                                    upload available.
+                                  </p>
                                 </div>
                                 <div className="space-y-2">
-                                  <label className="text-sm font-medium">Cover Letter (Optional)</label>
+                                  <label className="text-sm font-medium">
+                                    Cover Letter (Optional)
+                                  </label>
                                   <Textarea
                                     placeholder="Tell us why you're a great fit..."
                                     className="h-32"
                                     value={form.coverLetter}
-                                    onChange={(e) => setForm({ ...form, coverLetter: e.target.value })}
+                                    onChange={(e) =>
+                                      setForm({ ...form, coverLetter: e.target.value })
+                                    }
                                   />
                                 </div>
-                                <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-white" disabled={isSubmitting}>
+                                <Button
+                                  type="submit"
+                                  className="w-full bg-accent hover:bg-accent/90 text-white"
+                                  disabled={isSubmitting}
+                                >
                                   {isSubmitting ? "Submitting..." : "Submit Application"}
                                 </Button>
                               </form>

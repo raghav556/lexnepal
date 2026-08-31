@@ -14,7 +14,10 @@ const USERS = [
   { label: "client", email: "e2e-client@example.invalid", role: "client", portal: "/client" },
 ];
 
-const DOC_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../doc/migration/PHASE_AUTH_0_BASELINE.md");
+const DOC_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../doc/migration/PHASE_AUTH_0_BASELINE.md",
+);
 
 function parseCookies(setCookieHeaders) {
   const jar = new Map();
@@ -54,7 +57,8 @@ function checkEnvGuards() {
   const match = content.match(/^NEXT_PUBLIC_SKIP_ROLE_GUARDS=(.*)$/m);
   if (!match) return { ok: true, detail: "NEXT_PUBLIC_SKIP_ROLE_GUARDS not set (guards active)" };
   const value = match[1].trim().replace(/^["']|["']$/g, "");
-  if (value === "1") return { ok: false, detail: "NEXT_PUBLIC_SKIP_ROLE_GUARDS=1 — disable for real testing" };
+  if (value === "1")
+    return { ok: false, detail: "NEXT_PUBLIC_SKIP_ROLE_GUARDS=1 — disable for real testing" };
   return { ok: true, detail: `NEXT_PUBLIC_SKIP_ROLE_GUARDS=${value} (guards active)` };
 }
 
@@ -96,12 +100,12 @@ const AUTH_HEADERS = {
   referer: `${BASE}/sign-in`,
 };
 
-async function signInUser(email) {
+async function signInUser(email, testIp) {
   let jar = new Map();
   const body = JSON.stringify({ email, password: PASSWORD, rememberMe: false });
   let { res, jar: jar1 } = await fetchWithCookies(
     `${BASE}/api/auth/sign-in/email`,
-    { method: "POST", headers: AUTH_HEADERS, body },
+    { method: "POST", headers: { ...AUTH_HEADERS, "x-forwarded-for": testIp }, body },
     jar,
   );
   jar = jar1;
@@ -109,11 +113,21 @@ async function signInUser(email) {
   if (res.status === 200) {
     const data = await res.json().catch(() => ({}));
     if (data.twoFactorRedirect) {
-      return { ok: false, reason: "MFA required — enroll or use backup for E2E account", jar: null, role: null };
+      return {
+        ok: false,
+        reason: "MFA required — enroll or use backup for E2E account",
+        jar: null,
+        role: null,
+      };
     }
   } else if (res.status !== 302 && !res.ok) {
     const text = await res.text().catch(() => "");
-    return { ok: false, reason: `sign-in HTTP ${res.status}: ${text.slice(0, 200)}`, jar: null, role: null };
+    return {
+      ok: false,
+      reason: `sign-in HTTP ${res.status}: ${text.slice(0, 200)}`,
+      jar: null,
+      role: null,
+    };
   }
 
   const meRes = await fetch(`${BASE}/api/v1/users/me`, { headers: { cookie: cookieHeader(jar) } });
@@ -138,17 +152,38 @@ function updateDoc(summary) {
   const date = new Date().toISOString().slice(0, 10);
 
   doc = doc.replace(/\| 0\.1 \|.*\| ☐ \|/, "| 0.1 | This test matrix documented | ☑ |");
-  doc = doc.replace(/\| 0\.2 \|.*\| ☐ \|/, `| 0.2 | All three demo accounts verified | ${summary.logins.every((l) => l.ok) ? "☑" : "☐"} |`);
-  doc = doc.replace(/\| 0\.3 \|.*\| ☐ \|/, `| 0.3 | \`npm run rebuild:start\` — CSS 200, portals load | ${summary.pages.ok ? "☑" : "☐"} |`);
-  doc = doc.replace(/\| 0\.4 \|.*\| ☐ \|/, `| 0.4 | Role guards confirmed active (no skip flag) | ${summary.guards.ok ? "☑" : "☐"} |`);
+  doc = doc.replace(
+    /\| 0\.2 \|.*\| ☐ \|/,
+    `| 0.2 | All three demo accounts verified | ${summary.logins.every((l) => l.ok) ? "☑" : "☐"} |`,
+  );
+  doc = doc.replace(
+    /\| 0\.3 \|.*\| ☐ \|/,
+    `| 0.3 | \`npm run rebuild:start\` — CSS 200, portals load | ${summary.pages.ok ? "☑" : "☐"} |`,
+  );
+  doc = doc.replace(
+    /\| 0\.4 \|.*\| ☐ \|/,
+    `| 0.4 | Role guards confirmed active (no skip flag) | ${summary.guards.ok ? "☑" : "☐"} |`,
+  );
 
   doc = doc.replace(/\| Date \| _pending_ \|/, `| Date | ${date} |`);
   doc = doc.replace(/\| Verifier \| _pending_ \|/, "| Verifier | verify-auth-baseline.mjs |");
   doc = doc.replace(/\| Guards \| _pending_ \|/, `| Guards | ${summary.guards.detail} |`);
-  doc = doc.replace(/\| Admin login \| _pending_ \|/, `| Admin login | ${summary.logins.find((l) => l.label === "admin")?.ok ? "pass" : "fail"} |`);
-  doc = doc.replace(/\| Staff login \| _pending_ \|/, `| Staff login | ${summary.logins.find((l) => l.label === "staff")?.ok ? "pass" : "fail"} |`);
-  doc = doc.replace(/\| Client login \| _pending_ \|/, `| Client login | ${summary.logins.find((l) => l.label === "client")?.ok ? "pass" : "fail"} |`);
-  doc = doc.replace(/\| CSS 200 \| _pending_ \|/, `| CSS 200 | ${summary.css.ok ? "pass" : "fail"} (${summary.css.cssStatus}) |`);
+  doc = doc.replace(
+    /\| Admin login \| _pending_ \|/,
+    `| Admin login | ${summary.logins.find((l) => l.label === "admin")?.ok ? "pass" : "fail"} |`,
+  );
+  doc = doc.replace(
+    /\| Staff login \| _pending_ \|/,
+    `| Staff login | ${summary.logins.find((l) => l.label === "staff")?.ok ? "pass" : "fail"} |`,
+  );
+  doc = doc.replace(
+    /\| Client login \| _pending_ \|/,
+    `| Client login | ${summary.logins.find((l) => l.label === "client")?.ok ? "pass" : "fail"} |`,
+  );
+  doc = doc.replace(
+    /\| CSS 200 \| _pending_ \|/,
+    `| CSS 200 | ${summary.css.ok ? "pass" : "fail"} (${summary.css.cssStatus}) |`,
+  );
 
   writeFileSync(DOC_PATH, doc, "utf8");
   return summary.ok;
@@ -168,19 +203,38 @@ async function main() {
   }
 
   const pages = await checkSignInPage();
-  console.log(pages.ok ? "✓" : "✗", "0.3 Sign-in page:", pages.signInStatus, "| CSS:", pages.cssPath, "→", pages.cssStatus);
+  console.log(
+    pages.ok ? "✓" : "✗",
+    "0.3 Sign-in page:",
+    pages.signInStatus,
+    "| CSS:",
+    pages.cssPath,
+    "→",
+    pages.cssStatus,
+  );
 
   const logins = [];
-  for (const user of USERS) {
-    const result = await signInUser(user.email);
+  for (const [index, user] of USERS.entries()) {
+    // Role verification is independent from the dedicated rate-limit gate. Isolate each fixture
+    // identity so repeated local audits do not contaminate one another's persisted IP counter.
+    const result = await signInUser(user.email, `127.0.0.${10 + index}`);
     const roleMatch = result.role === user.role;
     const portal = result.jar ? await checkPortalPage(result.jar, user.portal) : { ok: false };
     const ok = result.ok && roleMatch && portal.ok;
-    logins.push({ label: user.label, ok, role: result.role, expectedRole: user.role, portal: portal.ok, reason: result.reason });
+    logins.push({
+      label: user.label,
+      ok,
+      role: result.role,
+      expectedRole: user.role,
+      portal: portal.ok,
+      reason: result.reason,
+    });
     console.log(
       ok ? "✓" : "✗",
       `0.2 ${user.label} login:`,
-      ok ? `role=${result.role}, portal ${user.portal} OK` : (result.reason ?? `role mismatch (${result.role} vs ${user.role}) or portal fail`),
+      ok
+        ? `role=${result.role}, portal ${user.portal} OK`
+        : (result.reason ?? `role mismatch (${result.role} vs ${user.role}) or portal fail`),
     );
   }
 

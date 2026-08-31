@@ -1,13 +1,23 @@
 import type { MetadataRoute } from "next";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
-import { blogPosts, newsAndAwards, practiceAreas, firms, users, resources } from "@/server/db/schema";
+import {
+  blogPosts,
+  newsAndAwards,
+  practiceAreas,
+  firms,
+  users,
+  resources,
+} from "@/server/db/schema";
 import { getServerEnvironment } from "@/server/env";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = (getServerEnvironment().APP_PUBLIC_URL || "http://localhost:3001").replace(/\/$/, "");
+  const base = (getServerEnvironment().APP_PUBLIC_URL || "http://localhost:3001").replace(
+    /\/$/,
+    "",
+  );
   const slug = getServerEnvironment().PUBLIC_FIRM_SLUG;
   const db = getDatabase();
   const [firm] = await db
@@ -46,7 +56,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ),
       ),
     db
-      .select({ slug: blogPosts.slug, updatedAt: blogPosts.updatedAt, publishDate: blogPosts.publishDate })
+      .select({
+        slug: blogPosts.slug,
+        updatedAt: blogPosts.updatedAt,
+        publishDate: blogPosts.publishDate,
+      })
       .from(blogPosts)
       .where(
         and(

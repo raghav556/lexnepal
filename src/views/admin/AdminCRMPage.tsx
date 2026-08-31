@@ -2,11 +2,15 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
@@ -45,14 +49,16 @@ import { Pagination } from "@/components/ui/pagination.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
 import type { LeadCreateInput } from "@/shared/contracts/crm";
 import { contactFormLeadLabel, isContactFormLead } from "@/shared/contact-visibility";
-
-const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  contacted: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  consultation_scheduled: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  converted: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  lost: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-};
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardListRow,
+  DashboardSection,
+  DashboardStatusLabel,
+  DualDateDisplay,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "New",
@@ -292,15 +298,8 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
     return (leads as LeadRow[]).filter((l) => !l.assignedTo);
   }, [leads, assigneeFilter]);
 
-  const {
-    paginatedItems,
-    currentPage,
-    totalPages,
-    goToPage,
-    nextPage,
-    prevPage,
-    resetPagination,
-  } = usePagination(filteredLeads, 10);
+  const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage, resetPagination } =
+    usePagination(filteredLeads, 10);
 
   useEffect(() => {
     resetPagination();
@@ -362,7 +361,10 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
     if (!detailsModal) return;
     setSavingDetails(true);
     try {
-      await updateLead.mutateAsync({ leadId: leadKey(detailsModal), notes: detailsModal.notes ?? "" });
+      await updateLead.mutateAsync({
+        leadId: leadKey(detailsModal),
+        notes: detailsModal.notes ?? "",
+      });
       toast.success("Notes saved.");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to save notes.");
@@ -483,9 +485,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
       })) as { id?: string; _id?: string } | undefined;
       toast.success("Consultation scheduled.");
       setScheduleOpen(false);
-      setDetailsModal((prev) =>
-        prev ? { ...prev, status: "consultation_scheduled" } : prev,
-      );
+      setDetailsModal((prev) => (prev ? { ...prev, status: "consultation_scheduled" } : prev));
       const appointmentId = created?.id ?? created?._id;
       router.push(
         appointmentId
@@ -546,17 +546,23 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell
+        portal={portal}
+        loading
+        loadingLabel="Loading leads…"
+        title={selfScoped ? "My leads" : "CRM — lead pipeline"}
+        icon={KanbanSquare}
+      >
+        {null}
+      </PortalPageShell>
     );
   }
 
   const LeadCard = ({ lead, isKanban = false }: { lead: LeadRow; isKanban?: boolean }) => {
     const age = stageAgeDays(lead);
     return (
-      <div
-        className={`bg-card border border-border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${isKanban ? "p-3" : "p-3.5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4"}`}
+      <DashboardListRow
+        className={`cursor-pointer ${isKanban ? "p-3" : ""}`}
         onClick={(e) => {
           if (
             (e.target as HTMLElement).closest("button") ||
@@ -569,11 +575,13 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-foreground truncate">{lead.fullName}</p>
-            {isKanban && (
-              <Badge variant="secondary" className="text-[9px] capitalize shrink-0">
-                {lead.source?.replace("_", " ")}
-              </Badge>
-            )}
+            {isKanban && lead.source ? (
+              <DashboardStatusLabel
+                tone="neutral"
+                label={lead.source.replace("_", " ")}
+                className="text-[9px] capitalize shrink-0"
+              />
+            ) : null}
           </div>
 
           <div
@@ -594,52 +602,69 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             {lead.practiceAreaInterest && (
-              <Badge variant="secondary" className="text-[10px] gap-1">
-                <Tag className="w-2.5 h-2.5" />
-                {lead.practiceAreaInterest}
-              </Badge>
+              <DashboardStatusLabel
+                tone="information"
+                label={lead.practiceAreaInterest}
+                icon={Tag}
+                className="text-[10px] gap-1"
+              />
             )}
             {lead.resourceId && (
-              <Badge variant="outline" className="text-[10px] gap-1">
-                <BookOpen className="w-2.5 h-2.5" />
-                Resource lead
-              </Badge>
+              <DashboardStatusLabel
+                tone="neutral"
+                label="Resource lead"
+                icon={BookOpen}
+                className="text-[10px] gap-1"
+              />
             )}
             {isContactFormLead(lead) && (
-              <Badge variant="outline" className="text-[10px] gap-1">
-                <Mail className="w-2.5 h-2.5" />
-                {contactFormLeadLabel()}
-              </Badge>
+              <DashboardStatusLabel
+                tone="neutral"
+                label={contactFormLeadLabel()}
+                icon={Mail}
+                className="text-[10px] gap-1"
+              />
             )}
-            {!isKanban && (
-              <Badge variant="secondary" className="text-[10px] capitalize">
-                {lead.source?.replace("_", " ")}
-              </Badge>
+            {!isKanban && lead.source && (
+              <DashboardStatusLabel
+                tone="neutral"
+                label={lead.source.replace("_", " ")}
+                className="text-[10px] capitalize"
+              />
             )}
-            <Badge variant="outline" className="text-[10px] tabular-nums">
-              {age === 0 ? "Today" : `${age}d in stage`}
-            </Badge>
+            <DashboardStatusLabel
+              tone="neutral"
+              label={age === 0 ? "Today" : `${age}d in stage`}
+              className="text-[10px] tabular-nums"
+            />
             {lead.intakeSubmitted && (
-              <Badge
-                variant="outline"
-                className="text-[10px] gap-1 text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800"
-              >
-                <CheckCircle2 className="w-2.5 h-2.5" /> Intake Submitted
-              </Badge>
+              <DashboardStatusLabel
+                tone="success"
+                label="Intake submitted"
+                icon={CheckCircle2}
+                className="text-[10px] gap-1"
+              />
             )}
             {lead.assignedTo && (
               <span className="text-[10px] text-muted-foreground ml-auto bg-muted px-1.5 py-0.5 rounded-sm">
                 {staffName(lead.assignedTo) || "Assigned"}
               </span>
             )}
+            {lead.createdAt && !isKanban ? (
+              <span className="text-[10px] text-muted-foreground">
+                <DualDateDisplay isoDate={lead.createdAt} />
+              </span>
+            ) : null}
           </div>
         </div>
 
         {!isKanban && (
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-shrink-0 w-full sm:w-auto min-w-0">
-            <Badge className={`text-xs whitespace-nowrap w-fit ${STATUS_COLORS[lead.status]}`}>
-              {STATUS_LABELS[lead.status]}
-            </Badge>
+            <DashboardStatusLabel
+              status={lead.status}
+              label={STATUS_LABELS[lead.status]}
+              className="text-xs whitespace-nowrap w-fit"
+            />
             {lead.status !== "converted" && (
               <Select
                 value={lead.status}
@@ -679,28 +704,36 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             )}
           </div>
         )}
-      </div>
+      </DashboardListRow>
     );
   };
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 font-sans h-full flex flex-col w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0 min-w-0">
-        <div className="min-w-0">
-          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
-            {selfScoped ? "My leads" : "CRM — Lead Pipeline"}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {selfScoped
-              ? "Work intake leads assigned to you. Appointments stay on Appointments."
-              : "Manage intake inquiries and convert to client matters."}
-          </p>
-        </div>
+    <PortalPageShell
+      portal={portal}
+      decorated
+      showTodayDate
+      eyebrow="Client intake"
+      title={selfScoped ? "My leads" : undefined}
+      titleKey={selfScoped ? undefined : "portal.crm.title"}
+      description={
+        selfScoped
+          ? "Work intake leads assigned to you. Appointments stay on Appointments."
+          : undefined
+      }
+      descriptionKey={selfScoped ? undefined : "portal.crm.description"}
+      icon={KanbanSquare}
+      actions={
         <div className="flex flex-wrap gap-2 w-full sm:w-auto min-w-0">
-          <Button type="button" size="sm" className="h-9 gap-1.5" onClick={() => setAddOpen(true)}>
+          <DashboardButton
+            type="button"
+            size="sm"
+            className="h-9 gap-1.5"
+            onClick={() => setAddOpen(true)}
+          >
             <Plus className="w-4 h-4" /> Add lead
-          </Button>
-          <Button
+          </DashboardButton>
+          <DashboardButton
             type="button"
             size="sm"
             variant="outline"
@@ -712,7 +745,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             disabled={filteredLeads.length === 0}
           >
             <Download className="w-4 h-4" /> Export CSV
-          </Button>
+          </DashboardButton>
           <div className="flex bg-muted rounded-md p-1 shrink-0">
             <button
               type="button"
@@ -732,9 +765,10 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0 min-w-0">
+      }
+      contentClassName="h-full flex flex-col font-sans"
+    >
+      <DashboardFilterBar className="flex-shrink-0 min-w-0">
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -786,7 +820,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </DashboardFilterBar>
 
       <div className="flex-shrink-0 min-w-0 -mx-3 px-3 sm:mx-0 sm:px-0">
         <div className="flex lg:grid lg:grid-cols-5 gap-2 sm:gap-3 overflow-x-auto lg:overflow-visible pb-1 snap-x snap-mandatory lg:snap-none">
@@ -800,18 +834,20 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                 onClick={() => toggleStatusChip(key)}
                 className={`min-w-[140px] sm:min-w-[160px] lg:min-w-0 snap-start shrink-0 lg:shrink text-left rounded-xl border bg-card transition-colors ${
                   active
-                    ? "border-primary ring-1 ring-primary/30"
+                    ? "border-dashboard-primary ring-1 ring-dashboard-primary/30"
                     : key === "converted"
-                      ? "border-green-500/30"
+                      ? "border-dashboard-success/35"
                       : "border-border"
                 }`}
               >
-                <CardContent className="p-3 text-center">
-                  <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">{count}</p>
+                <div className="p-3 text-center">
+                  <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                    {count}
+                  </p>
                   <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 leading-snug px-0.5">
                     {label}
                   </p>
-                </CardContent>
+                </div>
               </button>
             );
           })}
@@ -819,11 +855,13 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
       </div>
 
       {view === "kanban" ? (
-        <div className="flex-1 min-w-0 mt-1 flex flex-col overflow-hidden">
-          <p className="md:hidden text-xs text-muted-foreground mb-2 shrink-0">
-            Swipe sideways to browse pipeline stages.
-          </p>
-          <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain pb-4">
+        <DashboardSection
+          className="flex-1 min-w-0 mt-1"
+          title="Pipeline board"
+          icon={KanbanSquare}
+          description="Swipe sideways on mobile to browse stages."
+        >
+          <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain pb-4 -mx-1 px-1">
             <div className="flex gap-3 sm:gap-4 w-max max-w-none h-full min-h-[420px]">
               {Object.keys(STATUS_LABELS)
                 .filter((statusKey) => statusFilter === "all" || statusFilter === statusKey)
@@ -832,19 +870,25 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                   return (
                     <div
                       key={statusKey}
-                      className="w-[min(280px,85vw)] sm:w-72 md:w-80 flex flex-col bg-secondary/20 rounded-xl border border-border/40 min-h-[420px] max-h-[min(750px,70vh)] shrink-0"
+                      className="w-[min(280px,85vw)] sm:w-72 md:w-80 flex flex-col bg-dashboard-neutral-soft/40 rounded-xl border border-dashboard-border min-h-[420px] max-h-[min(750px,70vh)] shrink-0"
                     >
-                      <div className="p-3 border-b border-border/40 flex items-center justify-between gap-2 bg-card/50 rounded-t-xl sticky top-0 z-10">
+                      <div className="p-3 border-b border-dashboard-border flex items-center justify-between gap-2 bg-dashboard-panel/80 rounded-t-xl sticky top-0 z-10">
                         <h3 className="font-semibold text-sm text-foreground truncate">
                           {STATUS_LABELS[statusKey]}
                         </h3>
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {colLeads.length}
-                        </Badge>
+                        <DashboardStatusLabel
+                          tone="neutral"
+                          label={String(colLeads.length)}
+                          className="text-xs shrink-0"
+                        />
                       </div>
                       <div className="p-3 flex-1 overflow-y-auto space-y-3 min-h-0">
                         {colLeads.length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center py-4">No leads</p>
+                          <EmptyState
+                            title="No leads"
+                            description="No leads in this stage."
+                            icon={KanbanSquare}
+                          />
                         ) : (
                           colLeads.map((lead) => (
                             <LeadCard key={leadKey(lead)} lead={lead} isKanban />
@@ -856,40 +900,43 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                 })}
             </div>
           </div>
-        </div>
+        </DashboardSection>
       ) : (
-        <Card className="flex-1 mt-2">
-          <CardHeader className="pb-3 border-b border-border">
-            <CardTitle className="text-base font-semibold font-serif flex items-center justify-between">
-              <span>List View</span>
-              <span className="text-sm font-normal text-muted-foreground">
-                {filteredLeads.length} total
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {paginatedItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-12">No leads found.</p>
-              ) : (
-                paginatedItems.map((lead) => (
-                  <LeadCard key={leadKey(lead)} lead={lead} isKanban={false} />
-                ))
-              )}
-            </div>
-            {paginatedItems.length > 0 && (
-              <div className="p-4 border-t border-border">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={goToPage}
-                  onNextPage={nextPage}
-                  onPrevPage={prevPage}
-                />
-              </div>
+        <DashboardSection
+          className="flex-1 mt-2"
+          title="List view"
+          icon={AlignJustify}
+          actions={
+            <span className="text-sm font-normal text-muted-foreground">
+              {filteredLeads.length} total
+            </span>
+          }
+        >
+          <div className="space-y-3">
+            {paginatedItems.length === 0 ? (
+              <EmptyState
+                title="No leads found"
+                description="Adjust filters or add a new lead."
+                icon={KanbanSquare}
+              />
+            ) : (
+              paginatedItems.map((lead) => (
+                <LeadCard key={leadKey(lead)} lead={lead} isKanban={false} />
+              ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+          {paginatedItems.length > 0 && (
+            <div className="p-4 border-t border-border">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                onNextPage={nextPage}
+                onPrevPage={prevPage}
+              />
+            </div>
+          )}
+        </DashboardSection>
       )}
 
       {detailsModal && (
@@ -910,9 +957,11 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
               <div>
                 <div className="flex items-center justify-between mb-2 gap-2">
                   <h2 className="text-2xl font-bold text-foreground">{detailsModal.fullName}</h2>
-                  <Badge className={`capitalize shrink-0 ${STATUS_COLORS[detailsModal.status]}`}>
-                    {STATUS_LABELS[detailsModal.status]}
-                  </Badge>
+                  <DashboardStatusLabel
+                    status={detailsModal.status}
+                    label={STATUS_LABELS[detailsModal.status]}
+                    className="capitalize shrink-0"
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground tabular-nums">
                   {stageAgeDays(detailsModal) === 0
@@ -939,14 +988,17 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                     Source
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="capitalize">
-                      {detailsModal.source?.replace("_", " ")}
-                    </Badge>
+                    <DashboardStatusLabel
+                      tone="neutral"
+                      label={detailsModal.source?.replace("_", " ") ?? ""}
+                      className="capitalize"
+                    />
                     {isContactFormLead(detailsModal) && (
-                      <Badge variant="outline" className="gap-1">
-                        <Mail className="w-3 h-3" />
-                        {contactFormLeadLabel()}
-                      </Badge>
+                      <DashboardStatusLabel
+                        tone="neutral"
+                        label={contactFormLeadLabel()}
+                        icon={Mail}
+                      />
                     )}
                   </div>
                 </div>
@@ -1025,7 +1077,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                           className="rounded-md border border-border px-3 py-2 text-xs space-y-0.5"
                         >
                           <p className="font-medium text-foreground tabular-nums">
-                            {a.date} · {a.timeSlot}
+                            <DualDateDisplay isoDate={a.date ?? ""} /> · {a.timeSlot}
                           </p>
                           <p className="text-muted-foreground capitalize">
                             {a.status}
@@ -1157,7 +1209,9 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-serif text-lg font-bold text-foreground">Schedule consultation</h3>
+              <h3 className="font-serif text-lg font-bold text-foreground">
+                Schedule consultation
+              </h3>
               <button
                 type="button"
                 onClick={() => setScheduleOpen(false)}
@@ -1167,8 +1221,9 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
               </button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Book for <span className="font-semibold text-foreground">{detailsModal.fullName}</span>.
-              Lead status becomes consult scheduled. Calendar stays on Appointments.
+              Book for{" "}
+              <span className="font-semibold text-foreground">{detailsModal.fullName}</span>. Lead
+              status becomes consult scheduled. Calendar stays on Appointments.
             </p>
             <div className="space-y-3">
               <div>
@@ -1212,7 +1267,9 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                     disabled={!scheduleForm.date}
                   >
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder={scheduleForm.date ? "Select slot" : "Pick date first"} />
+                      <SelectValue
+                        placeholder={scheduleForm.date ? "Select slot" : "Pick date first"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {(availableSlots.length > 0 ? availableSlots : []).map((slot) => (
@@ -1223,7 +1280,9 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                     </SelectContent>
                   </Select>
                   {scheduleForm.date && availableSlots.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground mt-1">No free slots this day.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      No free slots this day.
+                    </p>
                   ) : null}
                 </div>
               </div>
@@ -1259,11 +1318,20 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setScheduleOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setScheduleOpen(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" className="flex-1 gap-1" disabled={scheduling}>
-                {scheduling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
+                {scheduling ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Calendar className="w-3 h-3" />
+                )}
                 Book &amp; open calendar
               </Button>
             </div>
@@ -1406,11 +1474,20 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setAddOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setAddOpen(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" className="flex-1 gap-1" disabled={adding}>
-                {adding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                {adding ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Plus className="w-3 h-3" />
+                )}
                 Create lead
               </Button>
             </div>
@@ -1433,7 +1510,10 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             </div>
             <p className="text-sm text-muted-foreground">
               Creating a client record for{" "}
-              <span className="font-semibold text-foreground">&quot;{convertModal.leadName}&quot;</span>.
+              <span className="font-semibold text-foreground">
+                &quot;{convertModal.leadName}&quot;
+              </span>
+              .
             </p>
             <div className="space-y-3">
               <div>
@@ -1476,7 +1556,11 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                 onClick={handleConvertSubmit}
                 disabled={converting || confirmBusy}
               >
-                {converting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+                {converting ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <UserPlus className="w-3 h-3" />
+                )}
                 Confirm Convert
               </Button>
             </div>
@@ -1491,6 +1575,6 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
           if (!open) setConfirm(null);
         }}
       />
-    </div>
+    </PortalPageShell>
   );
 }

@@ -33,10 +33,16 @@ export function SessionListPanel({
           <div>
             <p className="text-sm font-medium">Sign out all other sessions</p>
             <p className="text-xs text-muted-foreground">
-              Revoke {otherSessions} other device{otherSessions === 1 ? "" : "s"}. Your current session stays active.
+              Revoke {otherSessions} other device{otherSessions === 1 ? "" : "s"}. Your current
+              session stays active.
             </p>
           </div>
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => void onRevokeAllOther()}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => void onRevokeAllOther()}
+          >
             Sign out everywhere else
           </Button>
         </div>
@@ -74,7 +80,11 @@ export function SessionListPanel({
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span>{display.locationHint}</span>
                     <span>&bull;</span>
-                    <span>{display.isCurrent ? "Active now" : `Last active ${new Date(display.lastActive).toLocaleString()}`}</span>
+                    <span>
+                      {display.isCurrent
+                        ? "Active now"
+                        : `Last active ${new Date(display.lastActive).toLocaleString()}`}
+                    </span>
                   </div>
                 </div>
               </div>

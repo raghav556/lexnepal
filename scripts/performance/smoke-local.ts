@@ -5,15 +5,7 @@
 import { and, count, eq, like } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
-import {
-  cases,
-  clients,
-  documents,
-  firmSettings,
-  invoices,
-  tasks,
-  users,
-} from "../../db/schema";
+import { cases, clients, documents, firmSettings, invoices, tasks, users } from "../../db/schema";
 import {
   PERFORMANCE_SMOKE_BUDGETS_MS,
   PERFORMANCE_SMOKE_VOLUME,
@@ -88,7 +80,9 @@ async function ensurePermissions() {
     });
 }
 
-async function countPrefixed(table: typeof clients | typeof cases | typeof documents | typeof invoices | typeof tasks) {
+async function countPrefixed(
+  table: typeof clients | typeof cases | typeof documents | typeof invoices | typeof tasks,
+) {
   const [row] = await database
     .select({ value: count() })
     .from(table)
@@ -119,7 +113,10 @@ async function seedVolume(lawyerId: string) {
     legacyConvexId: `${PREFIX}-client-${i + 1}`,
   }));
   for (let offset = 0; offset < clientRows.length; offset += 50) {
-    await database.insert(clients).values(clientRows.slice(offset, offset + 50)).onConflictDoNothing();
+    await database
+      .insert(clients)
+      .values(clientRows.slice(offset, offset + 50))
+      .onConflictDoNothing();
   }
 
   const seededClients = await database
@@ -146,7 +143,10 @@ async function seedVolume(lawyerId: string) {
     };
   });
   for (let offset = 0; offset < caseRows.length; offset += 50) {
-    await database.insert(cases).values(caseRows.slice(offset, offset + 50)).onConflictDoNothing();
+    await database
+      .insert(cases)
+      .values(caseRows.slice(offset, offset + 50))
+      .onConflictDoNothing();
   }
 
   const seededCases = await database
@@ -177,7 +177,10 @@ async function seedVolume(lawyerId: string) {
     };
   });
   for (let offset = 0; offset < docRows.length; offset += 50) {
-    await database.insert(documents).values(docRows.slice(offset, offset + 50)).onConflictDoNothing();
+    await database
+      .insert(documents)
+      .values(docRows.slice(offset, offset + 50))
+      .onConflictDoNothing();
   }
 
   const invoiceRows = Array.from({ length: PERFORMANCE_SMOKE_VOLUME.invoices }, (_, i) => {
@@ -200,7 +203,10 @@ async function seedVolume(lawyerId: string) {
     };
   });
   for (let offset = 0; offset < invoiceRows.length; offset += 50) {
-    await database.insert(invoices).values(invoiceRows.slice(offset, offset + 50)).onConflictDoNothing();
+    await database
+      .insert(invoices)
+      .values(invoiceRows.slice(offset, offset + 50))
+      .onConflictDoNothing();
   }
 
   const taskRows = Array.from({ length: PERFORMANCE_SMOKE_VOLUME.tasks }, (_, i) => {
@@ -219,7 +225,10 @@ async function seedVolume(lawyerId: string) {
     };
   });
   for (let offset = 0; offset < taskRows.length; offset += 50) {
-    await database.insert(tasks).values(taskRows.slice(offset, offset + 50)).onConflictDoNothing();
+    await database
+      .insert(tasks)
+      .values(taskRows.slice(offset, offset + 50))
+      .onConflictDoNothing();
   }
 
   return {
@@ -298,7 +307,9 @@ try {
 
   results.push(
     await measure("documentsList", async () => {
-      const response = await listDocuments(new Request("http://local/api/v1/documents", { headers }));
+      const response = await listDocuments(
+        new Request("http://local/api/v1/documents", { headers }),
+      );
       if (!response.ok) return { ok: false, detail: `${response.status}` };
       const body = (await response.json()) as { data: unknown[] };
       return { ok: Array.isArray(body.data) && body.data.length > 0, rows: body.data.length };

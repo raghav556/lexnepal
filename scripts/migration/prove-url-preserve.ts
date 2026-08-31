@@ -55,19 +55,17 @@ function parseCsvLine(line: string): string[] {
 
 async function readCsv(file: string): Promise<string[][]> {
   const text = await fs.readFile(file, "utf8");
-  return text
-    .trim()
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map(parseCsvLine);
+  return text.trim().split(/\r?\n/).filter(Boolean).map(parseCsvLine);
 }
 
 function normalizePathPattern(p: string): string {
   if (p === "*") return "*";
-  return p
-    .replace(/:([A-Za-z0-9_]+)/g, "[$1]")
-    .replace(/\/+/g, "/")
-    .replace(/\/$/, "") || "/";
+  return (
+    p
+      .replace(/:([A-Za-z0-9_]+)/g, "[$1]")
+      .replace(/\/+/g, "/")
+      .replace(/\/$/, "") || "/"
+  );
 }
 
 /**
@@ -147,11 +145,21 @@ async function main() {
     proof: cols[5] || "",
   }));
 
-  if (inventory.length !== 68) {
-    errors.push(`Inventory expected 68 rows, got ${inventory.length}`);
-  }
   if (matrix.length !== inventory.length) {
     errors.push(`Matrix rows (${matrix.length}) != inventory rows (${inventory.length})`);
+  }
+
+  const duplicateVitePaths = inventory
+    .map((row) => row.vitePath)
+    .filter((route, index, routes) => routes.indexOf(route) !== index);
+  const duplicateNextPaths = inventory
+    .map((row) => row.nextPath)
+    .filter((route, index, routes) => routes.indexOf(route) !== index);
+  for (const route of new Set(duplicateVitePaths)) {
+    errors.push(`Duplicate inventory vitePath: ${route}`);
+  }
+  for (const route of new Set(duplicateNextPaths)) {
+    errors.push(`Duplicate inventory nextPath: ${route}`);
   }
 
   const invByVite = new Map(inventory.map((r) => [r.vitePath, r]));
@@ -233,7 +241,11 @@ async function main() {
 
   const passed = errors.length === 0;
   const report: DomainMigrationReport = {
-    source: { inventoryRoutes: inventory.length, matrixRoutes: matrix.length, appRoutes: appRoutes.length },
+    source: {
+      inventoryRoutes: inventory.length,
+      matrixRoutes: matrix.length,
+      appRoutes: appRoutes.length,
+    },
     migrated: {
       inventoryRoutes: passed ? inventory.length : 0,
       matrixRoutes: passed ? matrix.length : 0,
@@ -247,7 +259,7 @@ async function main() {
     reconciliation: {
       passed,
       checks: {
-        inventoryCount: { source: 68, target: inventory.length },
+        inventoryCount: { source: appRoutes.length, target: inventory.length },
         matrixCount: { source: inventory.length, target: matrix.length },
         appCoverage: { source: inventory.length, target: appRoutes.length },
         redirects: { source: redirects.length, target: redirects.length },

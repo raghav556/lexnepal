@@ -160,7 +160,10 @@ export const cmsRedirectSchema = z.object({
     .trim()
     .min(1)
     .max(2_000)
-    .refine((v) => v.startsWith("/") || /^https:\/\//.test(v), "Redirect to must be relative or HTTPS"),
+    .refine(
+      (v) => v.startsWith("/") || /^https:\/\//.test(v),
+      "Redirect to must be relative or HTTPS",
+    ),
   permanent: z.boolean().default(true),
 });
 export const cmsRedirectsSettingSchema = z.array(cmsRedirectSchema).max(200);
@@ -204,7 +207,13 @@ export const teamProfileInputSchema = z
     twitterUrl: optionalUrl.nullable(),
     barCouncilNumber: z.string().trim().max(100).optional().nullable(),
     barCouncilExpiry: z
-      .union([z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")])
+      .union([
+        z
+          .string()
+          .trim()
+          .regex(/^\d{4}-\d{2}-\d{2}$/),
+        z.literal(""),
+      ])
       .optional()
       .nullable(),
     displayOrder: z.number().int().min(0).max(10_000).optional(),

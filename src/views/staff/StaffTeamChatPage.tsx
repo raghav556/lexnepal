@@ -17,8 +17,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import {
+  DashboardButton,
+  DashboardSection,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { useDmCommands, useDmMessages, useDmThreads } from "@/client/queries/dm";
 import { useStaffDirectory } from "@/client/queries/identity";
@@ -26,7 +31,6 @@ import { useCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 import { presenceLabel } from "@/shared/team-chat-presence";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty.tsx";
 
 type LeftTab = "dms" | "cases";
 
@@ -67,7 +71,6 @@ export default function StaffTeamChatPage() {
 
   useEffect(() => {
     if (selectedDm) markRead.mutate(selectedDm);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDm, dmMessages.length]);
 
   useEffect(() => {
@@ -96,8 +99,12 @@ export default function StaffTeamChatPage() {
     if (!q) return cases;
     return cases.filter(
       (c: any) =>
-        String(c.title || "").toLowerCase().includes(q) ||
-        String(c.caseNumber || "").toLowerCase().includes(q),
+        String(c.title || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(c.caseNumber || "")
+          .toLowerCase()
+          .includes(q),
     );
   }, [cases, search]);
 
@@ -127,47 +134,45 @@ export default function StaffTeamChatPage() {
 
   if (currentUser === undefined || currentUser === null) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PortalPageShell portal="staff" loading loadingLabel="Loading team chat…" title="Team chat">
+        {null}
+      </PortalPageShell>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 h-full font-sans space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            Team Chat
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            1:1 staff DMs and case-team rooms. Clients never see these conversations.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm">
+    <PortalPageShell
+      portal="staff"
+      eyebrow="Internal collaboration"
+      title="Team chat"
+      description="1:1 staff DMs and case-team rooms. Clients never see these conversations."
+      icon={Users}
+      actions={
+        <DashboardButton asChild variant="secondary" size="sm">
           <Link href="/staff/messages">
-            <MessageSquare className="w-4 h-4 mr-1" />
+            <MessageSquare className="size-4" aria-hidden />
             Client messages
           </Link>
-        </Button>
-      </div>
-
+        </DashboardButton>
+      }
+      contentClassName="space-y-4"
+    >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:h-[calc(100vh-200px)]">
-        {/* Left rail */}
-        <Card
+        <DashboardSection
           className={cn(
-            "lg:col-span-4 xl:col-span-3 flex flex-col overflow-hidden border",
+            "lg:col-span-4 xl:col-span-3 flex flex-col overflow-hidden !p-0",
             mobileShowChat ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="p-3 border-b border-border space-y-3">
-            <div className="flex gap-1 p-1 rounded-lg bg-secondary/40">
+          <div className="p-3 border-b border-dashboard-border space-y-3">
+            <div className="flex gap-1 p-1 rounded-lg bg-dashboard-neutral-soft">
               <button
                 type="button"
                 className={cn(
                   "flex-1 text-xs font-semibold py-2 rounded-md transition-colors",
-                  leftTab === "dms" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+                  leftTab === "dms"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
                 )}
                 onClick={() => setLeftTab("dms")}
               >
@@ -177,7 +182,9 @@ export default function StaffTeamChatPage() {
                 type="button"
                 className={cn(
                   "flex-1 text-xs font-semibold py-2 rounded-md transition-colors",
-                  leftTab === "cases" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+                  leftTab === "cases"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
                 )}
                 onClick={() => setLeftTab("cases")}
               >
@@ -252,12 +259,12 @@ export default function StaffTeamChatPage() {
                 </div>
               </>
             ) : filteredCases.length === 0 ? (
-              <Empty className="py-8">
-                <EmptyHeader>
-                  <EmptyTitle>No matters</EmptyTitle>
-                  <EmptyDescription>Case team rooms appear for matters you can access.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
+              <EmptyState
+                title="No matters"
+                description="Case team rooms appear for matters you can access."
+                icon={FolderOpen}
+                className="py-8"
+              />
             ) : (
               filteredCases.map((c: any) => (
                 <button
@@ -289,7 +296,7 @@ export default function StaffTeamChatPage() {
               ))
             )}
           </div>
-        </Card>
+        </DashboardSection>
 
         {/* Chat pane */}
         <div
@@ -300,122 +307,135 @@ export default function StaffTeamChatPage() {
         >
           <AnimatePresence mode="wait">
             {leftTab === "dms" && selectedDm ? (
-              <motion.div
-                key={`dm-${selectedDm}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="h-full flex flex-col border rounded-xl overflow-hidden bg-card"
-              >
-                <div className="p-3 border-b border-border flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="lg:hidden"
-                    onClick={() => setMobileShowChat(false)}
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{selectedThread?.peerName || "DM"}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      Private staff chat
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-secondary/10">
-                  {dmMessages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
-                      <MessageSquare className="w-8 h-8 opacity-30" />
-                      Say hello to start the conversation.
+              <DashboardSection className="h-full flex flex-col overflow-hidden !p-0">
+                <motion.div
+                  key={`dm-${selectedDm}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full flex flex-col"
+                >
+                  <div className="p-3 border-b border-border flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="lg:hidden"
+                      onClick={() => setMobileShowChat(false)}
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">
+                        {selectedThread?.peerName || "DM"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        Private staff chat
+                      </p>
                     </div>
-                  ) : (
-                    dmMessages.map((msg: any) => {
-                      const isMe = msg.senderId === myId;
-                      return (
-                        <motion.div
-                          key={msg._id || msg.id}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={cn("flex", isMe ? "justify-end" : "justify-start")}
-                        >
-                          <div
-                            className={cn(
-                              "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs border",
-                              isMe
-                                ? "bg-primary text-primary-foreground border-primary rounded-tr-md"
-                                : "bg-card border-border rounded-tl-md",
-                            )}
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-secondary/10">
+                    {dmMessages.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
+                        <MessageSquare className="w-8 h-8 opacity-30" />
+                        Say hello to start the conversation.
+                      </div>
+                    ) : (
+                      dmMessages.map((msg: any) => {
+                        const isMe = msg.senderId === myId;
+                        return (
+                          <motion.div
+                            key={msg._id || msg.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={cn("flex", isMe ? "justify-end" : "justify-start")}
                           >
-                            <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                          </div>
-                        </motion.div>
-                      );
-                    })
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-                <div className="p-3 border-t border-border flex gap-2">
-                  <Input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    placeholder="Message your teammate…"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        void handleSendDm();
-                      }
-                    }}
-                  />
-                  <Button size="sm" onClick={() => void handleSendDm()} disabled={!draft.trim()}>
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </motion.div>
+                            <div
+                              className={cn(
+                                "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs border",
+                                isMe
+                                  ? "bg-primary text-primary-foreground border-primary rounded-tr-md"
+                                  : "bg-card border-border rounded-tl-md",
+                              )}
+                            >
+                              <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                  <div className="p-3 border-t border-border flex gap-2">
+                    <Input
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder="Message your teammate…"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void handleSendDm();
+                        }
+                      }}
+                    />
+                    <Button size="sm" onClick={() => void handleSendDm()} disabled={!draft.trim()}>
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              </DashboardSection>
             ) : leftTab === "cases" && selectedCase ? (
-              <motion.div
-                key={`case-${selectedCase}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="h-full flex flex-col gap-2"
-              >
-                <div className="flex items-center gap-2 lg:hidden">
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setMobileShowChat(false)}>
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/staff/cases/${selectedCase}?tab=messages&mode=team`}>
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                      Open case
-                    </Link>
-                  </Button>
-                </div>
-                <MatterChatPanel
-                  caseId={selectedCase}
-                  mode="staff"
-                  stream="team"
-                  title={selectedCaseRow?.title || "Case team"}
-                  users={staff}
-                  className="flex-1 h-[min(70vh,640px)]"
-                  showBack
-                  onBack={() => setMobileShowChat(false)}
-                />
-              </motion.div>
+              <DashboardSection className="h-full flex flex-col gap-2 !p-3">
+                <motion.div
+                  key={`case-${selectedCase}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full flex flex-col gap-2"
+                >
+                  <div className="flex items-center gap-2 lg:hidden">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setMobileShowChat(false)}
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/staff/cases/${selectedCase}?tab=messages&mode=team`}>
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                        Open case
+                      </Link>
+                    </Button>
+                  </div>
+                  <MatterChatPanel
+                    caseId={selectedCase}
+                    mode="staff"
+                    stream="team"
+                    title={selectedCaseRow?.title || "Case team"}
+                    users={staff}
+                    className="flex-1 h-[min(70vh,640px)]"
+                    showBack
+                    onBack={() => setMobileShowChat(false)}
+                  />
+                </motion.div>
+              </DashboardSection>
             ) : (
-              <Card className="h-full flex items-center justify-center border">
-                <CardContent className="text-center text-muted-foreground text-sm space-y-2 py-16">
-                  <Users className="w-10 h-10 mx-auto opacity-25" />
-                  <p>Select a DM or case team room to start chatting.</p>
-                </CardContent>
-              </Card>
+              <DashboardSection className="h-full flex items-center justify-center">
+                <EmptyState
+                  title="Select a conversation"
+                  description="Select a DM or case team room to start chatting."
+                  icon={Users}
+                  className="py-16"
+                />
+              </DashboardSection>
             )}
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </PortalPageShell>
   );
 }

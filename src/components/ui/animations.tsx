@@ -103,11 +103,9 @@ export function HoverGlowCard({
           background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, ${glowColor}, transparent 40%)`,
         }}
       />
-      
+
       {/* The Content - Needs z-index to sit above the glow */}
-      <div className="relative z-10 h-full w-full">
-        {children}
-      </div>
+      <div className="relative z-10 h-full w-full">{children}</div>
     </div>
   );
 }

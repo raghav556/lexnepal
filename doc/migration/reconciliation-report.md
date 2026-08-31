@@ -14426,3 +14426,4658 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 - incidentContactsTemplate=false
 - Do not set production-readiness.csv status=complete without evidence + owner.
 
+## r4.8 — prove-performance-smoke
+
+- Recorded at: `2026-08-31T02:16:24.619Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clientsList | 2000 | 14 | **no** |
+| casesList | 2000 | 22 | **no** |
+| documentsList | 2000 | 11 | **no** |
+| documentsSearch | 2000 | 12 | **no** |
+| conflictSearch | 2000 | 17 | **no** |
+| invoicesList | 2000 | 8 | **no** |
+| tasksList | 2000 | 83 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.8 performance smoke: representative local volume; list/search Route Handlers under budget.
+- volume={"clients":120,"cases":250,"documents":500,"invoices":150,"tasks":200}
+- budgetsMs={"clientsList":2000,"casesList":2000,"documentsList":2000,"documentsSearch":2000,"conflictSearch":2000,"invoicesList":2000,"tasksList":2000}
+- clientsList=14.2ms/2000ms
+- casesList=22.1ms/2000ms
+- documentsList=11.1ms/2000ms
+- documentsSearch=11.5ms/2000ms
+- conflictSearch=17ms/2000ms
+- invoicesList=8.4ms/2000ms
+- tasksList=82.6ms/2000ms
+
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-31T02:47:04.725Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A1 | 1 | 1 | yes |
+| A3 | 1 | 1 | yes |
+| A4 | 1 | 1 | yes |
+| A5 | 1 | 1 | yes |
+| A6 | 1 | 1 | yes |
+| A7 | 1 | 1 | yes |
+| A8 | 1 | 1 | yes |
+| C1 | 1 | 1 | yes |
+| C2 | 1 | 1 | yes |
+| C3 | 1 | 1 | yes |
+| C4 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C8 | 1 | 1 | yes |
+| C9 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 complete_local under local-only waiver — Convex runtime removed; archive retained.
+- R7 production readiness remains DEFER_PROD.
+- archive=doc/migration/archive/convex-decommission/convex-source.zip
+- requiredComplete=A1,A3,A4,A5,A6,A7,A8,C1,C2,C3,C4,C5,C8,C9,C11,C12
+
+## r7 — prove-production-readiness-plan
+
+- Recorded at: `2026-08-31T02:47:06.646Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| R7.1 | 1 | 1 | yes |
+| R7.2 | 1 | 1 | yes |
+| R7.3 | 1 | 1 | yes |
+| R7.4 | 1 | 1 | yes |
+| R7.5 | 1 | 1 | yes |
+| R7.6 | 1 | 1 | yes |
+| R7.7 | 1 | 1 | yes |
+| R7.8 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R7 planning artifacts present; production cutover remains DEFER_PROD.
+- tracked=R7.1,R7.2,R7.3,R7.4,R7.5,R7.6,R7.7,R7.8
+- statusDeferOrOpen=8/8
+- incidentContactsTemplate=false
+- Do not set production-readiness.csv status=complete without evidence + owner.
+
+## identity — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:47:44.118Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 0 | **no** |
+| firmSettings | 1 | 0 | **no** |
+| sessions | 1 | 0 | **no** |
+| auditLog | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=abc16408719041d862650e04
+- Sessions are retired (not re-imported) by identity-migration.
+
+## identity — import-postgres
+
+- Recorded at: `2026-08-31T02:47:46.019Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+- fingerprint=abc16408719041d862650e04
+
+## identity — verify
+
+- Recorded at: `2026-08-31T02:47:47.672Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## identity — reconcile
+
+- Recorded at: `2026-08-31T02:47:49.704Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+
+## cms — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:47:53.102Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 0 | **no** |
+| practiceAreas | 1 | 0 | **no** |
+| blogPosts | 2 | 0 | **no** |
+| resources | 1 | 0 | **no** |
+| newsAndAwards | 1 | 0 | **no** |
+| careers | 1 | 0 | **no** |
+| jobApplications | 1 | 0 | **no** |
+| legalPages | 1 | 0 | **no** |
+| cmsSettings | 2 | 0 | **no** |
+| newsletterSubscribers | 1 | 0 | **no** |
+| navigation | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=1e81e81f37065bee925bef39
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## cms — import-postgres
+
+- Recorded at: `2026-08-31T02:47:55.278Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+- fingerprint=1e81e81f37065bee925bef39
+
+## cms — verify
+
+- Recorded at: `2026-08-31T02:47:57.039Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## cms — reconcile
+
+- Recorded at: `2026-08-31T02:47:58.877Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## matters — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:02.459Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 0 | **no** |
+| cases | 1 | 0 | **no** |
+| conflictChecks | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — import-postgres
+
+- Recorded at: `2026-08-31T02:48:04.292Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — verify
+
+- Recorded at: `2026-08-31T02:48:06.333Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## matters — reconcile
+
+- Recorded at: `2026-08-31T02:48:08.024Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## work-management — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:11.668Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 0 | **no** |
+| taskComments | 1 | 0 | **no** |
+| taskWatchers | 1 | 0 | **no** |
+| hearings | 1 | 0 | **no** |
+| researchNotes | 1 | 0 | **no** |
+| sopTemplates | 1 | 0 | **no** |
+| sopTemplateTasks | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — import-postgres
+
+- Recorded at: `2026-08-31T02:48:13.502Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — verify
+
+- Recorded at: `2026-08-31T02:48:15.261Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## work-management — reconcile
+
+- Recorded at: `2026-08-31T02:48:17.220Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## financial — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:20.583Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 0 | **no** |
+| timeEntries | 2 | 0 | **no** |
+| trustTransactions | 1 | 0 | **no** |
+| expenses | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=4cf8786f43dfa083d306a2fd
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## financial — import-postgres
+
+- Recorded at: `2026-08-31T02:48:22.646Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+- fingerprint=4cf8786f43dfa083d306a2fd
+
+## financial — verify
+
+- Recorded at: `2026-08-31T02:48:24.327Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## financial — reconcile
+
+- Recorded at: `2026-08-31T02:48:26.143Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## crm — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:29.640Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 0 | **no** |
+| appointments | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — import-postgres
+
+- Recorded at: `2026-08-31T02:48:31.581Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — verify
+
+- Recorded at: `2026-08-31T02:48:33.262Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## crm — reconcile
+
+- Recorded at: `2026-08-31T02:48:35.132Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## communication — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:38.683Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 0 | **no** |
+| notifications | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — import-postgres
+
+- Recorded at: `2026-08-31T02:48:40.422Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — verify
+
+- Recorded at: `2026-08-31T02:48:42.258Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## communication — reconcile
+
+- Recorded at: `2026-08-31T02:48:43.999Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## documents — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:47.663Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 0 | **no** |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Wraps existing document-migration.ts; firmMap resolves hyphenated Convex IDs.
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — import-postgres
+
+- Recorded at: `2026-08-31T02:48:49.486Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — reconcile
+
+- Recorded at: `2026-08-31T02:48:53.002Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## envelopes — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:48:56.318Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 0 | **no** |
+| signatureRecipients | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — import-postgres
+
+- Recorded at: `2026-08-31T02:48:58.383Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — verify
+
+- Recorded at: `2026-08-31T02:49:00.036Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## envelopes — reconcile
+
+- Recorded at: `2026-08-31T02:49:01.799Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## hr — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:49:05.307Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 0 | **no** |
+| leaveRequests | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## hr — import-postgres
+
+- Recorded at: `2026-08-31T02:49:07.044Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+
+## hr — verify
+
+- Recorded at: `2026-08-31T02:49:08.848Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## hr — reconcile
+
+- Recorded at: `2026-08-31T02:49:10.563Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## storage — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:49:17.458Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Uses convertConvexStorageExport + migrateLegacyStorage (no rewrite).
+- fingerprint=47198672962339c3e16e078d
+
+## storage — import-postgres
+
+- Recorded at: `2026-08-31T02:49:19.723Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Checksum verified via migrateLegacyStorage.
+- R3.6 uses existing convertConvexStorageExport + migrateLegacyStorage helpers.
+- fingerprint=47198672962339c3e16e078d
+
+## storage — verify
+
+- Recorded at: `2026-08-31T02:49:21.372Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Verified against last saved storage migration report.
+
+## storage — reconcile
+
+- Recorded at: `2026-08-31T02:49:23.092Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- R3.6 File SHA-256 from storage_migration_items (expected vs actual).
+- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+
+## r6 — prove-cutover-rehearsal
+
+- Recorded at: `2026-08-31T02:49:25.296Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| identity | 1 | 1 | yes |
+| cms | 1 | 1 | yes |
+| matters | 1 | 1 | yes |
+| work-management | 1 | 1 | yes |
+| financial | 1 | 1 | yes |
+| crm | 1 | 1 | yes |
+| communication | 1 | 1 | yes |
+| documents | 1 | 1 | yes |
+| envelopes | 1 | 1 | yes |
+| hr | 1 | 1 | yes |
+| analytics | 1 | 1 | yes |
+| storage | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R6 local cutover dress rehearsal — see cutover-runbook.md + cutover-log.csv
+- rehearsalId=r6-2026-08-31T02-47-42-226Z
+- thisRun=true
+- allDomainsLoggedPassed=true
+- identity=passed
+- cms=passed
+- matters=passed
+- work-management=passed
+- financial=passed
+- crm=passed
+- communication=passed
+- documents=passed
+- envelopes=passed
+- hr=passed
+- analytics=passed
+- storage=passed
+
+## r4.3 — prove-cross-firm
+
+- Recorded at: `2026-08-31T02:50:41.209Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| authorization | 1 | 1 | yes |
+| crossFirmAttack | 1 | 1 | yes |
+| crossFirmSecurity | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.3 cross-firm attack tests: spoofed firm context, requireSameFirm, assertResourceInFirm NOT_FOUND probes.
+- filesPassed=3 testsPassed=13 exitCode=0
+- tests/unit/authorization.test.ts
+- tests/unit/cross-firm-attack.test.ts
+- tests/integration/cross-firm-security.test.ts
+
+## r4.4 — prove-finance-idempotency
+
+- Recorded at: `2026-08-31T02:50:45.973Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| paymentIdempotent | 2 | 1 | **no** |
+| trustIdempotent | 2 | 1 | **no** |
+| alreadyPaidNoDoublePost | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.4 finance idempotency: same Idempotency-Key / body key replays payment and trust without double-post.
+- Already-paid invoice pay without a new key returns existing completed payment.
+- payKey=r44-pay-1788144645868 trustKey=r44-trust-1788144645940
+
+## r4.7 — prove-job-retries
+
+- Recorded at: `2026-08-31T02:50:50.856Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| idempotentEnqueue | 1 | 1 | yes |
+| deadLetter | 1 | 1 | yes |
+| manualRetryRecoverable | 1 | 1 | yes |
+| noDuplicateSideEffects | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.7 failure/retry: dead-letter → audited manual retry → single durable_job_effects row (no duplicate side effects).
+- tests/unit/jobs-contracts.test.ts
+- tests/unit/durable-job-worker.test.ts
+- scripts/jobs/verify-local.ts
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-31T02:50:52.748Z`
+- Passed: **no**
+- Exceptions: 1
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 68 | 83 | **no** |
+| matrixCount | 83 | 83 | yes |
+| appCoverage | 83 | 83 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- `url-preserve` / `0` — Inventory expected 68 rows, got 83
+
+### FK integrity
+
+- Status: **n/a**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ src/app routes; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+- Inventory expected 68 rows, got 83
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-31T02:52:59.055Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 83 | 83 | yes |
+| matrixCount | 83 | 83 | yes |
+| appCoverage | 83 | 83 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ src/app routes; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-31T02:53:10.311Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 83 | 83 | yes |
+| matrixCount | 83 | 83 | yes |
+| appCoverage | 83 | 83 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ src/app routes; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-31T02:54:19.898Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A1 | 1 | 1 | yes |
+| A3 | 1 | 1 | yes |
+| A4 | 1 | 1 | yes |
+| A5 | 1 | 1 | yes |
+| A6 | 1 | 1 | yes |
+| A7 | 1 | 1 | yes |
+| A8 | 1 | 1 | yes |
+| C1 | 1 | 1 | yes |
+| C2 | 1 | 1 | yes |
+| C3 | 1 | 1 | yes |
+| C4 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C8 | 1 | 1 | yes |
+| C9 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 complete_local under local-only waiver — Convex runtime removed; archive retained.
+- R7 production readiness remains DEFER_PROD.
+- archive=doc/migration/archive/convex-decommission/convex-source.zip
+- requiredComplete=A1,A3,A4,A5,A6,A7,A8,C1,C2,C3,C4,C5,C8,C9,C11,C12
+
+## r7 — prove-production-readiness-plan
+
+- Recorded at: `2026-08-31T02:54:21.559Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| R7.1 | 1 | 1 | yes |
+| R7.2 | 1 | 1 | yes |
+| R7.3 | 1 | 1 | yes |
+| R7.4 | 1 | 1 | yes |
+| R7.5 | 1 | 1 | yes |
+| R7.6 | 1 | 1 | yes |
+| R7.7 | 1 | 1 | yes |
+| R7.8 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R7 planning artifacts present; production cutover remains DEFER_PROD.
+- tracked=R7.1,R7.2,R7.3,R7.4,R7.5,R7.6,R7.7,R7.8
+- statusDeferOrOpen=8/8
+- incidentContactsTemplate=false
+- Do not set production-readiness.csv status=complete without evidence + owner.
+
+## identity — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:54:58.149Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 0 | **no** |
+| firmSettings | 1 | 0 | **no** |
+| sessions | 1 | 0 | **no** |
+| auditLog | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=abc16408719041d862650e04
+- Sessions are retired (not re-imported) by identity-migration.
+
+## identity — import-postgres
+
+- Recorded at: `2026-08-31T02:55:00.491Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+- fingerprint=abc16408719041d862650e04
+
+## identity — verify
+
+- Recorded at: `2026-08-31T02:55:02.385Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## identity — reconcile
+
+- Recorded at: `2026-08-31T02:55:04.578Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+
+## cms — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:08.899Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 0 | **no** |
+| practiceAreas | 1 | 0 | **no** |
+| blogPosts | 2 | 0 | **no** |
+| resources | 1 | 0 | **no** |
+| newsAndAwards | 1 | 0 | **no** |
+| careers | 1 | 0 | **no** |
+| jobApplications | 1 | 0 | **no** |
+| legalPages | 1 | 0 | **no** |
+| cmsSettings | 2 | 0 | **no** |
+| newsletterSubscribers | 1 | 0 | **no** |
+| navigation | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=1e81e81f37065bee925bef39
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## cms — import-postgres
+
+- Recorded at: `2026-08-31T02:55:10.694Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+- fingerprint=1e81e81f37065bee925bef39
+
+## cms — verify
+
+- Recorded at: `2026-08-31T02:55:12.272Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## cms — reconcile
+
+- Recorded at: `2026-08-31T02:55:14.079Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## matters — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:17.428Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 0 | **no** |
+| cases | 1 | 0 | **no** |
+| conflictChecks | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — import-postgres
+
+- Recorded at: `2026-08-31T02:55:19.294Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — verify
+
+- Recorded at: `2026-08-31T02:55:20.876Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## matters — reconcile
+
+- Recorded at: `2026-08-31T02:55:22.623Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## work-management — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:25.858Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 0 | **no** |
+| taskComments | 1 | 0 | **no** |
+| taskWatchers | 1 | 0 | **no** |
+| hearings | 1 | 0 | **no** |
+| researchNotes | 1 | 0 | **no** |
+| sopTemplates | 1 | 0 | **no** |
+| sopTemplateTasks | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — import-postgres
+
+- Recorded at: `2026-08-31T02:55:27.484Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — verify
+
+- Recorded at: `2026-08-31T02:55:29.049Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## work-management — reconcile
+
+- Recorded at: `2026-08-31T02:55:30.745Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## financial — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:33.868Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 0 | **no** |
+| timeEntries | 2 | 0 | **no** |
+| trustTransactions | 1 | 0 | **no** |
+| expenses | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=4cf8786f43dfa083d306a2fd
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## financial — import-postgres
+
+- Recorded at: `2026-08-31T02:55:35.650Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+- fingerprint=4cf8786f43dfa083d306a2fd
+
+## financial — verify
+
+- Recorded at: `2026-08-31T02:55:37.185Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## financial — reconcile
+
+- Recorded at: `2026-08-31T02:55:38.745Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## crm — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:41.989Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 0 | **no** |
+| appointments | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — import-postgres
+
+- Recorded at: `2026-08-31T02:55:43.596Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — verify
+
+- Recorded at: `2026-08-31T02:55:45.333Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## crm — reconcile
+
+- Recorded at: `2026-08-31T02:55:46.947Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## communication — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:49.994Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 0 | **no** |
+| notifications | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — import-postgres
+
+- Recorded at: `2026-08-31T02:55:51.652Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — verify
+
+- Recorded at: `2026-08-31T02:55:53.280Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## communication — reconcile
+
+- Recorded at: `2026-08-31T02:55:55.084Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## documents — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:55:58.242Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 0 | **no** |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Wraps existing document-migration.ts; firmMap resolves hyphenated Convex IDs.
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — import-postgres
+
+- Recorded at: `2026-08-31T02:56:00.031Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — reconcile
+
+- Recorded at: `2026-08-31T02:56:03.314Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## envelopes — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:56:06.702Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 0 | **no** |
+| signatureRecipients | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — import-postgres
+
+- Recorded at: `2026-08-31T02:56:08.526Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — verify
+
+- Recorded at: `2026-08-31T02:56:10.179Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## envelopes — reconcile
+
+- Recorded at: `2026-08-31T02:56:12.031Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## hr — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:56:15.349Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 0 | **no** |
+| leaveRequests | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## hr — import-postgres
+
+- Recorded at: `2026-08-31T02:56:17.355Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+
+## hr — verify
+
+- Recorded at: `2026-08-31T02:56:19.126Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## hr — reconcile
+
+- Recorded at: `2026-08-31T02:56:20.848Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## storage — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T02:56:27.417Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Uses convertConvexStorageExport + migrateLegacyStorage (no rewrite).
+- fingerprint=47198672962339c3e16e078d
+
+## storage — import-postgres
+
+- Recorded at: `2026-08-31T02:56:29.258Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Checksum verified via migrateLegacyStorage.
+- R3.6 uses existing convertConvexStorageExport + migrateLegacyStorage helpers.
+- fingerprint=47198672962339c3e16e078d
+
+## storage — verify
+
+- Recorded at: `2026-08-31T02:56:30.984Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Verified against last saved storage migration report.
+
+## storage — reconcile
+
+- Recorded at: `2026-08-31T02:56:32.925Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- R3.6 File SHA-256 from storage_migration_items (expected vs actual).
+- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+
+## r6 — prove-cutover-rehearsal
+
+- Recorded at: `2026-08-31T02:56:34.630Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| identity | 1 | 1 | yes |
+| cms | 1 | 1 | yes |
+| matters | 1 | 1 | yes |
+| work-management | 1 | 1 | yes |
+| financial | 1 | 1 | yes |
+| crm | 1 | 1 | yes |
+| communication | 1 | 1 | yes |
+| documents | 1 | 1 | yes |
+| envelopes | 1 | 1 | yes |
+| hr | 1 | 1 | yes |
+| analytics | 1 | 1 | yes |
+| storage | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R6 local cutover dress rehearsal — see cutover-runbook.md + cutover-log.csv
+- rehearsalId=r6-2026-08-31T02-54-56-366Z
+- thisRun=true
+- allDomainsLoggedPassed=true
+- identity=passed
+- cms=passed
+- matters=passed
+- work-management=passed
+- financial=passed
+- crm=passed
+- communication=passed
+- documents=passed
+- envelopes=passed
+- hr=passed
+- analytics=passed
+- storage=passed
+
+## r4.3 — prove-cross-firm
+
+- Recorded at: `2026-08-31T02:57:43.480Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| authorization | 1 | 1 | yes |
+| crossFirmAttack | 1 | 1 | yes |
+| crossFirmSecurity | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.3 cross-firm attack tests: spoofed firm context, requireSameFirm, assertResourceInFirm NOT_FOUND probes.
+- filesPassed=3 testsPassed=13 exitCode=0
+- tests/unit/authorization.test.ts
+- tests/unit/cross-firm-attack.test.ts
+- tests/integration/cross-firm-security.test.ts
+
+## r4.4 — prove-finance-idempotency
+
+- Recorded at: `2026-08-31T02:57:47.551Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| paymentIdempotent | 2 | 1 | **no** |
+| trustIdempotent | 2 | 1 | **no** |
+| alreadyPaidNoDoublePost | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.4 finance idempotency: same Idempotency-Key / body key replays payment and trust without double-post.
+- Already-paid invoice pay without a new key returns existing completed payment.
+- payKey=r44-pay-1788145067466 trustKey=r44-trust-1788145067527
+
+## r4.7 — prove-job-retries
+
+- Recorded at: `2026-08-31T02:57:52.455Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| idempotentEnqueue | 1 | 1 | yes |
+| deadLetter | 1 | 1 | yes |
+| manualRetryRecoverable | 1 | 1 | yes |
+| noDuplicateSideEffects | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.7 failure/retry: dead-letter → audited manual retry → single durable_job_effects row (no duplicate side effects).
+- tests/unit/jobs-contracts.test.ts
+- tests/unit/durable-job-worker.test.ts
+- scripts/jobs/verify-local.ts
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-31T02:57:54.218Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 83 | 83 | yes |
+| matrixCount | 83 | 83 | yes |
+| appCoverage | 83 | 83 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ src/app routes; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-31T02:59:02.572Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A1 | 1 | 1 | yes |
+| A3 | 1 | 1 | yes |
+| A4 | 1 | 1 | yes |
+| A5 | 1 | 1 | yes |
+| A6 | 1 | 1 | yes |
+| A7 | 1 | 1 | yes |
+| A8 | 1 | 1 | yes |
+| C1 | 1 | 1 | yes |
+| C2 | 1 | 1 | yes |
+| C3 | 1 | 1 | yes |
+| C4 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C8 | 1 | 1 | yes |
+| C9 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 complete_local under local-only waiver — Convex runtime removed; archive retained.
+- R7 production readiness remains DEFER_PROD.
+- archive=doc/migration/archive/convex-decommission/convex-source.zip
+- requiredComplete=A1,A3,A4,A5,A6,A7,A8,C1,C2,C3,C4,C5,C8,C9,C11,C12
+
+## r7 — prove-production-readiness-plan
+
+- Recorded at: `2026-08-31T02:59:03.970Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| R7.1 | 1 | 1 | yes |
+| R7.2 | 1 | 1 | yes |
+| R7.3 | 1 | 1 | yes |
+| R7.4 | 1 | 1 | yes |
+| R7.5 | 1 | 1 | yes |
+| R7.6 | 1 | 1 | yes |
+| R7.7 | 1 | 1 | yes |
+| R7.8 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R7 planning artifacts present; production cutover remains DEFER_PROD.
+- tracked=R7.1,R7.2,R7.3,R7.4,R7.5,R7.6,R7.7,R7.8
+- statusDeferOrOpen=8/8
+- incidentContactsTemplate=false
+- Do not set production-readiness.csv status=complete without evidence + owner.
+
+## r8 — prove-decommission-status
+
+- Recorded at: `2026-08-31T03:20:32.130Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| A1 | 1 | 1 | yes |
+| A3 | 1 | 1 | yes |
+| A4 | 1 | 1 | yes |
+| A5 | 1 | 1 | yes |
+| A6 | 1 | 1 | yes |
+| A7 | 1 | 1 | yes |
+| A8 | 1 | 1 | yes |
+| C1 | 1 | 1 | yes |
+| C2 | 1 | 1 | yes |
+| C3 | 1 | 1 | yes |
+| C4 | 1 | 1 | yes |
+| C5 | 1 | 1 | yes |
+| C8 | 1 | 1 | yes |
+| C9 | 1 | 1 | yes |
+| C11 | 1 | 1 | yes |
+| C12 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R8 complete_local under local-only waiver — Convex runtime removed; archive retained.
+- R7 production readiness remains DEFER_PROD.
+- archive=doc/migration/archive/convex-decommission/convex-source.zip
+- requiredComplete=A1,A3,A4,A5,A6,A7,A8,C1,C2,C3,C4,C5,C8,C9,C11,C12
+
+## r7 — prove-production-readiness-plan
+
+- Recorded at: `2026-08-31T03:20:33.562Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| R7.1 | 1 | 1 | yes |
+| R7.2 | 1 | 1 | yes |
+| R7.3 | 1 | 1 | yes |
+| R7.4 | 1 | 1 | yes |
+| R7.5 | 1 | 1 | yes |
+| R7.6 | 1 | 1 | yes |
+| R7.7 | 1 | 1 | yes |
+| R7.8 | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R7 planning artifacts present; production cutover remains DEFER_PROD.
+- tracked=R7.1,R7.2,R7.3,R7.4,R7.5,R7.6,R7.7,R7.8
+- statusDeferOrOpen=8/8
+- incidentContactsTemplate=false
+- Do not set production-readiness.csv status=complete without evidence + owner.
+
+## identity — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:07.664Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 0 | **no** |
+| firmSettings | 1 | 0 | **no** |
+| sessions | 1 | 0 | **no** |
+| auditLog | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=abc16408719041d862650e04
+- Sessions are retired (not re-imported) by identity-migration.
+
+## identity — import-postgres
+
+- Recorded at: `2026-08-31T03:21:09.407Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+- fingerprint=abc16408719041d862650e04
+
+## identity — verify
+
+- Recorded at: `2026-08-31T03:21:11.130Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## identity — reconcile
+
+- Recorded at: `2026-08-31T03:21:12.977Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| users | 1 | 1 | yes |
+| firmSettings | 1 | 1 | yes |
+| auditLog | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Sessions are retired (not re-imported) by identity-migration.
+
+## cms — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:16.279Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 0 | **no** |
+| practiceAreas | 1 | 0 | **no** |
+| blogPosts | 2 | 0 | **no** |
+| resources | 1 | 0 | **no** |
+| newsAndAwards | 1 | 0 | **no** |
+| careers | 1 | 0 | **no** |
+| jobApplications | 1 | 0 | **no** |
+| legalPages | 1 | 0 | **no** |
+| cmsSettings | 2 | 0 | **no** |
+| newsletterSubscribers | 1 | 0 | **no** |
+| navigation | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=1e81e81f37065bee925bef39
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## cms — import-postgres
+
+- Recorded at: `2026-08-31T03:21:18.192Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+- fingerprint=1e81e81f37065bee925bef39
+
+## cms — verify
+
+- Recorded at: `2026-08-31T03:21:19.916Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## cms — reconcile
+
+- Recorded at: `2026-08-31T03:21:21.615Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| testimonials | 1 | 1 | yes |
+| newsletterSubscribers | 1 | 1 | yes |
+| legalPages | 1 | 1 | yes |
+| cmsSettings | 2 | 2 | yes |
+| practiceAreas | 1 | 1 | yes |
+| careers | 1 | 1 | yes |
+| jobApplications | 1 | 1 | yes |
+| resources | 1 | 1 | yes |
+| newsAndAwards | 1 | 1 | yes |
+| blogPosts | 2 | 2 | yes |
+| navigation | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- CMS import uses --target-firm (or --orphan-firm / first firm-map value).
+
+## matters — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:24.878Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 0 | **no** |
+| cases | 1 | 0 | **no** |
+| conflictChecks | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — import-postgres
+
+- Recorded at: `2026-08-31T03:21:26.674Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=78a2423274b9934d61b31f68
+
+## matters — verify
+
+- Recorded at: `2026-08-31T03:21:28.333Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## matters — reconcile
+
+- Recorded at: `2026-08-31T03:21:30.185Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| clients | 1 | 1 | yes |
+| cases | 1 | 1 | yes |
+| conflictChecks | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## work-management — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:33.408Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 0 | **no** |
+| taskComments | 1 | 0 | **no** |
+| taskWatchers | 1 | 0 | **no** |
+| hearings | 1 | 0 | **no** |
+| researchNotes | 1 | 0 | **no** |
+| sopTemplates | 1 | 0 | **no** |
+| sopTemplateTasks | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — import-postgres
+
+- Recorded at: `2026-08-31T03:21:35.264Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=963a1310a443d1d138fd7d63
+
+## work-management — verify
+
+- Recorded at: `2026-08-31T03:21:36.970Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## work-management — reconcile
+
+- Recorded at: `2026-08-31T03:21:38.824Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| tasks | 2 | 2 | yes |
+| taskWatchers | 1 | 1 | yes |
+| hearings | 1 | 1 | yes |
+| researchNotes | 1 | 1 | yes |
+| sopTemplates | 1 | 1 | yes |
+| sopTemplateTasks | 2 | 2 | yes |
+| taskComments | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## financial — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:42.091Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 0 | **no** |
+| timeEntries | 2 | 0 | **no** |
+| trustTransactions | 1 | 0 | **no** |
+| expenses | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=4cf8786f43dfa083d306a2fd
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## financial — import-postgres
+
+- Recorded at: `2026-08-31T03:21:43.810Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+- fingerprint=4cf8786f43dfa083d306a2fd
+
+## financial — verify
+
+- Recorded at: `2026-08-31T03:21:45.509Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## financial — reconcile
+
+- Recorded at: `2026-08-31T03:21:47.301Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices | 1 | 1 | yes |
+| timeEntries | 2 | 2 | yes |
+| trustTransactions | 1 | 1 | yes |
+| expenses | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Financial totals
+
+| Metric | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| invoices.total | 11300.00 | 11300.00 | yes |
+| invoices.subtotal | 10000.00 | 10000.00 | yes |
+| invoices.vatAmount | 1300.00 | 1300.00 | yes |
+| expenses.amount | 2500.00 | 2500.00 | yes |
+| trustTransactions.amount | 50000.00 | 50000.00 | yes |
+| timeEntries.minutes | 150 | 150 | yes |
+| timeEntries.billableValue | 12500.00 | 12500.00 | yes |
+
+### Notes
+
+- R3.5 financial totals compared export ↔ Postgres for invoice/expense/trust/time.
+
+## crm — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:50.634Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 0 | **no** |
+| appointments | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — import-postgres
+
+- Recorded at: `2026-08-31T03:21:52.315Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=74d8615c5b768f4f50e20fe8
+
+## crm — verify
+
+- Recorded at: `2026-08-31T03:21:53.912Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## crm — reconcile
+
+- Recorded at: `2026-08-31T03:21:55.764Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| leads | 2 | 2 | yes |
+| appointments | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## communication — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:21:59.079Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 0 | **no** |
+| notifications | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — import-postgres
+
+- Recorded at: `2026-08-31T03:22:00.830Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=58e39630ed5a3e803e128202
+
+## communication — verify
+
+- Recorded at: `2026-08-31T03:22:02.442Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## communication — reconcile
+
+- Recorded at: `2026-08-31T03:22:04.158Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| messages | 2 | 2 | yes |
+| notifications | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## documents — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:22:07.488Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 0 | **no** |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Wraps existing document-migration.ts; firmMap resolves hyphenated Convex IDs.
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — import-postgres
+
+- Recorded at: `2026-08-31T03:22:09.262Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=b5370095fc72fe55d5ebd09c
+
+## documents — reconcile
+
+- Recorded at: `2026-08-31T03:22:12.571Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| documents | 1 | 1 | yes |
+| documentShares | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## envelopes — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:22:15.899Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 0 | **no** |
+| signatureRecipients | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — import-postgres
+
+- Recorded at: `2026-08-31T03:22:17.753Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- fingerprint=56380091105e6af01f73969a
+
+## envelopes — verify
+
+- Recorded at: `2026-08-31T03:22:19.412Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## envelopes — reconcile
+
+- Recorded at: `2026-08-31T03:22:21.123Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| signatureEnvelopes | 2 | 2 | yes |
+| signatureRecipients | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+## hr — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:22:24.321Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 0 | **no** |
+| leaveRequests | 1 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Dry-run only inventories export rows; no Postgres writes.
+- Real importers remain idempotent via legacyConvexId upserts.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## hr — import-postgres
+
+- Recorded at: `2026-08-31T03:22:26.180Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+- fingerprint=439cc8c01d5dd192bbbaf26f
+
+## hr — verify
+
+- Recorded at: `2026-08-31T03:22:27.815Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Verified against last saved `.migration-reports` snapshot.
+
+## hr — reconcile
+
+- Recorded at: `2026-08-31T03:22:29.459Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 1 | yes |
+| leaveRequests | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+
+## storage — import-postgres (dry-run)
+
+- Recorded at: `2026-08-31T03:22:36.303Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 0 | **no** |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- Uses convertConvexStorageExport + migrateLegacyStorage (no rewrite).
+- fingerprint=47198672962339c3e16e078d
+
+## storage — import-postgres
+
+- Recorded at: `2026-08-31T03:22:38.167Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Checksum verified via migrateLegacyStorage.
+- R3.6 uses existing convertConvexStorageExport + migrateLegacyStorage helpers.
+- fingerprint=47198672962339c3e16e078d
+
+## storage — verify
+
+- Recorded at: `2026-08-31T03:22:39.883Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- Verified against last saved storage migration report.
+
+## storage — reconcile
+
+- Recorded at: `2026-08-31T03:22:41.604Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| storageObjects | 2 | 2 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### File SHA-256
+
+| Storage ID | Expected | Actual | Status | Match |
+| --- | --- | --- | --- | --- |
+| `convex-storage-document` | `8734f464e485…` | `8734f464e485…` | verified | yes |
+| `convex-storage-kyc` | `8597b290f380…` | `8597b290f380…` | verified | yes |
+
+### Notes
+
+- R3.6 File SHA-256 from storage_migration_items (expected vs actual).
+- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+
+## r6 — prove-cutover-rehearsal
+
+- Recorded at: `2026-08-31T03:22:43.306Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| identity | 1 | 1 | yes |
+| cms | 1 | 1 | yes |
+| matters | 1 | 1 | yes |
+| work-management | 1 | 1 | yes |
+| financial | 1 | 1 | yes |
+| crm | 1 | 1 | yes |
+| communication | 1 | 1 | yes |
+| documents | 1 | 1 | yes |
+| envelopes | 1 | 1 | yes |
+| hr | 1 | 1 | yes |
+| analytics | 1 | 1 | yes |
+| storage | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R6 local cutover dress rehearsal — see cutover-runbook.md + cutover-log.csv
+- rehearsalId=r6-2026-08-31T03-21-06-012Z
+- thisRun=true
+- allDomainsLoggedPassed=true
+- identity=passed
+- cms=passed
+- matters=passed
+- work-management=passed
+- financial=passed
+- crm=passed
+- communication=passed
+- documents=passed
+- envelopes=passed
+- hr=passed
+- analytics=passed
+- storage=passed
+
+## r4.3 — prove-cross-firm
+
+- Recorded at: `2026-08-31T03:23:49.875Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| authorization | 1 | 1 | yes |
+| crossFirmAttack | 1 | 1 | yes |
+| crossFirmSecurity | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.3 cross-firm attack tests: spoofed firm context, requireSameFirm, assertResourceInFirm NOT_FOUND probes.
+- filesPassed=3 testsPassed=13 exitCode=0
+- tests/unit/authorization.test.ts
+- tests/unit/cross-firm-attack.test.ts
+- tests/integration/cross-firm-security.test.ts
+
+## r4.4 — prove-finance-idempotency
+
+- Recorded at: `2026-08-31T03:23:53.687Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| paymentIdempotent | 2 | 1 | **no** |
+| trustIdempotent | 2 | 1 | **no** |
+| alreadyPaidNoDoublePost | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.4 finance idempotency: same Idempotency-Key / body key replays payment and trust without double-post.
+- Already-paid invoice pay without a new key returns existing completed payment.
+- payKey=r44-pay-1788146633603 trustKey=r44-trust-1788146633664
+
+## r4.7 — prove-job-retries
+
+- Recorded at: `2026-08-31T03:23:58.120Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| idempotentEnqueue | 1 | 1 | yes |
+| deadLetter | 1 | 1 | yes |
+| manualRetryRecoverable | 1 | 1 | yes |
+| noDuplicateSideEffects | 1 | 1 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R4.7 failure/retry: dead-letter → audited manual retry → single durable_job_effects row (no duplicate side effects).
+- tests/unit/jobs-contracts.test.ts
+- tests/unit/durable-job-worker.test.ts
+- scripts/jobs/verify-local.ts
+
+## r5.5 — prove-url-preserve
+
+- Recorded at: `2026-08-31T03:23:59.577Z`
+- Passed: **yes**
+- Exceptions: 0
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| inventoryCount | 83 | 83 | yes |
+| matrixCount | 83 | 83 | yes |
+| appCoverage | 83 | 83 | yes |
+| redirects | 0 | 0 | yes |
+| httpSmoke | 0 | 0 | yes |
+
+### Missing IDs
+
+- None
+
+### FK integrity
+
+- Status: **pass**
+- No FK-related exceptions
+
+### Notes
+
+- R5.5/R5.6 URL preserve: inventory ↔ matrix ↔ src/app routes; same-path default; redirects only if matrix.redirectFrom set.
+- redirectCount=0
+- httpSmoke=skipped
+

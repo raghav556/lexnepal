@@ -7,11 +7,7 @@ import { SignInButton } from "@/components/ui/signin";
 import { Button } from "@/components/ui/button";
 import { localAuthClient } from "@/client/auth/local-auth-client";
 import { AuthGuardSkeleton } from "@/components/auth/AuthLoadingSkeleton";
-import {
-  getPortalForRole,
-  STAFF_ROLES,
-  type UserRole,
-} from "@/hooks/use-current-user";
+import { getPortalForRole, STAFF_ROLES, type UserRole } from "@/hooks/use-current-user";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
@@ -98,11 +94,17 @@ export function PortalRoleGuard({
         </div>
         <h2 className="font-serif text-2xl font-bold text-foreground">{portalLabel(allowed)}</h2>
         <p className="text-muted-foreground text-sm text-center max-w-sm">
-          You&apos;re signed in as <span className="font-medium text-foreground">{identityUser.email}</span> (
+          You&apos;re signed in as{" "}
+          <span className="font-medium text-foreground">{identityUser.email}</span> (
           {identityUser.role.replaceAll("_", " ")}). That account belongs to a different portal.
         </p>
         <div className="flex flex-col sm:flex-row gap-2 mt-2">
-          <Button variant="outline" onClick={() => { window.location.assign(home); }}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.location.assign(home);
+            }}
+          >
             Go to my portal
             <ArrowRight className="w-4 h-4" />
           </Button>

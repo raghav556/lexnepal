@@ -12,6 +12,7 @@ const AUTH_HEADERS = {
   "content-type": "application/json",
   origin: BASE.replace(/\/$/, ""),
   referer: `${BASE}/sign-in`,
+  "x-forwarded-for": "127.0.0.32",
 };
 
 function parseCookies(setCookieHeaders) {

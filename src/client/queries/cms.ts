@@ -124,13 +124,18 @@ export function useLegalPage(
   }).data;
 }
 
-export function usePublicTeam(filters?: string | { practiceArea?: string; role?: string; search?: string }) {
+export function usePublicTeam(
+  filters?: string | { practiceArea?: string; role?: string; search?: string },
+) {
   const normalized =
-    typeof filters === "string"
-      ? { practiceArea: filters || undefined }
-      : filters || {};
+    typeof filters === "string" ? { practiceArea: filters || undefined } : filters || {};
   return useQuery({
-    queryKey: [...queryKeys.cms.team, normalized.practiceArea || "", normalized.role || "", normalized.search || ""],
+    queryKey: [
+      ...queryKeys.cms.team,
+      normalized.practiceArea || "",
+      normalized.role || "",
+      normalized.search || "",
+    ],
     queryFn: ({ signal }) =>
       apiClient.request<any[]>("/api/v1/public/cms/team", {
         signal,
@@ -147,8 +152,7 @@ export function usePublicTeamMember(id?: string) {
   return useQuery({
     queryKey: [...queryKeys.cms.team, "member", id || ""],
     enabled: Boolean(id),
-    queryFn: ({ signal }) =>
-      apiClient.request<any>(`/api/v1/public/cms/team/${id}`, { signal }),
+    queryFn: ({ signal }) => apiClient.request<any>(`/api/v1/public/cms/team/${id}`, { signal }),
   });
 }
 

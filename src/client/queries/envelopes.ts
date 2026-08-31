@@ -132,10 +132,13 @@ export function useIssueOtp() {
 export function useVerifyOtp() {
   return useCallback(async (input: { challengeId: string; code: string }) => {
     try {
-      return await apiClient.request("/api/v1/envelopes/otp/verify", {
-        method: "POST",
-        body: input,
-      });
+      return await apiClient.request<{ verified: boolean; challengeId: string }>(
+        "/api/v1/envelopes/otp/verify",
+        {
+          method: "POST",
+          body: input,
+        },
+      );
     } catch (error) {
       throw normalizeApiError(error);
     }

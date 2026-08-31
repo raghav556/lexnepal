@@ -18,12 +18,7 @@ export const leadStatusSchema = z.enum([
   "converted",
   "lost",
 ]);
-export const appointmentStatusSchema = z.enum([
-  "pending",
-  "confirmed",
-  "completed",
-  "cancelled",
-]);
+export const appointmentStatusSchema = z.enum(["pending", "confirmed", "completed", "cancelled"]);
 export const clientTypeSchema = z.enum(["individual", "corporate"]);
 
 export const leadListSchema = z.object({
@@ -135,4 +130,3 @@ export type AppointmentBookInput = z.infer<typeof appointmentBookSchema>;
 export type AppointmentStatusUpdateInput = z.infer<typeof appointmentStatusUpdateSchema>;
 export type AppointmentAssignInput = z.infer<typeof appointmentAssignSchema>;
 export type AppointmentRescheduleInput = z.infer<typeof appointmentRescheduleSchema>;
-

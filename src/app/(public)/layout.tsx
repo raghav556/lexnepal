@@ -51,12 +51,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
-  const [initialHeaderNav, initialFooterCol1, initialFooterCol2, initialSettings] = await Promise.all([
-    loadNav("header"),
-    loadNav("footer_col_1"),
-    loadNav("footer_col_2"),
-    loadSettings(),
-  ]);
+  const [initialHeaderNav, initialFooterCol1, initialFooterCol2, initialSettings] =
+    await Promise.all([
+      loadNav("header"),
+      loadNav("footer_col_1"),
+      loadNav("footer_col_2"),
+      loadSettings(),
+    ]);
 
   return (
     <PublicLayoutShell

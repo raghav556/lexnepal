@@ -20,7 +20,10 @@ export function addCalendarDaysIso(dateIso: string, delta: number): string {
 }
 
 /** Display a YYYY-MM-DD appointment date in firm timezone. */
-export function formatAppointmentDate(dateIso: string, options?: Intl.DateTimeFormatOptions): string {
+export function formatAppointmentDate(
+  dateIso: string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
   const d = new Date(`${dateIso}T12:00:00+05:45`);
   if (Number.isNaN(d.valueOf())) return dateIso;
   return d.toLocaleDateString("en-US", {

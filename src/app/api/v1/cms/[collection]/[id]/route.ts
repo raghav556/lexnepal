@@ -1,6 +1,6 @@
 import { requireSession } from "@/server/auth/runtime";
 import { buildAuditContext } from "@/server/audit/context";
-import { cmsCollectionSchema, inputSchemaFor, patchInputSchemaFor } from "@/server/http/cms-validation";
+import { cmsCollectionSchema, patchInputSchemaFor } from "@/server/http/cms-validation";
 import { withApiHandler } from "@/server/http/handler";
 import { jsonResponse } from "@/server/http/response";
 import { parseJson } from "@/server/http/validation";

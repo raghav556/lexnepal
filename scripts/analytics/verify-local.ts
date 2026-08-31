@@ -85,7 +85,9 @@ try {
   if (!firmBResponse.ok) {
     throw new Error(`Firm B dashboard failed: ${firmBResponse.status}`);
   }
-  const firmBBody = (await firmBResponse.json()) as { data: { totalCases: number; totalRevenue: number } };
+  const firmBBody = (await firmBResponse.json()) as {
+    data: { totalCases: number; totalRevenue: number };
+  };
   // Tenant isolation: response must be scoped (may be zeros). Must not throw and must validate.
   analyticsDashboardSchema.parse(firmBBody.data);
   if (firmBBody.data.totalCases > data.totalCases && data.totalCases === 0) {

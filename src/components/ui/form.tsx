@@ -60,7 +60,9 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 
 function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
   const { formItemId, error } = useFormField();
-  return <Label className={cn(error && "text-destructive", className)} htmlFor={formItemId} {...props} />;
+  return (
+    <Label className={cn(error && "text-destructive", className)} htmlFor={formItemId} {...props} />
+  );
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
@@ -78,7 +80,14 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   const { formDescriptionId } = useFormField();
-  return <p data-slot="form-description" id={formDescriptionId} className={cn("text-muted-foreground text-[0.8rem]", className)} {...props} />;
+  return (
+    <p
+      data-slot="form-description"
+      id={formDescriptionId}
+      className={cn("text-muted-foreground text-[0.8rem]", className)}
+      {...props}
+    />
+  );
 }
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
@@ -86,10 +95,24 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const body = error ? String(error.message ?? "") : (props.children as string | undefined);
   if (!body) return null;
   return (
-    <p data-slot="form-message" id={formMessageId} className={cn("text-destructive text-[0.8rem] font-medium", className)} {...props}>
+    <p
+      data-slot="form-message"
+      id={formMessageId}
+      className={cn("text-destructive text-[0.8rem] font-medium", className)}
+      {...props}
+    >
       {body}
     </p>
   );
 }
 
-export { useFormField, Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };
+export {
+  useFormField,
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage,
+  FormField,
+};

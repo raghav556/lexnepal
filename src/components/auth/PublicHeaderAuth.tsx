@@ -33,7 +33,10 @@ export function PublicHeaderAuth({ mobile = false }: { mobile?: boolean }) {
           <Button
             variant="outline"
             size="sm"
-            className={cn("font-medium text-foreground shrink-0 gap-1.5", mobile && "w-full justify-between")}
+            className={cn(
+              "font-medium text-foreground shrink-0 gap-1.5",
+              mobile && "w-full justify-between",
+            )}
           >
             <span className="truncate">My Portal</span>
             <ChevronDown className="size-4 shrink-0 opacity-60" />

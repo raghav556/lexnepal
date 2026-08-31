@@ -1,9 +1,6 @@
 export type ProfileVariant = "client" | "staff" | "admin";
 
-export const PROFILE_COPY: Record<
-  ProfileVariant,
-  { title: string; subtitle: string }
-> = {
+export const PROFILE_COPY: Record<ProfileVariant, { title: string; subtitle: string }> = {
   client: {
     title: "My Account",
     subtitle: "Your cases, identity verification, billing, and secure account settings.",

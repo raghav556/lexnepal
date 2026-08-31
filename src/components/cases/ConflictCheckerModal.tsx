@@ -124,8 +124,8 @@ export function ConflictCheckerModal({
 
         <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">
-            Live preview scans firm records without logging. Run an{" "}
-            <strong>official check</strong> before opening a new matter — it creates an audit record.
+            Live preview scans firm records without logging. Run an <strong>official check</strong>{" "}
+            before opening a new matter — it creates an audit record.
           </p>
 
           <div className="relative">
@@ -153,7 +153,7 @@ export function ConflictCheckerModal({
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                   <p className="text-sm text-emerald-800 dark:text-emerald-300">
-                    Preview: no matches for "{debouncedQuery}".
+                    Preview: no matches for &ldquo;{debouncedQuery}&rdquo;.
                   </p>
                 </div>
               )}
@@ -205,8 +205,16 @@ export function ConflictCheckerModal({
             Run official check
           </Button>
           {caseId && searched && clearanceGranted && (
-            <Button onClick={handleMarkCleared} disabled={isMarking} className="w-full sm:w-auto gap-2">
-              {isMarking ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            <Button
+              onClick={handleMarkCleared}
+              disabled={isMarking}
+              className="w-full sm:w-auto gap-2"
+            >
+              {isMarking ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
               Mark case cleared
             </Button>
           )}

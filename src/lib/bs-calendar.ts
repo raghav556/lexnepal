@@ -4,15 +4,25 @@
  */
 import { gregorianToBs, formatBs } from "./nepali-calendar.ts";
 
-export { gregorianToBs, formatBs, formatDualDate, bsToGregorian, todayBs } from "./nepali-calendar.ts";
+export {
+  gregorianToBs,
+  formatBs,
+  formatDualDate,
+  bsToGregorian,
+  todayBs,
+} from "./nepali-calendar.ts";
 
 const NEPALI_DIGITS = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"];
 
 export function toNepaliNumeral(num: number | string): string {
-  return num.toString().split("").map((digit) => {
-    if (/[0-9]/.test(digit)) return NEPALI_DIGITS[parseInt(digit, 10)];
-    return digit;
-  }).join("");
+  return num
+    .toString()
+    .split("")
+    .map((digit) => {
+      if (/[0-9]/.test(digit)) return NEPALI_DIGITS[parseInt(digit, 10)];
+      return digit;
+    })
+    .join("");
 }
 
 /** Convert an AD date string to a display BS date using nepali-calendar. */

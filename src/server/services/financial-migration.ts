@@ -1,4 +1,3 @@
- 
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -82,7 +81,14 @@ export async function shadowReadFinancialExport(input: {
       asShadowString(source.invoiceNumber) ?? null,
       target.invoiceNumber,
     );
-    pushMismatch(mismatches, "invoices", id, "total", moneyString(source.total), moneyString(target.total));
+    pushMismatch(
+      mismatches,
+      "invoices",
+      id,
+      "total",
+      moneyString(source.total),
+      moneyString(target.total),
+    );
     pushMismatch(
       mismatches,
       "invoices",
@@ -209,11 +215,15 @@ export async function migrateFinancialExport(input: {
   const userRows = await database
     .select({ id: users.id, firmId: users.firmId, legacyId: users.legacyConvexId })
     .from(users);
-  const userMap = new Map(userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]));
+  const userMap = new Map(
+    userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
+  );
   const caseRows = await database
     .select({ id: cases.id, firmId: cases.firmId, legacyId: cases.legacyConvexId })
     .from(cases);
-  const caseMap = new Map(caseRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]));
+  const caseMap = new Map(
+    caseRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
+  );
   const clientRows = await database
     .select({ id: clients.id, firmId: clients.firmId, legacyId: clients.legacyConvexId })
     .from(clients);
@@ -400,7 +410,11 @@ export async function migrateFinancialExport(input: {
             receiptId: asString(record.receiptId),
             expenseDate: dateOnly(record.date) ?? new Date().toISOString().slice(0, 10),
             submittedBy: submitter.id,
-            status: enumValue(record.status, ["pending", "approved", "rejected"] as const, "pending"),
+            status: enumValue(
+              record.status,
+              ["pending", "approved", "rejected"] as const,
+              "pending",
+            ),
             approvedBy: approvedBy ? userMap.get(approvedBy)?.id : undefined,
             invoiceId: invoiceRef ? invoiceMap.get(invoiceRef)?.id : undefined,
             createdAt: toDate(record._creationTime) ?? new Date(),

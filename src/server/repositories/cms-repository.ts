@@ -150,7 +150,11 @@ export class PostgresCmsRepository {
       .select({ slug: practiceAreas.slug })
       .from(practiceAreas)
       .where(
-        and(eq(practiceAreas.id, id), eq(practiceAreas.firmId, firmId), isNull(practiceAreas.deletedAt)),
+        and(
+          eq(practiceAreas.id, id),
+          eq(practiceAreas.firmId, firmId),
+          isNull(practiceAreas.deletedAt),
+        ),
       )
       .limit(1);
     const row = await this.updateAudited(
@@ -358,12 +362,7 @@ export class PostgresCmsRepository {
           };
     return this.updateAudited(blogPosts, firmId, id, patch, audit, "blog_post");
   }
-  async submitBlogPost(
-    firmId: string,
-    id: string,
-    submitterId: string,
-    audit: AuditContext,
-  ) {
+  async submitBlogPost(firmId: string, id: string, submitterId: string, audit: AuditContext) {
     return this.updateAudited(
       blogPosts,
       firmId,
@@ -1004,9 +1003,7 @@ export class PostgresCmsRepository {
       const { normalizePracticeAreaKey } = await import("@/shared/practice-areas-visibility");
       const needle = normalizePracticeAreaKey(practiceArea);
       team = team.filter((member) => {
-        const areas = Array.isArray(member.practiceAreas)
-          ? (member.practiceAreas as string[])
-          : [];
+        const areas = Array.isArray(member.practiceAreas) ? (member.practiceAreas as string[]) : [];
         return areas.some((tag) => {
           const key = normalizePracticeAreaKey(String(tag ?? ""));
           return key === needle || key.includes(needle) || needle.includes(key);

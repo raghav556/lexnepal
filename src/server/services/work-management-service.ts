@@ -1,7 +1,11 @@
 import "server-only";
 import type { AuditContext } from "@/server/audit/context";
 import type { AuthPrincipal } from "@/server/auth/types";
-import { requireCapability, requireCaseAccess, requireFirmContext } from "@/server/policies/authorization";
+import {
+  requireCapability,
+  requireCaseAccess,
+  requireFirmContext,
+} from "@/server/policies/authorization";
 import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
 import { PostgresWorkManagementRepository } from "@/server/repositories/work-management-repository";
 import type {
@@ -61,7 +65,12 @@ export class WorkManagementService {
     return repository.createHearing(requireFirmContext(principal).firmId, input, audit);
   }
 
-  async updateHearing(principal: AuthPrincipal, hearingId: string, input: HearingUpdateInput, audit: AuditContext) {
+  async updateHearing(
+    principal: AuthPrincipal,
+    hearingId: string,
+    input: HearingUpdateInput,
+    audit: AuditContext,
+  ) {
     requireCapability(principal, "cases.manage");
     const { firmId } = requireFirmContext(principal);
     const existing = await repository.getHearing(firmId, hearingId);
@@ -80,12 +89,11 @@ export class WorkManagementService {
       const clientRecord = await security.getClientByUser(principal.user.id);
       if (!clientRecord || clientRecord.firmId !== firmId) return [];
       const caseIds = new Set(await security.listCaseIdsForClient(firmId, clientRecord.id));
-      return rows.filter(
-        (r) => r.clientVisible && r.caseId && caseIds.has(String(r.caseId)),
-      );
+      return rows.filter((r) => r.clientVisible && r.caseId && caseIds.has(String(r.caseId)));
     }
     return rows.filter(
-      (r) => r.assignedTo === principal.user.id || (r.watchers as string[]).includes(principal.user.id),
+      (r) =>
+        r.assignedTo === principal.user.id || (r.watchers as string[]).includes(principal.user.id),
     );
   }
 
@@ -117,7 +125,12 @@ export class WorkManagementService {
     return repository.createTask(requireFirmContext(principal).firmId, input, audit);
   }
 
-  async updateTask(principal: AuthPrincipal, taskId: string, input: TaskUpdateInput, audit: AuditContext) {
+  async updateTask(
+    principal: AuthPrincipal,
+    taskId: string,
+    input: TaskUpdateInput,
+    audit: AuditContext,
+  ) {
     requireCapability(principal, "cases.manage");
     return repository.updateTask(requireFirmContext(principal).firmId, taskId, input, audit);
   }
@@ -160,7 +173,11 @@ export class WorkManagementService {
     return repository.runSop(requireFirmContext(principal).firmId, input, audit);
   }
 
-  async createHearingPrepTasks(principal: AuthPrincipal, input: HearingPrepInput, audit: AuditContext) {
+  async createHearingPrepTasks(
+    principal: AuthPrincipal,
+    input: HearingPrepInput,
+    audit: AuditContext,
+  ) {
     requireCapability(principal, "cases.manage");
     return repository.createHearingPrepTasks(requireFirmContext(principal).firmId, input, audit);
   }
@@ -189,16 +206,30 @@ export class WorkManagementService {
     return row;
   }
 
-  async createResearchNote(principal: AuthPrincipal, input: ResearchCreateInput, audit: AuditContext) {
+  async createResearchNote(
+    principal: AuthPrincipal,
+    input: ResearchCreateInput,
+    audit: AuditContext,
+  ) {
     requireCapability(principal, "cases.manage");
     if (input.caseId) await requireCaseAccess(principal, input.caseId, security);
     return repository.createResearchNote(requireFirmContext(principal).firmId, input, audit);
   }
 
-  async updateResearchNote(principal: AuthPrincipal, noteId: string, input: ResearchUpdateInput, audit: AuditContext) {
+  async updateResearchNote(
+    principal: AuthPrincipal,
+    noteId: string,
+    input: ResearchUpdateInput,
+    audit: AuditContext,
+  ) {
     requireCapability(principal, "cases.manage");
     if (input.caseId) await requireCaseAccess(principal, input.caseId, security);
-    return repository.updateResearchNote(requireFirmContext(principal).firmId, noteId, input, audit);
+    return repository.updateResearchNote(
+      requireFirmContext(principal).firmId,
+      noteId,
+      input,
+      audit,
+    );
   }
 
   async deleteResearchNote(principal: AuthPrincipal, noteId: string, audit: AuditContext) {

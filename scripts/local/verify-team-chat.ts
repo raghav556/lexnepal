@@ -21,6 +21,7 @@ const AUTH_HEADERS = {
   "content-type": "application/json",
   origin: BASE.replace(/\/$/, ""),
   referer: `${BASE}/sign-in`,
+  "x-forwarded-for": "127.0.0.34",
 };
 
 function parseCookies(setCookieHeaders: string[]) {
@@ -166,13 +167,23 @@ async function main() {
   const [internalRow] = await db
     .select({ id: messages.id })
     .from(messages)
-    .where(and(eq(messages.caseId, seeded.caseId), eq(messages.content, mark), eq(messages.isInternal, true)))
+    .where(
+      and(
+        eq(messages.caseId, seeded.caseId),
+        eq(messages.content, mark),
+        eq(messages.isInternal, true),
+      ),
+    )
     .limit(1);
   assert(internalRow, "internal message not stored");
 
-  const page = await fetchWithCookies(`${BASE}/staff/team-chat`, {
-    headers: { cookie: cookieHeader(staffJar) },
-  }, staffJar);
+  const page = await fetchWithCookies(
+    `${BASE}/staff/team-chat`,
+    {
+      headers: { cookie: cookieHeader(staffJar) },
+    },
+    staffJar,
+  );
   assert([200, 307, 308].includes(page.res.status), `team-chat page ${page.res.status}`);
 
   console.log("\nPASS — team DMs + case team privacy + client chat\n");

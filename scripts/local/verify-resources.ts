@@ -74,9 +74,7 @@ async function main() {
   if (!ungatedData.data?.url) throw new Error("Ungated download missing url");
   console.log("6. Ungated download OK");
 
-  const detail = await fetch(
-    `${BASE}/api/v1/public/cms/resources/company-registration-guide`,
-  );
+  const detail = await fetch(`${BASE}/api/v1/public/cms/resources/company-registration-guide`);
   if (!detail.ok) throw new Error(`Detail by slug failed: ${detail.status}`);
   const detailBody = (await detail.json()) as { data: Record<string, unknown> };
   if (detailBody.data?.isGated && detailBody.data?.fileUrl) {
@@ -84,9 +82,7 @@ async function main() {
   }
   console.log("7. Detail by slug OK");
 
-  const draftDetail = await fetch(
-    `${BASE}/api/v1/public/cms/resources/draft-employment-handbook`,
-  );
+  const draftDetail = await fetch(`${BASE}/api/v1/public/cms/resources/draft-employment-handbook`);
   if (draftDetail.status !== 404) {
     throw new Error(`Expected draft detail 404, got ${draftDetail.status}`);
   }

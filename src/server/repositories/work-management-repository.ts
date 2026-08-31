@@ -50,7 +50,9 @@ export class PostgresWorkManagementRepository {
     const [row] = await database
       .select()
       .from(hearings)
-      .where(and(eq(hearings.id, hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)))
+      .where(
+        and(eq(hearings.id, hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)),
+      )
       .limit(1);
     return row ? toHearingDto(row) : null;
   }
@@ -66,12 +68,19 @@ export class PostgresWorkManagementRepository {
     });
   }
 
-  async updateHearing(firmId: string, hearingId: string, input: HearingUpdateInput, audit: AuditContext) {
+  async updateHearing(
+    firmId: string,
+    hearingId: string,
+    input: HearingUpdateInput,
+    audit: AuditContext,
+  ) {
     return database.transaction(async (tx) => {
       const [row] = await tx
         .update(hearings)
         .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
-        .where(and(eq(hearings.id, hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)))
+        .where(
+          and(eq(hearings.id, hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Hearing was not found", 404);
       await writeAudit(tx, audit, "hearing.updated", "hearings", row.id, null);
@@ -124,9 +133,9 @@ export class PostgresWorkManagementRepository {
         })
         .returning();
       if (watchers?.length) {
-        await tx.insert(taskWatchers).values(
-          [...new Set(watchers)].map((userId) => ({ firmId, taskId: row.id, userId })),
-        );
+        await tx
+          .insert(taskWatchers)
+          .values([...new Set(watchers)].map((userId) => ({ firmId, taskId: row.id, userId })));
       }
       await writeAudit(tx, audit, "task.created", "tasks", row.id, row.title);
       await tx.insert(notifications).values({
@@ -164,11 +173,13 @@ export class PostgresWorkManagementRepository {
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
       if (watchers !== undefined) {
-        await tx.delete(taskWatchers).where(and(eq(taskWatchers.firmId, firmId), eq(taskWatchers.taskId, taskId)));
+        await tx
+          .delete(taskWatchers)
+          .where(and(eq(taskWatchers.firmId, firmId), eq(taskWatchers.taskId, taskId)));
         if (watchers.length)
-          await tx.insert(taskWatchers).values(
-            [...new Set(watchers)].map((userId) => ({ firmId, taskId, userId })),
-          );
+          await tx
+            .insert(taskWatchers)
+            .values([...new Set(watchers)].map((userId) => ({ firmId, taskId, userId })));
       }
       await writeAudit(tx, audit, "task.updated", "tasks", row.id, null);
       return this.attachWatchers(row);
@@ -225,10 +236,18 @@ export class PostgresWorkManagementRepository {
       })
       .from(tasks)
       .where(and(eq(tasks.firmId, firmId), isNull(tasks.deletedAt), isNull(tasks.archivedAt)));
-    const byAssignee = new Map<string, { assignedTo: string; total: number; urgent: number; overdue: number }>();
+    const byAssignee = new Map<
+      string,
+      { assignedTo: string; total: number; urgent: number; overdue: number }
+    >();
     const now = new Date();
     for (const row of rows) {
-      const entry = byAssignee.get(row.assignedTo) ?? { assignedTo: row.assignedTo, total: 0, urgent: 0, overdue: 0 };
+      const entry = byAssignee.get(row.assignedTo) ?? {
+        assignedTo: row.assignedTo,
+        total: 0,
+        urgent: 0,
+        overdue: 0,
+      };
       entry.total += 1;
       if (row.priority === "urgent") entry.urgent += 1;
       const open = row.status === "todo" || row.status === "in_progress";
@@ -253,7 +272,9 @@ export class PostgresWorkManagementRepository {
       ? await database
           .select()
           .from(sopTemplateTasks)
-          .where(and(eq(sopTemplateTasks.firmId, firmId), inArray(sopTemplateTasks.sopTemplateId, ids)))
+          .where(
+            and(eq(sopTemplateTasks.firmId, firmId), inArray(sopTemplateTasks.sopTemplateId, ids)),
+          )
           .orderBy(asc(sopTemplateTasks.position))
       : [];
     const byTemplate = new Map<string, string[]>();
@@ -267,27 +288,50 @@ export class PostgresWorkManagementRepository {
     return database.transaction(async (tx) => {
       const [row] = await tx
         .insert(sopTemplates)
-        .values({ firmId, key: input.key, label: input.label, defaultPriority: input.defaultPriority, practiceArea: input.practiceArea ?? null })
+        .values({
+          firmId,
+          key: input.key,
+          label: input.label,
+          defaultPriority: input.defaultPriority,
+          practiceArea: input.practiceArea ?? null,
+        })
         .returning();
       await tx.insert(sopTemplateTasks).values(
-        input.taskTitles.map((title, position) => ({ firmId, sopTemplateId: row.id, title, position })),
+        input.taskTitles.map((title, position) => ({
+          firmId,
+          sopTemplateId: row.id,
+          title,
+          position,
+        })),
       );
       await writeAudit(tx, audit, "sop.created", "sop_templates", row.id, row.key);
       return { ...toDto(row), taskTitles: input.taskTitles };
     });
   }
 
-  async runSop(firmId: string, input: { templateKey: string; caseId: string; assignedTo?: string | null }, audit: AuditContext) {
+  async runSop(
+    firmId: string,
+    input: { templateKey: string; caseId: string; assignedTo?: string | null },
+    audit: AuditContext,
+  ) {
     const [template] = await database
       .select()
       .from(sopTemplates)
-      .where(and(eq(sopTemplates.firmId, firmId), eq(sopTemplates.key, input.templateKey), isNull(sopTemplates.deletedAt)))
+      .where(
+        and(
+          eq(sopTemplates.firmId, firmId),
+          eq(sopTemplates.key, input.templateKey),
+          isNull(sopTemplates.deletedAt),
+        ),
+      )
       .limit(1);
     if (!template) throw new AppError("NOT_FOUND", "SOP template was not found", 404);
     const templateTasks = await database
       .select()
       .from(sopTemplateTasks)
-      .where(and(eq(sopTemplateTasks.firmId, firmId), eq(sopTemplateTasks.sopTemplateId, template.id)))
+      .where(
+        and(eq(sopTemplateTasks.firmId, firmId), eq(sopTemplateTasks.sopTemplateId, template.id)),
+      )
       .orderBy(asc(sopTemplateTasks.position));
     const assignedTo = input.assignedTo ?? audit.actorId;
     let created = 0;
@@ -297,9 +341,19 @@ export class PostgresWorkManagementRepository {
         const existing = await tx
           .select({ id: tasks.id })
           .from(tasks)
-          .where(and(eq(tasks.firmId, firmId), eq(tasks.caseId, input.caseId), eq(tasks.title, t.title), isNull(tasks.deletedAt)))
+          .where(
+            and(
+              eq(tasks.firmId, firmId),
+              eq(tasks.caseId, input.caseId),
+              eq(tasks.title, t.title),
+              isNull(tasks.deletedAt),
+            ),
+          )
           .limit(1);
-        if (existing.length) { skipped += 1; continue; }
+        if (existing.length) {
+          skipped += 1;
+          continue;
+        }
         await tx.insert(tasks).values({
           firmId,
           caseId: input.caseId,
@@ -318,14 +372,29 @@ export class PostgresWorkManagementRepository {
     return { created, skipped, label: template.label };
   }
 
-  async createHearingPrepTasks(firmId: string, input: { hearingId: string; assignedTo?: string | null }, audit: AuditContext) {
+  async createHearingPrepTasks(
+    firmId: string,
+    input: { hearingId: string; assignedTo?: string | null },
+    audit: AuditContext,
+  ) {
     const [hearing] = await database
       .select()
       .from(hearings)
-      .where(and(eq(hearings.id, input.hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)))
+      .where(
+        and(
+          eq(hearings.id, input.hearingId),
+          eq(hearings.firmId, firmId),
+          isNull(hearings.deletedAt),
+        ),
+      )
       .limit(1);
     if (!hearing) throw new AppError("NOT_FOUND", "Hearing was not found", 404);
-    const prepTitles = ["Prepare case file", "Review evidence", "Confirm court attendance", "Brief client"];
+    const prepTitles = [
+      "Prepare case file",
+      "Review evidence",
+      "Confirm court attendance",
+      "Brief client",
+    ];
     const assignedTo = input.assignedTo ?? audit.actorId;
     let created = 0;
     let skipped = 0;
@@ -334,9 +403,19 @@ export class PostgresWorkManagementRepository {
         const existing = await tx
           .select({ id: tasks.id })
           .from(tasks)
-          .where(and(eq(tasks.firmId, firmId), eq(tasks.hearingId, input.hearingId), eq(tasks.title, title), isNull(tasks.deletedAt)))
+          .where(
+            and(
+              eq(tasks.firmId, firmId),
+              eq(tasks.hearingId, input.hearingId),
+              eq(tasks.title, title),
+              isNull(tasks.deletedAt),
+            ),
+          )
           .limit(1);
-        if (existing.length) { skipped += 1; continue; }
+        if (existing.length) {
+          skipped += 1;
+          continue;
+        }
         await tx.insert(tasks).values({
           firmId,
           caseId: hearing.caseId,
@@ -351,7 +430,14 @@ export class PostgresWorkManagementRepository {
         });
         created += 1;
       }
-      await writeAudit(tx, audit, "hearing.prep_tasks_created", "hearings", input.hearingId, `created=${created}`);
+      await writeAudit(
+        tx,
+        audit,
+        "hearing.prep_tasks_created",
+        "hearings",
+        input.hearingId,
+        `created=${created}`,
+      );
     });
     return { created, skipped };
   }
@@ -362,7 +448,13 @@ export class PostgresWorkManagementRepository {
     const rows = await database
       .select()
       .from(taskComments)
-      .where(and(eq(taskComments.firmId, firmId), eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)))
+      .where(
+        and(
+          eq(taskComments.firmId, firmId),
+          eq(taskComments.taskId, taskId),
+          isNull(taskComments.deletedAt),
+        ),
+      )
       .orderBy(asc(taskComments.createdAt));
     return rows.map(toDto);
   }
@@ -399,7 +491,13 @@ export class PostgresWorkManagementRepository {
     const [row] = await database
       .select()
       .from(researchNotes)
-      .where(and(eq(researchNotes.id, noteId), eq(researchNotes.firmId, firmId), isNull(researchNotes.deletedAt)))
+      .where(
+        and(
+          eq(researchNotes.id, noteId),
+          eq(researchNotes.firmId, firmId),
+          isNull(researchNotes.deletedAt),
+        ),
+      )
       .limit(1);
     if (!row) return null;
     return this.attachTags(row);
@@ -420,13 +518,20 @@ export class PostgresWorkManagementRepository {
         })
         .returning();
       if (input.tags.length)
-        await tx.insert(researchNoteTags).values(input.tags.map((tag) => ({ firmId, researchNoteId: row.id, tag })));
+        await tx
+          .insert(researchNoteTags)
+          .values(input.tags.map((tag) => ({ firmId, researchNoteId: row.id, tag })));
       await writeAudit(tx, audit, "research.created", "research_notes", row.id, row.title);
       return this.attachTags(row);
     });
   }
 
-  async updateResearchNote(firmId: string, noteId: string, input: ResearchUpdateInput, audit: AuditContext) {
+  async updateResearchNote(
+    firmId: string,
+    noteId: string,
+    input: ResearchUpdateInput,
+    audit: AuditContext,
+  ) {
     // `tags` lives in its own table, so it is replaced after the row update rather than set on it.
     const scalars = normalizeEmpty({
       title: input.title,
@@ -442,13 +547,25 @@ export class PostgresWorkManagementRepository {
           ...(input.citation === undefined ? {} : citationColumns(input.citation)),
           updatedAt: audit.occurredAt,
         })
-        .where(and(eq(researchNotes.id, noteId), eq(researchNotes.firmId, firmId), isNull(researchNotes.deletedAt)))
+        .where(
+          and(
+            eq(researchNotes.id, noteId),
+            eq(researchNotes.firmId, firmId),
+            isNull(researchNotes.deletedAt),
+          ),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Research note was not found", 404);
       if (input.tags !== undefined) {
-        await tx.delete(researchNoteTags).where(and(eq(researchNoteTags.firmId, firmId), eq(researchNoteTags.researchNoteId, noteId)));
+        await tx
+          .delete(researchNoteTags)
+          .where(
+            and(eq(researchNoteTags.firmId, firmId), eq(researchNoteTags.researchNoteId, noteId)),
+          );
         if (input.tags.length)
-          await tx.insert(researchNoteTags).values(input.tags.map((tag) => ({ firmId, researchNoteId: noteId, tag })));
+          await tx
+            .insert(researchNoteTags)
+            .values(input.tags.map((tag) => ({ firmId, researchNoteId: noteId, tag })));
       }
       await writeAudit(tx, audit, "research.updated", "research_notes", row.id, null);
       return this.attachTags(row);
@@ -460,7 +577,13 @@ export class PostgresWorkManagementRepository {
       const [row] = await tx
         .update(researchNotes)
         .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
-        .where(and(eq(researchNotes.id, noteId), eq(researchNotes.firmId, firmId), isNull(researchNotes.deletedAt)))
+        .where(
+          and(
+            eq(researchNotes.id, noteId),
+            eq(researchNotes.firmId, firmId),
+            isNull(researchNotes.deletedAt),
+          ),
+        )
         .returning();
       if (!row) throw new AppError("NOT_FOUND", "Research note was not found", 404);
       await writeAudit(tx, audit, "research.deleted", "research_notes", row.id, null);
@@ -482,7 +605,9 @@ export class PostgresWorkManagementRepository {
     const tags = await database
       .select({ tag: researchNoteTags.tag })
       .from(researchNoteTags)
-      .where(and(eq(researchNoteTags.firmId, row.firmId), eq(researchNoteTags.researchNoteId, row.id)));
+      .where(
+        and(eq(researchNoteTags.firmId, row.firmId), eq(researchNoteTags.researchNoteId, row.id)),
+      );
     const { citationNkpNo, citationDecisionNo, citationBench, ...dto } = toDto(row);
     return {
       ...dto,
@@ -494,13 +619,29 @@ export class PostgresWorkManagementRepository {
     };
   }
 
-  private async validateTaskRelationships(firmId: string, assignedTo: string, caseId: string | null) {
+  private async validateTaskRelationships(
+    firmId: string,
+    assignedTo: string,
+    caseId: string | null,
+  ) {
     const [assignee] = await database
       .select({ id: users.id, role: users.role })
       .from(users)
-      .where(and(eq(users.id, assignedTo), eq(users.firmId, firmId), eq(users.isActive, true), isNull(users.deletedAt)))
+      .where(
+        and(
+          eq(users.id, assignedTo),
+          eq(users.firmId, firmId),
+          eq(users.isActive, true),
+          isNull(users.deletedAt),
+        ),
+      )
       .limit(1);
-    if (!assignee) throw new AppError("VALIDATION_FAILED", "Assigned user must be an active member of the firm", 400);
+    if (!assignee)
+      throw new AppError(
+        "VALIDATION_FAILED",
+        "Assigned user must be an active member of the firm",
+        400,
+      );
     if (caseId) {
       const { cases } = await import("@/server/db/schema");
       const [c] = await database
@@ -592,9 +733,7 @@ function toTimestamp(value: string | null | undefined) {
 }
 
 function normalizeEmpty<T extends Record<string, unknown>>(input: T): T {
-  return Object.fromEntries(
-    Object.entries(input).map(([k, v]) => [k, v === "" ? null : v]),
-  ) as T;
+  return Object.fromEntries(Object.entries(input).map(([k, v]) => [k, v === "" ? null : v])) as T;
 }
 
 /** Shape a row takes on the wire: dates serialized and internal columns stripped. */
@@ -630,4 +769,3 @@ function toHearingDto(row: typeof hearings.$inferSelect) {
   const time = rawTime ? rawTime.slice(0, 5) : null;
   return { ...dto, hearingTime: time, time };
 }
-

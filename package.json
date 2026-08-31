@@ -19,10 +19,10 @@
     "verify:client-portal-grant": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/local/verify-client-portal-grant.ts",
     "verify:users-directory": "node --env-file-if-exists=.env.local --import tsx scripts/local/verify-users-directory.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/app db scripts/auth scripts/cms scripts/db scripts/jobs scripts/matters scripts/migration scripts/storage src/client src/server src/shared proxy.ts instrumentation.ts tests drizzle.config.ts --max-warnings=0",
+    "lint": "eslint src db scripts proxy.ts instrumentation.ts tests drizzle.config.ts --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
-    "format": "prettier --write src/app db scripts/auth scripts/cms scripts/db scripts/jobs scripts/matters scripts/migration scripts/storage src/server src/shared src/client tests drizzle.config.ts vitest.config.ts",
-    "format:check": "prettier --check src/app db scripts/auth scripts/cms scripts/db scripts/jobs scripts/matters scripts/migration scripts/storage src/server src/shared src/client tests drizzle.config.ts vitest.config.ts",
+    "format": "prettier --write src db scripts tests drizzle.config.ts vitest.config.ts playwright.config.ts proxy.ts instrumentation.ts",
+    "format:check": "prettier --check src db scripts tests drizzle.config.ts vitest.config.ts playwright.config.ts proxy.ts instrumentation.ts",
     "test": "npm run test:unit && npm run test:integration && npm run test:migration-characterization && npm run db:test",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -162,6 +162,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@electric-sql/pglite": "^0.5.4",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4.3.3",

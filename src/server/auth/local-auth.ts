@@ -29,7 +29,7 @@ function createLocalAuth() {
   const environment = getServerEnvironment();
   const secureCookies = environment.NODE_ENV === "production";
   return betterAuth({
-    appName: "LexNepal",
+    appName: "Srimar Law",
     baseURL: environment.BETTER_AUTH_URL,
     trustedOrigins: resolveTrustedOrigins(environment.APP_PUBLIC_URL, environment.BETTER_AUTH_URL),
     secret: environment.BETTER_AUTH_SECRET,
@@ -97,7 +97,16 @@ function createLocalAuth() {
         }),
       afterEmailVerification: activateLinkedUser,
     },
-    rateLimit: { enabled: true, storage: "database", window: 60, max: 20 },
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 100,
+      customRules: {
+        "/sign-in/email": { window: 60, max: 20 },
+        "/get-session": false,
+      },
+    },
     plugins: [
       twoFactor({
         issuer: "LexNepal",

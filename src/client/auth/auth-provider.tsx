@@ -88,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!(meQuery.error instanceof ApiClientError)) return;
 
     if (meQuery.error.status === 401) {
-      void redirectToSignIn(AUTH_SESSION_EXPIRED);
-      return;
+      const timeout = window.setTimeout(() => void redirectToSignIn(AUTH_SESSION_EXPIRED), 0);
+      return () => window.clearTimeout(timeout);
     }
 
     if (isMfaEnrollmentRequired(meQuery.error)) {

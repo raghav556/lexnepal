@@ -2,18 +2,40 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label";
 import { useCmsCommands, useCmsSettings, useNews } from "@/client/queries/cms";
 import { queryKeys } from "@/client/queries/query-keys";
 import { apiClient } from "@/client/api/client";
-import { Plus, Edit, Trash2, Search, CheckCircle2, Newspaper, Check, X, XCircle, Clock } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog.tsx";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  CheckCircle2,
+  Newspaper,
+  Check,
+  X,
+  XCircle,
+  Clock,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog.tsx";
 import { toast } from "sonner";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+import {
+  DashboardButton,
+  DashboardFilterBar,
+  DashboardSection,
+  DashboardStatusLabel,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { slugifyNewsTitle } from "@/shared/news-visibility";
 
 type NewsType = "award" | "press_release" | "firm_news";
@@ -31,7 +53,7 @@ export default function AdminCMSNews() {
 
   const [heroTitle, setHeroTitle] = useState("News & Awards");
   const [heroSubtitle, setHeroSubtitle] = useState(
-    "Firm announcements, press coverage, and recognition from LexNepal advocates.",
+    "Firm announcements, press coverage, and recognition from Srimar Law advocates.",
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -205,55 +227,63 @@ export default function AdminCMSNews() {
   const statusBadge = (status: string) => {
     if (status === "published") {
       return (
-        <Badge variant="default" className="whitespace-nowrap text-[10px] gap-1">
-          <CheckCircle2 className="w-3 h-3" /> Published
-        </Badge>
+        <DashboardStatusLabel
+          status="published"
+          label="Published"
+          icon={CheckCircle2}
+          className="whitespace-nowrap text-[10px]"
+        />
       );
     }
     if (status === "pending_review") {
       return (
-        <Badge variant="secondary" className="whitespace-nowrap text-[10px] gap-1">
-          <Clock className="w-3 h-3" /> Pending
-        </Badge>
+        <DashboardStatusLabel
+          status="pending_review"
+          label="Pending"
+          icon={Clock}
+          className="whitespace-nowrap text-[10px]"
+        />
       );
     }
     if (status === "rejected") {
       return (
-        <Badge variant="destructive" className="whitespace-nowrap text-[10px] gap-1">
-          <XCircle className="w-3 h-3" /> Rejected
-        </Badge>
+        <DashboardStatusLabel
+          status="rejected"
+          label="Rejected"
+          icon={XCircle}
+          className="whitespace-nowrap text-[10px]"
+        />
       );
     }
     return (
-      <Badge variant="outline" className="whitespace-nowrap text-[10px]">
-        Draft
-      </Badge>
+      <DashboardStatusLabel
+        status="draft"
+        label="Draft"
+        className="whitespace-nowrap text-[10px]"
+      />
     );
   };
 
-  const statusLocked =
-    formData.status === "pending_review" || formData.status === "rejected";
+  const statusLocked = formData.status === "pending_review" || formData.status === "rejected";
 
   return (
-    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 w-full min-w-0 overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-foreground">News & Awards</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage press releases, awards, and firm announcements.
-          </p>
-        </div>
-        <Button onClick={() => handleOpenModal()} className="gap-2 shrink-0 w-full sm:w-auto">
+    <PortalPageShell
+      portal="admin"
+      decorated
+      showTodayDate
+      eyebrow="Content management"
+      title="News & Awards"
+      description="Manage press releases, awards, and firm announcements."
+      icon={Newspaper}
+      actions={
+        <DashboardButton onClick={() => handleOpenModal()} className="w-full sm:w-auto">
           <Plus className="w-4 h-4" /> New Item
-        </Button>
-      </div>
-
-      <Card className="border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Public page chrome</CardTitle>
-          <CardDescription>Hero copy for /news</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        </DashboardButton>
+      }
+      contentClassName="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 min-w-0"
+    >
+      <DashboardSection title="Public page chrome" description="Hero copy for /news">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="news-hero-title">Hero title</Label>
             <Input
@@ -272,8 +302,8 @@ export default function AdminCMSNews() {
               onBlur={() => saveHeroSetting("newsHeroSubtitle", heroSubtitle)}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardSection>
 
       <div className="flex flex-wrap gap-2">
         {(
@@ -296,17 +326,22 @@ export default function AdminCMSNews() {
         ))}
       </div>
 
-      <Card className="border-border overflow-hidden min-w-0">
-        <div className="p-3 sm:p-4 border-b border-border bg-muted/30 flex items-center gap-2 min-w-0">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-          <Input
-            type="text"
-            placeholder="Search title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-2 h-8 min-w-0 w-full"
-          />
-        </div>
+      <DashboardSection
+        title="News & awards"
+        className="border-dashboard-border overflow-hidden min-w-0"
+      >
+        <DashboardFilterBar className="mb-4 border-b border-dashboard-border pb-4">
+          <div className="relative flex-1 min-w-0 flex items-center gap-2">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Input
+              type="text"
+              placeholder="Search title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 min-w-0 w-full"
+            />
+          </div>
+        </DashboardFilterBar>
 
         <div className="md:hidden divide-y divide-border">
           {filtered.length === 0 ? (
@@ -326,14 +361,18 @@ export default function AdminCMSNews() {
                     {item.excerpt}
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <Badge variant="outline" className="whitespace-nowrap text-[10px]">
-                      {typeLabel(item.type)}
-                    </Badge>
+                    <DashboardStatusLabel
+                      tone="neutral"
+                      label={typeLabel(item.type)}
+                      className="whitespace-nowrap text-[10px]"
+                    />
                     {statusBadge(item.status)}
                     {item.isFeatured ? (
-                      <Badge variant="secondary" className="text-[10px]">
-                        Featured
-                      </Badge>
+                      <DashboardStatusLabel
+                        tone="primary"
+                        label="Featured"
+                        className="text-[10px]"
+                      />
                     ) : null}
                     <span className="text-xs text-muted-foreground tabular-nums">{item.date}</span>
                   </div>
@@ -343,10 +382,14 @@ export default function AdminCMSNews() {
                     </p>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border">
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-dashboard-border">
                   {item.status === "pending_review" && (
                     <>
-                      <Button size="sm" onClick={() => handleReview(item._id, "approve")} className="gap-1.5">
+                      <Button
+                        size="sm"
+                        onClick={() => handleReview(item._id, "approve")}
+                        className="gap-1.5"
+                      >
                         <Check className="w-4 h-4" /> Approve
                       </Button>
                       <Button
@@ -359,7 +402,12 @@ export default function AdminCMSNews() {
                       </Button>
                     </>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => handleOpenModal(item)} className="gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenModal(item)}
+                    className="gap-1.5"
+                  >
                     <Edit className="w-4 h-4" /> Edit
                   </Button>
                   <Button
@@ -379,7 +427,7 @@ export default function AdminCMSNews() {
 
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-muted-foreground text-xs uppercase font-semibold">
+            <thead className="bg-dashboard-neutral-soft/50 text-muted-foreground text-xs uppercase font-semibold">
               <tr>
                 <th className="px-4 lg:px-6 py-4">Title</th>
                 <th className="px-4 lg:px-6 py-4">Type</th>
@@ -387,7 +435,7 @@ export default function AdminCMSNews() {
                 <th className="px-4 lg:px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-dashboard-border">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
@@ -397,13 +445,20 @@ export default function AdminCMSNews() {
                 </tr>
               ) : (
                 filtered.map((item: any) => (
-                  <tr key={item._id} className="bg-background hover:bg-muted/30 transition-colors group">
+                  <tr
+                    key={item._id}
+                    className="bg-dashboard-panel hover:bg-dashboard-panel-hover transition-colors group"
+                  >
                     <td className="px-4 lg:px-6 py-4 min-w-0">
                       <div className="font-semibold text-foreground text-base mb-1 break-words max-w-lg">
                         {item.title}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate max-w-xs">{item.slug}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-md">{item.excerpt}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-xs">
+                        {item.slug}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate max-w-md">
+                        {item.excerpt}
+                      </div>
                       {item.status === "rejected" && item.reviewNotes ? (
                         <p className="text-xs text-destructive mt-1 line-clamp-2">
                           Review notes: {item.reviewNotes}
@@ -412,14 +467,18 @@ export default function AdminCMSNews() {
                     </td>
                     <td className="px-4 lg:px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        <Badge variant="outline" className="whitespace-nowrap w-fit">
-                          {typeLabel(item.type)}
-                        </Badge>
+                        <DashboardStatusLabel
+                          tone="neutral"
+                          label={typeLabel(item.type)}
+                          className="whitespace-nowrap w-fit"
+                        />
                         {statusBadge(item.status)}
                         {item.isFeatured ? (
-                          <Badge variant="secondary" className="w-fit text-[10px]">
-                            Featured
-                          </Badge>
+                          <DashboardStatusLabel
+                            tone="primary"
+                            label="Featured"
+                            className="w-fit text-[10px]"
+                          />
                         ) : null}
                       </div>
                     </td>
@@ -430,7 +489,11 @@ export default function AdminCMSNews() {
                       <div className="flex items-center justify-end gap-1 flex-wrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         {item.status === "pending_review" && (
                           <>
-                            <Button size="sm" variant="ghost" onClick={() => handleReview(item._id, "approve")}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleReview(item._id, "approve")}
+                            >
                               <Check className="w-4 h-4 mr-1" /> Approve
                             </Button>
                             <Button
@@ -462,10 +525,10 @@ export default function AdminCMSNews() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </DashboardSection>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-full bg-background border-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-full bg-background border-dashboard-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit News Item" : "Create News Item"}</DialogTitle>
             <DialogDescription>Publish awards, press releases, and firm news.</DialogDescription>
@@ -523,9 +586,7 @@ export default function AdminCMSNews() {
                   {formData.status === "pending_review" && (
                     <option value="pending_review">Pending review</option>
                   )}
-                  {formData.status === "rejected" && (
-                    <option value="rejected">Rejected</option>
-                  )}
+                  {formData.status === "rejected" && <option value="rejected">Rejected</option>}
                 </select>
               </div>
               <div className="space-y-2 min-w-0">
@@ -623,7 +684,11 @@ export default function AdminCMSNews() {
               </div>
             </div>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
               <Button onClick={handleSave} className="gap-2 w-full sm:w-auto">
@@ -633,6 +698,6 @@ export default function AdminCMSNews() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PortalPageShell>
   );
 }

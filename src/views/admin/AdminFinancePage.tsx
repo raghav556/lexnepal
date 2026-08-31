@@ -1,33 +1,52 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Receipt, Download, Plus, Loader2 } from "lucide-react";
+import { Receipt, Download, Plus, Loader2, DollarSign, Wallet, TrendingUp } from "lucide-react";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { toast } from "sonner";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
 import { generateInvoicePDF } from "@/lib/pdf-generator.ts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
-import { useInvoices, useInvoiceCommands, useTrustTransactions, useTrustCommands, useTimeEntries } from "@/client/queries/financial";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import {
+  useInvoices,
+  useInvoiceCommands,
+  useTrustTransactions,
+  useTrustCommands,
+  useTimeEntries,
+} from "@/client/queries/financial";
 import { useEmailCommands } from "@/client/queries/communication";
-
-const STATUS_COLORS: Record<string, string> = {
-  paid: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  overdue: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  draft: "bg-gray-100 text-gray-800",
-};
+import {
+  DashboardButton,
+  DashboardListRow,
+  DashboardSection,
+  DashboardStatusLabel,
+  DualDateDisplay,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 export default function AdminFinancePage() {
-  const { data: invoices = [] } = useInvoices({});
-  const { data: trustLedger = [] } = useTrustTransactions({});
+  const { data: invoices = [], isLoading: invoicesLoading } = useInvoices({});
+  const { data: trustLedger = [], isLoading: trustLoading } = useTrustTransactions({});
   const { data: timeEntries = [] } = useTimeEntries({});
   const cases = useCases({}) || [];
   const clients = useClients() || [];
 
-  const { createInvoice: createInvoiceMutation, updateStatus: updateStatusMutation } = useInvoiceCommands();
+  const { createInvoice: createInvoiceMutation, updateStatus: updateStatusMutation } =
+    useInvoiceCommands();
   const { createTrustTransaction: createTrustMutation } = useTrustCommands();
   const { sendEmail } = useEmailCommands();
 
@@ -36,18 +55,22 @@ export default function AdminFinancePage() {
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const isLoading = false;
+  const isLoading = invoicesLoading || trustLoading;
 
-  const totalRevenue = invoices.filter((i: any) => i.status === "paid").reduce((s: number, i: any) => s + i.total, 0);
-  const totalOutstanding = invoices.filter((i: any) => i.status !== "paid" && i.status !== "cancelled").reduce((s: number, i: any) => s + i.total, 0);
-  
-  // Aggregate trust balance
-  const trustBalance = trustLedger.reduce((sum: number, t: any) => sum + (t.type === "receipt" ? t.amount : -t.amount), 0);
+  const totalRevenue = invoices
+    .filter((i: any) => i.status === "paid")
+    .reduce((s: number, i: any) => s + i.total, 0);
+  const totalOutstanding = invoices
+    .filter((i: any) => i.status !== "paid" && i.status !== "cancelled")
+    .reduce((s: number, i: any) => s + i.total, 0);
+  const trustBalance = trustLedger.reduce(
+    (sum: number, t: any) => sum + (t.type === "receipt" ? t.amount : -t.amount),
+    0,
+  );
 
-  // Available cases to bill (have unbilled billable time)
-  const casesWithUnbilledTime = cases.filter((c: any) => {
-    return timeEntries.some((t: any) => t.caseId === c._id && t.isBillable && !t.invoiceId);
-  });
+  const casesWithUnbilledTime = cases.filter((c: any) =>
+    timeEntries.some((t: any) => t.caseId === c._id && t.isBillable && !t.invoiceId),
+  );
 
   const handleDraftInvoice = async () => {
     if (!selectedCaseId) return toast.error("Select a case");
@@ -55,8 +78,8 @@ export default function AdminFinancePage() {
     try {
       const selectedCase = cases.find((c: any) => c._id === selectedCaseId);
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 15); // 15 days terms
-      
+      dueDate.setDate(dueDate.getDate() + 15);
+
       await createInvoiceMutation.mutateAsync({
         caseId: selectedCaseId as any,
         clientId: (selectedCase?.clientId || "") as any,
@@ -75,13 +98,14 @@ export default function AdminFinancePage() {
 
   const handleDownloadPDF = (invoice: any) => {
     try {
-      const client = clients.find((c: any) => c._id === invoice.clientId) || { fullName: "Unknown Client" };
+      const client = clients.find((c: any) => c._id === invoice.clientId) || {
+        fullName: "Unknown Client",
+      };
       const caseData = cases.find((c: any) => c._id === invoice.caseId) || {};
       const entries = timeEntries.filter((t: any) => t.invoiceId === invoice._id);
-      
       generateInvoicePDF(invoice, client, caseData, entries);
       toast.success("PDF generated successfully");
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate PDF");
     }
   };
@@ -89,10 +113,7 @@ export default function AdminFinancePage() {
   const handleStatus = async (invoice: any, status: "sent" | "paid" | "overdue" | "cancelled") => {
     setStatusBusy(invoice._id + status);
     try {
-      await updateStatusMutation.mutateAsync({
-        id: invoice._id,
-        status,
-      });
+      await updateStatusMutation.mutateAsync({ id: invoice._id, status });
       if (status === "sent") {
         const client = clients.find((c: any) => c._id === invoice.clientId);
         if (client?.email) {
@@ -120,7 +141,8 @@ export default function AdminFinancePage() {
       const balance =
         trustLedger
           .filter((t: any) => t.clientId === clientId)
-          .reduce((s: number, t: any) => s + (t.type === "receipt" ? t.amount : -t.amount), 0) + amount;
+          .reduce((s: number, t: any) => s + (t.type === "receipt" ? t.amount : -t.amount), 0) +
+        amount;
       await createTrustMutation.mutateAsync({
         clientId,
         type: "receipt",
@@ -136,171 +158,247 @@ export default function AdminFinancePage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  const kpiCards = [
-    { label: "Collected", value: formatNPR(totalRevenue), color: "text-green-500" },
-    { label: "Outstanding", value: formatNPR(totalOutstanding), color: "text-red-500" },
-    { label: "Trust Escrow", value: formatNPR(trustBalance), color: "text-primary" },
-  ];
-
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 w-full min-w-0 overflow-x-hidden">
-      <div className="min-w-0">
-        <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Finance & Compliance</h1>
-        <p className="text-sm text-muted-foreground mt-1">Invoices, collections, and trust ledger.</p>
-      </div>
-
-      {/* 2-col on phone (3rd spans full), 3-col from sm — avoids one huge card per row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {kpiCards.map((s, i) => (
-          <Card
-            key={s.label}
-            className={`min-w-0 overflow-hidden ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}
-          >
-            <CardContent className="p-3 sm:p-4">
-              <p className={`text-base sm:text-xl font-bold tabular-nums leading-tight break-words ${s.color}`}>
-                {s.value}
-              </p>
-              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-w-0">
-        <Card className="lg:col-span-2 min-w-0 overflow-hidden">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b px-3 sm:px-6">
-            <CardTitle className="text-base font-semibold font-serif">Invoices</CardTitle>
+    <PortalPageShell
+      portal="admin"
+      loading={isLoading}
+      loadingLabel="Loading finance workspace…"
+      decorated
+      showTodayDate
+      eyebrow="Financial operations"
+      titleKey="portal.finance.title"
+      descriptionKey="portal.finance.description"
+      icon={DollarSign}
+      metrics={[
+        {
+          label: "Collected",
+          value: formatNPR(totalRevenue),
+          icon: TrendingUp,
+          tone: DASHBOARD_METRIC_TONES.revenue,
+          helperText: "Paid invoices",
+        },
+        {
+          label: "Outstanding",
+          value: formatNPR(totalOutstanding),
+          icon: Receipt,
+          tone: "danger",
+          helperText: "Awaiting payment",
+        },
+        {
+          label: "Trust escrow",
+          value: formatNPR(trustBalance),
+          icon: Wallet,
+          tone: DASHBOARD_METRIC_TONES.balance,
+          helperText: "Client trust balance",
+        },
+      ]}
+    >
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+        <DashboardSection
+          className="min-w-0 lg:col-span-2"
+          title="Invoices"
+          icon={Receipt}
+          actions={
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-1" /> New Invoice</Button>
+                <DashboardButton size="sm">
+                  <Plus className="size-4" aria-hidden /> New invoice
+                </DashboardButton>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Draft Invoice from Time Entries</DialogTitle>
+                  <DialogTitle>Draft invoice from time entries</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <p className="text-sm text-muted-foreground">Select a matter with unbilled time entries. The system will aggregate hours, compute 13% VAT, and draft a tax invoice.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Select a matter with unbilled time entries. The system will aggregate hours,
+                    compute 13% VAT, and draft a tax invoice.
+                  </p>
                   <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a matter..." />
+                      <SelectValue placeholder="Select a matter…" />
                     </SelectTrigger>
                     <SelectContent>
                       {casesWithUnbilledTime.length === 0 ? (
-                        <SelectItem value="none" disabled>No matters with unbilled time</SelectItem>
+                        <SelectItem value="none" disabled>
+                          No matters with unbilled time
+                        </SelectItem>
                       ) : (
                         casesWithUnbilledTime.map((c: any) => (
-                          <SelectItem key={c._id} value={c._id}>{c.caseNumber} - {c.title}</SelectItem>
+                          <SelectItem key={c._id} value={c._id}>
+                            {c.caseNumber} — {c.title}
+                          </SelectItem>
                         ))
                       )}
                     </SelectContent>
                   </Select>
-                  
-                  {selectedCaseId && (
-                    <div className="p-3 bg-secondary/50 rounded-lg text-sm space-y-1">
-                      <p>Unbilled Time Entries: {timeEntries.filter((t: any) => t.caseId === selectedCaseId && t.isBillable && !t.invoiceId).length}</p>
+                  {selectedCaseId ? (
+                    <div className="space-y-1 rounded-lg bg-dashboard-neutral-soft p-3 text-sm">
+                      <p>
+                        Unbilled entries:{" "}
+                        {
+                          timeEntries.filter(
+                            (t: any) => t.caseId === selectedCaseId && t.isBillable && !t.invoiceId,
+                          ).length
+                        }
+                      </p>
                     </div>
-                  )}
-                  
-                  <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                    <Button onClick={handleDraftInvoice} disabled={!selectedCaseId || isDrafting}>
-                      {isDrafting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                      Draft Invoice
-                    </Button>
+                  ) : null}
+                  <div className="mt-4 flex justify-end gap-2">
+                    <DashboardButton variant="outline" onClick={() => setIsModalOpen(false)}>
+                      Cancel
+                    </DashboardButton>
+                    <DashboardButton
+                      onClick={handleDraftInvoice}
+                      disabled={!selectedCaseId || isDrafting}
+                    >
+                      {isDrafting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                      Draft invoice
+                    </DashboardButton>
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-4 px-3 sm:px-6">
-            {invoices.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No invoices found.</p>
-            ) : (
-              invoices.map((inv: any) => {
-                const clientName = clients.find((c: any) => c._id === inv.clientId)?.fullName || "Unknown Client";
-                const caseNum = cases.find((c: any) => c._id === inv.caseId)?.caseNumber || "Matter";
-                
-                return (
-                  <div key={inv._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border rounded-lg min-w-0">
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <Receipt className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{inv.invoiceNumber} — {clientName}</p>
-                        <p className="text-xs text-muted-foreground break-words">{caseNum} · {inv.issuedDate} · Due {inv.dueDate}</p>
-                        <p className="text-xs text-muted-foreground font-mono break-words">Subtotal {formatNPR(inv.subtotal)} + VAT {formatNPR(inv.vatAmount)}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:justify-end pl-8 sm:pl-0">
-                      <div className="text-left sm:text-right mr-auto sm:mr-0">
-                        <p className="text-sm font-bold text-foreground tabular-nums">{formatNPR(inv.total)}</p>
-                        <Badge className={`text-[10px] uppercase ${STATUS_COLORS[inv.status] || "bg-gray-100"}`}>{inv.status}</Badge>
-                      </div>
-                      {inv.status === "draft" && (
-                        <Button size="sm" variant="outline" className="text-xs h-7" disabled={!!statusBusy} onClick={() => handleStatus(inv, "sent")}>
-                          Send
-                        </Button>
-                      )}
-                      {(inv.status === "sent" || inv.status === "overdue") && (
-                        <Button size="sm" variant="outline" className="text-xs h-7" disabled={!!statusBusy} onClick={() => handleStatus(inv, "paid")}>
-                          Mark Paid
-                        </Button>
-                      )}
-                      {inv.status !== "cancelled" && inv.status !== "paid" && (
-                        <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" disabled={!!statusBusy} onClick={() => handleStatus(inv, "cancelled")}>
-                          Cancel
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={() => handleDownloadPDF(inv)} title="Download PDF">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+          }
+        >
+          {invoices.length === 0 ? (
+            <EmptyState
+              title="No invoices yet"
+              description="Draft an invoice from unbilled time entries to get started."
+              icon={Receipt}
+            />
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((inv: any) => {
+                const clientName =
+                  clients.find((c: any) => c._id === inv.clientId)?.fullName || "Unknown client";
+                const caseNum =
+                  cases.find((c: any) => c._id === inv.caseId)?.caseNumber || "Matter";
 
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6">
-            <CardTitle className="text-base font-semibold font-serif">Trust Ledger (All)</CardTitle>
-            <Button size="sm" variant="outline" className="text-xs h-7 w-full sm:w-auto" onClick={handleTrustReceipt}>
-              + Receipt
-            </Button>
-          </CardHeader>
-          <CardContent className="pt-4 space-y-2 max-h-[60vh] overflow-y-auto px-3 sm:px-6">
-            {trustLedger.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No trust transactions.</p>
-            ) : (
-              trustLedger.map((t: any) => {
-                const clientName = clients.find((c: any) => c._id === t.clientId)?.fullName || "Client";
                 return (
-                  <div key={t._id} className="p-3 border border-border rounded-lg bg-card text-xs min-w-0">
-                    <div className="flex justify-between items-start gap-2 mb-1 min-w-0">
-                      <p className="font-semibold text-foreground line-clamp-2 min-w-0 flex-1">{t.description}</p>
-                      <p className={`font-bold shrink-0 tabular-nums ${t.type === "receipt" ? "text-green-500" : "text-red-500"}`}>
-                        {t.type === "receipt" ? "+" : "-"}{formatNPR(t.amount)}
+                  <DashboardListRow key={inv._id}>
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <Receipt
+                        className="mt-0.5 size-5 shrink-0 text-dashboard-neutral"
+                        aria-hidden
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {inv.invoiceNumber} — {clientName}
+                        </p>
+                        <p className="break-words text-xs text-muted-foreground">
+                          {caseNum} · Issued <DualDateDisplay isoDate={inv.issuedDate} /> · Due{" "}
+                          <DualDateDisplay isoDate={inv.dueDate} />
+                        </p>
+                        <p className="break-words font-mono text-xs text-muted-foreground">
+                          Subtotal {formatNPR(inv.subtotal)} + VAT {formatNPR(inv.vatAmount)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pl-8 sm:justify-end sm:pl-0">
+                      <div className="mr-auto text-left sm:mr-0 sm:text-right">
+                        <p className="text-sm font-bold tabular-nums text-foreground">
+                          {formatNPR(inv.total)}
+                        </p>
+                        <DashboardStatusLabel status={inv.status} className="text-[10px]" />
+                      </div>
+                      {inv.status === "draft" ? (
+                        <DashboardButton
+                          size="sm"
+                          variant="outline"
+                          disabled={!!statusBusy}
+                          onClick={() => handleStatus(inv, "sent")}
+                        >
+                          Send
+                        </DashboardButton>
+                      ) : null}
+                      {inv.status === "sent" || inv.status === "overdue" ? (
+                        <DashboardButton
+                          size="sm"
+                          variant="outline"
+                          disabled={!!statusBusy}
+                          onClick={() => handleStatus(inv, "paid")}
+                        >
+                          Mark paid
+                        </DashboardButton>
+                      ) : null}
+                      {inv.status !== "cancelled" && inv.status !== "paid" ? (
+                        <DashboardButton
+                          size="sm"
+                          variant="ghost"
+                          disabled={!!statusBusy}
+                          onClick={() => handleStatus(inv, "cancelled")}
+                        >
+                          Cancel
+                        </DashboardButton>
+                      ) : null}
+                      <DashboardButton
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownloadPDF(inv)}
+                        title="Download PDF"
+                      >
+                        <Download className="size-4" aria-hidden />
+                      </DashboardButton>
+                    </div>
+                  </DashboardListRow>
+                );
+              })}
+            </div>
+          )}
+        </DashboardSection>
+
+        <DashboardSection
+          className="min-w-0"
+          title="Trust ledger"
+          description="All client trust transactions"
+          icon={Wallet}
+          actions={
+            <DashboardButton size="sm" variant="outline" onClick={handleTrustReceipt}>
+              + Receipt
+            </DashboardButton>
+          }
+        >
+          {trustLedger.length === 0 ? (
+            <EmptyState
+              title="No trust transactions"
+              description="Record a retainer receipt to start the trust ledger."
+              icon={Wallet}
+            />
+          ) : (
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+              {trustLedger.map((t: any) => {
+                const clientName =
+                  clients.find((c: any) => c._id === t.clientId)?.fullName || "Client";
+                return (
+                  <div
+                    key={t._id}
+                    className="min-w-0 rounded-lg border border-dashboard-border bg-dashboard-panel p-3 text-xs"
+                  >
+                    <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 font-semibold text-foreground line-clamp-2">
+                        {t.description}
+                      </p>
+                      <p
+                        className={`shrink-0 font-bold tabular-nums ${t.type === "receipt" ? "text-dashboard-success" : "text-dashboard-danger"}`}
+                      >
+                        {t.type === "receipt" ? "+" : "-"}
+                        {formatNPR(t.amount)}
                       </p>
                     </div>
-                    <div className="flex justify-between gap-2 text-muted-foreground min-w-0">
+                    <div className="flex min-w-0 justify-between gap-2 text-muted-foreground">
                       <span className="truncate">{clientName}</span>
-                      <span className="shrink-0">{t.date}</span>
+                      <span className="shrink-0">
+                        <DualDateDisplay isoDate={t.date} />
+                      </span>
                     </div>
                   </div>
                 );
-              })
-            )}
-          </CardContent>
-        </Card>
+              })}
+            </div>
+          )}
+        </DashboardSection>
       </div>
-    </div>
+    </PortalPageShell>
   );
 }
