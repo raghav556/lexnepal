@@ -122,6 +122,10 @@
       "sha256": "a6e24c6652bf97322a8df10928e04a6c2a666a39bfc64b6244d6d86455a33a56"
     },
     {
+      "file": "drizzle/0025_remove_financial_domain.sql",
+      "sha256": "641060226811b8cf8fc9e3e8748b52b37974dee0a7b7224e1b5beb9cf5dbe6d8"
+    },
+    {
       "file": "drizzle/down/0001_initial_schema.down.sql",
       "sha256": "4367363f78813d4ec20f09e454d8f772d84a70b1fb55db528ef273896421b766"
     },

@@ -105,7 +105,7 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
 
           <div className="grid gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Case</label>
+              <label className="text-xs font-medium text-slate-700">Case</label>
               <Select value={caseId} onValueChange={setCaseId}>
                 <SelectTrigger className="h-8">
                   <SelectValue />
@@ -123,7 +123,7 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Document Type</label>
+              <label className="text-xs font-medium text-slate-700">Document Type</label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger className="h-8 capitalize">
                   <SelectValue />
@@ -140,7 +140,7 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Tag</label>
+              <label className="text-xs font-medium text-slate-700">Tag</label>
               <Input
                 placeholder="e.g. urgent, draft"
                 className="h-8"
@@ -160,10 +160,6 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Button onClick={handleSearch} className="shrink-0">
-        Search
-      </Button>
     </div>
   );
 }

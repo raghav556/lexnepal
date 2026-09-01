@@ -64,7 +64,7 @@ function source(overrides: Partial<AuthorizationDataSource> = {}): Authorization
   };
 }
 
-/** Mirrors repository firm-scoped lookup used by finance/HR/envelopes. */
+/** Mirrors repository firm-scoped lookup used by HR and envelopes. */
 function firmScopedFind<T extends { id: string; firmId: string }>(
   firmId: string,
   rows: T[],
@@ -138,11 +138,7 @@ describe("R4.3 cross-firm attack tests", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it("treats foreign finance/HR/envelope resources as missing via firm-scoped lookup", () => {
-    const invoices = [
-      { id: "inv-a", firmId: FIRM_A, total: "100.00" },
-      { id: "inv-b", firmId: FIRM_B, total: "999.00" },
-    ];
+  it("treats foreign HR/envelope resources as missing via firm-scoped lookup", () => {
     const attendance = [
       { id: "att-a", firmId: FIRM_A, userId: "user-a" },
       { id: "att-b", firmId: FIRM_B, userId: "user-b" },
@@ -152,26 +148,8 @@ describe("R4.3 cross-firm attack tests", () => {
       { id: "env-b", firmId: FIRM_B, documentId: "doc-b" },
     ];
 
-    expect(firmScopedFind(FIRM_A, invoices, "inv-b")).toBeNull();
-    expect(firmScopedFind(FIRM_A, invoices, "inv-a")?.total).toBe("100.00");
     expect(firmScopedFind(FIRM_A, attendance, "att-b")).toBeNull();
     expect(firmScopedFind(FIRM_A, envelopes, "env-b")).toBeNull();
-
-    const actor = principal();
-    expect(() =>
-      assertResourceInFirm(
-        actor,
-        firmScopedFind(FIRM_A, invoices, "inv-b")?.firmId,
-        "Invoice was not found",
-      ),
-    ).toThrowError(/Invoice was not found/);
-    expect(() =>
-      assertResourceInFirm(
-        actor,
-        firmScopedFind(FIRM_A, invoices, "inv-a")?.firmId,
-        "Invoice was not found",
-      ),
-    ).not.toThrow();
   });
 
   it("blocks CRM/communication case-bound reads when the case is foreign", async () => {

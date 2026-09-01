@@ -206,79 +206,79 @@
  * the existing application palette until a dashboard theme class is applied.
  */
 .dashboard-theme {
-  --dashboard-canvas: #f5f7fc;
-  --dashboard-canvas-elevated: #eef2f9;
+  --dashboard-canvas: #f8fafc;
+  --dashboard-canvas-elevated: #f1f5f9;
   --dashboard-panel: #ffffff;
-  --dashboard-panel-hover: #f8faff;
-  --dashboard-panel-pressed: #edf2fb;
-  --dashboard-border: #8794aa;
-  --dashboard-primary: #3157d5;
-  --dashboard-primary-hover: #294bc0;
-  --dashboard-primary-pressed: #223fa6;
+  --dashboard-panel-hover: #f8fafc;
+  --dashboard-panel-pressed: #f1f5f9;
+  --dashboard-border: #8390a2;
+  --dashboard-primary: #6d28d9;
+  --dashboard-primary-hover: #5b21b6;
+  --dashboard-primary-pressed: #4c1d95;
   --dashboard-primary-foreground: #ffffff;
-  --dashboard-primary-soft: #e9efff;
-  --dashboard-secondary: #e8edf7;
-  --dashboard-secondary-hover: #dce5f3;
-  --dashboard-secondary-pressed: #ced9ea;
-  --dashboard-secondary-foreground: #172033;
-  --dashboard-focus: #3157d5;
-  --dashboard-accent: #c99523;
-  --dashboard-accent-soft: #fff6dc;
-  --dashboard-accent-foreground: #6b4e08;
-  --dashboard-hero-start: #172554;
-  --dashboard-hero-end: #3157d5;
-  --dashboard-hero-foreground: #ffffff;
-  --dashboard-hero-muted: #dbe7ff;
-  --dashboard-hero-border: #4668d2;
-  --dashboard-chart-grid: #dce3f0;
+  --dashboard-primary-soft: #f5f3ff;
+  --dashboard-secondary: #f1f5f9;
+  --dashboard-secondary-hover: #e2e8f0;
+  --dashboard-secondary-pressed: #cbd5e1;
+  --dashboard-secondary-foreground: #0f172a;
+  --dashboard-focus: #6d28d9;
+  --dashboard-accent: #d97706;
+  --dashboard-accent-soft: #fef3c7;
+  --dashboard-accent-foreground: #92400e;
+  --dashboard-hero-start: #ffffff;
+  --dashboard-hero-end: #f8fafc;
+  --dashboard-hero-foreground: #0f172a;
+  --dashboard-hero-muted: #64748b;
+  --dashboard-hero-border: #e2e8f0;
+  --dashboard-chart-grid: #f1f5f9;
   --dashboard-chart-label: #64748b;
-  --dashboard-tooltip: #172033;
+  --dashboard-tooltip: #0f172a;
   --dashboard-tooltip-foreground: #f8fafc;
   --dashboard-success: #059669;
-  --dashboard-success-soft: #e7f8f1;
-  --dashboard-success-foreground: #065f46;
+  --dashboard-success-soft: #ecfdf5;
+  --dashboard-success-foreground: #047857;
   --dashboard-information: #2563eb;
-  --dashboard-information-soft: #eaf1ff;
-  --dashboard-information-foreground: #1e40af;
+  --dashboard-information-soft: #eff6ff;
+  --dashboard-information-foreground: #1d4ed8;
   --dashboard-warning: #d97706;
-  --dashboard-warning-soft: #fff5db;
-  --dashboard-warning-foreground: #92400e;
-  --dashboard-danger: #c72c4f;
-  --dashboard-danger-soft: #ffedf1;
-  --dashboard-danger-foreground: #9f1239;
+  --dashboard-warning-soft: #fffbeb;
+  --dashboard-warning-foreground: #b45309;
+  --dashboard-danger: #e11d48;
+  --dashboard-danger-soft: #fff1f2;
+  --dashboard-danger-foreground: #be123c;
   --dashboard-neutral: #64748b;
-  --dashboard-neutral-soft: #eef2f6;
+  --dashboard-neutral-soft: #f8fafc;
   --dashboard-neutral-foreground: #334155;
-  --dashboard-chart-1: #3157d5;
+  --dashboard-chart-1: #6d28d9;
   --dashboard-chart-2: #059669;
-  --dashboard-chart-3: #8b5cf6;
-  --dashboard-chart-4: #9a6b00;
-  --dashboard-chart-5: #0891b2;
+  --dashboard-chart-3: #2563eb;
+  --dashboard-chart-4: #d97706;
+  --dashboard-chart-5: #0d9488;
 
-  /* Default sidebar tokens (overridden per-portal) */
-  --dashboard-sidebar: #ffffff;
-  --dashboard-sidebar-deep: #f8faff;
+  /* Executive Dark Contrast Sidebar tokens */
+  --dashboard-sidebar: #0f172a;
+  --dashboard-sidebar-deep: #090d16;
   --dashboard-sidebar-bg-from: var(--dashboard-sidebar);
   --dashboard-sidebar-bg-to: var(--dashboard-sidebar-deep);
-  --dashboard-sidebar-foreground: #172033;
-  --dashboard-sidebar-muted: #64748b;
+  --dashboard-sidebar-foreground: #f8fafc;
+  --dashboard-sidebar-muted: #94a3b8;
   --dashboard-sidebar-heading: #64748b;
-  --dashboard-sidebar-heading-bar: #c99523;
-  --dashboard-sidebar-active: #e9efff;
-  --dashboard-sidebar-active-foreground: #172033;
-  --dashboard-sidebar-active-border: rgba(49, 87, 213, 0.25);
-  --dashboard-sidebar-active-icon: #3157d5;
-  --dashboard-sidebar-hover: #f8faff;
-  --dashboard-sidebar-border: #e2e8f0;
-  --dashboard-sidebar-badge: rgba(49, 87, 213, 0.1);
-  --dashboard-sidebar-badge-foreground: #3157d5;
-  --dashboard-sidebar-brand: #3157d5;
-  --dashboard-sidebar-brand-bg: #e9efff;
-  --dashboard-sidebar-brand-border: #a7b9ee;
-  --dashboard-sidebar-brand-icon: #3157d5;
-  --dashboard-sidebar-brand-glow: rgba(49, 87, 213, 0.2);
-  --dashboard-sidebar-chevron: rgba(49, 87, 213, 0.5);
-  --dashboard-sidebar-focus: rgba(49, 87, 213, 0.5);
+  --dashboard-sidebar-heading-bar: #6d28d9;
+  --dashboard-sidebar-active: #1e1b4b;
+  --dashboard-sidebar-active-foreground: #ffffff;
+  --dashboard-sidebar-active-border: rgba(109, 40, 217, 0.4);
+  --dashboard-sidebar-active-icon: #a78bfa;
+  --dashboard-sidebar-hover: #1e293b;
+  --dashboard-sidebar-border: #1e293b;
+  --dashboard-sidebar-badge: rgba(109, 40, 217, 0.2);
+  --dashboard-sidebar-badge-foreground: #c4b5fd;
+  --dashboard-sidebar-brand: #a78bfa;
+  --dashboard-sidebar-brand-bg: #1e1b4b;
+  --dashboard-sidebar-brand-border: #4c1d95;
+  --dashboard-sidebar-brand-icon: #c4b5fd;
+  --dashboard-sidebar-brand-glow: rgba(109, 40, 217, 0.3);
+  --dashboard-sidebar-chevron: rgba(167, 139, 250, 0.5);
+  --dashboard-sidebar-focus: rgba(109, 40, 217, 0.5);
 }
 
 .dashboard-theme.dashboard-admin {
@@ -292,8 +292,8 @@
   --dashboard-accent-foreground: #6b4e08;
   --dashboard-hero-start: #111a35;
   --dashboard-hero-end: #4c3fb4;
-  --dashboard-hero-foreground: #ffffff;
-  --dashboard-hero-muted: #dddfff;
+  --dashboard-hero-foreground: #f8fafc;
+  --dashboard-hero-muted: #f8fafc;
   --dashboard-hero-border: #6559c6;
   --dashboard-chart-1: #9a6b00;
   --dashboard-chart-2: #059669;
@@ -328,24 +328,24 @@
 }
 
 .dashboard-theme.dashboard-staff {
-  --dashboard-primary: #0e7490;
-  --dashboard-primary-hover: #0c667b;
-  --dashboard-primary-pressed: #09576a;
-  --dashboard-primary-soft: #e1f7fb;
-  --dashboard-focus: #087d99;
-  --dashboard-accent: #d6a323;
-  --dashboard-accent-soft: #fff5d6;
-  --dashboard-accent-foreground: #6f4f04;
-  --dashboard-hero-start: #102348;
-  --dashboard-hero-end: #087d99;
-  --dashboard-hero-foreground: #ffffff;
-  --dashboard-hero-muted: #e6fdff;
-  --dashboard-hero-border: #1698b3;
-  --dashboard-chart-1: #0891b2;
-  --dashboard-chart-2: #3157d5;
-  --dashboard-chart-3: #059669;
+  --dashboard-primary: #6d28d9;
+  --dashboard-primary-hover: #5b21b6;
+  --dashboard-primary-pressed: #4c1d95;
+  --dashboard-primary-soft: #f5f3ff;
+  --dashboard-focus: #6d28d9;
+  --dashboard-accent: #d97706;
+  --dashboard-accent-soft: #fef3c7;
+  --dashboard-accent-foreground: #92400e;
+  --dashboard-hero-start: #ffffff;
+  --dashboard-hero-end: #f8fafc;
+  --dashboard-hero-foreground: #0f172a;
+  --dashboard-hero-muted: #64748b;
+  --dashboard-hero-border: #e2e8f0;
+  --dashboard-chart-1: #6d28d9;
+  --dashboard-chart-2: #059669;
+  --dashboard-chart-3: #2563eb;
   --dashboard-chart-4: #d97706;
-  --dashboard-chart-5: #8b5cf6;
+  --dashboard-chart-5: #0d9488;
 }
 
 .dashboard-theme.dashboard-client {
@@ -363,8 +363,8 @@
   --dashboard-accent-foreground: #6b4e08;
   --dashboard-hero-start: #172554;
   --dashboard-hero-end: #0f766e;
-  --dashboard-hero-foreground: #ffffff;
-  --dashboard-hero-muted: #d9f4ef;
+  --dashboard-hero-foreground: #f8fafc;
+  --dashboard-hero-muted: #f8fafc;
   --dashboard-hero-border: #358b83;
   --dashboard-chart-1: #3157d5;
   --dashboard-chart-2: #0f766e;
@@ -426,6 +426,10 @@
   --dashboard-neutral: #94a3b8;
   --dashboard-neutral-soft: #263247;
   --dashboard-neutral-foreground: #dbe4f0;
+  --dashboard-hero-start: #111a35;
+  --dashboard-hero-end: #1e293b;
+  --dashboard-hero-muted: #cbd5e1;
+  --dashboard-hero-foreground: #f8fafc;
 }
 
 .dark.dashboard-theme.dashboard-admin,
@@ -486,44 +490,44 @@
   --card-foreground: #f8fafc;
   --popover: #141d31;
   --popover-foreground: #f8fafc;
-  --primary: #22d3ee;
-  --primary-foreground: #0c1222;
-  --secondary: #202d46;
+  --primary: #8554ea;
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
   --secondary-foreground: #eef2ff;
-  --muted: #202f4b;
-  --muted-foreground: #b7c3d6;
-  --accent: #60a5fa;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #f59e0b;
   --accent-foreground: #0c1222;
-  --destructive: #fb7185;
+  --destructive: #f43f5e;
   --border: #5d6f90;
-  --input: #1b2942;
-  --ring: #67e8f9;
-  --chart-1: #22d3ee;
-  --chart-2: #60a5fa;
+  --input: #1e293b;
+  --ring: #8b5cf6;
+  --chart-1: #8b5cf6;
+  --chart-2: #38bdf8;
   --chart-3: #34d399;
   --chart-4: #fbbf24;
-  --chart-5: #a78bfa;
-  --sidebar: #101a2c;
-  --sidebar-foreground: #dbe4f0;
-  --sidebar-primary: #22d3ee;
-  --sidebar-primary-foreground: #0c1222;
-  --sidebar-accent: #1b2942;
-  --sidebar-accent-foreground: #eef2ff;
-  --sidebar-border: #5d6f90;
-  --sidebar-ring: #67e8f9;
-  --dashboard-primary: #22d3ee;
-  --dashboard-primary-hover: #52ddf1;
-  --dashboard-primary-pressed: #0eb5d0;
-  --dashboard-primary-soft: #153944;
-  --dashboard-primary-foreground: #0c1222;
-  --dashboard-focus: #67e8f9;
-  --dashboard-accent: #f6c453;
-  --dashboard-hero-border: #1ba7c4;
-  --dashboard-chart-1: #22d3ee;
-  --dashboard-chart-2: #60a5fa;
+  --chart-5: #f43f5e;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #cbd5e1;
+  --sidebar-primary: #8554ea;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #1e293b;
+  --sidebar-ring: #8b5cf6;
+  --dashboard-primary: #8554ea;
+  --dashboard-primary-hover: #8757ec;
+  --dashboard-primary-pressed: #7c3aed;
+  --dashboard-primary-soft: #231b42;
+  --dashboard-primary-foreground: #ffffff;
+  --dashboard-focus: #8b5cf6;
+  --dashboard-accent: #f59e0b;
+  --dashboard-hero-border: #3b2d66;
+  --dashboard-chart-1: #8b5cf6;
+  --dashboard-chart-2: #38bdf8;
   --dashboard-chart-3: #34d399;
   --dashboard-chart-4: #fbbf24;
-  --dashboard-chart-5: #a78bfa;
+  --dashboard-chart-5: #f43f5e;
 }
 
 .dark.dashboard-theme.dashboard-client,
@@ -582,12 +586,14 @@
 }
 
 .dashboard-hero-nepal {
+  background-color: var(--dashboard-panel);
   background-image: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--nepal-navy) 92%, var(--dashboard-hero-start)) 0%,
-    color-mix(in srgb, var(--nepal-crimson) 35%, var(--dashboard-hero-end)) 48%,
-    var(--dashboard-hero-end) 100%
+    var(--dashboard-panel) 0%,
+    var(--dashboard-canvas-elevated) 100%
   );
+  color: var(--foreground);
+  border: 1px solid var(--dashboard-border);
 }
 
 .dashboard-hero-nepal::after {
@@ -595,7 +601,7 @@
   position: absolute;
   inset: 0;
   background-image: var(--nepal-dhaka-pattern);
-  opacity: 0.5;
+  opacity: 0.05;
   pointer-events: none;
 }
 
@@ -608,40 +614,21 @@
   width: 4px;
   background: linear-gradient(
     to bottom,
-    var(--nepal-saffron),
     var(--nepal-gold),
-    var(--nepal-crimson)
+    var(--dashboard-primary),
+    var(--nepal-saffron)
   );
   pointer-events: none;
   z-index: 1;
 }
 
-.dashboard-hero-nepal {
-  border-bottom: 3px solid transparent;
-  border-image: linear-gradient(
-      90deg,
-      var(--nepal-crimson),
-      var(--nepal-gold),
-      var(--nepal-saffron)
-    )
-    1;
-}
-
 .dashboard-hero-nepal .font-serif {
-  text-shadow: 0 1px 18px color-mix(in srgb, var(--nepal-navy) 45%, transparent);
+  color: var(--foreground);
 }
 
 /* Gold milestone rail on metric cards in Nepal-themed consoles */
 .dashboard-nepal [data-slot="metric-card"]::after {
-  content: "";
-  position: absolute;
-  right: 0.75rem;
-  bottom: 0.65rem;
-  width: 1.5rem;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--nepal-gold), var(--nepal-saffron));
-  opacity: 0.75;
+  display: none;
 }
 
 @layer base {

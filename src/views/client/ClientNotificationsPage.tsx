@@ -68,7 +68,7 @@ export default function ClientNotificationsPage() {
       showTodayDate
       eyebrow="Activity Stream"
       title="Notifications"
-      description="Hearing reminders, signature requests, and billing updates from your legal team."
+      description="Hearing reminders, signature requests, and case updates from your legal team."
       icon={Bell}
       metrics={metrics}
       actions={
@@ -100,7 +100,7 @@ export default function ClientNotificationsPage() {
         ) : notifications.length === 0 ? (
           <EmptyState
             title="No notifications yet"
-            description="Hearing reminders, signature requests, and billing updates will appear here."
+            description="Hearing reminders, signature requests, and case updates will appear here."
             icon={Bell}
           />
         ) : (

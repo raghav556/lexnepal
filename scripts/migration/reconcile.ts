@@ -18,7 +18,6 @@ export interface ReconcileException {
     | "FIRM_MISSING"
     | "NULLABILITY_VIOLATION"
     | "UNIQUE_VIOLATION"
-    | "FINANCIAL_MISMATCH"
     | "OTHER";
   reason: string;
   sourceValue?: unknown;

@@ -49,16 +49,10 @@ const STANDARD = [
 
 const FULL = [
   ...STANDARD,
-  { id: "financial", npmScript: "financial:verify-local", group: "domains" },
   { id: "communication", npmScript: "communication:verify-local", group: "domains" },
   { id: "documents", npmScript: "documents:verify-local", group: "domains" },
   { id: "work-management", npmScript: "work-management:verify-local", group: "domains" },
   { id: "prove-cross-firm", npmScript: "migration:prove-cross-firm", group: "migration" },
-  {
-    id: "prove-finance-idempotency",
-    npmScript: "migration:prove-finance-idempotency",
-    group: "migration",
-  },
   { id: "prove-job-retries", npmScript: "migration:prove-job-retries", group: "migration" },
   { id: "prove-url-preserve", npmScript: "migration:prove-url-preserve", group: "migration" },
 ];

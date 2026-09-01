@@ -288,6 +288,30 @@
     "queryPattern": "Enforce clients business or tenant uniqueness"
   },
   {
+    "table": "cms_asset_upload_intents",
+    "index": "cms_asset_upload_intents_creator_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id, created_by",
+    "migration": "drizzle/0016_cms_asset_upload_intents.sql",
+    "queryPattern": "Documented operational lookup for cms_asset_upload_intents"
+  },
+  {
+    "table": "cms_asset_upload_intents",
+    "index": "cms_asset_upload_intents_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id, status, expires_at",
+    "migration": "drizzle/0016_cms_asset_upload_intents.sql",
+    "queryPattern": "Firm-scoped cms_asset_upload_intents status queue or filter"
+  },
+  {
+    "table": "cms_asset_upload_intents",
+    "index": "cms_asset_upload_intents_quarantine_key_unique",
+    "unique": true,
+    "columnsOrExpression": "quarantine_key",
+    "migration": "drizzle/0016_cms_asset_upload_intents.sql",
+    "queryPattern": "Enforce cms_asset_upload_intents business or tenant uniqueness"
+  },
+  {
     "table": "cms_settings",
     "index": "cms_settings_firm_key_unique",
     "unique": true,
@@ -310,6 +334,62 @@
     "columnsOrExpression": "firm_id,status",
     "migration": "drizzle/0000_initial_postgresql_schema.sql",
     "queryPattern": "Firm-scoped conflict_checks status queue or filter"
+  },
+  {
+    "table": "dm_message_attachments",
+    "index": "dm_message_attachments_position_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,message_id,position",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Enforce dm_message_attachments business or tenant uniqueness"
+  },
+  {
+    "table": "dm_message_reads",
+    "index": "dm_message_reads_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,message_id,user_id",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Enforce dm_message_reads business or tenant uniqueness"
+  },
+  {
+    "table": "dm_message_reads",
+    "index": "dm_message_reads_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Firm-scoped dm_message_reads lookup by responsible user"
+  },
+  {
+    "table": "dm_messages",
+    "index": "dm_messages_thread_created_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,thread_id,created_at",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Firm-scoped dm_messages status queue or filter"
+  },
+  {
+    "table": "dm_threads",
+    "index": "dm_threads_firm_high_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_high_id",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Firm-scoped dm_threads status queue or filter"
+  },
+  {
+    "table": "dm_threads",
+    "index": "dm_threads_firm_low_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_low_id",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Firm-scoped dm_threads status queue or filter"
+  },
+  {
+    "table": "dm_threads",
+    "index": "dm_threads_pair_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_low_id,user_high_id",
+    "migration": "drizzle/0020_dm_threads.sql",
+    "queryPattern": "Enforce dm_threads business or tenant uniqueness"
   },
   {
     "table": "document_scan_jobs",
@@ -520,30 +600,6 @@
     "queryPattern": "Full-text document discovery by title description and extracted text"
   },
   {
-    "table": "expenses",
-    "index": "expenses_firm_case_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped expenses lookup by case"
-  },
-  {
-    "table": "expenses",
-    "index": "expenses_firm_date_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,expense_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped expenses chronological or reminder query"
-  },
-  {
-    "table": "expenses",
-    "index": "expenses_firm_status_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped expenses status queue or filter"
-  },
-  {
     "table": "firm_settings",
     "index": "firm_settings_firm_key_unique",
     "unique": true,
@@ -574,46 +630,6 @@
     "columnsOrExpression": "firm_id,date_gregorian",
     "migration": "drizzle/0000_initial_postgresql_schema.sql",
     "queryPattern": "Firm-scoped hearings chronological or reminder query"
-  },
-  {
-    "table": "invoice_line_items",
-    "index": "invoice_line_items_firm_invoice_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,invoice_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Documented operational lookup for invoice_line_items"
-  },
-  {
-    "table": "invoices",
-    "index": "invoices_firm_case_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped invoices lookup by case"
-  },
-  {
-    "table": "invoices",
-    "index": "invoices_firm_client_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,client_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped invoices lookup by client"
-  },
-  {
-    "table": "invoices",
-    "index": "invoices_firm_number_unique",
-    "unique": true,
-    "columnsOrExpression": "firm_id,invoice_number",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Enforce invoices business or tenant uniqueness"
-  },
-  {
-    "table": "invoices",
-    "index": "invoices_firm_status_due_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,status,due_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped invoices status queue or filter"
   },
   {
     "table": "job_applications",
@@ -721,19 +737,19 @@
   },
   {
     "table": "navigation",
-    "index": "navigation_firm_location_root_order_unique",
+    "index": "navigation_firm_location_child_order_unique",
     "unique": true,
-    "columnsOrExpression": "firm_id,location,display_order WHERE parent_id IS NULL",
+    "columnsOrExpression": "firm_id,location,parent_id,display_order",
     "migration": "drizzle/0017_navigation_sibling_order_unique.sql",
-    "queryPattern": "Enforce root navigation order uniqueness per location"
+    "queryPattern": "Enforce navigation business or tenant uniqueness"
   },
   {
     "table": "navigation",
-    "index": "navigation_firm_location_child_order_unique",
+    "index": "navigation_firm_location_root_order_unique",
     "unique": true,
-    "columnsOrExpression": "firm_id,location,parent_id,display_order WHERE parent_id IS NOT NULL",
+    "columnsOrExpression": "firm_id,location,display_order",
     "migration": "drizzle/0017_navigation_sibling_order_unique.sql",
-    "queryPattern": "Enforce sibling navigation order uniqueness under a parent"
+    "queryPattern": "Enforce navigation business or tenant uniqueness"
   },
   {
     "table": "navigation",
@@ -784,28 +800,12 @@
     "queryPattern": "Firm-scoped notifications lookup by responsible user"
   },
   {
-    "table": "payments",
-    "index": "payments_firm_client_idx",
+    "table": "practice_areas",
+    "index": "practice_areas_firm_active_order_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id,client_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped payments lookup by client"
-  },
-  {
-    "table": "payments",
-    "index": "payments_firm_gateway_reference_unique",
-    "unique": true,
-    "columnsOrExpression": "firm_id,gateway,reference_number",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Enforce payments business or tenant uniqueness"
-  },
-  {
-    "table": "payments",
-    "index": "payments_firm_invoice_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,invoice_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Documented operational lookup for payments"
+    "columnsOrExpression": "firm_id,is_active,display_order",
+    "migration": "drizzle/0018_practice_areas_corporate.sql",
+    "queryPattern": "Firm-scoped practice_areas status queue or filter"
   },
   {
     "table": "practice_areas",
@@ -814,14 +814,6 @@
     "columnsOrExpression": "firm_id,slug",
     "migration": "drizzle/0000_initial_postgresql_schema.sql",
     "queryPattern": "Enforce practice_areas business or tenant uniqueness"
-  },
-  {
-    "table": "practice_areas",
-    "index": "practice_areas_firm_active_order_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,is_active,display_order",
-    "migration": "drizzle/0018_practice_areas_corporate.sql",
-    "queryPattern": "Firm-scoped practice area listing by activity and display order"
   },
   {
     "table": "research_note_tags",
@@ -1125,47 +1117,7 @@
     "unique": false,
     "columnsOrExpression": "firm_id,is_approved,display_order",
     "migration": "drizzle/0019_testimonials_homepage.sql",
-    "queryPattern": "Firm-scoped approved testimonials ordered for homepage"
-  },
-  {
-    "table": "time_entries",
-    "index": "time_entries_firm_case_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped time_entries lookup by case"
-  },
-  {
-    "table": "time_entries",
-    "index": "time_entries_firm_invoice_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,invoice_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Documented operational lookup for time_entries"
-  },
-  {
-    "table": "time_entries",
-    "index": "time_entries_firm_user_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped time_entries lookup by responsible user"
-  },
-  {
-    "table": "trust_transactions",
-    "index": "trust_transactions_firm_case_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped trust_transactions lookup by case"
-  },
-  {
-    "table": "trust_transactions",
-    "index": "trust_transactions_firm_client_date_idx",
-    "unique": false,
-    "columnsOrExpression": "firm_id,client_id,transaction_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped trust_transactions chronological or reminder query"
+    "queryPattern": "Firm-scoped testimonials status queue or filter"
   },
   {
     "table": "user_educations",

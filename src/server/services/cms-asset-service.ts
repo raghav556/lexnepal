@@ -250,12 +250,14 @@ export class CmsAssetService {
     }
   }
 
-  async createPublicDownload(assetId: string) {
+  async getPublicAssetDelivery(assetId: string) {
     const publicFirmId = await getCmsService().publicFirmId();
     const [intent] = await database
       .select({
         protectedKey: cmsAssetUploadIntents.protectedKey,
         status: cmsAssetUploadIntents.status,
+        declaredMimeType: cmsAssetUploadIntents.declaredMimeType,
+        actualSha256: cmsAssetUploadIntents.actualSha256,
       })
       .from(cmsAssetUploadIntents)
       .where(
@@ -268,10 +270,25 @@ export class CmsAssetService {
       )
       .limit(1);
     if (!intent?.protectedKey) throw new AppError("NOT_FOUND", "CMS asset was not found", 404);
-    return getDocumentStorageRuntime().storage.createDownloadUrl(
-      intent.protectedKey,
-      getServerEnvironment().DOWNLOAD_URL_TTL_SECONDS,
-    );
+    const storage = getDocumentStorageRuntime().storage;
+    const object = await storage.headObject(intent.protectedKey);
+    if (!object) throw new AppError("NOT_FOUND", "CMS asset object was not found", 404);
+    const contentType = object.contentType || intent.declaredMimeType;
+    if (!contentType.startsWith("image/")) {
+      return {
+        kind: "redirect" as const,
+        url: await storage.createDownloadUrl(
+          intent.protectedKey,
+          getServerEnvironment().DOWNLOAD_URL_TTL_SECONDS,
+        ),
+      };
+    }
+    return {
+      kind: "inline" as const,
+      bytes: await storage.readObject(intent.protectedKey),
+      contentType,
+      sha256: intent.actualSha256,
+    };
   }
 }
 

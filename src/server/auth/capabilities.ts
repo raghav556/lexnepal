@@ -11,7 +11,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Capabi
     "cases.view_all",
     "cases.manage",
     "conflicts.manage",
-    "finance.manage",
     "hr.manage",
     "cms.content_submit",
     "audit.view",

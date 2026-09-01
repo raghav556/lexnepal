@@ -1,5 +1,5 @@
 /**
- * R5.7 proof: browser E2E smoke — login, matter, document, invoice, signature, CMS public.
+ * R5.7 proof: browser E2E smoke — login, matter, document, analytics, signature, CMS public.
  *
  * Requires DATABASE_URL and a Next server on E2E_BASE_URL (default http://127.0.0.1:3001).
  * Offline gate: smoke matrix paths exist under src/app.
@@ -31,11 +31,15 @@ const SMOKE_ROUTES = [
     path: "/staff/documents",
     nextFile: "src/app/(staff)/staff/documents/page.tsx",
   },
-  { area: "invoice", path: "/admin/finance", nextFile: "src/app/(admin)/admin/finance/page.tsx" },
   {
-    area: "invoice",
-    path: "/client/billing",
-    nextFile: "src/app/(client)/client/billing/page.tsx",
+    area: "analytics",
+    path: "/admin/analytics",
+    nextFile: "src/app/(admin)/admin/analytics/page.tsx",
+  },
+  {
+    area: "client-case",
+    path: "/client/cases",
+    nextFile: "src/app/(client)/client/cases/page.tsx",
   },
   {
     area: "signature",
@@ -143,7 +147,7 @@ try {
     command: "prove-e2e-smoke",
     report,
     notes: [
-      "R5.7 E2E smoke: CMS public + login + matter/document/invoice/signature portal pages.",
+      "R5.7 E2E smoke: CMS public + login + matter/document/analytics/signature portal pages.",
       `baseUrl=${BASE_URL}`,
       `seeded=${Object.values(E2E_USERS)
         .map((u) => u.email)

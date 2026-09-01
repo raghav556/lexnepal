@@ -25,7 +25,9 @@ test.describe("Staff HR self-service", () => {
     await expect(page.getByText("Request leave", { exact: true })).toBeVisible();
 
     const reason = `E2E leave ${Date.now()}`;
-    await page.getByLabel("Type").selectOption("sick");
+    // Unpaid leave is intentionally not balance-limited, keeping this smoke test
+    // repeatable even when the same persistent local E2E database is reused.
+    await page.getByLabel("Type").selectOption("unpaid");
     await page.getByLabel("Reason (optional)").fill(reason);
     await page.getByRole("button", { name: "Submit request" }).click();
 

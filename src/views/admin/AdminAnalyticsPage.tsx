@@ -1,25 +1,37 @@
+import { BarChart3, Briefcase, CalendarDays, CheckSquare, UserPlus, Users } from "lucide-react";
 import { useDashboardData } from "@/client/queries/analytics";
-import {
-  BarChart3,
-  TrendingUp,
-  PieChart,
-  Clock,
-  Users,
-  Banknote,
-  Briefcase,
-  Activity,
-} from "lucide-react";
-import { ChartSurface, EmptyState, PortalPageShell } from "@/components/dashboard";
+import { ChartSurface, EmptyState, PortalPageShell, StatusBadge } from "@/components/dashboard";
 import {
   DASHBOARD_METRIC_TONES,
   DASHBOARD_TONE_FILL_CLASSES,
   getDashboardStatusTone,
 } from "@/lib/dashboard-semantics";
 
-function formatCurrency(amount: number) {
-  if (amount >= 100000) return `Rs. ${(amount / 100000).toFixed(1)}L`;
-  if (amount >= 1000) return `Rs. ${(amount / 1000).toFixed(1)}K`;
-  return `Rs. ${amount}`;
+function Distribution({ values }: { values: Record<string, number> }) {
+  const max = Math.max(1, ...Object.values(values));
+  return (
+    <div className="space-y-4">
+      {Object.entries(values).map(([label, count]) => {
+        const tone = getDashboardStatusTone(label);
+        return (
+          <div key={label}>
+            <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+              <span className="font-medium capitalize text-foreground">
+                {label.replaceAll("_", " ")}
+              </span>
+              <StatusBadge tone={tone}>{count}</StatusBadge>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-dashboard-neutral-soft">
+              <div
+                className={`h-full rounded-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
+                style={{ width: `${Math.max(8, (count / max) * 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function AdminAnalyticsPage() {
@@ -29,54 +41,43 @@ export default function AdminAnalyticsPage() {
     <PortalPageShell
       portal="admin"
       loading={!data}
-      loadingLabel="Loading analytics…"
+      loadingLabel="Loading operational analytics…"
       decorated
       showTodayDate
       eyebrow="Firm intelligence"
-      titleKey="portal.analytics.title"
-      descriptionKey="portal.analytics.description"
+      title="Operational analytics"
+      description="Live matter, client, intake, task, staff, and hearing intelligence."
       icon={BarChart3}
       metrics={
         data
           ? [
               {
-                label: "Total revenue",
-                value: new Intl.NumberFormat("en-NP", {
-                  style: "currency",
-                  currency: "NPR",
-                }).format(data.totalRevenue || 0),
-                icon: Banknote,
-                tone: DASHBOARD_METRIC_TONES.revenue,
-                helperText: "From paid invoices",
-                trend: (
-                  <span className="inline-flex items-center gap-1">
-                    <TrendingUp className="size-3" aria-hidden /> Collected
-                  </span>
-                ),
-              },
-              {
-                label: "Realization rate",
-                value: `${data.realizationRate || 0}%`,
-                icon: Activity,
-                tone: "information",
-                helperText: "Billed vs collected",
-              },
-              {
-                label: "Avg case value",
-                value: new Intl.NumberFormat("en-NP", {
-                  style: "currency",
-                  currency: "NPR",
-                }).format(data.avgCaseValue || 0),
+                label: "Active cases",
+                value: String(data.activeCases),
                 icon: Briefcase,
                 tone: DASHBOARD_METRIC_TONES.cases,
-                helperText: `Across ${data.totalCases} cases`,
+                helperText: `Across ${data.totalCases} total matters`,
               },
               {
-                label: "Client retention",
-                value: `${data.retentionRate || 0}%`,
+                label: "Active clients",
+                value: String(data.activeClients),
                 icon: Users,
                 tone: DASHBOARD_METRIC_TONES.people,
-                helperText: "Active vs total clients",
+                helperText: "Current client relationships",
+              },
+              {
+                label: "Open leads",
+                value: String(data.openLeads),
+                icon: UserPlus,
+                tone: "information",
+                helperText: "New or contacted enquiries",
+              },
+              {
+                label: "Active staff",
+                value: String(data.activeStaff),
+                icon: Users,
+                tone: "neutral",
+                helperText: "Enabled firm accounts",
               },
             ]
           : undefined
@@ -84,142 +85,61 @@ export default function AdminAnalyticsPage() {
     >
       {data ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ChartSurface title="Revenue by practice area">
-            {Object.keys(data.revenueByPractice || {}).length === 0 ? (
+          <ChartSurface title="Active matters by practice area">
+            {Object.keys(data.mattersByPractice).length === 0 ? (
               <EmptyState
-                title="No revenue data"
-                description="Paid invoice revenue by practice area will appear here."
-                icon={PieChart}
-              />
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(data.revenueByPractice || {}).map(([area, rev]) => {
-                  const practiceValues = Object.values(data.revenueByPractice || {});
-                  const maxPracticeRevenue = Math.max(
-                    1,
-                    ...(practiceValues.length ? practiceValues : [1]),
-                  );
-                  return (
-                    <div key={area}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="font-medium text-foreground">{area}</span>
-                        <span className="text-muted-foreground">{formatCurrency(rev)}</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-dashboard-neutral-soft">
-                        <div
-                          className="h-full bg-dashboard-primary transition-all duration-1000"
-                          style={{ width: `${(rev / maxPracticeRevenue) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </ChartSurface>
-
-          <ChartSurface title="Billable hours by staff">
-            {Object.keys(data.hoursByAssociate || {}).length === 0 ? (
-              <EmptyState
-                title="No time entries"
-                description="Staff billable hours will appear once time is logged."
-                icon={Clock}
-              />
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(data.hoursByAssociate || {}).map(([name, hours]) => {
-                  const assocValues = Object.values(data.hoursByAssociate || {});
-                  const maxAssocHours = Math.max(1, ...(assocValues.length ? assocValues : [1]));
-                  return (
-                    <div key={name}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="font-medium text-foreground">{name}</span>
-                        <span className="text-muted-foreground">{hours} hrs</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-dashboard-neutral-soft">
-                        <div
-                          className="h-full bg-dashboard-success transition-all duration-1000"
-                          style={{ width: `${(hours / maxAssocHours) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </ChartSurface>
-
-          <ChartSurface title="Revenue trend (last 6 months)">
-            {(data.monthlyRevenue || []).length === 0 ? (
-              <EmptyState
-                title="No monthly revenue"
-                description="Revenue trends will build as invoices are paid."
-                icon={TrendingUp}
-              />
-            ) : (
-              <div className="mt-4 flex h-48 items-end justify-between gap-2">
-                {(data.monthlyRevenue || []).map((m, idx) => {
-                  const maxMonthly = Math.max(
-                    1,
-                    ...(data.monthlyRevenue || []).map((row) => row.revenue),
-                  );
-                  const heightPct = Math.max(10, (m.revenue / maxMonthly) * 100);
-                  return (
-                    <div key={idx} className="group flex flex-1 flex-col items-center gap-2">
-                      <div className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                        {formatCurrency(m.revenue)}
-                      </div>
-                      <div
-                        className="w-full rounded-t-sm bg-dashboard-information transition-colors group-hover:bg-dashboard-primary"
-                        style={{ height: `${heightPct}%` }}
-                      />
-                      <span className="w-full truncate text-center text-xs text-muted-foreground">
-                        {m.month}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </ChartSurface>
-
-          <ChartSurface title="Case status distribution">
-            {Object.keys(data.casesByStatus || {}).length === 0 ? (
-              <EmptyState
-                title="No case data"
-                description="Case status breakdown will appear as matters are created."
+                title="No active matters"
+                description="Practice-area distribution appears when matters become active."
                 icon={Briefcase}
               />
             ) : (
-              <div className="flex flex-1 flex-col justify-center space-y-4">
-                {Object.entries(data.casesByStatus || {}).map(([status, count]) => {
-                  const pct = data.totalCases > 0 ? Math.round((count / data.totalCases) * 100) : 0;
-                  const tone = getDashboardStatusTone(status);
-                  return (
-                    <div key={status} className="flex items-center gap-3">
-                      <div className={`size-3 rounded-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`} />
-                      <span className="flex-1 text-sm font-medium capitalize text-foreground">
-                        {status.replace("_", " ")}
-                      </span>
-                      <span className="text-sm font-semibold">{count}</span>
-                      <span className="w-12 text-right text-xs text-muted-foreground">{pct}%</span>
-                    </div>
-                  );
-                })}
-                <div className="mt-4 flex h-3 w-full overflow-hidden rounded-full">
-                  {Object.entries(data.casesByStatus || {}).map(([status, count]) => {
-                    const pct = data.totalCases > 0 ? (count / data.totalCases) * 100 : 0;
-                    const tone = getDashboardStatusTone(status);
-                    return (
-                      <div
-                        key={status}
-                        className={`h-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+              <Distribution values={data.mattersByPractice} />
+            )}
+          </ChartSurface>
+
+          <ChartSurface title="Matter status distribution">
+            {Object.keys(data.casesByStatus).length === 0 ? (
+              <EmptyState
+                title="No case data"
+                description="Matter status counts appear when cases are created."
+                icon={Briefcase}
+              />
+            ) : (
+              <Distribution values={data.casesByStatus} />
+            )}
+          </ChartSurface>
+
+          <ChartSurface
+            title="Task status distribution"
+            description={`${data.openTasks} open task${data.openTasks === 1 ? "" : "s"}`}
+          >
+            {Object.keys(data.tasksByStatus).length === 0 ? (
+              <EmptyState
+                title="No task activity"
+                description="Task distribution appears when work is assigned."
+                icon={CheckSquare}
+              />
+            ) : (
+              <Distribution values={data.tasksByStatus} />
+            )}
+          </ChartSurface>
+
+          <ChartSurface
+            title="Scheduled hearings by month"
+            description={`${data.upcomingHearings} upcoming hearing${data.upcomingHearings === 1 ? "" : "s"}`}
+          >
+            {data.hearingsByMonth.length === 0 ? (
+              <EmptyState
+                title="No upcoming hearings"
+                description="Monthly court commitments appear when hearings are scheduled."
+                icon={CalendarDays}
+              />
+            ) : (
+              <Distribution
+                values={Object.fromEntries(
+                  data.hearingsByMonth.map((row) => [row.month, row.count]),
+                )}
+              />
             )}
           </ChartSurface>
         </div>

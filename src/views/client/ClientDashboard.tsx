@@ -8,7 +8,6 @@ import {
   FolderOpen,
   MessageSquare,
   PenTool,
-  Receipt,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -18,7 +17,6 @@ import { useCases } from "@/client/queries/cases";
 import { useMyClient, useMyTeam } from "@/client/queries/clients";
 import { useMessages } from "@/client/queries/communication";
 import { useDocuments } from "@/client/queries/documents";
-import { useInvoices } from "@/client/queries/financial";
 import { useHearings } from "@/client/queries/hearings";
 import { useTasks } from "@/client/queries/tasks";
 import {
@@ -38,14 +36,12 @@ import {
   DASHBOARD_TONE_BORDER_CLASSES,
   getDashboardStatusTone,
 } from "@/lib/dashboard-semantics";
-import { formatNPR } from "@/lib/lex-constants.ts";
 
 export default function ClientDashboard() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
   const cases = useCases(clientId ? { clientId } : {}) || [];
-  const { data: invoices = [] } = useInvoices(clientId ? { clientId } : {});
   const hearings = useHearings({}) || [];
   const users = useMyTeam() ?? [];
   const documents = useDocuments({}) || [];
@@ -56,9 +52,6 @@ export default function ClientDashboard() {
     (item) => caseIds.has(item.caseId) && item.status === "scheduled",
   );
   const activeCases = cases.filter((item) => item.status === "active");
-  const outstanding = invoices
-    .filter((item) => item.status !== "paid" && item.status !== "cancelled")
-    .reduce((sum: number, item) => sum + (item.total || 0), 0);
   const pendingDocs = documents.filter(
     (item) =>
       item.caseId &&
@@ -94,9 +87,6 @@ export default function ClientDashboard() {
       item.status !== "done",
   ).length;
   const kycStatus = clientRecord?.kycStatus;
-  const unpaidInvoices = invoices.filter(
-    (item) => item.status === "sent" || item.status === "overdue",
-  ).length;
 
   if (clientRecord === undefined) {
     return (
@@ -147,13 +137,6 @@ export default function ClientDashboard() {
       detail: "Identity verification required",
       icon: ShieldCheck,
     });
-  if (unpaidInvoices > 0)
-    actions.push({
-      href: "/client/billing",
-      label: "Pay invoices",
-      detail: `${unpaidInvoices} unpaid · ${formatNPR(outstanding)}`,
-      icon: Receipt,
-    });
   if (checklistOpen > 0)
     actions.push({
       href: "/client/checklist",
@@ -185,11 +168,11 @@ export default function ClientDashboard() {
       helperText: "From your legal team",
     },
     {
-      label: "Outstanding balance",
-      value: formatNPR(outstanding),
-      icon: Receipt,
-      tone: DASHBOARD_METRIC_TONES.balance,
-      helperText: `${unpaidInvoices} unpaid invoice${unpaidInvoices === 1 ? "" : "s"}`,
+      label: "Upcoming hearings",
+      value: String(myHearings.length),
+      icon: CalendarDays,
+      tone: DASHBOARD_METRIC_TONES.hearings,
+      helperText: "Scheduled court dates",
     },
   ];
 

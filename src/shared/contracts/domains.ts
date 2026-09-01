@@ -1,5 +1,6 @@
 export interface DocumentDto {
   _id: string;
+  id?: string;
   firmId?: string;
   caseId?: string;
   title: string;
@@ -14,6 +15,14 @@ export interface DocumentDto {
   confidentialityLevel?: string;
   isDeleted?: boolean;
   tags?: string[];
+  sha256?: string | null;
+  version?: number;
+  parentDocumentId?: string | null;
+  uploadStatus?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _creationTime?: number;
   [key: string]: unknown;
 }
 

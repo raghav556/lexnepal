@@ -27,9 +27,6 @@ import type {
 } from "@/shared/contracts/identity";
 
 const DEFAULT_SETTINGS: SystemSettings = {
-  defaultHourlyRate: "5000",
-  vatRate: "13",
-  invoicePaymentTerms: "14",
   defaultLanguage: "en",
   clientPortalEnabled: true,
   onlineBookingEnabled: true,

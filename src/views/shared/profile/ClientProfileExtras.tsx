@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CreditCard, FolderOpen, HeadphonesIcon, ShieldCheck } from "lucide-react";
+import { ArrowRight, FolderOpen, HeadphonesIcon, ShieldCheck } from "lucide-react";
 import { useMyClient } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { DashboardButton, DashboardSection, DashboardStatusLabel } from "@/components/dashboard";
@@ -14,7 +14,7 @@ export function ClientProfileExtras() {
   const kyc = client?.kycStatus ?? "pending";
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <DashboardSection
         title="Identity (KYC)"
         description="Verification status for your client record."
@@ -47,24 +47,6 @@ export function ClientProfileExtras() {
           <DashboardButton variant="outline" size="sm" asChild className="w-full">
             <Link href="/client/cases">
               View cases
-              <ArrowRight className="size-4 ml-1" />
-            </Link>
-          </DashboardButton>
-        </div>
-      </DashboardSection>
-
-      <DashboardSection
-        title="Billing"
-        description="Invoices and payment history."
-        icon={CreditCard}
-      >
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Manage your retainer, invoices, and trust balance.
-          </p>
-          <DashboardButton variant="outline" size="sm" asChild className="w-full">
-            <Link href="/client/billing">
-              Open billing portal
               <ArrowRight className="size-4 ml-1" />
             </Link>
           </DashboardButton>

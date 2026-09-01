@@ -51,6 +51,7 @@ npm run db:integrity
 npm run db:check
 npm run db:migrate
 npm run db:seed
+npm run e2e:seed
 npm run storage:provision
 npm run jobs:schedules:seed
 npm run dev
@@ -60,10 +61,24 @@ Before starting, replace the blank `BETTER_AUTH_SECRET` in `.env.local` with a p
 of at least 32 characters. `.env.local` is ignored by Git. Never reuse its local database, object
 storage, or authentication credentials in production.
 
-Local demo users are provisioned by `npm run db:seed` and are listed on the development sign-in
-screen. Their localhost-only fixture details are documented in
+`npm run db:seed` creates the base firm and a pending placeholder administrator record; that record
+cannot sign in. Local demo login users are provisioned by `npm run e2e:seed` and are listed on the
+development sign-in screen. Their localhost-only fixture details are documented in
 [`doc/migration/PHASE_AUTH_0_BASELINE.md`](doc/migration/PHASE_AUTH_0_BASELINE.md); they must never
 be copied into a live environment.
+
+`npm run auth:provision-local` is different: it creates local identities and sends setup links to
+Mailpit for existing users with email addresses. Use it for invitation/setup-flow testing, not for
+the fixed demo credentials.
+
+### Canonical local firm
+
+`PUBLIC_FIRM_SLUG=phase-6-firm-a` is the canonical tenant for the current localhost application.
+It owns the public CMS settings and the prepared admin, staff, and client fixtures. The older
+`lexnepal` database firm is not the public website tenant and must not be selected for CMS editing.
+An administrator can publish public branding only when their account belongs to the configured
+public firm. Keep `.env.local`, `.env.example`, and the seeded fixture firm aligned; do not infer a
+tenant from the repository or product name.
 
 ## Background processing
 
@@ -97,7 +112,7 @@ npm run audit:production
 ```
 
 The full verifier covers storage and malware rejection, jobs, authentication boundaries, CMS,
-matters, analytics, HR, signatures, CRM, finance, communications, documents, work management,
+matters, analytics, HR, signatures, CRM, communications, documents, work management,
 tenant isolation, idempotency, retries, and URL preservation. Its generated report is written to
 `.migration-reports/local-production-shaped.json` and is intentionally ignored by Git.
 
@@ -131,7 +146,8 @@ logs are under the ignored `.local` directory.
   `npm run db:migrate` in that order.
 - If document uploads fail, run `npm run storage:verify-local` and
   `npm run storage:verify-clamav`.
-- If sign-in fixtures are missing, run `npm run db:seed` and restart the app.
+- If the fixed sign-in fixtures are missing, run `npm run db:seed`, then `npm run e2e:seed`, and
+  restart the app.
 - If Turbopack has a local compiler issue, use `npm run dev -- --webpack` as the diagnostic
   fallback.
 - Do not delete `%LOCALAPPDATA%\LexNepal` to troubleshoot; it contains the local database and
@@ -145,6 +161,6 @@ plain-language result and deferred live-launch work are in
 [`doc/LOCAL_RELEASE_SIGN_OFF.md`](doc/LOCAL_RELEASE_SIGN_OFF.md).
 
 Local readiness does not authorize deployment. DNS/TLS, managed infrastructure, vault-managed
-secrets, production identity, email/SMS/payment providers, monitoring, legal/privacy approval,
+secrets, production identity, email/SMS providers, monitoring, legal/privacy approval,
 real-data migration, penetration testing, rollback ownership, and public cutover remain a separate
 production phase.

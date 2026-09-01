@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   documentListSchema,
+  documentArchiveSchema,
   documentRecentSchema,
   documentSearchSchema,
   documentShareCreateSchema,
@@ -26,6 +27,12 @@ describe("Documents input contracts", () => {
     }
     expect(documentListSchema.safeParse({ caseId: "not-a-uuid" }).success).toBe(false);
     expect(documentListSchema.safeParse({ isTemplate: "yes" }).success).toBe(false);
+  });
+
+  it("validates a bounded ZIP archive selection", () => {
+    expect(documentArchiveSchema.safeParse({ documentIds: [caseId] }).success).toBe(true);
+    expect(documentArchiveSchema.safeParse({ documentIds: [] }).success).toBe(false);
+    expect(documentArchiveSchema.safeParse({ documentIds: ["not-a-uuid"] }).success).toBe(false);
   });
 
   it("validates search query bounds and type enum", () => {

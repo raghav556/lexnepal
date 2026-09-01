@@ -45,11 +45,6 @@ const DOMAINS: DomainRehearsal[] = [
     extraArgs: ["--firm-map", firmMap, "--orphan-firm", firmA],
   },
   {
-    domain: "financial",
-    exportPath: "tests/fixtures/convex-financial-export",
-    extraArgs: ["--firm-map", firmMap, "--orphan-firm", firmA],
-  },
-  {
     domain: "crm",
     exportPath: "tests/fixtures/convex-crm-export",
     extraArgs: ["--firm-map", firmMap, "--orphan-firm", firmA],

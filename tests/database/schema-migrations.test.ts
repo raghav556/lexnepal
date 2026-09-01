@@ -53,14 +53,14 @@ afterAll(async () => {
 });
 
 describe("PostgreSQL schema migrations", () => {
-  it("maps all 45 Convex tables and creates normalized relationship tables", async () => {
-    expect(Object.keys(convexTableTargets)).toHaveLength(45);
+  it("maps all retained Convex tables and creates normalized relationship tables", async () => {
+    expect(Object.keys(convexTableTargets)).toHaveLength(39);
     const expectedTargets = Object.values(convexTableTargets).map(getTableName).sort();
     const result = await database.query<{ table_name: string }>(
       "select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by table_name",
     );
     const actual = result.rows.map((row) => row.table_name);
-    expect(actual).toHaveLength(81);
+    expect(actual).toHaveLength(75);
     for (const target of expectedTargets) expect(actual).toContain(target);
     for (const normalized of [
       "case_team_members",
@@ -86,7 +86,7 @@ describe("PostgreSQL schema migrations", () => {
     const result = await database.query<{ table_name: string; is_nullable: string }>(
       "select table_name, is_nullable from information_schema.columns where table_schema = 'public' and column_name = 'firm_id'",
     );
-    expect(result.rows).toHaveLength(74);
+    expect(result.rows).toHaveLength(68);
     expect(result.rows.filter((row) => row.is_nullable !== "NO")).toEqual([]);
   });
 
@@ -96,7 +96,9 @@ describe("PostgreSQL schema migrations", () => {
     );
     const actual = new Set(result.rows.map((row) => row.indexname));
     expect(indexManifest.length).toBeGreaterThan(80);
-    for (const documented of indexManifest) expect(actual.has(documented.index)).toBe(true);
+    for (const documented of indexManifest) {
+      expect(actual.has(documented.index), documented.index).toBe(true);
+    }
   });
 
   it("allows firm-owned uniqueness across firms but rejects duplicates within a firm", async () => {
@@ -208,60 +210,33 @@ describe("PostgreSQL schema migrations", () => {
     `);
   });
 
-  it("enforces payment and trust financial idempotency uniqueness", async () => {
-    await database.exec(`
-      insert into invoices (id, firm_id, invoice_number, case_id, client_id, status, subtotal, vat_amount, total, issued_date, due_date)
-      values ('60000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'IDEM-001',
-        '30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
-        'sent', 100, 13, 113, current_date, current_date)
-    `);
-    await database.exec(`
-      insert into payments (firm_id, invoice_id, client_id, amount, gateway, reference_number, idempotency_key, status)
-      values ('00000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001',
-        '20000000-0000-4000-8000-000000000001', 113, 'bank_transfer', 'REF-IDEM-1', 'pay-idem-1', 'completed')
-    `);
-    await expectRejected(`
-      insert into payments (firm_id, invoice_id, client_id, amount, gateway, reference_number, idempotency_key, status)
-      values ('00000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001',
-        '20000000-0000-4000-8000-000000000001', 113, 'cash', 'REF-IDEM-2', 'pay-idem-1', 'completed')
-    `);
-    await database.exec(`
-      insert into trust_transactions (firm_id, client_id, type, amount, description, transaction_date, balance, approved_by, idempotency_key)
-      values ('00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
-        'receipt', 1000, 'Retainer', current_date, 1000, '10000000-0000-4000-8000-000000000001', 'trust-idem-1')
-    `);
-    await expectRejected(`
-      insert into trust_transactions (firm_id, client_id, type, amount, description, transaction_date, balance, approved_by, idempotency_key)
-      values ('00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
-        'receipt', 1000, 'Retainer replay', current_date, 2000, '10000000-0000-4000-8000-000000000001', 'trust-idem-1')
-    `);
+  it("removes all finance tables and dedicated enums", async () => {
+    const tables = await database.query<{ table_name: string }>(
+      "select table_name from information_schema.tables where table_schema = 'public'",
+    );
+    const names = new Set(tables.rows.map((row) => row.table_name));
+    for (const removed of [
+      "payments",
+      "invoice_line_items",
+      "time_entries",
+      "expenses",
+      "trust_transactions",
+      "invoices",
+    ]) {
+      expect(names.has(removed), removed).toBe(false);
+    }
+    const enums = await database.query<{ typname: string }>(
+      "select typname from pg_type where typname in ('payment_status','payment_gateway','line_item_type','invoice_status','trust_transaction_type','expense_category')",
+    );
+    expect(enums.rows).toEqual([]);
   });
 
-  it("enforces document and financial quality checks", async () => {
+  it("enforces document quality checks", async () => {
     await expectRejected(`
       insert into documents (firm_id, document_number, title, type, storage_id, mime_type, size_bytes, version, uploaded_by, is_template, is_privileged)
       values ('00000000-0000-4000-8000-000000000001', 'BAD-SIZE', 'Bad', 'other', 'bad-size', 'text/plain', 0, 1,
         '10000000-0000-4000-8000-000000000001', false, false)
     `);
-    await expectRejected(`
-      insert into invoices (firm_id, invoice_number, case_id, client_id, status, subtotal, vat_amount, total, issued_date, due_date)
-      values ('00000000-0000-4000-8000-000000000001', 'BAD-TOTAL', '30000000-0000-4000-8000-000000000001',
-        '20000000-0000-4000-8000-000000000001', 'draft', 100, 13, 999, current_date, current_date)
-    `);
-  });
-
-  it("rolls back financial writes atomically", async () => {
-    await database.exec("begin");
-    await database.exec(`
-      insert into invoices (firm_id, invoice_number, case_id, client_id, status, subtotal, vat_amount, total, issued_date, due_date)
-      values ('00000000-0000-4000-8000-000000000001', 'ROLLBACK-001', '30000000-0000-4000-8000-000000000001',
-        '20000000-0000-4000-8000-000000000001', 'draft', 100, 13, 113, current_date, current_date)
-    `);
-    await database.exec("rollback");
-    const result = await database.query<{ count: number }>(
-      "select count(*)::int as count from invoices where invoice_number = 'ROLLBACK-001'",
-    );
-    expect(result.rows[0].count).toBe(0);
   });
 });
 

@@ -325,14 +325,7 @@ export class CommunicationRepository {
       userId: string;
       title: string;
       body: string;
-      type:
-        | "hearing_reminder"
-        | "task_due"
-        | "invoice_sent"
-        | "payment_received"
-        | "document_request"
-        | "message"
-        | "system";
+      type: "hearing_reminder" | "task_due" | "document_request" | "message" | "system";
       relatedId?: string | null;
       link?: string | null;
     },

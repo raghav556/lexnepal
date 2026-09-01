@@ -8,7 +8,6 @@ import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
 import {
   Menu,
   X,
-  Scale,
   Phone,
   Mail,
   MapPin,
@@ -44,6 +43,7 @@ import {
 } from "@/shared/public-routes";
 import { isPracticeAreasNavRoot } from "@/shared/practice-areas-visibility";
 import { usePracticeAreas } from "@/client/queries/cms";
+import { FirmBrand } from "@/components/branding/firm-brand";
 
 export type PublicNavEntry = Record<string, unknown>;
 type PublicNavLink = {
@@ -634,9 +634,16 @@ function PublicLayoutShellInner({
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-lg text-center space-y-4">
-          <div className="mx-auto w-12 h-12 rounded-lg bg-primary flex items-center justify-center">
-            <Scale className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <FirmBrand
+            firmName={firmName}
+            logoUrl={logoUrl}
+            logoFit="cover"
+            showName={false}
+            className="justify-center"
+            logoClassName="size-20 rounded-2xl border border-border bg-background shadow-lg"
+            fallbackClassName="size-12 bg-primary"
+            fallbackIconClassName="size-6 text-primary-foreground"
+          />
           <h1 className="font-serif text-3xl font-bold text-foreground">{firmName}</h1>
           <p className="text-muted-foreground">
             {String(
@@ -782,32 +789,19 @@ function PublicLayoutShellInner({
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16 gap-2 sm:gap-3 min-w-0">
-            <Link
+            <FirmBrand
               href="/"
-              title={firmName}
-              className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0 max-w-[42%] sm:max-w-[11rem] md:max-w-[9.5rem] lg:max-w-[11rem] xl:max-w-[14rem] 2xl:max-w-[16rem]"
-            >
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoUrl}
-                  alt={firmName}
-                  className="h-8 sm:h-9 md:h-8 lg:h-9 xl:h-10 w-auto object-contain shrink-0"
-                />
-              ) : (
-                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 rounded-lg bg-primary flex items-center justify-center shadow-sm shrink-0">
-                  <Scale className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-                </div>
-              )}
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className="font-serif text-sm sm:text-base md:text-sm lg:text-base xl:text-xl 2xl:text-2xl font-bold text-primary tracking-tight truncate">
-                  {firmName}
-                </span>
-                <span className="hidden xl:block text-[9px] sm:text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-0.5 truncate">
-                  {tagline}
-                </span>
-              </div>
-            </Link>
+              firmName={firmName}
+              logoUrl={logoUrl}
+              subtitle={tagline}
+              logoFit="cover"
+              className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0 max-w-[52%] sm:max-w-[14rem] md:max-w-[12rem] lg:max-w-[14rem] xl:max-w-[18rem] 2xl:max-w-[20rem]"
+              logoClassName="size-9 rounded-lg border border-border/70 bg-background shadow-sm md:size-10 xl:size-11"
+              fallbackClassName="size-8 bg-primary shadow-sm sm:size-9 md:size-8 lg:size-9 xl:size-10"
+              fallbackIconClassName="size-4 text-primary-foreground sm:size-5"
+              nameClassName="text-sm tracking-tight text-primary sm:text-base md:text-sm lg:text-base xl:text-xl 2xl:text-2xl"
+              subtitleClassName="mt-0.5 hidden text-[9px] font-medium uppercase tracking-wider text-muted-foreground xl:block sm:text-[10px]"
+            />
 
             {/*
               Inline nav from md (768px). Covers Windows-scaled laptops
@@ -900,21 +894,17 @@ function PublicLayoutShellInner({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 min-w-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="sm:col-span-2 lg:col-span-1 min-w-0">
-              <div className="flex items-center gap-2 mb-4 min-w-0">
-                {logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={logoUrl}
-                    alt={firmName}
-                    className="h-8 w-auto object-contain shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
-                    <Scale className="w-4 h-4 text-accent-foreground" />
-                  </div>
-                )}
-                <span className="font-serif text-xl font-bold truncate">{firmName}</span>
-              </div>
+              <FirmBrand
+                href="/"
+                firmName={firmName}
+                logoUrl={logoUrl}
+                logoFit="cover"
+                className="mb-4 gap-2"
+                logoClassName="size-10 rounded-lg border border-primary-foreground/20 bg-primary-foreground/5"
+                fallbackClassName="size-8 bg-accent"
+                fallbackIconClassName="size-4 text-accent-foreground"
+                nameClassName="text-xl text-primary-foreground"
+              />
               <p className="text-sm text-primary-foreground/70 max-w-xs mb-4 break-words [overflow-wrap:anywhere]">
                 {tagline}
               </p>

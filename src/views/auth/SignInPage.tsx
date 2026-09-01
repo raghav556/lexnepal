@@ -36,6 +36,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FirmBrand } from "@/components/branding/firm-brand";
+import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import { pickPortalBranding } from "@/lib/portal-branding";
 
 const DEMO_EMAILS: Record<PortalIntent, string> = {
   admin: "e2e-admin@example.invalid",
@@ -66,6 +69,10 @@ function destinationForRole(role: UserRole, next: string | null): string {
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const publicSettings = usePublicCmsSettings();
+  const branding = pickPortalBranding(publicSettings);
+  const firmName = branding.firmName || "Law Firm";
+  const brandSubtitle = String(publicSettings?.tagline || "Legal practice platform");
   const routeParams = useParams<{ portal?: string }>();
   const [params] = useSearchParams();
   const explicitNext = useMemo(() => safeNextPath(params.get("next")), [params]);
@@ -202,19 +209,18 @@ export default function SignInPage() {
               Back to site
             </Link>
 
-            <div className="mt-10 flex items-center gap-3 sm:mt-14">
-              <span className="flex size-11 items-center justify-center rounded-lg border border-accent/40 bg-accent/15 text-accent sm:size-12">
-                <Scale className="size-5 sm:size-6" strokeWidth={1.75} />
-              </span>
-              <div>
-                <p className="font-serif text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl">
-                  Srimar Law
-                </p>
-                <p className="text-xs tracking-[0.18em] text-accent uppercase">
-                  Legal practice platform
-                </p>
-              </div>
-            </div>
+            <FirmBrand
+              href="/"
+              firmName={firmName}
+              logoUrl={branding.logoUrl}
+              subtitle={brandSubtitle}
+              className="mt-10 gap-3 sm:mt-14"
+              logoClassName="h-12 w-auto max-w-36 rounded-lg"
+              fallbackClassName="size-11 border border-accent/40 bg-accent/15 text-accent sm:size-12"
+              fallbackIconClassName="size-5 sm:size-6"
+              nameClassName="text-2xl tracking-tight text-primary-foreground sm:text-3xl"
+              subtitleClassName="text-xs uppercase tracking-[0.18em] text-accent"
+            />
           </div>
 
           <div className="relative z-10 mt-12 max-w-lg lg:mt-0">
@@ -262,7 +268,7 @@ export default function SignInPage() {
           </div>
 
           <p className="relative z-10 mt-10 text-xs text-primary-foreground/45 lg:mt-0">
-            © {new Date().getFullYear()} Srimar Law · Kathmandu, Nepal
+            © {new Date().getFullYear()} {firmName} · Kathmandu, Nepal
           </p>
         </motion.aside>
 

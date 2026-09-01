@@ -31,15 +31,15 @@ describe("Communication input contracts", () => {
     expect(
       emailSendSchema.safeParse({
         to: "client@example.com",
-        subject: "Invoice",
-        body: "Please pay",
+        subject: "Case update",
+        body: "Please review",
       }).success,
     ).toBe(true);
     expect(
       emailSendSchema.safeParse({
         to: "not-an-email",
-        subject: "Invoice",
-        body: "Please pay",
+        subject: "Case update",
+        body: "Please review",
       }).success,
     ).toBe(false);
   });

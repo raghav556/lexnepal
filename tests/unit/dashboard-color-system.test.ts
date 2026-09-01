@@ -80,16 +80,13 @@ describe("dashboard color system", () => {
 
   it("assigns each dashboard metric a semantic tone", () => {
     expect(DASHBOARD_METRIC_TONES).toEqual({
-      revenue: "success",
       cases: "information",
       people: "primary",
-      time: "warning",
       hearings: "warning",
       tasks: "success",
       signatures: "warning",
       messages: "success",
       documents: "information",
-      balance: "danger",
     });
   });
 });

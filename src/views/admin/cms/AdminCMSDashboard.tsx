@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
@@ -14,6 +14,7 @@ import {
   Search,
   Smartphone,
   AlertCircle,
+  RefreshCw,
   Shield,
   Clock,
 } from "lucide-react";
@@ -27,11 +28,31 @@ const ImagePreview = ({ url, fallbackText }: { url: string; fallbackText: string
   const [error, setError] = useState(false);
   useEffect(() => setError(false), [url]);
 
-  if (!url || error) {
+  if (!url) {
     return (
       <div className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-dashboard-border bg-dashboard-neutral-soft/20 flex flex-col items-center justify-center text-muted-foreground">
         <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
         <span className="text-sm font-medium">{fallbackText}</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-2 flex h-32 w-full flex-col items-center justify-center rounded-lg border border-dashboard-danger/35 bg-dashboard-danger-soft/30 px-4 text-center">
+        <ImageIcon className="mb-2 size-7 text-dashboard-danger" aria-hidden />
+        <p className="text-sm font-semibold text-foreground">Preview could not be loaded</p>
+        <p className="mt-1 text-xs text-muted-foreground">The saved URL was kept unchanged.</p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3 h-8"
+          onClick={() => setError(false)}
+        >
+          <RefreshCw className="mr-1.5 size-3.5" aria-hidden />
+          Retry preview
+        </Button>
       </div>
     );
   }
@@ -113,9 +134,10 @@ export default function AdminCMSDashboard() {
   const [initialData, setInitialData] = useState(formData);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const hydratedSettings = useRef(false);
 
   useEffect(() => {
-    if (settings) {
+    if (settings && !hydratedSettings.current) {
       const data = {
         firmName: settings.firmName || "",
         tagline: settings.tagline || "",
@@ -164,12 +186,22 @@ export default function AdminCMSDashboard() {
       };
       setFormData(data);
       setInitialData(data);
+      hydratedSettings.current = true;
     }
   }, [JSON.stringify(settings)]);
 
   useEffect(() => {
     setHasUnsavedChanges(JSON.stringify(formData) !== JSON.stringify(initialData));
   }, [formData, initialData]);
+
+  const publishBrandAsset = async (
+    key: "logoUrl" | "faviconUrl" | "heroImageUrl",
+    value: string,
+  ) => {
+    await updateSettings({ settings: [{ key, value }] });
+    setFormData((current) => ({ ...current, [key]: value }));
+    setInitialData((current) => ({ ...current, [key]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,14 +251,14 @@ export default function AdminCMSDashboard() {
         <Tabs defaultValue="general" className="w-full min-w-0 gap-0">
           {/* Horizontal scroll on phone — avoids tall stacked nav pushing content below fold */}
           <div className="mb-4 sm:mb-6 -mx-1 px-1 min-w-0">
-            <TabsList className="w-full max-w-full h-auto justify-start gap-1 p-1 bg-dashboard-neutral-soft/50 border border-dashboard-border rounded-lg inline-flex flex-nowrap overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:thin]">
+            <TabsList className="grid h-auto w-full max-w-full auto-cols-max grid-flow-col justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-xl border border-dashboard-border bg-dashboard-neutral-soft/50 p-1 shadow-sm [scrollbar-width:none] lg:grid-flow-row lg:grid-cols-4 lg:overflow-visible xl:grid-cols-7 [&::-webkit-scrollbar]:hidden">
               {settingsTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="shrink-0 py-2 px-2.5 sm:px-4 gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background data-[state=inactive]:bg-transparent hover:bg-background/50"
+                    className="w-full shrink-0 gap-1.5 px-2.5 py-2.5 text-xs data-[state=active]:bg-background data-[state=inactive]:bg-transparent hover:bg-background/50 sm:px-3 sm:text-sm"
                   >
                     <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="sm:hidden">{tab.short}</span>
@@ -349,7 +381,7 @@ export default function AdminCMSDashboard() {
 
                 <DashboardSection
                   title="Brand Assets (Media)"
-                  description="Upload from your device or paste a URL. Images are scanned and stored securely, then shown on the public site after you save."
+                  description="Images are scanned and stored securely. Device uploads publish immediately; pasted URLs publish when you select Save Settings."
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
@@ -357,9 +389,13 @@ export default function AdminCMSDashboard() {
                         label="Firm Logo"
                         purpose="logo"
                         value={formData.logoUrl || undefined}
-                        onChange={(logoUrl) => setFormData({ ...formData, logoUrl: logoUrl ?? "" })}
+                        onChange={(logoUrl) =>
+                          setFormData((current) => ({ ...current, logoUrl: logoUrl ?? "" }))
+                        }
+                        onUploadComplete={(logoUrl) => publishBrandAsset("logoUrl", logoUrl)}
+                        publishedMessage="Firm logo published successfully."
                         placeholder="Upload or https://..."
-                        hint="Shown in the public header and footer. JPEG or PNG, max 5 MB."
+                        hint="Shown across the website and portals. Uploads publish immediately; pasted URLs publish with Save Settings. JPEG or PNG, max 5 MB."
                         hideInlinePreview
                       />
                       <ImagePreview url={formData.logoUrl} fallbackText="No Logo Provided" />
@@ -370,10 +406,14 @@ export default function AdminCMSDashboard() {
                         purpose="favicon"
                         value={formData.faviconUrl || undefined}
                         onChange={(faviconUrl) =>
-                          setFormData({ ...formData, faviconUrl: faviconUrl ?? "" })
+                          setFormData((current) => ({ ...current, faviconUrl: faviconUrl ?? "" }))
                         }
+                        onUploadComplete={(faviconUrl) =>
+                          publishBrandAsset("faviconUrl", faviconUrl)
+                        }
+                        publishedMessage="Favicon published successfully."
                         placeholder="Upload or https://..."
-                        hint="Browser tab icon. Prefer a square PNG."
+                        hint="Browser tab icon. Uploads publish immediately; the current tab refreshes automatically. Prefer a square PNG."
                         hideInlinePreview
                       />
                       <ImagePreview url={formData.faviconUrl} fallbackText="No Favicon Provided" />
@@ -384,10 +424,17 @@ export default function AdminCMSDashboard() {
                         purpose="hero_image"
                         value={formData.heroImageUrl || undefined}
                         onChange={(heroImageUrl) =>
-                          setFormData({ ...formData, heroImageUrl: heroImageUrl ?? "" })
+                          setFormData((current) => ({
+                            ...current,
+                            heroImageUrl: heroImageUrl ?? "",
+                          }))
                         }
+                        onUploadComplete={(heroImageUrl) =>
+                          publishBrandAsset("heroImageUrl", heroImageUrl)
+                        }
+                        publishedMessage="Hero background published successfully."
                         placeholder="Upload or https://..."
-                        hint="Homepage hero background. Leave blank to use the default gradient."
+                        hint="Homepage hero background. Uploads publish immediately. Leave blank to use the default gradient."
                         hideInlinePreview
                       />
                       <ImagePreview

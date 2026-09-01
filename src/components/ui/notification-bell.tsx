@@ -13,8 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "./dropdown-menu.tsx";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  triggerClassName?: string;
+  iconClassName?: string;
+}
+
+export function NotificationBell({ triggerClassName, iconClassName }: NotificationBellProps = {}) {
   const currentUser = useCurrentUser();
   // Keep SSR and first client paint identical — auth/query data is client-only.
   const [mounted, setMounted] = useState(false);
@@ -58,22 +64,37 @@ export function NotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative"
+        className={cn("group relative", triggerClassName)}
         disabled
         aria-label="Notifications loading"
       >
-        <Bell className="w-5 h-5 text-muted-foreground" />
+        <Bell className={cn("size-5 text-muted-foreground", iconClassName)} />
       </Button>
     );
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu className="relative inline-flex w-auto shrink-0 text-left">
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications">
-          <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("group relative", triggerClassName)}
+          aria-label={
+            unreadCount > 0 ? `Open notifications (${unreadCount} unread)` : "Open notifications"
+          }
+        >
+          <Bell
+            className={cn(
+              "size-5 text-muted-foreground transition-colors group-hover:text-foreground",
+              iconClassName,
+            )}
+          />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_2px_hsl(var(--background))]" />
+            <span
+              className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 shadow-[0_0_0_2px_var(--background)]"
+              aria-hidden="true"
+            />
           )}
         </Button>
       </DropdownMenuTrigger>

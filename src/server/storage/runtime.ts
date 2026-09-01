@@ -4,6 +4,7 @@ import { createLogger } from "@/server/observability/logger";
 import { PostgresDocumentStorageRepository } from "@/server/repositories/document-storage-repository";
 import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
 import { DocumentDownloadService } from "@/server/storage/document-download";
+import { DocumentArchiveService } from "@/server/storage/document-archive";
 import { DocumentPipelineService } from "@/server/storage/document-pipeline";
 import {
   ClamAvScanner,
@@ -16,6 +17,7 @@ let runtime:
   | {
       pipeline: DocumentPipelineService;
       downloads: DocumentDownloadService;
+      archives: DocumentArchiveService;
       storage: S3ObjectStorage;
       scanner: CompositeDocumentScanner;
     }
@@ -24,6 +26,7 @@ let runtime:
 export function getDocumentStorageRuntime(): {
   pipeline: DocumentPipelineService;
   downloads: DocumentDownloadService;
+  archives: DocumentArchiveService;
   storage: S3ObjectStorage;
   scanner: CompositeDocumentScanner;
 } {
@@ -66,6 +69,7 @@ export function getDocumentStorageRuntime(): {
       storage,
       environment.DOWNLOAD_URL_TTL_SECONDS,
     ),
+    archives: new DocumentArchiveService(authorization, repository, storage),
     storage,
     scanner,
   };

@@ -1,7 +1,14 @@
 import "server-only";
 import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDatabase } from "../db/client";
-import { documents, documentTags, documentTagAssignments, documentShares } from "../db/schema";
+import {
+  auditLog,
+  documents,
+  documentTags,
+  documentTagAssignments,
+  documentShares,
+} from "../db/schema";
+import type { AuditContext } from "@/server/audit/context";
 import { AppError } from "@/shared/errors/api-error";
 import type { DocumentDto } from "@/shared/contracts/domains";
 import type { DocumentSearchInput, DocumentShareCreateInput } from "@/shared/contracts/documents";
@@ -23,6 +30,12 @@ function toDocumentDto(
     confidentialityLevel: string;
     deletedAt: Date | null;
     status: string;
+    sha256: string | null;
+    version: number;
+    parentDocumentId: string | null;
+    uploadStatus: string;
+    createdAt: Date;
+    updatedAt: Date;
     legacyConvexId: string | null;
     isOnLegalHold?: boolean;
     legalHoldReason?: string | null;
@@ -48,6 +61,13 @@ function toDocumentDto(
     isDeleted: !!row.deletedAt,
     tags,
     status: row.status,
+    sha256: row.sha256,
+    version: row.version,
+    parentDocumentId: row.parentDocumentId,
+    uploadStatus: row.uploadStatus,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    _creationTime: row.createdAt.getTime(),
     legacyConvexId: row.legacyConvexId || undefined,
     isOnLegalHold: row.isOnLegalHold,
     legalHoldReason: row.legalHoldReason,
@@ -79,7 +99,15 @@ export class DocumentRepository {
       conditions.push(eq(documents.isTemplate, filters.isTemplate));
     }
     if (filters.inTrash) conditions.push(sql`${documents.deletedAt} IS NOT NULL`);
-    else conditions.push(isNull(documents.deletedAt));
+    else {
+      conditions.push(isNull(documents.deletedAt));
+      conditions.push(sql`NOT EXISTS (
+        SELECT 1 FROM documents AS child_version
+        WHERE child_version.firm_id = ${firmId}
+          AND child_version.parent_document_id = ${documents.id}
+          AND child_version.deleted_at IS NULL
+      )`);
+    }
 
     if (filters.clientUserId) {
       conditions.push(eq(documents.isTemplate, false));
@@ -120,6 +148,12 @@ export class DocumentRepository {
       eq(documents.firmId, firmId),
       isNull(documents.deletedAt),
       ilike(documents.title, `%${filters.query}%`),
+      sql`NOT EXISTS (
+        SELECT 1 FROM documents AS child_version
+        WHERE child_version.firm_id = ${firmId}
+          AND child_version.parent_document_id = ${documents.id}
+          AND child_version.deleted_at IS NULL
+      )`,
     ];
     if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
     if (filters.type) conditions.push(eq(documents.type, filters.type));
@@ -153,6 +187,161 @@ export class DocumentRepository {
     if (!row) return null;
     const tagsByDoc = await this.loadTags([row.id]);
     return toDocumentDto(row, tagsByDoc[row.id] || []);
+  }
+
+  static async listVersionHistory(firmId: string, documentId: string) {
+    const db = getDatabase();
+    const initial = await this.getDocumentRow(firmId, documentId);
+    if (!initial) return [];
+
+    const seen = new Set<string>();
+    let root = initial;
+    while (root.parentDocumentId && !seen.has(root.id)) {
+      seen.add(root.id);
+      const parent = await this.getDocumentRow(firmId, root.parentDocumentId);
+      if (!parent) break;
+      root = parent;
+    }
+
+    const rows = [root];
+    const queued = [root.id];
+    seen.clear();
+    seen.add(root.id);
+    while (queued.length > 0) {
+      const parentIds = queued.splice(0, queued.length);
+      const children = await db
+        .select()
+        .from(documents)
+        .where(and(eq(documents.firmId, firmId), inArray(documents.parentDocumentId, parentIds)));
+      for (const child of children) {
+        if (seen.has(child.id)) continue;
+        seen.add(child.id);
+        rows.push(child);
+        queued.push(child.id);
+      }
+    }
+
+    const tagsByDoc = await this.loadTags(rows.map((row) => row.id));
+    return rows
+      .sort(
+        (left, right) =>
+          right.version - left.version || right.createdAt.getTime() - left.createdAt.getTime(),
+      )
+      .map((row) => toDocumentDto(row, tagsByDoc[row.id] || []));
+  }
+
+  static async createRestoredVersion(input: {
+    firmId: string;
+    id: string;
+    sourceDocumentId: string;
+    parentDocumentId: string;
+    destinationStorageKey: string;
+    version: number;
+    uploadedBy: string;
+    audit: AuditContext;
+  }) {
+    const db = getDatabase();
+    return db.transaction(async (transaction) => {
+      const [source] = await transaction
+        .select()
+        .from(documents)
+        .where(
+          and(
+            eq(documents.firmId, input.firmId),
+            eq(documents.id, input.sourceDocumentId),
+            isNull(documents.deletedAt),
+          ),
+        )
+        .limit(1);
+      const [parent] = await transaction
+        .select()
+        .from(documents)
+        .where(
+          and(
+            eq(documents.firmId, input.firmId),
+            eq(documents.id, input.parentDocumentId),
+            isNull(documents.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!source || !parent)
+        throw new AppError("NOT_FOUND", "Document version was not found", 404);
+      if (source.uploadStatus !== "clean") {
+        throw new AppError("CONFLICT", "Only a clean document version can be restored", 409);
+      }
+      if (input.version !== parent.version + 1) {
+        throw new AppError("CONFLICT", "Document history changed; refresh and try again", 409);
+      }
+
+      const [created] = await transaction
+        .insert(documents)
+        .values({
+          id: input.id,
+          firmId: input.firmId,
+          caseId: parent.caseId,
+          documentNumber: `DOC-RESTORE-${input.id}`,
+          title: source.title,
+          description: source.description,
+          type: source.type,
+          storageId: input.destinationStorageKey,
+          mimeType: source.mimeType,
+          sizeBytes: source.sizeBytes,
+          sha256: source.sha256,
+          version: input.version,
+          parentDocumentId: input.parentDocumentId,
+          uploadedBy: input.uploadedBy,
+          isTemplate: parent.isTemplate,
+          isPrivileged: parent.isPrivileged,
+          searchableText: source.searchableText,
+          status: "draft",
+          retentionPolicy: parent.retentionPolicy,
+          retentionUntil: parent.retentionUntil,
+          confidentialityLevel: parent.confidentialityLevel,
+          isOnLegalHold: parent.isOnLegalHold,
+          legalHoldReason: parent.legalHoldReason,
+          legalHoldSetAt: parent.legalHoldSetAt,
+          legalHoldSetBy: parent.legalHoldSetBy,
+          uploadStatus: "clean",
+          scanProvider: "version-restore",
+          scanCompletedAt: input.audit.occurredAt,
+          scanDetails: `Restored from version ${source.version} (${source.id})`,
+        })
+        .returning();
+
+      const sourceTags = await transaction
+        .select({ tagId: documentTagAssignments.tagId })
+        .from(documentTagAssignments)
+        .where(
+          and(
+            eq(documentTagAssignments.firmId, input.firmId),
+            eq(documentTagAssignments.documentId, source.id),
+            isNull(documentTagAssignments.deletedAt),
+          ),
+        );
+      if (sourceTags.length > 0) {
+        await transaction.insert(documentTagAssignments).values(
+          sourceTags.map(({ tagId }) => ({
+            firmId: input.firmId,
+            documentId: created.id,
+            tagId,
+          })),
+        );
+      }
+
+      await transaction.insert(auditLog).values({
+        firmId: input.firmId,
+        userId: input.uploadedBy,
+        action: "document.version_restored",
+        resource: "documents",
+        resourceId: created.id,
+        details: `source=${source.id}; sourceVersion=${source.version}; parent=${parent.id}; newVersion=${input.version}`,
+        ipAddress: input.audit.ipAddress,
+        requestId: input.audit.requestId,
+        createdAt: input.audit.occurredAt,
+        updatedAt: input.audit.occurredAt,
+      });
+      return toDocumentDto(created);
+    });
   }
 
   static async updateDocumentMetadata(
@@ -340,5 +529,15 @@ export class DocumentRepository {
       },
       {} as Record<string, string[]>,
     );
+  }
+
+  private static async getDocumentRow(firmId: string, id: string) {
+    const db = getDatabase();
+    const [row] = await db
+      .select()
+      .from(documents)
+      .where(and(eq(documents.firmId, firmId), eq(documents.id, id)))
+      .limit(1);
+    return row ?? null;
   }
 }

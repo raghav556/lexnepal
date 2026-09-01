@@ -3,7 +3,7 @@ import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Plus, X, Trash2, Loader2, Save, Bell, Clock, MessageSquare, Archive } from "lucide-react";
+import { Plus, X, Trash2, Loader2, Save, Bell, MessageSquare, Archive } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
 import {
@@ -13,7 +13,6 @@ import {
   useTaskComments,
   useTaskWorkload,
 } from "@/client/queries/tasks";
-import { useTimeEntryCommands } from "@/client/queries/financial";
 import { useHearings } from "@/client/queries/hearings";
 import { useCases } from "@/client/queries/cases";
 import { Input } from "@/components/ui/input.tsx";
@@ -68,7 +67,6 @@ export default function StaffTasksPage() {
   const { createTask, archiveTask, restoreTask, deleteTask, addComment, scanOverdueReminders } =
     useTaskCommands();
   const updateTask = useUpdateTask();
-  const { createTimeEntry: createTimeEntryMutation } = useTimeEntryCommands();
 
   const [scope, setScope] = useState<ScopeFilter>("mine");
   const [filterAssignee, setFilterAssignee] = useState("");
@@ -173,8 +171,6 @@ export default function StaffTasksPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
-  const [isLoggingTime, setIsLoggingTime] = useState(false);
-  const [logMinutes, setLogMinutes] = useState("30");
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
@@ -413,34 +409,6 @@ export default function StaffTasksPage() {
     }
   };
 
-  const handleLogTime = async () => {
-    if (!selectedTask?.caseId) {
-      toast.error("Link a case before logging time.");
-      return;
-    }
-    const minutes = parseInt(logMinutes, 10);
-    if (!minutes || minutes < 1) {
-      toast.error("Enter valid minutes.");
-      return;
-    }
-    setIsLoggingTime(true);
-    try {
-      await createTimeEntryMutation.mutateAsync({
-        caseId: selectedTask.caseId as any,
-        description: `Task: ${selectedTask.title}`,
-        minutes,
-        isBillable: true,
-        date: new Date().toISOString().slice(0, 10),
-        ratePerHour: 1500,
-      });
-      toast.success(`Logged ${minutes} minutes`);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to log time");
-    } finally {
-      setIsLoggingTime(false);
-    }
-  };
-
   const handleScanOverdue = async () => {
     setScanning(true);
     try {
@@ -479,7 +447,7 @@ export default function StaffTasksPage() {
       titleKey="portal.tasks.title"
       descriptionKey="portal.tasks.description"
       heroChildren={
-        <p className="text-xs text-dashboard-hero-muted">
+        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
           {filteredTasks.length} {t("tasks.shown")} · {tasks.length} {t("tasks.total")}
         </p>
       }
@@ -1168,35 +1136,6 @@ export default function StaffTasksPage() {
                   {isAddingSubtask ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
                 </Button>
               </div>
-            </div>
-
-            {/* Log time */}
-            <div className="border border-border rounded-lg p-3 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Log time from task
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  className="h-8 text-xs w-24"
-                  type="number"
-                  min={1}
-                  value={logMinutes}
-                  onChange={(e) => setLogMinutes(e.target.value)}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isLoggingTime || !editCaseId}
-                  onClick={handleLogTime}
-                >
-                  {isLoggingTime ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Log minutes"}
-                </Button>
-              </div>
-              {!editCaseId && (
-                <p className="text-[10px] text-muted-foreground">
-                  Link a case to enable time logging.
-                </p>
-              )}
             </div>
 
             {/* Comments */}

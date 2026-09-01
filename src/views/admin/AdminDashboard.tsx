@@ -1,176 +1,83 @@
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
   ArrowRight,
-  BarChart3,
-  Clock,
-  DollarSign,
+  CalendarDays,
+  CheckSquare,
   FolderOpen,
   Sparkles,
-  TrendingUp,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
-import { useInvoices, useTimeEntries } from "@/client/queries/financial";
-import { useUsers } from "@/client/queries/identity";
+import { useLeads } from "@/client/queries/crm";
+import { useHearings } from "@/client/queries/hearings";
+import { useTasks } from "@/client/queries/tasks";
 import {
   ChartSurface,
   DashboardButton,
-  DashboardSection,
+  DashboardListRow,
   EmptyState,
   PortalPageShell,
   StatusBadge,
 } from "@/components/dashboard";
 import {
-  DASHBOARD_CHART_COLORS,
-  DASHBOARD_CHART_THEME,
   DASHBOARD_METRIC_TONES,
   DASHBOARD_TONE_FILL_CLASSES,
-  DASHBOARD_TONE_PANEL_CLASSES,
-  type DashboardTone,
+  getDashboardStatusTone,
 } from "@/lib/dashboard-semantics";
-import { formatNPR } from "@/lib/lex-constants.ts";
+
+function countBy<T>(rows: T[], key: (row: T) => string) {
+  return rows.reduce<Record<string, number>>((counts, row) => {
+    const value = key(row) || "Unspecified";
+    counts[value] = (counts[value] ?? 0) + 1;
+    return counts;
+  }, {});
+}
 
 export default function AdminDashboard() {
   const casesResult = useCases({});
-  const cases = casesResult || [];
-  const clients = useClients() || [];
-  const users = useUsers() || [];
-  const { data: invoices = [] } = useInvoices({});
-  const { data: timeEntries = [] } = useTimeEntries({});
-  const isLoading = casesResult === undefined;
+  const clientsResult = useClients();
+  const hearingsResult = useHearings({});
+  const tasksResult = useTasks({});
+  const { data: leads, isLoading: leadsLoading } = useLeads();
 
-  const activeCases = cases.filter((item) => item.status === "active").length;
-  const totalClients = clients.filter((client) => client.isActive).length;
-  const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
-  const mtdRevenue = paidInvoices.reduce((sum: number, invoice) => sum + invoice.total, 0);
-  const staffUsers = users.filter((user) => user.role !== "client" && user.role !== "admin");
-  const totalBillableMins = timeEntries
-    .filter((entry) => entry.isBillable)
-    .reduce((sum: number, entry) => sum + entry.minutes, 0);
-  const avgBillableHours =
-    staffUsers.length > 0 ? Math.round(totalBillableMins / staffUsers.length / 60) : 0;
+  const cases = casesResult ?? [];
+  const clients = clientsResult ?? [];
+  const hearings = hearingsResult ?? [];
+  const tasks = tasksResult ?? [];
+  const activeCases = cases.filter((item) => item.status === "active");
+  const activeClients = clients.filter((item) => item.isActive);
+  const openLeads = leads.filter((item) => item.status === "new" || item.status === "contacted");
+  const upcomingHearings = hearings.filter((item) => item.status === "scheduled");
+  const openTasks = tasks.filter((item) => item.status === "todo" || item.status === "in_progress");
 
-  const areaMap: Record<string, number> = {};
-  cases
-    .filter((item) => item.status === "active")
-    .forEach((item) => {
-      const key = item.practiceArea.split(" ")[0];
-      areaMap[key] = (areaMap[key] || 0) + 1;
-    });
-  const casesByArea = Object.entries(areaMap).map(([area, count]) => ({ area, count }));
-
-  const monthOrder = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const revenueByMonth: Record<string, number> = {};
-  paidInvoices.forEach((invoice) => {
-    if (invoice.paidDate) {
-      const month = monthOrder[new Date(invoice.paidDate).getMonth()];
-      revenueByMonth[month] = (revenueByMonth[month] || 0) + invoice.total;
-    }
-  });
-  const monthlyRevenue =
-    Object.keys(revenueByMonth).length > 0
-      ? Object.entries(revenueByMonth).map(([month, revenue]) => ({ month, revenue }))
-      : [
-          { month: "Shrawan", revenue: 180000 },
-          { month: "Bhadra", revenue: 220000 },
-          { month: "Ashwin", revenue: 195000 },
-          { month: "Kartik", revenue: 260000 },
-          { month: "Mangsir", revenue: mtdRevenue || 240000 },
-        ];
-
-  const staffUtilisation = staffUsers.map((user) => {
-    const userMins = timeEntries
-      .filter((entry) => entry.userId === user._id && entry.isBillable)
-      .reduce((sum: number, entry) => sum + entry.minutes, 0);
-    const hours = Math.round(userMins / 60);
-    const target = user.role === "partner" ? 40 : 45;
-    return { name: user.name, role: user.role.replace("_", " "), hours, target };
-  });
-
-  const metrics = [
-    {
-      label: "Revenue (MTD)",
-      value: formatNPR(mtdRevenue || 240000),
-      change: "+8%",
-      icon: DollarSign,
-      tone: DASHBOARD_METRIC_TONES.revenue,
-    },
-    {
-      label: "Active cases",
-      value: String(activeCases),
-      change: "+3 this month",
-      icon: FolderOpen,
-      tone: DASHBOARD_METRIC_TONES.cases,
-    },
-    {
-      label: "Total clients",
-      value: String(totalClients),
-      change: "+5 this month",
-      icon: Users,
-      tone: DASHBOARD_METRIC_TONES.people,
-    },
-    {
-      label: "Avg. billable hrs/lawyer",
-      value: `${avgBillableHours}h`,
-      change: "This week",
-      icon: Clock,
-      tone: DASHBOARD_METRIC_TONES.time,
-    },
-  ];
-  const practiceChartData =
-    casesByArea.length > 0
-      ? casesByArea
-      : [
-          { area: "Corporate", count: 8 },
-          { area: "Criminal", count: 5 },
-          { area: "Property", count: 7 },
-          { area: "Family", count: 4 },
-          { area: "IP", count: 3 },
-          { area: "Labor", count: 3 },
-        ];
-  const practicePalette = Object.values(DASHBOARD_CHART_COLORS);
+  const casesByPractice = countBy(activeCases, (item) => item.practiceArea || "Other");
+  const casesByStatus = countBy(cases, (item) => item.status || "open");
+  const tasksByStatus = countBy(tasks, (item) => item.status || "todo");
+  const maxPracticeCount = Math.max(1, ...Object.values(casesByPractice));
+  const maxTaskCount = Math.max(1, ...Object.values(tasksByStatus));
+  const isLoading =
+    casesResult === undefined ||
+    clientsResult === undefined ||
+    hearingsResult === undefined ||
+    tasksResult === undefined ||
+    leadsLoading;
 
   return (
     <PortalPageShell
       portal="admin"
       loading={isLoading}
-      loadingLabel="Preparing executive intelligence…"
+      loadingLabel="Preparing operational intelligence…"
       eyebrow="Executive command center"
-      title="Firm performance, beautifully in focus"
-      description="Live commercial, client, case, and team intelligence for Srimar Law."
+      title="Firm operations, clearly in focus"
+      description="Live matter, client, hearing, task, and intake intelligence for the firm."
       icon={Sparkles}
-      className="font-sans"
       actions={
         <>
           <DashboardButton asChild size="sm">
-            <Link href="/admin/finance">
-              Finance <ArrowRight className="size-3.5" aria-hidden />
+            <Link href="/admin/clients">
+              Clients <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </DashboardButton>
           <DashboardButton asChild size="sm" variant="secondary">
@@ -180,222 +87,156 @@ export default function AdminDashboard() {
       }
       heroChildren={
         <div className="flex flex-wrap gap-2">
-          <StatusBadge tone="success" icon={TrendingUp}>
-            Revenue trajectory positive
+          <StatusBadge tone={openTasks.length > 0 ? "warning" : "success"} icon={CheckSquare}>
+            {openTasks.length} open task{openTasks.length === 1 ? "" : "s"}
           </StatusBadge>
           <StatusBadge tone="primary">Live database</StatusBadge>
         </div>
       }
-      metrics={metrics.map((metric) => ({
-        label: metric.label,
-        value: metric.value,
-        icon: metric.icon,
-        tone: metric.tone,
-        trend: (
-          <StatusBadge tone={metric.tone} icon={metric.tone === "success" ? TrendingUp : undefined}>
-            {metric.change}
-          </StatusBadge>
-        ),
-      }))}
+      metrics={[
+        {
+          label: "Active cases",
+          value: String(activeCases.length),
+          icon: FolderOpen,
+          tone: DASHBOARD_METRIC_TONES.cases,
+          helperText: "Matters in progress",
+        },
+        {
+          label: "Active clients",
+          value: String(activeClients.length),
+          icon: Users,
+          tone: DASHBOARD_METRIC_TONES.people,
+          helperText: "Current client relationships",
+        },
+        {
+          label: "Open leads",
+          value: String(openLeads.length),
+          icon: UserPlus,
+          tone: "information",
+          helperText: "New or contacted enquiries",
+        },
+        {
+          label: "Upcoming hearings",
+          value: String(upcomingHearings.length),
+          icon: CalendarDays,
+          tone: DASHBOARD_METRIC_TONES.hearings,
+          helperText: "Scheduled court commitments",
+        },
+      ]}
     >
       <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
-        <ChartSurface
-          title="Monthly revenue"
-          description="Paid invoice performance in Nepalese rupees"
-          actions={
-            <DashboardButton asChild size="sm" variant="ghost">
-              <Link href="/admin/finance">
-                View details <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-          legend={
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <span className="size-2.5 rounded-full bg-dashboard-accent" />
-                Revenue
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="size-2.5 rounded-full bg-dashboard-success" />
-                Positive trend
-              </span>
-            </div>
-          }
-        >
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={monthlyRevenue} margin={{ left: 0, right: 12, top: 12 }}>
-              <defs>
-                <linearGradient id="adminRevenueArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={DASHBOARD_CHART_COLORS.gold} stopOpacity={0.42} />
-                  <stop
-                    offset="100%"
-                    stopColor={DASHBOARD_CHART_COLORS.success}
-                    stopOpacity={0.04}
-                  />
-                </linearGradient>
-                <linearGradient id="adminRevenueStroke" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={DASHBOARD_CHART_COLORS.gold} />
-                  <stop offset="100%" stopColor={DASHBOARD_CHART_COLORS.success} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                stroke={DASHBOARD_CHART_THEME.grid}
-                strokeDasharray="4 5"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11, fill: DASHBOARD_CHART_THEME.label }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: DASHBOARD_CHART_THEME.label }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value: number) => `${value / 1000}k`}
-              />
-              <Tooltip
-                cursor={{ stroke: DASHBOARD_CHART_COLORS.gold, strokeDasharray: "3 3" }}
-                contentStyle={{
-                  background: DASHBOARD_CHART_THEME.tooltipBackground,
-                  color: DASHBOARD_CHART_THEME.tooltipForeground,
-                  borderColor: DASHBOARD_CHART_THEME.tooltipBorder,
-                  borderRadius: 12,
-                  boxShadow: "0 16px 32px -20px var(--dashboard-primary)",
-                }}
-                formatter={(value) => [
-                  typeof value === "number" ? formatNPR(value) : String(value),
-                  "Revenue",
-                ]}
-              />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="url(#adminRevenueStroke)"
-                strokeWidth={3}
-                fill="url(#adminRevenueArea)"
-                activeDot={{ r: 5, fill: DASHBOARD_CHART_COLORS.success }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartSurface>
-
-        <ChartSurface
-          title="Active cases by practice area"
-          description="A controlled multi-series view of the current portfolio"
-          legend={
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-              {practiceChartData.map((item, index) => (
-                <span key={item.area} className="flex items-center gap-2">
-                  <span
-                    className="size-2.5 rounded-full"
-                    style={{ background: practicePalette[index % practicePalette.length] }}
-                  />
-                  {item.area}
-                </span>
-              ))}
-            </div>
-          }
-        >
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={practiceChartData} layout="vertical" margin={{ left: 0, right: 12 }}>
-              <CartesianGrid
-                stroke={DASHBOARD_CHART_THEME.grid}
-                strokeDasharray="4 5"
-                horizontal={false}
-              />
-              <XAxis
-                type="number"
-                tick={{ fontSize: 11, fill: DASHBOARD_CHART_THEME.label }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                dataKey="area"
-                type="category"
-                tick={{ fontSize: 11, fill: DASHBOARD_CHART_THEME.label }}
-                tickLine={false}
-                axisLine={false}
-                width={68}
-              />
-              <Tooltip
-                cursor={{ fill: DASHBOARD_CHART_THEME.grid }}
-                contentStyle={{
-                  background: DASHBOARD_CHART_THEME.tooltipBackground,
-                  color: DASHBOARD_CHART_THEME.tooltipForeground,
-                  borderColor: DASHBOARD_CHART_THEME.tooltipBorder,
-                  borderRadius: 12,
-                }}
-              />
-              <Bar dataKey="count" radius={[0, 7, 7, 0]}>
-                {practiceChartData.map((item, index) => (
-                  <Cell key={item.area} fill={practicePalette[index % practicePalette.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartSurface>
-      </div>
-
-      <DashboardSection
-        title="Staff utilization"
-        description="Billable hours against weekly role targets"
-        icon={BarChart3}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <StatusBadge tone="success">Healthy 90%+</StatusBadge>
-            <StatusBadge tone="warning">Attention 70–89%</StatusBadge>
-            <StatusBadge tone="danger">Low below 70%</StatusBadge>
-          </div>
-        }
-      >
-        {staffUtilisation.length === 0 ? (
-          <EmptyState
-            title="No utilization data yet"
-            description="Billable time will appear here as staff submit time entries."
-            icon={Clock}
-            tone="information"
-          />
-        ) : (
-          <div className="space-y-3">
-            {staffUtilisation.map((staff) => {
-              const percentage = Math.round((staff.hours / staff.target) * 100);
-              const tone: DashboardTone =
-                percentage >= 90 ? "success" : percentage >= 70 ? "warning" : "danger";
-              return (
-                <div
-                  key={staff.name}
-                  className={`rounded-xl border p-4 ${DASHBOARD_TONE_PANEL_CLASSES[tone]}`}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="min-w-0 sm:w-44">
-                      <p className="truncate text-sm font-semibold capitalize text-foreground">
-                        {staff.name}
-                      </p>
-                      <p className="text-xs capitalize text-muted-foreground">{staff.role}</p>
-                    </div>
-                    <div className="flex-1">
-                      <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                        <span>
-                          {staff.hours}h of {staff.target}h target
-                        </span>
-                        <StatusBadge tone={tone}>{percentage}%</StatusBadge>
-                      </div>
-                      <div className="h-2.5 overflow-hidden rounded-full bg-dashboard-panel">
-                        <div
-                          className={`h-full rounded-full transition-all ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
-                      </div>
-                    </div>
+        <ChartSurface title="Active matters by practice area" description="Current portfolio mix">
+          {Object.keys(casesByPractice).length === 0 ? (
+            <EmptyState
+              title="No active matters"
+              description="Practice-area distribution appears when matters become active."
+              icon={FolderOpen}
+            />
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(casesByPractice).map(([area, count]) => (
+                <div key={area}>
+                  <div className="mb-1.5 flex justify-between gap-3 text-sm">
+                    <span className="truncate font-medium text-foreground">{area}</span>
+                    <span className="font-semibold text-muted-foreground">{count}</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-dashboard-neutral-soft">
+                    <div
+                      className="h-full rounded-full bg-dashboard-primary"
+                      style={{ width: `${Math.max(8, (count / maxPracticeCount) * 100)}%` }}
+                    />
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </DashboardSection>
+              ))}
+            </div>
+          )}
+        </ChartSurface>
+
+        <ChartSurface title="Task status" description="Firm work queue across all matters">
+          {Object.keys(tasksByStatus).length === 0 ? (
+            <EmptyState
+              title="No task activity"
+              description="Task status distribution appears when work is assigned."
+              icon={CheckSquare}
+            />
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(tasksByStatus).map(([status, count]) => {
+                const tone = getDashboardStatusTone(status);
+                return (
+                  <div key={status}>
+                    <div className="mb-1.5 flex justify-between gap-3 text-sm">
+                      <span className="font-medium capitalize text-foreground">
+                        {status.replaceAll("_", " ")}
+                      </span>
+                      <StatusBadge tone={tone}>{count}</StatusBadge>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-dashboard-neutral-soft">
+                      <div
+                        className={`h-full rounded-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
+                        style={{ width: `${Math.max(8, (count / maxTaskCount) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ChartSurface>
+
+        <ChartSurface title="Matter status" description="Lifecycle distribution across all cases">
+          {Object.keys(casesByStatus).length === 0 ? (
+            <EmptyState
+              title="No matter data"
+              description="Matter status counts appear when cases are created."
+              icon={FolderOpen}
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Object.entries(casesByStatus).map(([status, count]) => (
+                <div
+                  key={status}
+                  className="rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/50 p-4"
+                >
+                  <p className="text-2xl font-bold text-foreground">{count}</p>
+                  <p className="mt-1 text-xs font-medium capitalize text-muted-foreground">
+                    {status.replaceAll("_", " ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </ChartSurface>
+
+        <ChartSurface title="Upcoming hearings" description="Next scheduled court commitments">
+          {upcomingHearings.length === 0 ? (
+            <EmptyState
+              title="No upcoming hearings"
+              description="Scheduled hearings will appear here."
+              icon={CalendarDays}
+            />
+          ) : (
+            <div className="space-y-3">
+              {upcomingHearings.slice(0, 5).map((hearing) => {
+                const matter = cases.find((item) => item._id === hearing.caseId);
+                return (
+                  <DashboardListRow key={hearing._id}>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {matter?.title || "Hearing"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {hearing.court} · {hearing.dateBs || hearing.dateGregorian}
+                      </p>
+                    </div>
+                    <StatusBadge tone="information">Scheduled</StatusBadge>
+                  </DashboardListRow>
+                );
+              })}
+            </div>
+          )}
+        </ChartSurface>
+      </div>
     </PortalPageShell>
   );
 }

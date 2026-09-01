@@ -21,8 +21,6 @@ Route,Audience,File,View imports,Client query imports,Server service imports
 /admin/conflict-checker,admin,src/app/(admin)/admin/conflict-checker/page.tsx,@/views/admin/AdminConflictChecker,,
 /admin/crm,admin,src/app/(admin)/admin/crm/page.tsx,@/views/admin/AdminCRMPage,,
 /admin/document-generator,admin,src/app/(admin)/admin/document-generator/page.tsx,@/views/admin/AdminDocumentGenerator,,
-/admin/expenses,admin,src/app/(admin)/admin/expenses/page.tsx,@/views/admin/AdminExpensesPage,,
-/admin/finance,admin,src/app/(admin)/admin/finance/page.tsx,@/views/admin/AdminFinancePage,,
 /admin/hr,admin,src/app/(admin)/admin/hr/page.tsx,@/views/admin/AdminHRPage,,
 /admin/profile,admin,src/app/(admin)/admin/profile/page.tsx,@/views/shared/SharedProfilePage,,
 /admin/settings,admin,src/app/(admin)/admin/settings/page.tsx,@/views/admin/AdminSettingsPage,,
@@ -33,8 +31,6 @@ Route,Audience,File,View imports,Client query imports,Server service imports
 /blog/[slug],public,src/app/(public)/blog/[slug]/page.tsx,@/views/public/BlogPostPage,,@/server/services/cms-service
 /careers,public,src/app/(public)/careers/page.tsx,@/views/public/CareersPage,,
 /client,client,src/app/(client)/client/page.tsx,@/views/client/ClientDashboard,,
-/client/billing,client,src/app/(client)/client/billing/page.tsx,@/views/client/ClientBillingPage,,
-/client/billing/return,client,src/app/(client)/client/billing/return/page.tsx,@/views/client/ClientBillingReturnPage,,
 /client/booking,client,src/app/(client)/client/booking/page.tsx,@/views/client/ClientBookingPage,,
 /client/cases,client,src/app/(client)/client/cases/page.tsx,@/views/client/ClientCasesPage,,
 /client/cases/[id],client,src/app/(client)/client/cases/[id]/page.tsx,@/views/client/ClientCaseDetailPage,,
@@ -79,5 +75,4 @@ Route,Audience,File,View imports,Client query imports,Server service imports
 /staff/research,staff,src/app/(staff)/staff/research/page.tsx,@/views/staff/StaffResearchPage,,
 /staff/tasks,staff,src/app/(staff)/staff/tasks/page.tsx,@/views/staff/StaffTasksPage,,
 /staff/team-chat,staff,src/app/(staff)/staff/team-chat/page.tsx,@/views/staff/StaffTeamChatPage,,
-/staff/time,staff,src/app/(staff)/staff/time/page.tsx,@/views/staff/StaffTimeTrackerPage,,
 /terms,public,src/app/(public)/terms/page.tsx,@/views/public/LegalPage,,

@@ -44,24 +44,24 @@ test.describe("R5.7 E2E smoke", () => {
     await expectSignedInPortal(page, "/staff/documents");
   });
 
-  test("login → admin finance (invoice)", async ({ page }) => {
+  test("login → admin operational analytics", async ({ page }) => {
     await signIn(page, E2E_USERS.admin.email);
     await expect(page).toHaveURL(/\/admin(\/|$)/, { timeout: 20_000 });
     await expectSignedInPortal(page, "/admin");
 
-    await page.goto("/admin/finance");
-    await expect(page).toHaveURL(/\/admin\/finance/);
-    await expectSignedInPortal(page, "/admin/finance");
+    await page.goto("/admin/analytics");
+    await expect(page).toHaveURL(/\/admin\/analytics/);
+    await expectSignedInPortal(page, "/admin/analytics");
   });
 
-  test("login → client billing + signatures", async ({ page }) => {
+  test("login → client cases + signatures", async ({ page }) => {
     await signIn(page, E2E_USERS.client.email);
     await expect(page).toHaveURL(/\/client(\/|$)/, { timeout: 20_000 });
     await expectSignedInPortal(page, "/client");
 
-    await page.goto("/client/billing");
-    await expect(page).toHaveURL(/\/client\/billing/);
-    await expectSignedInPortal(page, "/client/billing");
+    await page.goto("/client/cases");
+    await expect(page).toHaveURL(/\/client\/cases/);
+    await expectSignedInPortal(page, "/client/cases");
 
     await page.goto("/client/signatures");
     await expect(page).toHaveURL(/\/client\/signatures/);

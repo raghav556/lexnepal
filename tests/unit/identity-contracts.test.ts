@@ -32,19 +32,18 @@ describe("Identity input contracts", () => {
 
   it("validates system settings formats", () => {
     const validSettings = {
-      defaultHourlyRate: "150.00",
-      vatRate: "13.0",
-      invoicePaymentTerms: "30",
       defaultLanguage: "en",
       clientPortalEnabled: true,
       onlineBookingEnabled: false,
+      defaultMeetingPlatform: "manual",
     };
 
     expect(updateSystemSettingsSchema.safeParse(validSettings).success).toBe(true);
 
-    // Invalid numeric formats
-    expect(updateSystemSettingsSchema.safeParse({ defaultHourlyRate: "abc" }).success).toBe(false);
-    expect(updateSystemSettingsSchema.safeParse({ invoicePaymentTerms: "30 days" }).success).toBe(
+    expect(
+      updateSystemSettingsSchema.safeParse({ defaultMeetingPlatform: "unsupported" }).success,
+    ).toBe(false);
+    expect(updateSystemSettingsSchema.safeParse({ defaultHourlyRate: "150.00" }).success).toBe(
       false,
     );
   });

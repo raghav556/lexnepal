@@ -67,15 +67,6 @@ export const CUTOVER_DOMAINS: CutoverDomain[] = [
     verifyNpmScript: "work-management:verify-local",
   },
   {
-    domain: "financial",
-    label: "Billing / finance",
-    backendFlags: ["VITE_BACKEND_FINANCE"],
-    exportPath: "tests/fixtures/convex-financial-export",
-    extraArgs: ["--firm-map", firmMap, "--orphan-firm", firmA],
-    localSoak: "3+ days",
-    verifyNpmScript: "financial:verify-local",
-  },
-  {
     domain: "crm",
     label: "CRM / leads",
     backendFlags: ["VITE_BACKEND_LEADS"],

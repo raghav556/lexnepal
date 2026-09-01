@@ -4,13 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Scale,
   LayoutDashboard,
   FolderOpen,
   CalendarDays,
   FileText,
   CheckSquare,
-  Clock,
   Users,
   Menu,
   X,
@@ -30,7 +28,8 @@ import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
 import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
-import { PortalBrandingProvider } from "@/components/dashboard";
+import { PortalBrandingProvider, PortalTopbar, PortalFooter } from "@/components/dashboard";
+import { PortalFirmBrand } from "@/components/branding/firm-brand";
 
 type NavItem = {
   label?: string;
@@ -43,10 +42,8 @@ type NavLink = NavItem & { href: string; icon: LucideIcon };
 const isNavLink = (item: NavItem): item is NavLink => Boolean(item.href && item.icon);
 
 const NAV: NavItem[] = [
-  { heading: "Workspace" },
   { label: "Dashboard", i18nKey: "nav.dashboard", href: "/staff", icon: LayoutDashboard },
   { label: "Tasks", i18nKey: "nav.tasks", href: "/staff/tasks", icon: CheckSquare },
-  { label: "Time Tracker", i18nKey: "nav.time", href: "/staff/time", icon: Clock },
   { label: "HR", i18nKey: "nav.hr", href: "/staff/hr", icon: UserCog },
 
   { heading: "Legal Practice" },
@@ -79,22 +76,19 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
   const isActive = useIsActive();
 
   return (
-    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-dashboard-canvas-elevated border-r border-dashboard-border shrink-0 print:hidden shadow-[8px_0_30px_-24px_var(--dashboard-information)]">
-      <div className="px-4 py-5 border-b border-dashboard-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg border border-dashboard-accent/35 bg-dashboard-accent-soft flex items-center justify-center shadow-sm">
-            <Scale className="w-4 h-4 text-dashboard-accent" />
-          </div>
-          <div>
-            <div className="font-serif text-lg font-bold text-foreground leading-tight tracking-tight">
-              {t("nav.staff_portal")}
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-dashboard-neutral font-semibold mt-0.5">
-              Srimar Law
-            </div>
-          </div>
-        </div>
-        <NotificationBell />
+    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-dashboard-sidebar text-dashboard-sidebar-foreground border-r border-dashboard-sidebar-border shrink-0 print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.15)]">
+      <div className="px-4 py-5 border-b border-dashboard-sidebar-border flex items-center justify-between">
+        <PortalFirmBrand
+          href="/staff"
+          subtitle={t("nav.staff_portal")}
+          logoFit="cover"
+          className="flex-1 gap-2.5"
+          logoClassName="size-9 max-w-12 rounded-lg"
+          fallbackClassName="size-9 border border-dashboard-sidebar-brand-border bg-dashboard-sidebar-brand-bg shadow-sm"
+          fallbackIconClassName="size-4 text-dashboard-sidebar-brand-icon"
+          nameClassName="text-base leading-tight tracking-tight text-dashboard-sidebar-foreground"
+          subtitleClassName="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-dashboard-sidebar-muted"
+        />
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map((item, idx) => {
@@ -102,44 +96,55 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
             return (
               <div
                 key={`heading-${idx}`}
-                className="mt-5 mb-2 flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-dashboard-neutral"
+                className={cn(
+                  "flex items-center gap-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-dashboard-sidebar-heading",
+                  idx > 0 ? "mt-5 mb-2 pt-3 border-t border-dashboard-sidebar-border" : "mb-2",
+                )}
               >
-                <span className="h-3 w-0.5 rounded-full bg-dashboard-information" />
+                <span className="h-2.5 w-0.5 rounded-full bg-dashboard-sidebar-heading-bar" />
                 {item.heading}
               </div>
             );
           }
           if (!isNavLink(item)) return null;
           const { label, i18nKey, href, icon: Icon } = item;
+          const active = isActive(href);
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive(href)
-                  ? "border border-dashboard-primary/35 bg-dashboard-primary-soft text-dashboard-primary shadow-sm"
-                  : "border border-transparent text-dashboard-neutral hover:border-dashboard-border hover:bg-dashboard-panel-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+                "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                active
+                  ? "border border-dashboard-sidebar-active-border bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground font-semibold shadow-sm"
+                  : "border border-transparent text-dashboard-sidebar-muted hover:border-dashboard-sidebar-border hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
               )}
             >
-              <Icon className="w-4 h-4" />
+              <Icon
+                className={cn(
+                  "w-4 h-4 shrink-0 transition-colors",
+                  active
+                    ? "text-dashboard-sidebar-active-icon"
+                    : "text-dashboard-sidebar-muted group-hover:text-dashboard-sidebar-foreground",
+                )}
+              />
               {t(i18nKey!) !== i18nKey ? t(i18nKey!) : label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-3 pb-2 pt-2 border-t border-dashboard-border">
+      <div className="px-3 pb-2 pt-2 border-t border-dashboard-sidebar-border">
         <button
           onClick={onOpenChat}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary font-medium hover:bg-dashboard-primary hover:text-dashboard-primary-foreground transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg border border-dashboard-sidebar-border bg-dashboard-sidebar-hover hover:border-dashboard-sidebar-active-border hover:bg-dashboard-sidebar-active text-dashboard-sidebar-muted hover:text-dashboard-sidebar-active-foreground font-medium transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
         >
-          <MessageSquare className="w-4 h-4" />
+          <MessageSquare className="w-4 h-4 text-dashboard-sidebar-active-icon shrink-0" />
           <span className="text-sm">Command Center</span>
         </button>
       </div>
 
-      <div className="px-3 pb-4 pt-2 border-t border-dashboard-border">
+      <div className="px-3 pb-4 pt-2 border-t border-dashboard-sidebar-border">
         <PortalAccountMenu
           profileHref="/staff/profile"
           variant="dropdown"
@@ -166,15 +171,23 @@ function StaffMobileChrome() {
 
   return (
     <>
-      <div className="md:hidden sticky top-0 z-50 bg-dashboard-canvas-elevated/95 backdrop-blur border-b border-dashboard-border flex items-center justify-between px-4 h-14 shrink-0 w-full print:hidden">
-        <span className="font-serif font-bold text-foreground text-sm">
-          {t("nav.staff_portal")}
-        </span>
+      <div className="md:hidden sticky top-0 z-50 bg-dashboard-sidebar/95 backdrop-blur border-b border-dashboard-sidebar-border flex items-center justify-between px-4 h-14 shrink-0 w-full print:hidden text-dashboard-sidebar-foreground">
+        <PortalFirmBrand
+          href="/staff"
+          subtitle={t("nav.staff_portal")}
+          logoFit="cover"
+          className="max-w-[58%] gap-2"
+          logoClassName="size-8 max-w-10 rounded-lg"
+          fallbackClassName="size-8 bg-dashboard-sidebar-brand-bg"
+          fallbackIconClassName="size-4 text-dashboard-sidebar-brand-icon"
+          nameClassName="text-sm text-dashboard-sidebar-foreground"
+          subtitleClassName="text-[9px] font-semibold uppercase tracking-wider text-dashboard-sidebar-muted"
+        />
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setLanguage(language === "en" ? "ne" : "en")}
-            className="w-7 h-7 rounded-full bg-dashboard-primary text-[10px] font-bold text-dashboard-primary-foreground flex items-center justify-center focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+            className="w-7 h-7 rounded-full bg-dashboard-primary text-[10px] font-bold text-dashboard-primary-foreground flex items-center justify-center focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
             aria-label={`Switch language to ${language === "en" ? "Nepali" : "English"}`}
           >
             {language === "en" ? "ने" : "EN"}
@@ -183,7 +196,7 @@ function StaffMobileChrome() {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="p-1 text-foreground focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+            className="p-1 text-dashboard-sidebar-foreground focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
             aria-label="Toggle menu"
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -192,14 +205,14 @@ function StaffMobileChrome() {
       </div>
 
       {open && (
-        <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-dashboard-canvas-elevated pt-14 pb-16">
+        <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-dashboard-sidebar text-dashboard-sidebar-foreground pt-14 pb-16">
           <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
             {NAV.map((item, idx) => {
               if (item.heading) {
                 return (
                   <div
                     key={`mheading-${idx}`}
-                    className="text-xs font-semibold text-sidebar-foreground/40 mt-4 mb-1 px-3 uppercase tracking-wider"
+                    className="text-xs font-semibold text-dashboard-sidebar-heading mt-4 mb-1 px-3 uppercase tracking-wider"
                   >
                     {item.heading}
                   </div>
@@ -215,8 +228,8 @@ function StaffMobileChrome() {
                   className={cn(
                     "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
                     isActive(href)
-                      ? "bg-dashboard-primary-soft text-dashboard-primary"
-                      : "text-dashboard-neutral hover:bg-dashboard-panel-hover hover:text-foreground",
+                      ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground border border-dashboard-sidebar-active-border"
+                      : "text-dashboard-sidebar-muted hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground",
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -235,7 +248,7 @@ function StaffMobileChrome() {
         </div>
       )}
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-dashboard-canvas-elevated/95 backdrop-blur border-t border-dashboard-border flex justify-around py-2 z-30 print:hidden">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-dashboard-sidebar/95 backdrop-blur border-t border-dashboard-sidebar-border flex justify-around py-2 z-30 print:hidden text-dashboard-sidebar-foreground">
         {NAV.filter(isNavLink)
           .slice(0, 5)
           .map(({ href, icon: Icon, label, i18nKey }) => (
@@ -243,10 +256,10 @@ function StaffMobileChrome() {
               key={href}
               href={href}
               className={cn(
-                "p-2 rounded-lg focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+                "p-2 rounded-lg focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
                 isActive(href)
-                  ? "bg-dashboard-primary-soft text-dashboard-primary"
-                  : "text-dashboard-neutral",
+                  ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-icon border border-dashboard-sidebar-active-border"
+                  : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground",
               )}
               aria-label={i18nKey ? t(i18nKey) : label}
             >
@@ -262,22 +275,29 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
-    <PortalBrandingProvider appearance="dark">
-      <div className="dashboard-theme dashboard-staff dashboard-nepal dark min-h-screen bg-dashboard-canvas text-foreground">
+    <PortalBrandingProvider appearance="light">
+      <div className="dashboard-theme dashboard-staff dashboard-nepal min-h-screen bg-dashboard-canvas text-foreground">
         <PortalRoleGuard
           allowed="staff"
           title="Lex Workspace"
           description="Authorized staff only. Please sign in with your firm credentials."
-          dark
         >
           <IdleSessionGuard />
           <div className="flex h-screen overflow-hidden bg-dashboard-canvas print:h-auto print:overflow-visible">
             <StaffDesktopSidebar onOpenChat={() => setChatOpen(true)} />
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
               <StaffMobileChrome />
-              <main className="flex-1 min-w-0 overflow-auto pb-16 md:pb-0 bg-dashboard-canvas print:overflow-visible print:pb-0">
-                {children}
-              </main>
+              <PortalTopbar
+                portal="staff"
+                onOpenCommandCenter={() => setChatOpen(true)}
+                className="hidden md:flex"
+              />
+              <div className="flex-1 min-w-0 overflow-y-auto flex flex-col justify-between">
+                <main className="flex-1 min-w-0 bg-dashboard-canvas print:overflow-visible">
+                  {children}
+                </main>
+                <PortalFooter portal="staff" />
+              </div>
             </div>
           </div>
           <CommandCenter isOpen={chatOpen} onClose={() => setChatOpen(false)} />

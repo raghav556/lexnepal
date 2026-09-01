@@ -61,6 +61,9 @@ Route,Methods,File,Auth markers,Service imports,Contract imports
 /api/v1/documents/[id]/restore,POST,src/app/api/v1/documents/[id]/restore/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
 /api/v1/documents/[id]/share,GET | POST | DELETE,src/app/api/v1/documents/[id]/share/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
 /api/v1/documents/[id]/trash,POST,src/app/api/v1/documents/[id]/trash/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id]/versions,GET,src/app/api/v1/documents/[id]/versions/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/[id]/versions/[versionId]/restore,POST,src/app/api/v1/documents/[id]/versions/[versionId]/restore/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
+/api/v1/documents/download-zip,POST,src/app/api/v1/documents/download-zip/route.ts,requireSession,,@/shared/contracts/documents
 /api/v1/documents/recent,GET,src/app/api/v1/documents/recent/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
 /api/v1/documents/search,GET,src/app/api/v1/documents/search/route.ts,requireSession,@/server/services/document-service,@/shared/contracts/documents
 /api/v1/envelopes,GET | POST,src/app/api/v1/envelopes/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
@@ -76,18 +79,6 @@ Route,Methods,File,Auth markers,Service imports,Contract imports
 /api/v1/envelopes/request-signature,POST,src/app/api/v1/envelopes/request-signature/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
 /api/v1/envelopes/sign,POST,src/app/api/v1/envelopes/sign/route.ts,requireSession,@/server/services/envelope-service,@/shared/contracts/envelopes
 /api/v1/envelopes/signers,GET,src/app/api/v1/envelopes/signers/route.ts,requireSession,@/server/services/envelope-service,
-/api/v1/financial/expenses,GET | POST,src/app/api/v1/financial/expenses/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/expenses/[id],DELETE,src/app/api/v1/financial/expenses/[id]/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/expenses/[id]/approve,POST,src/app/api/v1/financial/expenses/[id]/approve/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/expenses/stats,GET,src/app/api/v1/financial/expenses/stats/route.ts,requireSession,@/server/services/financial-service,
-/api/v1/financial/invoices,GET | POST,src/app/api/v1/financial/invoices/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/invoices/[id],GET | PATCH,src/app/api/v1/financial/invoices/[id]/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/invoices/[id]/gateway,POST,src/app/api/v1/financial/invoices/[id]/gateway/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/invoices/[id]/pay,POST,src/app/api/v1/financial/invoices/[id]/pay/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/payments/mine,GET,src/app/api/v1/financial/payments/mine/route.ts,requireSession,@/server/services/financial-service,
-/api/v1/financial/time-entries,GET | POST,src/app/api/v1/financial/time-entries/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/time-entries/[id],DELETE,src/app/api/v1/financial/time-entries/[id]/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
-/api/v1/financial/trust-transactions,GET | POST,src/app/api/v1/financial/trust-transactions/route.ts,requireSession,@/server/services/financial-service,@/shared/contracts/financial
 /api/v1/firm,GET,src/app/api/v1/firm/route.ts,requireSession,@/server/services/identity-service,
 /api/v1/health,GET,src/app/api/v1/health/route.ts,handler/service policy,,@/shared/contracts/operations
 /api/v1/hearings,GET | POST,src/app/api/v1/hearings/route.ts,requireSession,@/server/services/work-management-service,@/shared/contracts/work-management

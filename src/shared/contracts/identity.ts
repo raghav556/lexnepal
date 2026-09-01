@@ -20,7 +20,6 @@ export const capabilitySchema = z.enum([
   "cases.view_all",
   "cases.manage",
   "conflicts.manage",
-  "finance.manage",
   "hr.manage",
   "cms.manage",
   "cms.content_submit",
@@ -65,9 +64,6 @@ export const updateOwnProfileSchema = z
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 
 export const systemSettingsSchema = z.object({
-  defaultHourlyRate: z.string().regex(/^\d+(\.\d{1,2})?$/),
-  vatRate: z.string().regex(/^\d+(\.\d{1,2})?$/),
-  invoicePaymentTerms: z.string().regex(/^\d+$/),
   defaultLanguage: z.enum(["en", "ne"]),
   clientPortalEnabled: z.boolean(),
   onlineBookingEnabled: z.boolean(),

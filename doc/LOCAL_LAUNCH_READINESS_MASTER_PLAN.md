@@ -80,7 +80,7 @@ Every surface below must be included in automated or browser verification.
 
 ### Client portal
 
-- Dashboard, cases list/detail, documents, hearings, billing/payment return.
+- Dashboard, cases list/detail, documents, hearings, messages, signatures and checklist.
 - Booking, KYC, messages, notifications, signatures, checklist, profile.
 
 ### Staff portal
@@ -91,7 +91,7 @@ Every surface below must be included in automated or browser verification.
 ### Admin portal
 
 - Dashboard, analytics, users, clients, CRM, appointments, conflict checks, audit.
-- Finance, expenses, HR, templates, document generator, settings, profile.
+- HR, templates, document generator, settings and profile.
 - CMS dashboard, homepage, navigation, about, practice areas, team, testimonials,
   blog, news, resources, careers, and governance.
 
@@ -101,7 +101,7 @@ Every surface below must be included in automated or browser verification.
 - Firms/settings, clients/KYC, cases, conflicts, tasks, hearings, research and SOPs.
 - CRM leads/appointments/intake, communications/notifications/direct messages.
 - Documents/tags/templates/storage/scanning/OCR/shares and signature envelopes/OTP.
-- Finance/invoices/payments/trust/time/expenses, HR/attendance/leave/payroll.
+- HR/attendance/leave/payroll.
 - CMS/public content/assets/editorial workflow, analytics, jobs, scheduler and migration tooling.
 
 ## 5. Phase plan
@@ -184,13 +184,13 @@ Exit gate:
 
 Work:
 
-- Run the domain verifiers for identity, CMS, matters, work management, finance, CRM,
+- Run the domain verifiers for identity, CMS, matters, work management, CRM,
   communications, documents, envelopes, analytics, HR, jobs, and migration tooling.
 - Verify request validation, normalized errors, permission checks, tenant filtering, pagination,
   sorting, filtering, idempotency, audit events, and transaction boundaries.
 - Verify create/read/update/archive/restore/delete behavior where supported.
 - Verify no API returns private server fields or cross-firm data.
-- Verify honest behavior for unavailable OCR, SMS, payment gateways, court data, or other providers.
+- Verify honest behavior for unavailable OCR, SMS, court data, or other providers.
 
 Exit gate:
 
@@ -261,7 +261,7 @@ Exit gate:
 Work:
 
 - Lead → intake → appointment → conflict check → client → matter.
-- Matter → task/hearing/time/document → invoice/payment/trust → analytics.
+- Matter → task/hearing/document → client communication → operational analytics.
 - User invite → activation → MFA/profile → assignment → audit/session revocation.
 - Client KYC upload → scan → review → status and notification.
 - Document upload → quarantine → scan → share/download/OCR where available.
@@ -338,7 +338,7 @@ Work:
 - Document demo roles without exposing reusable production secrets.
 - Record known limitations and all `DEFER_PROD` items separately from local defects.
 - Produce the later production launch checklist: hosting, managed PostgreSQL/backups, object storage,
-  identity, secrets vault, TLS/DNS, email/SMS/payment providers, monitoring, privacy/legal approvals,
+  identity, secrets vault, TLS/DNS, email/SMS providers, monitoring, privacy/legal approvals,
   incident ownership, rollback, data migration and final security review.
 
 Exit gate:
@@ -371,7 +371,6 @@ npm run storage:verify-pipeline
 npm run jobs:verify-local
 npm run cms:verify-local
 npm run matters:verify-local
-npm run financial:verify-local
 npm run crm:verify-local
 npm run communication:verify-local
 npm run documents:verify-local
@@ -391,11 +390,11 @@ npm run verify:local-production-shaped
 | 1     | `PASS_LOCAL` | 83 page routes and 169 API files mapped; inventory, matrix, and active App Router paths match 83/83 with no orphan.                                                                                                |
 | 2     | `PASS_LOCAL` | Prettier, zero-warning ESLint, TypeScript, 130 unit, 8 integration, 4 characterization, 13 database tests, and optimized build pass.                                                                               |
 | 3     | `PASS_LOCAL` | PostgreSQL, MinIO, ClamAV, and Mailpit pass; migrations/checksums, repeatable seeds, storage, backup, and isolated restore drill pass.                                                                             |
-| 4     | `PASS_LOCAL` | Identity, CMS, matters, work management, finance, CRM, communications, documents, envelopes, analytics, HR, and durable jobs pass locally.                                                                         |
+| 4     | `PASS_LOCAL` | Identity, CMS, matters, work management, CRM, communications, documents, envelopes, analytics, HR, and durable jobs pass locally.                                                                                  |
 | 5     | `PASS_LOCAL` | Auth baseline/cookies/checklist, invitations, client grants, MFA, rate limits, upload/XSS protections, tenant boundaries, security headers, and safe DTO checks pass. No critical/high dependency finding remains. |
 | 6     | `PASS_LOCAL` | Public dynamic verifiers and CMS workflow proofs pass; the full public/auth route sweep and consultation conversion pass in Chromium.                                                                              |
 | 7     | `PASS_LOCAL` | Every static admin, staff, and client route renders for its authorized role; portal workflows, navigation, responsive shells, and permission-aware states pass.                                                    |
-| 8     | `PASS_LOCAL` | Browser and domain proofs cover appointments, CRM, users, HR, CMS, matters/documents, finance, billing/signatures, KYC, storage scanning, retries, and idempotency.                                                |
+| 8     | `PASS_LOCAL` | Browser and domain proofs cover appointments, CRM, users, HR, CMS, matters/documents, operational analytics, signatures, KYC, storage scanning, retries, and idempotency.                                         |
 | 9     | `PASS_LOCAL` | Nine mobile Chromium checks cover WCAG A/AA serious/critical violations, overflow, and public/authenticated keyboard navigation; representative screenshots were visually inspected.                               |
 | 10    | `PASS_LOCAL` | Local performance fixture stays under its 2-second budgets; runtime audit has no critical/high finding. Four moderate Drizzle development-tool advisories are documented.                                          |
 | 11    | `PASS_LOCAL` | Complete Playwright suite passes twice at 28/28. Full production-shaped harness passes 23/23. Optimized local start on port 3002 passes health, readiness, CSS, headers, and public deep links.                    |
@@ -407,7 +406,7 @@ npm run verify:local-production-shaped
 - Production-shaped domain harness: `23/23` passed in full mode; generated evidence is at
   `.migration-reports/local-production-shaped.json` (gitignored runtime report).
 - Automated tests: 130 unit, 8 integration, 4 migration characterization, and 13 database tests pass.
-- Optimized Next.js build: 144 static pages generated; production-mode localhost start passed on
+- Optimized Next.js build: 134 routes generated; production-mode localhost start passed on
   port 3002 and was stopped after rehearsal.
 - Development application remains available at `http://localhost:3001`.
 - Final classification: **LOCAL LAUNCH READY**. Public/live launch remains `DEFER_PROD`.
@@ -415,6 +414,6 @@ npm run verify:local-production-shaped
 ## 9. Production boundary
 
 The following are not authorized in this plan and remain `DEFER_PROD`: deployment, cloud account
-creation, DNS/TLS, production databases, production secrets, real client data import, live payment,
+creation, DNS/TLS, production databases, production secrets, real client data import,
 live SMS/email, monitoring account setup, legal/privacy approval, data-residency approval, production
 penetration testing, and public traffic cutover.

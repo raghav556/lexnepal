@@ -7,8 +7,9 @@ import {
   type FloatingAlign,
   type FloatingSide,
 } from "@/lib/floating-position";
+import { cn } from "@/lib/utils";
 
-export function DropdownMenu({ children }: any) {
+export function DropdownMenu({ children, className }: any) {
   const [open, setOpen] = useState(false);
   const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
 
@@ -22,7 +23,7 @@ export function DropdownMenu({ children }: any) {
   }, [open]);
 
   return (
-    <div className="relative w-full text-left">
+    <div className={cn("relative w-full text-left", className)}>
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           if ((child.type as any).displayName === "DropdownMenuTrigger") {

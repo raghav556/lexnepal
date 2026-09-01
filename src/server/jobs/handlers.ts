@@ -8,7 +8,6 @@ import {
   documents,
   durableJobEffects,
   hearings,
-  invoices,
   notifications,
   signatureEnvelopes,
   signatureRecipients,
@@ -248,7 +247,7 @@ async function handleEnvelopeExpiration({ job }: JobExecutionContext) {
 }
 
 async function handleAnalyticsAggregation({ job }: JobExecutionContext) {
-  const [[caseCount], [taskCount], [documentCount], [invoiceCount]] = await Promise.all([
+  const [[caseCount], [taskCount], [documentCount], [hearingCount]] = await Promise.all([
     database
       .select({ value: count() })
       .from(cases)
@@ -263,14 +262,14 @@ async function handleAnalyticsAggregation({ job }: JobExecutionContext) {
       .where(and(eq(documents.firmId, job.firmId), isNull(documents.deletedAt))),
     database
       .select({ value: count() })
-      .from(invoices)
-      .where(and(eq(invoices.firmId, job.firmId), isNull(invoices.deletedAt))),
+      .from(hearings)
+      .where(and(eq(hearings.firmId, job.firmId), isNull(hearings.deletedAt))),
   ]);
   return {
     cases: caseCount.value,
     tasks: taskCount.value,
     documents: documentCount.value,
-    invoices: invoiceCount.value,
+    hearings: hearingCount.value,
     aggregatedAt: new Date().toISOString(),
   };
 }

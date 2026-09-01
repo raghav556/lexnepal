@@ -38,7 +38,7 @@ export interface ExportDomainConfig {
   /** Extra notes written into the reconciliation report. */
   notes?: string[];
   /**
-   * R3.5 — domain-specific enrichment (financial totals, SHA-256, etc.).
+   * R3.5 — domain-specific enrichment (SHA-256, integrity details, etc.).
    * Runs after migrate; must not duplicate importer logic.
    */
   enrichDetails?: (input: {

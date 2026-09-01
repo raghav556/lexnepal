@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
-import { normalizeApiError } from "@/client/api/errors";
+import { ApiClientError, normalizeApiError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
 import type {
   DocumentDto,
@@ -89,6 +89,16 @@ export function useRecentDocuments(limit: number): DocumentDto[] | undefined {
       apiClient.request<DocumentDto[]>("/api/v1/documents/recent", { query: { limit }, signal }),
   });
   return next.data;
+}
+
+export function useDocumentVersions(documentId: string | null): DocumentDto[] {
+  const next = useTanstackQuery({
+    queryKey: queryKeys.documents.versions(documentId || "none"),
+    queryFn: ({ signal }) =>
+      apiClient.request<DocumentDto[]>(`/api/v1/documents/${documentId}/versions`, { signal }),
+    enabled: !!documentId,
+  });
+  return next.data ?? [];
 }
 
 /**
@@ -187,6 +197,25 @@ export function useRestoreDocument() {
   );
 }
 
+export function useRestoreDocumentVersion() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    async (input: { documentId: string; versionId: string }) => {
+      try {
+        const restored = await apiClient.request<DocumentDto>(
+          `/api/v1/documents/${input.documentId}/versions/${input.versionId}/restore`,
+          { method: "POST", body: {} },
+        );
+        await queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+        return restored;
+      } catch (error) {
+        throw normalizeApiError(error);
+      }
+    },
+    [queryClient],
+  );
+}
+
 export function useHardDeleteDocument() {
   const queryClient = useQueryClient();
   return useCallback(
@@ -210,6 +239,35 @@ export function useDownloadDocument() {
         `/api/v1/documents/${documentId}/download`,
       );
       return result.url;
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  }, []);
+}
+
+export function useDownloadDocumentArchive() {
+  return useCallback(async (documentIds: string[]) => {
+    try {
+      const response = await fetch("/api/v1/documents/download-zip", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ documentIds }),
+      });
+      if (!response.ok) throw await ApiClientError.fromResponse(response);
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const fileName = disposition.match(/filename="([^"]+)"/i)?.[1] || "documents.zip";
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+      return { fileName, sizeBytes: blob.size };
     } catch (error) {
       throw normalizeApiError(error);
     }

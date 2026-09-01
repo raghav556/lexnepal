@@ -131,15 +131,7 @@ export async function migrateCommunicationExport(input: {
         const body = asString(record.body) ?? "";
         const type = enumValue(
           record.type,
-          [
-            "hearing_reminder",
-            "task_due",
-            "invoice_sent",
-            "payment_received",
-            "document_request",
-            "message",
-            "system",
-          ] as const,
+          ["hearing_reminder", "task_due", "document_request", "message", "system"] as const,
           "system",
         );
         const relatedId = asString(record.relatedId);

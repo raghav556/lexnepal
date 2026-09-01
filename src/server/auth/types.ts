@@ -21,7 +21,6 @@ export const CAPABILITIES = [
   "cases.view_all",
   "cases.manage",
   "conflicts.manage",
-  "finance.manage",
   "hr.manage",
   "cms.manage",
   "cms.content_submit",

@@ -5,7 +5,6 @@
  * - Tasks clientVisible=true → /client/checklist
  * - Documents isPrivileged=false + confidentiality not internal/privileged → /client/documents
  * - Messages Client Reply (isInternal=false) → /client/messages
- * - Finance invoices → /client/billing
  * - Hearings on matter → /client/hearings
  * - Appointments confirm → /client/booking
  *

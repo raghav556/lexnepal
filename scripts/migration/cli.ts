@@ -11,7 +11,6 @@ import "./domains/identity";
 import "./domains/cms";
 import "./domains/matters";
 import "./domains/work-management";
-import "./domains/financial";
 import "./domains/crm";
 import "./domains/communication";
 import "./domains/documents";

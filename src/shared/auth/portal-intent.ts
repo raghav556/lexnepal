@@ -14,9 +14,9 @@ export const PORTAL_LABELS: Record<PortalIntent, string> = {
 };
 
 export const PORTAL_DESCRIPTIONS: Record<PortalIntent, string> = {
-  client: "View cases, documents, billing, and messages.",
+  client: "View cases, documents, hearings, and messages.",
   staff: "Manage matters, clients, hearings, and firm work.",
-  admin: "Firm operations, users, CMS, finance, and settings.",
+  admin: "Firm operations, users, CMS, analytics, and settings.",
 };
 
 export function parsePortalIntent(raw: string | null | undefined): PortalIntent | null {

@@ -177,31 +177,6 @@ export const taskCategoryEnum = pgEnum("task_category", [
   "other",
 ]);
 export const recurrenceEnum = pgEnum("recurrence_rule", ["daily", "weekly", "monthly"]);
-export const invoiceStatusEnum = pgEnum("invoice_status", [
-  "draft",
-  "sent",
-  "paid",
-  "overdue",
-  "cancelled",
-]);
-export const lineItemTypeEnum = pgEnum("line_item_type", ["time", "fixed", "expense"]);
-export const paymentGatewayEnum = pgEnum("payment_gateway", [
-  "esewa",
-  "khalti",
-  "connectips",
-  "bank_transfer",
-  "cash",
-]);
-export const paymentStatusEnum = pgEnum("payment_status", [
-  "pending",
-  "completed",
-  "failed",
-  "refunded",
-]);
-export const trustTransactionTypeEnum = pgEnum("trust_transaction_type", [
-  "receipt",
-  "disbursement",
-]);
 export const leadSourceEnum = pgEnum("lead_source", [
   "website",
   "referral",
@@ -235,24 +210,11 @@ export const payrollRunStatusEnum = pgEnum("payroll_run_status", ["draft", "fina
 export const notificationTypeEnum = pgEnum("notification_type", [
   "hearing_reminder",
   "task_due",
-  "invoice_sent",
-  "payment_received",
   "document_request",
   "message",
   "system",
 ]);
 
-export const expenseCategoryEnum = pgEnum("expense_category", [
-  "office_rent",
-  "utilities",
-  "court_fees",
-  "courier",
-  "printing",
-  "travel",
-  "supplies",
-  "software",
-  "other",
-]);
 export const documentTemplateTypeEnum = pgEnum("document_template_type", [
   "retainer",
   "petition",
@@ -1300,168 +1262,6 @@ export const taskComments = pgTable(
   (table) => [index("task_comments_firm_task_idx").on(table.firmId, table.taskId, table.createdAt)],
 );
 
-export const invoices = pgTable(
-  "invoices",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    invoiceNumber: text("invoice_number").notNull(),
-    caseId: uuid("case_id")
-      .notNull()
-      .references(() => cases.id, { onDelete: "restrict" }),
-    clientId: uuid("client_id")
-      .notNull()
-      .references(() => clients.id, { onDelete: "restrict" }),
-    status: invoiceStatusEnum("status").default("draft").notNull(),
-    subtotal: numeric("subtotal", { precision: 14, scale: 2 }).notNull(),
-    vatAmount: numeric("vat_amount", { precision: 14, scale: 2 }).notNull(),
-    total: numeric("total", { precision: 14, scale: 2 }).notNull(),
-    issuedDate: date("issued_date").notNull(),
-    dueDate: date("due_date").notNull(),
-    paidDate: date("paid_date"),
-    notes: text("notes"),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    uniqueIndex("invoices_firm_number_unique").on(table.firmId, table.invoiceNumber),
-    index("invoices_firm_case_idx").on(table.firmId, table.caseId),
-    index("invoices_firm_client_idx").on(table.firmId, table.clientId),
-    index("invoices_firm_status_due_idx").on(table.firmId, table.status, table.dueDate),
-  ],
-);
-export const invoiceLineItems = pgTable(
-  "invoice_line_items",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    invoiceId: uuid("invoice_id")
-      .notNull()
-      .references(() => invoices.id, { onDelete: "cascade" }),
-    description: text("description").notNull(),
-    quantity: numeric("quantity", { precision: 12, scale: 2 }).notNull(),
-    unitPrice: numeric("unit_price", { precision: 14, scale: 2 }).notNull(),
-    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
-    type: lineItemTypeEnum("type").notNull(),
-    ...lifecycleColumns(),
-  },
-  (table) => [index("invoice_line_items_firm_invoice_idx").on(table.firmId, table.invoiceId)],
-);
-export const timeEntries = pgTable(
-  "time_entries",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    caseId: uuid("case_id")
-      .notNull()
-      .references(() => cases.id, { onDelete: "restrict" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
-    description: text("description").notNull(),
-    minutes: integer("minutes").notNull(),
-    isBillable: boolean("is_billable").default(true).notNull(),
-    entryDate: date("entry_date").notNull(),
-    ratePerHour: numeric("rate_per_hour", { precision: 14, scale: 2 }).notNull(),
-    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    index("time_entries_firm_case_idx").on(table.firmId, table.caseId),
-    index("time_entries_firm_user_idx").on(table.firmId, table.userId),
-    index("time_entries_firm_invoice_idx").on(table.firmId, table.invoiceId),
-  ],
-);
-export const payments = pgTable(
-  "payments",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    invoiceId: uuid("invoice_id")
-      .notNull()
-      .references(() => invoices.id, { onDelete: "restrict" }),
-    clientId: uuid("client_id")
-      .notNull()
-      .references(() => clients.id, { onDelete: "restrict" }),
-    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
-    gateway: paymentGatewayEnum("gateway").notNull(),
-    referenceNumber: text("reference_number"),
-    /** Client/request key; unique per firm when set — double-submit returns the same payment. */
-    idempotencyKey: text("idempotency_key"),
-    status: paymentStatusEnum("status").default("pending").notNull(),
-    paidAt: timestamp("paid_at", { withTimezone: true }),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    uniqueIndex("payments_firm_gateway_reference_unique").on(
-      table.firmId,
-      table.gateway,
-      table.referenceNumber,
-    ),
-    uniqueIndex("payments_firm_idempotency_unique").on(table.firmId, table.idempotencyKey),
-    index("payments_firm_invoice_idx").on(table.firmId, table.invoiceId),
-    index("payments_firm_client_idx").on(table.firmId, table.clientId),
-  ],
-);
-export const trustTransactions = pgTable(
-  "trust_transactions",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    clientId: uuid("client_id")
-      .notNull()
-      .references(() => clients.id, { onDelete: "restrict" }),
-    caseId: uuid("case_id").references(() => cases.id, { onDelete: "restrict" }),
-    type: trustTransactionTypeEnum("type").notNull(),
-    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
-    description: text("description").notNull(),
-    transactionDate: date("transaction_date").notNull(),
-    balance: numeric("balance", { precision: 14, scale: 2 }).notNull(),
-    approvedBy: uuid("approved_by")
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
-    /** Client/request key; unique per firm when set — double-submit returns the same trust row. */
-    idempotencyKey: text("idempotency_key"),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    uniqueIndex("trust_transactions_firm_idempotency_unique").on(
-      table.firmId,
-      table.idempotencyKey,
-    ),
-    index("trust_transactions_firm_client_date_idx").on(
-      table.firmId,
-      table.clientId,
-      table.transactionDate,
-    ),
-    index("trust_transactions_firm_case_idx").on(table.firmId, table.caseId),
-  ],
-);
-export const expenses = pgTable(
-  "expenses",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    description: text("description").notNull(),
-    category: expenseCategoryEnum("category").notNull(),
-    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
-    caseId: uuid("case_id").references(() => cases.id, { onDelete: "restrict" }),
-    receiptId: text("receipt_id"),
-    expenseDate: date("expense_date").notNull(),
-    submittedBy: uuid("submitted_by")
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
-    status: reviewStatusEnum("status").default("pending").notNull(),
-    approvedBy: uuid("approved_by").references(() => users.id, { onDelete: "set null" }),
-    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    index("expenses_firm_status_idx").on(table.firmId, table.status),
-    index("expenses_firm_case_idx").on(table.firmId, table.caseId),
-    index("expenses_firm_date_idx").on(table.firmId, table.expenseDate),
-  ],
-);
-
 export const messages = pgTable(
   "messages",
   {
@@ -2295,12 +2095,9 @@ export const convexTableTargets = {
   documentTags,
   documentTemplates,
   documentUploadRateLimits,
-  expenses,
   firms,
   firmSettings,
   hearings,
-  invoiceLineItems,
-  invoices,
   jobApplications,
   leads,
   leaveRequests,
@@ -2310,7 +2107,6 @@ export const convexTableTargets = {
   newsAndAwards,
   newsletterSubscribers,
   notifications,
-  payments,
   practiceAreas,
   researchNotes,
   resources,
@@ -2323,7 +2119,5 @@ export const convexTableTargets = {
   tasks,
   templates,
   testimonials,
-  timeEntries,
-  trustTransactions,
   users,
 } as const;

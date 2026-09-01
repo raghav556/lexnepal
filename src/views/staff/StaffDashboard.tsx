@@ -3,14 +3,12 @@ import {
   ArrowRight,
   CalendarDays,
   CheckSquare,
-  Clock,
   FolderOpen,
   Sparkles,
   Users,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
 import { useCases } from "@/client/queries/cases";
-import { useTimeEntries } from "@/client/queries/financial";
 import { useHearings } from "@/client/queries/hearings";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useTasks, useTaskWorkload } from "@/client/queries/tasks";
@@ -43,7 +41,6 @@ export default function StaffDashboard() {
   const tasksResult = useTasks({});
   const workloadResult = useTaskWorkload();
   const usersResult = useStaffDirectory();
-  const { data: timeEntries = [], isLoading: timeEntriesLoading } = useTimeEntries({});
   const cases = casesResult || [];
   const hearings = hearingsResult || [];
   const tasks = tasksResult || [];
@@ -54,8 +51,7 @@ export default function StaffDashboard() {
     hearingsResult === undefined ||
     tasksResult === undefined ||
     workloadResult === undefined ||
-    usersResult === undefined ||
-    timeEntriesLoading;
+    usersResult === undefined;
 
   const activeCasesCount = cases.filter((item) => item.status === "active").length;
   const todayHearingsCount = hearings.filter((item) => item.status === "scheduled").length;
@@ -66,7 +62,6 @@ export default function StaffDashboard() {
   const urgentPending = pendingTasks.some(
     (item) => item.priority === "urgent" || item.priority === "high",
   );
-  const totalMinutes = timeEntries.reduce((sum: number, entry) => sum + entry.minutes, 0);
 
   const metrics = [
     {
@@ -91,11 +86,11 @@ export default function StaffDashboard() {
       helper: urgentPending ? "Urgent work needs attention" : "Work queue healthy",
     },
     {
-      label: "Logged hours",
-      value: `${(totalMinutes / 60).toFixed(1)}h`,
-      icon: Clock,
+      label: "Team members",
+      value: String(users.length),
+      icon: Users,
       tone: DASHBOARD_METRIC_TONES.people,
-      helper: "Recorded time",
+      helper: "Available in directory",
     },
   ];
 
@@ -138,12 +133,12 @@ export default function StaffDashboard() {
       icon={Sparkles}
       actions={
         <>
-          <DashboardButton asChild size="sm">
+          <DashboardButton asChild size="sm" variant="primary">
             <Link href="/staff/tasks">
               Open tasks <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </DashboardButton>
-          <DashboardButton asChild size="sm" variant="secondary">
+          <DashboardButton asChild size="sm" variant="outline">
             <Link href="/staff/hearings">Hearings</Link>
           </DashboardButton>
         </>
@@ -156,10 +151,9 @@ export default function StaffDashboard() {
         helperText: metric.helper,
       }))}
       heroChildren={
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge tone="information">Operational view</StatusBadge>
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone={urgentPending ? "danger" : "success"}>
-            {urgentPending ? "Urgent items present" : "Queue under control"}
+            {urgentPending ? "Urgent items present" : "Work queue healthy"}
           </StatusBadge>
         </div>
       }
@@ -180,18 +174,18 @@ export default function StaffDashboard() {
           {upcomingHearings.length === 0 ? (
             <EmptyState
               title="No upcoming hearings"
-              description="New scheduled hearings will appear here."
+              description="New scheduled court hearings will appear here."
               icon={CalendarDays}
-              tone="warning"
+              tone="neutral"
             />
           ) : (
             <div className="space-y-3">
               {upcomingHearings.map((hearing) => (
                 <div
                   key={hearing.id}
-                  className="flex items-center gap-3 rounded-xl border border-dashboard-information/25 bg-dashboard-information-soft/45 p-3 transition-all hover:border-dashboard-information/50 hover:bg-dashboard-information-soft"
+                  className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3.5 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
                 >
-                  <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-warning/35 bg-dashboard-warning-soft text-dashboard-warning-foreground">
+                  <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary">
                     <span className="text-xs font-bold leading-none">
                       {hearing.dateBs.split(" ")[0] || "Court"}
                     </span>
@@ -201,7 +195,7 @@ export default function StaffDashboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">{hearing.case}</p>
-                    <p className="mt-1 text-xs text-dashboard-information-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {hearing.court} · {hearing.time}
                     </p>
                   </div>
@@ -244,9 +238,9 @@ export default function StaffDashboard() {
                 return (
                   <div
                     key={task.id}
-                    className={`flex items-center justify-between gap-3 rounded-xl border-l-4 p-3 ${DASHBOARD_TONE_BORDER_CLASSES[tone]} ${DASHBOARD_TONE_PANEL_CLASSES[tone]}`}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3.5 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-foreground">{task.title}</p>
                       <p className="mt-1 text-xs text-muted-foreground">Due: {String(task.due)}</p>
                     </div>
@@ -278,23 +272,25 @@ export default function StaffDashboard() {
             title="No open workload"
             description="Assignments will populate this team view."
             icon={Users}
-            tone="information"
+            tone="neutral"
           />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {(workload as WorkloadRow[]).slice(0, 6).map((row) => {
-              const user = users.find((item) => item._id === row.assignedTo);
+              const user = users.find(
+                (item: any) => item.id === row.assignedTo || item._id === row.assignedTo,
+              );
               const tone: DashboardTone =
-                row.overdue > 0 ? "danger" : row.urgent > 0 ? "warning" : "information";
+                row.overdue > 0 ? "danger" : row.urgent > 0 ? "warning" : "neutral";
               const load = Math.min(Math.max(Number(row.total) * 12, 12), 100);
               return (
                 <div
                   key={row.assignedTo}
-                  className={`rounded-xl border p-4 ${DASHBOARD_TONE_PANEL_CLASSES[tone]}`}
+                  className="rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-4 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-sm font-semibold text-foreground">
-                      {user?.name || "Staff"}
+                      {user?.name || user?.email || "Team member"}
                     </p>
                     <StatusBadge tone={tone}>
                       {row.overdue > 0 ? `${row.overdue} overdue` : `${row.total} open`}
@@ -303,7 +299,7 @@ export default function StaffDashboard() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     {row.total} open · {row.urgent} high priority
                   </p>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-dashboard-panel">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full border border-dashboard-border/30 bg-dashboard-panel">
                     <div
                       className={`h-full rounded-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
                       style={{ width: `${load}%` }}

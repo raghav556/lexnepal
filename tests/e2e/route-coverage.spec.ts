@@ -42,8 +42,6 @@ const adminRoutes = [
   "/admin/conflict-checker",
   "/admin/crm",
   "/admin/document-generator",
-  "/admin/expenses",
-  "/admin/finance",
   "/admin/hr",
   "/admin/profile",
   "/admin/settings",
@@ -66,13 +64,10 @@ const staffRoutes = [
   "/staff/research",
   "/staff/tasks",
   "/staff/team-chat",
-  "/staff/time",
 ] as const;
 
 const clientRoutes = [
   "/client",
-  "/client/billing",
-  "/client/billing/return",
   "/client/booking",
   "/client/cases",
   "/client/checklist",
@@ -135,5 +130,43 @@ test.describe("Complete static route coverage", () => {
   test("all client routes render for a client", async ({ page }) => {
     await signIn(page, E2E_USERS.client.email, "/client");
     await verifyRoutes(page, clientRoutes);
+  });
+});
+
+test.describe("Removed finance routes", () => {
+  const removedRoutes = [
+    "/admin/finance",
+    "/admin/expenses",
+    "/staff/time",
+    "/client/billing",
+    "/client/billing/return",
+    "/api/v1/financial/invoices",
+    "/api/v1/financial/time-entries",
+    "/api/v1/financial/expenses",
+    "/api/v1/financial/trust-transactions",
+  ] as const;
+
+  for (const route of removedRoutes) {
+    test(`${route} returns genuine 404`, async ({ request }) => {
+      const response = await request.get(route);
+      expect(response.status()).toBe(404);
+    });
+  }
+
+  test("retained portals and settings expose no removed finance controls", async ({ page }) => {
+    await signIn(page, E2E_USERS.admin.email, "/admin");
+    await page.goto("/admin/settings");
+    await page.getByRole("tab", { name: /Integrations Hub/i }).click();
+    await expect(page.locator("body")).toContainText("SMS providers");
+    await expect(page.locator("body")).toContainText("Online meeting platforms");
+    await expect(page.locator("body")).not.toContainText(
+      /Payment gateways|Billing & financials|Finance|Expenses/i,
+    );
+
+    await signIn(page, E2E_USERS.staff.email, "/staff");
+    await expect(page.locator("body")).not.toContainText(/Time & Billing|Log Time Entry/i);
+
+    await signIn(page, E2E_USERS.client.email, "/client");
+    await expect(page.locator("body")).not.toContainText(/Billing|View Invoices|Pay invoices/i);
   });
 });

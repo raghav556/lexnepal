@@ -10,5 +10,16 @@ export const GET = (request: Request, context: Context) =>
       .string()
       .uuid()
       .parse((await context.params).assetId);
-    return Response.redirect(await getCmsAssetService().createPublicDownload(assetId), 307);
+    const asset = await getCmsAssetService().getPublicAssetDelivery(assetId);
+    if (asset.kind === "redirect") return Response.redirect(asset.url, 307);
+    return new Response(asset.bytes, {
+      headers: {
+        "cache-control": "public, max-age=31536000, immutable",
+        "content-length": String(asset.bytes.byteLength),
+        "content-type": asset.contentType,
+        "cross-origin-resource-policy": "same-origin",
+        etag: asset.sha256 ? `"${asset.sha256}"` : `"${assetId}"`,
+        "x-content-type-options": "nosniff",
+      },
+    });
   })(request);

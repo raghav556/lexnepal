@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Shield, User, FileText, DollarSign, Search, Activity } from "lucide-react";
+import { Shield, User, FileText, Search, Activity } from "lucide-react";
 import type { ElementType } from "react";
 import { useAuditEvents, useUsers } from "@/client/queries/identity";
 import {
@@ -31,11 +31,10 @@ const RESOURCE_ICONS: Record<string, ElementType> = {
   documents: FileText,
   cases: Shield,
   users: User,
-  invoices: DollarSign,
   leads: Search,
 };
 
-const RESOURCE_OPTIONS = ["all", "cases", "documents", "invoices", "users", "leads"];
+const RESOURCE_OPTIONS = ["all", "cases", "documents", "users", "leads"];
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleString("en-US", {

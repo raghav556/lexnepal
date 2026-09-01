@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardTone } from "@/lib/dashboard-semantics";
 import {
@@ -13,6 +13,7 @@ import { usePortalBranding } from "@/components/dashboard/portal-branding-contex
 import { PortalLocalizedText } from "@/components/dashboard/portal-localized-text";
 import { DualDateDisplay } from "@/components/dashboard/dual-date-display";
 import { useI18n } from "@/lib/i18n-context";
+import { FirmBrand } from "@/components/branding/firm-brand";
 
 export type PortalKind = "admin" | "staff" | "client";
 
@@ -51,7 +52,7 @@ const portalGradient: Record<PortalKind, string> = {
   admin:
     "bg-[radial-gradient(circle_at_82%_8%,var(--dashboard-primary-soft),transparent_28%),var(--dashboard-canvas)]",
   staff:
-    "bg-[radial-gradient(circle_at_85%_8%,var(--dashboard-information-soft),transparent_30%),var(--dashboard-canvas)]",
+    "bg-[radial-gradient(circle_at_85%_8%,var(--dashboard-primary-soft),transparent_25%),var(--dashboard-canvas)]",
   client:
     "bg-[radial-gradient(circle_at_85%_8%,var(--dashboard-secondary),transparent_32%),radial-gradient(circle_at_15%_95%,var(--dashboard-primary-soft),transparent_35%),var(--dashboard-canvas)]",
 };
@@ -124,15 +125,16 @@ export function PortalPageShell({
     );
 
   const HeroComponent = decorated ? NepalDecoratedHero : DashboardHero;
-  const [logoError, setLogoError] = React.useState(false);
-
   const brandLeading =
-    decorated && logoUrl && !logoError ? (
-      <img
-        src={logoUrl}
-        alt={firmName ? `${firmName} logo` : "Firm logo"}
-        className="h-10 w-auto max-w-[120px] shrink-0 object-contain drop-shadow-sm"
-        onError={() => setLogoError(true)}
+    decorated && logoUrl ? (
+      <FirmBrand
+        firmName={firmName}
+        logoUrl={logoUrl}
+        logoFit="cover"
+        showName={false}
+        logoClassName="size-10 rounded-lg drop-shadow-sm"
+        fallbackClassName="size-10 bg-dashboard-primary-soft"
+        fallbackIconClassName="size-5 text-dashboard-primary"
       />
     ) : undefined;
 
@@ -178,9 +180,13 @@ export function PortalPageShell({
         actions={actions}
       >
         {showTodayDate ? (
-          <p className="text-xs text-dashboard-hero-muted">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">
+            <CalendarDays
+              className="size-3.5 text-slate-500 dark:text-slate-400 shrink-0"
+              aria-hidden
+            />
             <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />
-          </p>
+          </div>
         ) : null}
         {heroChildren}
       </HeroComponent>

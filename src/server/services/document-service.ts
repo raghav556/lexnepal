@@ -1,5 +1,7 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import type { AuthPrincipal } from "@/server/auth/types";
+import type { AuditContext } from "@/server/audit/context";
 import {
   requireCapability,
   requireCaseAccess,
@@ -87,6 +89,75 @@ export class DocumentService {
     const row = await DocumentRepository.getDocumentById(firmId, documentId);
     if (!row) throw new AppError("NOT_FOUND", "Document was not found", 404);
     return row;
+  }
+
+  async listVersions(principal: AuthPrincipal, documentId: string) {
+    requireCapability(principal, "documents.read");
+    await requireDocumentAccess(principal, documentId, security);
+    const { firmId } = requireFirmContext(principal);
+    return DocumentRepository.listVersionHistory(firmId, documentId);
+  }
+
+  async restoreVersion(
+    principal: AuthPrincipal,
+    documentId: string,
+    sourceVersionId: string,
+    audit: AuditContext,
+  ) {
+    requireCapability(principal, "documents.upload");
+    await requireDocumentAccess(principal, documentId, security);
+    await requireDocumentAccess(principal, sourceVersionId, security);
+    const { firmId } = requireFirmContext(principal);
+    const history = await DocumentRepository.listVersionHistory(firmId, documentId);
+    if (!history.some((version) => version._id === sourceVersionId)) {
+      throw new AppError(
+        "VALIDATION_FAILED",
+        "The selected document is not in this version history",
+        422,
+      );
+    }
+    const source = history.find((version) => version._id === sourceVersionId)!;
+    const head = history[0];
+    if (!head) throw new AppError("NOT_FOUND", "Document version history was not found", 404);
+    if (source._id === head._id) {
+      throw new AppError("CONFLICT", "The selected version is already current", 409);
+    }
+    if (source.uploadStatus !== "clean") {
+      throw new AppError("CONFLICT", "Only a clean document version can be restored", 409);
+    }
+    const sourceKey = String(source.storageId || "");
+    if (!sourceKey.startsWith(`protected/${firmId}/`)) {
+      throw new AppError("FORBIDDEN", "Document storage boundary is invalid", 403);
+    }
+
+    const { storage } = await import("@/server/storage/runtime").then((module) =>
+      module.getDocumentStorageRuntime(),
+    );
+    const stored = await storage.headObject(sourceKey);
+    if (!stored) throw new AppError("CONFLICT", "The selected version content is unavailable", 409);
+    const restoredId = randomUUID();
+    const destinationKey = `protected/${firmId}/${restoredId}/${source.sha256 || randomUUID()}`;
+    await storage.copyObject(sourceKey, destinationKey, {
+      "restored-from-document-id": sourceVersionId,
+      "restored-by-user-id": principal.user.id,
+      ...(source.sha256 ? { sha256: source.sha256 } : {}),
+      "content-type": source.mimeType,
+    });
+    try {
+      return await DocumentRepository.createRestoredVersion({
+        firmId,
+        id: restoredId,
+        sourceDocumentId: sourceVersionId,
+        parentDocumentId: head._id,
+        destinationStorageKey: destinationKey,
+        version: Number(head.version || 1) + 1,
+        uploadedBy: principal.user.id,
+        audit,
+      });
+    } catch (error) {
+      await storage.deleteObject(destinationKey).catch(() => undefined);
+      throw error;
+    }
   }
 
   async update(principal: AuthPrincipal, documentId: string, input: DocumentUpdateInput) {

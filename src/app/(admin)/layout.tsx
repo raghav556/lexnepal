@@ -15,15 +15,12 @@ import {
   PenTool,
   Briefcase,
   Calendar,
-  Receipt,
   Quote,
   LayoutDashboard,
   Users,
   UserCheck,
   Contact,
-  DollarSign,
   BarChart3,
-  Scale,
   Navigation,
   Newspaper,
   User as UserIcon,
@@ -35,7 +32,8 @@ import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
 import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
-import { PortalBrandingProvider } from "@/components/dashboard";
+import { PortalBrandingProvider, PortalTopbar, PortalFooter } from "@/components/dashboard";
+import { PortalFirmBrand } from "@/components/branding/firm-brand";
 
 type NavItem = {
   label?: string;
@@ -74,10 +72,6 @@ const NAV: NavItem[] = [
     href: "/admin/appointments",
     icon: Calendar,
   },
-
-  { heading: "Financials" },
-  { label: "Finance", i18nKey: "nav.finance", href: "/admin/finance", icon: DollarSign },
-  { label: "Expenses", i18nKey: "nav.expenses", href: "/admin/expenses", icon: Receipt },
 
   { heading: "Public CMS" },
   { label: "Site Settings", i18nKey: "nav.site_settings", href: "/admin/cms", icon: Globe },
@@ -148,23 +142,20 @@ function AdminDesktopSidebar() {
   const isActive = useIsActive();
 
   return (
-    <aside className="hidden md:flex md:w-56 flex-col h-screen sticky top-0 bg-gradient-to-b from-dashboard-sidebar-bg-from to-dashboard-sidebar-bg-to border-r border-dashboard-sidebar-border shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.25)]">
+    <aside className="hidden h-full min-h-0 md:flex md:w-56 flex-col bg-gradient-to-b from-dashboard-sidebar-bg-from to-dashboard-sidebar-bg-to border-r border-dashboard-sidebar-border shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.25)]">
       {/* Brand header */}
-      <div className="px-4 py-5 border-b border-dashboard-sidebar-border flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-xl border border-dashboard-sidebar-brand-border bg-dashboard-sidebar-brand-bg flex items-center justify-center shadow-[0_0_12px_var(--dashboard-sidebar-brand-glow)]">
-            <Scale className="size-4 text-dashboard-sidebar-brand-icon" />
-          </div>
-          <div>
-            <div className="font-serif text-sm font-bold tracking-tight text-dashboard-sidebar-foreground">
-              Srimar Law
-            </div>
-            <div className="text-[11px] font-medium text-dashboard-sidebar-muted">
-              {t("nav.admin_console")}
-            </div>
-          </div>
-        </div>
-        <NotificationBell />
+      <div className="flex items-center justify-between gap-3 border-b border-dashboard-sidebar-border px-4 py-4">
+        <PortalFirmBrand
+          href="/admin"
+          subtitle={t("nav.admin_console")}
+          logoFit="cover"
+          className="flex-1 gap-3"
+          logoClassName="size-10 rounded-xl border border-dashboard-sidebar-brand-border bg-dashboard-sidebar-brand-bg shadow-[0_4px_18px_var(--dashboard-sidebar-brand-glow)]"
+          fallbackClassName="size-9 border border-dashboard-sidebar-brand-border bg-dashboard-sidebar-brand-bg shadow-[0_4px_18px_var(--dashboard-sidebar-brand-glow)] ring-1 ring-inset ring-white/10"
+          fallbackIconClassName="size-[18px] text-dashboard-sidebar-brand-icon"
+          nameClassName="whitespace-nowrap text-[15px] leading-5 tracking-[-0.01em] text-dashboard-sidebar-foreground"
+          subtitleClassName="mt-0.5 whitespace-nowrap text-[10px] font-semibold uppercase leading-4 tracking-[0.14em] text-dashboard-sidebar-muted"
+        />
       </div>
 
       {/* Navigation */}
@@ -247,9 +238,17 @@ function AdminMobileChrome() {
   return (
     <>
       <div className="md:hidden sticky top-0 z-50 bg-dashboard-canvas-elevated/95 backdrop-blur border-b border-dashboard-border flex items-center justify-between px-4 h-14 shrink-0 w-full">
-        <span className="font-serif font-bold text-foreground text-sm">
-          {t("nav.admin_console")}
-        </span>
+        <PortalFirmBrand
+          href="/admin"
+          subtitle={t("nav.admin_console")}
+          logoFit="cover"
+          className="max-w-[58%] gap-2"
+          logoClassName="size-8 max-w-10 rounded-lg"
+          fallbackClassName="size-8 bg-dashboard-primary-soft"
+          fallbackIconClassName="size-4 text-dashboard-primary"
+          nameClassName="text-sm text-foreground"
+          subtitleClassName="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground"
+        />
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -324,7 +323,7 @@ function AdminMobileChrome() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <PortalBrandingProvider appearance="dark">
-      <div className="dashboard-theme dashboard-admin dashboard-nepal dark min-h-screen bg-dashboard-canvas text-foreground">
+      <div className="dashboard-theme dashboard-admin dashboard-nepal dark h-[100dvh] min-h-[100dvh] overflow-hidden bg-dashboard-canvas text-foreground">
         <PortalRoleGuard
           allowed="admin"
           title="Admin Console"
@@ -332,13 +331,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           dark
         >
           <IdleSessionGuard />
-          <div className="flex h-screen overflow-hidden bg-dashboard-canvas">
+          <div className="flex h-full min-h-0 overflow-hidden bg-dashboard-canvas">
             <AdminDesktopSidebar />
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-dashboard-canvas">
+            <div className="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden bg-dashboard-canvas">
               <AdminMobileChrome />
-              <main className="flex-1 min-w-0 overflow-auto bg-dashboard-canvas text-foreground">
-                {children}
-              </main>
+              <PortalTopbar portal="admin" className="hidden md:flex" />
+              <div className="flex min-h-0 flex-1 min-w-0 flex-col justify-between overflow-y-auto overscroll-contain bg-dashboard-canvas">
+                <main className="flex-1 min-w-0 bg-dashboard-canvas text-foreground">
+                  {children}
+                </main>
+                <PortalFooter portal="admin" />
+              </div>
             </div>
           </div>
         </PortalRoleGuard>

@@ -18,7 +18,6 @@ import {
   Loader2,
   Save,
   CheckSquare,
-  DollarSign,
   Plus,
   FolderTree,
   Scale,
@@ -38,7 +37,6 @@ import { useStaffDirectory } from "@/client/queries/identity";
 import { useHearings } from "@/client/queries/hearings";
 import { useDocuments } from "@/client/queries/documents";
 import { useTasks, useTaskCommands, useSopTemplates, useUpdateTask } from "@/client/queries/tasks";
-import { useTimeEntries, useExpenses } from "@/client/queries/financial";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { cn } from "@/lib/utils.ts";
 import { formatTaskDue } from "@/lib/task-constants.ts";
@@ -67,8 +65,6 @@ export default function StaffCaseDetailPage() {
     updateCaseAdapter(targetCaseId, input);
 
   const tasks = useTasks(caseId ? { caseId } : "skip") || [];
-  const { data: timeEntries = [] } = useTimeEntries(caseId ? { caseId } : {});
-  const { data: expenses = [] } = useExpenses(caseId ? { caseId } : {});
   const { createTask, runSop } = useTaskCommands();
   const updateTask = useUpdateTask();
   const sopTemplates = useSopTemplates() || [];
@@ -228,23 +224,6 @@ export default function StaffCaseDetailPage() {
 
   const client = clients.find((c: any) => c._id === caseData.clientId);
   const lawyer = users.find((u: any) => u._id === caseData.assignedLawyerId);
-
-  // Financial Ledger Data
-  const totalWIP = timeEntries.reduce(
-    (sum: number, entry: any) =>
-      sum + (entry.isBillable ? (entry.minutes / 60) * entry.ratePerHour : 0),
-    0,
-  );
-  const unbilledExpenses = expenses
-    .filter((e: any) => e.status !== "invoiced" && e.status !== "paid")
-    .reduce((sum: number, e: any) => sum + e.amount, 0);
-  // Mock Retainer data (In a real app, this would come from a Trust/Retainer table)
-  const retainerBalance = 150000;
-  const totalCost = totalWIP + unbilledExpenses;
-  const healthPercent = Math.max(
-    0,
-    Math.min(100, ((retainerBalance - totalCost) / retainerBalance) * 100),
-  );
 
   return (
     <PortalPageShell
@@ -419,13 +398,6 @@ export default function StaffCaseDetailPage() {
             >
               <Users className="w-3.5 h-3.5 mr-2" />
               Parties & Counsel
-            </TabsTrigger>
-            <TabsTrigger
-              value="financials"
-              className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"
-            >
-              <DollarSign className="w-3.5 h-3.5 mr-2" />
-              Case Ledger
             </TabsTrigger>
             <TabsTrigger
               value="timeline"
@@ -726,116 +698,7 @@ export default function StaffCaseDetailPage() {
             </DashboardSection>
           </TabsContent>
 
-          {/* 4. Case Ledger (Financials) */}
-          <TabsContent value="financials" className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <DashboardSection title="Retainer balance">
-                <h3 className="text-2xl font-mono font-bold text-foreground">
-                  Rs. {retainerBalance.toLocaleString()}
-                </h3>
-                <p className="text-xs text-dashboard-success mt-1 font-medium">
-                  Deposited into Trust
-                </p>
-              </DashboardSection>
-              <DashboardSection title="WIP & expenses">
-                <h3 className="text-2xl font-mono font-bold text-foreground">
-                  Rs. {totalCost.toLocaleString()}
-                </h3>
-                <p className="text-xs text-dashboard-warning mt-1 font-medium">Unbilled Total</p>
-              </DashboardSection>
-              <DashboardSection title="Health" className="border-dashboard-primary/25">
-                <div className="flex justify-between items-center mb-2">
-                  <StatusBadge tone="primary" className="text-[10px]">
-                    Profitability
-                  </StatusBadge>
-                </div>
-                <h3 className="text-2xl font-mono font-bold text-foreground">
-                  {healthPercent.toFixed(1)}%
-                </h3>
-                <div className="w-full bg-dashboard-border h-1.5 mt-2 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${healthPercent > 20 ? "bg-dashboard-success" : "bg-dashboard-danger"}`}
-                    style={{ width: `${Math.max(healthPercent, 5)}%` }}
-                  />
-                </div>
-              </DashboardSection>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <DashboardSection title="Unbilled time (WIP)" icon={Clock}>
-                {timeEntries.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No time logged.</p>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {timeEntries.map((te: any) => {
-                      const user = users.find((u: any) => u._id === te.userId);
-                      return (
-                        <div
-                          key={te._id}
-                          className="p-3 hover:bg-secondary/30 flex justify-between items-center"
-                        >
-                          <div>
-                            <p className="text-sm font-semibold">{te.description}</p>
-                            <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                              {user?.name} · <DualDateDisplay isoDate={te.date} />
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold">
-                              Rs.{" "}
-                              {te.isBillable
-                                ? ((te.minutes / 60) * te.ratePerHour).toFixed(2)
-                                : "0.00"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {te.minutes}m @ {te.ratePerHour}/hr
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </DashboardSection>
-
-              <DashboardSection title="Court fees & expenses" icon={DollarSign}>
-                {expenses.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No expenses logged.
-                  </p>
-                ) : (
-                  <div className="divide-y divide-dashboard-border">
-                    {expenses.map((e: any) => (
-                      <div
-                        key={e._id}
-                        className="p-3 hover:bg-dashboard-panel-hover flex justify-between items-center"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold">{e.description}</p>
-                          <DashboardStatusLabel
-                            label={e.category}
-                            tone="neutral"
-                            className="mt-1 text-[9px] uppercase"
-                          />
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-foreground">
-                            Rs. {e.amount.toLocaleString()}
-                          </p>
-                          <DashboardStatusLabel
-                            status={e.status}
-                            className="mt-1 text-[9px] uppercase"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </DashboardSection>
-            </div>
-          </TabsContent>
-
-          {/* 5. Timeline */}
+          {/* 4. Timeline */}
           <TabsContent value="timeline" className="mt-6">
             <DashboardSection title="Case history" icon={Clock}>
               {timeline.length === 0 ? (

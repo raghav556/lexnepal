@@ -16,7 +16,7 @@ export function DashboardTableHead({ className, ...props }: React.ComponentProps
   return (
     <thead
       className={cn(
-        "sticky top-0 z-10 bg-dashboard-canvas-elevated text-left text-xs font-semibold uppercase tracking-wide text-dashboard-neutral",
+        "sticky top-0 z-10 bg-slate-50/90 border-b border-dashboard-border text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-xs",
         className,
       )}
       {...props}
@@ -25,7 +25,12 @@ export function DashboardTableHead({ className, ...props }: React.ComponentProps
 }
 
 export function DashboardTableBody({ className, ...props }: React.ComponentProps<"tbody">) {
-  return <tbody className={cn("divide-y divide-dashboard-border", className)} {...props} />;
+  return (
+    <tbody
+      className={cn("divide-y divide-dashboard-border bg-dashboard-panel", className)}
+      {...props}
+    />
+  );
 }
 
 export function DashboardTableRow({
@@ -36,8 +41,8 @@ export function DashboardTableRow({
   return (
     <tr
       className={cn(
-        "transition-colors hover:bg-dashboard-panel-hover",
-        striped && "even:bg-dashboard-neutral-soft/40",
+        "transition-colors hover:bg-slate-50/90",
+        striped && "even:bg-slate-50/40",
         className,
       )}
       {...props}
@@ -46,11 +51,19 @@ export function DashboardTableRow({
 }
 
 export function DashboardTableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
-  return <th className={cn("px-4 py-3 font-semibold", className)} {...props} />;
+  return (
+    <th
+      className={cn(
+        "px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function DashboardTableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-4 py-3 align-middle text-foreground", className)} {...props} />;
+  return <td className={cn("px-4 py-3.5 align-middle text-foreground", className)} {...props} />;
 }
 
 export function DashboardFilterBar({ className, children, ...props }: React.ComponentProps<"div">) {

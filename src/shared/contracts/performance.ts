@@ -5,7 +5,6 @@ export const PERFORMANCE_SMOKE_VOLUME = {
   clients: 120,
   cases: 250,
   documents: 500,
-  invoices: 150,
   tasks: 200,
 } as const;
 
@@ -19,7 +18,6 @@ export const PERFORMANCE_SMOKE_BUDGETS_MS = {
   documentsList: 2000,
   documentsSearch: 2000,
   conflictSearch: 2000,
-  invoicesList: 2000,
   tasksList: 2000,
 } as const;
 
@@ -27,7 +25,6 @@ export const performanceSmokeVolumeSchema = z.object({
   clients: z.number().int().min(50).max(5_000),
   cases: z.number().int().min(50).max(10_000),
   documents: z.number().int().min(50).max(20_000),
-  invoices: z.number().int().min(50).max(10_000),
   tasks: z.number().int().min(50).max(10_000),
 });
 
@@ -37,7 +34,6 @@ export const performanceSmokeBudgetsSchema = z.object({
   documentsList: z.number().int().positive().max(30_000),
   documentsSearch: z.number().int().positive().max(30_000),
   conflictSearch: z.number().int().positive().max(30_000),
-  invoicesList: z.number().int().positive().max(30_000),
   tasksList: z.number().int().positive().max(30_000),
 });
 

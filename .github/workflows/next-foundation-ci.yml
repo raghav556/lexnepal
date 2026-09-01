@@ -44,4 +44,3 @@ jobs:
       - run: npm run db:integrity
       - run: npm run db:test
       - run: npm run build
-      - run: npm run build:legacy

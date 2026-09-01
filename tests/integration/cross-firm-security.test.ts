@@ -50,7 +50,7 @@ describe("Cross-firm security policies", () => {
   it("uses NOT_FOUND for foreign inventory probes across domains", () => {
     const principal = makePrincipal("firm-A");
     for (const message of [
-      "Invoice was not found",
+      "Case was not found",
       "Lead was not found",
       "Envelope was not found",
       "Attendance was not found",
@@ -60,6 +60,6 @@ describe("Cross-firm security policies", () => {
         expect.objectContaining({ code: "NOT_FOUND", message }),
       );
     }
-    expect(() => assertResourceInFirm(principal, "firm-A", "Invoice was not found")).not.toThrow();
+    expect(() => assertResourceInFirm(principal, "firm-A", "Case was not found")).not.toThrow();
   });
 });

@@ -7,6 +7,11 @@ import { Link } from "@/client/navigation";
 import { useLeadCommands } from "@/client/queries/crm";
 import { usePracticeAreas } from "@/client/queries/cms";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
+import {
+  buildGuidedResponse,
+  evaluateGuidedIntent,
+  validateCallbackContact,
+} from "@/lib/chatbot-guidance";
 
 type Message = {
   id: string;
@@ -18,59 +23,6 @@ type Message = {
   linkHref?: string;
 };
 
-// Advanced Knowledge Base (static fallbacks; practice areas come from CMS)
-const KNOWLEDGE_BASE = {
-  firmName: "Srimar Law",
-  location: "Kathmandu, Nepal",
-  hours: "Sunday to Friday, 9:00 AM - 6:00 PM. Closed on Saturdays and public holidays.",
-  contact: "Email: info@Srimar Law.com | Phone: +977-1-4XXXXXX",
-  team: [
-    { name: "Senior Partners", role: "Handling complex litigation and major corporate deals." },
-    { name: "Associates", role: "Handling day-to-to legal compliance, drafting, and research." },
-  ],
-  consultation:
-    "Initial consultations are available in-person or virtually. You can book directly through our website.",
-};
-
-// Simulated AI Intent Engine
-function evaluateIntent(text: string) {
-  const lower = text.toLowerCase();
-
-  // Guardrail: Complex Legal Advice
-  if (
-    lower.match(/(divorce|sue|arrest|police|jail|stole|fraud|cheat|murder|rape|crime|court|judge)/)
-  ) {
-    return { intent: "complex_case", score: 10 };
-  }
-
-  const scores = {
-    greeting: (lower.match(/(hi|hello|hey|morning|afternoon)/g) || []).length * 2,
-    location: (lower.match(/(where|location|address|visit|kathmandu)/g) || []).length * 2,
-    hours: (lower.match(/(time|hours|open|close|saturday|sunday)/g) || []).length * 2,
-    contact: (lower.match(/(contact|phone|email|call|number)/g) || []).length * 2,
-    practice_areas:
-      (
-        lower.match(
-          /(practice|areas|services|do you handle|corporate|civil|criminal|property|ip|labor)/g,
-        ) || []
-      ).length * 2,
-    team: (lower.match(/(lawyer|attorney|advocate|team|who|partner|associate)/g) || []).length * 2,
-    consultation: (lower.match(/(book|appointment|consultation|meet|fee|cost)/g) || []).length * 2,
-  };
-
-  let maxIntent = "unknown";
-  let maxScore = 0;
-
-  for (const [intent, score] of Object.entries(scores)) {
-    if (score > maxScore) {
-      maxScore = score;
-      maxIntent = intent;
-    }
-  }
-
-  return maxScore > 0 ? maxIntent : "unknown";
-}
-
 export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -78,21 +30,20 @@ export function ChatbotWidget() {
       id: "1",
       role: "bot",
       content:
-        "Hello! Welcome to Srimar Law. I'm your digital assistant. How can I help you today?",
+        "Hello. I’m an automated website guide, not a lawyer or live-chat agent. I can direct you to published information or help you submit a callback request.",
     },
   ]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { createPublicLead } = useLeadCommands();
   const settings = usePublicCmsSettings();
   const cmsPracticeAreas = usePracticeAreas({ isActive: true }, "public") || [];
-  const firmName = String(settings?.firmName || KNOWLEDGE_BASE.firmName);
 
   // Lead capture state
   const [leadName, setLeadName] = useState("");
   const [leadContact, setLeadContact] = useState("");
   const [submittingLead, setSubmittingLead] = useState(false);
+  const [leadError, setLeadError] = useState("");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -100,7 +51,7 @@ export function ChatbotWidget() {
 
   useEffect(() => {
     if (isOpen) scrollToBottom();
-  }, [messages, isOpen, isTyping]);
+  }, [messages, isOpen]);
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -115,91 +66,44 @@ export function ChatbotWidget() {
       { id: Date.now().toString(), role: "user" as const, content: userText },
     ];
     setMessages(newMessages);
-    setIsTyping(true);
-
-    // Advanced Mock AI Logic Engine
-    const processingTime = Math.random() * 800 + 800; // Simulate AI thinking time (800ms - 1600ms)
-
-    setTimeout(() => {
-      const botResponse: Message = {
+    const response = buildGuidedResponse({
+      intent: evaluateGuidedIntent(userText),
+      settings,
+      practiceAreas: cmsPracticeAreas,
+    });
+    setMessages((prev) => [
+      ...prev,
+      {
         id: (Date.now() + 1).toString(),
         role: "bot",
-        content: "",
-      };
-
-      const intent = evaluateIntent(userText);
-
-      switch (intent) {
-        case "greeting":
-          botResponse.content = `Hello there! Welcome to ${firmName}. How can I assist you with your legal needs today?`;
-          break;
-        case "location":
-          botResponse.content = `Our main office is located in ${KNOWLEDGE_BASE.location}. Would you like to schedule an in-person meeting?`;
-          break;
-        case "hours":
-          botResponse.content = `Our office hours are: ${String(settings?.businessHoursText || KNOWLEDGE_BASE.hours)}.`;
-          break;
-        case "contact":
-          botResponse.content = `You can reach us directly at:\n${
-            settings?.phone || settings?.email
-              ? `Phone: ${String(settings?.phone || "")}\nEmail: ${String(settings?.email || "")}`
-              : KNOWLEDGE_BASE.contact
-          }\n\nAlternatively, leave your details below and we will call you back!`;
-          botResponse.isForm = true;
-          break;
-        case "practice_areas": {
-          const lines = cmsPracticeAreas
-            .map((a: { title?: string; description?: string }) => {
-              const title = String(a.title ?? "").trim();
-              const desc = String(a.description ?? "").trim();
-              return title ? (desc ? `${title} — ${desc}` : title) : "";
-            })
-            .filter(Boolean);
-          botResponse.content =
-            lines.length > 0
-              ? `We are a full-service law firm. Our practice areas include:\n• ${lines.join("\n• ")}\n\nWould you like to explore any of these on our website?`
-              : `We offer legal services across multiple practice areas. Browse our practice areas page to learn more.`;
-          botResponse.isLink = true;
-          botResponse.linkText = "View Practice Areas";
-          botResponse.linkHref = "/practice-areas";
-          break;
-        }
-        case "team":
-          botResponse.content = `We have a highly specialized team of advocates, including:\n• ${KNOWLEDGE_BASE.team[0].name} (${KNOWLEDGE_BASE.team[0].role})\n• ${KNOWLEDGE_BASE.team[1].name} (${KNOWLEDGE_BASE.team[1].role})\n\nYou can view their full profiles in our directory.`;
-          botResponse.isLink = true;
-          botResponse.linkText = "View Our Advocates";
-          botResponse.linkHref = "/lawyers";
-          break;
-        case "consultation":
-          botResponse.content = `${KNOWLEDGE_BASE.consultation}\nWould you like to book one now?`;
-          botResponse.isLink = true;
-          botResponse.linkText = "Book Consultation";
-          botResponse.linkHref = "/consultation";
-          break;
-        case "complex_case":
-          botResponse.content = `It sounds like you are dealing with a complex legal situation. To ensure attorney-client privilege and confidentiality, I cannot provide direct legal advice here.\n\nPlease leave your name and contact details below, and one of our specialized advocates will contact you immediately.`;
-          botResponse.isForm = true;
-          break;
-        default:
-          botResponse.content = `I understand. Since I am an AI assistant and cannot provide specific legal advice, would you like one of our human advocates to contact you to discuss this further?`;
-          botResponse.isForm = true;
-      }
-
-      setMessages((prev) => [...prev, botResponse]);
-      setIsTyping(false);
-    }, processingTime);
+        content: response.content,
+        isForm: response.isForm,
+        isLink: !!response.linkHref,
+        linkText: response.linkText,
+        linkHref: response.linkHref,
+      },
+    ]);
   };
 
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!leadName || !leadContact) return;
+    if (submittingLead) return;
+    if (leadName.trim().length < 2) {
+      setLeadError("Please enter your full name.");
+      return;
+    }
+    if (!validateCallbackContact(leadContact)) {
+      setLeadError("Enter a valid email address or phone number.");
+      return;
+    }
 
+    setLeadError("");
     setSubmittingLead(true);
     try {
       await createPublicLead.mutateAsync({
-        fullName: leadName,
-        email: leadContact.includes("@") ? leadContact : undefined,
-        phone: !leadContact.includes("@") ? leadContact : undefined,
+        fullName: leadName.trim(),
+        email: leadContact.includes("@") ? leadContact.trim() : undefined,
+        phone: !leadContact.includes("@") ? leadContact.trim() : undefined,
         practiceAreaInterest: "General Inquiry (Via Chatbot)",
         source: "website",
       });
@@ -214,11 +118,13 @@ export function ChatbotWidget() {
           content:
             "Thank you, " +
             leadName.split(" ")[0] +
-            ". We have securely received your details. An advocate will reach out to you shortly.",
+            ". Your callback request was submitted for the firm to review. Response timing and availability are not guaranteed.",
         },
       ]);
+      setLeadName("");
+      setLeadContact("");
     } catch (error) {
-      console.error(error);
+      setLeadError(error instanceof Error ? error.message : "The request could not be submitted.");
     } finally {
       setSubmittingLead(false);
     }
@@ -242,14 +148,13 @@ export function ChatbotWidget() {
                   <div className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center">
                     <Scale className="w-5 h-5 text-accent" />
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-primary rounded-full" />
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-primary-foreground leading-tight">
                     Lex Assistant
                   </h3>
                   <p className="text-[11px] text-primary-foreground/70 font-medium">
-                    Typically replies instantly
+                    Automated guidance • not legal advice
                   </p>
                 </div>
               </div>
@@ -324,6 +229,7 @@ export function ChatbotWidget() {
                             placeholder="Full Name"
                             value={leadName}
                             onChange={(e) => setLeadName(e.target.value)}
+                            aria-label="Full name"
                             className="w-full text-xs px-3 py-2 rounded-md border border-input bg-background focus:ring-1 focus:ring-accent outline-none"
                           />
                           <input
@@ -332,6 +238,7 @@ export function ChatbotWidget() {
                             placeholder="Phone or Email"
                             value={leadContact}
                             onChange={(e) => setLeadContact(e.target.value)}
+                            aria-label="Phone or email"
                             className="w-full text-xs px-3 py-2 rounded-md border border-input bg-background focus:ring-1 focus:ring-accent outline-none"
                           />
                           <Button
@@ -346,6 +253,15 @@ export function ChatbotWidget() {
                               "Request Callback"
                             )}
                           </Button>
+                          <p className="text-[10px] leading-relaxed text-muted-foreground">
+                            Submit basic contact details only. Do not send confidential or urgent
+                            legal information through this form.
+                          </p>
+                          {leadError && (
+                            <p role="alert" className="text-[11px] text-destructive">
+                              {leadError}
+                            </p>
+                          )}
                         </form>
                       )}
                     </div>
@@ -353,30 +269,6 @@ export function ChatbotWidget() {
                 </div>
               ))}
 
-              {isTyping && (
-                <div className="flex items-start gap-2 max-w-[85%]">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm bg-primary text-primary-foreground">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="p-4 rounded-2xl bg-card border border-border rounded-tl-sm flex gap-1 items-center h-[44px]">
-                    <motion.div
-                      className="w-1.5 h-1.5 bg-primary/40 rounded-full"
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
-                    />
-                    <motion.div
-                      className="w-1.5 h-1.5 bg-primary/40 rounded-full"
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }}
-                    />
-                    <motion.div
-                      className="w-1.5 h-1.5 bg-primary/40 rounded-full"
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }}
-                    />
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -392,7 +284,7 @@ export function ChatbotWidget() {
                 />
                 <button
                   type="submit"
-                  disabled={!input.trim() || isTyping}
+                  disabled={!input.trim()}
                   className="absolute right-1 w-10 h-10 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Send className="w-4 h-4 ml-0.5" />
@@ -416,7 +308,6 @@ export function ChatbotWidget() {
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-white transition-opacity" />
             <MessageSquare className="w-6 h-6" />
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-primary rounded-full" />
           </motion.button>
         )}
       </AnimatePresence>

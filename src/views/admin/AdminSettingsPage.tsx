@@ -7,18 +7,7 @@ import {
   useRolePermissions,
   useSystemSettings,
 } from "@/client/queries/identity";
-import {
-  Save,
-  Settings,
-  CreditCard,
-  Globe,
-  Layers,
-  Blocks,
-  MessageSquare,
-  Wallet,
-  Video,
-  Shield,
-} from "lucide-react";
+import { Save, Settings, Globe, Layers, Blocks, MessageSquare, Video, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
 import { DashboardButton, DashboardSection, PortalPageShell } from "@/components/dashboard";
@@ -32,7 +21,6 @@ const ALL_CAPABILITIES = [
   "cases.view_all",
   "cases.manage",
   "conflicts.manage",
-  "finance.manage",
   "hr.manage",
   "cms.manage",
   "cms.content_submit",
@@ -68,9 +56,6 @@ export default function AdminSettingsPage() {
   }, [rolePermissions]);
 
   const [formData, setFormData] = useState({
-    defaultHourlyRate: "5000",
-    vatRate: "13",
-    invoicePaymentTerms: "14",
     defaultLanguage: "en",
     clientPortalEnabled: true,
     onlineBookingEnabled: true,
@@ -78,15 +63,6 @@ export default function AdminSettingsPage() {
     integrations: {
       smsProvider: "none",
       smsKeys: { token: "", accountSid: "", authToken: "" },
-      activePayments: ["bank_transfer"] as string[],
-      paymentKeys: {
-        esewaMerchantId: "",
-        khaltiSecretKey: "",
-        bankName: "",
-        accountName: "",
-        accountNumber: "",
-        branch: "",
-      },
     },
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -95,9 +71,6 @@ export default function AdminSettingsPage() {
     if (settings) {
       setFormData((prev) => ({
         ...prev,
-        defaultHourlyRate: settings.defaultHourlyRate || "5000",
-        vatRate: settings.vatRate || "13",
-        invoicePaymentTerms: settings.invoicePaymentTerms || "14",
         defaultLanguage: settings.defaultLanguage || "en",
         clientPortalEnabled: settings.clientPortalEnabled ?? true,
         onlineBookingEnabled: settings.onlineBookingEnabled ?? true,
@@ -110,11 +83,8 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      // Persist only contracted system settings — do not pretend integrations blobs are saved.
+      // Persist only validated, tenant-scoped settings. Provider secrets stay server-side.
       await updateSettings({
-        defaultHourlyRate: formData.defaultHourlyRate,
-        vatRate: formData.vatRate,
-        invoicePaymentTerms: formData.invoicePaymentTerms,
         defaultLanguage: formData.defaultLanguage as "en" | "ne",
         clientPortalEnabled: formData.clientPortalEnabled,
         onlineBookingEnabled: formData.onlineBookingEnabled,
@@ -154,49 +124,6 @@ export default function AdminSettingsPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <TabsContent value="general" className="space-y-6">
-            <DashboardSection
-              title="Billing & financials"
-              description="Default values used when generating new invoices and tracking time."
-              icon={CreditCard}
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>Default Hourly Rate (NPR)</Label>
-                    <Input
-                      type="number"
-                      value={formData.defaultHourlyRate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, defaultHourlyRate: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>VAT Rate (%)</Label>
-                    <Input
-                      type="number"
-                      value={formData.vatRate}
-                      disabled
-                      title="VAT rate is locked to standard Nepal rates."
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Invoice Payment Terms (Days)</Label>
-                  <Input
-                    type="number"
-                    value={formData.invoicePaymentTerms}
-                    onChange={(e) =>
-                      setFormData({ ...formData, invoicePaymentTerms: e.target.value })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Number of days before an invoice is marked as overdue.
-                  </p>
-                </div>
-              </div>
-            </DashboardSection>
-
             <DashboardSection
               title="Feature toggles"
               description="Enable or disable core system modules."
@@ -286,223 +213,6 @@ export default function AdminSettingsPage() {
                   >
                     <option value="none">None (SMS disabled)</option>
                   </select>
-                </div>
-              </div>
-            </DashboardSection>
-
-            <DashboardSection
-              title="Payment gateways"
-              description="Local UI sketch for invoice methods. Gateway credentials are not persisted or charged through this form yet — billing uses its own payment flows."
-              icon={Wallet}
-            >
-              <div className="space-y-6">
-                {/* eSewa */}
-                <div className="space-y-4 p-4 border border-border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">eSewa Digital Wallet</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow clients to pay securely via eSewa.
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.integrations.activePayments.includes("esewa")}
-                      onChange={(e) => {
-                        const act = new Set(formData.integrations.activePayments);
-                        if (e.target.checked) act.add("esewa");
-                        else act.delete("esewa");
-                        setFormData({
-                          ...formData,
-                          integrations: {
-                            ...formData.integrations,
-                            activePayments: Array.from(act),
-                          },
-                        });
-                      }}
-                      className="w-5 h-5 accent-primary"
-                    />
-                  </div>
-                  {formData.integrations.activePayments.includes("esewa") && (
-                    <div className="grid gap-2 mt-2">
-                      <Label>eSewa Merchant ID</Label>
-                      <Input
-                        placeholder="EPAYTEST"
-                        value={formData.integrations.paymentKeys.esewaMerchantId}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            integrations: {
-                              ...formData.integrations,
-                              paymentKeys: {
-                                ...formData.integrations.paymentKeys,
-                                esewaMerchantId: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Khalti */}
-                <div className="space-y-4 p-4 border border-border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Khalti Digital Wallet</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow clients to pay securely via Khalti.
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.integrations.activePayments.includes("khalti")}
-                      onChange={(e) => {
-                        const act = new Set(formData.integrations.activePayments);
-                        if (e.target.checked) act.add("khalti");
-                        else act.delete("khalti");
-                        setFormData({
-                          ...formData,
-                          integrations: {
-                            ...formData.integrations,
-                            activePayments: Array.from(act),
-                          },
-                        });
-                      }}
-                      className="w-5 h-5 accent-primary"
-                    />
-                  </div>
-                  {formData.integrations.activePayments.includes("khalti") && (
-                    <div className="grid gap-2 mt-2">
-                      <Label>Khalti Secret Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="live_secret_key_..."
-                        value={formData.integrations.paymentKeys.khaltiSecretKey}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            integrations: {
-                              ...formData.integrations,
-                              paymentKeys: {
-                                ...formData.integrations.paymentKeys,
-                                khaltiSecretKey: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Bank Transfer */}
-                <div className="space-y-4 p-4 border border-border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Bank Transfer / QR Upload</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Display bank details and allow clients to upload payment receipts.
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.integrations.activePayments.includes("bank_transfer")}
-                      onChange={(e) => {
-                        const act = new Set(formData.integrations.activePayments);
-                        if (e.target.checked) act.add("bank_transfer");
-                        else act.delete("bank_transfer");
-                        setFormData({
-                          ...formData,
-                          integrations: {
-                            ...formData.integrations,
-                            activePayments: Array.from(act),
-                          },
-                        });
-                      }}
-                      className="w-5 h-5 accent-primary"
-                    />
-                  </div>
-                  {formData.integrations.activePayments.includes("bank_transfer") && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <div className="grid gap-2">
-                        <Label>Bank Name</Label>
-                        <Input
-                          placeholder="Nabil Bank Ltd."
-                          value={formData.integrations.paymentKeys.bankName}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              integrations: {
-                                ...formData.integrations,
-                                paymentKeys: {
-                                  ...formData.integrations.paymentKeys,
-                                  bankName: e.target.value,
-                                },
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Account Name</Label>
-                        <Input
-                          placeholder="Srimar Law Law Firm"
-                          value={formData.integrations.paymentKeys.accountName}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              integrations: {
-                                ...formData.integrations,
-                                paymentKeys: {
-                                  ...formData.integrations.paymentKeys,
-                                  accountName: e.target.value,
-                                },
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Account Number</Label>
-                        <Input
-                          placeholder="0123456789012"
-                          value={formData.integrations.paymentKeys.accountNumber}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              integrations: {
-                                ...formData.integrations,
-                                paymentKeys: {
-                                  ...formData.integrations.paymentKeys,
-                                  accountNumber: e.target.value,
-                                },
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>FONEPAY QR Image</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            className="cursor-pointer w-full text-muted-foreground"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                toast.message(
-                                  "QR upload is not connected yet — file was not stored.",
-                                );
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </DashboardSection>

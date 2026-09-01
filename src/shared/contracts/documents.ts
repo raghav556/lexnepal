@@ -49,6 +49,14 @@ export const documentRecentSchema = z.object({
   limit: z.coerce.number().int().positive().max(50).default(5),
 });
 
+export const documentArchiveSchema = z.object({
+  documentIds: z
+    .array(uuidSchema)
+    .min(1)
+    .max(25)
+    .transform((ids) => [...new Set(ids)]),
+});
+
 export const documentUpdateSchema = z.object({
   // Title is `not null` in storage, so it may be changed but never cleared.
   title: z.string().trim().min(1).max(500).optional(),
@@ -88,5 +96,6 @@ export const documentUploadIntentSchema = z.object({
 
 export type DocumentListInput = z.infer<typeof documentListSchema>;
 export type DocumentSearchInput = z.infer<typeof documentSearchSchema>;
+export type DocumentArchiveInput = z.infer<typeof documentArchiveSchema>;
 export type DocumentUpdateInput = z.infer<typeof documentUpdateSchema>;
 export type DocumentShareCreateInput = z.infer<typeof documentShareCreateSchema>;

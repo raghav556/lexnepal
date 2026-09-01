@@ -6,6 +6,8 @@ export * from "./nepal-decorated-hero";
 export * from "./dual-date-display";
 export * from "./portal-localized-text";
 export * from "./dashboard-table";
+export * from "./portal-topbar";
+export * from "./portal-footer";
 export type { DashboardTone } from "@/lib/dashboard-semantics";
 export {
   getDashboardStatusTone,

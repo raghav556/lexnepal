@@ -68,6 +68,10 @@ import {
   useSetLegalHold,
   useUpdateDocument,
   useExtractDocumentText,
+  useDownloadDocument,
+  useDownloadDocumentArchive,
+  useDocumentVersions,
+  useRestoreDocumentVersion,
 } from "@/client/queries/documents";
 import {
   usePortalSigners,
@@ -114,6 +118,9 @@ export default function StaffDocumentsPage() {
   const hardDeleteDoc = useHardDeleteDocument();
   const setLegalHold = useSetLegalHold();
   const updateDocument = useUpdateDocument();
+  const downloadDocument = useDownloadDocument();
+  const downloadDocumentArchive = useDownloadDocumentArchive();
+  const restoreDocumentVersion = useRestoreDocumentVersion();
   const setRetention = async (args: any) =>
     updateDocument({ id: args.documentId, updates: { retentionPolicy: args.policy } });
 
@@ -123,6 +130,10 @@ export default function StaffDocumentsPage() {
   const [filterType, setFilterType] = useState("all");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [activeSidebarDoc, setActiveSidebarDoc] = useState<any | null>(null);
+  const versionHistory = useDocumentVersions(activeSidebarDoc?._id ?? null);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null);
 
   // Modals
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -287,10 +298,53 @@ export default function StaffDocumentsPage() {
     }
   };
 
-  const handleBulkDownload = () => {
+  const handleBulkDownload = async () => {
     if (selectedDocs.length === 0) return;
-    toast.success(`Zipping and downloading ${selectedDocs.length} files... (Simulated)`);
-    setSelectedDocs([]);
+    setIsBulkDownloading(true);
+    try {
+      const result = await downloadDocumentArchive(selectedDocs);
+      toast.success(`Downloaded ${selectedDocs.length} documents as ${result.fileName}.`);
+      setSelectedDocs([]);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not create the document archive.");
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
+  const handleDocumentDownload = async (doc: any) => {
+    setDownloadingId(doc._id);
+    try {
+      const url = await downloadDocument(doc._id);
+      window.open(String(url), "_blank", "noopener,noreferrer");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not download this document.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleVersionRestore = async (version: any) => {
+    if (!activeSidebarDoc) return;
+    if (
+      !window.confirm(
+        `Restore version ${version.version}? The existing history will remain unchanged and a new version will be created.`,
+      )
+    )
+      return;
+    setRestoringVersionId(version._id);
+    try {
+      const restored = await restoreDocumentVersion({
+        documentId: activeSidebarDoc._id,
+        versionId: version._id,
+      });
+      setActiveSidebarDoc(restored);
+      toast.success(`Version ${version.version} restored as new version ${restored.version}.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not restore this version.");
+    } finally {
+      setRestoringVersionId(null);
+    }
   };
 
   const handleOCR = async (doc: any) => {
@@ -448,9 +502,13 @@ export default function StaffDocumentsPage() {
           className={`flex-1 flex flex-col transition-all duration-300 w-full ${activeSidebarDoc ? "mr-[350px] pr-[350px]" : ""}`}
         >
           <div className="p-4 sm:p-6 border-b border-dashboard-border bg-dashboard-panel z-10 flex flex-col gap-4 sticky top-0">
-            <div className="flex bg-dashboard-neutral-soft p-1 rounded-lg w-fit">
+            <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 w-fit shadow-2xs">
               <button
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "list" ? "bg-background shadow-xs text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                  viewMode === "list"
+                    ? "bg-white text-purple-700 font-semibold shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
                 onClick={() => {
                   setViewMode("list");
                   setSelectedFolder(null);
@@ -460,7 +518,11 @@ export default function StaffDocumentsPage() {
                 List View
               </button>
               <button
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "folders" ? "bg-background shadow-xs text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                  viewMode === "folders"
+                    ? "bg-white text-purple-700 font-semibold shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
                 onClick={() => {
                   setViewMode("folders");
                   setSelectedSubFolder(null);
@@ -469,7 +531,11 @@ export default function StaffDocumentsPage() {
                 Folders
               </button>
               <button
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "trash" ? "bg-destructive/10 text-destructive shadow-xs" : "text-muted-foreground hover:text-destructive"}`}
+                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                  viewMode === "trash"
+                    ? "bg-white text-rose-700 font-semibold shadow-xs"
+                    : "text-slate-600 hover:text-rose-700"
+                }`}
                 onClick={() => {
                   setViewMode("trash");
                   setSelectedFolder(null);
@@ -570,8 +636,14 @@ export default function StaffDocumentsPage() {
                       size="sm"
                       className="h-9 px-3 bg-secondary/50"
                       onClick={handleBulkDownload}
+                      disabled={isBulkDownloading}
                     >
-                      <Download className="w-3.5 h-3.5 mr-1.5" /> Download Zip
+                      {isBulkDownloading ? (
+                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      {isBulkDownloading ? "Preparing ZIP…" : "Download ZIP"}
                     </Button>
                     <Button
                       variant="outline"
@@ -870,9 +942,15 @@ export default function StaffDocumentsPage() {
                     <Button
                       variant="outline"
                       className="w-full bg-card"
-                      onClick={() => toast.success("Downloading...")}
+                      onClick={() => handleDocumentDownload(doc)}
+                      disabled={downloadingId === doc._id}
                     >
-                      <Download className="w-4 h-4 mr-2" /> Download Document
+                      {downloadingId === doc._id ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
+                      Download Document
                     </Button>
                     <Button
                       variant="secondary"
@@ -938,40 +1016,61 @@ export default function StaffDocumentsPage() {
                     <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2 mb-4">
                       <History className="w-3.5 h-3.5 text-primary" /> Version History
                     </h4>
-                    <div className="space-y-4 relative before:absolute before:inset-0 before:ml-1.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[2px] before:bg-border">
-                      <div className="relative flex items-start justify-between pl-6 before:absolute before:left-0 before:top-1.5 before:w-3.5 before:h-3.5 before:bg-primary before:rounded-full before:border-2 before:border-background">
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Version {doc.version} (Current)
-                          </p>
-                          <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                            <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString()} />
-                          </p>
-                        </div>
+                    {versionHistory.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Loading version history…</p>
+                    ) : (
+                      <div className="space-y-4 relative before:absolute before:inset-0 before:ml-1.5 before:-translate-x-px before:h-full before:w-[2px] before:bg-border">
+                        {versionHistory.map((version: any, index) => {
+                          const isCurrent = index === 0;
+                          const createdAt =
+                            version.createdAt || new Date(version._creationTime).toISOString();
+                          return (
+                            <div
+                              key={version._id}
+                              className={`relative flex items-center justify-between gap-3 pl-6 before:absolute before:left-0 before:top-1.5 before:w-3.5 before:h-3.5 before:rounded-full before:border-2 ${
+                                isCurrent
+                                  ? "before:bg-primary before:border-background"
+                                  : "before:bg-secondary before:border-border"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <p
+                                  className={
+                                    isCurrent
+                                      ? "text-sm font-semibold text-foreground"
+                                      : "text-sm font-medium text-foreground/70"
+                                  }
+                                >
+                                  Version {version.version} {isCurrent ? "(Current)" : ""}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  <DualDateDisplay isoDate={createdAt} />
+                                </p>
+                              </div>
+                              {!isCurrent && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs border border-border bg-card"
+                                  onClick={() => handleVersionRestore(version)}
+                                  disabled={
+                                    restoringVersionId !== null ||
+                                    version.isDeleted ||
+                                    version.uploadStatus !== "clean"
+                                  }
+                                >
+                                  {restoringVersionId === version._id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    "Restore"
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {doc.version > 1 && (
-                        <div className="relative flex items-center justify-between pl-6 before:absolute before:left-0 before:top-1.5 before:w-3.5 before:h-3.5 before:bg-secondary before:border-2 before:border-border before:rounded-full">
-                          <div>
-                            <p className="text-sm font-medium text-foreground/70">
-                              Version {doc.version - 1}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              Previous upload
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs border border-border bg-card"
-                            onClick={() =>
-                              toast.success(`Restoring Version ${doc.version - 1}... (Simulated)`)
-                            }
-                          >
-                            Restore
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               );
@@ -998,9 +1097,15 @@ export default function StaffDocumentsPage() {
                     variant="outline"
                     size="sm"
                     className="bg-card"
-                    onClick={() => toast.success("Downloading...")}
+                    onClick={() => handleDocumentDownload(activeSidebarDoc)}
+                    disabled={downloadingId === activeSidebarDoc._id}
                   >
-                    <Download className="w-4 h-4 mr-2" /> Download
+                    {downloadingId === activeSidebarDoc._id ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Download
                   </Button>
                   <button
                     onClick={() => setIsPreviewOpen(false)}

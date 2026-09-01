@@ -6,6 +6,7 @@ import {
   durableJobs,
   auditLog,
   documents,
+  documentTagAssignments,
   documentUploadIntents,
   storageMigrationItems,
 } from "@/server/db/schema";
@@ -18,10 +19,15 @@ import type {
   DownloadableDocument,
   DownloadDocumentRepository,
 } from "@/server/storage/document-download";
+import type { DocumentArchiveRepository } from "@/server/storage/document-archive";
 import type { StorageMigrationJournal } from "@/server/storage/storage-migration";
 
 export class PostgresDocumentStorageRepository
-  implements DocumentPipelineRepository, DownloadDocumentRepository, StorageMigrationJournal
+  implements
+    DocumentPipelineRepository,
+    DownloadDocumentRepository,
+    DocumentArchiveRepository,
+    StorageMigrationJournal
 {
   private readonly database = getDatabase();
 
@@ -210,11 +216,18 @@ export class PostgresDocumentStorageRepository
       if (!intent || intent.status !== "scanning")
         throw new Error("Upload intent is not ready for promotion");
       let version = 1;
+      let parent: typeof documents.$inferSelect | undefined;
       if (intent.parentDocumentId) {
-        const [parent] = await transaction
-          .select({ version: documents.version })
+        [parent] = await transaction
+          .select()
           .from(documents)
-          .where(eq(documents.id, intent.parentDocumentId))
+          .where(
+            and(
+              eq(documents.firmId, intent.firmId),
+              eq(documents.id, intent.parentDocumentId),
+              isNull(documents.deletedAt),
+            ),
+          )
           .limit(1);
         if (!parent) throw new Error("Parent document was not found during promotion");
         version = parent.version + 1;
@@ -223,10 +236,11 @@ export class PostgresDocumentStorageRepository
         .insert(documents)
         .values({
           firmId: intent.firmId,
-          caseId: intent.caseId,
+          caseId: parent?.caseId ?? intent.caseId,
           documentNumber: `DOC-${input.intentId}`,
-          title: intent.originalFileName,
-          type: "other",
+          title: parent?.title ?? intent.originalFileName,
+          description: parent?.description,
+          type: parent?.type ?? "other",
           storageId: input.protectedKey,
           mimeType: intent.declaredMimeType,
           sizeBytes: intent.declaredSizeBytes,
@@ -234,14 +248,53 @@ export class PostgresDocumentStorageRepository
           version,
           parentDocumentId: intent.parentDocumentId,
           uploadedBy: intent.createdBy,
-          isTemplate: false,
-          isPrivileged: false,
+          isTemplate: parent?.isTemplate ?? false,
+          isPrivileged: parent?.isPrivileged ?? false,
+          confidentialityLevel: parent?.confidentialityLevel ?? "internal",
+          retentionPolicy: parent?.retentionPolicy,
+          retentionUntil: parent?.retentionUntil,
+          isOnLegalHold: parent?.isOnLegalHold ?? false,
+          legalHoldReason: parent?.legalHoldReason,
+          legalHoldSetAt: parent?.legalHoldSetAt,
+          legalHoldSetBy: parent?.legalHoldSetBy,
           uploadStatus: "clean",
           scanProvider: input.provider,
           scanCompletedAt: input.at,
           scanDetails: input.details,
         })
         .returning({ id: documents.id });
+      if (parent) {
+        const parentTags = await transaction
+          .select({ tagId: documentTagAssignments.tagId })
+          .from(documentTagAssignments)
+          .where(
+            and(
+              eq(documentTagAssignments.firmId, intent.firmId),
+              eq(documentTagAssignments.documentId, parent.id),
+              isNull(documentTagAssignments.deletedAt),
+            ),
+          );
+        if (parentTags.length > 0) {
+          await transaction.insert(documentTagAssignments).values(
+            parentTags.map(({ tagId }) => ({
+              firmId: intent.firmId,
+              documentId: document.id,
+              tagId,
+            })),
+          );
+        }
+        await transaction.insert(auditLog).values({
+          firmId: intent.firmId,
+          userId: intent.createdBy,
+          action: "document.version_uploaded",
+          resource: "documents",
+          resourceId: document.id,
+          details: `parent=${parent.id}; newVersion=${version}`,
+          ipAddress: "document-pipeline",
+          createdAt: input.at,
+          updatedAt: input.at,
+        });
+      }
       await transaction
         .update(documentUploadIntents)
         .set({
@@ -319,6 +372,23 @@ export class PostgresDocumentStorageRepository
         firmId: documents.firmId,
         storageKey: documents.storageId,
         uploadStatus: documents.uploadStatus,
+      })
+      .from(documents)
+      .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
+      .limit(1);
+    return document ?? null;
+  }
+
+  async getArchiveDocument(documentId: string) {
+    const [document] = await this.database
+      .select({
+        id: documents.id,
+        firmId: documents.firmId,
+        storageKey: documents.storageId,
+        uploadStatus: documents.uploadStatus,
+        title: documents.title,
+        mimeType: documents.mimeType,
+        sizeBytes: documents.sizeBytes,
       })
       .from(documents)
       .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))

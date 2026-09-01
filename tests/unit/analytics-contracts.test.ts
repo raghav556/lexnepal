@@ -2,56 +2,43 @@ import { describe, expect, it } from "vitest";
 import { analyticsDashboardSchema } from "../../src/shared/contracts/analytics";
 
 const dashboardFixture = {
-  totalRevenue: 1_130_000,
-  realizationRate: 0.82,
-  avgCaseValue: 250_000,
+  activeCases: 7,
   totalCases: 12,
-  totalClients: 8,
-  retentionRate: 0.9,
-  outstanding: 45_000,
-  totalExpenses: 12_500,
+  activeClients: 8,
+  activeStaff: 5,
   openLeads: 3,
-  revenueByPractice: { Corporate: 700_000, Litigation: 430_000 },
-  hoursByAssociate: { "Ada Lovelace": 120 },
-  monthlyRevenue: [
-    { month: "2026-07", revenue: 500_000 },
-    { month: "2026-08", revenue: 630_000 },
+  openTasks: 6,
+  upcomingHearings: 2,
+  mattersByPractice: { Corporate: 7, Litigation: 5 },
+  casesByStatus: { active: 7, closed: 5 },
+  tasksByStatus: { todo: 4, in_progress: 2, done: 8 },
+  hearingsByMonth: [
+    { month: "2026-09", count: 2 },
+    { month: "2026-10", count: 1 },
   ],
-  casesByStatus: { open: 7, closed: 5 },
-  kpis: {
-    activeCases: 7,
-    totalClients: 8,
-    revenue: 1_130_000,
-    outstanding: 45_000,
-    totalExpenses: 12_500,
-  },
 };
 
 describe("Analytics response contracts", () => {
-  it("accepts a representative dashboard fixture", () => {
+  it("accepts a representative operational dashboard fixture", () => {
     const parsed = analyticsDashboardSchema.safeParse(dashboardFixture);
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data.kpis.activeCases).toBe(7);
-      expect(parsed.data.monthlyRevenue).toHaveLength(2);
+      expect(parsed.data.activeCases).toBe(7);
+      expect(parsed.data.hearingsByMonth).toHaveLength(2);
     }
   });
 
-  it("rejects missing KPI fields or wrong types", () => {
-    const { kpis, ...withoutKpis } = dashboardFixture;
-    expect(analyticsDashboardSchema.safeParse(withoutKpis).success).toBe(false);
-
+  it("rejects missing operational fields or wrong types", () => {
+    const { activeCases, ...withoutActiveCases } = dashboardFixture;
+    expect(activeCases).toBe(7);
+    expect(analyticsDashboardSchema.safeParse(withoutActiveCases).success).toBe(false);
     expect(
-      analyticsDashboardSchema.safeParse({
-        ...dashboardFixture,
-        kpis: { ...kpis, activeCases: "seven" },
-      }).success,
+      analyticsDashboardSchema.safeParse({ ...dashboardFixture, openTasks: "six" }).success,
     ).toBe(false);
-
     expect(
       analyticsDashboardSchema.safeParse({
         ...dashboardFixture,
-        monthlyRevenue: [{ month: "2026-08" }],
+        hearingsByMonth: [{ month: "2026-09" }],
       }).success,
     ).toBe(false);
   });

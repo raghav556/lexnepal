@@ -12,7 +12,6 @@ import { migrateIdentityExport } from "../../src/server/services/identity-migrat
 import { migrateCmsExport } from "../../src/server/services/cms-migration";
 import { migrateMattersExport } from "../../src/server/services/matters-migration";
 import { migrateWorkManagementExport } from "../../src/server/services/work-management-migration";
-import { migrateFinancialExport } from "../../src/server/services/financial-migration";
 import { migrateCrmExport } from "../../src/server/services/crm-migration";
 import { migrateCommunicationExport } from "../../src/server/services/communication-migration";
 import { migrateEnvelopeExport } from "../../src/server/services/envelope-migration";
@@ -162,16 +161,6 @@ try {
     await doubleRun("work-management", () =>
       migrateWorkManagementExport({
         exportPath: path.resolve("tests/fixtures/convex-work-management-export"),
-        firmMap,
-        orphanFirmId: firmA,
-      }),
-    ),
-  );
-
-  results.push(
-    await doubleRun("financial", () =>
-      migrateFinancialExport({
-        exportPath: path.resolve("tests/fixtures/convex-financial-export"),
         firmMap,
         orphanFirmId: firmA,
       }),

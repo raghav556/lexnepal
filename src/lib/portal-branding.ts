@@ -4,6 +4,7 @@ import { ensureHexContrast, isValidHexColor, mixHex } from "@/lib/color-utils";
 export type PortalBranding = {
   firmName?: string;
   logoUrl?: string;
+  faviconUrl?: string;
   heroImageUrl?: string;
   primaryColor?: string;
 };
@@ -44,6 +45,7 @@ export function pickPortalBranding(settings?: Record<string, unknown> | null): P
   return {
     firmName: String(settings.firmName || "").trim() || undefined,
     logoUrl: String(settings.logoUrl || "").trim() || undefined,
+    faviconUrl: String(settings.faviconUrl || "").trim() || undefined,
     heroImageUrl: String(settings.heroImageUrl || "").trim() || undefined,
     primaryColor: isValidHexColor(String(settings.primaryColor || ""))
       ? String(settings.primaryColor).trim()

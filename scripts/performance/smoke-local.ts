@@ -5,7 +5,7 @@
 import { and, count, eq, like } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
-import { cases, clients, documents, firmSettings, invoices, tasks, users } from "../../db/schema";
+import { cases, clients, documents, firmSettings, tasks, users } from "../../db/schema";
 import {
   PERFORMANCE_SMOKE_BUDGETS_MS,
   PERFORMANCE_SMOKE_VOLUME,
@@ -16,7 +16,6 @@ import { GET as listCases } from "../../src/app/api/v1/cases/route";
 import { GET as listDocuments } from "../../src/app/api/v1/documents/route";
 import { GET as searchDocuments } from "../../src/app/api/v1/documents/search/route";
 import { POST as conflictSearch } from "../../src/app/api/v1/conflict-checks/search/route";
-import { GET as listInvoices } from "../../src/app/api/v1/financial/invoices/route";
 import { GET as listTasks } from "../../src/app/api/v1/tasks/route";
 
 const database = getDatabase();
@@ -52,7 +51,6 @@ async function ensurePermissions() {
           "documents.upload",
           "documents.share",
           "documents.delete",
-          "finance.manage",
           "conflicts.manage",
         ],
       },
@@ -71,7 +69,6 @@ async function ensurePermissions() {
             "documents.upload",
             "documents.share",
             "documents.delete",
-            "finance.manage",
             "conflicts.manage",
           ],
         },
@@ -81,7 +78,7 @@ async function ensurePermissions() {
 }
 
 async function countPrefixed(
-  table: typeof clients | typeof cases | typeof documents | typeof invoices | typeof tasks,
+  table: typeof clients | typeof cases | typeof documents | typeof tasks,
 ) {
   const [row] = await database
     .select({ value: count() })
@@ -98,7 +95,6 @@ async function seedVolume(lawyerId: string) {
       clients: existingClients,
       cases: await countPrefixed(cases),
       documents: await countPrefixed(documents),
-      invoices: await countPrefixed(invoices),
       tasks: await countPrefixed(tasks),
     };
   }
@@ -183,32 +179,6 @@ async function seedVolume(lawyerId: string) {
       .onConflictDoNothing();
   }
 
-  const invoiceRows = Array.from({ length: PERFORMANCE_SMOKE_VOLUME.invoices }, (_, i) => {
-    const matter = seededCases[i % seededCases.length]!;
-    const client = seededClients[i % seededClients.length]!;
-    const subtotal = 1000 + (i % 50) * 100;
-    const vat = Math.round(subtotal * 0.13);
-    return {
-      firmId: firmA,
-      invoiceNumber: `PERF-INV-${String(i + 1).padStart(5, "0")}`,
-      caseId: matter.id,
-      clientId: client.id,
-      status: "sent" as const,
-      subtotal: String(subtotal),
-      vatAmount: String(vat),
-      total: String(subtotal + vat),
-      issuedDate: "2026-08-01",
-      dueDate: "2026-08-31",
-      legacyConvexId: `${PREFIX}-inv-${i + 1}`,
-    };
-  });
-  for (let offset = 0; offset < invoiceRows.length; offset += 50) {
-    await database
-      .insert(invoices)
-      .values(invoiceRows.slice(offset, offset + 50))
-      .onConflictDoNothing();
-  }
-
   const taskRows = Array.from({ length: PERFORMANCE_SMOKE_VOLUME.tasks }, (_, i) => {
     const matter = seededCases[i % seededCases.length]!;
     return {
@@ -236,7 +206,6 @@ async function seedVolume(lawyerId: string) {
     clients: await countPrefixed(clients),
     cases: await countPrefixed(cases),
     documents: await countPrefixed(documents),
-    invoices: await countPrefixed(invoices),
     tasks: await countPrefixed(tasks),
   };
 }
@@ -339,17 +308,6 @@ try {
       if (!response.ok) return { ok: false, detail: `${response.status} ${await response.text()}` };
       const body = (await response.json()) as { data: unknown };
       return { ok: body.data != null, rows: 1 };
-    }),
-  );
-
-  results.push(
-    await measure("invoicesList", async () => {
-      const response = await listInvoices(
-        new Request("http://local/api/v1/financial/invoices", { headers }),
-      );
-      if (!response.ok) return { ok: false, detail: `${response.status}` };
-      const body = (await response.json()) as { data: unknown[] };
-      return { ok: Array.isArray(body.data) && body.data.length > 0, rows: body.data.length };
     }),
   );
 

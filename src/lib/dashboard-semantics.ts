@@ -151,14 +151,11 @@ export function getDashboardRoleTone(role?: string | null): DashboardTone {
 }
 
 export const DASHBOARD_METRIC_TONES = {
-  revenue: "success",
   cases: "information",
   people: "primary",
-  time: "warning",
   hearings: "warning",
   tasks: "success",
   signatures: "warning",
   messages: "success",
   documents: "information",
-  balance: "danger",
 } as const satisfies Record<string, DashboardTone>;

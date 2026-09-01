@@ -4,11 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Scale,
   LayoutDashboard,
   FolderOpen,
   MessageSquare,
-  Receipt,
   FileText,
   Menu,
   X,
@@ -27,7 +25,8 @@ import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
 import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context.tsx";
-import { PortalBrandingProvider } from "@/components/dashboard";
+import { PortalBrandingProvider, PortalTopbar, PortalFooter } from "@/components/dashboard";
+import { PortalFirmBrand } from "@/components/branding/firm-brand";
 
 type NavItem = {
   label?: string;
@@ -53,7 +52,6 @@ const NAV: NavItem[] = [
   { heading: "Services" },
   { label: "Identity (KYC)", i18nKey: "nav.kyc", href: "/client/kyc", icon: ShieldCheck },
   { label: "E-Signatures", i18nKey: "nav.signatures", href: "/client/signatures", icon: PenTool },
-  { label: "Billing", i18nKey: "nav.billing", href: "/client/billing", icon: Receipt },
   {
     label: "Book Appointment",
     i18nKey: "nav.book_appointment",
@@ -98,29 +96,17 @@ function ClientDesktopSidebar() {
     >
       {/* Brand header */}
       <div className="px-4 py-5 border-b border-dashboard-sidebar-border flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--dashboard-sidebar-brand), var(--dashboard-primary))",
-              boxShadow: "0 2px 10px var(--dashboard-sidebar-brand-glow)",
-            }}
-          >
-            <Scale className="w-4.5 h-4.5 text-dashboard-sidebar-foreground" />
-          </div>
-          <div>
-            <div className="font-serif text-sm font-bold text-dashboard-sidebar-foreground tracking-wide">
-              Srimar Law
-            </div>
-            <div className="text-[11px] font-medium text-dashboard-sidebar-muted tracking-wider uppercase">
-              Client Portal
-            </div>
-          </div>
-        </div>
-        <div className="text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground transition-colors">
-          <NotificationBell />
-        </div>
+        <PortalFirmBrand
+          href="/client"
+          subtitle="Client Portal"
+          logoFit="cover"
+          className="flex-1 gap-2.5"
+          logoClassName="size-9 max-w-12 rounded-xl"
+          fallbackClassName="size-9 bg-[linear-gradient(135deg,var(--dashboard-sidebar-brand),var(--dashboard-primary))] shadow-[0_2px_10px_var(--dashboard-sidebar-brand-glow)]"
+          fallbackIconClassName="size-[18px] text-dashboard-sidebar-foreground"
+          nameClassName="text-sm tracking-wide text-dashboard-sidebar-foreground"
+          subtitleClassName="text-[11px] font-medium uppercase tracking-wider text-dashboard-sidebar-muted"
+        />
       </div>
 
       {/* Navigation */}
@@ -203,17 +189,23 @@ function ClientMobileChrome() {
     { href: "/client", icon: LayoutDashboard, label: t("nav.dashboard") },
     { href: "/client/cases", icon: FolderOpen, label: t("nav.cases") },
     { href: "/client/messages", icon: MessageSquare, label: t("nav.messages") },
-    { href: "/client/billing", icon: Receipt, label: t("nav.billing") },
     { href: "/client/profile", icon: UserIcon, label: "Profile" },
   ] as const;
 
   return (
     <>
       <div className="md:hidden sticky top-0 z-50 bg-dashboard-panel/95 backdrop-blur border-b border-dashboard-border flex items-center justify-between px-4 h-14 shrink-0 w-full">
-        <div className="flex items-center gap-2">
-          <Scale className="w-5 h-5 text-dashboard-accent-foreground" />
-          <span className="font-serif font-bold text-dashboard-primary text-sm">Srimar Law</span>
-        </div>
+        <PortalFirmBrand
+          href="/client"
+          subtitle="Client Portal"
+          logoFit="cover"
+          className="max-w-[58%] gap-2"
+          logoClassName="size-8 max-w-10 rounded-lg"
+          fallbackClassName="size-8 bg-dashboard-primary-soft"
+          fallbackIconClassName="size-4 text-dashboard-primary"
+          nameClassName="text-sm text-dashboard-primary"
+          subtitleClassName="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground"
+        />
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -310,16 +302,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <PortalRoleGuard
           allowed="client"
           title="Client Portal"
-          description="Please sign in to access your cases, documents, and billing information."
+          description="Please sign in to access your cases, documents, and messages."
         >
           <IdleSessionGuard />
           <div className="flex h-screen overflow-hidden bg-dashboard-canvas">
             <ClientDesktopSidebar />
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
               <ClientMobileChrome />
-              <main className="flex-1 min-w-0 overflow-auto bg-dashboard-canvas pb-16 md:pb-0">
-                {children}
-              </main>
+              <div className="flex-1 min-w-0 overflow-y-auto flex flex-col">
+                <PortalTopbar portal="client" className="hidden md:flex" />
+                <main className="flex-1 min-w-0 bg-dashboard-canvas pb-16 md:pb-0">{children}</main>
+                <PortalFooter portal="client" className="hidden md:block" />
+              </div>
             </div>
           </div>
         </PortalRoleGuard>

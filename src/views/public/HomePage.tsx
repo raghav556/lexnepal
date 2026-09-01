@@ -124,7 +124,7 @@ const FAQS = [
   },
   {
     q: "Can I track my case online?",
-    a: "Yes! Every client gets access to our secure Client Portal where you can track case progress, exchange documents, view billing, and communicate directly with your advocate — 24/7.",
+    a: "Yes! Every client gets access to our secure Client Portal where you can track case progress, exchange documents, review hearings, and communicate directly with your advocate — 24/7.",
   },
   {
     q: "Are your lawyers registered with the Nepal Bar Council?",

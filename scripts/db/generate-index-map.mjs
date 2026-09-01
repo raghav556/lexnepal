@@ -3,7 +3,7 @@ import path from "node:path";
 
 const migrationFiles = fs
   .readdirSync("drizzle")
-  .filter((file) => file.endsWith(".sql"))
+  .filter((file) => file.endsWith(".sql") && !file.endsWith(".down.sql"))
   .sort()
   .map((file) => path.join("drizzle", file));
 
@@ -48,13 +48,20 @@ function purposeFor(index) {
 }
 
 const indexes = [];
+const droppedTables = new Set();
+const droppedIndexes = new Set();
 for (const file of migrationFiles) {
   const sql = fs.readFileSync(file, "utf8");
   for (const statement of sql.split("--> statement-breakpoint")) {
+    const droppedTable = statement.match(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?"?([a-zA-Z0-9_]+)"?/i);
+    if (droppedTable) droppedTables.add(droppedTable[1]);
+    const droppedIndex = statement.match(/DROP\s+INDEX\s+(?:IF\s+EXISTS\s+)?"?([a-zA-Z0-9_]+)"?/i);
+    if (droppedIndex) droppedIndexes.add(droppedIndex[1]);
     const match = statement.match(
       /CREATE\s+(UNIQUE\s+)?INDEX\s+"?([a-zA-Z0-9_]+)"?\s+ON\s+(?:public\.)?"?([a-zA-Z0-9_]+)"?\s+USING\s+[a-zA-Z0-9_]+\s*\(([\s\S]*?)\)(?:\s+WHERE[\s\S]*)?;?\s*$/i,
     );
     if (!match) continue;
+    droppedIndexes.delete(match[2]);
     const index = {
       table: match[3],
       index: match[2],
@@ -66,9 +73,12 @@ for (const file of migrationFiles) {
   }
 }
 
-indexes.sort((a, b) => `${a.table}.${a.index}`.localeCompare(`${b.table}.${b.index}`));
+const activeIndexes = indexes.filter(
+  (index) => !droppedTables.has(index.table) && !droppedIndexes.has(index.index),
+);
+activeIndexes.sort((a, b) => `${a.table}.${a.index}`.localeCompare(`${b.table}.${b.index}`));
 fs.mkdirSync("doc/migration", { recursive: true });
-fs.writeFileSync("db/index-manifest.json", `${JSON.stringify(indexes, null, 2)}\n`);
+fs.writeFileSync("db/index-manifest.json", `${JSON.stringify(activeIndexes, null, 2)}\n`);
 
 const headers = [
   "Table",
@@ -82,7 +92,7 @@ const quote = (value) => {
   const text = String(value);
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 };
-const rows = indexes.map((index) => [
+const rows = activeIndexes.map((index) => [
   index.table,
   index.index,
   index.unique ? "yes" : "no",
@@ -94,4 +104,4 @@ fs.writeFileSync(
   "doc/migration/index-query-map.csv",
   `${[headers, ...rows].map((row) => row.map(quote).join(",")).join("\n")}\n`,
 );
-console.log(`Documented ${indexes.length} explicit PostgreSQL indexes.`);
+console.log(`Documented ${activeIndexes.length} active PostgreSQL indexes.`);
