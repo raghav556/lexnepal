@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "npm@11.12.1",
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/local/run-dev.mjs",
     "dev:next": "node --env-file-if-exists=.env.local scripts/local/run-next.mjs dev --port 3001",
