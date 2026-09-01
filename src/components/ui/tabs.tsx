@@ -17,7 +17,7 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-slate-100/90 border border-slate-200/80 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-xl p-1 shadow-2xs",
+        "bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-xl p-1 shadow-2xs",
         className,
       )}
       {...props}
@@ -30,7 +30,9 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs data-[state=active]:font-semibold inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30 text-slate-600 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-all outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "text-slate-600 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs data-[state=active]:font-semibold focus-visible:ring-2 focus-visible:ring-purple-500/30",
+        "dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/40 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:data-[state=active]:shadow-xs dark:data-[state=active]:border dark:data-[state=active]:border-slate-700/80 dark:focus-visible:ring-indigo-500/30",
         className,
       )}
       {...props}

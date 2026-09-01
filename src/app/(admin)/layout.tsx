@@ -323,7 +323,7 @@ function AdminMobileChrome() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <PortalBrandingProvider appearance="dark">
-      <div className="dashboard-theme dashboard-admin dashboard-nepal dark h-[100dvh] min-h-[100dvh] overflow-hidden bg-dashboard-canvas text-foreground">
+      <div className="dashboard-theme dashboard-admin dashboard-nepal dark fixed inset-0 h-[100dvh] min-h-[100dvh] overflow-hidden bg-dashboard-canvas text-foreground">
         <PortalRoleGuard
           allowed="admin"
           title="Admin Console"

@@ -258,7 +258,7 @@ export default function AdminCMSDashboard() {
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="w-full shrink-0 gap-1.5 px-2.5 py-2.5 text-xs data-[state=active]:bg-background data-[state=inactive]:bg-transparent hover:bg-background/50 sm:px-3 sm:text-sm"
+                    className="w-full shrink-0 gap-1.5 px-2.5 py-2.5 text-xs text-slate-700 dark:text-slate-300 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent hover:bg-background/60 hover:text-foreground sm:px-3 sm:text-sm font-medium transition-colors"
                   >
                     <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="sm:hidden">{tab.short}</span>

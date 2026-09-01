@@ -479,45 +479,6 @@ export default function AdminAppointmentsPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-        {(
-          [
-            {
-              key: "pendingToday" as const,
-              label: "Pending today",
-              value: kpi.pendingToday,
-              active: statusFilter === "pending" && dateFrom === today && dateTo === today,
-            },
-            {
-              key: "unassigned" as const,
-              label: "Unassigned",
-              value: kpi.unassigned,
-              active: assigneeFilter === "unassigned",
-            },
-            {
-              key: "confirmedUpcoming" as const,
-              label: "Confirmed upcoming",
-              value: kpi.confirmedUpcoming,
-              active: statusFilter === "confirmed" && dateFrom === today && !dateTo,
-            },
-          ] as const
-        ).map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            onClick={() => applyKpiChip(chip.key)}
-            className={`text-left rounded-xl border bg-card px-4 py-3 transition-colors ${
-              chip.active
-                ? "border-dashboard-primary ring-1 ring-dashboard-primary/30"
-                : "border-border hover:bg-muted/40"
-            }`}
-          >
-            <p className="text-xs text-muted-foreground font-medium">{chip.label}</p>
-            <p className="text-2xl font-serif font-bold text-foreground mt-0.5">{chip.value}</p>
-          </button>
-        ))}
-      </div>
-
       <DashboardSection
         title="Filters & view"
         icon={Search}

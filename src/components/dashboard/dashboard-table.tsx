@@ -16,7 +16,7 @@ export function DashboardTableHead({ className, ...props }: React.ComponentProps
   return (
     <thead
       className={cn(
-        "sticky top-0 z-10 bg-slate-50/90 border-b border-dashboard-border text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-xs",
+        "sticky top-0 z-10 bg-slate-50/90 dark:bg-slate-900/90 border-b border-dashboard-border text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400 backdrop-blur-xs",
         className,
       )}
       {...props}
@@ -41,8 +41,8 @@ export function DashboardTableRow({
   return (
     <tr
       className={cn(
-        "transition-colors hover:bg-slate-50/90",
-        striped && "even:bg-slate-50/40",
+        "transition-colors hover:bg-slate-50/90 dark:hover:bg-slate-800/60",
+        striped && "even:bg-slate-50/40 dark:even:bg-slate-900/40",
         className,
       )}
       {...props}
