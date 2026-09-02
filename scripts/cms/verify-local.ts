@@ -1,4 +1,4 @@
-import { returningInsert } from "@/server/db/mysql-returning";
+import { returningUpsert } from "@/server/db/mysql-returning";
 import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -68,7 +68,7 @@ try {
     { params: Promise.resolve({ collection: "blog-posts" }) },
   );
   const adminBody = (await adminPosts.json()) as { data: Array<{ status: string }> };
-  const [foreign] = await returningInsert(
+  const [foreign] = await returningUpsert(
     database
       .insert(practiceAreas)
       .values({
@@ -80,9 +80,13 @@ try {
         slug: "foreign-verification",
         isActive: true,
       })
-      .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } })
-      .$returningId(),
-    (id) => database.select().from(practiceAreas).where(eq(practiceAreas.id, id)).limit(1),
+      .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } }),
+    () =>
+      database
+        .select()
+        .from(practiceAreas)
+        .where(eq(practiceAreas.legacyConvexId, "cms-cross-firm-verification"))
+        .limit(1),
   );
   const crossFirm = await adminItemPatch(
     new Request("http://local/api/v1/cms/practice-areas/x", {

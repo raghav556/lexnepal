@@ -24,16 +24,16 @@ const suffix = randomUUID();
 
 await database
   .insert(firms)
-  .values({ id: firmId, name: "Phase 7 Firm A", slug: "phase-7-firm-a" })
+  .values({ id: firmId, name: "Phase 6 Firm A", slug: "phase-6-firm-a" })
   .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 await database
   .insert(users)
   .values({
     id: actorUserId,
     firmId,
-    tokenIdentifier: "phase7:user-a",
-    name: "Phase 7 User A",
-    email: "phase7-a@example.invalid",
+    tokenIdentifier: "phase6:user-a",
+    name: "Phase 6 User A",
+    email: "phase6-a@example.invalid",
     role: "admin",
     isActive: true,
     isPending: false,

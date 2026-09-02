@@ -66,12 +66,16 @@ try {
   }
 
   const data = parsed.data;
-  if (typeof data.totalRevenue !== "number" || typeof data.kpis.activeCases !== "number") {
+  if (
+    typeof data.totalCases !== "number" ||
+    typeof data.activeCases !== "number" ||
+    typeof data.upcomingHearings !== "number"
+  ) {
     throw new Error("Dashboard numeric fields missing");
   }
-  if (!Array.isArray(data.monthlyRevenue)) throw new Error("monthlyRevenue missing");
-  if (typeof data.revenueByPractice !== "object" || data.revenueByPractice === null) {
-    throw new Error("revenueByPractice missing");
+  if (!Array.isArray(data.hearingsByMonth)) throw new Error("hearingsByMonth missing");
+  if (typeof data.mattersByPractice !== "object" || data.mattersByPractice === null) {
+    throw new Error("mattersByPractice missing");
   }
 
   // Firm B admin should not inherit firm A counts when empty/different — create partner on firm B
@@ -89,7 +93,7 @@ try {
     throw new Error(`Firm B dashboard failed: ${firmBResponse.status}`);
   }
   const firmBBody = (await firmBResponse.json()) as {
-    data: { totalCases: number; totalRevenue: number };
+    data: { totalCases: number; activeCases: number };
   };
   // Tenant isolation: response must be scoped (may be zeros). Must not throw and must validate.
   analyticsDashboardSchema.parse(firmBBody.data);
@@ -102,13 +106,13 @@ try {
     JSON.stringify({
       firmA: {
         totalCases: data.totalCases,
-        totalRevenue: data.totalRevenue,
+        activeCases: data.activeCases,
         openLeads: data.openLeads,
-        retentionRate: data.retentionRate,
+        openTasks: data.openTasks,
       },
       firmB: {
         totalCases: firmBBody.data.totalCases,
-        totalRevenue: firmBBody.data.totalRevenue,
+        activeCases: firmBBody.data.activeCases,
       },
       associateDenied: true,
     }),
