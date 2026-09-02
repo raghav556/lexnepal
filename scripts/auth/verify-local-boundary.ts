@@ -1,4 +1,4 @@
-import { returningInsert } from "@/server/db/mysql-returning";
+import { returningUpsert } from "@/server/db/mysql-returning";
 import { and, eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -23,7 +23,7 @@ const fixtures = [
 try {
   const created = [];
   for (const fixture of fixtures) {
-    const [lexUser] = await returningInsert(
+    const [lexUser] = await returningUpsert(
       database
         .insert(users)
         .values({
@@ -35,10 +35,11 @@ try {
           isActive: true,
           isPending: false,
         })
-        .onDuplicateKeyUpdate({ set: { isActive: true, isPending: false, updatedAt: new Date() } })
-        .$returningId(),
-      (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+        .onDuplicateKeyUpdate({ set: { isActive: true, isPending: false, updatedAt: new Date() } }),
+      () =>
+        database.select().from(users).where(eq(users.tokenIdentifier, `boundary:${fixture.email}`)).limit(1),
     );
+    if (!lexUser) throw new Error(`Failed to ensure boundary user ${fixture.email}`);
     const [existingAuthUser] = await database
       .select({ id: authUsers.id })
       .from(authUsers)

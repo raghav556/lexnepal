@@ -1,4 +1,4 @@
-import { returningInsert } from "@/server/db/mysql-returning";
+import { returningUpsert } from "@/server/db/mysql-returning";
 import { and, desc, eq, like } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -49,7 +49,7 @@ async function signIn(email: string) {
 }
 
 async function ensureAssigneeUser() {
-  const [row] = await returningInsert(
+  const [row] = await returningUpsert(
     database
       .insert(users)
       .values({
@@ -68,9 +68,8 @@ async function ensureAssigneeUser() {
           isPending: false,
           updatedAt: new Date(),
         },
-      })
-      .$returningId(),
-    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+      }),
+    () => database.select().from(users).where(eq(users.email, assigneeEmail)).limit(1),
   );
   if (!row) throw new Error("Failed to ensure CRM verify assignee");
   return row;
@@ -78,7 +77,7 @@ async function ensureAssigneeUser() {
 
 /** Paralegal without clients.manage — used to prove assignee self-scoping. */
 async function ensureScopedParalegal() {
-  const [lexUser] = await returningInsert(
+  const [lexUser] = await returningUpsert(
     database
       .insert(users)
       .values({
@@ -97,9 +96,8 @@ async function ensureScopedParalegal() {
           isPending: false,
           updatedAt: new Date(),
         },
-      })
-      .$returningId(),
-    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+      }),
+    () => database.select().from(users).where(eq(users.email, scopedEmail)).limit(1),
   );
   if (!lexUser) throw new Error("Failed to ensure CRM verify paralegal");
 
