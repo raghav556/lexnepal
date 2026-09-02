@@ -1,6 +1,6 @@
 LogFile "__CLAMD_LOG__"
-LogTime yes
-LogRotate yes
+LogTime true
+LogRotate true
 LogFileMaxSize 5M
 DatabaseDirectory "__DATABASE_DIRECTORY__"
 TCPSocket 3310
