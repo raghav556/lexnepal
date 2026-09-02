@@ -50,6 +50,12 @@ application shell, and `APP_PUBLIC_URL` should point there for localhost invitat
 
 Update ClamAV signatures with `npm run local:clamav:update`, then restart the local infrastructure so the daemon reloads them.
 
+On Windows workstations, exclude the storage root (and, if Defender also flags it, the workspace's test fixtures with EICAR bytes) from real-time antivirus scanning. The verification suites deliberately write an EICAR test file into `quarantine/` and let ClamAV reject it; if Windows Defender removes that file first, `matters:verify-local` fails with a missing quarantine object. Run once from an elevated PowerShell:
+
+```powershell
+Add-MpPreference -ExclusionPath "<absolute path to>\\.local\\storage"
+```
+
 ## Local filesystem storage
 
 `STORAGE_ROOT` (default `./.local/storage`) is the single private root for quarantine, protected, and rejected object keys. Keys keep their existing logical identifiers (`protected/<firmId>/...`, `quarantine/...`, `rejected/...`) and map onto nested directories inside the root. The root must never be exposed through `public_html` or any static file server; all transfers happen through authorization-checked application routes.
