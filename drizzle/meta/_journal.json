@@ -1,180 +1,19 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "mysql",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1785619969004,
-      "tag": "0000_initial_postgresql_schema",
+      "version": "5",
+      "when": 1788316154310,
+      "tag": "0000_initial_mysql_schema",
       "breakpoints": true
     },
     {
       "idx": 1,
-      "version": "7",
-      "when": 1785620019818,
-      "tag": "0001_tenant_integrity_and_checks",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1785621208380,
-      "tag": "0002_authentication_sessions",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1785642556596,
-      "tag": "0003_document_storage_pipeline",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1785650400000,
-      "tag": "0004_durable_jobs_and_schedules",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1785654000000,
-      "tag": "0005_audit_request_context",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1785658594156,
-      "tag": "0006_local_identity_authority",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1785661800000,
-      "tag": "0007_avatar_quarantine_pipeline",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1785668400000,
-      "tag": "0008_matters_kyc_security",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1785711600000,
-      "tag": "0009_financial_idempotency",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1785798000000,
-      "tag": "0010_research_citations",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1785884400000,
-      "tag": "0011_leadership_title",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1786060800000,
-      "tag": "0012_leave_balances",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1786073000000,
-      "tag": "0013_payroll_runs",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1786075000000,
-      "tag": "0014_appointment_lead_id",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "7",
-      "when": 1786083000000,
-      "tag": "0016_cms_asset_upload_intents",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1786084000000,
-      "tag": "0017_navigation_sibling_order_unique",
-      "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "7",
-      "when": 1786085000000,
-      "tag": "0018_practice_areas_corporate",
-      "breakpoints": true
-    },
-    {
-      "idx": 19,
-      "version": "7",
-      "when": 1786086000000,
-      "tag": "0019_testimonials_homepage",
-      "breakpoints": true
-    },
-    {
-      "idx": 20,
-      "version": "7",
-      "when": 1786140000000,
-      "tag": "0020_dm_threads",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1786141000000,
-      "tag": "0021_team_public_profile",
-      "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "7",
-      "when": 1786142000000,
-      "tag": "0022_resources_premium",
-      "breakpoints": true
-    },
-    {
-      "idx": 23,
-      "version": "7",
-      "when": 1786143000000,
-      "tag": "0023_blog_editorial",
-      "breakpoints": true
-    },
-    {
-      "idx": 24,
-      "version": "7",
-      "when": 1786144000000,
-      "tag": "0024_news_premium",
-      "breakpoints": true
-    },
-    {
-      "idx": 25,
-      "version": "7",
-      "when": 1788260400000,
-      "tag": "0025_remove_financial_domain",
+      "version": "5",
+      "when": 1788316154311,
+      "tag": "0001_mysql_integrity",
       "breakpoints": true
     }
   ]

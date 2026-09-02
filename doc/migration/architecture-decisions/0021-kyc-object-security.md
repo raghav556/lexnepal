@@ -10,7 +10,7 @@ Legacy KYC uploaded files directly to Convex storage and stored caller-supplied 
 
 ## Decision
 
-Use a dedicated firm/client/user-bound KYC upload-intent table. Client uploads enter the private MinIO quarantine prefix using a short-lived presigned POST. Completion verifies intent metadata and queues the durable `kyc.malware_scan` job. Size, allowed MIME, magic bytes and optional SHA-256 are checked before ClamAV scanning. Only clean files move to the protected KYC prefix. KYC submission accepts promoted intent UUIDs, never arbitrary storage keys.
+Use a dedicated firm/client/user-bound KYC upload-intent table. Client uploads enter the private storage quarantine prefix using a short-lived single-use upload grant. Completion verifies intent metadata and queues the durable `kyc.malware_scan` job. Size, allowed MIME, magic bytes and optional SHA-256 are checked before ClamAV scanning. Only clean files move to the protected KYC prefix. KYC submission accepts promoted intent UUIDs, never arbitrary storage keys.
 
 Only the owning client can create and submit uploads. Only users with `kyc.review` can list signed file URLs or decide a submission. Signed URLs are short lived. Expired abandoned uploads are deleted by the durable document-cleanup schedule.
 

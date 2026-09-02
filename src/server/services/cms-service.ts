@@ -3,7 +3,7 @@ import { getServerEnvironment } from "@/server/env";
 import type { AuthPrincipal } from "@/server/auth/types";
 import type { AuditContext } from "@/server/audit/context";
 import { requireCapability, requireFirmContext } from "@/server/policies/authorization";
-import { PostgresCmsRepository } from "@/server/repositories/cms-repository";
+import { MySqlCmsRepository } from "@/server/repositories/cms-repository";
 import {
   ApplicationInput,
   BlogPostInput,
@@ -46,7 +46,7 @@ type PatchCollectionInput =
   | Partial<NavigationInput>;
 
 export class CmsService {
-  constructor(private readonly repository = new PostgresCmsRepository()) {}
+  constructor(private readonly repository = new MySqlCmsRepository()) {}
 
   async publicFirmId() {
     const slug = getServerEnvironment().PUBLIC_FIRM_SLUG;

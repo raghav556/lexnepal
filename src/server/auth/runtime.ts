@@ -3,7 +3,7 @@ import { getServerEnvironment } from "@/server/env";
 import { HerculesOidcVerifier } from "@/server/auth/hercules-oidc";
 import { SessionService } from "@/server/auth/session-service";
 import type { AuthPrincipal } from "@/server/auth/types";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import { BetterAuthSessionService } from "@/server/auth/better-auth-session-service";
 
 type SessionAuthority = Pick<SessionService, "requireSession">;
@@ -22,7 +22,7 @@ export function getSessionService(): SessionAuthority {
     );
   }
   service = new SessionService(
-    new PostgresSecurityRepository(),
+    new MySqlSecurityRepository(),
     new HerculesOidcVerifier(
       environment.HERCULES_OIDC_AUTHORITY,
       environment.HERCULES_OIDC_CLIENT_ID,

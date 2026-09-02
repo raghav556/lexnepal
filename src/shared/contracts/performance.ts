@@ -9,7 +9,7 @@ export const PERFORMANCE_SMOKE_VOLUME = {
 } as const;
 
 /**
- * Per-request budgets (ms) after a warm call. Local Postgres should stay
+ * Per-request budgets (ms) after a warm call. Local MySQL should stay
  * interactive for staff list/search pages at the volume above.
  */
 export const PERFORMANCE_SMOKE_BUDGETS_MS = {

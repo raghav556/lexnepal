@@ -10,7 +10,7 @@ Status: `complete_local`. The local authoritative backend is Next.js/PostgreSQL 
 - LexNepal owns firm membership, roles, capabilities and account state.
 - Mailpit captures invitation and recovery email locally; delivery still runs through the PostgreSQL durable queue.
 - Administrators and partners must enroll MFA before application APIs authorize them.
-- MinIO stores avatars privately; uploads are quarantined, SHA-256 checked and ClamAV scanned before promotion.
+- Local filesystem storage keeps avatars private; uploads are quarantined, SHA-256 checked and ClamAV scanned before promotion.
 - Convex sessions, passwords, activation tokens and TOTP secrets are explicitly retired, never migrated.
 
 ## Implemented Next.js surface
@@ -28,7 +28,7 @@ Status: `complete_local`. The local authoritative backend is Next.js/PostgreSQL 
 - [x] Invitation and reset email use the durable job queue and never return activation secrets.
 - [x] Password and MFA ownership is recorded in ADR-0020.
 - [x] Privileged accounts are blocked until TOTP enrollment.
-- [x] Avatar upload uses MinIO quarantine and ClamAV scanning.
+- [x] Avatar upload uses storage quarantine and ClamAV scanning.
 - [x] Every page is free of direct identity/settings/audit Convex calls.
 - [x] Identity migration is idempotent and excludes legacy credential material.
 - [x] Anonymous, same-firm, cross-firm, MFA and sensitive-DTO route checks pass.

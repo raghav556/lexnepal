@@ -13,7 +13,7 @@ Hercules is not provisioned locally. Waiting for external tenant configuration p
 
 Use Better Auth with the existing local PostgreSQL database as the local credential authority. Better Auth owns password hashes, password-reset tokens, verified email state, rate limits, session cookies, TOTP secrets and backup codes. LexNepal's `users` table owns firm membership, application role, capability policy, public profile and active/pending/suspended state.
 
-Invitations are inaccessible random-password accounts followed by a single-use password-reset flow. Delivery is a durable `communication.email` job to local Mailpit. Administrators and partners cannot access application APIs until Better Auth confirms TOTP enrollment. Public avatars enter a private MinIO quarantine prefix and must pass size, MIME, magic-byte, SHA-256 and ClamAV checks before promotion.
+Invitations are inaccessible random-password accounts followed by a single-use password-reset flow. Delivery is a durable `communication.email` job to local Mailpit. Administrators and partners cannot access application APIs until Better Auth confirms TOTP enrollment. Public avatars enter a private storage quarantine prefix and must pass size, MIME, magic-byte, SHA-256 and ClamAV checks before promotion.
 
 Convex password hashes, activation tokens, TOTP secrets and sessions are never imported. All Convex sessions are retired at migration.
 

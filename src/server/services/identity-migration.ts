@@ -1,3 +1,6 @@
+import { returningUpsert } from "@/server/db/mysql-returning";
+import { returningMutation } from "@/server/db/mysql-returning";
+import { sql } from "drizzle-orm";
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -222,52 +225,53 @@ export async function migrateIdentityExport(input: {
         });
         continue;
       }
-      const [row] = await tx
-        .insert(users)
-        .values({
-          legacyConvexId: legacyId,
-          firmId,
-          tokenIdentifier: `migration:${legacyId}`,
-          name: asString(record.name),
-          email: asString(record.email)?.toLowerCase(),
-          role: role as UserRole,
-          avatar: null,
-          phone: asString(record.phone),
-          barCouncilNumber: asString(record.barCouncilNumber),
-          barCouncilExpiry: asDateOnly(record.barCouncilExpiry),
-          isActive: asBoolean(record.isActive, true),
-          isPublicFacing: asBoolean(record.isPublicFacing, false),
-          bio: asString(record.bio),
-          longBio: asString(record.longBio),
-          publicEmail: asString(record.publicEmail),
-          linkedinUrl: asString(record.linkedinUrl),
-          twitterUrl: asString(record.twitterUrl),
-          isPending: asBoolean(record.isPending, false),
-          twoFactorEnabled: false,
-          twoFactorRequired: asBoolean(
-            record.twoFactorRequired,
-            role === "admin" || role === "partner",
-          ),
-          lastLoginAt: toOptionalDate(record.lastLoginAt),
-          invitedAt: toOptionalDate(record.invitedAt),
-          inviteExpiresAt: toOptionalDate(record.inviteExpiresAt),
-          deactivatedAt: toOptionalDate(record.deactivatedAt),
-          createdAt: toDate(record._creationTime),
-          updatedAt: toDate(record._creationTime),
-        })
-        .onConflictDoUpdate({
-          target: users.legacyConvexId,
-          set: {
+      const [row] = await returningUpsert(
+        tx
+          .insert(users)
+          .values({
+            legacyConvexId: legacyId,
             firmId,
+            tokenIdentifier: `migration:${legacyId}`,
             name: asString(record.name),
             email: asString(record.email)?.toLowerCase(),
             role: role as UserRole,
+            avatar: null,
             phone: asString(record.phone),
+            barCouncilNumber: asString(record.barCouncilNumber),
+            barCouncilExpiry: asDateOnly(record.barCouncilExpiry),
             isActive: asBoolean(record.isActive, true),
-            updatedAt: new Date(),
-          },
-        })
-        .returning({ id: users.id });
+            isPublicFacing: asBoolean(record.isPublicFacing, false),
+            bio: asString(record.bio),
+            longBio: asString(record.longBio),
+            publicEmail: asString(record.publicEmail),
+            linkedinUrl: asString(record.linkedinUrl),
+            twitterUrl: asString(record.twitterUrl),
+            isPending: asBoolean(record.isPending, false),
+            twoFactorEnabled: false,
+            twoFactorRequired: asBoolean(
+              record.twoFactorRequired,
+              role === "admin" || role === "partner",
+            ),
+            lastLoginAt: toOptionalDate(record.lastLoginAt),
+            invitedAt: toOptionalDate(record.invitedAt),
+            inviteExpiresAt: toOptionalDate(record.inviteExpiresAt),
+            deactivatedAt: toOptionalDate(record.deactivatedAt),
+            createdAt: toDate(record._creationTime),
+            updatedAt: toDate(record._creationTime),
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              firmId,
+              name: asString(record.name),
+              email: asString(record.email)?.toLowerCase(),
+              role: role as UserRole,
+              phone: asString(record.phone),
+              isActive: asBoolean(record.isActive, true),
+              updatedAt: new Date(),
+            },
+          }),
+        () => tx.select().from(users).where(eq(users.legacyConvexId, legacyId)).limit(1),
+      );
       userMap.set(legacyId, row.id);
       migrated.users += 1;
       await tx.delete(userEducations).where(eq(userEducations.userId, row.id));
@@ -285,7 +289,7 @@ export async function migrateIdentityExport(input: {
         await tx
           .insert(userPracticeAreas)
           .values({ firmId, userId: row.id, practiceArea })
-          .onConflictDoNothing();
+          .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
       await tx.delete(userNotableCases).where(eq(userNotableCases.userId, row.id));
       for (const [position, description] of asStrings(record.notableCases).entries())
         await tx.insert(userNotableCases).values({ firmId, userId: row.id, description, position });
@@ -307,8 +311,7 @@ export async function migrateIdentityExport(input: {
       await tx
         .insert(firmSettings)
         .values({ legacyConvexId: legacyId, firmId, key, value: record.value ?? null })
-        .onConflictDoUpdate({
-          target: firmSettings.legacyConvexId,
+        .onDuplicateKeyUpdate({
           set: { firmId, key, value: record.value ?? null, updatedAt: new Date() },
         });
       migrated.firmSettings += 1;
@@ -342,7 +345,7 @@ export async function migrateIdentityExport(input: {
           createdAt: toDate(record._creationTime),
           updatedAt: toDate(record._creationTime),
         })
-        .onConflictDoNothing({ target: auditLog.legacyConvexId });
+        .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
       migrated.auditLog += 1;
     }
   });

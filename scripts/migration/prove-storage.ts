@@ -57,7 +57,7 @@ try {
   }
 
   const dry = await runCli([
-    "import-postgres",
+    "import-mysql",
     "--domain",
     "storage",
     "--dry-run",
@@ -72,7 +72,7 @@ try {
   }
 
   const first = await runCli([
-    "import-postgres",
+    "import-mysql",
     "--domain",
     "storage",
     "--force",
@@ -81,7 +81,7 @@ try {
     "--firm-map",
     firmMapPath,
   ]);
-  if (first.code !== 0) throw new Error("storage import failed (is MinIO up?)");
+  if (first.code !== 0) throw new Error("storage import failed (is MySQL up?)");
 
   const verify = await runCli(["verify", "--domain", "storage"]);
   if (verify.code !== 0) throw new Error("storage verify failed");

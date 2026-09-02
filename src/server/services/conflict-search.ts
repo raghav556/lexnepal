@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, eq, isNull, like, or, sql } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import { appointments, cases, clients, leads } from "@/server/db/schema";
 import type {
@@ -67,7 +67,7 @@ export async function runConflictSearch(
   const clientCaseCounts = new Map<string, number>();
   if (scope.clients || scope.cases) {
     const activeCases = await database
-      .select({ clientId: cases.clientId, count: sql<number>`count(*)::int` })
+      .select({ clientId: cases.clientId, count: sql<number>`cast(count(*) as signed)` })
       .from(cases)
       .where(
         and(
@@ -101,21 +101,21 @@ export async function runConflictSearch(
           eq(clients.firmId, firmId),
           isNull(clients.deletedAt),
           or(
-            ilike(clients.fullName, pattern),
-            ilike(clients.companyName, pattern),
-            ilike(clients.email, pattern),
-            ilike(clients.phone, pattern),
-            ilike(clients.registrationNumber, pattern),
-            ilike(clients.kycIdNumber, pattern),
-            ilike(clients.notes, pattern),
+            like(clients.fullName, pattern),
+            like(clients.companyName, pattern),
+            like(clients.email, pattern),
+            like(clients.phone, pattern),
+            like(clients.registrationNumber, pattern),
+            like(clients.kycIdNumber, pattern),
+            like(clients.notes, pattern),
             ...(tokenPatterns.length > 1
               ? [
                   and(
                     ...tokenPatterns.map((tp) =>
                       or(
-                        ilike(clients.fullName, tp),
-                        ilike(clients.companyName, tp),
-                        ilike(clients.email, tp),
+                        like(clients.fullName, tp),
+                        like(clients.companyName, tp),
+                        like(clients.email, tp),
                       ),
                     ),
                   ),
@@ -178,12 +178,12 @@ export async function runConflictSearch(
           eq(cases.firmId, firmId),
           isNull(cases.deletedAt),
           or(
-            ilike(cases.title, pattern),
-            ilike(cases.caseNumber, pattern),
-            ilike(cases.opposingCounsel, pattern),
-            ilike(cases.judge, pattern),
-            ilike(cases.court, pattern),
-            ilike(cases.description, pattern),
+            like(cases.title, pattern),
+            like(cases.caseNumber, pattern),
+            like(cases.opposingCounsel, pattern),
+            like(cases.judge, pattern),
+            like(cases.court, pattern),
+            like(cases.description, pattern),
           ),
         ),
       )
@@ -231,11 +231,11 @@ export async function runConflictSearch(
           eq(leads.firmId, firmId),
           isNull(leads.deletedAt),
           or(
-            ilike(leads.fullName, pattern),
-            ilike(leads.email, pattern),
-            ilike(leads.phone, pattern),
-            ilike(leads.message, pattern),
-            ilike(leads.practiceAreaInterest, pattern),
+            like(leads.fullName, pattern),
+            like(leads.email, pattern),
+            like(leads.phone, pattern),
+            like(leads.message, pattern),
+            like(leads.practiceAreaInterest, pattern),
           ),
         ),
       )
@@ -271,9 +271,9 @@ export async function runConflictSearch(
           eq(appointments.firmId, firmId),
           isNull(appointments.deletedAt),
           or(
-            ilike(appointments.clientName, pattern),
-            ilike(appointments.clientEmail, pattern),
-            ilike(appointments.clientPhone, pattern),
+            like(appointments.clientName, pattern),
+            like(appointments.clientEmail, pattern),
+            like(appointments.clientPhone, pattern),
           ),
         ),
       )

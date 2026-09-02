@@ -3101,7 +3101,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.5 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r3.5 — prove-reconciliation
 
@@ -3254,7 +3254,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## storage — import-postgres (dry-run)
 
@@ -3379,7 +3379,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## storage — prove-storage
 
@@ -5053,7 +5053,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## _all — rehearse-all
 
@@ -7441,7 +7441,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -9071,7 +9071,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -10269,7 +10269,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -11599,7 +11599,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -12968,7 +12968,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -14337,7 +14337,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -15782,7 +15782,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -17336,7 +17336,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 
@@ -18906,7 +18906,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 ### Notes
 
 - R3.6 File SHA-256 from storage_migration_items (expected vs actual).
-- Re-run import-postgres --domain storage to re-verify bytes in MinIO.
+- Re-run import-postgres --domain storage to re-verify bytes in local storage.
 
 ## r6 — prove-cutover-rehearsal
 

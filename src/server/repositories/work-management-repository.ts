@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
@@ -32,7 +33,7 @@ import { AppError } from "@/shared/errors/api-error";
 
 const database = getDatabase();
 
-export class PostgresWorkManagementRepository {
+export class MySqlWorkManagementRepository {
   // ── Hearings ────────────────────────────────────────────────────────────────
 
   async listHearings(firmId: string, filters: HearingListInput) {
@@ -59,10 +60,13 @@ export class PostgresWorkManagementRepository {
 
   async createHearing(firmId: string, input: HearingCreateInput, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(hearings)
-        .values({ firmId, ...normalizeEmpty(input), status: "scheduled" })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(hearings)
+          .values({ firmId, ...normalizeEmpty(input), status: "scheduled" })
+          .$returningId(),
+        (id) => tx.select().from(hearings).where(eq(hearings.id, id)).limit(1),
+      );
       await writeAudit(tx, audit, "hearing.created", "hearings", row.id, row.court);
       return toHearingDto(row);
     });
@@ -75,13 +79,19 @@ export class PostgresWorkManagementRepository {
     audit: AuditContext,
   ) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(hearings)
-        .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
-        .where(
-          and(eq(hearings.id, hearingId), eq(hearings.firmId, firmId), isNull(hearings.deletedAt)),
-        )
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(hearings)
+          .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
+          .where(
+            and(
+              eq(hearings.id, hearingId),
+              eq(hearings.firmId, firmId),
+              isNull(hearings.deletedAt),
+            ),
+          ),
+        () => tx.select().from(hearings).where(eq(hearings.id, hearingId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Hearing was not found", 404);
       await writeAudit(tx, audit, "hearing.updated", "hearings", row.id, null);
       return toHearingDto(row);
@@ -120,18 +130,21 @@ export class PostgresWorkManagementRepository {
     await this.validateTaskRelationships(firmId, input.assignedTo, input.caseId ?? null);
     return database.transaction(async (tx) => {
       const { watchers, ...rest } = input;
-      const [row] = await tx
-        .insert(tasks)
-        .values({
-          firmId,
-          ...normalizeEmpty(rest),
-          dueDate: toTimestamp(rest.dueDate),
-          reminderAt: toTimestamp(rest.reminderAt),
-          isRecurring: rest.isRecurring ?? false,
-          clientVisible: rest.clientVisible ?? false,
-          createdBy: audit.actorId,
-        })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(tasks)
+          .values({
+            firmId,
+            ...normalizeEmpty(rest),
+            dueDate: toTimestamp(rest.dueDate),
+            reminderAt: toTimestamp(rest.reminderAt),
+            isRecurring: rest.isRecurring ?? false,
+            clientVisible: rest.clientVisible ?? false,
+            createdBy: audit.actorId,
+          })
+          .$returningId(),
+        (id) => tx.select().from(tasks).where(eq(tasks.id, id)).limit(1),
+      );
       if (watchers?.length) {
         await tx
           .insert(taskWatchers)
@@ -160,17 +173,19 @@ export class PostgresWorkManagementRepository {
       const { watchers, ...rest } = input;
       const completedAt =
         rest.status === "done" && existing.status !== "done" ? audit.occurredAt : undefined;
-      const [row] = await tx
-        .update(tasks)
-        .set({
-          ...normalizeEmpty(rest),
-          dueDate: toTimestamp(rest.dueDate),
-          reminderAt: toTimestamp(rest.reminderAt),
-          ...(completedAt ? { completedAt } : {}),
-          updatedAt: audit.occurredAt,
-        })
-        .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(tasks)
+          .set({
+            ...normalizeEmpty(rest),
+            dueDate: toTimestamp(rest.dueDate),
+            reminderAt: toTimestamp(rest.reminderAt),
+            ...(completedAt ? { completedAt } : {}),
+            updatedAt: audit.occurredAt,
+          })
+          .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt))),
+        () => tx.select().from(tasks).where(eq(tasks.id, taskId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
       if (watchers !== undefined) {
         await tx
@@ -188,11 +203,13 @@ export class PostgresWorkManagementRepository {
 
   async archiveTask(firmId: string, taskId: string, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(tasks)
-        .set({ archivedAt: audit.occurredAt, updatedAt: audit.occurredAt })
-        .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(tasks)
+          .set({ archivedAt: audit.occurredAt, updatedAt: audit.occurredAt })
+          .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt))),
+        () => tx.select().from(tasks).where(eq(tasks.id, taskId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
       await writeAudit(tx, audit, "task.archived", "tasks", row.id, null);
       return { success: true };
@@ -201,11 +218,13 @@ export class PostgresWorkManagementRepository {
 
   async restoreTask(firmId: string, taskId: string, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(tasks)
-        .set({ archivedAt: null, updatedAt: audit.occurredAt })
-        .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(tasks)
+          .set({ archivedAt: null, updatedAt: audit.occurredAt })
+          .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt))),
+        () => tx.select().from(tasks).where(eq(tasks.id, taskId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
       await writeAudit(tx, audit, "task.restored", "tasks", row.id, null);
       return { success: true };
@@ -214,11 +233,13 @@ export class PostgresWorkManagementRepository {
 
   async deleteTask(firmId: string, taskId: string, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(tasks)
-        .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
-        .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(tasks)
+          .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
+          .where(and(eq(tasks.id, taskId), eq(tasks.firmId, firmId), isNull(tasks.deletedAt))),
+        () => tx.select().from(tasks).where(eq(tasks.id, taskId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Task was not found", 404);
       await writeAudit(tx, audit, "task.deleted", "tasks", row.id, null);
       return { success: true };
@@ -286,16 +307,19 @@ export class PostgresWorkManagementRepository {
 
   async createSopTemplate(firmId: string, input: SopCreateInput, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(sopTemplates)
-        .values({
-          firmId,
-          key: input.key,
-          label: input.label,
-          defaultPriority: input.defaultPriority,
-          practiceArea: input.practiceArea ?? null,
-        })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(sopTemplates)
+          .values({
+            firmId,
+            key: input.key,
+            label: input.label,
+            defaultPriority: input.defaultPriority,
+            practiceArea: input.practiceArea ?? null,
+          })
+          .$returningId(),
+        (id) => tx.select().from(sopTemplates).where(eq(sopTemplates.id, id)).limit(1),
+      );
       await tx.insert(sopTemplateTasks).values(
         input.taskTitles.map((title, position) => ({
           firmId,
@@ -467,10 +491,13 @@ export class PostgresWorkManagementRepository {
       .limit(1);
     if (!task) throw new AppError("NOT_FOUND", "Task was not found", 404);
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(taskComments)
-        .values({ firmId, taskId: input.taskId, authorId: audit.actorId, content: input.content })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(taskComments)
+          .values({ firmId, taskId: input.taskId, authorId: audit.actorId, content: input.content })
+          .$returningId(),
+        (id) => tx.select().from(taskComments).where(eq(taskComments.id, id)).limit(1),
+      );
       await writeAudit(tx, audit, "task.comment_added", "task_comments", row.id, null);
       return toDto(row);
     });
@@ -505,18 +532,21 @@ export class PostgresWorkManagementRepository {
 
   async createResearchNote(firmId: string, input: ResearchCreateInput, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(researchNotes)
-        .values({
-          firmId,
-          title: input.title,
-          category: input.category,
-          content: input.content,
-          authorId: audit.actorId,
-          caseId: input.caseId ?? null,
-          ...citationColumns(input.citation),
-        })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(researchNotes)
+          .values({
+            firmId,
+            title: input.title,
+            category: input.category,
+            content: input.content,
+            authorId: audit.actorId,
+            caseId: input.caseId ?? null,
+            ...citationColumns(input.citation),
+          })
+          .$returningId(),
+        (id) => tx.select().from(researchNotes).where(eq(researchNotes.id, id)).limit(1),
+      );
       if (input.tags.length)
         await tx
           .insert(researchNoteTags)
@@ -540,21 +570,23 @@ export class PostgresWorkManagementRepository {
       caseId: input.caseId,
     });
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(researchNotes)
-        .set({
-          ...scalars,
-          ...(input.citation === undefined ? {} : citationColumns(input.citation)),
-          updatedAt: audit.occurredAt,
-        })
-        .where(
-          and(
-            eq(researchNotes.id, noteId),
-            eq(researchNotes.firmId, firmId),
-            isNull(researchNotes.deletedAt),
+      const [row] = await returningMutation(
+        tx
+          .update(researchNotes)
+          .set({
+            ...scalars,
+            ...(input.citation === undefined ? {} : citationColumns(input.citation)),
+            updatedAt: audit.occurredAt,
+          })
+          .where(
+            and(
+              eq(researchNotes.id, noteId),
+              eq(researchNotes.firmId, firmId),
+              isNull(researchNotes.deletedAt),
+            ),
           ),
-        )
-        .returning();
+        () => tx.select().from(researchNotes).where(eq(researchNotes.id, noteId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Research note was not found", 404);
       if (input.tags !== undefined) {
         await tx
@@ -574,17 +606,19 @@ export class PostgresWorkManagementRepository {
 
   async deleteResearchNote(firmId: string, noteId: string, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(researchNotes)
-        .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
-        .where(
-          and(
-            eq(researchNotes.id, noteId),
-            eq(researchNotes.firmId, firmId),
-            isNull(researchNotes.deletedAt),
+      const [row] = await returningMutation(
+        tx
+          .update(researchNotes)
+          .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
+          .where(
+            and(
+              eq(researchNotes.id, noteId),
+              eq(researchNotes.firmId, firmId),
+              isNull(researchNotes.deletedAt),
+            ),
           ),
-        )
-        .returning();
+        () => tx.select().from(researchNotes).where(eq(researchNotes.id, noteId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Research note was not found", 404);
       await writeAudit(tx, audit, "research.deleted", "research_notes", row.id, null);
       return { success: true };

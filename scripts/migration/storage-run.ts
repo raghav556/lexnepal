@@ -6,8 +6,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { getServerEnvironment } from "../../src/server/env";
-import { PostgresDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
-import { S3ObjectStorage } from "../../src/server/storage/s3-object-storage";
+import { MySqlDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
+import { LocalObjectStorage } from "../../src/server/storage/local-object-storage";
 import { convertConvexStorageExport } from "../../src/server/storage/convex-export-converter";
 import { migrateLegacyStorage } from "../../src/server/storage/storage-migration";
 import type { DomainMigrationReport } from "./types";
@@ -43,9 +43,6 @@ export async function runStorageConvertAndMigrate(input: {
 }> {
   const log = input.onLog ?? (() => undefined);
   const environment = getServerEnvironment();
-  if (!environment.OBJECT_STORAGE_BUCKET) {
-    throw new Error("OBJECT_STORAGE_BUCKET is required for storage migration");
-  }
 
   let manifestPath = input.storageManifestPath;
   let manifestRoot: string;
@@ -82,15 +79,13 @@ export async function runStorageConvertAndMigrate(input: {
     throw new Error("Storage manifest is invalid");
   }
 
-  const destination = new S3ObjectStorage({
-    bucket: environment.OBJECT_STORAGE_BUCKET,
-    region: environment.OBJECT_STORAGE_REGION,
-    endpoint: environment.OBJECT_STORAGE_ENDPOINT,
-    forcePathStyle: environment.OBJECT_STORAGE_FORCE_PATH_STYLE,
-    serverSideEncryption: environment.OBJECT_STORAGE_SSE === "aes256" ? "AES256" : "none",
+  const destination = new LocalObjectStorage({
+    root: environment.STORAGE_ROOT,
+    appBaseUrl: environment.APP_PUBLIC_URL,
   });
+  await destination.initialize();
   const byId = new Map(manifest.files.map((file) => [file.storageId, file]));
-  const journal = new PostgresDocumentStorageRepository();
+  const journal = new MySqlDocumentStorageRepository();
   const storageReport = await migrateLegacyStorage({
     firmId: manifest.firmId,
     source: {

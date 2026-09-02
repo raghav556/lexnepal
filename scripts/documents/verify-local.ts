@@ -6,8 +6,8 @@ import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { firmSettings } from "../../db/schema";
 import { convertConvexStorageExport } from "../../src/server/storage/convex-export-converter";
 import { migrateLegacyStorage } from "../../src/server/storage/storage-migration";
-import { PostgresDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
-import { S3ObjectStorage } from "../../src/server/storage/s3-object-storage";
+import { MySqlDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
+import { LocalObjectStorage } from "../../src/server/storage/local-object-storage";
 import { getServerEnvironment } from "../../src/server/env";
 import { GET as listDocuments } from "../../src/app/api/v1/documents/route";
 import { POST as createShare } from "../../src/app/api/v1/documents/[id]/share/route";
@@ -50,8 +50,7 @@ try {
         ],
       },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: {
           associate: [
@@ -88,15 +87,12 @@ try {
   }
 
   const environment = getServerEnvironment();
-  if (!environment.OBJECT_STORAGE_BUCKET) throw new Error("OBJECT_STORAGE_BUCKET is required");
-  const destination = new S3ObjectStorage({
-    bucket: environment.OBJECT_STORAGE_BUCKET,
-    region: environment.OBJECT_STORAGE_REGION,
-    endpoint: environment.OBJECT_STORAGE_ENDPOINT,
-    forcePathStyle: environment.OBJECT_STORAGE_FORCE_PATH_STYLE,
-    serverSideEncryption: environment.OBJECT_STORAGE_SSE === "aes256" ? "AES256" : "none",
+  const destination = new LocalObjectStorage({
+    root: environment.STORAGE_ROOT,
+    appBaseUrl: environment.APP_PUBLIC_URL,
   });
-  const journal = new PostgresDocumentStorageRepository();
+  await destination.initialize();
+  const journal = new MySqlDocumentStorageRepository();
 
   for (const manifestRel of conversion.manifests) {
     const manifestPath = path.isAbsolute(manifestRel)

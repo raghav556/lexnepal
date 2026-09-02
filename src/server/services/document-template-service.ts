@@ -1,3 +1,4 @@
+import { returningDelete, returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
@@ -107,20 +108,23 @@ export class DocumentTemplateService {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
     const db = getDatabase();
-    const [row] = await db
-      .insert(documentTemplates)
-      .values({
-        firmId,
-        title: input.title,
-        type: categoryToType(input.category),
-        content: encodeContent({
-          description: input.description,
-          htmlContent: input.htmlContent,
-          variables: input.variables,
-          category: input.category,
-        }),
-      })
-      .returning();
+    const [row] = await returningInsert(
+      db
+        .insert(documentTemplates)
+        .values({
+          firmId,
+          title: input.title,
+          type: categoryToType(input.category),
+          content: encodeContent({
+            description: input.description,
+            htmlContent: input.htmlContent,
+            variables: input.variables,
+            category: input.category,
+          }),
+        })
+        .$returningId(),
+      (id) => db.select().from(documentTemplates).where(eq(documentTemplates.id, id)).limit(1),
+    );
     return decodeRow(row!);
   }
 
@@ -138,21 +142,23 @@ export class DocumentTemplateService {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
     const db = getDatabase();
-    const [row] = await db
-      .update(documentTemplates)
-      .set({
-        title: input.title,
-        type: categoryToType(input.category),
-        content: encodeContent({
-          description: input.description,
-          htmlContent: input.htmlContent,
-          variables: input.variables,
-          category: input.category,
-        }),
-        updatedAt: new Date(),
-      })
-      .where(and(eq(documentTemplates.firmId, firmId), eq(documentTemplates.id, id)))
-      .returning();
+    const [row] = await returningMutation(
+      db
+        .update(documentTemplates)
+        .set({
+          title: input.title,
+          type: categoryToType(input.category),
+          content: encodeContent({
+            description: input.description,
+            htmlContent: input.htmlContent,
+            variables: input.variables,
+            category: input.category,
+          }),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(documentTemplates.firmId, firmId), eq(documentTemplates.id, id))),
+      () => db.select().from(documentTemplates).where(eq(documentTemplates.id, id)),
+    );
     if (!row) throw new AppError("NOT_FOUND", "Template was not found", 404);
     return decodeRow(row);
   }
@@ -161,10 +167,17 @@ export class DocumentTemplateService {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
     const db = getDatabase();
-    const deleted = await db
-      .delete(documentTemplates)
-      .where(and(eq(documentTemplates.firmId, firmId), eq(documentTemplates.id, id)))
-      .returning({ id: documentTemplates.id });
+    const deleted = await returningDelete(
+      () =>
+        db
+          .select()
+          .from(documentTemplates)
+          .where(and(eq(documentTemplates.firmId, firmId), eq(documentTemplates.id, id))),
+      () =>
+        db
+          .delete(documentTemplates)
+          .where(and(eq(documentTemplates.firmId, firmId), eq(documentTemplates.id, id))),
+    );
     if (deleted.length === 0) throw new AppError("NOT_FOUND", "Template was not found", 404);
   }
 
@@ -258,14 +271,17 @@ export class DocumentTagService {
         color: existing[0].color || undefined,
       };
     }
-    const [row] = await db
-      .insert(documentTags)
-      .values({
-        firmId,
-        name: input.name.trim(),
-        color: input.color || "#e5e7eb",
-      })
-      .returning();
+    const [row] = await returningInsert(
+      db
+        .insert(documentTags)
+        .values({
+          firmId,
+          name: input.name.trim(),
+          color: input.color || "#e5e7eb",
+        })
+        .$returningId(),
+      (id) => db.select().from(documentTags).where(eq(documentTags.id, id)).limit(1),
+    );
     return {
       _id: row!.id,
       id: row!.id,
@@ -278,10 +294,17 @@ export class DocumentTagService {
     requireCapability(principal, "documents.upload");
     const { firmId } = requireFirmContext(principal);
     const db = getDatabase();
-    const deleted = await db
-      .delete(documentTags)
-      .where(and(eq(documentTags.firmId, firmId), eq(documentTags.id, tagId)))
-      .returning({ id: documentTags.id });
+    const deleted = await returningDelete(
+      () =>
+        db
+          .select()
+          .from(documentTags)
+          .where(and(eq(documentTags.firmId, firmId), eq(documentTags.id, tagId))),
+      () =>
+        db
+          .delete(documentTags)
+          .where(and(eq(documentTags.firmId, firmId), eq(documentTags.id, tagId))),
+    );
     if (deleted.length === 0) throw new AppError("NOT_FOUND", "Tag was not found", 404);
   }
 }

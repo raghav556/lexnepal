@@ -1,3 +1,6 @@
+import { returningInsert } from "@/server/db/mysql-returning";
+import { sql } from "drizzle-orm";
+import { returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, count, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { z } from "zod";
@@ -231,18 +234,31 @@ async function handleSignatureReminders({ job, signal }: JobExecutionContext) {
 
 async function handleEnvelopeExpiration({ job }: JobExecutionContext) {
   const now = new Date();
-  const expired = await database
-    .update(signatureEnvelopes)
-    .set({ status: "expired", updatedAt: now })
-    .where(
-      and(
-        eq(signatureEnvelopes.firmId, job.firmId),
-        eq(signatureEnvelopes.status, "sent"),
-        lte(signatureEnvelopes.expiresAt, now),
-        isNull(signatureEnvelopes.deletedAt),
+  const expired = await returningMutation(
+    database
+      .update(signatureEnvelopes)
+      .set({ status: "expired", updatedAt: now })
+      .where(
+        and(
+          eq(signatureEnvelopes.firmId, job.firmId),
+          eq(signatureEnvelopes.status, "sent"),
+          lte(signatureEnvelopes.expiresAt, now),
+          isNull(signatureEnvelopes.deletedAt),
+        ),
       ),
-    )
-    .returning({ id: signatureEnvelopes.id });
+    () =>
+      database
+        .select()
+        .from(signatureEnvelopes)
+        .where(
+          and(
+            eq(signatureEnvelopes.firmId, job.firmId),
+            eq(signatureEnvelopes.status, "sent"),
+            lte(signatureEnvelopes.expiresAt, now),
+            isNull(signatureEnvelopes.deletedAt),
+          ),
+        ),
+  );
   return { expired: expired.length };
 }
 
@@ -314,7 +330,7 @@ async function handleEmailDelivery({ job, signal }: JobExecutionContext) {
         effectKey: "smtp-sent",
         details: { messageId: result.messageId, accepted: result.accepted },
       })
-      .onConflictDoNothing();
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
     return { delivered: true, messageId: result.messageId };
   } catch (error) {
     throw new RetryableJobError(error instanceof Error ? error.message : "SMTP delivery failed");
@@ -343,13 +359,15 @@ async function createNotificationEffect(
   },
 ): Promise<boolean> {
   return database.transaction(async (transaction) => {
-    const [effect] = await transaction
-      .insert(durableJobEffects)
-      .values({ firmId: job.firmId, jobId: job.id, effectKey, details: { userId: input.userId } })
-      .onConflictDoNothing({
-        target: [durableJobEffects.firmId, durableJobEffects.jobId, durableJobEffects.effectKey],
-      })
-      .returning({ id: durableJobEffects.id });
+    const [effect] = await returningInsert(
+      transaction
+        .insert(durableJobEffects)
+        .values({ firmId: job.firmId, jobId: job.id, effectKey, details: { userId: input.userId } })
+        .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } })
+        .$returningId(),
+      (id) =>
+        transaction.select().from(durableJobEffects).where(eq(durableJobEffects.id, id)).limit(1),
+    );
     if (!effect) return false;
     await transaction.insert(notifications).values({
       firmId: job.firmId,

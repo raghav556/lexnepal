@@ -1,3 +1,5 @@
+import { returningUpsert } from "@/server/db/mysql-returning";
+import { returningMutation } from "@/server/db/mysql-returning";
 /* eslint-disable @typescript-eslint/no-explicit-any -- table metadata is heterogeneous during reconciliation */
 import "server-only";
 import fs from "node:fs/promises";
@@ -77,8 +79,7 @@ export async function migrateCmsExport(input: {
               avatarUrl: textValue(row.avatarUrl),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: testimonials.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 clientName: textValue(row.clientName)!,
                 quote: textValue(row.quote)!,
@@ -104,8 +105,7 @@ export async function migrateCmsExport(input: {
               isActive: boolValue(row.isActive, true),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: newsletterSubscribers.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: { isActive: boolValue(row.isActive, true), updatedAt: new Date() },
             }),
         migrated,
@@ -127,8 +127,7 @@ export async function migrateCmsExport(input: {
               contentUpdatedAt: dateValue(row.updatedAt ?? row._creationTime),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: legalPages.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 title: textValue(row.title)!,
                 content: textValue(row.content)!,
@@ -156,10 +155,7 @@ export async function migrateCmsExport(input: {
               value: row.value ?? null,
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: cmsSettings.legacyConvexId,
-              set: { value: row.value ?? null, updatedAt: new Date() },
-            });
+            .onDuplicateKeyUpdate({ set: { value: row.value ?? null, updatedAt: new Date() } });
         },
         migrated,
         exceptions,
@@ -181,8 +177,7 @@ export async function migrateCmsExport(input: {
               isActive: boolValue(row.isActive, true),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: practiceAreas.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 title: textValue(row.title)!,
                 description: textValue(row.description)!,
@@ -200,29 +195,30 @@ export async function migrateCmsExport(input: {
         "careers",
         row,
         async (id) => {
-          const [created] = await tx
-            .insert(careers)
-            .values({
-              legacyConvexId: id,
-              firmId: input.targetFirmId,
-              title: textValue(row.title)!,
-              department: textValue(row.department)!,
-              location: textValue(row.location)!,
-              type: enumValue(row.type, ["full_time", "part_time", "contract", "internship"])!,
-              description: textValue(row.description)!,
-              isActive: boolValue(row.isActive, true),
-              postedDate: dateOnly(row.postedDate),
-              createdAt: dateValue(row._creationTime),
-            })
-            .onConflictDoUpdate({
-              target: careers.legacyConvexId,
-              set: {
+          const [created] = await returningUpsert(
+            tx
+              .insert(careers)
+              .values({
+                legacyConvexId: id,
+                firmId: input.targetFirmId,
                 title: textValue(row.title)!,
+                department: textValue(row.department)!,
+                location: textValue(row.location)!,
+                type: enumValue(row.type, ["full_time", "part_time", "contract", "internship"])!,
+                description: textValue(row.description)!,
                 isActive: boolValue(row.isActive, true),
-                updatedAt: new Date(),
-              },
-            })
-            .returning({ id: careers.id });
+                postedDate: dateOnly(row.postedDate),
+                createdAt: dateValue(row._creationTime),
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  title: textValue(row.title)!,
+                  isActive: boolValue(row.isActive, true),
+                  updatedAt: new Date(),
+                },
+              }),
+            () => tx.select().from(careers).where(eq(careers.legacyConvexId, id)).limit(1),
+          );
           careerMap.set(id, created.id);
           await tx.delete(careerRequirements).where(eq(careerRequirements.careerId, created.id));
           const requirements = stringArray(row.requirements);
@@ -263,8 +259,7 @@ export async function migrateCmsExport(input: {
               appliedDate: dateOnly(row.appliedDate),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: jobApplications.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 status:
                   enumValue(row.status, ["new", "reviewed", "interviewed", "rejected", "hired"]) ??
@@ -308,8 +303,7 @@ export async function migrateCmsExport(input: {
               displayOrder: numberValue(row.displayOrder) ?? 0,
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: resources.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 title: textValue(row.title)!,
                 downloads: numberValue(row.downloads) ?? 0,
@@ -353,8 +347,7 @@ export async function migrateCmsExport(input: {
               isFeatured: boolValue(row.isFeatured, false),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: newsAndAwards.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 title: textValue(row.title)!,
                 status:
@@ -393,8 +386,7 @@ export async function migrateCmsExport(input: {
               isFeatured: boolValue(row.isFeatured, false),
               createdAt: dateValue(row._creationTime),
             })
-            .onConflictDoUpdate({
-              target: blogPosts.legacyConvexId,
+            .onDuplicateKeyUpdate({
               set: {
                 title: textValue(row.title)!,
                 status:
@@ -477,34 +469,35 @@ export async function migrateCmsExport(input: {
           }
 
           await freeRootOrderSlot(input.targetFirmId, location, order);
-          const [created] = await tx
-            .insert(navigation)
-            .values({
-              legacyConvexId: id,
-              firmId: input.targetFirmId,
-              label,
-              url,
-              location,
-              order,
-              isActive,
-              parentId: null,
-              openInNewTab,
-              createdAt,
-            })
-            .onConflictDoUpdate({
-              target: navigation.legacyConvexId,
-              set: {
+          const [created] = await returningUpsert(
+            tx
+              .insert(navigation)
+              .values({
+                legacyConvexId: id,
+                firmId: input.targetFirmId,
                 label,
                 url,
-                order,
                 location,
+                order,
                 isActive,
-                openInNewTab,
                 parentId: null,
-                updatedAt: new Date(),
-              },
-            })
-            .returning({ id: navigation.id });
+                openInNewTab,
+                createdAt,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  label,
+                  url,
+                  order,
+                  location,
+                  isActive,
+                  openInNewTab,
+                  parentId: null,
+                  updatedAt: new Date(),
+                },
+              }),
+            () => tx.select().from(navigation).where(eq(navigation.legacyConvexId, id)).limit(1),
+          );
           navigationMap.set(id, created.id);
         },
         migrated,

@@ -97,7 +97,7 @@ try {
   const before = await fs.readFile(EXCEPTIONS_CSV, "utf8").catch(() => "");
 
   const importResult = await runCli([
-    "import-postgres",
+    "import-mysql",
     "--domain",
     "hr",
     "--force",

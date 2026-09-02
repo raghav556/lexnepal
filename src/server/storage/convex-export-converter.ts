@@ -167,11 +167,11 @@ export async function convertConvexStorageExport(input: {
       });
       continue;
     }
-    const postgresFirmId = input.firmMap[reference.convexFirmId];
-    if (!postgresFirmId) {
+    const mysqlFirmId = input.firmMap[reference.convexFirmId];
+    if (!mysqlFirmId) {
       exceptions.push({
         storageId,
-        reason: `No PostgreSQL firm mapping for Convex firm ${reference.convexFirmId}`,
+        reason: `No MySQL firm mapping for Convex firm ${reference.convexFirmId}`,
       });
       continue;
     }
@@ -199,7 +199,7 @@ export async function convertConvexStorageExport(input: {
     const fileName = `${convertedSequence.toString().padStart(4, "0")}-${encodeURIComponent(storageId)}`;
     convertedSequence += 1;
     await fs.writeFile(path.join(filesDirectory, fileName), bytes);
-    const files = manifests.get(postgresFirmId) ?? [];
+    const files = manifests.get(mysqlFirmId) ?? [];
     files.push({
       storageId,
       path: `files/${fileName}`,
@@ -207,7 +207,7 @@ export async function convertConvexStorageExport(input: {
       sha256: actualSha256,
       sizeBytes: bytes.byteLength,
     });
-    manifests.set(postgresFirmId, files);
+    manifests.set(mysqlFirmId, files);
   }
 
   const manifestPaths: string[] = [];

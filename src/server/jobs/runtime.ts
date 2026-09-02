@@ -1,13 +1,13 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { createJobHandlers } from "@/server/jobs/handlers";
-import { PostgresJobRepository } from "@/server/jobs/job-repository";
+import { MySqlJobRepository } from "@/server/jobs/job-repository";
 import { DurableJobWorker } from "@/server/jobs/job-worker";
 
-let repository: PostgresJobRepository | undefined;
+let repository: MySqlJobRepository | undefined;
 
-export function getJobRepository(): PostgresJobRepository {
-  repository ??= new PostgresJobRepository();
+export function getJobRepository(): MySqlJobRepository {
+  repository ??= new MySqlJobRepository();
   return repository;
 }
 

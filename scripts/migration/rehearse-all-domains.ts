@@ -182,7 +182,7 @@ async function main() {
 
     console.log(`\n=== REHEARSE ${item.domain} ===`);
 
-    const dry = await runCli(["import-postgres", ...base, "--dry-run"]);
+    const dry = await runCli(["import-mysql", ...base, "--dry-run"]);
     if (dry.code !== 0) {
       summary.push({
         domain: item.domain,
@@ -199,7 +199,7 @@ async function main() {
       await ensureEnvelopeDocumentPrereq();
     }
 
-    const real = await runCli(["import-postgres", ...base]);
+    const real = await runCli(["import-mysql", ...base]);
     if (real.code !== 0) {
       summary.push({
         domain: item.domain,

@@ -31,18 +31,11 @@ const serverEnvironmentSchema = z.object({
   SMTP_HOST: z.string().min(1).default("127.0.0.1"),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
   SMTP_FROM: z.string().email().default("noreply@lexnepal.local"),
-  OBJECT_STORAGE_BUCKET: z.preprocess(
-    (value) => (value === "" ? undefined : value),
-    z.string().min(3).optional(),
-  ),
-  OBJECT_STORAGE_REGION: z.string().min(1).default("ap-south-1"),
-  OBJECT_STORAGE_ENDPOINT: optionalUrl,
-  OBJECT_STORAGE_PROVIDER: z.enum(["aws-s3", "minio"]).default("aws-s3"),
-  OBJECT_STORAGE_SSE: z.enum(["none", "aes256"]).default("aes256"),
-  OBJECT_STORAGE_FORCE_PATH_STYLE: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((value) => value === "true"),
+  STORAGE_ROOT: z.string().min(1).default("./.local/storage"),
+  STORAGE_DOWNLOAD_TOKEN_SECRET: z
+    .string()
+    .min(32)
+    .default("lexnepal-local-storage-download-secret-change-me"),
   UPLOAD_INTENT_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3_600),
   UPLOAD_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(3_600).default(600),
   DOWNLOAD_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(900).default(300),
@@ -74,6 +67,12 @@ export function getServerEnvironment(): ServerEnvironment {
     parsed.data.BETTER_AUTH_SECRET === "lexnepal-local-development-secret-change-me"
   ) {
     throw new Error("BETTER_AUTH_SECRET must be replaced before production startup");
+  }
+  if (
+    parsed.data.NODE_ENV === "production" &&
+    parsed.data.STORAGE_DOWNLOAD_TOKEN_SECRET === "lexnepal-local-storage-download-secret-change-me"
+  ) {
+    throw new Error("STORAGE_DOWNLOAD_TOKEN_SECRET must be replaced before production startup");
   }
   if (parsed.data.NODE_ENV === "production") {
     for (const [name, value] of [

@@ -62,7 +62,7 @@ class MemoryRepository implements JobWorkerRepository {
   }
 }
 
-describe("durable PostgreSQL job worker", () => {
+describe("durable MySQL job worker", () => {
   it("completes a claimed job through its registered handler", async () => {
     const repository = new MemoryRepository();
     const handler: JobHandler = async () => ({ aggregated: true });

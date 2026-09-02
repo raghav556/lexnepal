@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -33,7 +34,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   defaultMeetingPlatform: "manual",
 };
 
-export class PostgresIdentityRepository {
+export class MySqlIdentityRepository {
   private readonly database = getDatabase();
 
   async getFirm(firmId: string): Promise<FirmDto | null> {
@@ -69,8 +70,7 @@ export class PostgresIdentityRepository {
       await tx
         .insert(firmSettings)
         .values({ firmId, key: "rolePermissions", value: matrix })
-        .onConflictDoUpdate({
-          target: [firmSettings.firmId, firmSettings.key],
+        .onDuplicateKeyUpdate({
           set: { value: matrix, deletedAt: null, updatedAt: audit.occurredAt },
         });
       await writeAudit(
@@ -137,27 +137,30 @@ export class PostgresIdentityRepository {
         if (duplicate) throw new Error("USER_EMAIL_CONFLICT");
       }
       const now = audit.occurredAt;
-      const [created] = await tx
-        .insert(users)
-        .values({
-          firmId,
-          tokenIdentifier: `pending:${randomUUID()}`,
-          activationToken: null,
-          name: input.name,
-          email: input.email,
-          role: input.role,
-          phone: input.phone,
-          barCouncilNumber: input.barCouncilNumber,
-          barCouncilExpiry: input.barCouncilExpiry,
-          isPublicFacing: input.isPublicFacing,
-          isActive: !input.invite,
-          isPending: input.invite,
-          invitedAt: input.invite ? now : null,
-          invitedBy: input.invite ? audit.actorId : null,
-          inviteExpiresAt: input.invite ? new Date(now.getTime() + 7 * 86_400_000) : null,
-          twoFactorRequired: input.role === "admin" || input.role === "partner",
-        })
-        .returning();
+      const [created] = await returningInsert(
+        tx
+          .insert(users)
+          .values({
+            firmId,
+            tokenIdentifier: `pending:${randomUUID()}`,
+            activationToken: null,
+            name: input.name,
+            email: input.email,
+            role: input.role,
+            phone: input.phone,
+            barCouncilNumber: input.barCouncilNumber,
+            barCouncilExpiry: input.barCouncilExpiry,
+            isPublicFacing: input.isPublicFacing,
+            isActive: !input.invite,
+            isPending: input.invite,
+            invitedAt: input.invite ? now : null,
+            invitedBy: input.invite ? audit.actorId : null,
+            inviteExpiresAt: input.invite ? new Date(now.getTime() + 7 * 86_400_000) : null,
+            twoFactorRequired: input.role === "admin" || input.role === "partner",
+          })
+          .$returningId(),
+        (id) => tx.select().from(users).where(eq(users.id, id)).limit(1),
+      );
       await writeAudit(
         tx,
         audit,
@@ -184,22 +187,28 @@ export class PostgresIdentityRepository {
         .limit(1);
       if (!current) return null;
       const now = audit.occurredAt;
-      const [updated] = await tx
-        .update(users)
-        .set({
-          ...input,
-          deactivatedAt:
-            input.isActive === false ? now : input.isActive === true ? null : current.deactivatedAt,
-          deactivatedBy:
-            input.isActive === false
-              ? audit.actorId
-              : input.isActive === true
-                ? null
-                : current.deactivatedBy,
-          updatedAt: now,
-        })
-        .where(and(eq(users.firmId, firmId), eq(users.id, userId)))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(users)
+          .set({
+            ...input,
+            deactivatedAt:
+              input.isActive === false
+                ? now
+                : input.isActive === true
+                  ? null
+                  : current.deactivatedAt,
+            deactivatedBy:
+              input.isActive === false
+                ? audit.actorId
+                : input.isActive === true
+                  ? null
+                  : current.deactivatedBy,
+            updatedAt: now,
+          })
+          .where(and(eq(users.firmId, firmId), eq(users.id, userId))),
+        () => tx.select().from(users).where(eq(users.id, userId)),
+      );
       if (input.isActive === false) {
         await tx
           .update(sessions)
@@ -248,11 +257,13 @@ export class PostgresIdentityRepository {
     audit: AuditContext,
   ): Promise<UserDto | null> {
     return this.database.transaction(async (tx) => {
-      const [updated] = await tx
-        .update(users)
-        .set({ ...input, updatedAt: audit.occurredAt })
-        .where(and(eq(users.firmId, firmId), eq(users.id, userId), isNull(users.deletedAt)))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(users)
+          .set({ ...input, updatedAt: audit.occurredAt })
+          .where(and(eq(users.firmId, firmId), eq(users.id, userId), isNull(users.deletedAt))),
+        () => tx.select().from(users).where(eq(users.id, userId)),
+      );
       if (!updated) return null;
       await writeAudit(
         tx,
@@ -298,10 +309,7 @@ export class PostgresIdentityRepository {
         await tx
           .insert(firmSettings)
           .values({ firmId, key, value })
-          .onConflictDoUpdate({
-            target: [firmSettings.firmId, firmSettings.key],
-            set: { value, updatedAt: audit.occurredAt, deletedAt: null },
-          });
+          .onDuplicateKeyUpdate({ set: { value, updatedAt: audit.occurredAt, deletedAt: null } });
       await writeAudit(
         tx,
         audit,

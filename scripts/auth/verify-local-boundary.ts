@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import { and, eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -22,22 +23,22 @@ const fixtures = [
 try {
   const created = [];
   for (const fixture of fixtures) {
-    const [lexUser] = await database
-      .insert(users)
-      .values({
-        firmId: fixture.firmId,
-        tokenIdentifier: `boundary:${fixture.email}`,
-        email: fixture.email,
-        name: fixture.name,
-        role: "associate",
-        isActive: true,
-        isPending: false,
-      })
-      .onConflictDoUpdate({
-        target: [users.firmId, users.email],
-        set: { isActive: true, isPending: false, updatedAt: new Date() },
-      })
-      .returning({ id: users.id });
+    const [lexUser] = await returningInsert(
+      database
+        .insert(users)
+        .values({
+          firmId: fixture.firmId,
+          tokenIdentifier: `boundary:${fixture.email}`,
+          email: fixture.email,
+          name: fixture.name,
+          role: "associate",
+          isActive: true,
+          isPending: false,
+        })
+        .onDuplicateKeyUpdate({ set: { isActive: true, isPending: false, updatedAt: new Date() } })
+        .$returningId(),
+      (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+    );
     const [existingAuthUser] = await database
       .select({ id: authUsers.id })
       .from(authUsers)
@@ -69,8 +70,7 @@ try {
       key: "rolePermissions",
       value: { associate: ["users.manage", "users.view_directory"] },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: { associate: ["users.manage", "users.view_directory"] },
         updatedAt: new Date(),

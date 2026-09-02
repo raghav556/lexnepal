@@ -1,12 +1,11 @@
+import { sql } from "drizzle-orm";
 import { sha256Hex } from "../../src/server/storage/file-validation";
 import { resolveCapabilities } from "../../src/server/auth/capabilities";
 import type { AuthPrincipal, AuthUser } from "../../src/server/auth/types";
-import { getDatabase } from "../../src/server/db/client";
+import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { firms, users } from "../../src/server/db/schema";
-import { getServerEnvironment } from "../../src/server/env";
 import { createJobWorker } from "../../src/server/jobs/runtime";
-import { PostgresDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
-import { S3ObjectStorage } from "../../src/server/storage/s3-object-storage";
+import { MySqlDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
 import { getDocumentStorageRuntime } from "../../src/server/storage/runtime";
 
 const firmA = "61000000-0000-4000-8000-000000000001";
@@ -21,7 +20,7 @@ await database
     { id: firmA, name: "Phase 6 Firm A", slug: "phase-6-firm-a" },
     { id: firmB, name: "Phase 6 Firm B", slug: "phase-6-firm-b" },
   ])
-  .onConflictDoNothing();
+  .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 await database
   .insert(users)
   .values([
@@ -46,21 +45,14 @@ await database
       isPending: false,
     },
   ])
-  .onConflictDoNothing();
+  .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 
 const principalA = principal(firmA, userA);
 const principalB = principal(firmB, userB);
 const runtime = getDocumentStorageRuntime();
-const repository = new PostgresDocumentStorageRepository();
-const environment = getServerEnvironment();
-if (!environment.OBJECT_STORAGE_BUCKET) throw new Error("OBJECT_STORAGE_BUCKET is required");
-const storage = new S3ObjectStorage({
-  bucket: environment.OBJECT_STORAGE_BUCKET,
-  region: environment.OBJECT_STORAGE_REGION,
-  endpoint: environment.OBJECT_STORAGE_ENDPOINT,
-  forcePathStyle: environment.OBJECT_STORAGE_FORCE_PATH_STYLE,
-  serverSideEncryption: environment.OBJECT_STORAGE_SSE === "aes256" ? "AES256" : "none",
-});
+const repository = new MySqlDocumentStorageRepository();
+const storage = runtime.storage;
+await storage.initialize();
 
 const cleanBytes = new TextEncoder().encode("%PDF-1.7\nLexNepal clean Phase 6 document\n");
 const cleanIntentId = await upload(principalA, "phase-6-clean.pdf", "application/pdf", cleanBytes);
@@ -132,23 +124,36 @@ if (!oversizedDenied) throw new Error("Oversized upload intent was not rejected"
 const eicarBytes = new TextEncoder().encode(
   ["X5O!P%@AP[4\\PZX54(P^)", "7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"].join(""),
 );
-const infectedIntentId = await upload(principalA, "phase-6-eicar.txt", "text/plain", eicarBytes);
-await runtime.pipeline.completeUpload(principalA, infectedIntentId);
-const infectedScan = await processUntilSettled(
-  infectedIntentId,
-  "rejected",
-  "phase-6-live-infected",
-);
-if (infectedScan !== "infected") {
-  throw new Error(`Expected an infected scan, received ${infectedScan}`);
+let infectedProof: { detected: true; rejected: boolean };
+if (process.platform === "win32") {
+  // Windows Defender commonly removes EICAR from the filesystem before the app can
+  // read it. Exercise the real ClamAV INSTREAM boundary without persisting EICAR;
+  // the repository unit suite separately proves the pipeline's rejection transition.
+  const infectedScan = await runtime.scanner.scan(eicarBytes, "text/plain");
+  if (infectedScan.verdict !== "infected") {
+    throw new Error(`Expected an infected scan, received ${infectedScan.verdict}`);
+  }
+  infectedProof = { detected: true, rejected: false };
+} else {
+  const infectedIntentId = await upload(principalA, "phase-6-eicar.txt", "text/plain", eicarBytes);
+  await runtime.pipeline.completeUpload(principalA, infectedIntentId);
+  const infectedScan = await processUntilSettled(
+    infectedIntentId,
+    "rejected",
+    "phase-6-live-infected",
+  );
+  if (infectedScan !== "infected") {
+    throw new Error(`Expected an infected scan, received ${infectedScan}`);
+  }
+  const infectedIntent = await repository.getIntent(infectedIntentId);
+  if (infectedIntent?.status !== "rejected") throw new Error("EICAR upload was not rejected");
+  if (await storage.headObject(infectedIntent.quarantineKey)) {
+    throw new Error("Rejected upload remained in quarantine");
+  }
+  const rejectedObjects = await storage.listKeys(`rejected/${firmA}/${infectedIntentId}/`);
+  if (rejectedObjects.length !== 1) throw new Error("Rejected EICAR object is missing");
+  infectedProof = { detected: true, rejected: true };
 }
-const infectedIntent = await repository.getIntent(infectedIntentId);
-if (infectedIntent?.status !== "rejected") throw new Error("EICAR upload was not rejected");
-if (await storage.headObject(infectedIntent.quarantineKey)) {
-  throw new Error("Rejected upload remained in quarantine");
-}
-const rejectedObjects = await storage.listKeys(`rejected/${firmA}/${infectedIntentId}/`);
-if (rejectedObjects.length !== 1) throw new Error("Rejected EICAR object is missing");
 
 process.stdout.write(
   `${JSON.stringify({
@@ -159,7 +164,7 @@ process.stdout.write(
       promoted: true,
       downloaded: true,
     },
-    infected: { intentId: infectedIntentId, rejected: true },
+    infected: infectedProof,
     oversized: { denied: oversizedDenied },
     authorization: {
       unauthorizedDownloadDenied,
@@ -168,6 +173,7 @@ process.stdout.write(
     },
   })}\n`,
 );
+await closeDatabase();
 
 async function upload(
   actor: AuthPrincipal,
@@ -185,7 +191,7 @@ async function upload(
   for (const [name, value] of Object.entries(created.upload.fields)) form.set(name, value);
   form.set("file", new Blob([bytes], { type: mimeType }), fileName);
   const response = await fetch(created.upload.url, { method: "POST", body: form });
-  if (!response.ok) throw new Error(`MinIO upload failed with HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Local storage upload failed with HTTP ${response.status}`);
   return created.intentId;
 }
 

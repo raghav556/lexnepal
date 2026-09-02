@@ -44,9 +44,9 @@ Until then, tracker status for R7 remains **`DEFER_PROD`**.
 | ADR | Topic | Local today | Production requirement | Owner role |
 | --- | --- | --- | --- | --- |
 | [0001](architecture-decisions/README.md) | Hosting / runtime / region | Deferred | Accepted ADR + deploy path | Platform |
-| [0002](architecture-decisions/0002-postgresql-provider.md) | Postgres HA / PITR / backups | Local PG `:5433` | Accepted ADR + restore drill | Data |
+| MySQL provider selection | MySQL HA / PITR / backups | Local MySQL `:3307` | Provider decision + restore drill | Data |
 | [0004](architecture-decisions/0004-hercules-oidc-integration.md) / [0005](architecture-decisions/0005-revocable-database-sessions.md) | IdP / sessions | Local Better Auth (ADR-0020) | Staging JWKS proof; prod audience/issuer | Security |
-| [0006](architecture-decisions/0006-private-object-storage.md) | Object storage | MinIO | Prod bucket, SSE, lifecycle, residency | Platform / records |
+| [0006](architecture-decisions/0006-private-object-storage.md) | Object storage | Local filesystem root (`STORAGE_ROOT`) | Prod storage root, encryption-at-rest, lifecycle, residency | Platform / records |
 | [0009](architecture-decisions/README.md) | Email / SMS | Mailpit / fail-closed SMS | Live providers + ADR accepted | Platform / product |
 | [0012](architecture-decisions/README.md) | Observability | Ad-hoc logs | Logs/metrics/traces/errors + retention | Ops / security |
 | [0013](architecture-decisions/README.md) | Secrets | `.env.local` | Vault/SM + rotation | Security / platform |
@@ -80,7 +80,7 @@ Local Better Auth (ADR-0020) **does not** satisfy R7.2.
 | Immutable Convex export + checksum at prod-like volume | Manifest path + SHA | open |
 | Full `migration:rehearse-all` / domain imports on staging DB | Reconciliation report section | open |
 | R4.8-class list/search budgets at representative volume | Perf smoke output | open |
-| Postgres backup + restore to a **separate** database | Restore log + row counts | open |
+| MySQL backup + restore to a **separate** database | Restore log + row counts | verified locally |
 | Storage object checksum sample at volume | Storage reconcile notes | open |
 
 Local fixtures are insufficient; use anonymized or synthetic scale agreed by the data owner.

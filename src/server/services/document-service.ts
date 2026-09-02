@@ -9,7 +9,7 @@ import {
   requireFirmContext,
 } from "@/server/policies/authorization";
 import { DocumentRepository } from "@/server/repositories/document-repository";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import type {
   DocumentListInput,
   DocumentSearchInput,
@@ -18,7 +18,7 @@ import type {
 } from "@/shared/contracts/documents";
 import { AppError } from "@/shared/errors/api-error";
 
-const security = new PostgresSecurityRepository();
+const security = new MySqlSecurityRepository();
 
 export class DocumentService {
   async list(principal: AuthPrincipal, filters: DocumentListInput) {

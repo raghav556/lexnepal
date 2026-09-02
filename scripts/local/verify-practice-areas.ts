@@ -12,7 +12,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { firms, practiceAreas, users } from "../../db/schema";
-import { PostgresCmsRepository } from "../../src/server/repositories/cms-repository";
+import { MySqlCmsRepository } from "../../src/server/repositories/cms-repository";
 import { readCmsRedirectsCache } from "../../src/server/cms/redirect-cache";
 import { seedCmsSmoke } from "../e2e/seed-cms-smoke";
 import {
@@ -100,7 +100,7 @@ async function main() {
   }
   console.log("7. Consultation param resolve (slug→title) OK");
 
-  const repo = new PostgresCmsRepository();
+  const repo = new MySqlCmsRepository();
   const oldSlug = sample.slug;
   const newSlug = `${oldSlug}-renamed-verify`;
   const [actor] = await db

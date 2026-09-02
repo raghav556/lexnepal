@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
@@ -18,7 +19,7 @@ import type {
   DocumentAccessRecord,
 } from "@/server/policies/authorization";
 
-export class PostgresSecurityRepository implements SessionRepository, AuthorizationDataSource {
+export class MySqlSecurityRepository implements SessionRepository, AuthorizationDataSource {
   private readonly database = getDatabase();
 
   async findUserById(userId: string): Promise<AuthUser | null> {
@@ -71,16 +72,19 @@ export class PostgresSecurityRepository implements SessionRepository, Authorizat
   }
 
   async createSession(session: NewSession): Promise<{ id: string }> {
-    const [created] = await this.database
-      .insert(sessions)
-      .values({
-        ...session,
-        device: "web",
-        browser: "oidc",
-        lastActive: new Date(),
-        isCurrent: true,
-      })
-      .returning({ id: sessions.id });
+    const [created] = await returningInsert(
+      this.database
+        .insert(sessions)
+        .values({
+          ...session,
+          device: "web",
+          browser: "oidc",
+          lastActive: new Date(),
+          isCurrent: true,
+        })
+        .$returningId(),
+      (id) => this.database.select().from(sessions).where(eq(sessions.id, id)).limit(1),
+    );
     return created;
   }
 

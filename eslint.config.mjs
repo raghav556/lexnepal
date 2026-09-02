@@ -62,7 +62,7 @@ export default defineConfig([
       "react-hooks/purity": "off",
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/static-components": "off",
-      // CMS, avatar, signature, and presigned object URLs are dynamic and cannot use a fixed
+      // CMS, avatar, signature, and storage object URLs are dynamic and cannot use a fixed
       // Next Image allow-list safely; those components provide explicit sizing and alt text.
       "@next/next/no-img-element": "off",
     },

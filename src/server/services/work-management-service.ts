@@ -6,8 +6,8 @@ import {
   requireCaseAccess,
   requireFirmContext,
 } from "@/server/policies/authorization";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
-import { PostgresWorkManagementRepository } from "@/server/repositories/work-management-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlWorkManagementRepository } from "@/server/repositories/work-management-repository";
 import type {
   HearingCreateInput,
   HearingListInput,
@@ -24,8 +24,8 @@ import type {
 } from "@/shared/contracts/work-management";
 import { AppError } from "@/shared/errors/api-error";
 
-const repository = new PostgresWorkManagementRepository();
-const security = new PostgresSecurityRepository();
+const repository = new MySqlWorkManagementRepository();
+const security = new MySqlSecurityRepository();
 
 export class WorkManagementService {
   // ── Hearings ────────────────────────────────────────────────────────────────

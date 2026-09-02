@@ -2,7 +2,7 @@
 
 ## Current status
 
-Status: `complete_local`. Next.js/PostgreSQL + MinIO are authoritative locally through `VITE_BACKEND_DOCUMENTS=next`. Convex branches remain inside typed adapters for rollback. Signature/OCR/request-signature surfaces stay Convex until Phase 8.9 envelopes.
+Status: `complete_local`. Next.js/PostgreSQL + local filesystem storage are authoritative locally through `VITE_BACKEND_DOCUMENTS=next`. Convex branches remain inside typed adapters for rollback. Signature/OCR/request-signature surfaces stay Convex until Phase 8.9 envelopes.
 
 ## Domains covered
 

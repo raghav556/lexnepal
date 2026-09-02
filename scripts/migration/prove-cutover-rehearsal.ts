@@ -4,7 +4,7 @@
  * Steps (matches REMAINING_WORK_PLAN / Phase 12):
  * 1. Backup/export ready (fixture or exports/ dir)
  * 2. Write freeze marker (local stop-writing procedure)
- * 3. Final delta import (CLI import-postgres --resume)
+ * 3. Final delta import (CLI import-mysql --resume)
  * 4. Reconcile
  * 5. Confirm backend flags are `next`
  * 6–7. Soak noted as shortened local acceptance (calendar soak is operator-owned)
@@ -148,11 +148,11 @@ async function rehearseDomain(
       deltaImportOk = true;
       notes.push("import=no-op");
     } else {
-      const dry = await runCli(["import-postgres", ...cliBase, "--dry-run"]);
+      const dry = await runCli(["import-mysql", ...cliBase, "--dry-run"]);
       if (dry.code !== 0) throw new Error("delta dry-run failed");
-      const imp = await runCli(["import-postgres", ...cliBase, "--resume"]);
+      const imp = await runCli(["import-mysql", ...cliBase, "--resume"]);
       if (imp.code !== 0) {
-        const forced = await runCli(["import-postgres", ...cliBase]);
+        const forced = await runCli(["import-mysql", ...cliBase]);
         if (forced.code !== 0) throw new Error("delta import failed");
       }
       deltaImportOk = true;

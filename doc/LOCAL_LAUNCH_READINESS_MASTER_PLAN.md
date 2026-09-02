@@ -4,7 +4,7 @@
 **Scope:** Localhost only. No cloud provisioning, live deployment, DNS, production credentials, or production data changes.  
 **Created:** 2026-08-31  
 **Product:** Srimar Law / LexNepal legal-practice platform  
-**Stack:** Next.js 16, React 19, TypeScript, PostgreSQL/Drizzle, MinIO, ClamAV, Mailpit, Better Auth, Vitest, Playwright  
+**Stack:** Next.js 16, React 19, TypeScript, MySQL/Drizzle, local filesystem storage, ClamAV, Mailpit, Better Auth, Vitest, Playwright
 **Status:** `LOCAL_LAUNCH_READY`
 **Completed locally:** 2026-08-31
 
@@ -16,7 +16,7 @@ technical evidence, but this file controls the order and acceptance of the remai
 
 A phase is complete only when:
 
-1. Its implementation is present in the active Next.js/PostgreSQL application.
+1. Its implementation is present in the active Next.js/MySQL application.
 2. Its automated checks pass from a fresh local run.
 3. Its important user journeys are verified in a real browser.
 4. Loading, empty, error, success, permission, and high-data states are handled.
@@ -38,7 +38,7 @@ Status vocabulary:
 - Inspect before changing; every fix must be tied to reproducible evidence.
 - Reuse current services, repositories, contracts, components, and tests; avoid parallel duplicate paths.
 - Keep business authorization on the server, never only in the UI.
-- Keep PostgreSQL tenant isolation and transactional integrity intact.
+- Keep MySQL tenant isolation and transactional integrity intact.
 - Never edit an applied migration; add a new migration for schema changes.
 - Never expose `.env.local`, passwords, tokens, private documents, or user data in reports.
 - Do not label placeholders, simulated providers, or unavailable integrations as production-ready.
@@ -51,7 +51,7 @@ Recorded before this plan was created:
 
 - 83 page routes and 169 API route handlers are present.
 - Public, client, staff, and admin applications exist in the Next.js App Router.
-- PostgreSQL, MinIO, ClamAV, and Mailpit start successfully on localhost.
+- MySQL, ClamAV, and Mailpit start successfully on localhost; document storage uses the local filesystem.
 - 130 unit tests pass.
 - 8 integration tests pass.
 - 13 database tests pass after bringing the migration test inventory up to the current schema.
@@ -165,12 +165,12 @@ Exit gate:
 
 Work:
 
-- Verify repeatable start/stop for PostgreSQL `:5433`, MinIO `:9000/:9001`, ClamAV `:3310`,
+- Verify repeatable start/stop for MySQL `:3307`, ClamAV `:3310`,
   Mailpit `:1025/:8025`, and Next.js `:3001`.
 - Apply all forward migrations to the local database and verify checksums.
 - Validate schema constraints, tenant ownership, foreign keys, unique constraints, indexes, and transactions.
 - Verify idempotent seed/provision flows and all demo roles.
-- Verify MinIO bucket privacy, presigned transfer, quarantine, scanning, promotion/rejection, and cleanup.
+- Verify local storage privacy, tokenized transfer, quarantine, scanning, promotion/rejection, and cleanup.
 - Exercise backup and restore drill using only local data.
 
 Exit gate:
@@ -222,7 +222,7 @@ Exit gate:
 
 Work:
 
-- Verify every public page uses live PostgreSQL CMS data with credible loading/error/empty fallbacks.
+- Verify every public page uses live MySQL CMS data with credible loading/error/empty fallbacks.
 - Verify admin/staff editorial CRUD, review/publish/unpublish, slug uniqueness, preview, ordering,
   navigation nesting, assets, gated resources, applications, newsletter and legal pages.
 - Verify metadata, canonical URLs, sitemap, social previews, headings, structured content and 404s.
@@ -337,7 +337,7 @@ Work:
 - Update README with exact local setup, start, stop, seed, test and troubleshooting commands.
 - Document demo roles without exposing reusable production secrets.
 - Record known limitations and all `DEFER_PROD` items separately from local defects.
-- Produce the later production launch checklist: hosting, managed PostgreSQL/backups, object storage,
+- Produce the later production launch checklist: hosting, managed MySQL/backups, object storage,
   identity, secrets vault, TLS/DNS, email/SMS providers, monitoring, privacy/legal approvals,
   incident ownership, rollback, data migration and final security review.
 
@@ -389,7 +389,7 @@ npm run verify:local-production-shaped
 | 0     | `PASS_LOCAL` | Branch, dirty worktree, toolchain, ports, and services inventoried; pre-existing work preserved.                                                                                                                   |
 | 1     | `PASS_LOCAL` | 83 page routes and 169 API files mapped; inventory, matrix, and active App Router paths match 83/83 with no orphan.                                                                                                |
 | 2     | `PASS_LOCAL` | Prettier, zero-warning ESLint, TypeScript, 130 unit, 8 integration, 4 characterization, 13 database tests, and optimized build pass.                                                                               |
-| 3     | `PASS_LOCAL` | PostgreSQL, MinIO, ClamAV, and Mailpit pass; migrations/checksums, repeatable seeds, storage, backup, and isolated restore drill pass.                                                                             |
+| 3     | `PASS_LOCAL` | MySQL, ClamAV, and Mailpit pass; local filesystem storage passes; migrations/checksums, repeatable seeds, storage, backup, and isolated restore drill pass.                                                       |
 | 4     | `PASS_LOCAL` | Identity, CMS, matters, work management, CRM, communications, documents, envelopes, analytics, HR, and durable jobs pass locally.                                                                                  |
 | 5     | `PASS_LOCAL` | Auth baseline/cookies/checklist, invitations, client grants, MFA, rate limits, upload/XSS protections, tenant boundaries, security headers, and safe DTO checks pass. No critical/high dependency finding remains. |
 | 6     | `PASS_LOCAL` | Public dynamic verifiers and CMS workflow proofs pass; the full public/auth route sweep and consultation conversion pass in Chromium.                                                                              |

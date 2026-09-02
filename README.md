@@ -2,8 +2,8 @@
 
 LexNepal is a local-first legal-practice platform with a public website, CMS, client portal,
 staff workspace, and administration portal. The active application is Next.js 16 with React 19,
-TypeScript, PostgreSQL/Drizzle, private MinIO document storage, ClamAV scanning, Better Auth,
-Mailpit, Vitest, and Playwright.
+TypeScript, MySQL/Drizzle, private local filesystem document storage, ClamAV scanning, Better
+Auth, Mailpit, Vitest, and Playwright.
 
 This repository is currently approved for **localhost use only**. Public hosting, production
 credentials, real providers, and live data are deliberately deferred.
@@ -25,7 +25,7 @@ Then open:
 - Application: `http://localhost:3001`
 - Sign in: `http://localhost:3001/sign-in`
 - Captured local email: `http://127.0.0.1:8025`
-- MinIO console: `http://127.0.0.1:9001`
+- Document storage root: `./.local/storage` (auto-created)
 
 Press `Ctrl+C` in the application terminal to stop Next.js. Stop the project-owned supporting
 services with:
@@ -39,9 +39,9 @@ already healthy.
 
 ## First setup on another Windows workstation
 
-Prerequisites are Node.js/npm, PostgreSQL, MinIO, ClamAV, and Mailpit. The current verified local
-toolchain is Node.js 24 and npm 11. PostgreSQL is isolated on port `5433`; it does not modify a
-normal PostgreSQL service on `5432`.
+Prerequisites are Node.js/npm, MySQL 8.4, ClamAV, and Mailpit. The current verified local
+toolchain is Node.js 24 and npm 11. The project-owned MySQL data directory listens only on
+`127.0.0.1:3307` and does not modify a normal MySQL service on `3306`.
 
 ```powershell
 npm ci
@@ -57,9 +57,10 @@ npm run jobs:schedules:seed
 npm run dev
 ```
 
-Before starting, replace the blank `BETTER_AUTH_SECRET` in `.env.local` with a private random value
-of at least 32 characters. `.env.local` is ignored by Git. Never reuse its local database, object
-storage, or authentication credentials in production.
+Before starting, replace the blank `BETTER_AUTH_SECRET` and `STORAGE_DOWNLOAD_TOKEN_SECRET` values
+in `.env.local` with separate private random values of at least 32 characters. `.env.local` is
+ignored by Git. Never reuse its local database, document storage, or authentication credentials in
+production.
 
 `npm run db:seed` creates the base firm and a pending placeholder administrator record; that record
 cannot sign in. Local demo login users are provisioned by `npm run e2e:seed` and are listed on the
@@ -119,8 +120,8 @@ tenant isolation, idempotency, retries, and URL preservation. Its generated repo
 ## Backup and restore drill
 
 ```powershell
-npm run local:pg:backup
-npm run local:pg:restore-drill
+npm run local:mysql:backup
+npm run local:mysql:restore-drill
 ```
 
 Backups are stored beneath `%LOCALAPPDATA%\LexNepal\backups`. The restore drill uses an isolated
@@ -131,8 +132,8 @@ temporary database and does not overwrite the active local database.
 | Service             | Address                                           |
 | ------------------- | ------------------------------------------------- |
 | Next.js             | `http://localhost:3001`                           |
-| PostgreSQL          | `127.0.0.1:5433`                                  |
-| MinIO API / console | `http://127.0.0.1:9000` / `http://127.0.0.1:9001` |
+| MySQL               | `127.0.0.1:3307`                                  |
+| Document storage    | `./.local/storage` (local filesystem)             |
 | ClamAV              | `127.0.0.1:3310`                                  |
 | Mailpit SMTP / UI   | `127.0.0.1:1025` / `http://127.0.0.1:8025`        |
 

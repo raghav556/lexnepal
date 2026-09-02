@@ -1,32 +1,35 @@
+import { returningInsert } from "@/server/db/mysql-returning";
+import { returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import { auditLog, durableJobAttempts, durableJobs, durableSchedules } from "@/server/db/schema";
 import type { DurableJobRecord, EnqueueJobInput, JobStatus, JobType } from "@/server/jobs/types";
 
-export class PostgresJobRepository {
+export class MySqlJobRepository {
   private readonly database = getDatabase();
 
   async enqueue(input: EnqueueJobInput): Promise<{ job: DurableJobRecord; created: boolean }> {
     return this.database.transaction(async (transaction) => {
-      const [created] = await transaction
-        .insert(durableJobs)
-        .values({
-          firmId: input.firmId,
-          type: input.type,
-          idempotencyKey: input.idempotencyKey,
-          payload: input.payload ?? {},
-          actorUserId: input.actorUserId,
-          correlationId: input.correlationId,
-          priority: input.priority ?? 100,
-          maxAttempts: input.maxAttempts ?? 5,
-          timeoutSeconds: input.timeoutSeconds ?? 300,
-          availableAt: input.availableAt ?? new Date(),
-        })
-        .onConflictDoNothing({
-          target: [durableJobs.firmId, durableJobs.type, durableJobs.idempotencyKey],
-        })
-        .returning();
+      const [created] = await returningInsert(
+        transaction
+          .insert(durableJobs)
+          .values({
+            firmId: input.firmId,
+            type: input.type,
+            idempotencyKey: input.idempotencyKey,
+            payload: input.payload ?? {},
+            actorUserId: input.actorUserId,
+            correlationId: input.correlationId,
+            priority: input.priority ?? 100,
+            maxAttempts: input.maxAttempts ?? 5,
+            timeoutSeconds: input.timeoutSeconds ?? 300,
+            availableAt: input.availableAt ?? new Date(),
+          })
+          .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } })
+          .$returningId(),
+        (id) => transaction.select().from(durableJobs).where(eq(durableJobs.id, id)).limit(1),
+      );
       if (created) {
         await writeAudit(transaction, {
           firmId: created.firmId,
@@ -55,22 +58,38 @@ export class PostgresJobRepository {
   }
 
   async claim(workerId: string, at = new Date()): Promise<DurableJobRecord | null> {
-    const atIso = at.toISOString();
     return this.database.transaction(async (transaction) => {
-      const exhausted = await transaction.execute<{
-        id: string;
-        firm_id: string;
-        actor_user_id: string;
-        total_attempts: number;
-      }>(sql`
-        UPDATE durable_jobs
-        SET status = 'dead_letter', dead_lettered_at = ${atIso},
-            last_error = 'Worker lease expired after final attempt',
-            locked_at = NULL, locked_by = NULL, lease_expires_at = NULL, updated_at = ${atIso}
-        WHERE status = 'processing' AND lease_expires_at <= ${atIso}
-          AND attempts >= max_attempts AND deleted_at IS NULL
-        RETURNING id, firm_id, actor_user_id, total_attempts
-      `);
+      const exhausted = await transaction
+        .select()
+        .from(durableJobs)
+        .where(
+          and(
+            eq(durableJobs.status, "processing"),
+            lte(durableJobs.leaseExpiresAt, at),
+            sql`${durableJobs.attempts} >= ${durableJobs.maxAttempts}`,
+            isNull(durableJobs.deletedAt),
+          ),
+        )
+        .for("update", { skipLocked: true });
+      if (exhausted.length > 0) {
+        await transaction
+          .update(durableJobs)
+          .set({
+            status: "dead_letter",
+            deadLetteredAt: at,
+            lastError: "Worker lease expired after final attempt",
+            lockedAt: null,
+            lockedBy: null,
+            leaseExpiresAt: null,
+            updatedAt: at,
+          })
+          .where(
+            inArray(
+              durableJobs.id,
+              exhausted.map((job) => job.id),
+            ),
+          );
+      }
       for (const job of exhausted) {
         await transaction
           .update(durableJobAttempts)
@@ -83,44 +102,51 @@ export class PostgresJobRepository {
           .where(
             and(
               eq(durableJobAttempts.jobId, job.id),
-              eq(durableJobAttempts.attemptNumber, job.total_attempts),
+              eq(durableJobAttempts.attemptNumber, job.totalAttempts),
               eq(durableJobAttempts.outcome, "processing"),
             ),
           );
         await writeAudit(transaction, {
-          firmId: job.firm_id,
-          actorUserId: job.actor_user_id,
+          firmId: job.firmId,
+          actorUserId: job.actorUserId,
           action: "job.dead_lettered",
           jobId: job.id,
           details: "lease expired after final attempt",
         });
       }
 
-      const rows = await transaction.execute<Record<string, unknown>>(sql`
-        WITH candidate AS (
-          SELECT id FROM durable_jobs
-          WHERE (
-            (status IN ('pending', 'retry') AND available_at <= ${atIso})
-            OR (status = 'processing' AND lease_expires_at <= ${atIso})
-          )
-          AND attempts < max_attempts AND deleted_at IS NULL
-          ORDER BY priority ASC, available_at ASC, created_at ASC
-          FOR UPDATE SKIP LOCKED
-          LIMIT 1
+      const [candidate] = await transaction
+        .select()
+        .from(durableJobs)
+        .where(
+          and(
+            or(
+              and(
+                inArray(durableJobs.status, ["pending", "retry"]),
+                lte(durableJobs.availableAt, at),
+              ),
+              and(eq(durableJobs.status, "processing"), lte(durableJobs.leaseExpiresAt, at)),
+            ),
+            sql`${durableJobs.attempts} < ${durableJobs.maxAttempts}`,
+            isNull(durableJobs.deletedAt),
+          ),
         )
-        UPDATE durable_jobs AS job
-        SET status = 'processing', attempts = job.attempts + 1,
-            total_attempts = job.total_attempts + 1,
-            locked_at = ${atIso}, locked_by = ${workerId},
-            lease_expires_at = ${atIso}::timestamptz + make_interval(secs => job.timeout_seconds + 30),
-            updated_at = ${atIso}
-        FROM candidate
-        WHERE job.id = candidate.id
-        RETURNING job.*
-      `);
-      const row = rows[0];
-      if (!row) return null;
-      const claimed = mapRawJob(row);
+        .orderBy(durableJobs.priority, durableJobs.availableAt, durableJobs.createdAt)
+        .limit(1)
+        .for("update", { skipLocked: true });
+      if (!candidate) return null;
+      const claimedRow = {
+        ...candidate,
+        status: "processing" as const,
+        attempts: candidate.attempts + 1,
+        totalAttempts: candidate.totalAttempts + 1,
+        lockedAt: at,
+        lockedBy: workerId,
+        leaseExpiresAt: new Date(at.getTime() + (candidate.timeoutSeconds + 30) * 1000),
+        updatedAt: at,
+      };
+      await transaction.update(durableJobs).set(claimedRow).where(eq(durableJobs.id, candidate.id));
+      const claimed = mapJob(claimedRow);
       await transaction
         .update(durableJobAttempts)
         .set({
@@ -148,21 +174,23 @@ export class PostgresJobRepository {
   }
 
   async heartbeat(job: DurableJobRecord, workerId: string, at = new Date()): Promise<boolean> {
-    const [updated] = await this.database
-      .update(durableJobs)
-      .set({
-        leaseExpiresAt: new Date(at.getTime() + (job.timeoutSeconds + 30) * 1000),
-        updatedAt: at,
-      })
-      .where(
-        and(
-          eq(durableJobs.id, job.id),
-          eq(durableJobs.firmId, job.firmId),
-          eq(durableJobs.status, "processing"),
-          eq(durableJobs.lockedBy, workerId),
+    const [updated] = await returningMutation(
+      this.database
+        .update(durableJobs)
+        .set({
+          leaseExpiresAt: new Date(at.getTime() + (job.timeoutSeconds + 30) * 1000),
+          updatedAt: at,
+        })
+        .where(
+          and(
+            eq(durableJobs.id, job.id),
+            eq(durableJobs.firmId, job.firmId),
+            eq(durableJobs.status, "processing"),
+            eq(durableJobs.lockedBy, workerId),
+          ),
         ),
-      )
-      .returning({ id: durableJobs.id });
+      () => this.database.select().from(durableJobs).where(eq(durableJobs.id, job.id)),
+    );
     return Boolean(updated);
   }
 
@@ -173,27 +201,29 @@ export class PostgresJobRepository {
     at = new Date(),
   ): Promise<void> {
     await this.database.transaction(async (transaction) => {
-      const [completed] = await transaction
-        .update(durableJobs)
-        .set({
-          status: "completed",
-          result,
-          completedAt: at,
-          lastError: null,
-          lockedAt: null,
-          lockedBy: null,
-          leaseExpiresAt: null,
-          updatedAt: at,
-        })
-        .where(
-          and(
-            eq(durableJobs.id, job.id),
-            eq(durableJobs.firmId, job.firmId),
-            eq(durableJobs.status, "processing"),
-            eq(durableJobs.lockedBy, workerId),
+      const [completed] = await returningMutation(
+        transaction
+          .update(durableJobs)
+          .set({
+            status: "completed",
+            result,
+            completedAt: at,
+            lastError: null,
+            lockedAt: null,
+            lockedBy: null,
+            leaseExpiresAt: null,
+            updatedAt: at,
+          })
+          .where(
+            and(
+              eq(durableJobs.id, job.id),
+              eq(durableJobs.firmId, job.firmId),
+              eq(durableJobs.status, "processing"),
+              eq(durableJobs.lockedBy, workerId),
+            ),
           ),
-        )
-        .returning({ id: durableJobs.id });
+        () => transaction.select().from(durableJobs).where(eq(durableJobs.id, job.id)),
+      );
       if (!completed) throw new Error("Job lease was lost before completion");
       await transaction
         .update(durableJobAttempts)
@@ -230,27 +260,29 @@ export class PostgresJobRepository {
     const delayMs = Math.min(60 * 60_000, 30_000 * 2 ** Math.max(0, job.attempts - 1));
     const outcome = deadLetter ? "dead_letter" : "retry";
     await this.database.transaction(async (transaction) => {
-      const [updated] = await transaction
-        .update(durableJobs)
-        .set({
-          status: outcome,
-          availableAt: deadLetter ? at : new Date(at.getTime() + delayMs),
-          deadLetteredAt: deadLetter ? at : null,
-          lastError: error.slice(0, 8_000),
-          lockedAt: null,
-          lockedBy: null,
-          leaseExpiresAt: null,
-          updatedAt: at,
-        })
-        .where(
-          and(
-            eq(durableJobs.id, job.id),
-            eq(durableJobs.firmId, job.firmId),
-            eq(durableJobs.status, "processing"),
-            eq(durableJobs.lockedBy, workerId),
+      const [updated] = await returningMutation(
+        transaction
+          .update(durableJobs)
+          .set({
+            status: outcome,
+            availableAt: deadLetter ? at : new Date(at.getTime() + delayMs),
+            deadLetteredAt: deadLetter ? at : null,
+            lastError: error.slice(0, 8_000),
+            lockedAt: null,
+            lockedBy: null,
+            leaseExpiresAt: null,
+            updatedAt: at,
+          })
+          .where(
+            and(
+              eq(durableJobs.id, job.id),
+              eq(durableJobs.firmId, job.firmId),
+              eq(durableJobs.status, "processing"),
+              eq(durableJobs.lockedBy, workerId),
+            ),
           ),
-        )
-        .returning({ id: durableJobs.id });
+        () => transaction.select().from(durableJobs).where(eq(durableJobs.id, job.id)),
+      );
       if (!updated) throw new Error("Job lease was lost before failure handling");
       await transaction
         .update(durableJobAttempts)
@@ -325,24 +357,26 @@ export class PostgresJobRepository {
       if (job.status !== "dead_letter")
         throw new Error("Only dead-letter jobs can be retried manually");
       const at = new Date();
-      const [updated] = await transaction
-        .update(durableJobs)
-        .set({
-          status: "retry",
-          attempts: 0,
-          availableAt: at,
-          lockedAt: null,
-          lockedBy: null,
-          leaseExpiresAt: null,
-          deadLetteredAt: null,
-          lastError: null,
-          manualRetryCount: job.manualRetryCount + 1,
-          lastManualRetryAt: at,
-          lastManualRetryBy: input.actorUserId,
-          updatedAt: at,
-        })
-        .where(eq(durableJobs.id, job.id))
-        .returning();
+      const [updated] = await returningMutation(
+        transaction
+          .update(durableJobs)
+          .set({
+            status: "retry",
+            attempts: 0,
+            availableAt: at,
+            lockedAt: null,
+            lockedBy: null,
+            leaseExpiresAt: null,
+            deadLetteredAt: null,
+            lastError: null,
+            manualRetryCount: job.manualRetryCount + 1,
+            lastManualRetryAt: at,
+            lastManualRetryBy: input.actorUserId,
+            updatedAt: at,
+          })
+          .where(eq(durableJobs.id, job.id)),
+        () => transaction.select().from(durableJobs).where(eq(durableJobs.id, job.id)),
+      );
       await writeAudit(transaction, {
         firmId: input.firmId,
         actorUserId: input.actorUserId,
@@ -355,48 +389,42 @@ export class PostgresJobRepository {
   }
 
   async enqueueDueSchedules(at = new Date(), limit = 100): Promise<number> {
-    const atIso = at.toISOString();
     return this.database.transaction(async (transaction) => {
-      const due = await transaction.execute<{
-        id: string;
-        firm_id: string;
-        job_type: JobType;
-        payload: unknown;
-        interval_seconds: number;
-        next_run_at: string;
-        actor_user_id: string;
-        max_attempts: number;
-        timeout_seconds: number;
-      }>(sql`
-        SELECT id, firm_id, job_type, payload, interval_seconds, next_run_at,
-               actor_user_id, max_attempts, timeout_seconds
-        FROM durable_schedules
-        WHERE is_active = true AND next_run_at <= ${atIso} AND deleted_at IS NULL
-        ORDER BY next_run_at
-        FOR UPDATE SKIP LOCKED
-        LIMIT ${limit}
-      `);
+      const due = await transaction
+        .select()
+        .from(durableSchedules)
+        .where(
+          and(
+            eq(durableSchedules.isActive, true),
+            lte(durableSchedules.nextRunAt, at),
+            isNull(durableSchedules.deletedAt),
+          ),
+        )
+        .orderBy(durableSchedules.nextRunAt)
+        .limit(limit)
+        .for("update", { skipLocked: true });
       for (const schedule of due) {
-        const dueAt = new Date(schedule.next_run_at);
+        const dueAt = schedule.nextRunAt;
         const idempotencyKey = `schedule:${schedule.id}:${dueAt.toISOString()}`;
-        const [created] = await transaction
-          .insert(durableJobs)
-          .values({
-            firmId: schedule.firm_id,
-            type: schedule.job_type,
-            idempotencyKey,
-            payload: schedule.payload ?? {},
-            actorUserId: schedule.actor_user_id,
-            maxAttempts: schedule.max_attempts,
-            timeoutSeconds: schedule.timeout_seconds,
-            availableAt: at,
-          })
-          .onConflictDoNothing({
-            target: [durableJobs.firmId, durableJobs.type, durableJobs.idempotencyKey],
-          })
-          .returning({ id: durableJobs.id });
+        const [created] = await returningInsert(
+          transaction
+            .insert(durableJobs)
+            .values({
+              firmId: schedule.firmId,
+              type: schedule.jobType as JobType,
+              idempotencyKey,
+              payload: schedule.payload ?? {},
+              actorUserId: schedule.actorUserId,
+              maxAttempts: schedule.maxAttempts,
+              timeoutSeconds: schedule.timeoutSeconds,
+              availableAt: at,
+            })
+            .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } })
+            .$returningId(),
+          (id) => transaction.select().from(durableJobs).where(eq(durableJobs.id, id)).limit(1),
+        );
         const nextRunAt = new Date(
-          Math.max(dueAt.getTime() + schedule.interval_seconds * 1000, at.getTime() + 1000),
+          Math.max(dueAt.getTime() + schedule.intervalSeconds * 1000, at.getTime() + 1000),
         );
         await transaction
           .update(durableSchedules)
@@ -404,11 +432,11 @@ export class PostgresJobRepository {
           .where(eq(durableSchedules.id, schedule.id));
         if (created) {
           await writeAudit(transaction, {
-            firmId: schedule.firm_id,
-            actorUserId: schedule.actor_user_id,
+            firmId: schedule.firmId,
+            actorUserId: schedule.actorUserId,
             action: "job.enqueued",
             jobId: created.id,
-            details: `schedule=${schedule.id}; type=${schedule.job_type}`,
+            details: `schedule=${schedule.id}; type=${schedule.jobType}`,
           });
         }
       }
@@ -460,34 +488,5 @@ function mapJob(row: typeof durableJobs.$inferSelect): DurableJobRecord {
     manualRetryCount: row.manualRetryCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-  };
-}
-
-function mapRawJob(row: Record<string, unknown>): DurableJobRecord {
-  return {
-    id: String(row.id),
-    firmId: String(row.firm_id),
-    type: String(row.type) as JobType,
-    idempotencyKey: String(row.idempotency_key),
-    payload: row.payload,
-    status: String(row.status) as JobStatus,
-    priority: Number(row.priority),
-    attempts: Number(row.attempts),
-    totalAttempts: Number(row.total_attempts),
-    maxAttempts: Number(row.max_attempts),
-    timeoutSeconds: Number(row.timeout_seconds),
-    availableAt: new Date(String(row.available_at)),
-    lockedAt: row.locked_at ? new Date(String(row.locked_at)) : null,
-    lockedBy: row.locked_by ? String(row.locked_by) : null,
-    leaseExpiresAt: row.lease_expires_at ? new Date(String(row.lease_expires_at)) : null,
-    actorUserId: String(row.actor_user_id),
-    correlationId: row.correlation_id ? String(row.correlation_id) : null,
-    lastError: row.last_error ? String(row.last_error) : null,
-    result: row.result,
-    completedAt: row.completed_at ? new Date(String(row.completed_at)) : null,
-    deadLetteredAt: row.dead_lettered_at ? new Date(String(row.dead_lettered_at)) : null,
-    manualRetryCount: Number(row.manual_retry_count),
-    createdAt: new Date(String(row.created_at)),
-    updatedAt: new Date(String(row.updated_at)),
   };
 }

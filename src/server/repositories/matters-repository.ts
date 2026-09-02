@@ -1,5 +1,6 @@
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
-import { and, asc, desc, eq, ilike, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, like } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import {
   auditLog,
@@ -25,7 +26,7 @@ import { runConflictSearch, runMatterBundleSearch } from "@/server/services/conf
 
 const database = getDatabase();
 
-export class PostgresMattersRepository {
+export class MySqlMattersRepository {
   async listClients(firmId: string) {
     const rows = await database
       .select()
@@ -65,10 +66,13 @@ export class PostgresMattersRepository {
   async createClient(firmId: string, input: ClientCreateInput, audit: AuditContext) {
     await this.validateLinkedUser(firmId, input.userId ?? null);
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(clients)
-        .values({ firmId, ...normalizeEmpty(input), kycStatus: "pending", isActive: true })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(clients)
+          .values({ firmId, ...normalizeEmpty(input), kycStatus: "pending", isActive: true })
+          .$returningId(),
+        (id) => tx.select().from(clients).where(eq(clients.id, id)).limit(1),
+      );
       await writeAudit(tx, audit, "client.created", "clients", row.id, row.fullName);
       return clientDto(row, false);
     });
@@ -82,11 +86,15 @@ export class PostgresMattersRepository {
   ) {
     if (input.userId !== undefined) await this.validateLinkedUser(firmId, input.userId);
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(clients)
-        .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
-        .where(and(eq(clients.id, clientId), eq(clients.firmId, firmId), isNull(clients.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(clients)
+          .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
+          .where(
+            and(eq(clients.id, clientId), eq(clients.firmId, firmId), isNull(clients.deletedAt)),
+          ),
+        () => tx.select().from(clients).where(eq(clients.id, clientId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Client was not found", 404);
       await writeAudit(tx, audit, "client.updated", "clients", row.id, null);
       return clientDto(row, false);
@@ -100,13 +108,25 @@ export class PostgresMattersRepository {
     audit: AuditContext,
   ) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(clients)
-        .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
-        .where(
-          and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)),
-        )
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(clients)
+          .set({ ...normalizeEmpty(input), updatedAt: audit.occurredAt })
+          .where(
+            and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)),
+          ),
+        () =>
+          tx
+            .select()
+            .from(clients)
+            .where(
+              and(
+                eq(clients.firmId, firmId),
+                eq(clients.userId, userId),
+                isNull(clients.deletedAt),
+              ),
+            ),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Client profile was not found", 404);
       await writeAudit(tx, audit, "client.self_updated", "clients", row.id, null);
       return clientDto(row, true);
@@ -185,10 +205,13 @@ export class PostgresMattersRepository {
     );
     return database.transaction(async (tx) => {
       const { teamMemberIds, ...matter } = input;
-      const [row] = await tx
-        .insert(cases)
-        .values({ firmId, ...normalizeEmpty(matter), status: "active", conflictChecked: false })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(cases)
+          .values({ firmId, ...normalizeEmpty(matter), status: "active", conflictChecked: false })
+          .$returningId(),
+        (id) => tx.select().from(cases).where(eq(cases.id, id)).limit(1),
+      );
       if (teamMemberIds.length)
         await tx
           .insert(caseTeamMembers)
@@ -216,11 +239,13 @@ export class PostgresMattersRepository {
     await this.validateCaseRelationships(firmId, existing.clientId, nextLawyer, nextTeam);
     return database.transaction(async (tx) => {
       const { teamMemberIds, ...changes } = input;
-      const [row] = await tx
-        .update(cases)
-        .set({ ...normalizeEmpty(changes), updatedAt: audit.occurredAt })
-        .where(and(eq(cases.id, caseId), eq(cases.firmId, firmId), isNull(cases.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(cases)
+          .set({ ...normalizeEmpty(changes), updatedAt: audit.occurredAt })
+          .where(and(eq(cases.id, caseId), eq(cases.firmId, firmId), isNull(cases.deletedAt))),
+        () => tx.select().from(cases).where(eq(cases.id, caseId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Case was not found", 404);
       if (teamMemberIds) {
         await tx
@@ -257,18 +282,21 @@ export class PostgresMattersRepository {
     const hits = outcome.hits;
 
     const [check] = await database.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(conflictChecks)
-        .values({
-          firmId,
-          searchQuery: outcome.query,
-          hitsCount: hits.length,
-          status: hits.length ? "pending" : "cleared",
-          runBy: audit.actorId,
-          runByName: options?.runByName?.trim() || "Authorized user",
-          checkedAt: audit.occurredAt,
-        })
-        .returning();
+      const inserted = await returningInsert(
+        tx
+          .insert(conflictChecks)
+          .values({
+            firmId,
+            searchQuery: outcome.query,
+            hitsCount: hits.length,
+            status: hits.length ? "pending" : "cleared",
+            runBy: audit.actorId,
+            runByName: options?.runByName?.trim() || "Authorized user",
+            checkedAt: audit.occurredAt,
+          })
+          .$returningId(),
+        (id) => tx.select().from(conflictChecks).where(eq(conflictChecks.id, id)).limit(1),
+      );
       await writeAudit(
         tx,
         audit,
@@ -326,17 +354,19 @@ export class PostgresMattersRepository {
     audit: AuditContext,
   ) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(conflictChecks)
-        .set({ status, notes: notes || null, updatedAt: audit.occurredAt })
-        .where(
-          and(
-            eq(conflictChecks.id, checkId),
-            eq(conflictChecks.firmId, firmId),
-            isNull(conflictChecks.deletedAt),
+      const [row] = await returningMutation(
+        tx
+          .update(conflictChecks)
+          .set({ status, notes: notes || null, updatedAt: audit.occurredAt })
+          .where(
+            and(
+              eq(conflictChecks.id, checkId),
+              eq(conflictChecks.firmId, firmId),
+              isNull(conflictChecks.deletedAt),
+            ),
           ),
-        )
-        .returning();
+        () => tx.select().from(conflictChecks).where(eq(conflictChecks.id, checkId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Conflict check was not found", 404);
       await writeAudit(tx, audit, "conflict.decision_recorded", "conflict_checks", row.id, status);
       return toDto(row);
@@ -345,15 +375,17 @@ export class PostgresMattersRepository {
 
   async markCaseConflict(firmId: string, caseId: string, cleared: boolean, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .update(cases)
-        .set({
-          conflictChecked: true,
-          conflictClearedBy: cleared ? audit.actorId : null,
-          updatedAt: audit.occurredAt,
-        })
-        .where(and(eq(cases.id, caseId), eq(cases.firmId, firmId), isNull(cases.deletedAt)))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(cases)
+          .set({
+            conflictChecked: true,
+            conflictClearedBy: cleared ? audit.actorId : null,
+            updatedAt: audit.occurredAt,
+          })
+          .where(and(eq(cases.id, caseId), eq(cases.firmId, firmId), isNull(cases.deletedAt))),
+        () => tx.select().from(cases).where(eq(cases.id, caseId)),
+      );
       if (!row) throw new AppError("NOT_FOUND", "Case was not found", 404);
       await writeAudit(
         tx,
@@ -430,11 +462,7 @@ export class PostgresMattersRepository {
       .select()
       .from(clients)
       .where(
-        and(
-          eq(clients.firmId, firmId),
-          ilike(clients.email, normalized),
-          isNull(clients.deletedAt),
-        ),
+        and(eq(clients.firmId, firmId), like(clients.email, normalized), isNull(clients.deletedAt)),
       )
       .limit(1);
     return row ? clientDto(row, false) : null;

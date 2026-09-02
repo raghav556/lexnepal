@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 /**
  * R4.8 — Seed representative local volume and time list/search Route Handlers.
  * Pass rule: each measured endpoint stays under PERFORMANCE_SMOKE_BUDGETS_MS.
@@ -55,8 +56,7 @@ async function ensurePermissions() {
         ],
       },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: {
           associate: [
@@ -112,7 +112,7 @@ async function seedVolume(lawyerId: string) {
     await database
       .insert(clients)
       .values(clientRows.slice(offset, offset + 50))
-      .onConflictDoNothing();
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
   }
 
   const seededClients = await database
@@ -142,7 +142,7 @@ async function seedVolume(lawyerId: string) {
     await database
       .insert(cases)
       .values(caseRows.slice(offset, offset + 50))
-      .onConflictDoNothing();
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
   }
 
   const seededCases = await database
@@ -176,7 +176,7 @@ async function seedVolume(lawyerId: string) {
     await database
       .insert(documents)
       .values(docRows.slice(offset, offset + 50))
-      .onConflictDoNothing();
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
   }
 
   const taskRows = Array.from({ length: PERFORMANCE_SMOKE_VOLUME.tasks }, (_, i) => {
@@ -198,7 +198,7 @@ async function seedVolume(lawyerId: string) {
     await database
       .insert(tasks)
       .values(taskRows.slice(offset, offset + 50))
-      .onConflictDoNothing();
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
   }
 
   return {

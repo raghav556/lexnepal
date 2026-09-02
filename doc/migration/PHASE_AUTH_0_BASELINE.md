@@ -13,7 +13,7 @@
 | Server running     | `http://localhost:3001` responds | `npm run rebuild:start` or `npm run start` after build             |
 | Role guards active | Portals enforce role             | `NEXT_PUBLIC_SKIP_ROLE_GUARDS` **must not** be `1` in `.env.local` |
 | E2E seed present   | Demo accounts exist              | `npm run e2e:seed` (if login fails)                                |
-| Local infra        | Postgres + MinIO up              | `npm run local:infra:start`                                        |
+| Local infra        | MySQL + storage + ClamAV up     | `npm run local:infra:start`                                        |
 
 ---
 

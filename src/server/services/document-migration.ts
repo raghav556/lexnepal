@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import "server-only";
 import fs from "node:fs/promises";
 import { and, eq } from "drizzle-orm";
@@ -158,10 +159,13 @@ export async function migrateDocuments(
               .from(documentTags)
               .where(and(eq(documentTags.firmId, firmId), eq(documentTags.name, tagName)));
             if (!tag) {
-              [tag] = await db
-                .insert(documentTags)
-                .values({ firmId, name: tagName, color: "#cccccc" })
-                .returning();
+              [tag] = await returningInsert(
+                db
+                  .insert(documentTags)
+                  .values({ firmId, name: tagName, color: "#cccccc" })
+                  .$returningId(),
+                (id) => db.select().from(documentTags).where(eq(documentTags.id, id)).limit(1),
+              );
             }
             if (!tag) continue;
             const existingAssignment = await db

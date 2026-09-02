@@ -105,11 +105,11 @@ export function registerExportDomain(config: ExportDomainConfig): void {
         await saveDomainReport(config.name, report);
         await appendReconciliationReport({
           domain: config.name,
-          command: "import-postgres",
+          command: "import-mysql",
           dryRun: true,
           report,
           notes: [
-            "Dry-run only inventories export rows; no Postgres writes.",
+            "Dry-run only inventories export rows; no MySQL writes.",
             "Real importers remain idempotent via legacyConvexId upserts.",
             `fingerprint=${fingerprint}`,
             ...(config.notes ?? []),
@@ -164,7 +164,7 @@ export function registerExportDomain(config: ExportDomainConfig): void {
       await saveDomainReport(config.name, report);
       await appendReconciliationReport({
         domain: config.name,
-        command: "import-postgres",
+        command: "import-mysql",
         report,
         details: importDetails,
         notes: [...(config.notes ?? []), `fingerprint=${fingerprint}`],
@@ -249,7 +249,7 @@ export function registerExportDomain(config: ExportDomainConfig): void {
     verify: async (engine) => {
       const report = await loadDomainReport(config.name);
       if (!report) {
-        await engine.log(`No saved report for ${config.name}. Run import-postgres first.`);
+        await engine.log(`No saved report for ${config.name}. Run import-mysql first.`);
         return false;
       }
       const passed = report.reconciliation.passed && report.exceptions.length === 0;

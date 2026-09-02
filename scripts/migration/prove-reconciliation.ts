@@ -30,7 +30,7 @@ try {
   const firmMap = path.resolve(exportPath, "firm-map.json");
   if (
     (await runCli([
-      "import-postgres",
+      "import-mysql",
       "--domain",
       "storage",
       "--force",

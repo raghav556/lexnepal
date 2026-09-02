@@ -20,7 +20,7 @@ Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through `
 - Zod contracts, PostgreSQL repositories, services and versioned Route Handlers for client directory/detail/self-service, cases, case teams, KYC workflow and conflict checks.
 - Atomic client/case/KYC/conflict mutations with actor, firm, IP, request ID and timestamp audit context.
 - Server-side validation that linked clients, lawyers, reviewers and team members are active and belong to the same firm.
-- Dedicated private KYC upload intents, short-lived MinIO POST grants, SHA-256/magic-byte/MIME/size validation, ClamAV scanning, protected promotion, signed review URLs and abandoned-upload cleanup.
+- Dedicated private KYC upload intents, short-lived storage upload grants, SHA-256/magic-byte/MIME/size validation, ClamAV scanning, protected promotion, signed review URLs and abandoned-upload cleanup.
 - Durable `kyc.malware_scan` jobs with the Phase 7 retry, lease, dead-letter, status and manual-retry behavior.
 - Client notification records for KYC submission and review decisions.
 - Typed clients/cases/conflict adapters with stable TanStack Query keys. No React component directly references `api.clients`, `api.cases` or `api.conflictChecks`.

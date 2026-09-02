@@ -1,3 +1,5 @@
+import { returningInsert } from "@/server/db/mysql-returning";
+import { sql } from "drizzle-orm";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { durableSchedules, firms, users } from "../../src/server/db/schema";
@@ -70,19 +72,22 @@ for (const firm of activeFirms) {
     },
   ];
   for (const schedule of schedules) {
-    const inserted = await database
-      .insert(durableSchedules)
-      .values({
-        firmId: firm.id,
-        actorUserId: actor.id,
-        name: schedule.name,
-        jobType: schedule.jobType,
-        intervalSeconds: schedule.intervalSeconds,
-        nextRunAt: schedule.nextRunAt,
-        timeoutSeconds: schedule.timeoutSeconds ?? 300,
-      })
-      .onConflictDoNothing({ target: [durableSchedules.firmId, durableSchedules.name] })
-      .returning({ id: durableSchedules.id });
+    const inserted = await returningInsert(
+      database
+        .insert(durableSchedules)
+        .values({
+          firmId: firm.id,
+          actorUserId: actor.id,
+          name: schedule.name,
+          jobType: schedule.jobType,
+          intervalSeconds: schedule.intervalSeconds,
+          nextRunAt: schedule.nextRunAt,
+          timeoutSeconds: schedule.timeoutSeconds ?? 300,
+        })
+        .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } })
+        .$returningId(),
+      (id) => database.select().from(durableSchedules).where(eq(durableSchedules.id, id)).limit(1),
+    );
     created += inserted.length;
   }
 }

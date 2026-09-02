@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation, returningUpsert } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, asc, desc, eq, isNull, ne, type SQL } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
@@ -199,29 +200,41 @@ export class HrRepository {
     const clockOut = parseClock(input.date, input.clockOut);
 
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(attendance)
-        .values({
-          firmId,
-          userId: input.userId,
-          attendanceDate: input.date,
-          clockIn,
-          clockOut,
-          status: input.status,
-          createdAt: audit.occurredAt,
-          updatedAt: audit.occurredAt,
-        })
-        .onConflictDoUpdate({
-          target: [attendance.firmId, attendance.userId, attendance.attendanceDate],
-          set: {
+      const [row] = await returningUpsert(
+        tx
+          .insert(attendance)
+          .values({
+            firmId,
+            userId: input.userId,
+            attendanceDate: input.date,
             clockIn,
             clockOut,
             status: input.status,
+            createdAt: audit.occurredAt,
             updatedAt: audit.occurredAt,
-            deletedAt: null,
-          },
-        })
-        .returning();
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              clockIn,
+              clockOut,
+              status: input.status,
+              updatedAt: audit.occurredAt,
+              deletedAt: null,
+            },
+          }),
+        () =>
+          tx
+            .select()
+            .from(attendance)
+            .where(
+              and(
+                eq(attendance.firmId, firmId),
+                eq(attendance.userId, input.userId),
+                eq(attendance.attendanceDate, input.date),
+              ),
+            )
+            .limit(1),
+      );
 
       if (!row) throw new AppError("INTERNAL_ERROR", "Failed to upsert attendance", 500);
       await writeAudit(
@@ -386,13 +399,7 @@ export class HrRepository {
           createdAt: audit.occurredAt,
           updatedAt: audit.occurredAt,
         })
-        .onConflictDoUpdate({
-          target: [
-            leaveBalances.firmId,
-            leaveBalances.userId,
-            leaveBalances.type,
-            leaveBalances.year,
-          ],
+        .onDuplicateKeyUpdate({
           set: {
             entitledDays: input.entitledDays,
             updatedAt: audit.occurredAt,
@@ -447,20 +454,23 @@ export class HrRepository {
     }
 
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(leaveRequests)
-        .values({
-          firmId,
-          userId,
-          type: input.type,
-          fromDate: input.fromDate,
-          toDate: input.toDate,
-          reason: input.reason ?? null,
-          status: "pending",
-          createdAt: audit.occurredAt,
-          updatedAt: audit.occurredAt,
-        })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(leaveRequests)
+          .values({
+            firmId,
+            userId,
+            type: input.type,
+            fromDate: input.fromDate,
+            toDate: input.toDate,
+            reason: input.reason ?? null,
+            status: "pending",
+            createdAt: audit.occurredAt,
+            updatedAt: audit.occurredAt,
+          })
+          .$returningId(),
+        (id) => tx.select().from(leaveRequests).where(eq(leaveRequests.id, id)).limit(1),
+      );
       if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create leave request", 500);
       await writeAudit(
         tx,
@@ -501,15 +511,17 @@ export class HrRepository {
         throw new AppError("VALIDATION_FAILED", "Leave request is already reviewed", 400);
       }
 
-      const [row] = await tx
-        .update(leaveRequests)
-        .set({
-          status,
-          reviewedBy: reviewerId,
-          updatedAt: audit.occurredAt,
-        })
-        .where(eq(leaveRequests.id, leaveRequestId))
-        .returning();
+      const [row] = await returningMutation(
+        tx
+          .update(leaveRequests)
+          .set({
+            status,
+            reviewedBy: reviewerId,
+            updatedAt: audit.occurredAt,
+          })
+          .where(eq(leaveRequests.id, leaveRequestId)),
+        () => tx.select().from(leaveRequests).where(eq(leaveRequests.id, leaveRequestId)),
+      );
       if (!row) throw new AppError("INTERNAL_ERROR", "Failed to review leave request", 500);
 
       if (status === "approved") {
@@ -529,8 +541,7 @@ export class HrRepository {
               createdAt: audit.occurredAt,
               updatedAt: audit.occurredAt,
             })
-            .onConflictDoUpdate({
-              target: [attendance.firmId, attendance.userId, attendance.attendanceDate],
+            .onDuplicateKeyUpdate({
               set: {
                 status: "leave",
                 clockIn: null,
@@ -700,19 +711,22 @@ export class HrRepository {
           ),
         );
 
-      const [run] = await tx
-        .insert(payrollRuns)
-        .values({
-          firmId,
-          periodStart: input.periodStart,
-          periodEnd: input.periodEnd,
-          label,
-          status: "draft",
-          generatedBy: actorId,
-          createdAt: audit.occurredAt,
-          updatedAt: audit.occurredAt,
-        })
-        .returning();
+      const [run] = await returningInsert(
+        tx
+          .insert(payrollRuns)
+          .values({
+            firmId,
+            periodStart: input.periodStart,
+            periodEnd: input.periodEnd,
+            label,
+            status: "draft",
+            generatedBy: actorId,
+            createdAt: audit.occurredAt,
+            updatedAt: audit.occurredAt,
+          })
+          .$returningId(),
+        (id) => tx.select().from(payrollRuns).where(eq(payrollRuns.id, id)).limit(1),
+      );
       if (!run) throw new AppError("INTERNAL_ERROR", "Failed to create payroll run", 500);
 
       for (const row of rows) {
@@ -791,16 +805,18 @@ export class HrRepository {
         );
       }
 
-      const [updated] = await tx
-        .update(payrollRuns)
-        .set({
-          status: "finalized",
-          finalizedBy: actorId,
-          finalizedAt: audit.occurredAt,
-          updatedAt: audit.occurredAt,
-        })
-        .where(eq(payrollRuns.id, runId))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(payrollRuns)
+          .set({
+            status: "finalized",
+            finalizedBy: actorId,
+            finalizedAt: audit.occurredAt,
+            updatedAt: audit.occurredAt,
+          })
+          .where(eq(payrollRuns.id, runId)),
+        () => tx.select().from(payrollRuns).where(eq(payrollRuns.id, runId)),
+      );
       if (!updated) throw new AppError("INTERNAL_ERROR", "Failed to finalize payroll run", 500);
 
       const lines = await tx

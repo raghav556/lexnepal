@@ -14,7 +14,7 @@ environment variables, PM2/systemd environment, or a server-side `.env.runtime` 
 | `LOG_LEVEL` | `debug`, `info`, `warn`, or `error`. |
 | `APP_PUBLIC_URL` | Public HTTPS origin in production. |
 | `PUBLIC_FIRM_SLUG` | Canonical CMS/public firm tenant. Local default is `phase-6-firm-a`. |
-| `READINESS_REQUIRE_DATABASE` | Set `true` when readiness must verify PostgreSQL. |
+| `READINESS_REQUIRE_DATABASE` | Set `true` when readiness must verify MySQL. |
 
 ## Public/Browser
 
@@ -32,7 +32,7 @@ environment variables, PM2/systemd environment, or a server-side `.env.runtime` 
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection URL used by Drizzle and runtime database access. |
+| `DATABASE_URL` | MySQL connection URL used by Drizzle and runtime database access. |
 
 Forward migrations are run by `npm run db:migrate`, backed by `drizzle-kit migrate --config
 drizzle.config.ts`. Do not use fixture seeds, fresh resets, or destructive down migrations for live
@@ -56,19 +56,13 @@ Production must use HTTPS origins and must not include localhost callback URLs o
 
 | Variable | Purpose |
 | --- | --- |
-| `OBJECT_STORAGE_BUCKET` | Private document bucket. Required for document storage. |
-| `OBJECT_STORAGE_REGION` | Object storage region. |
-| `OBJECT_STORAGE_ENDPOINT` | S3-compatible endpoint. Local default points to MinIO. |
-| `OBJECT_STORAGE_PROVIDER` | `aws-s3` or `minio`. |
-| `OBJECT_STORAGE_FORCE_PATH_STYLE` | `true` for local MinIO/path-style providers. |
-| `OBJECT_STORAGE_SSE` | `aes256` or `none`. Production default should remain encrypted where supported. |
-| `AWS_ACCESS_KEY_ID` | S3-compatible access key. |
-| `AWS_SECRET_ACCESS_KEY` | S3-compatible secret key. |
+| `STORAGE_ROOT` | Local filesystem storage root. Created automatically; must stay private (not under `public_html`). |
+| `STORAGE_DOWNLOAD_TOKEN_SECRET` | HMAC secret (≥32 chars) for short-lived download tokens. |
 | `UPLOAD_INTENT_TTL_SECONDS` | Upload intent lifetime. |
-| `UPLOAD_URL_TTL_SECONDS` | Presigned upload URL lifetime. |
-| `DOWNLOAD_URL_TTL_SECONDS` | Presigned download URL lifetime. |
+| `UPLOAD_URL_TTL_SECONDS` | Upload grant lifetime. |
+| `DOWNLOAD_URL_TTL_SECONDS` | Download token lifetime. |
 
-Do not expose document buckets, quarantine prefixes, or private downloads through `public_html`.
+Do not expose the storage root, quarantine prefixes, or private downloads through `public_html`.
 
 ## Malware Scanner
 

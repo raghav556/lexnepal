@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 /**
  * Smoke-test CMS content for local preview (news on /news, header nav link).
  * Targets PUBLIC_FIRM_SLUG (default phase-6-firm-a).
@@ -284,10 +285,7 @@ async function upsertSetting(firmId: string, key: string, value: unknown) {
   await db
     .insert(cmsSettings)
     .values({ firmId, key, value })
-    .onConflictDoUpdate({
-      target: [cmsSettings.firmId, cmsSettings.key],
-      set: { value, updatedAt: new Date(), deletedAt: null },
-    });
+    .onDuplicateKeyUpdate({ set: { value, updatedAt: new Date(), deletedAt: null } });
 }
 
 export async function seedCmsSmoke() {
@@ -456,26 +454,29 @@ export async function seedCmsSmoke() {
 
   let newsId = "";
   for (const item of NEWS_SEED) {
-    const [row] = await db
-      .insert(newsAndAwards)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        title: item.title,
-        slug: item.slug,
-        excerpt: item.excerpt,
-        content: item.content,
-        publicationDate: today,
-        type: item.type,
-        status: item.status,
-        linkUrl: item.linkUrl,
-        imageUrl: item.imageUrl,
-        seoTitle: item.seoTitle,
-        seoDescription: item.seoDescription,
-        displayOrder: item.displayOrder,
-        isFeatured: item.isFeatured,
-      })
-      .returning({ id: newsAndAwards.id });
+    const [row] = await returningInsert(
+      db
+        .insert(newsAndAwards)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          title: item.title,
+          slug: item.slug,
+          excerpt: item.excerpt,
+          content: item.content,
+          publicationDate: today,
+          type: item.type,
+          status: item.status,
+          linkUrl: item.linkUrl,
+          imageUrl: item.imageUrl,
+          seoTitle: item.seoTitle,
+          seoDescription: item.seoDescription,
+          displayOrder: item.displayOrder,
+          isFeatured: item.isFeatured,
+        })
+        .$returningId(),
+      (id) => db.select().from(newsAndAwards).where(eq(newsAndAwards.id, id)).limit(1),
+    );
     if (item.legacyConvexId === SMOKE_NEWS_LEGACY_ID) newsId = row!.id;
   }
 
@@ -493,19 +494,22 @@ export async function seedCmsSmoke() {
 
   for (const item of [...HEADER_ROOTS, ...FOOTER_NAV].sort((a, b) => b.order - a.order)) {
     const location = "location" in item ? item.location : "header";
-    const [row] = await db
-      .insert(navigation)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        label: item.label,
-        url: item.url,
-        location,
-        order: item.order,
-        isActive: true,
-        parentId: null,
-      })
-      .returning({ id: navigation.id });
+    const [row] = await returningInsert(
+      db
+        .insert(navigation)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          label: item.label,
+          url: item.url,
+          location,
+          order: item.order,
+          isActive: true,
+          parentId: null,
+        })
+        .$returningId(),
+      (id) => db.select().from(navigation).where(eq(navigation.id, id)).limit(1),
+    );
     navIds.push(row!.id);
     legacyIdToDbId.set(item.legacyConvexId, row!.id);
   }
@@ -513,19 +517,22 @@ export async function seedCmsSmoke() {
   for (const item of HEADER_CHILDREN) {
     const parentId = legacyIdToDbId.get(item.parentLegacyId);
     if (!parentId) throw new Error(`Missing parent nav for ${item.legacyConvexId}`);
-    const [row] = await db
-      .insert(navigation)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        label: item.label,
-        url: item.url,
-        location: "header",
-        order: item.order,
-        isActive: true,
-        parentId,
-      })
-      .returning({ id: navigation.id });
+    const [row] = await returningInsert(
+      db
+        .insert(navigation)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          label: item.label,
+          url: item.url,
+          location: "header",
+          order: item.order,
+          isActive: true,
+          parentId,
+        })
+        .$returningId(),
+      (id) => db.select().from(navigation).where(eq(navigation.id, id)).limit(1),
+    );
     navIds.push(row!.id);
   }
 
@@ -533,25 +540,28 @@ export async function seedCmsSmoke() {
   const paLegacyIds = PRACTICE_AREAS_SEED.map((item) => item.legacyConvexId);
   await db.delete(practiceAreas).where(inArray(practiceAreas.legacyConvexId, [...paLegacyIds]));
   for (const item of PRACTICE_AREAS_SEED) {
-    const [row] = await db
-      .insert(practiceAreas)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        title: item.title,
-        slug: item.slug,
-        icon: item.icon,
-        description: item.description,
-        longDescription: item.longDescription,
-        faqs: [...item.faqs],
-        displayOrder: item.displayOrder,
-        showOnHome: item.showOnHome,
-        isActive: true,
-        coverImageUrl: null,
-        seoTitle: `${item.title} | Srimar Law`,
-        seoDescription: item.description,
-      })
-      .returning({ id: practiceAreas.id });
+    const [row] = await returningInsert(
+      db
+        .insert(practiceAreas)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          title: item.title,
+          slug: item.slug,
+          icon: item.icon,
+          description: item.description,
+          longDescription: item.longDescription,
+          faqs: [...item.faqs],
+          displayOrder: item.displayOrder,
+          showOnHome: item.showOnHome,
+          isActive: true,
+          coverImageUrl: null,
+          seoTitle: `${item.title} | Srimar Law`,
+          seoDescription: item.description,
+        })
+        .$returningId(),
+      (id) => db.select().from(practiceAreas).where(eq(practiceAreas.id, id)).limit(1),
+    );
     practiceAreaIds.push(row!.id);
   }
 
@@ -560,21 +570,24 @@ export async function seedCmsSmoke() {
   await db.delete(testimonials).where(inArray(testimonials.legacyConvexId, [...tLegacyIds]));
   const avatarUrl = await seedPromotedCmsAsset(firm.id, "testimonial_avatar");
   for (const item of TESTIMONIALS_SEED) {
-    const [row] = await db
-      .insert(testimonials)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        clientName: item.clientName,
-        company: item.company,
-        quote: item.quote,
-        rating: item.rating,
-        isApproved: item.isApproved,
-        showOnHome: item.showOnHome,
-        displayOrder: item.displayOrder,
-        avatarUrl: item.withAvatar ? avatarUrl : null,
-      })
-      .returning({ id: testimonials.id });
+    const [row] = await returningInsert(
+      db
+        .insert(testimonials)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          clientName: item.clientName,
+          company: item.company,
+          quote: item.quote,
+          rating: item.rating,
+          isApproved: item.isApproved,
+          showOnHome: item.showOnHome,
+          displayOrder: item.displayOrder,
+          avatarUrl: item.withAvatar ? avatarUrl : null,
+        })
+        .$returningId(),
+      (id) => db.select().from(testimonials).where(eq(testimonials.id, id)).limit(1),
+    );
     testimonialIds.push(row!.id);
   }
 
@@ -692,23 +705,26 @@ export async function seedCmsSmoke() {
     .where(and(eq(blogPosts.firmId, firm.id), inArray(blogPosts.legacyConvexId, blogLegacyIds)));
   const blogIds: string[] = [];
   for (const item of BLOG_SEED) {
-    const [row] = await db
-      .insert(blogPosts)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        title: item.title,
-        slug: item.slug,
-        category: item.category,
-        excerpt: item.excerpt,
-        content: item.content,
-        author: item.author,
-        status: item.status,
-        isFeatured: item.isFeatured,
-        displayOrder: item.displayOrder,
-        publishDate: item.status === "published" ? new Date() : null,
-      })
-      .returning({ id: blogPosts.id });
+    const [row] = await returningInsert(
+      db
+        .insert(blogPosts)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          title: item.title,
+          slug: item.slug,
+          category: item.category,
+          excerpt: item.excerpt,
+          content: item.content,
+          author: item.author,
+          status: item.status,
+          isFeatured: item.isFeatured,
+          displayOrder: item.displayOrder,
+          publishDate: item.status === "published" ? new Date() : null,
+        })
+        .$returningId(),
+      (id) => db.select().from(blogPosts).where(eq(blogPosts.id, id)).limit(1),
+    );
     blogIds.push(row!.id);
   }
 
@@ -758,23 +774,26 @@ export async function seedCmsSmoke() {
     );
   const resourceIds: string[] = [];
   for (const item of RESOURCES_SEED) {
-    const [row] = await db
-      .insert(resources)
-      .values({
-        firmId: firm.id,
-        legacyConvexId: item.legacyConvexId,
-        title: item.title,
-        slug: item.slug,
-        description: item.description,
-        category: item.category,
-        fileUrl: item.fileUrl,
-        isGated: item.isGated,
-        status: item.status,
-        displayOrder: item.displayOrder,
-        publishedDate: new Date().toISOString().slice(0, 10),
-        downloads: 0,
-      })
-      .returning({ id: resources.id });
+    const [row] = await returningInsert(
+      db
+        .insert(resources)
+        .values({
+          firmId: firm.id,
+          legacyConvexId: item.legacyConvexId,
+          title: item.title,
+          slug: item.slug,
+          description: item.description,
+          category: item.category,
+          fileUrl: item.fileUrl,
+          isGated: item.isGated,
+          status: item.status,
+          displayOrder: item.displayOrder,
+          publishedDate: new Date().toISOString().slice(0, 10),
+          downloads: 0,
+        })
+        .$returningId(),
+      (id) => db.select().from(resources).where(eq(resources.id, id)).limit(1),
+    );
     resourceIds.push(row!.id);
   }
 

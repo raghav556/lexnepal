@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, desc, eq, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
@@ -133,7 +134,7 @@ export class CommunicationRepository {
     const rows = await database
       .select({
         caseId: messages.caseId,
-        count: sql<number>`count(*)::int`,
+        count: sql<number>`cast(count(*) as signed)`,
       })
       .from(messages)
       .where(and(...conditions))
@@ -159,16 +160,19 @@ export class CommunicationRepository {
         .limit(1);
       if (!matter) throw new AppError("NOT_FOUND", "Case was not found", 404);
 
-      const [row] = await tx
-        .insert(messages)
-        .values({
-          firmId,
-          caseId: input.caseId,
-          senderId: sender.id,
-          content: input.content,
-          isInternal: input.isInternal,
-        })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(messages)
+          .values({
+            firmId,
+            caseId: input.caseId,
+            senderId: sender.id,
+            content: input.content,
+            isInternal: input.isInternal,
+          })
+          .$returningId(),
+        (id) => tx.select().from(messages).where(eq(messages.id, id)).limit(1),
+      );
       if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create message", 500);
 
       await tx.insert(messageReads).values({
@@ -273,9 +277,7 @@ export class CommunicationRepository {
           userId,
         })),
       )
-      .onConflictDoNothing({
-        target: [messageReads.firmId, messageReads.messageId, messageReads.userId],
-      });
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
     return { success: true as const, marked: caseMessages.length };
   }
 
@@ -290,17 +292,19 @@ export class CommunicationRepository {
   }
 
   async markNotificationRead(firmId: string, notificationId: string, userId: string) {
-    const [row] = await database
-      .update(notifications)
-      .set({ isRead: true, updatedAt: new Date() })
-      .where(
-        and(
-          eq(notifications.firmId, firmId),
-          eq(notifications.id, notificationId),
-          eq(notifications.userId, userId),
+    const [row] = await returningMutation(
+      database
+        .update(notifications)
+        .set({ isRead: true, updatedAt: new Date() })
+        .where(
+          and(
+            eq(notifications.firmId, firmId),
+            eq(notifications.id, notificationId),
+            eq(notifications.userId, userId),
+          ),
         ),
-      )
-      .returning();
+      () => database.select().from(notifications).where(eq(notifications.id, notificationId)),
+    );
     if (!row) throw new AppError("NOT_FOUND", "Notification was not found", 404);
     return { success: true as const, ...toDto(row as unknown as Record<string, unknown>) };
   }
@@ -330,19 +334,22 @@ export class CommunicationRepository {
       link?: string | null;
     },
   ) {
-    const [row] = await database
-      .insert(notifications)
-      .values({
-        firmId,
-        userId: data.userId,
-        title: data.title,
-        body: data.body,
-        type: data.type,
-        relatedId: data.relatedId ?? null,
-        link: data.link ?? null,
-        isRead: false,
-      })
-      .returning();
+    const [row] = await returningInsert(
+      database
+        .insert(notifications)
+        .values({
+          firmId,
+          userId: data.userId,
+          title: data.title,
+          body: data.body,
+          type: data.type,
+          relatedId: data.relatedId ?? null,
+          link: data.link ?? null,
+          isRead: false,
+        })
+        .$returningId(),
+      (id) => database.select().from(notifications).where(eq(notifications.id, id)).limit(1),
+    );
     if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create notification", 500);
     return toDto(row as unknown as Record<string, unknown>);
   }

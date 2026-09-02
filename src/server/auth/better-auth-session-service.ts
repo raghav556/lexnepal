@@ -2,11 +2,11 @@ import "server-only";
 import { resolveCapabilities } from "@/server/auth/capabilities";
 import { getLocalAuth } from "@/server/auth/local-auth";
 import type { AuthPrincipal } from "@/server/auth/types";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import { AppError } from "@/shared/errors/api-error";
 
 export class BetterAuthSessionService {
-  constructor(private readonly repository = new PostgresSecurityRepository()) {}
+  constructor(private readonly repository = new MySqlSecurityRepository()) {}
   async requireSession(request: Request): Promise<AuthPrincipal> {
     const session = await getLocalAuth().api.getSession({ headers: request.headers });
     if (!session) throw new AppError("UNAUTHENTICATED", "Authentication is required", 401);

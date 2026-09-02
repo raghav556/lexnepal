@@ -7,7 +7,7 @@ import { auditLog } from "@/server/db/schema";
 import { getJobRepository } from "@/server/jobs/runtime";
 import { requireCaseAccess, requireFirmContext } from "@/server/policies/authorization";
 import { CommunicationRepository } from "@/server/repositories/communication-repository";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import type {
   EmailSendInput,
   MessageCreateInput,
@@ -18,7 +18,7 @@ import type {
 import { AppError } from "@/shared/errors/api-error";
 
 const repository = new CommunicationRepository();
-const security = new PostgresSecurityRepository();
+const security = new MySqlSecurityRepository();
 const database = getDatabase();
 
 export class CommunicationService {

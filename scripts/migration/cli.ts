@@ -25,7 +25,7 @@ function printUsage() {
 
 Commands:
   export-convex     Validate that an export directory exists (place Convex zip extract under exports/)
-  import-postgres   Run the registered domain importer (wraps existing migrate*Export services)
+  import-mysql      Run the registered domain importer (wraps existing migrate*Export services)
   verify            Check last saved domain report
   reconcile         Re-run idempotent importer and write exceptions + reconciliation report
   rollback          Soft-delete migrated rows matching export legacy IDs (where configured)
@@ -33,11 +33,11 @@ Commands:
 
 Options:
   --domain <name>           Required for most commands
-  --dry-run                 Inventory / preview only (no Postgres writes for import/rollback)
+  --dry-run                 Inventory / preview only (no MySQL writes for import/rollback)
   --resume                  Skip import when checkpoint matches same export fingerprint
   --force                   Ignore checkpoint; re-run import (still idempotent via legacyConvexId)
   --export-path <path>      Convex export dir (default: exports/<domain> or exports/)
-  --firm-map <path>         JSON map of Convex firm id → Postgres firm UUID
+  --firm-map <path>         JSON map of Convex firm id → MySQL firm UUID
   --orphan-firm <uuid>      Fallback firm UUID for orphaned rows
   --target-firm <uuid>      Explicit firm for CMS
   --storage-manifest <path> Pre-built storage manifest (storage domain)
@@ -123,7 +123,7 @@ async function main() {
         break;
       }
 
-      case "import-postgres": {
+      case "import-mysql": {
         await engine.log(
           `Starting import for domain: ${domainName}${isDryRun ? " (DRY RUN)" : ""} from ${exportPath}`,
         );

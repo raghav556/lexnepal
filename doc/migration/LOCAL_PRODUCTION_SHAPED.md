@@ -2,7 +2,7 @@
 
 **Status:** `complete_local`  
 **Completed:** 2026-08-07  
-**Scope:** Everything that can run on this Windows machine with local Postgres (`:5433`), MinIO, ClamAV, Mailpit, and Next.js.  
+**Scope:** Everything that can run on this Windows machine with local MySQL (`:3307`), local filesystem storage, ClamAV, Mailpit, and Next.js.
 **Not in scope:** R7 cloud (hosted DB, real IdP, DNS/TLS, vault, live email/SMS, monitoring).  
 **Companion:** [`production-readiness.md`](./production-readiness.md) remains `DEFER_PROD`.
 
@@ -35,7 +35,7 @@ Report file (gitignored): `.migration-reports/local-production-shaped.json`
 | Area                     | Proof                                                           | Status                      |
 | ------------------------ | --------------------------------------------------------------- | --------------------------- |
 | Master harness           | `verify:local-production-shaped`                                | done                        |
-| PG backup/restore drill  | `local:pg:backup` + `local:pg:restore-drill`                    | done (2026-08-07)           |
+| MySQL backup/restore drill | `local:mysql:backup` + `local:mysql:restore-drill`              | done (2026-09-02)           |
 | Storage / ClamAV         | `storage:verify-pipeline`                                       | done                        |
 | Jobs                     | `jobs:verify-local`                                             | done                        |
 | Auth                     | `verify:auth-production` + boundary                             | done                        |
@@ -47,11 +47,11 @@ Report file (gitignored): `.migration-reports/local-production-shaped.json`
 
 ---
 
-## Postgres backup / restore (local)
+## MySQL backup / restore (local)
 
 ```powershell
-npm run local:pg:backup
-npm run local:pg:restore-drill
+npm run local:mysql:backup
+npm run local:mysql:restore-drill
 ```
 
 Dumps land under `%LOCALAPPDATA%\LexNepal\backups\`. Restore drill uses a separate database `lexnepal_restore_drill`, smoke-counts rows, then drops it.
@@ -85,7 +85,7 @@ Dumps land under `%LOCALAPPDATA%\LexNepal\backups\`. Restore drill uses a separa
 
 ## Cloud fence (R7 — do not mark complete here)
 
-Hosting, managed Postgres HA/PITR, Hercules IdP/JWKS, live email/SMS, vault-managed secrets, monitoring/on-call, DNS/TLS, production Convex data export. See [`production-readiness.csv`](./production-readiness.csv).
+Hosting, managed MySQL HA/PITR, Hercules IdP/JWKS, live email/SMS, vault-managed secrets, monitoring/on-call, DNS/TLS, production Convex data export. See [`production-readiness.csv`](./production-readiness.csv).
 
 **Local contacts** in [`incident-contacts.md`](./incident-contacts.md) are placeholders only and do **not** satisfy R7.7.
 

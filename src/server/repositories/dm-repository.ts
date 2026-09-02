@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, asc, desc, eq, inArray, ne, notExists, or, sql } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
@@ -72,10 +73,13 @@ export class DmRepository {
       .limit(1);
     if (existing) return toDto(existing as unknown as Record<string, unknown>);
 
-    const [created] = await database
-      .insert(dmThreads)
-      .values({ firmId, userLowId: low, userHighId: high })
-      .returning();
+    const [created] = await returningInsert(
+      database
+        .insert(dmThreads)
+        .values({ firmId, userLowId: low, userHighId: high })
+        .$returningId(),
+      (id) => database.select().from(dmThreads).where(eq(dmThreads.id, id)).limit(1),
+    );
     return toDto(created as unknown as Record<string, unknown>);
   }
 
@@ -133,7 +137,7 @@ export class DmRepository {
     const unreadRows = await database
       .select({
         threadId: dmMessages.threadId,
-        count: sql<number>`count(*)::int`,
+        count: sql<number>`cast(count(*) as signed)`,
       })
       .from(dmMessages)
       .where(
@@ -223,15 +227,18 @@ export class DmRepository {
     audit: AuditContext,
   ) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(dmMessages)
-        .values({
-          firmId,
-          threadId,
-          senderId: sender.id,
-          content: input.content,
-        })
-        .returning();
+      const [row] = await returningInsert(
+        tx
+          .insert(dmMessages)
+          .values({
+            firmId,
+            threadId,
+            senderId: sender.id,
+            content: input.content,
+          })
+          .$returningId(),
+        (id) => tx.select().from(dmMessages).where(eq(dmMessages.id, id)).limit(1),
+      );
       if (!row) throw new AppError("INTERNAL_ERROR", "Failed to create DM", 500);
 
       await tx.insert(dmMessageReads).values({
@@ -302,9 +309,7 @@ export class DmRepository {
           userId,
         })),
       )
-      .onConflictDoNothing({
-        target: [dmMessageReads.firmId, dmMessageReads.messageId, dmMessageReads.userId],
-      });
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
     return { success: true as const, marked: caseMessages.length };
   }
 }

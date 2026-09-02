@@ -609,7 +609,7 @@ function writeInventories() {
     "Indexes",
     "Search indexes",
     "firmId field",
-    "Target PostgreSQL table",
+    "Target MySQL table",
     "Legacy ID strategy",
     "Decision",
     "Status",
@@ -636,7 +636,7 @@ function writeInventories() {
     Indexes: table.indexes.join(" | "),
     "Search indexes": table.searchIndexes.join(" | "),
     "firmId field": table.firmId,
-    "Target PostgreSQL table": snakeCase(table.table),
+    "Target MySQL table": snakeCase(table.table),
     "Legacy ID strategy":
       "new UUID primary key; preserve Convex ID in unique legacy_convex_id during migration",
     Decision: "migrate",
@@ -791,7 +791,7 @@ function writeInventories() {
     Status: "inventoried",
     Notes:
       dependency.type === "storage" || dependency.type === "browser storage upload"
-        ? "Replace with private object-storage adapter and quarantined presigned upload"
+        ? "Replace with private object-storage adapter and quarantined upload grant"
         : dependency.type === "cron" || dependency.type === "scheduler"
           ? "Replace with durable scheduler/queue"
           : "Replace with internal domain-service call",

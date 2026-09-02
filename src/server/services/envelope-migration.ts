@@ -1,3 +1,6 @@
+import { returningUpsert } from "@/server/db/mysql-returning";
+import { eq } from "drizzle-orm";
+import { returningMutation } from "@/server/db/mysql-returning";
 /* eslint-disable @typescript-eslint/no-explicit-any -- migration input is untrusted heterogeneous legacy JSON */
 import "server-only";
 import fs from "node:fs/promises";
@@ -85,27 +88,11 @@ export async function migrateEnvelopeExport(input: {
           "sequential",
         );
 
-        const [row] = await tx
-          .insert(signatureEnvelopes)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            documentId: doc.id,
-            title: asString(record.title) ?? "Migrated Envelope",
-            status,
-            routing,
-            createdBy: creator.id,
-            expiresAt: toDate(record.expiresAt),
-            voidedAt: toDate(record.voidedAt),
-            voidReason: asString(record.voidReason),
-            completedAt: toDate(record.completedAt),
-            lastRemindedAt: toDate(record.lastRemindedAt),
-            createdAt,
-            updatedAt: createdAt,
-          })
-          .onConflictDoUpdate({
-            target: signatureEnvelopes.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(signatureEnvelopes)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
               documentId: doc.id,
               title: asString(record.title) ?? "Migrated Envelope",
@@ -117,10 +104,32 @@ export async function migrateEnvelopeExport(input: {
               voidReason: asString(record.voidReason),
               completedAt: toDate(record.completedAt),
               lastRemindedAt: toDate(record.lastRemindedAt),
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: signatureEnvelopes.id });
+              createdAt,
+              updatedAt: createdAt,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                documentId: doc.id,
+                title: asString(record.title) ?? "Migrated Envelope",
+                status,
+                routing,
+                createdBy: creator.id,
+                expiresAt: toDate(record.expiresAt),
+                voidedAt: toDate(record.voidedAt),
+                voidReason: asString(record.voidReason),
+                completedAt: toDate(record.completedAt),
+                lastRemindedAt: toDate(record.lastRemindedAt),
+                updatedAt: new Date(),
+              },
+            }),
+          () =>
+            tx
+              .select()
+              .from(signatureEnvelopes)
+              .where(eq(signatureEnvelopes.legacyConvexId, legacyId))
+              .limit(1),
+        );
         envelopeIdMap.set(legacyId, row!.id);
         migrated.signatureEnvelopes += 1;
       } catch (error: any) {
@@ -175,8 +184,7 @@ export async function migrateEnvelopeExport(input: {
             createdAt,
             updatedAt: createdAt,
           })
-          .onConflictDoUpdate({
-            target: signatureRecipients.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               envelopeId: envelopePg,

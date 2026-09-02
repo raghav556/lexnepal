@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
@@ -125,7 +126,7 @@ export class AvatarService {
           actorUserId: actorId,
           timeoutSeconds: 120,
         })
-        .onConflictDoNothing();
+        .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
       await tx.insert(auditLog).values({
         firmId,
         userId: actorId,

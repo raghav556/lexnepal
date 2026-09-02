@@ -41,11 +41,11 @@ Production must set:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
 - `APP_PUBLIC_URL`
-- `OBJECT_STORAGE_*` and `AWS_*`
+- `STORAGE_ROOT` and `STORAGE_DOWNLOAD_TOKEN_SECRET`
 - `CLAMAV_HOST` / `CLAMAV_PORT`
 - `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM`
 
-No localhost URLs, Mailpit settings, local MinIO keys, fixture/demo credentials, or repository
+No localhost URLs, Mailpit settings, local storage token secrets, fixture/demo credentials, or repository
 `.env.local` files should be used in production.
 
 ## Restart

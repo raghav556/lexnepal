@@ -1,21 +1,20 @@
 $ErrorActionPreference = "Stop"
 
 $runtimeRoot = Join-Path $env:LOCALAPPDATA "LexNepal"
-$postgresData = Join-Path $runtimeRoot "PostgreSQL\data"
-$postgresInstallation = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory -ErrorAction Stop |
-  Sort-Object { [int]$_.Name } -Descending |
-  Select-Object -First 1
-$pgCtl = Join-Path $postgresInstallation.FullName "bin\pg_ctl.exe"
-
-if (Test-Path (Join-Path $postgresData "PG_VERSION")) {
-  & $pgCtl status --pgdata=$postgresData *> $null
-  if ($LASTEXITCODE -eq 0) { & $pgCtl stop --pgdata=$postgresData --mode=fast --wait }
+$mysqlData = Join-Path $runtimeRoot "MySQL\data"
+$portableMysql = Join-Path $runtimeRoot "MySQL\server\mysql-8.4.9-winx64"
+$mysqlInstallation = if (Test-Path (Join-Path $portableMysql "bin\mysqladmin.exe")) {
+  Get-Item $portableMysql
+} else {
+  Get-ChildItem "C:\Program Files\MySQL" -Directory -ErrorAction SilentlyContinue |
+    Where-Object { Test-Path (Join-Path $_.FullName "bin\mysqladmin.exe") } |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
 }
-
-$escapedRuntimeRoot = [regex]::Escape((Join-Path $runtimeRoot "MinIO\data"))
-Get-CimInstance Win32_Process -Filter "Name = 'minio.exe'" |
-  Where-Object { $_.CommandLine -match $escapedRuntimeRoot } |
-  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+if ($mysqlInstallation -and (Test-Path (Join-Path $mysqlData "mysql"))) {
+  $mysqlAdmin = Join-Path $mysqlInstallation.FullName "bin\mysqladmin.exe"
+  & $mysqlAdmin --protocol=TCP --host=127.0.0.1 --port=3307 --user=root shutdown *> $null
+}
 
 $escapedClamAvRoot = [regex]::Escape((Join-Path $runtimeRoot "ClamAV"))
 Get-CimInstance Win32_Process -Filter "Name = 'clamd.exe'" |
@@ -27,4 +26,4 @@ Get-CimInstance Win32_Process -Filter "Name = 'mailpit.exe'" |
   Where-Object { $_.ExecutablePath -match $escapedMailpitRoot } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 
-Write-Output "LexNepal local PostgreSQL, MinIO, ClamAV and Mailpit stopped."
+Write-Output "LexNepal local MySQL, ClamAV and Mailpit stopped."

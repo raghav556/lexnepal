@@ -101,8 +101,7 @@ export async function migrateCrmExport(input: {
             intakeSubmitted,
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
-          .onConflictDoUpdate({
-            target: leads.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               fullName,
@@ -173,8 +172,7 @@ export async function migrateCrmExport(input: {
             meetingLink,
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
-          .onConflictDoUpdate({
-            target: appointments.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               clientName,

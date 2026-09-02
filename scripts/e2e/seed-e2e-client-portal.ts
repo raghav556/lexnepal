@@ -1,3 +1,5 @@
+import { sql } from "drizzle-orm";
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 /**
  * Idempotent portal data for E2E Client: CRM client link + matter + checklist task + shared doc.
  *
@@ -69,30 +71,35 @@ export async function seedE2eClientPortal() {
 
   let clientId: string;
   if (existingClient) {
-    const [updated] = await db
-      .update(clients)
-      .set({
-        userId: clientUser.id,
-        fullName: E2E_USERS.client.name,
-        isActive: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(clients.id, existingClient.id))
-      .returning({ id: clients.id });
+    const [updated] = await returningMutation(
+      db
+        .update(clients)
+        .set({
+          userId: clientUser.id,
+          fullName: E2E_USERS.client.name,
+          isActive: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(clients.id, existingClient.id)),
+      () => db.select().from(clients).where(eq(clients.id, existingClient.id)),
+    );
     clientId = updated!.id;
   } else {
-    const [created] = await db
-      .insert(clients)
-      .values({
-        firmId,
-        userId: clientUser.id,
-        type: "individual",
-        fullName: E2E_USERS.client.name,
-        email: E2E_USERS.client.email,
-        phone: "9800000001",
-        isActive: true,
-      })
-      .returning({ id: clients.id });
+    const [created] = await returningInsert(
+      db
+        .insert(clients)
+        .values({
+          firmId,
+          userId: clientUser.id,
+          type: "individual",
+          fullName: E2E_USERS.client.name,
+          email: E2E_USERS.client.email,
+          phone: "9800000001",
+          isActive: true,
+        })
+        .$returningId(),
+      (id) => db.select().from(clients).where(eq(clients.id, id)).limit(1),
+    );
     clientId = created!.id;
   }
 
@@ -106,33 +113,38 @@ export async function seedE2eClientPortal() {
 
   let caseId: string;
   if (existingCase) {
-    const [updated] = await db
-      .update(cases)
-      .set({
-        clientId,
-        assignedLawyerId: staffUser.id,
-        title: "E2E Portal Matter",
-        practiceArea: "Corporate",
-        status: "active",
-        updatedAt: new Date(),
-      })
-      .where(eq(cases.id, existingCase.id))
-      .returning({ id: cases.id });
+    const [updated] = await returningMutation(
+      db
+        .update(cases)
+        .set({
+          clientId,
+          assignedLawyerId: staffUser.id,
+          title: "E2E Portal Matter",
+          practiceArea: "Corporate",
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .where(eq(cases.id, existingCase.id)),
+      () => db.select().from(cases).where(eq(cases.id, existingCase.id)),
+    );
     caseId = updated!.id;
   } else {
-    const [created] = await db
-      .insert(cases)
-      .values({
-        firmId,
-        caseNumber: CASE_NUMBER,
-        title: "E2E Portal Matter",
-        practiceArea: "Corporate",
-        status: "active",
-        clientId,
-        assignedLawyerId: staffUser.id,
-        description: "Seeded matter for client portal E2E.",
-      })
-      .returning({ id: cases.id });
+    const [created] = await returningInsert(
+      db
+        .insert(cases)
+        .values({
+          firmId,
+          caseNumber: CASE_NUMBER,
+          title: "E2E Portal Matter",
+          practiceArea: "Corporate",
+          status: "active",
+          clientId,
+          assignedLawyerId: staffUser.id,
+          description: "Seeded matter for client portal E2E.",
+        })
+        .$returningId(),
+      (id) => db.select().from(cases).where(eq(cases.id, id)).limit(1),
+    );
     caseId = created!.id;
   }
 
@@ -151,32 +163,37 @@ export async function seedE2eClientPortal() {
 
   let taskId: string;
   if (existingTask) {
-    const [updated] = await db
-      .update(tasks)
-      .set({
-        clientVisible: true,
-        assignedTo: clientUser.id,
-        archivedAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(tasks.id, existingTask.id))
-      .returning({ id: tasks.id });
+    const [updated] = await returningMutation(
+      db
+        .update(tasks)
+        .set({
+          clientVisible: true,
+          assignedTo: clientUser.id,
+          archivedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, existingTask.id)),
+      () => db.select().from(tasks).where(eq(tasks.id, existingTask.id)),
+    );
     taskId = updated!.id;
   } else {
-    const [created] = await db
-      .insert(tasks)
-      .values({
-        firmId,
-        caseId,
-        title: TASK_TITLE,
-        description: "Client-visible checklist item for portal smoke.",
-        assignedTo: clientUser.id,
-        createdBy: staffUser.id,
-        status: "todo",
-        priority: "medium",
-        clientVisible: true,
-      })
-      .returning({ id: tasks.id });
+    const [created] = await returningInsert(
+      db
+        .insert(tasks)
+        .values({
+          firmId,
+          caseId,
+          title: TASK_TITLE,
+          description: "Client-visible checklist item for portal smoke.",
+          assignedTo: clientUser.id,
+          createdBy: staffUser.id,
+          status: "todo",
+          priority: "medium",
+          clientVisible: true,
+        })
+        .$returningId(),
+      (id) => db.select().from(tasks).where(eq(tasks.id, id)).limit(1),
+    );
     taskId = created!.id;
   }
 
@@ -195,40 +212,45 @@ export async function seedE2eClientPortal() {
 
   let documentId: string;
   if (existingDoc) {
-    const [updated] = await db
-      .update(documents)
-      .set({
-        caseId,
-        title: "Welcome letter (shared)",
-        isPrivileged: false,
-        confidentialityLevel: "public",
-        uploadStatus: "clean",
-        uploadedBy: staffUser.id,
-        updatedAt: new Date(),
-      })
-      .where(eq(documents.id, existingDoc.id))
-      .returning({ id: documents.id });
+    const [updated] = await returningMutation(
+      db
+        .update(documents)
+        .set({
+          caseId,
+          title: "Welcome letter (shared)",
+          isPrivileged: false,
+          confidentialityLevel: "public",
+          uploadStatus: "clean",
+          uploadedBy: staffUser.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(documents.id, existingDoc.id)),
+      () => db.select().from(documents).where(eq(documents.id, existingDoc.id)),
+    );
     documentId = updated!.id;
   } else {
-    const [created] = await db
-      .insert(documents)
-      .values({
-        firmId,
-        caseId,
-        documentNumber: DOC_NUMBER,
-        title: "Welcome letter (shared)",
-        type: "correspondence",
-        storageId,
-        mimeType: "application/pdf",
-        sizeBytes: 256,
-        uploadedBy: staffUser.id,
-        isTemplate: false,
-        isPrivileged: false,
-        uploadStatus: "clean",
-        confidentialityLevel: "public",
-        status: "approved",
-      })
-      .returning({ id: documents.id });
+    const [created] = await returningInsert(
+      db
+        .insert(documents)
+        .values({
+          firmId,
+          caseId,
+          documentNumber: DOC_NUMBER,
+          title: "Welcome letter (shared)",
+          type: "correspondence",
+          storageId,
+          mimeType: "application/pdf",
+          sizeBytes: 256,
+          uploadedBy: staffUser.id,
+          isTemplate: false,
+          isPrivileged: false,
+          uploadStatus: "clean",
+          confidentialityLevel: "public",
+          status: "approved",
+        })
+        .$returningId(),
+      (id) => db.select().from(documents).where(eq(documents.id, id)).limit(1),
+    );
     documentId = created!.id;
   }
 
@@ -240,7 +262,7 @@ export async function seedE2eClientPortal() {
         caseId,
         userId: staff2User.id,
       })
-      .onConflictDoNothing();
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
   }
 
   return {

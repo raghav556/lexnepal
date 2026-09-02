@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import { and, desc, eq, like } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -48,54 +49,58 @@ async function signIn(email: string) {
 }
 
 async function ensureAssigneeUser() {
-  const [row] = await database
-    .insert(users)
-    .values({
-      firmId: firmA,
-      tokenIdentifier: `crm-verify:${assigneeEmail}`,
-      email: assigneeEmail,
-      name: "CRM Verify Assignee",
-      role: "associate",
-      isActive: true,
-      isPending: false,
-    })
-    .onConflictDoUpdate({
-      target: [users.firmId, users.email],
-      set: {
+  const [row] = await returningInsert(
+    database
+      .insert(users)
+      .values({
+        firmId: firmA,
+        tokenIdentifier: `crm-verify:${assigneeEmail}`,
+        email: assigneeEmail,
+        name: "CRM Verify Assignee",
         role: "associate",
         isActive: true,
         isPending: false,
-        updatedAt: new Date(),
-      },
-    })
-    .returning({ id: users.id });
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          role: "associate",
+          isActive: true,
+          isPending: false,
+          updatedAt: new Date(),
+        },
+      })
+      .$returningId(),
+    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+  );
   if (!row) throw new Error("Failed to ensure CRM verify assignee");
   return row;
 }
 
 /** Paralegal without clients.manage — used to prove assignee self-scoping. */
 async function ensureScopedParalegal() {
-  const [lexUser] = await database
-    .insert(users)
-    .values({
-      firmId: firmA,
-      tokenIdentifier: `crm-verify:${scopedEmail}`,
-      email: scopedEmail,
-      name: "CRM Verify Paralegal",
-      role: "paralegal",
-      isActive: true,
-      isPending: false,
-    })
-    .onConflictDoUpdate({
-      target: [users.firmId, users.email],
-      set: {
+  const [lexUser] = await returningInsert(
+    database
+      .insert(users)
+      .values({
+        firmId: firmA,
+        tokenIdentifier: `crm-verify:${scopedEmail}`,
+        email: scopedEmail,
+        name: "CRM Verify Paralegal",
         role: "paralegal",
         isActive: true,
         isPending: false,
-        updatedAt: new Date(),
-      },
-    })
-    .returning({ id: users.id, firmId: users.firmId });
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          role: "paralegal",
+          isActive: true,
+          isPending: false,
+          updatedAt: new Date(),
+        },
+      })
+      .$returningId(),
+    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+  );
   if (!lexUser) throw new Error("Failed to ensure CRM verify paralegal");
 
   const [existingAuth] = await database
@@ -132,8 +137,7 @@ try {
         associate: ["cases.view_all", "cases.manage", "clients.manage", "clients.view_all"],
       },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: {
           associate: ["cases.view_all", "cases.manage", "clients.manage", "clients.view_all"],
@@ -791,10 +795,7 @@ try {
       key: "onlineBookingEnabled",
       value: false,
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
-      set: { value: false, updatedAt: new Date(), deletedAt: null },
-    });
+    .onDuplicateKeyUpdate({ set: { value: false, updatedAt: new Date(), deletedAt: null } });
   const bookingDisabled = await createAppointmentPublic(
     new Request("http://local/api/v1/public/appointments", {
       method: "POST",
@@ -820,10 +821,7 @@ try {
       key: "onlineBookingEnabled",
       value: true,
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
-      set: { value: true, updatedAt: new Date(), deletedAt: null },
-    });
+    .onDuplicateKeyUpdate({ set: { value: true, updatedAt: new Date(), deletedAt: null } });
 
   const [leadCount] = await database
     .select({ id: leads.id })

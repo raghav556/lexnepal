@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -37,8 +38,7 @@ try {
         ],
       },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: {
           associate: [
@@ -63,22 +63,24 @@ try {
     .limit(1);
 
   const clientEmail = "kyc-boundary-client@example.invalid";
-  const [clientUser] = await database
-    .insert(users)
-    .values({
-      firmId: firmA,
-      tokenIdentifier: `boundary:${clientEmail}`,
-      email: clientEmail,
-      name: "KYC Boundary Client",
-      role: "client",
-      isActive: true,
-      isPending: false,
-    })
-    .onConflictDoUpdate({
-      target: [users.firmId, users.email],
-      set: { role: "client", isActive: true, isPending: false, updatedAt: new Date() },
-    })
-    .returning({ id: users.id });
+  const [clientUser] = await returningInsert(
+    database
+      .insert(users)
+      .values({
+        firmId: firmA,
+        tokenIdentifier: `boundary:${clientEmail}`,
+        email: clientEmail,
+        name: "KYC Boundary Client",
+        role: "client",
+        isActive: true,
+        isPending: false,
+      })
+      .onDuplicateKeyUpdate({
+        set: { role: "client", isActive: true, isPending: false, updatedAt: new Date() },
+      })
+      .$returningId(),
+    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+  );
   const [existingAuth] = await database
     .select({ id: authUsers.id })
     .from(authUsers)
@@ -98,60 +100,65 @@ try {
     .update(authUsers)
     .set({ emailVerified: true })
     .where(eq(authUsers.id, createdAuth.user.id));
-  const [client] = await database
-    .insert(clients)
-    .values({
-      firmId: firmA,
-      legacyConvexId: "matters-local-kyc-client",
-      userId: clientUser.id,
-      type: "individual",
-      fullName: "KYC Boundary Client",
-      email: clientEmail,
-      kycStatus: "pending",
-      isActive: true,
-    })
-    .onConflictDoUpdate({
-      target: clients.legacyConvexId,
-      set: {
+  const [client] = await returningInsert(
+    database
+      .insert(clients)
+      .values({
+        firmId: firmA,
+        legacyConvexId: "matters-local-kyc-client",
         userId: clientUser.id,
+        type: "individual",
+        fullName: "KYC Boundary Client",
+        email: clientEmail,
         kycStatus: "pending",
-        kycIdNumber: null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning({ id: clients.id });
+        isActive: true,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          userId: clientUser.id,
+          kycStatus: "pending",
+          kycIdNumber: null,
+          updatedAt: new Date(),
+        },
+      })
+      .$returningId(),
+    (id) => database.select().from(clients).where(eq(clients.id, id)).limit(1),
+  );
   const clientCookie = await signIn(clientEmail);
 
-  const [foreignClient] = await database
-    .insert(clients)
-    .values({
-      firmId: firmB,
-      legacyConvexId: "matters-cross-firm-client",
-      type: "individual",
-      fullName: "ForeignCollisionName",
-      kycStatus: "pending",
-      isActive: true,
-    })
-    .onConflictDoUpdate({
-      target: clients.legacyConvexId,
-      set: { fullName: "ForeignCollisionName", updatedAt: new Date() },
-    })
-    .returning({ id: clients.id });
-  const [foreignCase] = await database
-    .insert(cases)
-    .values({
-      firmId: firmB,
-      legacyConvexId: "matters-cross-firm-case",
-      caseNumber: "FOREIGN-CASE-1",
-      title: "ForeignCollisionName Matter",
-      practiceArea: "Civil",
-      status: "active",
-      clientId: foreignClient.id,
-      assignedLawyerId: staffB.id,
-      conflictChecked: false,
-    })
-    .onConflictDoUpdate({ target: cases.legacyConvexId, set: { updatedAt: new Date() } })
-    .returning({ id: cases.id });
+  const [foreignClient] = await returningInsert(
+    database
+      .insert(clients)
+      .values({
+        firmId: firmB,
+        legacyConvexId: "matters-cross-firm-client",
+        type: "individual",
+        fullName: "ForeignCollisionName",
+        kycStatus: "pending",
+        isActive: true,
+      })
+      .onDuplicateKeyUpdate({ set: { fullName: "ForeignCollisionName", updatedAt: new Date() } })
+      .$returningId(),
+    (id) => database.select().from(clients).where(eq(clients.id, id)).limit(1),
+  );
+  const [foreignCase] = await returningInsert(
+    database
+      .insert(cases)
+      .values({
+        firmId: firmB,
+        legacyConvexId: "matters-cross-firm-case",
+        caseNumber: "FOREIGN-CASE-1",
+        title: "ForeignCollisionName Matter",
+        practiceArea: "Civil",
+        status: "active",
+        clientId: foreignClient.id,
+        assignedLawyerId: staffB.id,
+        conflictChecked: false,
+      })
+      .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } })
+      .$returningId(),
+    (id) => database.select().from(cases).where(eq(cases.id, id)).limit(1),
+  );
 
   const anonymous = await listClients(new Request("http://local/api/v1/clients"));
   const staffList = await listClients(
@@ -283,7 +290,7 @@ async function uploadAndScan(
   Object.entries(data.upload.fields).forEach(([key, value]) => form.append(key, value));
   form.append("file", new Blob([bytes], { type: "application/pdf" }), fileName);
   const stored = await fetch(data.upload.url, { method: "POST", body: form });
-  if (!stored.ok) throw new Error(`MinIO upload failed: ${stored.status}`);
+  if (!stored.ok) throw new Error(`Local storage upload failed: ${stored.status}`);
   const completed = await completeKycIntent(
     new Request(`http://local/api/v1/clients/me/kyc-upload-intents/${data.intentId}/complete`, {
       method: "POST",

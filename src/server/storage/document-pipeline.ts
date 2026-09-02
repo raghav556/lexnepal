@@ -277,7 +277,11 @@ export class DocumentPipelineService {
     let expired = 0;
     let deleted = 0;
     for (const intent of candidates) {
-      await this.storage.deleteObject(intent.quarantineKey);
+      const cleanupKey =
+        intent.status === "rejected"
+          ? `rejected/${intent.firmId}/${intent.id}/${intent.originalFileName}`
+          : intent.quarantineKey;
+      await this.storage.deleteObject(cleanupKey);
       deleted += 1;
       if (intent.status !== "rejected") {
         await this.repository.markExpired(intent.id, now);

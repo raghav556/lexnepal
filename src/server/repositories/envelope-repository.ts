@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { createHash, randomInt } from "node:crypto";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -100,11 +101,13 @@ export class EnvelopeRepository {
   static async expireIfNeeded(env: typeof signatureEnvelopes.$inferSelect) {
     if (env.status === "sent" && env.expiresAt && env.expiresAt.getTime() < Date.now()) {
       const db = getDatabase();
-      const [updated] = await db
-        .update(signatureEnvelopes)
-        .set({ status: "expired", updatedAt: new Date() })
-        .where(eq(signatureEnvelopes.id, env.id))
-        .returning();
+      const [updated] = await returningMutation(
+        db
+          .update(signatureEnvelopes)
+          .set({ status: "expired", updatedAt: new Date() })
+          .where(eq(signatureEnvelopes.id, env.id)),
+        () => db.select().from(signatureEnvelopes).where(eq(signatureEnvelopes.id, env.id)),
+      );
       return updated ?? { ...env, status: "expired" as const };
     }
     return env;
@@ -148,19 +151,22 @@ export class EnvelopeRepository {
     }
 
     return await db.transaction(async (tx) => {
-      const [envelope] = await tx
-        .insert(signatureEnvelopes)
-        .values({
-          firmId,
-          documentId: doc.id,
-          caseId: doc.caseId,
-          title: data.title || doc.title,
-          status: "draft",
-          routing: data.routing,
-          createdBy,
-          expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
-        })
-        .returning();
+      const [envelope] = await returningInsert(
+        tx
+          .insert(signatureEnvelopes)
+          .values({
+            firmId,
+            documentId: doc.id,
+            caseId: doc.caseId,
+            title: data.title || doc.title,
+            status: "draft",
+            routing: data.routing,
+            createdBy,
+            expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+          })
+          .$returningId(),
+        (id) => tx.select().from(signatureEnvelopes).where(eq(signatureEnvelopes.id, id)).limit(1),
+      );
 
       for (let i = 0; i < unique.length; i++) {
         const userId = unique[i]!;
@@ -283,11 +289,13 @@ export class EnvelopeRepository {
       throw new AppError("CONFLICT", `Cannot send envelope in status ${env.status}`, 409);
     }
 
-    const [updated] = await db
-      .update(signatureEnvelopes)
-      .set({ status: "sent", updatedAt: new Date() })
-      .where(eq(signatureEnvelopes.id, env.id))
-      .returning();
+    const [updated] = await returningMutation(
+      db
+        .update(signatureEnvelopes)
+        .set({ status: "sent", updatedAt: new Date() })
+        .where(eq(signatureEnvelopes.id, env.id)),
+      () => db.select().from(signatureEnvelopes).where(eq(signatureEnvelopes.id, env.id)),
+    );
 
     await db
       .update(documents)
@@ -331,16 +339,18 @@ export class EnvelopeRepository {
     if (env.status === "completed" || env.status === "voided" || env.status === "expired") {
       throw new AppError("CONFLICT", `Cannot void envelope in status ${env.status}`, 409);
     }
-    const [updated] = await db
-      .update(signatureEnvelopes)
-      .set({
-        status: "voided",
-        voidReason: reason,
-        voidedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(signatureEnvelopes.id, env.id))
-      .returning();
+    const [updated] = await returningMutation(
+      db
+        .update(signatureEnvelopes)
+        .set({
+          status: "voided",
+          voidReason: reason,
+          voidedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(signatureEnvelopes.id, env.id)),
+      () => db.select().from(signatureEnvelopes).where(eq(signatureEnvelopes.id, env.id)),
+    );
     return { _id: updated!.id, id: updated!.id, status: updated!.status };
   }
 
@@ -356,11 +366,13 @@ export class EnvelopeRepository {
     if (!env.expiresAt || env.expiresAt.getTime() >= Date.now()) {
       throw new AppError("CONFLICT", "Envelope expiry time has not been reached", 409);
     }
-    const [updated] = await db
-      .update(signatureEnvelopes)
-      .set({ status: "expired", updatedAt: new Date() })
-      .where(eq(signatureEnvelopes.id, env.id))
-      .returning();
+    const [updated] = await returningMutation(
+      db
+        .update(signatureEnvelopes)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(signatureEnvelopes.id, env.id)),
+      () => db.select().from(signatureEnvelopes).where(eq(signatureEnvelopes.id, env.id)),
+    );
     return { _id: updated!.id, id: updated!.id, status: updated!.status };
   }
 
@@ -396,16 +408,18 @@ export class EnvelopeRepository {
         })
         .where(eq(signatureRecipients.id, recipient.id));
 
-      const [updated] = await tx
-        .update(signatureEnvelopes)
-        .set({
-          status: "declined",
-          voidReason: reason,
-          voidedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(signatureEnvelopes.id, env.id))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(signatureEnvelopes)
+          .set({
+            status: "declined",
+            voidReason: reason,
+            voidedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(signatureEnvelopes.id, env.id)),
+        () => tx.select().from(signatureEnvelopes).where(eq(signatureEnvelopes.id, env.id)),
+      );
 
       return { _id: updated!.id, id: updated!.id, status: updated!.status };
     });
@@ -493,18 +507,21 @@ export class EnvelopeRepository {
         ),
       );
 
-    const [challenge] = await db
-      .insert(signingChallenges)
-      .values({
-        firmId,
-        userId,
-        documentId: doc.id,
-        envelopeId: input.envelopeId ?? null,
-        codeHash,
-        expiresAt,
-        attempts: 0,
-      })
-      .returning();
+    const [challenge] = await returningInsert(
+      db
+        .insert(signingChallenges)
+        .values({
+          firmId,
+          userId,
+          documentId: doc.id,
+          envelopeId: input.envelopeId ?? null,
+          codeHash,
+          expiresAt,
+          attempts: 0,
+        })
+        .$returningId(),
+      (id) => db.select().from(signingChallenges).where(eq(signingChallenges.id, id)).limit(1),
+    );
 
     await notifications.createNotification(firmId, {
       userId,

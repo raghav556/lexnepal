@@ -7,7 +7,7 @@
 
 ## Context
 
-The local Phase 6 pipeline must prove malware detection with PostgreSQL and self-hosted MinIO. Content Disarm and Reconstruction is a separate control that rewrites supported documents and requires either a selected service or an operated sanitization engine. No CDR provider or document-format policy has been approved.
+The local Phase 6 pipeline must prove malware detection with PostgreSQL and private local storage. Content Disarm and Reconstruction is a separate control that rewrites supported documents and requires either a selected service or an operated sanitization engine. No CDR provider or document-format policy has been approved.
 
 ## Decision drivers
 

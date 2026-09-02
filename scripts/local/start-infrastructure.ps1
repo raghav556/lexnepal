@@ -1,12 +1,12 @@
 $ErrorActionPreference = "Stop"
 
 $workspaceRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$environmentFile = Join-Path $workspaceRoot ".env.local"
 $runtimeRoot = Join-Path $env:LOCALAPPDATA "LexNepal"
-$postgresData = Join-Path $runtimeRoot "PostgreSQL\data"
-$postgresLog = Join-Path $runtimeRoot "PostgreSQL\postgres.log"
-$minioData = Join-Path $runtimeRoot "MinIO\data"
-$minioLogRoot = Join-Path $runtimeRoot "MinIO\logs"
+$mysqlRoot = Join-Path $runtimeRoot "MySQL"
+$mysqlData = Join-Path $mysqlRoot "data"
+$mysqlLog = Join-Path $mysqlRoot "mysql.err.log"
+$mysqlPid = Join-Path $mysqlRoot "mysql.pid"
+$storageRoot = Join-Path $workspaceRoot ".local\storage"
 $clamAvRoot = Join-Path $runtimeRoot "ClamAV"
 $clamAvDatabase = Join-Path $clamAvRoot "database"
 $clamAvLogRoot = Join-Path $clamAvRoot "logs"
@@ -14,76 +14,57 @@ $mailpitRoot = Join-Path $runtimeRoot "Mailpit"
 $mailpitData = Join-Path $mailpitRoot "mailpit.db"
 $mailpitLogRoot = Join-Path $mailpitRoot "logs"
 
-function Get-DotEnvValue([string]$name) {
-  $line = Get-Content -LiteralPath $environmentFile |
-    Where-Object { $_ -match "^$([regex]::Escape($name))=" } |
-    Select-Object -Last 1
-  if (-not $line) { throw "$name is missing from .env.local" }
-  return ($line -split "=", 2)[1]
-}
-
-$postgresInstallation = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory -ErrorAction Stop |
-  Sort-Object { [int]$_.Name } -Descending |
-  Select-Object -First 1
-$postgresBin = Join-Path $postgresInstallation.FullName "bin"
-$pgCtl = Join-Path $postgresBin "pg_ctl.exe"
-$initDb = Join-Path $postgresBin "initdb.exe"
-$psql = Join-Path $postgresBin "psql.exe"
-$createdb = Join-Path $postgresBin "createdb.exe"
-$passwordFile = Join-Path $workspaceRoot ".local\postgres-password"
-
-New-Item -ItemType Directory -Force -Path (Split-Path $postgresData), $minioData, $minioLogRoot, $clamAvDatabase, $clamAvLogRoot, $mailpitLogRoot | Out-Null
-
-if (-not (Test-Path (Join-Path $postgresData "PG_VERSION"))) {
-  & $initDb --pgdata=$postgresData --username=lexnepal --pwfile=$passwordFile --auth-host=scram-sha-256 --auth-local=scram-sha-256 --encoding=UTF8 --no-locale
-  if ($LASTEXITCODE -ne 0) { throw "PostgreSQL cluster initialization failed" }
-}
-
-& $pgCtl status --pgdata=$postgresData *> $null
-if ($LASTEXITCODE -ne 0) {
-  & $pgCtl start --pgdata=$postgresData --log=$postgresLog --options="-p 5433 -h 127.0.0.1" --wait
-  if ($LASTEXITCODE -ne 0) { throw "PostgreSQL startup failed" }
-}
-
-$env:PGPASSWORD = "lexnepal_local_dev"
-$databaseExists = & $psql --host=127.0.0.1 --port=5433 --username=lexnepal --dbname=postgres --tuples-only --no-align --command="SELECT 1 FROM pg_database WHERE datname = 'lexnepal'"
-if ($databaseExists -ne "1") {
-  & $createdb --host=127.0.0.1 --port=5433 --username=lexnepal --encoding=UTF8 lexnepal
-  if ($LASTEXITCODE -ne 0) { throw "LexNepal database creation failed" }
-}
-Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
-
-$minioCommand = Get-Command minio -ErrorAction SilentlyContinue
-if ($minioCommand) {
-  $minioPath = $minioCommand.Source
+$portableMysql = Join-Path $mysqlRoot "server\mysql-8.4.9-winx64"
+$mysqlInstallation = if (Test-Path (Join-Path $portableMysql "bin\mysqld.exe")) {
+  Get-Item $portableMysql
 } else {
-  $minioPath = Get-ChildItem (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages") -Recurse -Filter minio.exe -ErrorAction Stop |
-    Select-Object -First 1 -ExpandProperty FullName
+  Get-ChildItem "C:\Program Files\MySQL" -Directory -ErrorAction Stop |
+    Where-Object { Test-Path (Join-Path $_.FullName "bin\mysqld.exe") } |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+}
+$mysqlBin = Join-Path $mysqlInstallation.FullName "bin"
+$mysqld = Join-Path $mysqlBin "mysqld.exe"
+$mysql = Join-Path $mysqlBin "mysql.exe"
+$mysqlAdmin = Join-Path $mysqlBin "mysqladmin.exe"
+
+New-Item -ItemType Directory -Force -Path $mysqlRoot, $storageRoot, $clamAvDatabase, $clamAvLogRoot, $mailpitLogRoot | Out-Null
+
+if (-not (Test-Path (Join-Path $mysqlData "mysql"))) {
+  & $mysqld --no-defaults --initialize-insecure --basedir=$($mysqlInstallation.FullName) --datadir=$mysqlData
+  if ($LASTEXITCODE -ne 0) { throw "MySQL data directory initialization failed" }
 }
 
-$minioHealthy = try {
-  (Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:9000/minio/health/live" -TimeoutSec 2).StatusCode -eq 200
-} catch { $false }
-
-if (-not $minioHealthy) {
-  $env:MINIO_ROOT_USER = Get-DotEnvValue "AWS_ACCESS_KEY_ID"
-  $env:MINIO_ROOT_PASSWORD = Get-DotEnvValue "AWS_SECRET_ACCESS_KEY"
-  Start-Process -FilePath $minioPath `
-    -ArgumentList @("server", $minioData, "--address", "127.0.0.1:9000", "--console-address", "127.0.0.1:9001") `
-    -WindowStyle Hidden `
-    -RedirectStandardOutput (Join-Path $minioLogRoot "server.out.log") `
-    -RedirectStandardError (Join-Path $minioLogRoot "server.err.log")
-
-  $deadline = (Get-Date).AddSeconds(30)
+$mysqlHealthy = [bool](Get-NetTCPConnection -LocalPort 3307 -State Listen -ErrorAction SilentlyContinue)
+if (-not $mysqlHealthy) {
+  Start-Process -FilePath $mysqld `
+    -ArgumentList @(
+      "--no-defaults",
+      "--standalone",
+      "--basedir=$($mysqlInstallation.FullName)",
+      "--datadir=$mysqlData",
+      "--port=3307",
+      "--bind-address=127.0.0.1",
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_0900_ai_ci",
+      "--default-time-zone=+00:00",
+      "--skip-log-bin",
+      "--mysqlx=0",
+      "--log-error=$mysqlLog",
+      "--pid-file=$mysqlPid"
+    ) `
+    -WindowStyle Hidden
+  $deadline = (Get-Date).AddSeconds(60)
   do {
     Start-Sleep -Milliseconds 500
-    $minioHealthy = try {
-      (Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:9000/minio/health/live" -TimeoutSec 2).StatusCode -eq 200
-    } catch { $false }
-  } until ($minioHealthy -or (Get-Date) -gt $deadline)
+    & $mysqlAdmin --protocol=TCP --host=127.0.0.1 --port=3307 --user=root ping --silent *> $null
+    $mysqlHealthy = $LASTEXITCODE -eq 0
+  } until ($mysqlHealthy -or (Get-Date) -gt $deadline)
 }
+if (-not $mysqlHealthy) { throw "MySQL did not become healthy; inspect $mysqlLog" }
 
-if (-not $minioHealthy) { throw "MinIO did not become healthy; inspect $minioLogRoot" }
+& $mysql --protocol=TCP --host=127.0.0.1 --port=3307 --user=root --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; FLUSH PRIVILEGES;"
+if ($LASTEXITCODE -ne 0) { throw "LexNepal MySQL database/user provisioning failed" }
 
 $clamAvBin = "C:\Program Files\ClamAV"
 $clamd = Join-Path $clamAvBin "clamd.exe"
@@ -124,8 +105,21 @@ if (-not $clamAvHealthy) {
 
 if (-not $clamAvHealthy) { throw "ClamAV did not become healthy; inspect $clamdLogPath" }
 
-$mailpit = Join-Path $mailpitRoot "mailpit.exe"
-if (-not (Test-Path $mailpit)) { throw "Mailpit is not installed at $mailpit" }
+$projectMailpit = Join-Path $mailpitRoot "mailpit.exe"
+$pathMailpit = Get-Command "mailpit.exe" -ErrorAction SilentlyContinue
+$wingetMailpit = Get-ChildItem (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages") `
+  -Directory -Filter "axllent.mailpit_*" -ErrorAction SilentlyContinue |
+  ForEach-Object { Get-ChildItem $_.FullName -File -Filter "mailpit.exe" -ErrorAction SilentlyContinue } |
+  Select-Object -First 1
+$mailpit = if (Test-Path $projectMailpit) {
+  $projectMailpit
+} elseif ($pathMailpit) {
+  $pathMailpit.Source
+} elseif ($wingetMailpit) {
+  $wingetMailpit.FullName
+} else {
+  throw "Mailpit is not installed; install axllent.mailpit with winget"
+}
 $mailpitHealthy = [bool](Get-NetTCPConnection -LocalPort 1025 -State Listen -ErrorAction SilentlyContinue)
 if (-not $mailpitHealthy) {
   Start-Process -FilePath $mailpit `
@@ -141,9 +135,8 @@ if (-not $mailpitHealthy) {
 }
 if (-not $mailpitHealthy) { throw "Mailpit did not become healthy; inspect $mailpitLogRoot" }
 
-Write-Output "PostgreSQL: ready at 127.0.0.1:5433 (database: lexnepal)"
-Write-Output "MinIO API:   http://127.0.0.1:9000"
-Write-Output "MinIO UI:    http://127.0.0.1:9001"
+Write-Output "MySQL:       ready at 127.0.0.1:3307 (database: lexnepal)"
+Write-Output "Storage:   local filesystem at $storageRoot"
 Write-Output "ClamAV:      ready at 127.0.0.1:3310"
 Write-Output "Mailpit SMTP: ready at 127.0.0.1:1025"
 Write-Output "Mailpit UI:   http://127.0.0.1:8025"

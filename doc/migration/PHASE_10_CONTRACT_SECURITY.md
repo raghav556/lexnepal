@@ -105,7 +105,7 @@ Pass rule: clean / infected / oversized / unauthorized download.
 | --- | --- |
 | Contracts | `documentUploadIntentSchema` enforces `MAX_DOCUMENT_BYTES` (`src/shared/documents/limits.ts`) |
 | Unit | `tests/unit/documents-contracts.test.ts`, `tests/unit/document-storage-pipeline.test.ts` |
-| Live | `scripts/storage/verify-local-pipeline.ts` (MinIO + ClamAV + durable scan worker) |
+| Live | `scripts/storage/verify-local-pipeline.ts` (local storage + ClamAV + durable scan worker) |
 
 ```powershell
 npm run migration:prove-document-malware

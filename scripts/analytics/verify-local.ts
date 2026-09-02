@@ -1,3 +1,4 @@
+import { returningMutation } from "@/server/db/mysql-returning";
 import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -22,11 +23,13 @@ async function signIn(email: string) {
 }
 
 try {
-  const [adminA] = await database
-    .update(users)
-    .set({ role: "admin", updatedAt: new Date() })
-    .where(eq(users.email, "boundary-a@example.invalid"))
-    .returning({ id: users.id, firmId: users.firmId, role: users.role });
+  const [adminA] = await returningMutation(
+    database
+      .update(users)
+      .set({ role: "admin", updatedAt: new Date() })
+      .where(eq(users.email, "boundary-a@example.invalid")),
+    () => database.select().from(users).where(eq(users.email, "boundary-a@example.invalid")),
+  );
   if (!adminA || adminA.firmId !== firmA) {
     throw new Error("boundary-a user missing or wrong firm");
   }

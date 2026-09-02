@@ -1,34 +1,50 @@
 [
   {
     "table": "appointments",
+    "index": "appointments_firm_assigned_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,assigned_lawyer_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Documented operational lookup for appointments"
+  },
+  {
+    "table": "appointments",
     "index": "appointments_firm_date_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,appointment_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped appointments chronological or reminder query"
   },
   {
     "table": "appointments",
-    "index": "appointments_firm_lawyer_date_idx",
+    "index": "appointments_firm_lead_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id,assigned_lawyer_id,appointment_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
-    "queryPattern": "Firm-scoped appointments lookup by responsible user"
+    "columnsOrExpression": "firm_id,lead_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Documented operational lookup for appointments"
   },
   {
     "table": "appointments",
     "index": "appointments_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped appointments status queue or filter"
+  },
+  {
+    "table": "appointments",
+    "index": "appointments_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce appointments business or tenant uniqueness"
   },
   {
     "table": "attendance",
     "index": "attendance_firm_date_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,attendance_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped attendance chronological or reminder query"
   },
   {
@@ -36,15 +52,23 @@
     "index": "attendance_firm_user_date_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_id,attendance_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce attendance business or tenant uniqueness"
+  },
+  {
+    "table": "attendance",
+    "index": "attendance_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce attendance business or tenant uniqueness"
   },
   {
     "table": "audit_log",
     "index": "audit_log_firm_request_id_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id, request_id",
-    "migration": "drizzle/0005_audit_request_context.sql",
+    "columnsOrExpression": "firm_id,request_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for audit_log"
   },
   {
@@ -52,7 +76,7 @@
     "index": "audit_log_firm_resource_created_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,resource,created_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped audit_log chronological or reminder query"
   },
   {
@@ -60,15 +84,23 @@
     "index": "audit_log_firm_user_created_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id,created_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped audit_log lookup by responsible user"
+  },
+  {
+    "table": "audit_log",
+    "index": "audit_log_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce audit_log business or tenant uniqueness"
   },
   {
     "table": "auth_accounts",
     "index": "auth_accounts_provider_account_unique",
     "unique": true,
-    "columnsOrExpression": "provider_id, account_id",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "columnsOrExpression": "provider_id,account_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce auth_accounts business or tenant uniqueness"
   },
   {
@@ -76,7 +108,7 @@
     "index": "auth_accounts_user_idx",
     "unique": false,
     "columnsOrExpression": "user_id",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped auth_accounts lookup by responsible user"
   },
   {
@@ -84,7 +116,7 @@
     "index": "auth_rate_limits_key_unique",
     "unique": true,
     "columnsOrExpression": "key",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce auth_rate_limits business or tenant uniqueness"
   },
   {
@@ -92,7 +124,7 @@
     "index": "auth_sessions_expiry_idx",
     "unique": false,
     "columnsOrExpression": "expires_at",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped auth_sessions chronological or reminder query"
   },
   {
@@ -100,7 +132,7 @@
     "index": "auth_sessions_token_unique",
     "unique": true,
     "columnsOrExpression": "token",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce auth_sessions business or tenant uniqueness"
   },
   {
@@ -108,7 +140,7 @@
     "index": "auth_sessions_user_idx",
     "unique": false,
     "columnsOrExpression": "user_id",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped auth_sessions lookup by responsible user"
   },
   {
@@ -116,7 +148,7 @@
     "index": "auth_two_factors_user_unique",
     "unique": true,
     "columnsOrExpression": "user_id",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce auth_two_factors business or tenant uniqueness"
   },
   {
@@ -124,7 +156,7 @@
     "index": "auth_users_email_unique",
     "unique": true,
     "columnsOrExpression": "email",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce auth_users business or tenant uniqueness"
   },
   {
@@ -132,7 +164,7 @@
     "index": "auth_users_lexnepal_user_unique",
     "unique": true,
     "columnsOrExpression": "lexnepal_user_id",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce auth_users business or tenant uniqueness"
   },
   {
@@ -140,31 +172,39 @@
     "index": "auth_verifications_identifier_idx",
     "unique": false,
     "columnsOrExpression": "identifier",
-    "migration": "drizzle/0006_local_identity_authority.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for auth_verifications"
   },
   {
     "table": "avatar_upload_intents",
     "index": "avatar_upload_intents_firm_status_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id, status, expires_at",
-    "migration": "drizzle/0007_avatar_quarantine_pipeline.sql",
+    "columnsOrExpression": "firm_id,status,expires_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped avatar_upload_intents status queue or filter"
+  },
+  {
+    "table": "avatar_upload_intents",
+    "index": "avatar_upload_intents_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce avatar_upload_intents business or tenant uniqueness"
   },
   {
     "table": "avatar_upload_intents",
     "index": "avatar_upload_intents_quarantine_key_unique",
     "unique": true,
     "columnsOrExpression": "quarantine_key",
-    "migration": "drizzle/0007_avatar_quarantine_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce avatar_upload_intents business or tenant uniqueness"
   },
   {
     "table": "avatar_upload_intents",
     "index": "avatar_upload_intents_user_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id, user_id",
-    "migration": "drizzle/0007_avatar_quarantine_pipeline.sql",
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped avatar_upload_intents lookup by responsible user"
   },
   {
@@ -172,7 +212,7 @@
     "index": "blog_posts_firm_slug_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,slug",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce blog_posts business or tenant uniqueness"
   },
   {
@@ -180,15 +220,31 @@
     "index": "blog_posts_firm_status_publish_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status,publish_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped blog_posts status queue or filter"
+  },
+  {
+    "table": "blog_posts",
+    "index": "blog_posts_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce blog_posts business or tenant uniqueness"
+  },
+  {
+    "table": "career_requirements",
+    "index": "career_requirements_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce career_requirements business or tenant uniqueness"
   },
   {
     "table": "career_requirements",
     "index": "career_requirements_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,career_id,position",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce career_requirements business or tenant uniqueness"
   },
   {
@@ -196,15 +252,31 @@
     "index": "careers_firm_active_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,is_active",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped careers status queue or filter"
+  },
+  {
+    "table": "careers",
+    "index": "careers_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce careers business or tenant uniqueness"
+  },
+  {
+    "table": "case_team_members",
+    "index": "case_team_members_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce case_team_members business or tenant uniqueness"
   },
   {
     "table": "case_team_members",
     "index": "case_team_members_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,case_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce case_team_members business or tenant uniqueness"
   },
   {
@@ -212,7 +284,7 @@
     "index": "case_team_members_user_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped case_team_members lookup by case"
   },
   {
@@ -220,7 +292,7 @@
     "index": "cases_firm_case_number_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,case_number",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce cases business or tenant uniqueness"
   },
   {
@@ -228,7 +300,7 @@
     "index": "cases_firm_client_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,client_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped cases lookup by case"
   },
   {
@@ -236,7 +308,7 @@
     "index": "cases_firm_lawyer_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,assigned_lawyer_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped cases lookup by case"
   },
   {
@@ -244,31 +316,79 @@
     "index": "cases_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped cases lookup by case"
+  },
+  {
+    "table": "cases",
+    "index": "cases_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce cases business or tenant uniqueness"
   },
   {
     "table": "client_kyc_files",
     "index": "client_kyc_files_client_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,client_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped client_kyc_files lookup by client"
+  },
+  {
+    "table": "client_kyc_files",
+    "index": "client_kyc_files_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce client_kyc_files business or tenant uniqueness"
   },
   {
     "table": "client_kyc_files",
     "index": "client_kyc_files_storage_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,storage_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce client_kyc_files business or tenant uniqueness"
+  },
+  {
+    "table": "client_kyc_upload_intents",
+    "index": "client_kyc_upload_intents_client_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped client_kyc_upload_intents lookup by client"
+  },
+  {
+    "table": "client_kyc_upload_intents",
+    "index": "client_kyc_upload_intents_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce client_kyc_upload_intents business or tenant uniqueness"
+  },
+  {
+    "table": "client_kyc_upload_intents",
+    "index": "client_kyc_upload_intents_quarantine_key_unique",
+    "unique": true,
+    "columnsOrExpression": "quarantine_key",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce client_kyc_upload_intents business or tenant uniqueness"
+  },
+  {
+    "table": "client_kyc_upload_intents",
+    "index": "client_kyc_upload_intents_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status,expires_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped client_kyc_upload_intents status queue or filter"
   },
   {
     "table": "clients",
     "index": "clients_firm_kyc_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,kyc_status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped clients status queue or filter"
   },
   {
@@ -276,7 +396,7 @@
     "index": "clients_firm_name_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,full_name",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped clients lookup by client"
   },
   {
@@ -284,31 +404,47 @@
     "index": "clients_firm_user_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce clients business or tenant uniqueness"
+  },
+  {
+    "table": "clients",
+    "index": "clients_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce clients business or tenant uniqueness"
   },
   {
     "table": "cms_asset_upload_intents",
     "index": "cms_asset_upload_intents_creator_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id, created_by",
-    "migration": "drizzle/0016_cms_asset_upload_intents.sql",
+    "columnsOrExpression": "firm_id,created_by",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for cms_asset_upload_intents"
   },
   {
     "table": "cms_asset_upload_intents",
     "index": "cms_asset_upload_intents_firm_status_idx",
     "unique": false,
-    "columnsOrExpression": "firm_id, status, expires_at",
-    "migration": "drizzle/0016_cms_asset_upload_intents.sql",
+    "columnsOrExpression": "firm_id,status,expires_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped cms_asset_upload_intents status queue or filter"
+  },
+  {
+    "table": "cms_asset_upload_intents",
+    "index": "cms_asset_upload_intents_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce cms_asset_upload_intents business or tenant uniqueness"
   },
   {
     "table": "cms_asset_upload_intents",
     "index": "cms_asset_upload_intents_quarantine_key_unique",
     "unique": true,
     "columnsOrExpression": "quarantine_key",
-    "migration": "drizzle/0016_cms_asset_upload_intents.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce cms_asset_upload_intents business or tenant uniqueness"
   },
   {
@@ -316,7 +452,15 @@
     "index": "cms_settings_firm_key_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,key",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce cms_settings business or tenant uniqueness"
+  },
+  {
+    "table": "cms_settings",
+    "index": "cms_settings_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce cms_settings business or tenant uniqueness"
   },
   {
@@ -324,7 +468,7 @@
     "index": "conflict_checks_firm_checked_at_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,checked_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for conflict_checks"
   },
   {
@@ -332,23 +476,47 @@
     "index": "conflict_checks_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped conflict_checks status queue or filter"
+  },
+  {
+    "table": "conflict_checks",
+    "index": "conflict_checks_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce conflict_checks business or tenant uniqueness"
+  },
+  {
+    "table": "dm_message_attachments",
+    "index": "dm_message_attachments_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce dm_message_attachments business or tenant uniqueness"
   },
   {
     "table": "dm_message_attachments",
     "index": "dm_message_attachments_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,message_id,position",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce dm_message_attachments business or tenant uniqueness"
+  },
+  {
+    "table": "dm_message_reads",
+    "index": "dm_message_reads_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce dm_message_reads business or tenant uniqueness"
   },
   {
     "table": "dm_message_reads",
     "index": "dm_message_reads_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,message_id,user_id",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce dm_message_reads business or tenant uniqueness"
   },
   {
@@ -356,15 +524,23 @@
     "index": "dm_message_reads_user_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped dm_message_reads lookup by responsible user"
+  },
+  {
+    "table": "dm_messages",
+    "index": "dm_messages_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce dm_messages business or tenant uniqueness"
   },
   {
     "table": "dm_messages",
     "index": "dm_messages_thread_created_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,thread_id,created_at",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped dm_messages status queue or filter"
   },
   {
@@ -372,7 +548,7 @@
     "index": "dm_threads_firm_high_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_high_id",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped dm_threads status queue or filter"
   },
   {
@@ -380,15 +556,23 @@
     "index": "dm_threads_firm_low_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_low_id",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped dm_threads status queue or filter"
+  },
+  {
+    "table": "dm_threads",
+    "index": "dm_threads_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce dm_threads business or tenant uniqueness"
   },
   {
     "table": "dm_threads",
     "index": "dm_threads_pair_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_low_id,user_high_id",
-    "migration": "drizzle/0020_dm_threads.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce dm_threads business or tenant uniqueness"
   },
   {
@@ -396,7 +580,7 @@
     "index": "document_scan_jobs_available_idx",
     "unique": false,
     "columnsOrExpression": "status,available_at",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_scan_jobs lookup by document"
   },
   {
@@ -404,7 +588,15 @@
     "index": "document_scan_jobs_intent_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,upload_intent_id",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_scan_jobs business or tenant uniqueness"
+  },
+  {
+    "table": "document_scan_jobs",
+    "index": "document_scan_jobs_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_scan_jobs business or tenant uniqueness"
   },
   {
@@ -412,7 +604,7 @@
     "index": "document_shares_active_expiry_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,is_active,expires_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_shares status queue or filter"
   },
   {
@@ -420,23 +612,39 @@
     "index": "document_shares_firm_document_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,document_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_shares lookup by document"
+  },
+  {
+    "table": "document_shares",
+    "index": "document_shares_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_shares business or tenant uniqueness"
   },
   {
     "table": "document_shares",
     "index": "document_shares_token_unique",
     "unique": true,
     "columnsOrExpression": "token",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_shares business or tenant uniqueness"
+  },
+  {
+    "table": "document_tag_assignments",
+    "index": "document_tag_assignments_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_tag_assignments business or tenant uniqueness"
   },
   {
     "table": "document_tag_assignments",
     "index": "document_tag_assignments_tag_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,tag_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_tag_assignments lookup by document"
   },
   {
@@ -444,7 +652,7 @@
     "index": "document_tag_assignments_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,document_id,tag_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_tag_assignments business or tenant uniqueness"
   },
   {
@@ -452,7 +660,15 @@
     "index": "document_tags_firm_name_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,name",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_tags business or tenant uniqueness"
+  },
+  {
+    "table": "document_tags",
+    "index": "document_tags_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_tags business or tenant uniqueness"
   },
   {
@@ -460,7 +676,7 @@
     "index": "document_templates_firm_title_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,title",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_templates business or tenant uniqueness"
   },
   {
@@ -468,15 +684,23 @@
     "index": "document_templates_firm_type_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,type",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_templates lookup by document"
+  },
+  {
+    "table": "document_templates",
+    "index": "document_templates_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_templates business or tenant uniqueness"
   },
   {
     "table": "document_upload_intents",
     "index": "document_upload_intents_creator_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,created_by",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_upload_intents lookup by document"
   },
   {
@@ -484,23 +708,39 @@
     "index": "document_upload_intents_firm_status_expiry_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status,expires_at",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_upload_intents status queue or filter"
+  },
+  {
+    "table": "document_upload_intents",
+    "index": "document_upload_intents_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_upload_intents business or tenant uniqueness"
   },
   {
     "table": "document_upload_intents",
     "index": "document_upload_intents_quarantine_key_unique",
     "unique": true,
     "columnsOrExpression": "quarantine_key",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_upload_intents business or tenant uniqueness"
+  },
+  {
+    "table": "document_upload_rate_limits",
+    "index": "document_upload_rate_limits_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce document_upload_rate_limits business or tenant uniqueness"
   },
   {
     "table": "document_upload_rate_limits",
     "index": "document_upload_rate_limits_user_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped document_upload_rate_limits lookup by responsible user"
   },
   {
@@ -508,7 +748,7 @@
     "index": "document_upload_rate_limits_window_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_id,window_started_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce document_upload_rate_limits business or tenant uniqueness"
   },
   {
@@ -516,7 +756,7 @@
     "index": "documents_firm_case_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by case"
   },
   {
@@ -524,7 +764,7 @@
     "index": "documents_firm_deleted_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,deleted_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by document"
   },
   {
@@ -532,7 +772,7 @@
     "index": "documents_firm_number_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,document_number",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce documents business or tenant uniqueness"
   },
   {
@@ -540,7 +780,7 @@
     "index": "documents_firm_parent_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,parent_document_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by document"
   },
   {
@@ -548,7 +788,7 @@
     "index": "documents_firm_signature_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,intended_signer_user_id,signature_status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by document"
   },
   {
@@ -556,7 +796,7 @@
     "index": "documents_firm_storage_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,storage_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce documents business or tenant uniqueness"
   },
   {
@@ -564,7 +804,7 @@
     "index": "documents_firm_template_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,is_template",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by document"
   },
   {
@@ -572,7 +812,7 @@
     "index": "documents_firm_type_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,type",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by document"
   },
   {
@@ -580,39 +820,159 @@
     "index": "documents_firm_uploader_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,uploaded_by",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped documents lookup by document"
+  },
+  {
+    "table": "documents",
+    "index": "documents_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce documents business or tenant uniqueness"
   },
   {
     "table": "documents",
     "index": "documents_parent_version_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,parent_document_id,version",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce documents business or tenant uniqueness"
   },
   {
     "table": "documents",
-    "index": "documents_search_vector_idx",
+    "index": "documents_search_fulltext_idx",
     "unique": false,
-    "columnsOrExpression": "to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(searchable_text, ''))",
-    "migration": "drizzle/0001_tenant_integrity_and_checks.sql",
+    "columnsOrExpression": "title, description, searchable_text",
+    "migration": "drizzle/0001_mysql_integrity.sql",
     "queryPattern": "Full-text document discovery by title description and extracted text"
+  },
+  {
+    "table": "durable_job_attempts",
+    "index": "durable_job_attempts_job_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,job_id,started_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Documented operational lookup for durable_job_attempts"
+  },
+  {
+    "table": "durable_job_attempts",
+    "index": "durable_job_attempts_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_job_attempts business or tenant uniqueness"
+  },
+  {
+    "table": "durable_job_attempts",
+    "index": "durable_job_attempts_number_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,job_id,attempt_number",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_job_attempts business or tenant uniqueness"
+  },
+  {
+    "table": "durable_job_effects",
+    "index": "durable_job_effects_key_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,job_id,effect_key",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_job_effects business or tenant uniqueness"
+  },
+  {
+    "table": "durable_job_effects",
+    "index": "durable_job_effects_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_job_effects business or tenant uniqueness"
+  },
+  {
+    "table": "durable_jobs",
+    "index": "durable_jobs_claim_idx",
+    "unique": false,
+    "columnsOrExpression": "status,available_at,priority,created_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Documented operational lookup for durable_jobs"
+  },
+  {
+    "table": "durable_jobs",
+    "index": "durable_jobs_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status,created_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped durable_jobs status queue or filter"
+  },
+  {
+    "table": "durable_jobs",
+    "index": "durable_jobs_idempotency_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,type,idempotency_key",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_jobs business or tenant uniqueness"
+  },
+  {
+    "table": "durable_jobs",
+    "index": "durable_jobs_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_jobs business or tenant uniqueness"
+  },
+  {
+    "table": "durable_schedules",
+    "index": "durable_schedules_due_idx",
+    "unique": false,
+    "columnsOrExpression": "is_active,next_run_at",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped durable_schedules chronological or reminder query"
+  },
+  {
+    "table": "durable_schedules",
+    "index": "durable_schedules_firm_name_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,name",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_schedules business or tenant uniqueness"
+  },
+  {
+    "table": "durable_schedules",
+    "index": "durable_schedules_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce durable_schedules business or tenant uniqueness"
   },
   {
     "table": "firm_settings",
     "index": "firm_settings_firm_key_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,key",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce firm_settings business or tenant uniqueness"
+  },
+  {
+    "table": "firm_settings",
+    "index": "firm_settings_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce firm_settings business or tenant uniqueness"
+  },
+  {
+    "table": "firms",
+    "index": "firms_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce firms business or tenant uniqueness"
   },
   {
     "table": "firms",
     "index": "firms_slug_unique",
     "unique": true,
     "columnsOrExpression": "slug",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce firms business or tenant uniqueness"
   },
   {
@@ -620,7 +980,7 @@
     "index": "hearings_firm_case_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped hearings lookup by case"
   },
   {
@@ -628,15 +988,23 @@
     "index": "hearings_firm_date_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,date_gregorian",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped hearings chronological or reminder query"
+  },
+  {
+    "table": "hearings",
+    "index": "hearings_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce hearings business or tenant uniqueness"
   },
   {
     "table": "job_applications",
     "index": "job_applications_firm_job_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,job_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for job_applications"
   },
   {
@@ -644,15 +1012,23 @@
     "index": "job_applications_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped job_applications status queue or filter"
+  },
+  {
+    "table": "job_applications",
+    "index": "job_applications_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce job_applications business or tenant uniqueness"
   },
   {
     "table": "leads",
     "index": "leads_firm_assigned_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,assigned_to",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for leads"
   },
   {
@@ -660,7 +1036,7 @@
     "index": "leads_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped leads status queue or filter"
   },
   {
@@ -668,15 +1044,47 @@
     "index": "leads_intake_token_unique",
     "unique": true,
     "columnsOrExpression": "intake_token",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce leads business or tenant uniqueness"
+  },
+  {
+    "table": "leads",
+    "index": "leads_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce leads business or tenant uniqueness"
+  },
+  {
+    "table": "leave_balances",
+    "index": "leave_balances_firm_user_type_year_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,user_id,type,year",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce leave_balances business or tenant uniqueness"
+  },
+  {
+    "table": "leave_balances",
+    "index": "leave_balances_firm_user_year_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id,year",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped leave_balances lookup by responsible user"
+  },
+  {
+    "table": "leave_balances",
+    "index": "leave_balances_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce leave_balances business or tenant uniqueness"
   },
   {
     "table": "leave_requests",
     "index": "leave_requests_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped leave_requests status queue or filter"
   },
   {
@@ -684,31 +1092,63 @@
     "index": "leave_requests_firm_user_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped leave_requests lookup by responsible user"
+  },
+  {
+    "table": "leave_requests",
+    "index": "leave_requests_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce leave_requests business or tenant uniqueness"
   },
   {
     "table": "legal_pages",
     "index": "legal_pages_firm_slug_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,slug",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce legal_pages business or tenant uniqueness"
+  },
+  {
+    "table": "legal_pages",
+    "index": "legal_pages_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce legal_pages business or tenant uniqueness"
+  },
+  {
+    "table": "message_attachments",
+    "index": "message_attachments_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce message_attachments business or tenant uniqueness"
   },
   {
     "table": "message_attachments",
     "index": "message_attachments_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,message_id,position",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce message_attachments business or tenant uniqueness"
+  },
+  {
+    "table": "message_reads",
+    "index": "message_reads_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce message_reads business or tenant uniqueness"
   },
   {
     "table": "message_reads",
     "index": "message_reads_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,message_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce message_reads business or tenant uniqueness"
   },
   {
@@ -716,7 +1156,7 @@
     "index": "message_reads_user_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped message_reads lookup by responsible user"
   },
   {
@@ -724,7 +1164,7 @@
     "index": "messages_firm_case_created_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,case_id,created_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped messages lookup by case"
   },
   {
@@ -732,23 +1172,23 @@
     "index": "messages_firm_sender_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,sender_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for messages"
   },
   {
-    "table": "navigation",
-    "index": "navigation_firm_location_child_order_unique",
+    "table": "messages",
+    "index": "messages_legacy_convex_id_unique",
     "unique": true,
-    "columnsOrExpression": "firm_id,location,parent_id,display_order",
-    "migration": "drizzle/0017_navigation_sibling_order_unique.sql",
-    "queryPattern": "Enforce navigation business or tenant uniqueness"
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce messages business or tenant uniqueness"
   },
   {
     "table": "navigation",
-    "index": "navigation_firm_location_root_order_unique",
+    "index": "navigation_firm_location_sibling_order_unique",
     "unique": true,
-    "columnsOrExpression": "firm_id,location,display_order",
-    "migration": "drizzle/0017_navigation_sibling_order_unique.sql",
+    "columnsOrExpression": "firm_id,location,parent_scope,display_order",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce navigation business or tenant uniqueness"
   },
   {
@@ -756,31 +1196,71 @@
     "index": "navigation_firm_parent_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,parent_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped navigation hierarchy traversal"
+  },
+  {
+    "table": "navigation",
+    "index": "navigation_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce navigation business or tenant uniqueness"
   },
   {
     "table": "news_and_awards",
     "index": "news_and_awards_firm_date_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,publication_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped news_and_awards chronological or reminder query"
+  },
+  {
+    "table": "news_and_awards",
+    "index": "news_and_awards_firm_slug_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,slug",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce news_and_awards business or tenant uniqueness"
+  },
+  {
+    "table": "news_and_awards",
+    "index": "news_and_awards_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped news_and_awards status queue or filter"
   },
   {
     "table": "news_and_awards",
     "index": "news_and_awards_firm_type_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,type",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped news_and_awards classification filter"
+  },
+  {
+    "table": "news_and_awards",
+    "index": "news_and_awards_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce news_and_awards business or tenant uniqueness"
   },
   {
     "table": "newsletter_subscribers",
     "index": "newsletter_subscribers_firm_email_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,email",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce newsletter_subscribers business or tenant uniqueness"
+  },
+  {
+    "table": "newsletter_subscribers",
+    "index": "newsletter_subscribers_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce newsletter_subscribers business or tenant uniqueness"
   },
   {
@@ -788,7 +1268,7 @@
     "index": "notifications_firm_created_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,created_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped notifications chronological or reminder query"
   },
   {
@@ -796,15 +1276,79 @@
     "index": "notifications_firm_user_read_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id,is_read",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped notifications lookup by responsible user"
+  },
+  {
+    "table": "notifications",
+    "index": "notifications_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce notifications business or tenant uniqueness"
+  },
+  {
+    "table": "payroll_run_lines",
+    "index": "payroll_run_lines_firm_run_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,run_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Documented operational lookup for payroll_run_lines"
+  },
+  {
+    "table": "payroll_run_lines",
+    "index": "payroll_run_lines_firm_user_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,user_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped payroll_run_lines lookup by responsible user"
+  },
+  {
+    "table": "payroll_run_lines",
+    "index": "payroll_run_lines_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce payroll_run_lines business or tenant uniqueness"
+  },
+  {
+    "table": "payroll_run_lines",
+    "index": "payroll_run_lines_run_user_unique",
+    "unique": true,
+    "columnsOrExpression": "run_id,user_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce payroll_run_lines business or tenant uniqueness"
+  },
+  {
+    "table": "payroll_runs",
+    "index": "payroll_runs_firm_period_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,period_start,period_end",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Documented operational lookup for payroll_runs"
+  },
+  {
+    "table": "payroll_runs",
+    "index": "payroll_runs_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped payroll_runs status queue or filter"
+  },
+  {
+    "table": "payroll_runs",
+    "index": "payroll_runs_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce payroll_runs business or tenant uniqueness"
   },
   {
     "table": "practice_areas",
     "index": "practice_areas_firm_active_order_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,is_active,display_order",
-    "migration": "drizzle/0018_practice_areas_corporate.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped practice_areas status queue or filter"
   },
   {
@@ -812,7 +1356,15 @@
     "index": "practice_areas_firm_slug_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,slug",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce practice_areas business or tenant uniqueness"
+  },
+  {
+    "table": "practice_areas",
+    "index": "practice_areas_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce practice_areas business or tenant uniqueness"
   },
   {
@@ -820,15 +1372,23 @@
     "index": "research_note_tags_firm_tag_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,tag",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for research_note_tags"
+  },
+  {
+    "table": "research_note_tags",
+    "index": "research_note_tags_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce research_note_tags business or tenant uniqueness"
   },
   {
     "table": "research_note_tags",
     "index": "research_note_tags_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,research_note_id,tag",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce research_note_tags business or tenant uniqueness"
   },
   {
@@ -836,7 +1396,7 @@
     "index": "research_notes_firm_author_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,author_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped research_notes lookup by responsible user"
   },
   {
@@ -844,7 +1404,7 @@
     "index": "research_notes_firm_case_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0010_research_citations.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped research_notes lookup by case"
   },
   {
@@ -852,23 +1412,55 @@
     "index": "research_notes_firm_category_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,category",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped research_notes classification filter"
+  },
+  {
+    "table": "research_notes",
+    "index": "research_notes_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce research_notes business or tenant uniqueness"
   },
   {
     "table": "resources",
     "index": "resources_firm_category_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,category",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped resources classification filter"
+  },
+  {
+    "table": "resources",
+    "index": "resources_firm_slug_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id,slug",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce resources business or tenant uniqueness"
+  },
+  {
+    "table": "resources",
+    "index": "resources_firm_status_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,status",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Firm-scoped resources status queue or filter"
+  },
+  {
+    "table": "resources",
+    "index": "resources_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce resources business or tenant uniqueness"
   },
   {
     "table": "sessions",
     "index": "sessions_expiry_idx",
     "unique": false,
     "columnsOrExpression": "expires_at",
-    "migration": "drizzle/0002_authentication_sessions.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped sessions chronological or reminder query"
   },
   {
@@ -876,15 +1468,23 @@
     "index": "sessions_firm_user_active_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id,last_active",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped sessions lookup by responsible user"
+  },
+  {
+    "table": "sessions",
+    "index": "sessions_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce sessions business or tenant uniqueness"
   },
   {
     "table": "sessions",
     "index": "sessions_token_hash_unique",
     "unique": true,
     "columnsOrExpression": "token_hash",
-    "migration": "drizzle/0002_authentication_sessions.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce sessions business or tenant uniqueness"
   },
   {
@@ -892,7 +1492,7 @@
     "index": "signature_envelopes_firm_case_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped signature_envelopes lookup by case"
   },
   {
@@ -900,7 +1500,7 @@
     "index": "signature_envelopes_firm_document_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,document_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped signature_envelopes lookup by document"
   },
   {
@@ -908,15 +1508,23 @@
     "index": "signature_envelopes_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped signature_envelopes status queue or filter"
+  },
+  {
+    "table": "signature_envelopes",
+    "index": "signature_envelopes_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce signature_envelopes business or tenant uniqueness"
   },
   {
     "table": "signature_recipients",
     "index": "signature_recipients_envelope_order_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,envelope_id,routing_order",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce signature_recipients business or tenant uniqueness"
   },
   {
@@ -924,7 +1532,15 @@
     "index": "signature_recipients_envelope_user_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,envelope_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce signature_recipients business or tenant uniqueness"
+  },
+  {
+    "table": "signature_recipients",
+    "index": "signature_recipients_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce signature_recipients business or tenant uniqueness"
   },
   {
@@ -932,7 +1548,7 @@
     "index": "signature_recipients_user_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped signature_recipients lookup by responsible user"
   },
   {
@@ -940,23 +1556,39 @@
     "index": "signing_challenges_expiry_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,expires_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped signing_challenges chronological or reminder query"
+  },
+  {
+    "table": "signing_challenges",
+    "index": "signing_challenges_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce signing_challenges business or tenant uniqueness"
   },
   {
     "table": "signing_challenges",
     "index": "signing_challenges_user_document_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id,document_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped signing_challenges lookup by responsible user"
+  },
+  {
+    "table": "sop_template_tasks",
+    "index": "sop_template_tasks_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce sop_template_tasks business or tenant uniqueness"
   },
   {
     "table": "sop_template_tasks",
     "index": "sop_template_tasks_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,sop_template_id,position",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce sop_template_tasks business or tenant uniqueness"
   },
   {
@@ -964,7 +1596,7 @@
     "index": "sop_templates_firm_key_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,key",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce sop_templates business or tenant uniqueness"
   },
   {
@@ -972,15 +1604,23 @@
     "index": "sop_templates_firm_practice_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,practice_area",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped sop_templates classification filter"
+  },
+  {
+    "table": "sop_templates",
+    "index": "sop_templates_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce sop_templates business or tenant uniqueness"
   },
   {
     "table": "storage_migration_items",
     "index": "storage_migration_items_destination_unique",
     "unique": true,
     "columnsOrExpression": "destination_key",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce storage_migration_items business or tenant uniqueness"
   },
   {
@@ -988,15 +1628,23 @@
     "index": "storage_migration_items_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped storage_migration_items status queue or filter"
+  },
+  {
+    "table": "storage_migration_items",
+    "index": "storage_migration_items_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce storage_migration_items business or tenant uniqueness"
   },
   {
     "table": "storage_migration_items",
     "index": "storage_migration_items_legacy_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,legacy_storage_id",
-    "migration": "drizzle/0003_document_storage_pipeline.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce storage_migration_items business or tenant uniqueness"
   },
   {
@@ -1004,15 +1652,31 @@
     "index": "task_comments_firm_task_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,task_id,created_at",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for task_comments"
+  },
+  {
+    "table": "task_comments",
+    "index": "task_comments_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce task_comments business or tenant uniqueness"
+  },
+  {
+    "table": "task_watchers",
+    "index": "task_watchers_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce task_watchers business or tenant uniqueness"
   },
   {
     "table": "task_watchers",
     "index": "task_watchers_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,task_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce task_watchers business or tenant uniqueness"
   },
   {
@@ -1020,7 +1684,7 @@
     "index": "task_watchers_user_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,user_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped task_watchers lookup by responsible user"
   },
   {
@@ -1028,7 +1692,7 @@
     "index": "tasks_firm_assignee_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,assigned_to",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped tasks lookup by responsible user"
   },
   {
@@ -1036,7 +1700,7 @@
     "index": "tasks_firm_case_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,case_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped tasks lookup by case"
   },
   {
@@ -1044,7 +1708,7 @@
     "index": "tasks_firm_due_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,due_date",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped tasks chronological or reminder query"
   },
   {
@@ -1052,7 +1716,7 @@
     "index": "tasks_firm_hearing_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,hearing_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Documented operational lookup for tasks"
   },
   {
@@ -1060,7 +1724,7 @@
     "index": "tasks_firm_parent_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,parent_task_id",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped tasks hierarchy traversal"
   },
   {
@@ -1068,15 +1732,31 @@
     "index": "tasks_firm_status_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,status",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped tasks status queue or filter"
+  },
+  {
+    "table": "tasks",
+    "index": "tasks_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce tasks business or tenant uniqueness"
+  },
+  {
+    "table": "template_variables",
+    "index": "template_variables_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce template_variables business or tenant uniqueness"
   },
   {
     "table": "template_variables",
     "index": "template_variables_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,template_id,position",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce template_variables business or tenant uniqueness"
   },
   {
@@ -1084,7 +1764,7 @@
     "index": "template_variables_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,template_id,variable",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce template_variables business or tenant uniqueness"
   },
   {
@@ -1092,7 +1772,7 @@
     "index": "templates_firm_category_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,category",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped templates classification filter"
   },
   {
@@ -1100,7 +1780,15 @@
     "index": "templates_firm_title_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,title",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce templates business or tenant uniqueness"
+  },
+  {
+    "table": "templates",
+    "index": "templates_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce templates business or tenant uniqueness"
   },
   {
@@ -1108,7 +1796,7 @@
     "index": "testimonials_firm_approved_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,is_approved",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped testimonials status queue or filter"
   },
   {
@@ -1116,31 +1804,63 @@
     "index": "testimonials_firm_approved_order_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,is_approved,display_order",
-    "migration": "drizzle/0019_testimonials_homepage.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped testimonials status queue or filter"
+  },
+  {
+    "table": "testimonials",
+    "index": "testimonials_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce testimonials business or tenant uniqueness"
+  },
+  {
+    "table": "user_educations",
+    "index": "user_educations_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce user_educations business or tenant uniqueness"
   },
   {
     "table": "user_educations",
     "index": "user_educations_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_id,position",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce user_educations business or tenant uniqueness"
+  },
+  {
+    "table": "user_notable_cases",
+    "index": "user_notable_cases_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce user_notable_cases business or tenant uniqueness"
   },
   {
     "table": "user_notable_cases",
     "index": "user_notable_cases_position_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_id,position",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce user_notable_cases business or tenant uniqueness"
+  },
+  {
+    "table": "user_practice_areas",
+    "index": "user_practice_areas_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce user_practice_areas business or tenant uniqueness"
   },
   {
     "table": "user_practice_areas",
     "index": "user_practice_areas_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,user_id,practice_area",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce user_practice_areas business or tenant uniqueness"
   },
   {
@@ -1148,7 +1868,7 @@
     "index": "users_activation_token_unique",
     "unique": true,
     "columnsOrExpression": "activation_token",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce users business or tenant uniqueness"
   },
   {
@@ -1156,7 +1876,7 @@
     "index": "users_firm_email_unique",
     "unique": true,
     "columnsOrExpression": "firm_id,email",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce users business or tenant uniqueness"
   },
   {
@@ -1164,15 +1884,23 @@
     "index": "users_firm_role_idx",
     "unique": false,
     "columnsOrExpression": "firm_id,role",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Firm-scoped users lookup by responsible user"
+  },
+  {
+    "table": "users",
+    "index": "users_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
+    "queryPattern": "Enforce users business or tenant uniqueness"
   },
   {
     "table": "users",
     "index": "users_token_identifier_unique",
     "unique": true,
     "columnsOrExpression": "token_identifier",
-    "migration": "drizzle/0000_initial_postgresql_schema.sql",
+    "migration": "drizzle/0000_initial_mysql_schema.sql",
     "queryPattern": "Enforce users business or tenant uniqueness"
   }
 ]

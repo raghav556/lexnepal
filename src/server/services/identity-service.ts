@@ -6,7 +6,7 @@ import {
   requireFirmContext,
   requireSameFirm,
 } from "@/server/policies/authorization";
-import { PostgresIdentityRepository } from "@/server/repositories/identity-repository";
+import { MySqlIdentityRepository } from "@/server/repositories/identity-repository";
 import { DEFAULT_ROLE_PERMISSIONS } from "@/server/auth/capabilities";
 import type {
   CreateUserInput,
@@ -23,7 +23,7 @@ import {
 } from "@/server/auth/local-auth";
 
 export class IdentityService {
-  constructor(private readonly repository = new PostgresIdentityRepository()) {}
+  constructor(private readonly repository = new MySqlIdentityRepository()) {}
 
   async getFirm(principal: AuthPrincipal) {
     const firm = await this.repository.getFirm(requireFirmContext(principal).firmId);
@@ -90,9 +90,8 @@ export class IdentityService {
         });
       }
       if (user.role === "client") {
-        const { PostgresMattersRepository } =
-          await import("@/server/repositories/matters-repository");
-        await new PostgresMattersRepository().ensureClientForPortalUser(
+        const { MySqlMattersRepository } = await import("@/server/repositories/matters-repository");
+        await new MySqlMattersRepository().ensureClientForPortalUser(
           firmId,
           {
             id: user.id,

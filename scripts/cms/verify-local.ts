@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -40,8 +41,7 @@ try {
       key: "rolePermissions",
       value: { associate: ["users.manage", "users.view_directory", "cms.manage"] },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: { associate: ["users.manage", "users.view_directory", "cms.manage"] },
         updatedAt: new Date(),
@@ -68,19 +68,22 @@ try {
     { params: Promise.resolve({ collection: "blog-posts" }) },
   );
   const adminBody = (await adminPosts.json()) as { data: Array<{ status: string }> };
-  const [foreign] = await database
-    .insert(practiceAreas)
-    .values({
-      firmId: firmB,
-      legacyConvexId: "cms-cross-firm-verification",
-      title: "Foreign",
-      description: "Foreign firm item",
-      icon: "Scale",
-      slug: "foreign-verification",
-      isActive: true,
-    })
-    .onConflictDoUpdate({ target: practiceAreas.legacyConvexId, set: { updatedAt: new Date() } })
-    .returning({ id: practiceAreas.id });
+  const [foreign] = await returningInsert(
+    database
+      .insert(practiceAreas)
+      .values({
+        firmId: firmB,
+        legacyConvexId: "cms-cross-firm-verification",
+        title: "Foreign",
+        description: "Foreign firm item",
+        icon: "Scale",
+        slug: "foreign-verification",
+        isActive: true,
+      })
+      .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } })
+      .$returningId(),
+    (id) => database.select().from(practiceAreas).where(eq(practiceAreas.id, id)).limit(1),
+  );
   const crossFirm = await adminItemPatch(
     new Request("http://local/api/v1/cms/practice-areas/x", {
       method: "PATCH",

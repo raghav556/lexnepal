@@ -97,8 +97,7 @@ export async function migrateHrExport(input: {
             createdAt: parseTimestamp(record._creationTime) ?? now,
             updatedAt: now,
           })
-          .onConflictDoUpdate({
-            target: attendance.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               userId: user.id,
@@ -155,8 +154,7 @@ export async function migrateHrExport(input: {
             createdAt: parseTimestamp(record._creationTime) ?? now,
             updatedAt: now,
           })
-          .onConflictDoUpdate({
-            target: leaveRequests.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               userId: user.id,

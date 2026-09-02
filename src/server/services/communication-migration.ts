@@ -1,3 +1,7 @@
+import { returningUpsert } from "@/server/db/mysql-returning";
+import { eq } from "drizzle-orm";
+import { returningMutation } from "@/server/db/mysql-returning";
+import { sql } from "drizzle-orm";
 /* eslint-disable @typescript-eslint/no-explicit-any -- migration input is untrusted heterogeneous legacy JSON */
 import "server-only";
 import fs from "node:fs/promises";
@@ -72,30 +76,31 @@ export async function migrateCommunicationExport(input: {
         const isInternal = asBoolean(record.isInternal, false);
         const createdAt = toDate(record._creationTime) ?? new Date();
 
-        const [msg] = await tx
-          .insert(messages)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            caseId: matter.id,
-            senderId: sender.id,
-            content,
-            isInternal,
-            createdAt,
-            updatedAt: createdAt,
-          })
-          .onConflictDoUpdate({
-            target: messages.legacyConvexId,
-            set: {
+        const [msg] = await returningUpsert(
+          tx
+            .insert(messages)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
               caseId: matter.id,
               senderId: sender.id,
               content,
               isInternal,
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: messages.id });
+              createdAt,
+              updatedAt: createdAt,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                caseId: matter.id,
+                senderId: sender.id,
+                content,
+                isInternal,
+                updatedAt: new Date(),
+              },
+            }),
+          () => tx.select().from(messages).where(eq(messages.legacyConvexId, legacyId)).limit(1),
+        );
 
         if (Array.isArray(record.readBy)) {
           for (const readerId of record.readBy) {
@@ -109,9 +114,7 @@ export async function migrateCommunicationExport(input: {
                 userId: mapped.id,
                 readAt: createdAt,
               })
-              .onConflictDoNothing({
-                target: [messageReads.firmId, messageReads.messageId, messageReads.userId],
-              });
+              .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
           }
         }
         migrated.messages += 1;
@@ -154,8 +157,7 @@ export async function migrateCommunicationExport(input: {
             createdAt,
             updatedAt: createdAt,
           })
-          .onConflictDoUpdate({
-            target: notifications.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               userId: owner.id,

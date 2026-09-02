@@ -36,8 +36,7 @@ try {
         associate: ["cases.view_all", "cases.manage"],
       },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: { associate: ["cases.view_all", "cases.manage"] },
         updatedAt: new Date(),

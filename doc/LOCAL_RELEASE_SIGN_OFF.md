@@ -8,7 +8,7 @@
 ## Plain-language result
 
 LexNepal has been audited as one connected application: public website, CMS, admin portal, staff
-portal, client portal, authentication, PostgreSQL data, private document storage, malware scanning,
+portal, client portal, authentication, MySQL data, private document storage, malware scanning,
 background work, email capture, and the principal legal-practice workflows.
 
 The audit found and corrected functional, security, accessibility, test-reliability, responsive,
@@ -23,9 +23,9 @@ passed, and the optimized production build passed with healthy localhost readine
 
 - 77 active page routes and 160 API route files are inventoried and mapped; URL-preservation and
   deep-link inventories match the active application.
-- PostgreSQL migrations and checksums, repeatable seeding, local backup, and isolated restore drill
+- MySQL migrations and checksums, repeatable seeding, local backup, and isolated restore drill
   pass.
-- MinIO privacy/presigning and the ClamAV clean/malware-rejection pipeline pass.
+- Local storage privacy/tokenized downloads and the ClamAV clean/malware-rejection pipeline pass.
 - Authentication, cookies, invitations, client grants, role boundaries, MFA enforcement,
   cross-firm denial, safe DTOs, rate limiting, redirect safety, and security headers pass locally.
 - CMS, matters, work management, CRM, communications, documents, signatures, analytics,
@@ -69,7 +69,7 @@ troubleshooting instructions are in [`../README.md`](../README.md).
 Do not expose this localhost configuration to public traffic. A separate authorized production
 phase must complete all of the following:
 
-1. Select hosting region and architecture; provision managed PostgreSQL with encryption, HA,
+1. Select hosting region and architecture; provision managed MySQL with encryption, HA,
    backups, point-in-time recovery, and tested restore ownership.
 2. Provision private object storage, malware scanning, lifecycle rules, encryption/KMS, and data
    residency controls.

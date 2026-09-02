@@ -1,8 +1,8 @@
 import "server-only";
 import { getServerEnvironment } from "@/server/env";
 import { createLogger } from "@/server/observability/logger";
-import { PostgresDocumentStorageRepository } from "@/server/repositories/document-storage-repository";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlDocumentStorageRepository } from "@/server/repositories/document-storage-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import { DocumentDownloadService } from "@/server/storage/document-download";
 import { DocumentArchiveService } from "@/server/storage/document-archive";
 import { DocumentPipelineService } from "@/server/storage/document-pipeline";
@@ -11,39 +11,41 @@ import {
   CompositeDocumentScanner,
   HttpCdrScanner,
 } from "@/server/storage/document-scanner";
-import { S3ObjectStorage } from "@/server/storage/s3-object-storage";
+import { LocalObjectStorage } from "@/server/storage/local-object-storage";
 
+let objectStorage: LocalObjectStorage | undefined;
 let runtime:
   | {
       pipeline: DocumentPipelineService;
       downloads: DocumentDownloadService;
       archives: DocumentArchiveService;
-      storage: S3ObjectStorage;
+      storage: LocalObjectStorage;
       scanner: CompositeDocumentScanner;
     }
   | undefined;
+
+export function getObjectStorageRuntime(): LocalObjectStorage {
+  if (objectStorage) return objectStorage;
+  const environment = getServerEnvironment();
+  objectStorage = new LocalObjectStorage({
+    root: environment.STORAGE_ROOT,
+    appBaseUrl: environment.APP_PUBLIC_URL,
+  });
+  return objectStorage;
+}
 
 export function getDocumentStorageRuntime(): {
   pipeline: DocumentPipelineService;
   downloads: DocumentDownloadService;
   archives: DocumentArchiveService;
-  storage: S3ObjectStorage;
+  storage: LocalObjectStorage;
   scanner: CompositeDocumentScanner;
 } {
   if (runtime) return runtime;
   const environment = getServerEnvironment();
-  if (!environment.OBJECT_STORAGE_BUCKET) {
-    throw new Error("OBJECT_STORAGE_BUCKET is required for document storage");
-  }
-  const storage = new S3ObjectStorage({
-    bucket: environment.OBJECT_STORAGE_BUCKET,
-    region: environment.OBJECT_STORAGE_REGION,
-    endpoint: environment.OBJECT_STORAGE_ENDPOINT,
-    forcePathStyle: environment.OBJECT_STORAGE_FORCE_PATH_STYLE,
-    serverSideEncryption: environment.OBJECT_STORAGE_SSE === "aes256" ? "AES256" : "none",
-  });
-  const repository = new PostgresDocumentStorageRepository();
-  const authorization = new PostgresSecurityRepository();
+  const storage = getObjectStorageRuntime();
+  const repository = new MySqlDocumentStorageRepository();
+  const authorization = new MySqlSecurityRepository();
   const antivirus = new ClamAvScanner(environment.CLAMAV_HOST, environment.CLAMAV_PORT);
   const scanner = new CompositeDocumentScanner(
     antivirus,

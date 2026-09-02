@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
@@ -62,8 +63,7 @@ try {
         ],
       },
     })
-    .onConflictDoUpdate({
-      target: [firmSettings.firmId, firmSettings.key],
+    .onDuplicateKeyUpdate({
       set: {
         value: {
           associate: [
@@ -109,7 +109,7 @@ try {
       legacyConvexId: "convex_env_doc_a",
       requiresSignature: false,
     })
-    .onConflictDoNothing();
+    .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 
   const [fixtureDoc] = await database
     .select({ id: documents.id })

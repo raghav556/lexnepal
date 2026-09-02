@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, isNull, lte } from "drizzle-orm";
@@ -106,7 +107,7 @@ export class KycService {
           actorUserId: actorId,
           timeoutSeconds: 300,
         })
-        .onConflictDoNothing();
+        .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
       await writeAudit(
         tx,
         audit,
@@ -230,7 +231,7 @@ export class KycService {
             mimeType: intent.declaredMimeType,
             sha256: intent.actualSha256,
           })
-          .onConflictDoNothing({ target: [clientKycFiles.firmId, clientKycFiles.storageId] });
+          .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
       await tx
         .update(clients)
         .set({

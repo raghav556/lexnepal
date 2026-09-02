@@ -6,8 +6,8 @@ import {
   requireCaseAccess,
   requireFirmContext,
 } from "@/server/policies/authorization";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
-import { PostgresMattersRepository } from "@/server/repositories/matters-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlMattersRepository } from "@/server/repositories/matters-repository";
 import type {
   ConflictOfficialSearchInput,
   ConflictPreviewInput,
@@ -23,8 +23,8 @@ import type {
 import { AppError } from "@/shared/errors/api-error";
 import { getKycService } from "@/server/services/kyc-service";
 
-const repository = new PostgresMattersRepository();
-const security = new PostgresSecurityRepository();
+const repository = new MySqlMattersRepository();
+const security = new MySqlSecurityRepository();
 
 export class MattersService {
   async listClients(principal: AuthPrincipal) {
@@ -114,7 +114,7 @@ export class MattersService {
     const identity = getIdentityService();
     const identityRepo = new (
       await import("@/server/repositories/identity-repository")
-    ).PostgresIdentityRepository();
+    ).MySqlIdentityRepository();
 
     let userId: string | null = existingUserId;
     let created = false;

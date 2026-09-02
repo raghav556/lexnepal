@@ -39,7 +39,7 @@ registerDomain({
       await saveDomainReport("storage", report);
       await appendReconciliationReport({
         domain: "storage",
-        command: "import-postgres",
+        command: "import-mysql",
         dryRun: true,
         report,
         notes: [
@@ -90,7 +90,7 @@ registerDomain({
     await saveDomainReport("storage", report);
     await appendReconciliationReport({
       domain: "storage",
-      command: "import-postgres",
+      command: "import-mysql",
       report,
       details: report.details,
       notes: [
@@ -164,7 +164,7 @@ registerDomain({
       details,
       notes: [
         "R3.6 File SHA-256 from storage_migration_items (expected vs actual).",
-        "Re-run import-postgres --domain storage to re-verify bytes in MinIO.",
+        "Re-run import-mysql --domain storage to re-verify bytes in local storage.",
       ],
     });
     await engine.log(
@@ -194,7 +194,7 @@ registerDomain({
 
   rollback: async (engine, isDryRun) => {
     await engine.log(
-      `${isDryRun ? "[DRY RUN] " : ""}Storage rollback of MinIO objects is manual; see storage:cleanup helper.`,
+      `${isDryRun ? "[DRY RUN] " : ""}Storage rollback of local storage objects is manual; see storage:cleanup helper.`,
     );
   },
 });

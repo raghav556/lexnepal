@@ -1,5 +1,6 @@
+import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { getDatabase } from "../db/client";
 import {
   auditLog,
@@ -147,7 +148,7 @@ export class DocumentRepository {
     const conditions = [
       eq(documents.firmId, firmId),
       isNull(documents.deletedAt),
-      ilike(documents.title, `%${filters.query}%`),
+      like(documents.title, `%${filters.query}%`),
       sql`NOT EXISTS (
         SELECT 1 FROM documents AS child_version
         WHERE child_version.firm_id = ${firmId}
@@ -273,40 +274,43 @@ export class DocumentRepository {
         throw new AppError("CONFLICT", "Document history changed; refresh and try again", 409);
       }
 
-      const [created] = await transaction
-        .insert(documents)
-        .values({
-          id: input.id,
-          firmId: input.firmId,
-          caseId: parent.caseId,
-          documentNumber: `DOC-RESTORE-${input.id}`,
-          title: source.title,
-          description: source.description,
-          type: source.type,
-          storageId: input.destinationStorageKey,
-          mimeType: source.mimeType,
-          sizeBytes: source.sizeBytes,
-          sha256: source.sha256,
-          version: input.version,
-          parentDocumentId: input.parentDocumentId,
-          uploadedBy: input.uploadedBy,
-          isTemplate: parent.isTemplate,
-          isPrivileged: parent.isPrivileged,
-          searchableText: source.searchableText,
-          status: "draft",
-          retentionPolicy: parent.retentionPolicy,
-          retentionUntil: parent.retentionUntil,
-          confidentialityLevel: parent.confidentialityLevel,
-          isOnLegalHold: parent.isOnLegalHold,
-          legalHoldReason: parent.legalHoldReason,
-          legalHoldSetAt: parent.legalHoldSetAt,
-          legalHoldSetBy: parent.legalHoldSetBy,
-          uploadStatus: "clean",
-          scanProvider: "version-restore",
-          scanCompletedAt: input.audit.occurredAt,
-          scanDetails: `Restored from version ${source.version} (${source.id})`,
-        })
-        .returning();
+      const [created] = await returningInsert(
+        transaction
+          .insert(documents)
+          .values({
+            id: input.id,
+            firmId: input.firmId,
+            caseId: parent.caseId,
+            documentNumber: `DOC-RESTORE-${input.id}`,
+            title: source.title,
+            description: source.description,
+            type: source.type,
+            storageId: input.destinationStorageKey,
+            mimeType: source.mimeType,
+            sizeBytes: source.sizeBytes,
+            sha256: source.sha256,
+            version: input.version,
+            parentDocumentId: input.parentDocumentId,
+            uploadedBy: input.uploadedBy,
+            isTemplate: parent.isTemplate,
+            isPrivileged: parent.isPrivileged,
+            searchableText: source.searchableText,
+            status: "draft",
+            retentionPolicy: parent.retentionPolicy,
+            retentionUntil: parent.retentionUntil,
+            confidentialityLevel: parent.confidentialityLevel,
+            isOnLegalHold: parent.isOnLegalHold,
+            legalHoldReason: parent.legalHoldReason,
+            legalHoldSetAt: parent.legalHoldSetAt,
+            legalHoldSetBy: parent.legalHoldSetBy,
+            uploadStatus: "clean",
+            scanProvider: "version-restore",
+            scanCompletedAt: input.audit.occurredAt,
+            scanDetails: `Restored from version ${source.version} (${source.id})`,
+          })
+          .$returningId(),
+        (id) => transaction.select().from(documents).where(eq(documents.id, id)).limit(1),
+      );
 
       const sourceTags = await transaction
         .select({ tagId: documentTagAssignments.tagId })
@@ -354,11 +358,13 @@ export class DocumentRepository {
     const whereClause = isUuid
       ? and(eq(documents.firmId, firmId), eq(documents.id, id))
       : and(eq(documents.firmId, firmId), eq(documents.legacyConvexId, id));
-    return await db
-      .update(documents)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(whereClause)
-      .returning();
+    return await returningMutation(
+      db
+        .update(documents)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(whereClause),
+      () => db.select().from(documents).where(whereClause),
+    );
   }
 
   static async setLegalHold(firmId: string, id: string, reason: string, userId: string) {
@@ -415,22 +421,25 @@ export class DocumentRepository {
     }
     const token = crypto.randomUUID();
     const password = typeof shareData.password === "string" ? shareData.password : undefined;
-    const [share] = await db
-      .insert(documentShares)
-      .values({
-        firmId,
-        documentId: String(doc.id ?? doc._id),
-        token,
-        passwordHash: password ? hashSharePassword(password) : null,
-        expiresAt: shareData.expiresAt ? new Date(shareData.expiresAt) : null,
-        allowDownload: shareData.allowDownload !== false,
-        maxDownloads: shareData.maxDownloads ?? null,
-        createdBy,
-        isActive: true,
-        downloadsCount: 0,
-        failedAttempts: 0,
-      })
-      .returning();
+    const [share] = await returningInsert(
+      db
+        .insert(documentShares)
+        .values({
+          firmId,
+          documentId: String(doc.id ?? doc._id),
+          token,
+          passwordHash: password ? hashSharePassword(password) : null,
+          expiresAt: shareData.expiresAt ? new Date(shareData.expiresAt) : null,
+          allowDownload: shareData.allowDownload !== false,
+          maxDownloads: shareData.maxDownloads ?? null,
+          createdBy,
+          isActive: true,
+          downloadsCount: 0,
+          failedAttempts: 0,
+        })
+        .$returningId(),
+      (id) => db.select().from(documentShares).where(eq(documentShares.id, id)).limit(1),
+    );
     return { ...share, _id: share!.id, token, url: `/share/${token}` };
   }
 
@@ -464,22 +473,24 @@ export class DocumentRepository {
     const db = getDatabase();
     const doc = await this.getDocumentById(firmId, documentId);
     if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
-    const [row] = await db
-      .update(documentShares)
-      .set({
-        isActive: false,
-        revokedAt: new Date(),
-        revokedBy: revokedBy ?? null,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(documentShares.firmId, firmId),
-          eq(documentShares.documentId, String(doc.id ?? doc._id)),
-          eq(documentShares.id, shareId),
+    const [row] = await returningMutation(
+      db
+        .update(documentShares)
+        .set({
+          isActive: false,
+          revokedAt: new Date(),
+          revokedBy: revokedBy ?? null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(documentShares.firmId, firmId),
+            eq(documentShares.documentId, String(doc.id ?? doc._id)),
+            eq(documentShares.id, shareId),
+          ),
         ),
-      )
-      .returning();
+      () => db.select().from(documentShares).where(eq(documentShares.id, shareId)),
+    );
     if (!row) throw new AppError("NOT_FOUND", "Share not found", 404);
     return { success: true as const };
   }

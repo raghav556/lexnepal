@@ -6,7 +6,7 @@ import {
   requireFirmContext,
 } from "@/server/policies/authorization";
 import { EnvelopeRepository } from "@/server/repositories/envelope-repository";
-import { PostgresSecurityRepository } from "@/server/repositories/security-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import type {
   DocumentMarkViewedInput,
   DocumentRequestSignatureInput,
@@ -18,7 +18,7 @@ import type {
   EnvelopeVoidInput,
 } from "@/shared/contracts/envelopes";
 
-const security = new PostgresSecurityRepository();
+const security = new MySqlSecurityRepository();
 
 export class EnvelopeService {
   async listSigners(principal: AuthPrincipal) {

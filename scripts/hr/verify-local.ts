@@ -1,3 +1,5 @@
+import { returningInsert } from "@/server/db/mysql-returning";
+import { returningMutation } from "@/server/db/mysql-returning";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -54,27 +56,29 @@ async function signIn(email: string) {
 }
 
 async function ensureFirmAssociate() {
-  const [lexUser] = await database
-    .insert(users)
-    .values({
-      firmId: firmA,
-      tokenIdentifier: `hr-verify:${associateEmail}`,
-      email: associateEmail,
-      name: "HR Verify Associate",
-      role: "associate",
-      isActive: true,
-      isPending: false,
-    })
-    .onConflictDoUpdate({
-      target: [users.firmId, users.email],
-      set: {
+  const [lexUser] = await returningInsert(
+    database
+      .insert(users)
+      .values({
+        firmId: firmA,
+        tokenIdentifier: `hr-verify:${associateEmail}`,
+        email: associateEmail,
+        name: "HR Verify Associate",
         role: "associate",
         isActive: true,
         isPending: false,
-        updatedAt: new Date(),
-      },
-    })
-    .returning({ id: users.id, firmId: users.firmId });
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          role: "associate",
+          isActive: true,
+          isPending: false,
+          updatedAt: new Date(),
+        },
+      })
+      .$returningId(),
+    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+  );
   if (!lexUser) throw new Error("Failed to ensure HR verify associate");
 
   const [existingAuth] = await database
@@ -107,11 +111,13 @@ try {
     throw new Error(`HR migrate reconcile failed: ${JSON.stringify(report)}`);
   }
 
-  const [adminA] = await database
-    .update(users)
-    .set({ role: "admin", updatedAt: new Date() })
-    .where(eq(users.email, "boundary-a@example.invalid"))
-    .returning({ id: users.id, firmId: users.firmId });
+  const [adminA] = await returningMutation(
+    database
+      .update(users)
+      .set({ role: "admin", updatedAt: new Date() })
+      .where(eq(users.email, "boundary-a@example.invalid")),
+    () => database.select().from(users).where(eq(users.email, "boundary-a@example.invalid")),
+  );
   if (!adminA || adminA.firmId !== firmA) {
     throw new Error("boundary-a user missing or wrong firm");
   }

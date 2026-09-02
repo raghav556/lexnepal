@@ -24,7 +24,7 @@ registerDomain({
     await saveDomainReport("analytics", report);
     await appendReconciliationReport({
       domain: "analytics",
-      command: "import-postgres",
+      command: "import-mysql",
       dryRun: isDryRun,
       report,
       notes: [

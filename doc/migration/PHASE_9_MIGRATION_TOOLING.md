@@ -33,7 +33,7 @@ npm run migration:rehearse-all
 `--domain storage` wraps existing helpers only:
 
 1. `convertConvexStorageExport` — firm ownership + SHA from Convex `_storage` export  
-2. `migrateLegacyStorage` — copy to MinIO + journal SHA verify  
+2. `migrateLegacyStorage` — copy to local storage + journal SHA verify
 
 ```powershell
 npm run migration -- import-postgres --domain storage --dry-run --export-path tests/fixtures/convex-export --firm-map tests/fixtures/convex-export/firm-map.json
@@ -43,7 +43,7 @@ npm run migration -- reconcile --domain storage --export-path tests/fixtures/con
 npm run migration:prove-storage
 ```
 
-Dry-run inventories `_storage` row counts (no MinIO writes). Real import is idempotent; double-run included in `migration:prove-double-run`.
+Dry-run inventories `_storage` row counts (no storage writes). Real import is idempotent; double-run included in `migration:prove-double-run`.
 
 ### R3.5 Reconciliation report
 

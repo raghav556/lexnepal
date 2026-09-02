@@ -6,6 +6,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, twoFactor } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import { getDatabase } from "@/server/db/client";
+import { returningMutation } from "@/server/db/mysql-returning";
 import {
   authAccounts,
   authRateLimits,
@@ -47,7 +48,7 @@ function createLocalAuth() {
       after: authAuditAfterHook,
     },
     database: drizzleAdapter(getDatabase(), {
-      provider: "pg",
+      provider: "mysql",
       schema: {
         user: authUsers,
         session: authSessions,
@@ -183,18 +184,26 @@ async function activateLinkedUser(user: { id: string; [key: string]: unknown }):
   }
 
   const now = new Date();
-  const [updated] = await getDatabase()
-    .update(users)
-    .set({
-      tokenIdentifier: `local:${user.id}`,
-      isPending: false,
-      isActive: true,
-      activationToken: null,
-      inviteExpiresAt: null,
-      updatedAt: now,
-    })
-    .where(eq(users.id, linkedId))
-    .returning({ id: users.id, firmId: users.firmId, email: users.email });
+  const database = getDatabase();
+  const [updated] = await returningMutation(
+    database
+      .update(users)
+      .set({
+        tokenIdentifier: `local:${user.id}`,
+        isPending: false,
+        isActive: true,
+        activationToken: null,
+        inviteExpiresAt: null,
+        updatedAt: now,
+      })
+      .where(eq(users.id, linkedId)),
+    () =>
+      database
+        .select({ id: users.id, firmId: users.firmId, email: users.email })
+        .from(users)
+        .where(eq(users.id, linkedId))
+        .limit(1),
+  );
 
   if (!updated) {
     throw new Error(`Identity activation failed: LexNepal user ${linkedId} was not found`);

@@ -1,6 +1,6 @@
 /**
  * Characterization: the document security boundaries carried over from Convex must keep holding on
- * the Next/Postgres stack — upload limits, MIME allowlist, share-password hashing, role capabilities.
+ * the Next/MySQL stack — upload limits, MIME allowlist, share-password hashing, role capabilities.
  */
 import assert from "node:assert/strict";
 import test from "node:test";

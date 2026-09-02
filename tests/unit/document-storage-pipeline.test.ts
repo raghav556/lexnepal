@@ -136,6 +136,7 @@ class MemoryStorage implements ObjectStorage {
 class MemoryPipelineRepository implements DocumentPipelineRepository {
   intents = new Map<string, UploadIntentRecord>();
   jobs = new Map<string, ScanJobRecord & { status: string }>();
+  cleanupCandidates: UploadIntentRecord[] = [];
 
   async createIntent(intent: UploadIntentRecord): Promise<void> {
     this.intents.set(intent.id, intent);
@@ -204,7 +205,7 @@ class MemoryPipelineRepository implements DocumentPipelineRepository {
   }
 
   async listCleanupCandidates(): Promise<UploadIntentRecord[]> {
-    return [];
+    return this.cleanupCandidates;
   }
 
   async markExpired(intentId: string): Promise<void> {
@@ -275,6 +276,21 @@ describe("quarantine and scanning pipeline", () => {
     await expect(pipeline.processNextScan("worker-1")).resolves.toBe("infected");
     expect(repository.intents.get(intentId)?.status).toBe("rejected");
     expect(await storage.listKeys("rejected/firm-1/")).toHaveLength(1);
+  });
+
+  it("deletes retained rejected objects when their cleanup window expires", async () => {
+    const repository = new MemoryPipelineRepository();
+    const storage = new MemoryStorage();
+    const pipeline = service(repository, storage, {
+      scan: async () => ({ verdict: "infected", provider: "test-av", details: "EICAR FOUND" }),
+    });
+    const intentId = await createAndUpload(pipeline, storage);
+    await pipeline.completeUpload(principal(), intentId);
+    await pipeline.processNextScan("worker-1");
+    repository.cleanupCandidates = [repository.intents.get(intentId)!];
+
+    await expect(pipeline.cleanup()).resolves.toEqual({ expired: 0, deleted: 1 });
+    expect(await storage.listKeys("rejected/firm-1/")).toHaveLength(0);
   });
 
   it("rejects MIME/magic-byte mismatches and oversized intent metadata", async () => {

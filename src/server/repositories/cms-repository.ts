@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation, returningUpsert } from "@/server/db/mysql-returning";
 /* eslint-disable @typescript-eslint/no-explicit-any -- generic audited CRUD is restricted to the CMS table allowlist */
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -42,7 +43,7 @@ type CmsTableName =
   "practiceAreas" | "testimonials" | "blogPosts" | "news" | "careers" | "resources" | "navigation";
 const database = getDatabase();
 
-export class PostgresCmsRepository {
+export class MySqlCmsRepository {
   async resolveFirmId(slug: string): Promise<string | null> {
     const [firm] = await database
       .select({ id: firms.id })
@@ -73,10 +74,7 @@ export class PostgresCmsRepository {
         await tx
           .insert(cmsSettings)
           .values({ firmId, key: item.key, value })
-          .onConflictDoUpdate({
-            target: [cmsSettings.firmId, cmsSettings.key],
-            set: { value, deletedAt: null, updatedAt: audit.occurredAt },
-          });
+          .onDuplicateKeyUpdate({ set: { value, deletedAt: null, updatedAt: audit.occurredAt } });
       }
       await writeAudit(
         tx,
@@ -569,10 +567,13 @@ export class PostgresCmsRepository {
   async createCareer(firmId: string, input: CareerInput, audit: AuditContext) {
     return database.transaction(async (tx) => {
       const { requirements, ...career } = input;
-      const [created] = await tx
-        .insert(careers)
-        .values({ firmId, ...career })
-        .returning();
+      const [created] = await returningInsert(
+        tx
+          .insert(careers)
+          .values({ firmId, ...career })
+          .$returningId(),
+        (id) => tx.select().from(careers).where(eq(careers.id, id)).limit(1),
+      );
       if (requirements.length)
         await tx.insert(careerRequirements).values(
           requirements.map((requirement, position) => ({
@@ -589,11 +590,13 @@ export class PostgresCmsRepository {
   async updateCareer(firmId: string, id: string, input: Partial<CareerInput>, audit: AuditContext) {
     return database.transaction(async (tx) => {
       const { requirements, ...career } = input;
-      const [updated] = await tx
-        .update(careers)
-        .set({ ...career, updatedAt: audit.occurredAt })
-        .where(and(eq(careers.id, id), eq(careers.firmId, firmId), isNull(careers.deletedAt)))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(careers)
+          .set({ ...career, updatedAt: audit.occurredAt })
+          .where(and(eq(careers.id, id), eq(careers.firmId, firmId), isNull(careers.deletedAt))),
+        () => tx.select().from(careers).where(eq(careers.id, id)),
+      );
       if (!updated) return null;
       let nextRequirements = requirements;
       if (requirements !== undefined) {
@@ -665,16 +668,19 @@ export class PostgresCmsRepository {
         )
         .limit(1);
       if (!job) return null;
-      const [created] = await tx
-        .insert(jobApplications)
-        .values({
-          firmId,
-          jobId,
-          ...normalizeEmpty(input),
-          status: "new",
-          appliedDate: new Date().toISOString().slice(0, 10),
-        })
-        .returning();
+      const [created] = await returningInsert(
+        tx
+          .insert(jobApplications)
+          .values({
+            firmId,
+            jobId,
+            ...normalizeEmpty(input),
+            status: "new",
+            appliedDate: new Date().toISOString().slice(0, 10),
+          })
+          .$returningId(),
+        (id) => tx.select().from(jobApplications).where(eq(jobApplications.id, id)).limit(1),
+      );
       return toDto(created);
     });
   }
@@ -776,18 +782,20 @@ export class PostgresCmsRepository {
     return this.softDelete(resources, firmId, id, audit, "resource");
   }
   async incrementResourceDownload(firmId: string, id: string) {
-    const [row] = await database
-      .update(resources)
-      .set({ downloads: sql`${resources.downloads} + 1`, updatedAt: new Date() })
-      .where(
-        and(
-          eq(resources.id, id),
-          eq(resources.firmId, firmId),
-          eq(resources.status, "published"),
-          isNull(resources.deletedAt),
+    const [row] = await returningMutation(
+      database
+        .update(resources)
+        .set({ downloads: sql`${resources.downloads} + 1`, updatedAt: new Date() })
+        .where(
+          and(
+            eq(resources.id, id),
+            eq(resources.firmId, firmId),
+            eq(resources.status, "published"),
+            isNull(resources.deletedAt),
+          ),
         ),
-      )
-      .returning({ downloads: resources.downloads, fileUrl: resources.fileUrl });
+      () => database.select().from(resources).where(eq(resources.id, id)),
+    );
     return row ?? null;
   }
 
@@ -808,19 +816,25 @@ export class PostgresCmsRepository {
     audit: AuditContext,
   ) {
     return database.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(legalPages)
-        .values({ firmId, slug, ...input, contentUpdatedAt: audit.occurredAt })
-        .onConflictDoUpdate({
-          target: [legalPages.firmId, legalPages.slug],
-          set: {
-            ...input,
-            contentUpdatedAt: audit.occurredAt,
-            deletedAt: null,
-            updatedAt: audit.occurredAt,
-          },
-        })
-        .returning();
+      const [row] = await returningUpsert(
+        tx
+          .insert(legalPages)
+          .values({ firmId, slug, ...input, contentUpdatedAt: audit.occurredAt })
+          .onDuplicateKeyUpdate({
+            set: {
+              ...input,
+              contentUpdatedAt: audit.occurredAt,
+              deletedAt: null,
+              updatedAt: audit.occurredAt,
+            },
+          }),
+        () =>
+          tx
+            .select()
+            .from(legalPages)
+            .where(and(eq(legalPages.firmId, firmId), eq(legalPages.slug, slug)))
+            .limit(1),
+      );
       await writeAudit(tx, audit, "cms.legal_page_updated", "legal_page", row.id, slug);
       return toDto({ ...row, updatedAt: row.contentUpdatedAt });
     });
@@ -865,17 +879,29 @@ export class PostgresCmsRepository {
   async deleteNavigation(firmId: string, id: string, audit: AuditContext) {
     return database.transaction(async (tx) => {
       const now = audit.occurredAt;
-      const rows = await tx
-        .update(navigation)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(
-          and(
-            eq(navigation.firmId, firmId),
-            sql`(${navigation.id} = ${id} OR ${navigation.parentId} = ${id})`,
-            isNull(navigation.deletedAt),
+      const rows = await returningMutation(
+        tx
+          .update(navigation)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(
+            and(
+              eq(navigation.firmId, firmId),
+              sql`(${navigation.id} = ${id} OR ${navigation.parentId} = ${id})`,
+              isNull(navigation.deletedAt),
+            ),
           ),
-        )
-        .returning({ id: navigation.id });
+        () =>
+          tx
+            .select()
+            .from(navigation)
+            .where(
+              and(
+                eq(navigation.firmId, firmId),
+                sql`(${navigation.id} = ${id} OR ${navigation.parentId} = ${id})`,
+                isNull(navigation.deletedAt),
+              ),
+            ),
+      );
       await writeAudit(
         tx,
         audit,
@@ -940,10 +966,7 @@ export class PostgresCmsRepository {
       await tx
         .insert(newsletterSubscribers)
         .values({ firmId, email, subscribedAt: new Date(), isActive: true })
-        .onConflictDoUpdate({
-          target: [newsletterSubscribers.firmId, newsletterSubscribers.email],
-          set: { isActive: true, deletedAt: null, updatedAt: new Date() },
-        });
+        .onDuplicateKeyUpdate({ set: { isActive: true, deletedAt: null, updatedAt: new Date() } });
       if (!existing)
         await tx.insert(leads).values({
           firmId,
@@ -1128,11 +1151,13 @@ export class PostgresCmsRepository {
   ) {
     return database.transaction(async (tx) => {
       const { education, practiceAreas: areas, notableCases: cases, ...profile } = input;
-      const [updated] = await tx
-        .update(users)
-        .set({ ...normalizeEmpty(profile), updatedAt: audit.occurredAt })
-        .where(and(eq(users.id, userId), eq(users.firmId, firmId), isNull(users.deletedAt)))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(users)
+          .set({ ...normalizeEmpty(profile), updatedAt: audit.occurredAt })
+          .where(and(eq(users.id, userId), eq(users.firmId, firmId), isNull(users.deletedAt))),
+        () => tx.select().from(users).where(eq(users.id, userId)),
+      );
       if (!updated) return null;
       if (education) {
         await tx
@@ -1183,11 +1208,14 @@ export class PostgresCmsRepository {
     resource: CmsTableName | string,
   ) {
     return database.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(table)
-        .values({ firmId, ...input })
-        .returning();
-      await writeAudit(tx, audit, `cms.${resource}_created`, resource, created.id, null);
+      const [created] = await returningInsert<Record<string, unknown>>(
+        tx
+          .insert(table)
+          .values({ firmId, ...input })
+          .$returningId() as unknown as PromiseLike<Array<{ id: string }>>,
+        (id) => tx.select().from(table).where(eq(table.id, id)).limit(1),
+      );
+      await writeAudit(tx, audit, `cms.${resource}_created`, resource, String(created.id), null);
       return toDto(created);
     });
   }
@@ -1200,11 +1228,13 @@ export class PostgresCmsRepository {
     resource: CmsTableName | string,
   ) {
     return database.transaction(async (tx) => {
-      const [updated] = await tx
-        .update(table)
-        .set({ ...input, updatedAt: audit.occurredAt })
-        .where(and(eq(table.id, id), eq(table.firmId, firmId), isNull(table.deletedAt)))
-        .returning();
+      const [updated] = await returningMutation(
+        tx
+          .update(table)
+          .set({ ...input, updatedAt: audit.occurredAt })
+          .where(and(eq(table.id, id), eq(table.firmId, firmId), isNull(table.deletedAt))),
+        () => tx.select().from(table).where(eq(table.id, id)),
+      );
       if (!updated) return null;
       await writeAudit(
         tx,
@@ -1225,11 +1255,13 @@ export class PostgresCmsRepository {
     resource: CmsTableName | string,
   ) {
     return database.transaction(async (tx) => {
-      const rows = await tx
-        .update(table)
-        .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
-        .where(and(eq(table.id, id), eq(table.firmId, firmId), isNull(table.deletedAt)))
-        .returning({ id: table.id });
+      const rows = await returningMutation(
+        tx
+          .update(table)
+          .set({ deletedAt: audit.occurredAt, updatedAt: audit.occurredAt })
+          .where(and(eq(table.id, id), eq(table.firmId, firmId), isNull(table.deletedAt))),
+        () => tx.select().from(table).where(eq(table.id, id)),
+      );
       if (!rows.length) return false;
       await writeAudit(tx, audit, `cms.${resource}_archived`, resource, id, null);
       return true;

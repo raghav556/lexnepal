@@ -1,3 +1,7 @@
+import { returningUpsert } from "@/server/db/mysql-returning";
+import { eq } from "drizzle-orm";
+import { returningMutation } from "@/server/db/mysql-returning";
+import { sql } from "drizzle-orm";
 /* eslint-disable @typescript-eslint/no-explicit-any -- migration input is untrusted heterogeneous legacy JSON */
 import "server-only";
 import fs from "node:fs/promises";
@@ -87,58 +91,59 @@ export async function migrateWorkManagementExport(input: {
 
         const firmId = resolveFirm(record, input, caseRecord.firmId);
 
-        const [row] = await tx
-          .insert(hearings)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            caseId: caseRecord.id,
-            court: asString(record.court) ?? "Unknown",
-            judge: asString(record.judge),
-            dateGregorian:
-              dateOnly(record.dateGregorian) ?? new Date().toISOString().split("T")[0]!,
-            dateBs: asString(record.dateBs) ?? "",
-            hearingTime: asString(record.hearingTime),
-            purpose: asString(record.purpose),
-            outcome: asString(record.outcome),
-            nextDateGregorian: dateOnly(record.nextDateGregorian),
-            nextDateBs: asString(record.nextDateBs),
-            status: enumValue(
-              record.status,
-              [
-                "scheduled",
-                "completed",
-                "adjourned",
-                "cancelled",
-                "postponed",
-                "not_reached",
-                "bench_disqualified",
-                "could_not_present",
-                "part_heard",
-                "continuous",
-                "procedural_order",
-                "evidence_exam",
-                "final_judgment",
-                "dismissed",
-                "settled",
-                "archived",
-                "on_hold",
-              ] as const,
-              "scheduled",
-            ),
-            notes: asString(record.notes),
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onConflictDoUpdate({
-            target: hearings.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(hearings)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
               caseId: caseRecord.id,
               court: asString(record.court) ?? "Unknown",
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: hearings.id, firmId: hearings.firmId });
+              judge: asString(record.judge),
+              dateGregorian:
+                dateOnly(record.dateGregorian) ?? new Date().toISOString().split("T")[0]!,
+              dateBs: asString(record.dateBs) ?? "",
+              hearingTime: asString(record.hearingTime),
+              purpose: asString(record.purpose),
+              outcome: asString(record.outcome),
+              nextDateGregorian: dateOnly(record.nextDateGregorian),
+              nextDateBs: asString(record.nextDateBs),
+              status: enumValue(
+                record.status,
+                [
+                  "scheduled",
+                  "completed",
+                  "adjourned",
+                  "cancelled",
+                  "postponed",
+                  "not_reached",
+                  "bench_disqualified",
+                  "could_not_present",
+                  "part_heard",
+                  "continuous",
+                  "procedural_order",
+                  "evidence_exam",
+                  "final_judgment",
+                  "dismissed",
+                  "settled",
+                  "archived",
+                  "on_hold",
+                ] as const,
+                "scheduled",
+              ),
+              notes: asString(record.notes),
+              createdAt: toDate(record._creationTime) ?? new Date(),
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                caseId: caseRecord.id,
+                court: asString(record.court) ?? "Unknown",
+                updatedAt: new Date(),
+              },
+            }),
+          () => tx.select().from(hearings).where(eq(hearings.legacyConvexId, legacyId)).limit(1),
+        );
 
         hearingMap.set(legacyId, row);
         migrated.hearings += 1;
@@ -170,52 +175,53 @@ export async function migrateWorkManagementExport(input: {
           ? hearingMap.get(asString(record.hearingId) ?? "")
           : null;
 
-        const [row] = await tx
-          .insert(tasks)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            title: asString(record.title) ?? "Migrated task",
-            description: asString(record.description),
-            assignedTo: assignee.id,
-            createdBy: creator.id,
-            status: enumValue(
-              record.status,
-              ["todo", "in_progress", "done", "cancelled"] as const,
-              "todo",
-            ),
-            priority: enumValue(
-              record.priority,
-              ["low", "medium", "high", "urgent"] as const,
-              "medium",
-            ),
-            category: enumValue(
-              record.category,
-              ["filing", "research", "client", "court", "admin", "other"] as const,
-              "other",
-            ),
-            dueDate: toDate(record.dueDate),
-            dueDateBs: asString(record.dueDateBs),
-            caseId: caseRecord?.id,
-            hearingId: hearingRecord?.id,
-            isRecurring: asBoolean(record.isRecurring, false),
-            recurrenceRule: enumValue(
-              record.recurrenceRule,
-              ["daily", "weekly", "monthly"] as const,
-              "daily",
-            ),
-            completedAt: toDate(record.completedAt),
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onConflictDoUpdate({
-            target: tasks.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(tasks)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
               title: asString(record.title) ?? "Migrated task",
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: tasks.id, firmId: tasks.firmId });
+              description: asString(record.description),
+              assignedTo: assignee.id,
+              createdBy: creator.id,
+              status: enumValue(
+                record.status,
+                ["todo", "in_progress", "done", "cancelled"] as const,
+                "todo",
+              ),
+              priority: enumValue(
+                record.priority,
+                ["low", "medium", "high", "urgent"] as const,
+                "medium",
+              ),
+              category: enumValue(
+                record.category,
+                ["filing", "research", "client", "court", "admin", "other"] as const,
+                "other",
+              ),
+              dueDate: toDate(record.dueDate),
+              dueDateBs: asString(record.dueDateBs),
+              caseId: caseRecord?.id,
+              hearingId: hearingRecord?.id,
+              isRecurring: asBoolean(record.isRecurring, false),
+              recurrenceRule: enumValue(
+                record.recurrenceRule,
+                ["daily", "weekly", "monthly"] as const,
+                "daily",
+              ),
+              completedAt: toDate(record.completedAt),
+              createdAt: toDate(record._creationTime) ?? new Date(),
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                title: asString(record.title) ?? "Migrated task",
+                updatedAt: new Date(),
+              },
+            }),
+          () => tx.select().from(tasks).where(eq(tasks.legacyConvexId, legacyId)).limit(1),
+        );
 
         taskMap.set(legacyId, row);
         migrated.tasks += 1;
@@ -243,8 +249,7 @@ export async function migrateWorkManagementExport(input: {
             userId: watcher.id,
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
-          .onConflictDoUpdate({
-            target: taskWatchers.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               taskId: taskRow.id,
@@ -282,8 +287,7 @@ export async function migrateWorkManagementExport(input: {
             content: asString(record.content) ?? "",
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
-          .onConflictDoUpdate({
-            target: taskComments.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               content: asString(record.content) ?? "",
@@ -308,37 +312,43 @@ export async function migrateWorkManagementExport(input: {
 
         const firmId = resolveFirm(record, input, author.firmId);
 
-        const [row] = await tx
-          .insert(researchNotes)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            title: asString(record.title) ?? "Migrated Note",
-            content: asString(record.content) ?? "",
-            category: enumValue(
-              record.category,
-              [
-                "supreme_court",
-                "high_court",
-                "district_court",
-                "commentary",
-                "procedure",
-                "template_research",
-              ] as const,
-              "commentary",
-            ),
-            authorId: author.id,
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onConflictDoUpdate({
-            target: researchNotes.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(researchNotes)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
               title: asString(record.title) ?? "Migrated Note",
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: researchNotes.id, firmId: researchNotes.firmId });
+              content: asString(record.content) ?? "",
+              category: enumValue(
+                record.category,
+                [
+                  "supreme_court",
+                  "high_court",
+                  "district_court",
+                  "commentary",
+                  "procedure",
+                  "template_research",
+                ] as const,
+                "commentary",
+              ),
+              authorId: author.id,
+              createdAt: toDate(record._creationTime) ?? new Date(),
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                title: asString(record.title) ?? "Migrated Note",
+                updatedAt: new Date(),
+              },
+            }),
+          () =>
+            tx
+              .select()
+              .from(researchNotes)
+              .where(eq(researchNotes.legacyConvexId, legacyId))
+              .limit(1),
+        );
 
         researchNoteMap.set(legacyId, row);
 
@@ -352,7 +362,7 @@ export async function migrateWorkManagementExport(input: {
                   researchNoteId: row.id,
                   tag: tag.trim(),
                 })
-                .onConflictDoNothing();
+                .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
             }
           }
         }
@@ -370,30 +380,36 @@ export async function migrateWorkManagementExport(input: {
         if (!legacyId) throw new Error("Missing legacy ID");
         const firmId = resolveFirm(record, input);
 
-        const [row] = await tx
-          .insert(sopTemplates)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            key: asString(record.key) ?? `migrated-${legacyId}`,
-            label: asString(record.label) ?? "Migrated SOP",
-            defaultPriority: enumValue(
-              record.defaultPriority,
-              ["low", "medium", "high", "urgent"] as const,
-              "medium",
-            ),
-            practiceArea: asString(record.practiceArea),
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onConflictDoUpdate({
-            target: sopTemplates.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(sopTemplates)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
+              key: asString(record.key) ?? `migrated-${legacyId}`,
               label: asString(record.label) ?? "Migrated SOP",
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: sopTemplates.id, firmId: sopTemplates.firmId });
+              defaultPriority: enumValue(
+                record.defaultPriority,
+                ["low", "medium", "high", "urgent"] as const,
+                "medium",
+              ),
+              practiceArea: asString(record.practiceArea),
+              createdAt: toDate(record._creationTime) ?? new Date(),
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                label: asString(record.label) ?? "Migrated SOP",
+                updatedAt: new Date(),
+              },
+            }),
+          () =>
+            tx
+              .select()
+              .from(sopTemplates)
+              .where(eq(sopTemplates.legacyConvexId, legacyId))
+              .limit(1),
+        );
 
         sopTemplateMap.set(legacyId, row);
         migrated.sopTemplates += 1;
@@ -423,8 +439,7 @@ export async function migrateWorkManagementExport(input: {
             position: asNumber(record.position, 0),
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
-          .onConflictDoUpdate({
-            target: sopTemplateTasks.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               title: asString(record.title) ?? "Task",

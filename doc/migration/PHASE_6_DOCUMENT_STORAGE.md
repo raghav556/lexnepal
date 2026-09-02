@@ -1,13 +1,13 @@
 # Phase 6 Document Storage and Processing Evidence
 
-**Status:** Local PostgreSQL, MinIO and ClamAV gates complete; production export and CDR decision pending  
+**Status:** Local PostgreSQL, local filesystem storage and ClamAV gates complete (MinIO removed in Stage 1); production export and CDR decision pending
 **Date:** 2026-08-02
 
 ## Security flow
 
 ```text
 Authorized upload intent
-  -> short-lived presigned POST
+  -> short-lived single-use upload grant (app-controlled route)
   -> quarantine/{firm}/{intent}
   -> size + MIME + magic bytes + SHA-256
   -> durable scan job
@@ -40,7 +40,7 @@ npm run storage:migrate -- path/to/convex-storage-manifest.json
 
 CLI commands use the `react-server` package condition so server-only boundaries remain enforced. Production should run scan and cleanup through the durable worker/scheduler selected in Phase 7 rather than manually.
 
-Local startup, ports and MinIO compatibility behavior are documented in `LOCAL_POSTGRES_MINIO.md`.
+Local startup, ports and local filesystem storage behavior are documented in `LOCAL_POSTGRES_STORAGE.md`.
 
 ## Native Convex export conversion
 
@@ -53,7 +53,7 @@ npm run storage:migrate -- <output-dir>/manifests/<postgres-firm-id>.json
 
 The firm map is mandatory because Convex firm IDs are not PostgreSQL UUIDs. The converter resolves documents, thumbnails, signature artifacts, client KYC files and message attachments. It writes `conversion-report.json` and fails on unowned files, missing bytes, missing firm mappings, cross-firm references, size mismatches or SHA-256 mismatches. Ownership overrides are explicit and auditable; no file is silently dropped.
 
-The committed representative export produced two tenant-owned objects. Conversion and MinIO migration reconciled `sourceCount=2`, `destinationCount=2`, `verifiedCount=2` with zero failures. PostgreSQL journal rows retained the firm, byte count and matching expected/actual SHA-256 values.
+The committed representative export produced two tenant-owned objects. Conversion and storage migration reconciled `sourceCount=2`, `destinationCount=2`, `verifiedCount=2` with zero failures. PostgreSQL journal rows retained the firm, byte count and matching expected/actual SHA-256 values.
 
 ## Local end-to-end evidence
 

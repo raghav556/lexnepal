@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "../../src/server/db/client";
@@ -46,7 +47,7 @@ export async function seedPromotedCmsAsset(firmId: string, purpose: CmsAssetPurp
       completedAt: new Date(),
       actualSha256: "seed",
     })
-    .onConflictDoNothing();
+    .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 
   return publicCmsAssetUrl(id);
 }

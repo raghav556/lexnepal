@@ -129,7 +129,7 @@ registerDomain({
       await saveDomainReport("documents", report);
       await appendReconciliationReport({
         domain: "documents",
-        command: "import-postgres",
+        command: "import-mysql",
         dryRun: true,
         report,
         notes: [
@@ -174,7 +174,7 @@ registerDomain({
     await saveDomainReport("documents", report);
     await appendReconciliationReport({
       domain: "documents",
-      command: "import-postgres",
+      command: "import-mysql",
       report,
       notes: [`fingerprint=${fingerprint}`],
     });

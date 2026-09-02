@@ -1,3 +1,5 @@
+import { returningInsert } from "@/server/db/mysql-returning";
+import { returningInsert } from "@/server/db/mysql-returning";
 /**
  * Deterministic Better Auth users for R5.7 browser smoke.
  * Local/dev DBs only (`example.invalid` emails).
@@ -38,10 +40,13 @@ async function ensureFirmId(): Promise<string> {
 
   const [existing] = await db.select({ id: firms.id }).from(firms).limit(1);
   if (existing) return existing.id;
-  const [created] = await db
-    .insert(firms)
-    .values({ name: "LexNepal E2E", slug: "lexnepal-e2e", legacyConvexId: "e2e_firm" })
-    .returning({ id: firms.id });
+  const [created] = await returningInsert(
+    db
+      .insert(firms)
+      .values({ name: "LexNepal E2E", slug: "lexnepal-e2e", legacyConvexId: "e2e_firm" })
+      .$returningId(),
+    (id) => db.select().from(firms).where(eq(firms.id, id)).limit(1),
+  );
   return created!.id;
 }
 
@@ -67,29 +72,31 @@ export async function seedE2eUsers() {
   const auth = getLocalAuth();
 
   for (const fixture of Object.values(E2E_USERS)) {
-    const [lexUser] = await db
-      .insert(users)
-      .values({
-        firmId,
-        tokenIdentifier: `e2e:${fixture.email}`,
-        email: fixture.email,
-        name: fixture.name,
-        role: fixture.role,
-        isActive: true,
-        isPending: false,
-      })
-      .onConflictDoUpdate({
-        target: [users.firmId, users.email],
-        set: {
+    const [lexUser] = await returningInsert(
+      db
+        .insert(users)
+        .values({
+          firmId,
+          tokenIdentifier: `e2e:${fixture.email}`,
+          email: fixture.email,
+          name: fixture.name,
+          role: fixture.role,
           isActive: true,
           isPending: false,
-          deletedAt: null,
-          role: fixture.role,
-          name: fixture.name,
-          updatedAt: new Date(),
-        },
-      })
-      .returning({ id: users.id });
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            isActive: true,
+            isPending: false,
+            deletedAt: null,
+            role: fixture.role,
+            name: fixture.name,
+            updatedAt: new Date(),
+          },
+        })
+        .$returningId(),
+      (id) => db.select().from(users).where(eq(users.id, id)).limit(1),
+    );
 
     await deleteAuthUserForEmail(fixture.email, lexUser!.id);
 

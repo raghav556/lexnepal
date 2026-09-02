@@ -1,3 +1,4 @@
+import { returningInsert } from "@/server/db/mysql-returning";
 import { randomUUID } from "node:crypto";
 import { and, count, eq, sql } from "drizzle-orm";
 import {
@@ -12,19 +13,19 @@ import {
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { RetryableJobError } from "../../src/server/jobs/errors";
 import { createJobHandlers } from "../../src/server/jobs/handlers";
-import { PostgresJobRepository } from "../../src/server/jobs/job-repository";
+import { MySqlJobRepository } from "../../src/server/jobs/job-repository";
 import { DurableJobWorker } from "../../src/server/jobs/job-worker";
 
 const firmId = "61000000-0000-4000-8000-000000000001";
 const actorUserId = "62000000-0000-4000-8000-000000000001";
 const database = getDatabase();
-const repository = new PostgresJobRepository();
+const repository = new MySqlJobRepository();
 const suffix = randomUUID();
 
 await database
   .insert(firms)
   .values({ id: firmId, name: "Phase 7 Firm A", slug: "phase-7-firm-a" })
-  .onConflictDoNothing();
+  .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 await database
   .insert(users)
   .values({
@@ -37,7 +38,7 @@ await database
     isActive: true,
     isPending: false,
   })
-  .onConflictDoNothing();
+  .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
 
 // Isolate this proof from leftover due schedules / pending jobs in the local DB.
 await database
@@ -165,22 +166,20 @@ const recoveryWorker = new DurableJobWorker(
         if (handlerPasses <= 2) {
           throw new RetryableJobError("simulated recovery failure");
         }
-        const [effect] = await database
-          .insert(durableJobEffects)
-          .values({
-            firmId: job.firmId,
-            jobId: job.id,
-            effectKey,
-            details: { pass: handlerPasses },
-          })
-          .onConflictDoNothing({
-            target: [
-              durableJobEffects.firmId,
-              durableJobEffects.jobId,
-              durableJobEffects.effectKey,
-            ],
-          })
-          .returning({ id: durableJobEffects.id });
+        const [effect] = await returningInsert(
+          database
+            .insert(durableJobEffects)
+            .values({
+              firmId: job.firmId,
+              jobId: job.id,
+              effectKey,
+              details: { pass: handlerPasses },
+            })
+            .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } })
+            .$returningId(),
+          (id) =>
+            database.select().from(durableJobEffects).where(eq(durableJobEffects.id, id)).limit(1),
+        );
         // Re-run after recovery must not insert a second effect row.
         await database
           .insert(durableJobEffects)
@@ -190,13 +189,7 @@ const recoveryWorker = new DurableJobWorker(
             effectKey,
             details: { pass: handlerPasses, replay: true },
           })
-          .onConflictDoNothing({
-            target: [
-              durableJobEffects.firmId,
-              durableJobEffects.jobId,
-              durableJobEffects.effectKey,
-            ],
-          });
+          .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
         return { recovered: true, effectInserted: Boolean(effect) };
       },
     ],
@@ -298,7 +291,7 @@ if (
 
 const finalRetryJob = await repository.get(firmId, retryJob.job.id);
 const auditCount = await database
-  .select({ value: sql<number>`count(*)::int` })
+  .select({ value: sql<number>`cast(count(*) as signed)` })
   .from(auditLog)
   .where(and(eq(auditLog.firmId, firmId), eq(auditLog.resource, "durable_jobs")));
 

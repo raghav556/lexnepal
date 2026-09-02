@@ -8,7 +8,7 @@ const migrationFiles = fs
   .map((file) => path.join("drizzle", file));
 
 function purposeFor(index) {
-  if (index.name === "documents_search_vector_idx")
+  if (index.name === "documents_search_fulltext_idx")
     return "Full-text document discovery by title description and extracted text";
   if (index.unique) return `Enforce ${index.table} business or tenant uniqueness`;
   const name = index.name;
@@ -57,16 +57,31 @@ for (const file of migrationFiles) {
     if (droppedTable) droppedTables.add(droppedTable[1]);
     const droppedIndex = statement.match(/DROP\s+INDEX\s+(?:IF\s+EXISTS\s+)?"?([a-zA-Z0-9_]+)"?/i);
     if (droppedIndex) droppedIndexes.add(droppedIndex[1]);
+    const tableMatch = statement.match(/CREATE\s+TABLE\s+`?([a-zA-Z0-9_]+)`?/i);
+    if (tableMatch) {
+      for (const unique of statement.matchAll(
+        /CONSTRAINT\s+`?([a-zA-Z0-9_]+)`?\s+UNIQUE\s*\(([^)]*)\)/gi,
+      )) {
+        const index = {
+          table: tableMatch[1],
+          index: unique[1],
+          unique: true,
+          columnsOrExpression: unique[2].replace(/\s+/g, " ").replaceAll("`", "").trim(),
+          migration: file.replaceAll("\\", "/"),
+        };
+        indexes.push({ ...index, queryPattern: purposeFor({ ...index, name: index.index }) });
+      }
+    }
     const match = statement.match(
-      /CREATE\s+(UNIQUE\s+)?INDEX\s+"?([a-zA-Z0-9_]+)"?\s+ON\s+(?:public\.)?"?([a-zA-Z0-9_]+)"?\s+USING\s+[a-zA-Z0-9_]+\s*\(([\s\S]*?)\)(?:\s+WHERE[\s\S]*)?;?\s*$/i,
+      /CREATE\s+(?:(UNIQUE|FULLTEXT)\s+)?INDEX\s+`?([a-zA-Z0-9_]+)`?\s+ON\s+`?([a-zA-Z0-9_]+)`?\s*\(([\s\S]*?)\)/i,
     );
     if (!match) continue;
     droppedIndexes.delete(match[2]);
     const index = {
       table: match[3],
       index: match[2],
-      unique: Boolean(match[1]),
-      columnsOrExpression: match[4].replace(/\s+/g, " ").replaceAll('"', "").trim(),
+      unique: match[1]?.toUpperCase() === "UNIQUE",
+      columnsOrExpression: match[4].replace(/\s+/g, " ").replaceAll("`", "").trim(),
       migration: file.replaceAll("\\", "/"),
     };
     indexes.push({ ...index, queryPattern: purposeFor({ ...index, name: index.index }) });
@@ -104,4 +119,4 @@ fs.writeFileSync(
   "doc/migration/index-query-map.csv",
   `${[headers, ...rows].map((row) => row.map(quote).join(",")).join("\n")}\n`,
 );
-console.log(`Documented ${activeIndexes.length} active PostgreSQL indexes.`);
+console.log(`Documented ${activeIndexes.length} active MySQL indexes.`);

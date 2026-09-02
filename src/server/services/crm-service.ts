@@ -4,7 +4,7 @@ import type { AuthPrincipal } from "@/server/auth/types";
 import { getServerEnvironment } from "@/server/env";
 import { requireCapability, requireFirmContext } from "@/server/policies/authorization";
 import { CrmRepository } from "@/server/repositories/crm-repository";
-import { PostgresIdentityRepository } from "@/server/repositories/identity-repository";
+import { MySqlIdentityRepository } from "@/server/repositories/identity-repository";
 import {
   notifyAppointmentAssigned,
   notifyAppointmentBooked,
@@ -32,7 +32,7 @@ import type {
 import { AppError } from "@/shared/errors/api-error";
 
 const repository = new CrmRepository();
-const identityRepository = new PostgresIdentityRepository();
+const identityRepository = new MySqlIdentityRepository();
 
 const CANON_SLOTS = new Set<string>(DEFAULT_APPOINTMENT_SLOTS);
 

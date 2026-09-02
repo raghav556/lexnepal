@@ -1,3 +1,6 @@
+import { returningUpsert } from "@/server/db/mysql-returning";
+import { returningMutation } from "@/server/db/mysql-returning";
+import { sql } from "drizzle-orm";
 /* eslint-disable @typescript-eslint/no-explicit-any -- migration input is untrusted heterogeneous legacy JSON */
 import "server-only";
 import fs from "node:fs/promises";
@@ -196,45 +199,46 @@ export async function migrateMattersExport(input: {
           : undefined;
         if (reviewer && reviewer.firmId !== firmId)
           throw new Error("KYC reviewer belongs to another firm");
-        const [row] = await tx
-          .insert(clients)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            userId: linkedUser?.id,
-            type: enumValue(record.type, ["individual", "corporate"] as const, "individual"),
-            fullName: asString(record.fullName) ?? "Migrated client",
-            email: asString(record.email),
-            phone: asString(record.phone),
-            address: asString(record.address),
-            companyName: asString(record.companyName),
-            registrationNumber: asString(record.registrationNumber),
-            kycStatus: enumValue(
-              record.kycStatus,
-              ["pending", "submitted", "verified", "rejected"] as const,
-              "pending",
-            ),
-            kycIdNumber: asString(record.kycIdNumber),
-            kycConsentAt: toDate(record.kycConsentAt),
-            kycConsentVersion: asString(record.kycConsentVersion),
-            kycRejectionReason: asString(record.kycRejectionReason),
-            kycSubmittedAt: toDate(record.kycSubmittedAt),
-            kycReviewedAt: toDate(record.kycReviewedAt),
-            kycReviewedBy: reviewer?.id,
-            notes: asString(record.notes),
-            isActive: asBoolean(record.isActive, true),
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onConflictDoUpdate({
-            target: clients.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(clients)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
               userId: linkedUser?.id,
+              type: enumValue(record.type, ["individual", "corporate"] as const, "individual"),
               fullName: asString(record.fullName) ?? "Migrated client",
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: clients.id, firmId: clients.firmId });
+              email: asString(record.email),
+              phone: asString(record.phone),
+              address: asString(record.address),
+              companyName: asString(record.companyName),
+              registrationNumber: asString(record.registrationNumber),
+              kycStatus: enumValue(
+                record.kycStatus,
+                ["pending", "submitted", "verified", "rejected"] as const,
+                "pending",
+              ),
+              kycIdNumber: asString(record.kycIdNumber),
+              kycConsentAt: toDate(record.kycConsentAt),
+              kycConsentVersion: asString(record.kycConsentVersion),
+              kycRejectionReason: asString(record.kycRejectionReason),
+              kycSubmittedAt: toDate(record.kycSubmittedAt),
+              kycReviewedAt: toDate(record.kycReviewedAt),
+              kycReviewedBy: reviewer?.id,
+              notes: asString(record.notes),
+              isActive: asBoolean(record.isActive, true),
+              createdAt: toDate(record._creationTime) ?? new Date(),
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                userId: linkedUser?.id,
+                fullName: asString(record.fullName) ?? "Migrated client",
+                updatedAt: new Date(),
+              },
+            }),
+          () => tx.select().from(clients).where(eq(clients.legacyConvexId, legacyId)).limit(1),
+        );
         clientMap.set(legacyId, row);
         const legacyFiles: Value[] = Array.isArray(record.kycFiles)
           ? (record.kycFiles as Value[])
@@ -281,7 +285,7 @@ export async function migrateMattersExport(input: {
               mimeType: asString(file.mimeType),
               sha256: migratedStorage.actualSha256,
             })
-            .onConflictDoNothing({ target: [clientKycFiles.firmId, clientKycFiles.storageId] });
+            .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
         }
         migrated.clients += 1;
       } catch (error) {
@@ -309,40 +313,41 @@ export async function migrateMattersExport(input: {
           : undefined;
         if (clearer && clearer.firmId !== firmId)
           throw new Error("Conflict clearer belongs to another firm");
-        const [row] = await tx
-          .insert(cases)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            caseNumber: asString(record.caseNumber) ?? `MIG-${legacyId}`,
-            title: asString(record.title) ?? "Migrated case",
-            description: asString(record.description),
-            practiceArea: asString(record.practiceArea) ?? "Other",
-            status: enumValue(
-              record.status,
-              ["inquiry", "active", "on_hold", "closed_won", "closed_lost"] as const,
-              "active",
-            ),
-            clientId: client.id,
-            assignedLawyerId: lawyer.id,
-            court: asString(record.court),
-            judge: asString(record.judge),
-            opposingCounsel: asString(record.opposingCounsel),
-            filingDate: dateOnly(record.filingDate),
-            closedDate: dateOnly(record.closedDate),
-            conflictChecked: asBoolean(record.conflictChecked, false),
-            conflictClearedBy: clearer?.id,
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onConflictDoUpdate({
-            target: cases.legacyConvexId,
-            set: {
+        const [row] = await returningUpsert(
+          tx
+            .insert(cases)
+            .values({
+              legacyConvexId: legacyId,
               firmId,
+              caseNumber: asString(record.caseNumber) ?? `MIG-${legacyId}`,
               title: asString(record.title) ?? "Migrated case",
-              updatedAt: new Date(),
-            },
-          })
-          .returning({ id: cases.id });
+              description: asString(record.description),
+              practiceArea: asString(record.practiceArea) ?? "Other",
+              status: enumValue(
+                record.status,
+                ["inquiry", "active", "on_hold", "closed_won", "closed_lost"] as const,
+                "active",
+              ),
+              clientId: client.id,
+              assignedLawyerId: lawyer.id,
+              court: asString(record.court),
+              judge: asString(record.judge),
+              opposingCounsel: asString(record.opposingCounsel),
+              filingDate: dateOnly(record.filingDate),
+              closedDate: dateOnly(record.closedDate),
+              conflictChecked: asBoolean(record.conflictChecked, false),
+              conflictClearedBy: clearer?.id,
+              createdAt: toDate(record._creationTime) ?? new Date(),
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firmId,
+                title: asString(record.title) ?? "Migrated case",
+                updatedAt: new Date(),
+              },
+            }),
+          () => tx.select().from(cases).where(eq(cases.legacyConvexId, legacyId)).limit(1),
+        );
         await tx
           .delete(caseTeamMembers)
           .where(and(eq(caseTeamMembers.firmId, firmId), eq(caseTeamMembers.caseId, row.id)));
@@ -381,8 +386,7 @@ export async function migrateMattersExport(input: {
             notes: asString(record.notes),
             createdAt: toDate(record._creationTime) ?? new Date(),
           })
-          .onConflictDoUpdate({
-            target: conflictChecks.legacyConvexId,
+          .onDuplicateKeyUpdate({
             set: {
               firmId,
               status: enumValue(

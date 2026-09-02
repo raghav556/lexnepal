@@ -1,7 +1,7 @@
 # LexNepal Remaining Migration Work Plan
 
 **Audience:** Project owner (non-technical) and delivery team  
-**Environment focus:** Localhost first (Windows local PostgreSQL, MinIO, Next.js, Vite)  
+**Environment focus:** Localhost first (Windows local PostgreSQL, local filesystem storage, Next.js)
 **Created:** 2026-08-04  
 **Based on:** Codebase inspection against [`../CONVEX_TO_NEXTJS_MIGRATION_PLAN.md`](../CONVEX_TO_NEXTJS_MIGRATION_PLAN.md)  
 **Rule:** This document is the operational plan for **what is left**. The master plan remains the strategy and architecture source of truth. Do not invent parallel rules.
@@ -53,7 +53,7 @@ These come from the master plan. The remaining work must follow them exactly.
 6. **No drift**  
    Every change updates `endpoint-parity.csv` status and the matching Phase evidence note.
 7. **Localhost first**  
-   Prove each domain on local PostgreSQL + MinIO before any production discussion.
+   Prove each domain on local PostgreSQL + local storage before any production discussion.
 8. **Feature freeze discipline**  
    New product features during migration must update both backends until that domain is cut over — or wait until after cutover.
 
@@ -143,7 +143,7 @@ These are leftovers from Phases 0–7. Do them once; do not rebuild foundations.
 | R1.1 | Accept or explicitly defer each open ADR | Prevents late architecture thrash | Localhost can proceed with local ADRs; production ADRs are `DEFER_PROD` |
 | R1.2 | Keep blocked jobs visible | OCR, thumbnails, email/SMS, records dispose, ZIP are fail-closed | Do not fake “success” |
 | R1.3 | Decide email/SMS for local proving (ADR-0009) | Communication reminders need a delivery path | Local may use Mailpit; real SMS later |
-| R1.4 | Confirm local infra recipe stays the only local path | PostgreSQL `:5433`, MinIO, ClamAV | Use `npm run local:infra:start` |
+| R1.4 | Confirm local infra recipe stays the only local path | PostgreSQL `:5433`, local storage, ClamAV | Use `npm run local:infra:start` |
 | R1.5 | Refresh parity ledger process | Stop leaving all rows at `inventoried` | After each domain, update statuses |
 
 **Open ADRs that must not be ignored**
@@ -153,7 +153,7 @@ These are leftovers from Phases 0–7. Do them once; do not rebuild foundations.
 | 0001 | Hosting platform | `DEFER_PROD` | Required |
 | 0002 | PostgreSQL provider / backups | `DEFER_PROD` | Required |
 | 0004 / 0005 | Identity provider / sessions | Local path exists (ADR-0020); production proof still open | Required |
-| 0006 | Object storage | Local MinIO OK; production bucket decision open | Required |
+| 0006 | Object storage | Local filesystem root OK (Stage 1); production storage decision open | Required |
 | 0009 | Email/SMS | Needed for real communication proving | Required |
 | 0010 / 0011 | Search / realtime | Polling already used; confirm no silent gap | Required if product expects more |
 | 0012–0015 | Observability, secrets, residency, rollback window | Draft exists | Required before cutover |
@@ -246,7 +246,7 @@ Evidence:
 - `npm run migration:prove-checkpoint` — R3.3 dry-run no-write + `--resume` skip + `--force` idempotent
 - `npm run migration:prove-exceptions` — R3.4 bad row always lands in `data-exceptions.csv`; approve → unexplained=0
 - `npm run migration:prove-reconciliation` — R3.5 Counts / Missing IDs / FK / Financial totals / File SHA-256
-- `npm run migration:prove-storage` — R3.6 dry-run → import → verify → reconcile → double-run (MinIO)
+- `npm run migration:prove-storage` — R3.6 dry-run → import → verify → reconcile → double-run (local storage)
 - Details: `PHASE_9_MIGRATION_TOOLING.md`
 
 ---
@@ -276,7 +276,7 @@ Existing unit contract files (`identity`, `cms`, `matters`, `work`) are a start 
 
 **R4.4 evidence:** `npm run migration:prove-finance-idempotency` — same `idempotencyKey` replays payment and trust (one row each); already-paid invoice pay does not insert another completed payment. Schema migration `0009_financial_idempotency`. Details: `PHASE_10_CONTRACT_SECURITY.md`.
 
-**R4.5 evidence:** `npm run migration:prove-document-malware` — clean promote+download, EICAR reject, oversized intent deny, unauthorized/cross-firm download deny; unit + live MinIO/ClamAV pipeline. Details: `PHASE_10_CONTRACT_SECURITY.md`.
+**R4.5 evidence:** `npm run migration:prove-document-malware` — clean promote+download, EICAR reject, oversized intent deny, unauthorized/cross-firm download deny; unit + live local-storage/ClamAV pipeline. Details: `PHASE_10_CONTRACT_SECURITY.md`.
 
 **R4.6 evidence:** `npm run migration:prove-signature-otp` — OTP issue + verify (rejects bad code), decline, void, expire (+ sign after verified OTP). Details: `PHASE_10_CONTRACT_SECURITY.md`.
 
@@ -509,5 +509,5 @@ Use this as your final acceptance checklist.
 - Master strategy: [`../CONVEX_TO_NEXTJS_MIGRATION_PLAN.md`](../CONVEX_TO_NEXTJS_MIGRATION_PLAN.md)
 - Status words: [`STATUS_VOCABULARY.md`](STATUS_VOCABULARY.md)
 - Rollback expectations: [`rollback-runbook.md`](rollback-runbook.md)
-- Local infra: [`LOCAL_POSTGRES_MINIO.md`](LOCAL_POSTGRES_MINIO.md)
+- Local infra: [`LOCAL_POSTGRES_STORAGE.md`](LOCAL_POSTGRES_STORAGE.md)
 - ADR backlog: [`architecture-decisions/README.md`](architecture-decisions/README.md)

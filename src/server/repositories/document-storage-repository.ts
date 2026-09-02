@@ -1,3 +1,4 @@
+import { returningInsert, returningMutation, returningUpsert } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
@@ -22,7 +23,7 @@ import type {
 import type { DocumentArchiveRepository } from "@/server/storage/document-archive";
 import type { StorageMigrationJournal } from "@/server/storage/storage-migration";
 
-export class PostgresDocumentStorageRepository
+export class MySqlDocumentStorageRepository
   implements
     DocumentPipelineRepository,
     DownloadDocumentRepository,
@@ -62,17 +63,22 @@ export class PostgresDocumentStorageRepository
 
   async markUploadedAndEnqueue(intentId: string, sha256: string, at: Date): Promise<void> {
     await this.database.transaction(async (transaction) => {
-      const [intent] = await transaction
-        .update(documentUploadIntents)
-        .set({ status: "scanning", actualSha256: sha256, uploadedAt: at, updatedAt: at })
-        .where(
-          and(eq(documentUploadIntents.id, intentId), eq(documentUploadIntents.status, "pending")),
-        )
-        .returning({
-          id: documentUploadIntents.id,
-          firmId: documentUploadIntents.firmId,
-          createdBy: documentUploadIntents.createdBy,
-        });
+      const [intent] = await returningMutation(
+        transaction
+          .update(documentUploadIntents)
+          .set({ status: "scanning", actualSha256: sha256, uploadedAt: at, updatedAt: at })
+          .where(
+            and(
+              eq(documentUploadIntents.id, intentId),
+              eq(documentUploadIntents.status, "pending"),
+            ),
+          ),
+        () =>
+          transaction
+            .select()
+            .from(documentUploadIntents)
+            .where(eq(documentUploadIntents.id, intentId)),
+      );
       if (!intent) throw new Error("Upload intent was concurrently completed");
       await transaction.insert(documentScanJobs).values({
         firmId: intent.firmId,
@@ -80,21 +86,32 @@ export class PostgresDocumentStorageRepository
         status: "pending",
         availableAt: at,
       });
-      const [durableJob] = await transaction
-        .insert(durableJobs)
-        .values({
-          firmId: intent.firmId,
-          type: "document.malware_scan",
-          idempotencyKey: `document-scan:${intent.id}`,
-          payload: { uploadIntentId: intent.id },
-          actorUserId: intent.createdBy,
-          maxAttempts: 5,
-          timeoutSeconds: 300,
-        })
-        .onConflictDoNothing({
-          target: [durableJobs.firmId, durableJobs.type, durableJobs.idempotencyKey],
-        })
-        .returning({ id: durableJobs.id });
+      const [durableJob] = await returningUpsert(
+        transaction
+          .insert(durableJobs)
+          .values({
+            firmId: intent.firmId,
+            type: "document.malware_scan",
+            idempotencyKey: `document-scan:${intent.id}`,
+            payload: { uploadIntentId: intent.id },
+            actorUserId: intent.createdBy,
+            maxAttempts: 5,
+            timeoutSeconds: 300,
+          })
+          .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } }),
+        () =>
+          transaction
+            .select()
+            .from(durableJobs)
+            .where(
+              and(
+                eq(durableJobs.firmId, intent.firmId),
+                eq(durableJobs.type, "document.malware_scan"),
+                eq(durableJobs.idempotencyKey, `document-scan:${intent.id}`),
+              ),
+            )
+            .limit(1),
+      );
       if (durableJob) {
         await transaction.insert(auditLog).values({
           firmId: intent.firmId,
@@ -114,54 +131,59 @@ export class PostgresDocumentStorageRepository
     at: Date,
     uploadIntentId?: string,
   ): Promise<ScanJobRecord | null> {
-    const atIso = at.toISOString();
-    const expiredLeaseIso = new Date(at.getTime() - 5 * 60_000).toISOString();
-    const targetIntentId = uploadIntentId ?? null;
+    const expiredLeaseAt = new Date(at.getTime() - 5 * 60_000);
     return this.database.transaction(async (transaction) => {
-      await transaction.execute(sql`
-        UPDATE document_scan_jobs
-        SET status = 'dead_letter', last_error = 'Worker lease expired after final attempt', updated_at = ${atIso}
-        WHERE status = 'processing'
-          AND locked_at <= ${expiredLeaseIso}
-          AND attempts >= max_attempts
-          AND deleted_at IS NULL
-      `);
-      const result = await transaction.execute<{
-        id: string;
-        firm_id: string;
-        upload_intent_id: string;
-        attempts: number;
-        max_attempts: number;
-      }>(sql`
-        WITH candidate AS (
-          SELECT id FROM document_scan_jobs
-          WHERE (
-            (status IN ('pending', 'retry') AND available_at <= ${atIso})
-            OR (status = 'processing' AND locked_at <= ${expiredLeaseIso})
-          )
-          AND (${targetIntentId}::uuid IS NULL OR upload_intent_id = ${targetIntentId}::uuid)
-          AND attempts < max_attempts AND deleted_at IS NULL
-          ORDER BY available_at, created_at
-          FOR UPDATE SKIP LOCKED
-          LIMIT 1
+      await transaction
+        .update(documentScanJobs)
+        .set({
+          status: "dead_letter",
+          lastError: "Worker lease expired after final attempt",
+          updatedAt: at,
+        })
+        .where(
+          and(
+            eq(documentScanJobs.status, "processing"),
+            lte(documentScanJobs.lockedAt, expiredLeaseAt),
+            sql`${documentScanJobs.attempts} >= ${documentScanJobs.maxAttempts}`,
+            isNull(documentScanJobs.deletedAt),
+          ),
+        );
+      const [candidate] = await transaction
+        .select()
+        .from(documentScanJobs)
+        .where(
+          and(
+            or(
+              and(
+                inArray(documentScanJobs.status, ["pending", "retry"]),
+                lte(documentScanJobs.availableAt, at),
+              ),
+              and(
+                eq(documentScanJobs.status, "processing"),
+                lte(documentScanJobs.lockedAt, expiredLeaseAt),
+              ),
+            ),
+            uploadIntentId ? eq(documentScanJobs.uploadIntentId, uploadIntentId) : undefined,
+            sql`${documentScanJobs.attempts} < ${documentScanJobs.maxAttempts}`,
+            isNull(documentScanJobs.deletedAt),
+          ),
         )
-        UPDATE document_scan_jobs AS job
-        SET status = 'processing', attempts = job.attempts + 1,
-            locked_at = ${atIso}, locked_by = ${workerId}, updated_at = ${atIso}
-        FROM candidate
-        WHERE job.id = candidate.id
-        RETURNING job.id, job.firm_id, job.upload_intent_id, job.attempts, job.max_attempts
-      `);
-      const row = result[0];
-      return row
-        ? {
-            id: row.id,
-            firmId: row.firm_id,
-            uploadIntentId: row.upload_intent_id,
-            attempts: row.attempts,
-            maxAttempts: row.max_attempts,
-          }
-        : null;
+        .orderBy(documentScanJobs.availableAt, documentScanJobs.createdAt)
+        .limit(1)
+        .for("update", { skipLocked: true });
+      if (!candidate) return null;
+      const attempts = candidate.attempts + 1;
+      await transaction
+        .update(documentScanJobs)
+        .set({ status: "processing", attempts, lockedAt: at, lockedBy: workerId, updatedAt: at })
+        .where(eq(documentScanJobs.id, candidate.id));
+      return {
+        id: candidate.id,
+        firmId: candidate.firmId,
+        uploadIntentId: candidate.uploadIntentId,
+        attempts,
+        maxAttempts: candidate.maxAttempts,
+      };
     });
   }
 
@@ -232,37 +254,40 @@ export class PostgresDocumentStorageRepository
         if (!parent) throw new Error("Parent document was not found during promotion");
         version = parent.version + 1;
       }
-      const [document] = await transaction
-        .insert(documents)
-        .values({
-          firmId: intent.firmId,
-          caseId: parent?.caseId ?? intent.caseId,
-          documentNumber: `DOC-${input.intentId}`,
-          title: parent?.title ?? intent.originalFileName,
-          description: parent?.description,
-          type: parent?.type ?? "other",
-          storageId: input.protectedKey,
-          mimeType: intent.declaredMimeType,
-          sizeBytes: intent.declaredSizeBytes,
-          sha256: input.sha256,
-          version,
-          parentDocumentId: intent.parentDocumentId,
-          uploadedBy: intent.createdBy,
-          isTemplate: parent?.isTemplate ?? false,
-          isPrivileged: parent?.isPrivileged ?? false,
-          confidentialityLevel: parent?.confidentialityLevel ?? "internal",
-          retentionPolicy: parent?.retentionPolicy,
-          retentionUntil: parent?.retentionUntil,
-          isOnLegalHold: parent?.isOnLegalHold ?? false,
-          legalHoldReason: parent?.legalHoldReason,
-          legalHoldSetAt: parent?.legalHoldSetAt,
-          legalHoldSetBy: parent?.legalHoldSetBy,
-          uploadStatus: "clean",
-          scanProvider: input.provider,
-          scanCompletedAt: input.at,
-          scanDetails: input.details,
-        })
-        .returning({ id: documents.id });
+      const [document] = await returningInsert(
+        transaction
+          .insert(documents)
+          .values({
+            firmId: intent.firmId,
+            caseId: parent?.caseId ?? intent.caseId,
+            documentNumber: `DOC-${input.intentId}`,
+            title: parent?.title ?? intent.originalFileName,
+            description: parent?.description,
+            type: parent?.type ?? "other",
+            storageId: input.protectedKey,
+            mimeType: intent.declaredMimeType,
+            sizeBytes: intent.declaredSizeBytes,
+            sha256: input.sha256,
+            version,
+            parentDocumentId: intent.parentDocumentId,
+            uploadedBy: intent.createdBy,
+            isTemplate: parent?.isTemplate ?? false,
+            isPrivileged: parent?.isPrivileged ?? false,
+            confidentialityLevel: parent?.confidentialityLevel ?? "internal",
+            retentionPolicy: parent?.retentionPolicy,
+            retentionUntil: parent?.retentionUntil,
+            isOnLegalHold: parent?.isOnLegalHold ?? false,
+            legalHoldReason: parent?.legalHoldReason,
+            legalHoldSetAt: parent?.legalHoldSetAt,
+            legalHoldSetBy: parent?.legalHoldSetBy,
+            uploadStatus: "clean",
+            scanProvider: input.provider,
+            scanCompletedAt: input.at,
+            scanDetails: input.details,
+          })
+          .$returningId(),
+        (id) => transaction.select().from(documents).where(eq(documents.id, id)).limit(1),
+      );
       if (parent) {
         const parentTags = await transaction
           .select({ tagId: documentTagAssignments.tagId })
@@ -414,8 +439,7 @@ export class PostgresDocumentStorageRepository
         attempts: 1,
         verifiedAt: input.status === "verified" ? new Date() : null,
       })
-      .onConflictDoUpdate({
-        target: [storageMigrationItems.firmId, storageMigrationItems.legacyStorageId],
+      .onDuplicateKeyUpdate({
         set: {
           destinationKey: input.destinationKey,
           expectedSha256: input.expectedSha256,

@@ -42,7 +42,7 @@ async function runCli(args: string[]): Promise<{ code: number; stdout: string }>
 
 async function attendanceCount() {
   const db = getDatabase();
-  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(attendance);
+  const [row] = await db.select({ n: sql<number>`cast(count(*) as signed)` }).from(attendance);
   return Number(row?.n ?? 0);
 }
 
@@ -74,7 +74,7 @@ try {
   ];
 
   // Ensure a clean known baseline import exists
-  const forceImport = await runCli(["import-postgres", ...base, "--force"]);
+  const forceImport = await runCli(["import-mysql", ...base, "--force"]);
   if (forceImport.code !== 0) throw new Error("baseline --force import failed");
   const afterForce = await attendanceCount();
   const checkpointImported = await readCheckpoint("hr");
@@ -88,7 +88,7 @@ try {
 
   // Dry-run must not change row counts
   const beforeDry = afterForce;
-  const dry = await runCli(["import-postgres", ...base, "--dry-run"]);
+  const dry = await runCli(["import-mysql", ...base, "--dry-run"]);
   if (dry.code !== 0) throw new Error("dry-run failed");
   const afterDry = await attendanceCount();
   if (afterDry !== beforeDry) {
@@ -100,12 +100,12 @@ try {
   }
 
   // Re-import for a real imported checkpoint (dry-run overwrote status)
-  const reimport = await runCli(["import-postgres", ...base, "--force"]);
+  const reimport = await runCli(["import-mysql", ...base, "--force"]);
   if (reimport.code !== 0) throw new Error("re-import after dry-run failed");
   const beforeResume = await attendanceCount();
 
   // --resume should skip and leave counts unchanged
-  const resumed = await runCli(["import-postgres", ...base, "--resume"]);
+  const resumed = await runCli(["import-mysql", ...base, "--resume"]);
   if (resumed.code !== 0) throw new Error("resume import failed");
   if (!resumed.stdout.includes("Resume: skipping")) {
     throw new Error("resume did not skip import");
@@ -120,7 +120,7 @@ try {
   }
 
   // --force must re-run safely (idempotent)
-  const forced = await runCli(["import-postgres", ...base, "--force"]);
+  const forced = await runCli(["import-mysql", ...base, "--force"]);
   if (forced.code !== 0) throw new Error("force re-import failed");
   const afterForced = await attendanceCount();
   if (afterForced !== beforeResume) {
