@@ -1,4 +1,4 @@
-import { returningInsert } from "@/server/db/mysql-returning";
+import { returningUpsert } from "@/server/db/mysql-returning";
 import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
@@ -63,7 +63,7 @@ try {
     .limit(1);
 
   const clientEmail = "kyc-boundary-client@example.invalid";
-  const [clientUser] = await returningInsert(
+  const [clientUser] = await returningUpsert(
     database
       .insert(users)
       .values({
@@ -77,9 +77,8 @@ try {
       })
       .onDuplicateKeyUpdate({
         set: { role: "client", isActive: true, isPending: false, updatedAt: new Date() },
-      })
-      .$returningId(),
-    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+      }),
+    () => database.select().from(users).where(eq(users.email, clientEmail)).limit(1),
   );
   const [existingAuth] = await database
     .select({ id: authUsers.id })
@@ -100,7 +99,7 @@ try {
     .update(authUsers)
     .set({ emailVerified: true })
     .where(eq(authUsers.id, createdAuth.user.id));
-  const [client] = await returningInsert(
+  const [client] = await returningUpsert(
     database
       .insert(clients)
       .values({
@@ -120,13 +119,17 @@ try {
           kycIdNumber: null,
           updatedAt: new Date(),
         },
-      })
-      .$returningId(),
-    (id) => database.select().from(clients).where(eq(clients.id, id)).limit(1),
+      }),
+    () =>
+      database
+        .select()
+        .from(clients)
+        .where(eq(clients.legacyConvexId, "matters-local-kyc-client"))
+        .limit(1),
   );
   const clientCookie = await signIn(clientEmail);
 
-  const [foreignClient] = await returningInsert(
+  const [foreignClient] = await returningUpsert(
     database
       .insert(clients)
       .values({
@@ -137,11 +140,15 @@ try {
         kycStatus: "pending",
         isActive: true,
       })
-      .onDuplicateKeyUpdate({ set: { fullName: "ForeignCollisionName", updatedAt: new Date() } })
-      .$returningId(),
-    (id) => database.select().from(clients).where(eq(clients.id, id)).limit(1),
+      .onDuplicateKeyUpdate({ set: { fullName: "ForeignCollisionName", updatedAt: new Date() } }),
+    () =>
+      database
+        .select()
+        .from(clients)
+        .where(eq(clients.legacyConvexId, "matters-cross-firm-client"))
+        .limit(1),
   );
-  const [foreignCase] = await returningInsert(
+  const [foreignCase] = await returningUpsert(
     database
       .insert(cases)
       .values({
@@ -155,9 +162,13 @@ try {
         assignedLawyerId: staffB.id,
         conflictChecked: false,
       })
-      .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } })
-      .$returningId(),
-    (id) => database.select().from(cases).where(eq(cases.id, id)).limit(1),
+      .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } }),
+    () =>
+      database
+        .select()
+        .from(cases)
+        .where(eq(cases.legacyConvexId, "matters-cross-firm-case"))
+        .limit(1),
   );
 
   const anonymous = await listClients(new Request("http://local/api/v1/clients"));

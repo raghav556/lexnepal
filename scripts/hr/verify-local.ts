@@ -1,4 +1,4 @@
-import { returningInsert } from "@/server/db/mysql-returning";
+import { returningUpsert } from "@/server/db/mysql-returning";
 import { returningMutation } from "@/server/db/mysql-returning";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
@@ -56,7 +56,7 @@ async function signIn(email: string) {
 }
 
 async function ensureFirmAssociate() {
-  const [lexUser] = await returningInsert(
+  const [lexUser] = await returningUpsert(
     database
       .insert(users)
       .values({
@@ -75,9 +75,8 @@ async function ensureFirmAssociate() {
           isPending: false,
           updatedAt: new Date(),
         },
-      })
-      .$returningId(),
-    (id) => database.select().from(users).where(eq(users.id, id)).limit(1),
+      }),
+    () => database.select().from(users).where(eq(users.email, associateEmail)).limit(1),
   );
   if (!lexUser) throw new Error("Failed to ensure HR verify associate");
 

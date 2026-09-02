@@ -1,5 +1,5 @@
 import { returningInsert } from "@/server/db/mysql-returning";
-import { returningInsert } from "@/server/db/mysql-returning";
+import { returningUpsert } from "@/server/db/mysql-returning";
 /**
  * Deterministic Better Auth users for R5.7 browser smoke.
  * Local/dev DBs only (`example.invalid` emails).
@@ -72,7 +72,7 @@ export async function seedE2eUsers() {
   const auth = getLocalAuth();
 
   for (const fixture of Object.values(E2E_USERS)) {
-    const [lexUser] = await returningInsert(
+    const [lexUser] = await returningUpsert(
       db
         .insert(users)
         .values({
@@ -93,9 +93,8 @@ export async function seedE2eUsers() {
             name: fixture.name,
             updatedAt: new Date(),
           },
-        })
-        .$returningId(),
-      (id) => db.select().from(users).where(eq(users.id, id)).limit(1),
+        }),
+      () => db.select().from(users).where(eq(users.email, fixture.email)).limit(1),
     );
 
     await deleteAuthUserForEmail(fixture.email, lexUser!.id);
