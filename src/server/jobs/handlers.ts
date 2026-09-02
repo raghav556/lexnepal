@@ -24,7 +24,7 @@ import type {
   JobType,
 } from "@/server/jobs/types";
 import { getDocumentStorageRuntime } from "@/server/storage/runtime";
-import { getServerEnvironment } from "@/server/env";
+import { getServerEnvironment, isSmtpConfigured } from "@/server/env";
 import { getAvatarService } from "@/server/services/avatar-service";
 import { getCmsAssetService } from "@/server/services/cms-asset-service";
 import { getKycService } from "@/server/services/kyc-service";
@@ -307,8 +307,20 @@ async function handleEmailDelivery({ job, signal }: JobExecutionContext) {
   if (alreadySent) return { delivered: true, duplicateSuppressed: true };
   throwIfAborted(signal);
   const environment = getServerEnvironment();
+  if (!isSmtpConfigured()) {
+    await database
+      .insert(durableJobEffects)
+      .values({
+        firmId: job.firmId,
+        jobId: job.id,
+        effectKey: "smtp-skipped",
+        details: { reason: "SMTP is not configured" },
+      })
+      .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
+    return { delivered: false, skipped: true, reason: "SMTP is not configured" };
+  }
   const transport = nodemailer.createTransport({
-    host: environment.SMTP_HOST,
+    host: environment.SMTP_HOST!,
     port: environment.SMTP_PORT,
     secure: false,
     connectionTimeout: 10_000,
@@ -316,7 +328,7 @@ async function handleEmailDelivery({ job, signal }: JobExecutionContext) {
   });
   try {
     const result = await transport.sendMail({
-      from: environment.SMTP_FROM,
+      from: environment.SMTP_FROM!,
       to: parsed.data.to,
       subject: parsed.data.subject,
       text: parsed.data.text,

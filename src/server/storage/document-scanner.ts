@@ -37,6 +37,16 @@ export class ClamAvScanner implements DocumentScanner {
   }
 }
 
+export class TrustingDocumentScanner implements DocumentScanner {
+  async scan(): Promise<ScanResult> {
+    return {
+      verdict: "clean",
+      provider: "unscanned",
+      details: "Malware scanning is not configured; file accepted after local validation only.",
+    };
+  }
+}
+
 export class HttpCdrScanner implements DocumentScanner {
   constructor(
     private readonly endpoint: string,

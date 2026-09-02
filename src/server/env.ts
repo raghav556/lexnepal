@@ -27,10 +27,16 @@ const serverEnvironmentSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32).default("lexnepal-local-development-secret-change-me"),
   BETTER_AUTH_URL: optionalUrl.default("http://localhost:3001"),
   APP_PUBLIC_URL: optionalUrl.default("http://localhost:3001"),
-  PUBLIC_FIRM_SLUG: z.string().trim().min(1).default("phase-6-firm-a"),
-  SMTP_HOST: z.string().min(1).default("127.0.0.1"),
+  PUBLIC_FIRM_SLUG: z.string().trim().min(1).default("srimar-law"),
+  SMTP_HOST: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(1).optional(),
+  ),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
-  SMTP_FROM: z.string().email().default("noreply@lexnepal.local"),
+  SMTP_FROM: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().email().optional(),
+  ),
   STORAGE_ROOT: z.string().min(1).default("./.local/storage"),
   STORAGE_DOWNLOAD_TOKEN_SECRET: z
     .string()
@@ -39,8 +45,19 @@ const serverEnvironmentSchema = z.object({
   UPLOAD_INTENT_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3_600),
   UPLOAD_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(3_600).default(600),
   DOWNLOAD_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(900).default(300),
-  CLAMAV_HOST: z.string().min(1).default("127.0.0.1"),
+  CLAMAV_HOST: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(1).optional(),
+  ),
   CLAMAV_PORT: z.coerce.number().int().min(1).max(65_535).default(3310),
+  LEXNEPAL_SKIP_LOCAL_CLAMAV: z
+    .enum(["0", "1"])
+    .default("0")
+    .transform((value) => value === "1"),
+  LEXNEPAL_SKIP_SMTP: z
+    .enum(["0", "1"])
+    .default("0")
+    .transform((value) => value === "1"),
   CDR_ENDPOINT: optionalUrl,
   CDR_API_KEY: z.preprocess(
     (value) => (value === "" ? undefined : value),
@@ -91,6 +108,23 @@ export function getServerEnvironment(): ServerEnvironment {
   }
   cachedEnvironment = parsed.data;
   return cachedEnvironment;
+}
+
+export function isClamAvConfigured(): boolean {
+  const env = getServerEnvironment();
+  if (env.LEXNEPAL_SKIP_LOCAL_CLAMAV) return false;
+  const host = env.CLAMAV_HOST?.trim();
+  if (!host) return false;
+  return true;
+}
+
+export function isSmtpConfigured(): boolean {
+  const env = getServerEnvironment();
+  if (env.LEXNEPAL_SKIP_SMTP) return false;
+  const host = env.SMTP_HOST?.trim();
+  const from = env.SMTP_FROM?.trim();
+  if (!host || !from) return false;
+  return true;
 }
 
 export function resetServerEnvironmentForTests(): void {

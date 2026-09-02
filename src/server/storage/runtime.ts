@@ -1,5 +1,5 @@
 import "server-only";
-import { getServerEnvironment } from "@/server/env";
+import { getServerEnvironment, isClamAvConfigured } from "@/server/env";
 import { createLogger } from "@/server/observability/logger";
 import { MySqlDocumentStorageRepository } from "@/server/repositories/document-storage-repository";
 import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
@@ -10,6 +10,8 @@ import {
   ClamAvScanner,
   CompositeDocumentScanner,
   HttpCdrScanner,
+  TrustingDocumentScanner,
+  type DocumentScanner,
 } from "@/server/storage/document-scanner";
 import { LocalObjectStorage } from "@/server/storage/local-object-storage";
 
@@ -20,7 +22,7 @@ let runtime:
       downloads: DocumentDownloadService;
       archives: DocumentArchiveService;
       storage: LocalObjectStorage;
-      scanner: CompositeDocumentScanner;
+      scanner: DocumentScanner;
     }
   | undefined;
 
@@ -39,20 +41,14 @@ export function getDocumentStorageRuntime(): {
   downloads: DocumentDownloadService;
   archives: DocumentArchiveService;
   storage: LocalObjectStorage;
-  scanner: CompositeDocumentScanner;
+  scanner: DocumentScanner;
 } {
   if (runtime) return runtime;
   const environment = getServerEnvironment();
   const storage = getObjectStorageRuntime();
   const repository = new MySqlDocumentStorageRepository();
   const authorization = new MySqlSecurityRepository();
-  const antivirus = new ClamAvScanner(environment.CLAMAV_HOST, environment.CLAMAV_PORT);
-  const scanner = new CompositeDocumentScanner(
-    antivirus,
-    environment.CDR_ENDPOINT
-      ? new HttpCdrScanner(environment.CDR_ENDPOINT, environment.CDR_API_KEY)
-      : undefined,
-  );
+  const scanner = createDocumentScanner(environment);
   const logger = createLogger({ component: "document-pipeline" });
   runtime = {
     pipeline: new DocumentPipelineService(repository, storage, authorization, scanner, {
@@ -76,4 +72,20 @@ export function getDocumentStorageRuntime(): {
     scanner,
   };
   return runtime;
+}
+
+function createDocumentScanner(
+  environment: ReturnType<typeof getServerEnvironment>,
+): DocumentScanner {
+  if (!isClamAvConfigured()) return new TrustingDocumentScanner();
+  const antivirus = new ClamAvScanner(
+    environment.CLAMAV_HOST ?? "127.0.0.1",
+    environment.CLAMAV_PORT,
+  );
+  return new CompositeDocumentScanner(
+    antivirus,
+    environment.CDR_ENDPOINT
+      ? new HttpCdrScanner(environment.CDR_ENDPOINT, environment.CDR_API_KEY)
+      : undefined,
+  );
 }

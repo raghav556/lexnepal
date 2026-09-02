@@ -2,6 +2,9 @@ import { getServerEnvironment } from "../../src/server/env";
 import { ClamAvScanner } from "../../src/server/storage/document-scanner";
 
 const environment = getServerEnvironment();
+if (!environment.CLAMAV_HOST) {
+  throw new Error("CLAMAV_HOST is not configured; skipping ClamAV verification is expected.");
+}
 const scanner = new ClamAvScanner(environment.CLAMAV_HOST, environment.CLAMAV_PORT);
 const clean = new TextEncoder().encode("LexNepal clean antivirus verification file");
 const eicar = new TextEncoder().encode(

@@ -7,14 +7,14 @@ operator action after the separate production-launch checklist is satisfied.
 
 Use the cPanel **Setup Node.js App** screen approximately as follows:
 
-| Setting | Value |
-| --- | --- |
-| Node.js version | Node `24` if available. Otherwise the host is not compatible with this pin. |
-| Application mode | Production |
-| Application root | `apps/lexnepal/current` or the host's symlink-compatible equivalent |
-| Application URL | The approved domain/subdomain |
-| Startup file | `app.cjs` |
-| Environment | `NODE_ENV=production`, `PORT`/`HOSTNAME` as required by Passenger |
+| Setting          | Value                                                                       |
+| ---------------- | --------------------------------------------------------------------------- |
+| Node.js version  | Node `24` if available. Otherwise the host is not compatible with this pin. |
+| Application mode | Production                                                                  |
+| Application root | `apps/lexnepal/current` or the host's symlink-compatible equivalent         |
+| Application URL  | The approved domain/subdomain                                               |
+| Startup file     | `app.cjs`                                                                   |
+| Environment      | `NODE_ENV=production`, `PORT`/`HOSTNAME` as required by Passenger           |
 
 The application root should be outside `public_html`. Only intentionally public static files should
 be mirrored into `public_html` if the cPanel routing setup requires it.
@@ -42,11 +42,16 @@ Production must set:
 - `BETTER_AUTH_URL`
 - `APP_PUBLIC_URL`
 - `STORAGE_ROOT` and `STORAGE_DOWNLOAD_TOKEN_SECRET`
-- `CLAMAV_HOST` / `CLAMAV_PORT`
-- `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM`
 
-No localhost URLs, Mailpit settings, local storage token secrets, fixture/demo credentials, or repository
-`.env.local` files should be used in production.
+Optional production integrations:
+
+- `CLAMAV_HOST` / `CLAMAV_PORT`; when absent, uploads are accepted after app-level file validation
+  without malware scanning.
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM`; when absent, queued email jobs are marked skipped and
+  no mail is sent.
+
+No localhost URLs, Mailpit settings, local storage token secrets, fixture/demo credentials, or
+repository `.env.local` files should be used in production.
 
 ## Restart
 
@@ -77,6 +82,27 @@ npm run jobs:scheduler
 If cPanel cannot run persistent worker/scheduler processes, queued email, malware scans, reminders,
 scheduled analytics, cleanup, and similar jobs will not drain reliably. Use PM2/systemd on a VPS or
 another host that can supervise these processes.
+
+## Database Setup
+
+Run migrations and print applied/pending status with:
+
+```bash
+npm run db:migrate
+```
+
+Print migration status without applying changes:
+
+```bash
+npm run db:migrate:status
+```
+
+Seed the public tenant after migrations by setting `PUBLIC_FIRM_SLUG` / `PUBLIC_FIRM_NAME` and
+running:
+
+```bash
+npm run db:seed:tenant
+```
 
 ## Deployment Command
 

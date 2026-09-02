@@ -28,7 +28,7 @@ $mysqld = Join-Path $mysqlBin "mysqld.exe"
 $mysql = Join-Path $mysqlBin "mysql.exe"
 $mysqlAdmin = Join-Path $mysqlBin "mysqladmin.exe"
 
-New-Item -ItemType Directory -Force -Path $mysqlRoot, $storageRoot, $clamAvDatabase, $clamAvLogRoot, $mailpitLogRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $mysqlRoot, $storageRoot, $mailpitLogRoot | Out-Null
 
 if (-not (Test-Path (Join-Path $mysqlData "mysql"))) {
   & $mysqld --no-defaults --initialize-insecure --basedir=$($mysqlInstallation.FullName) --datadir=$mysqlData
@@ -66,44 +66,54 @@ if (-not $mysqlHealthy) { throw "MySQL did not become healthy; inspect $mysqlLog
 & $mysql --protocol=TCP --host=127.0.0.1 --port=3307 --user=root --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; FLUSH PRIVILEGES;"
 if ($LASTEXITCODE -ne 0) { throw "LexNepal MySQL database/user provisioning failed" }
 
-$clamAvBin = "C:\Program Files\ClamAV"
-$clamd = Join-Path $clamAvBin "clamd.exe"
-$freshclam = Join-Path $clamAvBin "freshclam.exe"
-if (-not (Test-Path $clamd) -or -not (Test-Path $freshclam)) {
-  throw "ClamAV is not installed; install Cisco.ClamAV with winget"
-}
-
-$clamdConfig = Join-Path $clamAvRoot "clamd.conf"
-$freshclamConfig = Join-Path $clamAvRoot "freshclam.conf"
-$databaseConfigPath = $clamAvDatabase.Replace("\", "/")
-$clamdLogPath = (Join-Path $clamAvLogRoot "clamd.log").Replace("\", "/")
-$freshclamLogPath = (Join-Path $clamAvLogRoot "freshclam.log").Replace("\", "/")
-$clamdTemplate = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "config\local\clamav\clamd.conf.template")
-$freshclamTemplate = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "config\local\clamav\freshclam.conf.template")
-[IO.File]::WriteAllText($clamdConfig, $clamdTemplate.Replace("__DATABASE_DIRECTORY__", $databaseConfigPath).Replace("__CLAMD_LOG__", $clamdLogPath))
-[IO.File]::WriteAllText($freshclamConfig, $freshclamTemplate.Replace("__DATABASE_DIRECTORY__", $databaseConfigPath).Replace("__FRESHCLAM_LOG__", $freshclamLogPath))
-
-$signatureFiles = Get-ChildItem $clamAvDatabase -File -ErrorAction SilentlyContinue |
-  Where-Object { $_.Extension -in ".cvd", ".cld" }
-if (-not $signatureFiles) {
-  & $freshclam --config-file=$freshclamConfig
-  if ($LASTEXITCODE -ne 0) { throw "ClamAV signature download failed; inspect $freshclamLogPath" }
+$localClamAvRequired = $true
+if ($env:LEXNEPAL_SKIP_LOCAL_CLAMAV -eq "1") {
+  $localClamAvRequired = $false
+} elseif ($env:CLAMAV_HOST -and $env:CLAMAV_HOST -ne "127.0.0.1") {
+  $localClamAvRequired = $false
+} elseif ($env:CLAMAV_PORT -and $env:CLAMAV_PORT -ne "3310") {
+  $localClamAvRequired = $false
 }
 
 $clamAvHealthy = [bool](Get-NetTCPConnection -LocalPort 3310 -State Listen -ErrorAction SilentlyContinue)
-if (-not $clamAvHealthy) {
-  Start-Process -FilePath $clamd `
-    -ArgumentList @("--config-file=$clamdConfig") `
-    -WorkingDirectory $clamAvBin `
-    -WindowStyle Hidden
-  $deadline = (Get-Date).AddSeconds(60)
-  do {
-    Start-Sleep -Milliseconds 500
-    $clamAvHealthy = [bool](Get-NetTCPConnection -LocalPort 3310 -State Listen -ErrorAction SilentlyContinue)
-  } until ($clamAvHealthy -or (Get-Date) -gt $deadline)
-}
+if ($localClamAvRequired -and -not $clamAvHealthy) {
+  $clamAvBin = "C:\Program Files\ClamAV"
+  $clamd = Join-Path $clamAvBin "clamd.exe"
+  $freshclam = Join-Path $clamAvBin "freshclam.exe"
+  if (-not (Test-Path $clamd) -or -not (Test-Path $freshclam)) {
+    Write-Warning "ClamAV binaries not found; skipping local ClamAV. Install ClamAV or set LEXNEPAL_SKIP_LOCAL_CLAMAV=1 to suppress this warning."
+    $localClamAvRequired = $false
+  } else {
+    New-Item -ItemType Directory -Force -Path $clamAvDatabase, $clamAvLogRoot | Out-Null
+    $clamdConfig = Join-Path $clamAvRoot "clamd.conf"
+    $freshclamConfig = Join-Path $clamAvRoot "freshclam.conf"
+    $databaseConfigPath = $clamAvDatabase.Replace("\", "/")
+    $clamdLogPath = (Join-Path $clamAvLogRoot "clamd.log").Replace("\", "/")
+    $freshclamLogPath = (Join-Path $clamAvLogRoot "freshclam.log").Replace("\", "/")
+    $clamdTemplate = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "config\local\clamav\clamd.conf.template")
+    $freshclamTemplate = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "config\local\clamav\freshclam.conf.template")
+    [IO.File]::WriteAllText($clamdConfig, $clamdTemplate.Replace("__DATABASE_DIRECTORY__", $databaseConfigPath).Replace("__CLAMD_LOG__", $clamdLogPath))
+    [IO.File]::WriteAllText($freshclamConfig, $freshclamTemplate.Replace("__DATABASE_DIRECTORY__", $databaseConfigPath).Replace("__FRESHCLAM_LOG__", $freshclamLogPath))
 
-if (-not $clamAvHealthy) { throw "ClamAV did not become healthy; inspect $clamdLogPath" }
+    $signatureFiles = Get-ChildItem $clamAvDatabase -File -ErrorAction SilentlyContinue |
+      Where-Object { $_.Extension -in ".cvd", ".cld" }
+    if (-not $signatureFiles) {
+      & $freshclam --config-file=$freshclamConfig
+      if ($LASTEXITCODE -ne 0) { throw "ClamAV signature download failed; inspect $freshclamLogPath" }
+    }
+
+    Start-Process -FilePath $clamd `
+      -ArgumentList @("--config-file=$clamdConfig") `
+      -WorkingDirectory $clamAvBin `
+      -WindowStyle Hidden
+    $deadline = (Get-Date).AddSeconds(60)
+    do {
+      Start-Sleep -Milliseconds 500
+      $clamAvHealthy = [bool](Get-NetTCPConnection -LocalPort 3310 -State Listen -ErrorAction SilentlyContinue)
+    } until ($clamAvHealthy -or (Get-Date) -gt $deadline)
+    if (-not $clamAvHealthy) { throw "ClamAV did not become healthy; inspect $clamdLogPath" }
+  }
+}
 
 $projectMailpit = Join-Path $mailpitRoot "mailpit.exe"
 $pathMailpit = Get-Command "mailpit.exe" -ErrorAction SilentlyContinue
@@ -137,7 +147,13 @@ if (-not $mailpitHealthy) { throw "Mailpit did not become healthy; inspect $mail
 
 Write-Output "MySQL:       ready at 127.0.0.1:3307 (database: lexnepal)"
 Write-Output "Storage:   local filesystem at $storageRoot"
-Write-Output "ClamAV:      ready at 127.0.0.1:3310"
+if ($localClamAvRequired) {
+  Write-Output "ClamAV:      ready at 127.0.0.1:3310"
+} elseif ($env:CLAMAV_HOST -and $env:CLAMAV_HOST -ne "127.0.0.1") {
+  Write-Output "ClamAV:      external ($($env:CLAMAV_HOST):$($env:CLAMAV_PORT ?? '3310'))"
+} else {
+  Write-Output "ClamAV:      skipped (not installed; set LEXNEPAL_SKIP_LOCAL_CLAMAV=1 to silence)"
+}
 Write-Output "Mailpit SMTP: ready at 127.0.0.1:1025"
 Write-Output "Mailpit UI:   http://127.0.0.1:8025"
 Write-Output "Runtime data: $runtimeRoot"

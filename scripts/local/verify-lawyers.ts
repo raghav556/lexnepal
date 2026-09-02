@@ -49,7 +49,7 @@ async function main() {
   console.log("4. Unknown id → 404");
 
   const db = getDatabase();
-  const slug = process.env.PUBLIC_FIRM_SLUG || "phase-6-firm-a";
+  const slug = process.env.PUBLIC_FIRM_SLUG || "srimar-law";
   const [firm] = await db.select().from(firms).where(eq(firms.slug, slug)).limit(1);
   if (!firm) throw new Error("Firm missing");
 

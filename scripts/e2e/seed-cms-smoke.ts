@@ -1,7 +1,7 @@
 import { returningInsert } from "@/server/db/mysql-returning";
 /**
  * Smoke-test CMS content for local preview (news on /news, header nav link).
- * Targets PUBLIC_FIRM_SLUG (default phase-6-firm-a).
+ * Targets PUBLIC_FIRM_SLUG (default srimar-law).
  */
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
