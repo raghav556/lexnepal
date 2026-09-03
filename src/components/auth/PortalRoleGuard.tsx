@@ -84,7 +84,6 @@ export function PortalRoleGuard({
       } catch {
         // Still send the user to sign-in even if sign-out fails.
       }
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(`/sign-in/${allowed}?next=${encodeURIComponent(next)}`);
     };
 
