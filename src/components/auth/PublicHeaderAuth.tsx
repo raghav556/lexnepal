@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronDown, LogOut, LayoutDashboard } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SignInButton } from "@/components/ui/signin";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +21,13 @@ import { cn } from "@/lib/utils";
 /** Public header auth — single unified auth source, skeleton while hydrating. */
 export function PublicHeaderAuth({ mobile = false }: { mobile?: boolean }) {
   const { identityUser, isLoading, isAuthenticated, signout } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
-  if (isLoading || identityUser === undefined) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isLoading || identityUser === undefined) {
     return <AuthLoadingSkeleton className={mobile ? "w-full" : "w-[5.75rem]"} />;
   }
 

@@ -1,7 +1,10 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCmsSettings } from "@/client/queries/cms";
+import { queryKeys } from "@/client/queries/query-keys";
+import { subscribeToCmsSettingsUpdates } from "@/client/queries/cms-settings-sync";
 
 const PublicCmsSettingsContext = createContext<Record<string, unknown> | undefined>(undefined);
 
@@ -22,5 +25,13 @@ export function PublicCmsSettingsProvider({
 /** Public site settings — seeded from SSR layout, refreshed via React Query. */
 export function usePublicCmsSettings() {
   const initialSettings = useContext(PublicCmsSettingsContext);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return subscribeToCmsSettingsUpdates(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cms.settings("public") });
+    });
+  }, [queryClient]);
+
   return useCmsSettings("public", initialSettings);
 }
