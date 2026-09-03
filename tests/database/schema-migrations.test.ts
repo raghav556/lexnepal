@@ -15,7 +15,7 @@ const migrationFiles = fs
 
 function databaseUrl(databaseName = testDatabaseName): URL {
   const url = new URL(
-    process.env.DATABASE_URL ?? "mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3307/lexnepal",
+    process.env.DATABASE_URL ?? "mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3306/lexnepal",
   );
   url.pathname = databaseName ? `/${databaseName}` : "";
   return url;

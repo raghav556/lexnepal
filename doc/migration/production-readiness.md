@@ -44,7 +44,7 @@ Until then, tracker status for R7 remains **`DEFER_PROD`**.
 | ADR | Topic | Local today | Production requirement | Owner role |
 | --- | --- | --- | --- | --- |
 | [0001](architecture-decisions/README.md) | Hosting / runtime / region | Deferred | Accepted ADR + deploy path | Platform |
-| MySQL provider selection | MySQL HA / PITR / backups | Local MySQL `:3307` | Provider decision + restore drill | Data |
+| MySQL provider selection | MySQL HA / PITR / backups | Local MySQL `:3306` | Provider decision + restore drill | Data |
 | [0004](architecture-decisions/0004-hercules-oidc-integration.md) / [0005](architecture-decisions/0005-revocable-database-sessions.md) | IdP / sessions | Local Better Auth (ADR-0020) | Staging JWKS proof; prod audience/issuer | Security |
 | [0006](architecture-decisions/0006-private-object-storage.md) | Object storage | Local filesystem root (`STORAGE_ROOT`) | Prod storage root, encryption-at-rest, lifecycle, residency | Platform / records |
 | [0009](architecture-decisions/README.md) | Email / SMS | Mailpit / fail-closed SMS | Live providers + ADR accepted | Platform / product |

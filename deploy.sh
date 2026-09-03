@@ -140,12 +140,12 @@ prepare_build_database_url() {
     return 0
   fi
   if [[ "$MODE" == "--preflight" ]]; then
-    export DATABASE_URL="mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3307/lexnepal"
+    export DATABASE_URL="mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3306/lexnepal"
     log "Using local placeholder DATABASE_URL for preflight; set BUILD_DATABASE_URL to opt into DB-backed build data"
     return 0
   fi
   if [[ -n "${DATABASE_URL:-}" ]]; then return 0; fi
-  export DATABASE_URL="mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3307/lexnepal"
+  export DATABASE_URL="mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3306/lexnepal"
   log "Using local placeholder DATABASE_URL for build-time config collection"
 }
 

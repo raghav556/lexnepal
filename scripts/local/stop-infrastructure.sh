@@ -23,7 +23,7 @@ stop_pid_file() {
 }
 
 if command -v mysqladmin >/dev/null 2>&1; then
-  mysqladmin --protocol=TCP --host=127.0.0.1 --port=3307 --user=root shutdown >/dev/null 2>&1 || true
+  mysqladmin --protocol=TCP --host=127.0.0.1 --port=3306 --user=root shutdown >/dev/null 2>&1 || true
 fi
 rm -f "$MYSQL_PID"
 

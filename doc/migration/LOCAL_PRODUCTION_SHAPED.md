@@ -2,7 +2,7 @@
 
 **Status:** `complete_local`  
 **Completed:** 2026-08-07  
-**Scope:** Everything that can run on this Windows machine with local MySQL (`:3307`), local filesystem storage, ClamAV, Mailpit, and Next.js.
+**Scope:** Everything that can run on this Windows machine with local MySQL (`:3306`), local filesystem storage, ClamAV, Mailpit, and Next.js.
 **Not in scope:** R7 cloud (hosted DB, real IdP, DNS/TLS, vault, live email/SMS, monitoring).  
 **Companion:** [`production-readiness.md`](./production-readiness.md) remains `DEFER_PROD`.
 

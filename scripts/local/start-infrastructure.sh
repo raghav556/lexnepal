@@ -85,7 +85,7 @@ mysql_url_port() {
 # 1) External MySQL: if DATABASE_URL points at a reachable, non-default
 #    instance, use it directly without starting our own.
 MYSQL_EXTERNAL=0
-if [[ -n "${DATABASE_URL:-}" && "$DATABASE_URL" != mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3307/lexnepal ]]; then
+if [[ -n "${DATABASE_URL:-}" && "$DATABASE_URL" != mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3306/lexnepal ]]; then
   _url_port="$(mysql_url_port "$DATABASE_URL")"
   if port_open "$_url_port"; then
     MYSQL_EXTERNAL=1
@@ -99,8 +99,8 @@ if [[ "$MYSQL_EXTERNAL" == "1" ]]; then
   LOCAL_MYSQL_REQUIRED=0
 else
   LOCAL_MYSQL_REQUIRED=1
-  # 2) Prefer local native MySQL on 127.0.0.1:3307.
-  if ! port_open 3307; then
+  # 2) Prefer local native MySQL on 127.0.0.1:3306.
+  if ! port_open 3306; then
     if command -v mysqld >/dev/null 2>&1 && command -v mysql >/dev/null 2>&1 && command -v mysqladmin >/dev/null 2>&1; then
       if [[ ! -d "$MYSQL_DATA/mysql" ]]; then
         log "Initializing local MySQL data directory at $MYSQL_DATA"
@@ -114,11 +114,11 @@ else
         fi
       fi
       if [[ -d "$MYSQL_DATA/mysql" ]]; then
-        log "Starting local MySQL on 127.0.0.1:3307"
+        log "Starting local MySQL on 127.0.0.1:3306"
         mysqld \
           --no-defaults \
           --datadir="$MYSQL_DATA" \
-          --port=3307 \
+          --port=3306 \
           --socket="$MYSQL_SOCKET" \
           --bind-address=127.0.0.1 \
           --character-set-server=utf8mb4 \
@@ -129,7 +129,7 @@ else
           --log-error="$MYSQL_LOG" \
           --pid-file="$MYSQL_PID" \
           --daemonize >/dev/null 2>>"$MYSQL_LOG" || die "MySQL failed to start; inspect $MYSQL_LOG"
-        wait_for_port 3307 MySQL 60
+        wait_for_port 3306 MySQL 60
         LOCAL_MYSQL_RUNNING=1
       else
         if grep -Eq "OS errno 13|Permission denied" "$MYSQL_LOG" 2>/dev/null; then
@@ -143,7 +143,7 @@ else
     fi
   else
     LOCAL_MYSQL_RUNNING=1
-    log "Local MySQL already healthy on 127.0.0.1:3307"
+    log "Local MySQL already healthy on 127.0.0.1:3306"
   fi
 
   # 3) Docker fallback when local MySQL could not be started.
@@ -154,18 +154,18 @@ else
     if ! docker info >/dev/null 2>&1; then
       die "Local MySQL could not start and the Docker daemon is not running; start Docker or use an external MySQL via DATABASE_URL"
     fi
-    log "Starting MySQL via Docker on 127.0.0.1:3307"
+    log "Starting MySQL via Docker on 127.0.0.1:3306"
     docker rm -f lexnepal-mysql >/dev/null 2>&1 || true
     docker run -d \
       --name lexnepal-mysql \
-      -p 127.0.0.1:3307:3306 \
+      -p 127.0.0.1:3306:3306 \
       -e MYSQL_ROOT_PASSWORD=lexnepal_local_root \
       -e MYSQL_DATABASE=lexnepal \
       -e MYSQL_USER=lexnepal \
       -e MYSQL_PASSWORD=lexnepal_local_dev \
       --restart unless-stopped \
       mysql:8.4 >/dev/null || die "Docker MySQL container failed to start"
-    wait_for_port 3307 MySQL 120
+    wait_for_port 3306 MySQL 120
     LOCAL_MYSQL_RUNNING=1
     DOCKER_MYSQL=1
   fi
@@ -176,7 +176,7 @@ else
   if [[ -n "${DOCKER_MYSQL:-}" ]]; then
     _root_auth=(--password=lexnepal_local_root)
   fi
-  mysql --protocol=TCP --host=127.0.0.1 --port=3307 --user=root "${_root_auth[@]}" --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_restore_drill CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; CREATE USER IF NOT EXISTS 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'localhost'; FLUSH PRIVILEGES;" >/dev/null ||
+  mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root "${_root_auth[@]}" --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_restore_drill CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; CREATE USER IF NOT EXISTS 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'localhost'; FLUSH PRIVILEGES;" >/dev/null ||
     die "LexNepal MySQL database/user provisioning failed"
 fi
 
@@ -248,7 +248,7 @@ elif [[ "$LOCAL_MAILPIT_REQUIRED" == "0" ]]; then
 fi
 
 if [[ "$LOCAL_MYSQL_REQUIRED" == "1" ]]; then
-  printf 'MySQL:        ready at 127.0.0.1:3307 (database: lexnepal)\n'
+  printf 'MySQL:        ready at 127.0.0.1:3306 (database: lexnepal)\n'
 else
   printf 'MySQL:        external (%s)\n' "$DATABASE_URL"
 fi

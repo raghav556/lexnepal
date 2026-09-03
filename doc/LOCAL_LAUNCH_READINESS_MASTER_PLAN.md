@@ -165,7 +165,7 @@ Exit gate:
 
 Work:
 
-- Verify repeatable start/stop for MySQL `:3307`, ClamAV `:3310`,
+- Verify repeatable start/stop for MySQL `:3306`, ClamAV `:3310`,
   Mailpit `:1025/:8025`, and Next.js `:3001`.
 - Apply all forward migrations to the local database and verify checksums.
 - Validate schema constraints, tenant ownership, foreign keys, unique constraints, indexes, and transactions.

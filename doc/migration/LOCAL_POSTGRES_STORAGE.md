@@ -1,12 +1,12 @@
 # Local MySQL and Local Filesystem Storage
 
-LexNepal uses an isolated MySQL instance and a local filesystem storage root for local Next.js development. The project-owned MySQL instance listens on port 3307 and does not modify a normal MySQL service on port 3306. Stage 1 replaced the previous self-hosted MinIO server entirely; uploads and downloads now go through app-controlled routes backed by a private on-disk storage root.
+LexNepal uses an isolated MySQL instance and a local filesystem storage root for local Next.js development. The project-owned MySQL instance listens on port 3306 and does not modify a normal MySQL service on port 3306. Stage 1 replaced the previous self-hosted MinIO server entirely; uploads and downloads now go through app-controlled routes backed by a private on-disk storage root.
 
 ## Installed services
 
 | Dependency    | Local address           | Persistent data                            |
 | ------------- | ----------------------- | ------------------------------------------ |
-| MySQL 8.4     | `127.0.0.1:3307`        | `%LOCALAPPDATA%\LexNepal\MySQL\data`       |
+| MySQL 8.4     | `127.0.0.1:3306`        | `%LOCALAPPDATA%\LexNepal\MySQL\data`       |
 | Storage root  | `./.local/storage`      | Workspace-local, git-ignored               |
 | ClamAV daemon | `127.0.0.1:3310`        | `%LOCALAPPDATA%\LexNepal\ClamAV`           |
 | Mailpit SMTP  | `127.0.0.1:1025`        | Local invitation/recovery capture          |

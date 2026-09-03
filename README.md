@@ -43,7 +43,7 @@ Prerequisites are Node.js/npm, MySQL 8.4, and Mailpit. ClamAV is optional; when 
 provides on-upload malware scanning, but the local start script skips it gracefully if `clamd` is
 not available. The current verified local
 toolchain is Node.js 24 and npm 11. The project-owned MySQL data directory listens only on
-`127.0.0.1:3307` and does not modify a normal MySQL service on `3306`.
+`127.0.0.1:3306` and does not modify a normal MySQL service on `3306`.
 
 `npm run local:infra:start`, `npm run local:infra:stop`, and `npm run local:clamav:update`
 auto-select the platform runner:
@@ -167,7 +167,7 @@ isolated temporary database and does not overwrite the active local database.
 | Service           | Address                                    |
 | ----------------- | ------------------------------------------ |
 | Next.js           | `http://localhost:3001`                    |
-| MySQL             | `127.0.0.1:3307`                           |
+| MySQL             | `127.0.0.1:3306`                           |
 | Document storage  | `./.local/storage` (local filesystem)      |
 | ClamAV            | `127.0.0.1:3310` (optional)                 |
 | Mailpit SMTP / UI | `127.0.0.1:1025` / `http://127.0.0.1:8025` |

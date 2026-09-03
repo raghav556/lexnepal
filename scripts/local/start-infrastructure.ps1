@@ -35,7 +35,7 @@ if (-not (Test-Path (Join-Path $mysqlData "mysql"))) {
   if ($LASTEXITCODE -ne 0) { throw "MySQL data directory initialization failed" }
 }
 
-$mysqlHealthy = [bool](Get-NetTCPConnection -LocalPort 3307 -State Listen -ErrorAction SilentlyContinue)
+$mysqlHealthy = [bool](Get-NetTCPConnection -LocalPort 3306 -State Listen -ErrorAction SilentlyContinue)
 if (-not $mysqlHealthy) {
   Start-Process -FilePath $mysqld `
     -ArgumentList @(
@@ -43,7 +43,7 @@ if (-not $mysqlHealthy) {
       "--standalone",
       "--basedir=$($mysqlInstallation.FullName)",
       "--datadir=$mysqlData",
-      "--port=3307",
+      "--port=3306",
       "--bind-address=127.0.0.1",
       "--character-set-server=utf8mb4",
       "--collation-server=utf8mb4_0900_ai_ci",
@@ -57,13 +57,13 @@ if (-not $mysqlHealthy) {
   $deadline = (Get-Date).AddSeconds(60)
   do {
     Start-Sleep -Milliseconds 500
-    & $mysqlAdmin --protocol=TCP --host=127.0.0.1 --port=3307 --user=root ping --silent *> $null
+    & $mysqlAdmin --protocol=TCP --host=127.0.0.1 --port=3306 --user=root ping --silent *> $null
     $mysqlHealthy = $LASTEXITCODE -eq 0
   } until ($mysqlHealthy -or (Get-Date) -gt $deadline)
 }
 if (-not $mysqlHealthy) { throw "MySQL did not become healthy; inspect $mysqlLog" }
 
-& $mysql --protocol=TCP --host=127.0.0.1 --port=3307 --user=root --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; FLUSH PRIVILEGES;"
+& $mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; FLUSH PRIVILEGES;"
 if ($LASTEXITCODE -ne 0) { throw "LexNepal MySQL database/user provisioning failed" }
 
 $localClamAvRequired = $true
@@ -145,7 +145,7 @@ if (-not $mailpitHealthy) {
 }
 if (-not $mailpitHealthy) { throw "Mailpit did not become healthy; inspect $mailpitLogRoot" }
 
-Write-Output "MySQL:       ready at 127.0.0.1:3307 (database: lexnepal)"
+Write-Output "MySQL:       ready at 127.0.0.1:3306 (database: lexnepal)"
 Write-Output "Storage:   local filesystem at $storageRoot"
 if ($localClamAvRequired) {
   Write-Output "ClamAV:      ready at 127.0.0.1:3310"

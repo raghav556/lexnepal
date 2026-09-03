@@ -24,7 +24,7 @@ Redis is not an actual LexNepal dependency today. The durable queue and schedule
 
 | Component | Local details                                                                     |
 | --------- | --------------------------------------------------------------------------------- |
-| MySQL     | Project-owned service on `127.0.0.1:3307` from `npm run local:infra:start`.       |
+| MySQL     | Project-owned service on `127.0.0.1:3306` from `npm run local:infra:start`.       |
 | Storage   | Local filesystem at `./.local/storage` in the workspace (auto-created).           |
 | ClamAV    | Local daemon on `127.0.0.1:3310`.                                                 |
 | Mailpit   | Local SMTP/UI on `127.0.0.1:1025` / `127.0.0.1:8025`.                             |

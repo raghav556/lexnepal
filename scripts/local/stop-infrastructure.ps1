@@ -13,7 +13,7 @@ $mysqlInstallation = if (Test-Path (Join-Path $portableMysql "bin\mysqladmin.exe
 }
 if ($mysqlInstallation -and (Test-Path (Join-Path $mysqlData "mysql"))) {
   $mysqlAdmin = Join-Path $mysqlInstallation.FullName "bin\mysqladmin.exe"
-  & $mysqlAdmin --protocol=TCP --host=127.0.0.1 --port=3307 --user=root shutdown *> $null
+  & $mysqlAdmin --protocol=TCP --host=127.0.0.1 --port=3306 --user=root shutdown *> $null
 }
 
 $escapedClamAvRoot = [regex]::Escape((Join-Path $runtimeRoot "ClamAV"))
