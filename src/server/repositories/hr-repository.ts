@@ -2,10 +2,10 @@ import { returningInsert, returningMutation, returningUpsert } from "@/server/db
 import "server-only";
 import { and, asc, desc, eq, isNull, ne, type SQL } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
+import { writeAuditLog } from "@/server/audit/write-audit";
 import { getDatabase } from "@/server/db/client";
 import {
   attendance,
-  auditLog,
   firmSettings,
   leaveBalances,
   leaveRequests,
@@ -63,18 +63,7 @@ async function writeAudit(
   resourceId: string | null,
   details: string | null,
 ) {
-  await tx.insert(auditLog).values({
-    firmId: audit.firmId,
-    userId: audit.actorId,
-    action,
-    resource,
-    resourceId,
-    details,
-    ipAddress: audit.ipAddress,
-    requestId: audit.requestId,
-    createdAt: audit.occurredAt,
-    updatedAt: audit.occurredAt,
-  });
+  await writeAuditLog(tx, audit, action, resource, resourceId, details);
 }
 
 function asDateString(value: string | Date): string {

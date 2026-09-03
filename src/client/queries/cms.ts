@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { queryKeys } from "@/client/queries/query-keys";
+import { signalCmsSettingsUpdated } from "@/client/queries/cms-settings-sync";
 
 type Filters = Record<string, string | number | boolean | undefined>;
 type CmsCollection =
@@ -237,7 +238,10 @@ export function useCmsCommands() {
           body: operation.body,
         });
     },
-    onSuccess: invalidate,
+    onSuccess: (_data, operation) => {
+      void invalidate();
+      if (operation.kind === "settings") signalCmsSettingsUpdated();
+    },
   });
   return {
     create: (collection: CmsCollection, body: any) =>

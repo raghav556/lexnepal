@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
+import { downloadCsv } from "@/lib/csv-download.ts";
 import { inviteEmailQueuedMessage } from "@/lib/invite-copy.ts";
 import type { UserRole } from "@/hooks/use-current-user.ts";
 import {
@@ -96,16 +97,7 @@ function exportUsersCsv(list: any[]) {
     u.isPending ? "Pending" : u.isActive ? "Active" : "Suspended",
     u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "",
   ]);
-  const csv = [headers, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(`users-export-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
 }
 
 function statusLabel(u: any) {

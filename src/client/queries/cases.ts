@@ -8,7 +8,7 @@ import {
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
-import type { CaseDto, ConflictHitDto, ListCasesInput } from "@/shared/contracts/domains";
+import type { CaseDto, ListCasesInput } from "@/shared/contracts/domains";
 import type {
   ConflictCheckStatsDto,
   ConflictOfficialResultDto,
@@ -92,11 +92,6 @@ export function useConflictPreview(
     enabled: query.trim().length >= 2,
     staleTime: 30_000,
   }).data;
-}
-
-/** @deprecated Prefer useConflictPreview — preview does not write audit history. */
-export function useConflictSearch(query: string): ConflictHitDto[] | undefined {
-  return useConflictPreview(query)?.hits;
 }
 
 export function useRecentConflictChecks(): any[] | undefined {

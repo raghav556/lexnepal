@@ -1,4 +1,5 @@
 import { apiClient } from "@/client/api/client";
+import { computeSHA256 } from "@/lib/document-utils.ts";
 import { CMS_ASSET_PURPOSES, publicCmsAssetUrl, type CmsAssetPurpose } from "@/shared/cms-assets";
 
 export { CMS_ASSET_PURPOSES, publicCmsAssetUrl, type CmsAssetPurpose };
@@ -10,11 +11,6 @@ const MAX_RESOURCE_FILE_BYTES = 25 * 1024 * 1024;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function sha256Hex(file: File): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 type IntentStatus = {
@@ -49,7 +45,7 @@ export async function uploadCmsAsset(file: File, purpose: CmsAssetPurpose): Prom
       fileName: file.name,
       mimeType: file.type,
       sizeBytes: file.size,
-      sha256: await sha256Hex(file),
+      sha256: await computeSHA256(file),
       purpose,
     },
   });

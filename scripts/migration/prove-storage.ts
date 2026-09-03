@@ -6,39 +6,15 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { closeDatabase } from "../../src/server/db/client";
 import { appendReconciliationReport } from "./report-writer";
 import { loadDomainReport } from "./report-store";
+import { runCli } from "./run-cli";
 import { countStorageObjects, runStorageConvertAndMigrate } from "./storage-run";
 
 const exportPath = path.resolve("tests/fixtures/convex-export");
 const firmMapPath = path.resolve("tests/fixtures/convex-export/firm-map.json");
 const firmA = "61000000-0000-4000-8000-000000000001";
-
-async function runCli(args: string[]): Promise<{ code: number; stdout: string }> {
-  return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      [
-        "--env-file-if-exists=.env.local",
-        "--conditions=react-server",
-        "--import",
-        "tsx",
-        "scripts/migration/cli.ts",
-        ...args,
-      ],
-      { cwd: process.cwd(), env: process.env },
-    );
-    let stdout = "";
-    child.stdout.on("data", (c) => {
-      stdout += String(c);
-      process.stdout.write(c);
-    });
-    child.stderr.on("data", (c) => process.stderr.write(c));
-    child.on("close", (code) => resolve({ code: code ?? 1, stdout }));
-  });
-}
 
 try {
   const sourceCount = await countStorageObjects(exportPath);

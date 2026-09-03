@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { downloadCsv } from "@/lib/csv-download.ts";
 import {
   Select,
   SelectContent,
@@ -144,16 +145,7 @@ function exportLeadsCsv(list: LeadRow[], staffName: (id?: string | null) => stri
     l.intakeSubmitted ? "submitted" : l.intakeToken ? "link" : "",
     l.convertedClientId ?? "",
   ]);
-  const csv = [headers, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `crm-leads-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(`crm-leads-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
 }
 
 export type CrmLeadsPageProps = {

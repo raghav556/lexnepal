@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { useQuery as useTanstackQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { queryKeys } from "@/client/queries/query-keys";
+import { computeSHA256 } from "@/lib/document-utils.ts";
 import type { ClientDto } from "@/shared/contracts/domains";
 
 export function useClients(): ClientDto[] | undefined {
@@ -86,10 +87,7 @@ export function useClientCommands() {
      * object storage, mark it complete, then poll until the scanner promotes it.
      */
     async uploadKycFile(file: File, documentType: "government_id" | "proof_of_address") {
-      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-      const sha256 = [...new Uint8Array(digest)]
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
+      const sha256 = await computeSHA256(file);
       const intent = await apiClient.request<{
         intentId: string;
         upload: { url: string; fields: Record<string, string> };

@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool } from "mysql2/promise";
 import { firms, users } from "../../db/schema";
@@ -19,14 +19,20 @@ try {
   await db.transaction(async (transaction) => {
     await transaction
       .insert(firms)
-      .values({ name: "Srimar Law", slug: "lexnepal", legacyConvexId: "seed_default_firm" })
+      .values({ name: "Srimar Law", slug: "srimar-law", legacyConvexId: "seed_default_firm" })
       .onDuplicateKeyUpdate({ set: { name: "Srimar Law", updatedAt: new Date() } });
     const [firm] = await transaction
       .select({ id: firms.id })
       .from(firms)
-      .where(eq(firms.slug, "lexnepal"))
+      .where(eq(firms.slug, "srimar-law"))
       .limit(1);
     if (!firm) throw new Error("Seed firm upsert did not produce a row");
+
+    // token_identifier is globally unique — a placeholder left in another firm
+    // must not silently block seeding this firm's placeholder admin.
+    await transaction
+      .delete(users)
+      .where(and(eq(users.tokenIdentifier, "seed:admin"), ne(users.firmId, firm.id)));
 
     await transaction
       .insert(users)

@@ -14,6 +14,7 @@ import {
   users,
 } from "@/server/db/schema";
 import type { AuditContext } from "@/server/audit/context";
+import { writeAuditLog } from "@/server/audit/write-audit";
 import type {
   AuditEventDto,
   CreateUserInput,
@@ -485,18 +486,7 @@ async function writeAudit(
   resourceId: string | null,
   details: string | null,
 ) {
-  await tx.insert(auditLog).values({
-    firmId: context.firmId,
-    userId: context.actorId,
-    action,
-    resource,
-    resourceId,
-    details,
-    ipAddress: context.ipAddress,
-    requestId: context.requestId,
-    createdAt: context.occurredAt,
-    updatedAt: context.occurredAt,
-  });
+  await writeAuditLog(tx, context, action, resource, resourceId, details);
 }
 function toUserDto(user: typeof users.$inferSelect): UserDto {
   return {

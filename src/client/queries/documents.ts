@@ -8,19 +8,15 @@ import {
 import { apiClient } from "@/client/api/client";
 import { ApiClientError, normalizeApiError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
+import { computeSHA256 } from "@/lib/document-utils.ts";
 import type {
   DocumentDto,
   ListDocumentsInput,
   SearchDocumentsInput,
 } from "@/shared/contracts/domains";
 
-async function sha256Hex(file: File): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 async function uploadViaIntent(input: { file: File; caseId?: string; parentDocumentId?: string }) {
-  const sha256 = await sha256Hex(input.file);
+  const sha256 = await computeSHA256(input.file);
   const intent = await apiClient.request<{
     intentId: string;
     upload: { url: string; fields: Record<string, string> };

@@ -150,7 +150,8 @@ Write-Output "Storage:   local filesystem at $storageRoot"
 if ($localClamAvRequired) {
   Write-Output "ClamAV:      ready at 127.0.0.1:3310"
 } elseif ($env:CLAMAV_HOST -and $env:CLAMAV_HOST -ne "127.0.0.1") {
-  Write-Output "ClamAV:      external ($($env:CLAMAV_HOST):$($env:CLAMAV_PORT ?? '3310'))"
+  $clamAvExternalPort = if ($env:CLAMAV_PORT) { $env:CLAMAV_PORT } else { "3310" }
+  Write-Output "ClamAV:      external ($($env:CLAMAV_HOST):$clamAvExternalPort)"
 } else {
   Write-Output "ClamAV:      skipped (not installed; set LEXNEPAL_SKIP_LOCAL_CLAMAV=1 to silence)"
 }

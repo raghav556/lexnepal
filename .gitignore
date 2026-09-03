@@ -20,3 +20,9 @@ tmp/
 test-results/
 playwright-report/
 blob-report/
+
+# OS metadata files
+Thumbs.db
+desktop.ini
+.DS_Store
+.cursor/

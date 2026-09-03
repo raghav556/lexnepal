@@ -19,6 +19,7 @@ import {
   UserX,
 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadCsv } from "@/lib/csv-download.ts";
 import { formatNPR } from "@/lib/lex-constants.ts";
 import { useUsers } from "@/client/queries/identity";
 import {
@@ -61,19 +62,6 @@ function formatLabel(value: string) {
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function downloadCsv(filename: string, headers: string[], rows: Array<Array<string | number>>) {
-  const csv = [headers, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 function clockNow() {

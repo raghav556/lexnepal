@@ -1,9 +1,9 @@
 import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull, like } from "drizzle-orm";
+import { writeAuditLog } from "@/server/audit/write-audit";
 import { getDatabase } from "@/server/db/client";
 import {
-  auditLog,
   cases,
   caseTeamMembers,
   clients,
@@ -555,18 +555,7 @@ async function writeAudit(
   resourceId: string | null,
   details: string | null,
 ) {
-  await tx.insert(auditLog).values({
-    firmId: audit.firmId,
-    userId: audit.actorId,
-    action,
-    resource,
-    resourceId,
-    details,
-    ipAddress: audit.ipAddress,
-    requestId: audit.requestId,
-    createdAt: audit.occurredAt,
-    updatedAt: audit.occurredAt,
-  });
+  await writeAuditLog(tx, audit, action, resource, resourceId, details);
 }
 function normalizeEmpty<T extends Record<string, unknown>>(input: T): T {
   return Object.fromEntries(

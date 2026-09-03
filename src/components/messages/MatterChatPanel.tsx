@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { useMessages, useMessageCommands } from "@/client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
+import { computeSHA256 } from "@/lib/document-utils.ts";
 import { apiClient } from "@/client/api/client";
 
 type DirectoryUser = { _id?: string; id?: string; name?: string | null };
@@ -32,8 +33,7 @@ type MatterChatPanelProps = {
 };
 
 async function sha256Hex(file: File): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return computeSHA256(file);
 }
 
 /** Upload a file via document-upload intents; returns storage object key for messageAttachments. */
