@@ -57,6 +57,7 @@ export default function ResetPasswordPage() {
       const result = await localAuthClient.resetPassword({ newPassword: password, token });
       if (result.error) throw new Error(result.error.message);
       toast.success("Password updated. You can now sign in.");
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/sign-in";
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Password reset failed");

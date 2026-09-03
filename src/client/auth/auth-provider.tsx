@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (reason) {
         sessionStorage.setItem(AUTH_REDIRECT_REASON_KEY, reason);
       }
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(`/sign-in?next=${next}`);
     },
     [isRedirecting, queryClient],
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window === "undefined") return;
       if (window.location.pathname.startsWith("/mfa-enroll")) return;
       const next = encodeURIComponent(currentPathWithSearch());
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(`/mfa-enroll?next=${next}`);
     }
   }, [meQuery.isError, meQuery.error, redirectToSignIn]);
@@ -128,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signout = useCallback(async () => {
     await localAuthClient.signOut();
     queryClient.removeQueries({ queryKey: queryKeys.identity.me });
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/sign-in";
   }, [queryClient]);
 

@@ -35,6 +35,7 @@ export default function AccountSetupPage() {
       const result = await localAuthClient.resetPassword({ newPassword: password, token });
       if (result.error) throw new Error(result.error.message);
       toast.success("Account activated. Sign in with your new password.");
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/sign-in";
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Account activation failed");

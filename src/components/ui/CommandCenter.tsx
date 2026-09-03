@@ -180,6 +180,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
                           setSelectedDm(t._id);
                           setMobileShowChat(true);
                           onClose();
+                          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                           window.location.href = `/staff/team-chat?dm=${t._id}`;
                         }}
                         className="w-full text-left p-3 rounded-lg hover:bg-muted border border-transparent"

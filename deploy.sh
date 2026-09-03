@@ -199,11 +199,26 @@ run_remote() {
   if [[ -n "$REMOTE_NODE_BIN_DIR" ]]; then
     command="export PATH='$REMOTE_NODE_BIN_DIR':\$PATH; $command"
   fi
-  ssh -p "$SSH_PORT" "$SERVER" "$command"
+  # shellcheck disable=SC2086
+  $SSH_CMD ssh -o StrictHostKeyChecking=accept-new -p "$SSH_PORT" "$SERVER" "$command"
 }
 
 upload_artifact() {
-  scp -P "$SSH_PORT" "$ARCHIVE_PATH" "$SERVER:$REMOTE_ARCHIVE"
+  # shellcheck disable=SC2086
+  $SSH_CMD scp -o StrictHostKeyChecking=accept-new -P "$SSH_PORT" "$ARCHIVE_PATH" "$SERVER:$REMOTE_ARCHIVE"
+}
+
+write_runtime_env() {
+  [[ "$WRITE_RUNTIME_ENV" == "1" ]] || return 0
+  [[ -n "$RUNTIME_ENV_SOURCE" ]] || die "WRITE_RUNTIME_ENV=1 requires RUNTIME_ENV_SOURCE"
+  reject_repo_env_file "$RUNTIME_ENV_SOURCE"
+  # shellcheck disable=SC2086
+  $SSH_CMD scp -o StrictHostKeyChecking=accept-new -P "$SSH_PORT" "$RUNTIME_ENV_SOURCE" "$SERVER:$RUNTIME_ENV_PATH"
+}
+
+# Resolve the ssh/scp invocation prefix once, before any remote operations.
+init_ssh() {
+  SSH_CMD=""
 }
 
 backup_remote() {
@@ -212,13 +227,6 @@ backup_remote() {
     return 0
   fi
   run_remote "mkdir -p '$APP_PATH/backups' '$APP_PATH/releases' && if [ -L '$APP_PATH/current' ]; then cp -a \"\$(readlink -f '$APP_PATH/current')\" '$APP_PATH/backups/previous'; fi"
-}
-
-write_runtime_env() {
-  [[ "$WRITE_RUNTIME_ENV" == "1" ]] || return 0
-  [[ -n "$RUNTIME_ENV_SOURCE" ]] || die "WRITE_RUNTIME_ENV=1 requires RUNTIME_ENV_SOURCE"
-  reject_repo_env_file "$RUNTIME_ENV_SOURCE"
-  scp -P "$SSH_PORT" "$RUNTIME_ENV_SOURCE" "$SERVER:$RUNTIME_ENV_PATH"
 }
 
 activate_release() {
@@ -285,6 +293,7 @@ preflight() {
 deploy() {
   load_deploy_env
   apply_defaults
+  init_ssh
   select_node
   install_dependencies
   run_local_gates
@@ -317,6 +326,7 @@ case "$MODE" in
     MODE="--rollback"
     load_deploy_env
     apply_defaults
+    init_ssh
     rollback_remote
     ;;
   deploy)

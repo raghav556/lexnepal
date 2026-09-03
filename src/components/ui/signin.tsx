@@ -28,6 +28,7 @@ export function SignInButton({ next, portal = "client" }: SignInButtonProps = {}
         response_type: "code",
         scope: "openid profile email",
       });
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `${authority.replace(/\/$/, "")}/authorize?${params.toString()}`;
       return;
     }

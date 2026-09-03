@@ -212,9 +212,11 @@ export function useProfileCommands() {
     async beginTotp(password: string) {
       const result = await localAuthClient.twoFactor.enable({ password });
       if (result.error) throw new Error(result.error.message);
+      const data = result.data;
+      if (data.method !== "totp") throw new Error("TOTP enrollment did not return a TOTP payload");
       return normalizeTotpEnrollment({
-        totpURI: result.data.totpURI,
-        backupCodes: result.data.backupCodes,
+        totpURI: data.totpURI,
+        backupCodes: data.backupCodes,
       });
     },
     async confirmTotp(code: string) {

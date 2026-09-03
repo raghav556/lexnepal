@@ -37,7 +37,11 @@ try {
         })
         .onDuplicateKeyUpdate({ set: { isActive: true, isPending: false, updatedAt: new Date() } }),
       () =>
-        database.select().from(users).where(eq(users.tokenIdentifier, `boundary:${fixture.email}`)).limit(1),
+        database
+          .select()
+          .from(users)
+          .where(eq(users.tokenIdentifier, `boundary:${fixture.email}`))
+          .limit(1),
     );
     if (!lexUser) throw new Error(`Failed to ensure boundary user ${fixture.email}`);
     const [existingAuthUser] = await database
