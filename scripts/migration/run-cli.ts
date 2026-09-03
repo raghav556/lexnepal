@@ -5,9 +5,7 @@ import { spawn } from "node:child_process";
  * local env file and react-server conditions, teeing stdout/stderr to this process.
  * Returns the exit code plus captured stdout/stderr so callers can assert on CLI output.
  */
-export function runCli(
-  args: string[],
-): Promise<{ code: number; stdout: string; stderr: string }> {
+export function runCli(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const child = spawn(
       process.execPath,
