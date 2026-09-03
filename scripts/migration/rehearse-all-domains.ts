@@ -4,11 +4,11 @@
  *
  * Does not rewrite importers — drives the unified CLI domain registry.
  */
-import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { closeDatabase } from "../../src/server/db/client";
 import { appendReconciliationReport } from "./report-writer";
+import { runCli } from "./run-cli";
 import type { DomainMigrationReport } from "./types";
 
 const firmA = "61000000-0000-4000-8000-000000000001";
@@ -80,34 +80,6 @@ const DOMAINS: DomainRehearsal[] = [
     extraArgs: ["--firm-map", storageFirmMap],
   },
 ];
-
-function runCli(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      [
-        "--env-file-if-exists=.env.local",
-        "--conditions=react-server",
-        "--import",
-        "tsx",
-        "scripts/migration/cli.ts",
-        ...args,
-      ],
-      { cwd: process.cwd(), env: process.env },
-    );
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += String(chunk);
-      process.stdout.write(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-      process.stderr.write(chunk);
-    });
-    child.on("close", (code) => resolve({ code: code ?? 1, stdout, stderr }));
-  });
-}
 
 async function ensureExportsMirror() {
   // Plan step 2: place snapshot under exports/ — mirror fixtures for operator path.

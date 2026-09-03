@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { getLocalAuth } from "../../src/server/auth/local-auth";
 import { authUsers, cases, clients, firmSettings, users } from "../../db/schema";
+import { EICAR_TEST_FILE_BYTES } from "../../tests/fixtures/eicar";
 import { GET as listClients } from "../../src/app/api/v1/clients/route";
 import { GET as getClient } from "../../src/app/api/v1/clients/[id]/route";
 import { GET as getCase } from "../../src/app/api/v1/cases/[id]/route";
@@ -208,9 +209,7 @@ try {
     "address-proof.pdf",
     "proof_of_address",
   );
-  const eicar = new TextEncoder().encode(
-    "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*",
-  );
+  const eicar = EICAR_TEST_FILE_BYTES;
   const engineVerdict = await getDocumentStorageRuntime().scanner.scan(eicar, "application/pdf");
   const infected = await uploadAndScan(clientCookie, eicar, "infected.pdf", "other", true);
   const submission = await submitKyc(

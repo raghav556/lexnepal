@@ -446,11 +446,9 @@ export async function seedCmsSmoke() {
   ];
 
   const newsLegacyIds = NEWS_SEED.map((n) => n.legacyConvexId);
-  await db
-    .delete(newsAndAwards)
-    .where(
-      and(eq(newsAndAwards.firmId, firm.id), inArray(newsAndAwards.legacyConvexId, newsLegacyIds)),
-    );
+  // legacy_convex_id is globally unique — clear stale rows from ANY firm so
+  // leftovers owned by another tenant cannot block re-seeding.
+  await db.delete(newsAndAwards).where(inArray(newsAndAwards.legacyConvexId, newsLegacyIds));
 
   let newsId = "";
   for (const item of NEWS_SEED) {
@@ -700,9 +698,8 @@ export async function seedCmsSmoke() {
   ];
 
   const blogLegacyIds = BLOG_SEED.map((b) => b.legacyConvexId);
-  await db
-    .delete(blogPosts)
-    .where(and(eq(blogPosts.firmId, firm.id), inArray(blogPosts.legacyConvexId, blogLegacyIds)));
+  // legacy_convex_id is globally unique — clear stale rows from ANY firm.
+  await db.delete(blogPosts).where(inArray(blogPosts.legacyConvexId, blogLegacyIds));
   const blogIds: string[] = [];
   for (const item of BLOG_SEED) {
     const [row] = await returningInsert(
@@ -767,11 +764,8 @@ export async function seedCmsSmoke() {
   ];
 
   const resourceLegacyIds = RESOURCES_SEED.map((r) => r.legacyConvexId);
-  await db
-    .delete(resources)
-    .where(
-      and(eq(resources.firmId, firm.id), inArray(resources.legacyConvexId, resourceLegacyIds)),
-    );
+  // legacy_convex_id is globally unique — clear stale rows from ANY firm.
+  await db.delete(resources).where(inArray(resources.legacyConvexId, resourceLegacyIds));
   const resourceIds: string[] = [];
   for (const item of RESOURCES_SEED) {
     const [row] = await returningInsert(

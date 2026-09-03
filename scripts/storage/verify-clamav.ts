@@ -1,5 +1,6 @@
 import { getServerEnvironment } from "../../src/server/env";
 import { ClamAvScanner } from "../../src/server/storage/document-scanner";
+import { EICAR_TEST_FILE_BYTES } from "../../tests/fixtures/eicar";
 
 const environment = getServerEnvironment();
 if (!environment.CLAMAV_HOST) {
@@ -7,9 +8,7 @@ if (!environment.CLAMAV_HOST) {
 }
 const scanner = new ClamAvScanner(environment.CLAMAV_HOST, environment.CLAMAV_PORT);
 const clean = new TextEncoder().encode("LexNepal clean antivirus verification file");
-const eicar = new TextEncoder().encode(
-  ["X5O!P%@AP[4\\PZX54(P^)", "7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"].join(""),
-);
+const eicar = EICAR_TEST_FILE_BYTES;
 
 const cleanResult = await scanner.scan(clean);
 const infectedResult = await scanner.scan(eicar);

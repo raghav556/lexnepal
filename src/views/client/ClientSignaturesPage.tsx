@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils.ts";
 import { generateSignatureCertificatePDF } from "@/lib/pdf-generator.ts";
+import { sha256HexOfBytes } from "@/lib/document-utils.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import {
   DashboardButton,
@@ -50,10 +51,7 @@ import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 type SignMethod = "draw" | "type" | "upload";
 
 async function sha256HexFromBuffer(buffer: BufferSource) {
-  const hash = await crypto.subtle.digest("SHA-256", buffer);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return sha256HexOfBytes(buffer);
 }
 
 function dataUrlToBlob(dataUrl: string) {

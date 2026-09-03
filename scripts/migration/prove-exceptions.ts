@@ -9,6 +9,7 @@ import path from "node:path";
 import { closeDatabase } from "../../src/server/db/client";
 import { EXCEPTIONS_CSV, APPROVED_EXCEPTIONS_CSV } from "./types";
 import { appendReconciliationReport } from "./report-writer";
+import { runCli } from "./run-cli";
 import type { DomainMigrationReport } from "./types";
 import {
   ensureApprovedExceptionsPlaceholder,
@@ -20,31 +21,6 @@ import type { ReconcileException } from "./reconcile";
 const firmMap = path.resolve("tests/fixtures/convex-identity-firm-map.json");
 const orphan = "61000000-0000-4000-8000-000000000001";
 const badId = "convex_hr_leave_bad_unmapped_user";
-
-async function runCli(args: string[]): Promise<{ code: number; stdout: string }> {
-  const { spawn } = await import("node:child_process");
-  return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      [
-        "--env-file-if-exists=.env.local",
-        "--conditions=react-server",
-        "--import",
-        "tsx",
-        "scripts/migration/cli.ts",
-        ...args,
-      ],
-      { cwd: process.cwd(), env: process.env },
-    );
-    let stdout = "";
-    child.stdout.on("data", (c) => {
-      stdout += String(c);
-      process.stdout.write(c);
-    });
-    child.stderr.on("data", (c) => process.stderr.write(c));
-    child.on("close", (code) => resolve({ code: code ?? 1, stdout }));
-  });
-}
 
 async function csvContains(id: string) {
   const text = await fs.readFile(EXCEPTIONS_CSV, "utf8").catch(() => "");

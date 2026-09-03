@@ -21,3 +21,7 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 "hr","leaveRequests","convex_hr_leave_bad_unmapped_user","OTHER","Unknown userId","""""","""""","2026-08-04T19:35:38.244Z"
 "hr","leaveRequests","","ROW_COUNT_MISMATCH","Source and target row counts do not match","1","0","2026-08-04T19:35:39.879Z"
 "hr","leaveRequests","convex_hr_leave_bad_unmapped_user","OTHER","Unknown userId","""""","""""","2026-08-04T19:35:39.879Z"
+"hr","attendance","convex_hr_att_1","FK_VIOLATION","Unknown userId","""""","""""","2026-09-03T09:23:21.194Z"
+"hr","leaveRequests","convex_hr_leave_1","FK_VIOLATION","Unknown userId","""""","""""","2026-09-03T09:23:21.194Z"
+"hr","attendance","convex_hr_att_1","FK_VIOLATION","Unknown userId","""""","""""","2026-09-03T09:23:29.572Z"
+"hr","leaveRequests","convex_hr_leave_1","FK_VIOLATION","Unknown userId","""""","""""","2026-09-03T09:23:29.572Z"

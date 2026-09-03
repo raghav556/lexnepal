@@ -7,6 +7,7 @@ import { firms, users } from "../../src/server/db/schema";
 import { createJobWorker } from "../../src/server/jobs/runtime";
 import { MySqlDocumentStorageRepository } from "../../src/server/repositories/document-storage-repository";
 import { getDocumentStorageRuntime } from "../../src/server/storage/runtime";
+import { EICAR_TEST_FILE_BYTES } from "../../tests/fixtures/eicar";
 
 const firmA = "61000000-0000-4000-8000-000000000001";
 const firmB = "61000000-0000-4000-8000-000000000002";
@@ -121,9 +122,7 @@ try {
 }
 if (!oversizedDenied) throw new Error("Oversized upload intent was not rejected");
 
-const eicarBytes = new TextEncoder().encode(
-  ["X5O!P%@AP[4\\PZX54(P^)", "7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"].join(""),
-);
+const eicarBytes = EICAR_TEST_FILE_BYTES;
 let infectedProof: { detected: true; rejected: boolean };
 if (process.platform === "win32") {
   // Windows Defender commonly removes EICAR from the filesystem before the app can

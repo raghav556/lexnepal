@@ -70,6 +70,7 @@ import { toast } from "sonner";
 import { useClientCommands, useClients, useKycFiles } from "@/client/queries/clients";
 import { useCases } from "@/client/queries/cases";
 import { cn } from "@/lib/utils.ts";
+import { downloadCsv } from "@/lib/csv-download.ts";
 import { inviteEmailQueuedMessage } from "@/lib/invite-copy.ts";
 import type { ClientDto } from "@/shared/contracts/domains";
 
@@ -109,16 +110,7 @@ function exportClientsCsv(list: ClientDto[], caseCounts: Map<string, number>) {
     c.isActive === false ? "inactive" : "active",
     c.companyName ?? "",
   ]);
-  const csv = [headers, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `clients-export-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(`clients-export-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
 }
 
 export default function StaffClientsPage() {

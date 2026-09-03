@@ -62,6 +62,7 @@ import {
   PortalPageShell,
 } from "@/components/dashboard";
 import { DASHBOARD_METRIC_TONES, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
+import { downloadCsv } from "@/lib/csv-download.ts";
 
 type AptRow = {
   id?: string;
@@ -121,16 +122,7 @@ function downloadAppointmentsCsv(list: AptRow[], lawyerName: (id?: string | null
     a.clientId ?? "",
     (a.notes ?? "").replace(/\s+/g, " ").trim(),
   ]);
-  const csv = [headers, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `appointments-${todayIsoInFirmTz()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(`appointments-${todayIsoInFirmTz()}.csv`, headers, rows);
 }
 
 const emptyCreate = {

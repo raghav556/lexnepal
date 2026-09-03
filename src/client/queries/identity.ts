@@ -18,6 +18,7 @@ import type {
 } from "@/shared/contracts/identity";
 import { useAuthContext } from "@/client/auth/auth-provider";
 import { localAuthClient } from "@/client/auth/local-auth-client";
+import { computeSHA256 } from "@/lib/document-utils.ts";
 import { normalizeTotpEnrollment } from "@/shared/auth/totp";
 
 export function useUsers(role?: string): UserDto[] | undefined {
@@ -253,10 +254,7 @@ export function useProfileCommands() {
      * bytes to object storage, then let the server promote the scanned file onto the profile.
      */
     async uploadAvatar(file: File) {
-      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-      const sha256 = [...new Uint8Array(digest)]
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
+      const sha256 = await computeSHA256(file);
       const intent = await apiClient.request<{
         intentId: string;
         upload: { url: string; fields: Record<string, string> };

@@ -1,8 +1,24 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { REQUEST_ID_HEADER } from "@/shared/constants/application";
-import { findCmsRedirect, normalizeRedirectPath } from "@/server/cms/redirect-cache";
-
+const REQUEST_ID_HEADER = "x-request-id";
+const REDIRECTS_FILE = require("node:path").join(process.cwd(), ".local", "cms-redirects.json");
+function readCmsRedirects(): Array<{ from: string; to: string; permanent?: boolean }> {
+  try {
+    return JSON.parse(require("node:fs").readFileSync(REDIRECTS_FILE, "utf8"));
+  } catch {
+    return [];
+  }
+}
+function normalizeRedirectPath(pathname: string): string {
+  if (!pathname) return "/";
+  const noQuery = pathname.split("?")[0] || "/";
+  if (noQuery.length > 1 && noQuery.endsWith("/")) return noQuery.slice(0, -1);
+  return noQuery;
+}
+function findCmsRedirect(pathname: string) {
+  const from = normalizeRedirectPath(pathname);
+  return readCmsRedirects().find((r) => normalizeRedirectPath(r.from) === from);
+}
 const validRequestId = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export function proxy(request: NextRequest) {

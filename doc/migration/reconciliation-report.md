@@ -19081,3 +19081,61 @@ params: convex-document-a,61000000-0000-4000-8000-000000000001,,DOC-178587133330
 - redirectCount=0
 - httpSmoke=skipped
 
+## hr — import-mysql
+
+- Recorded at: `2026-09-03T09:23:21.192Z`
+- Passed: **no**
+- Exceptions: 2
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 0 | **no** |
+| leaveRequests | 1 | 0 | **no** |
+
+### Missing IDs
+
+- `attendance` / `convex_hr_att_1` — Unknown userId
+- `leaveRequests` / `convex_hr_leave_1` — Unknown userId
+
+### FK integrity
+
+- Status: **fail**
+- `attendance` (convex_hr_att_1) — Unknown userId
+- `leaveRequests` (convex_hr_leave_1) — Unknown userId
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+- fingerprint=25fa32ba2ed5571290837ef5
+
+## hr — import-mysql
+
+- Recorded at: `2026-09-03T09:23:29.570Z`
+- Passed: **no**
+- Exceptions: 2
+
+### Counts
+
+| Table | Source | Target | Match |
+| --- | ---: | ---: | --- |
+| attendance | 1 | 0 | **no** |
+| leaveRequests | 1 | 0 | **no** |
+
+### Missing IDs
+
+- `attendance` / `convex_hr_att_1` — Unknown userId
+- `leaveRequests` / `convex_hr_leave_1` — Unknown userId
+
+### FK integrity
+
+- Status: **fail**
+- `attendance` (convex_hr_att_1) — Unknown userId
+- `leaveRequests` (convex_hr_leave_1) — Unknown userId
+
+### Notes
+
+- HR residual domain; CMS careers/jobApplications stay on cms.
+- fingerprint=25fa32ba2ed5571290837ef5
+
