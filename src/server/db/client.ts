@@ -15,7 +15,7 @@ export function getDatabase(): Database {
   if (!environment.DATABASE_URL) throw new Error("DATABASE_URL is required for database access");
   sqlClient = createPool({
     uri: environment.DATABASE_URL,
-    connectionLimit: environment.NODE_ENV === "production" ? 10 : 2,
+    connectionLimit: environment.DATABASE_POOL_CONNECTION_LIMIT,
     waitForConnections: true,
     charset: "utf8mb4",
     timezone: "Z",

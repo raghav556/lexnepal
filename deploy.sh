@@ -10,7 +10,6 @@ MODE="${1:-deploy}"
 
 ARCHIVE_PATH=""
 REMOTE_ARCHIVE=""
-REMOTE_RELEASE_DIR=""
 
 log() {
   printf '[lexnepal-deploy] %s\n' "$*"
@@ -206,7 +205,6 @@ write_archive() {
   ARCHIVE_PATH="$(mktemp "/tmp/lexnepal-standalone-$stamp.XXXXXX.tgz")"
   tar -czf "$ARCHIVE_PATH" -C "$STANDALONE_DIR" .
   REMOTE_ARCHIVE="/tmp/lexnepal-standalone-$stamp.tgz"
-  REMOTE_RELEASE_DIR="$APP_PATH/releases/$stamp"
   log "Prepared artifact $ARCHIVE_PATH"
 }
 
@@ -245,11 +243,27 @@ backup_remote() {
     run_remote "$REMOTE_BACKUP_COMMAND"
     return 0
   fi
-  run_remote "mkdir -p '$APP_PATH/backups' '$APP_PATH/releases' && if [ -L '$APP_PATH/current' ]; then cp -a \"\$(readlink -f '$APP_PATH/current')\" '$APP_PATH/backups/previous'; fi"
+  # `current` is a real directory (in-place deployment). Archive it as a snapshot.
+  run_remote "mkdir -p '$APP_PATH/backups' && if [ -d '$APP_PATH/current' ]; then tar -czf '$APP_PATH/backups/previous.$(date +%Y%m%d%H%M%S).tgz' -C '$APP_PATH/current' . && echo 'backup created'; fi"
 }
 
-activate_release() {
-  run_remote "mkdir -p '$REMOTE_RELEASE_DIR' && tar -xzf '$REMOTE_ARCHIVE' -C '$REMOTE_RELEASE_DIR' && if [ -e '$APP_PATH/current' ] && [ ! -L '$APP_PATH/current' ]; then mv '$APP_PATH/current' '$APP_PATH/current.old.$(date +%s)'; fi && ln -sfn '$REMOTE_RELEASE_DIR' '$APP_PATH/current' && rm -f '$REMOTE_ARCHIVE'"
+install_artifact() {
+  # In-place atomic install into the fixed app folder $APP_PATH/current (a real
+  # directory, matching the cPanel/Passenger venv root). Preserve .env.runtime and
+  # storage/ which live inside the running folder and are not part of the artifact.
+  run_remote "
+    set -e
+    rm -rf '$APP_PATH/current.next'
+    mkdir -p '$APP_PATH/current.next'
+    tar -xzf '$REMOTE_ARCHIVE' -C '$APP_PATH/current.next'
+    rm -f '$REMOTE_ARCHIVE'
+    if [ -d '$APP_PATH/current' ]; then
+      if [ -f '$APP_PATH/current/.env.runtime' ]; then cp -a '$APP_PATH/current/.env.runtime' '$APP_PATH/current.next/.env.runtime'; fi
+      if [ -d '$APP_PATH/current/storage' ]; then cp -a '$APP_PATH/current/storage' '$APP_PATH/current.next/storage'; fi
+      mv '$APP_PATH/current' '$APP_PATH/current.old.$(date +%s)'
+    fi
+    mv '$APP_PATH/current.next' '$APP_PATH/current'
+  "
 }
 
 run_migrations() {
@@ -328,7 +342,7 @@ deploy() {
   write_archive
   upload_artifact
   backup_remote
-  activate_release
+  install_artifact
   write_runtime_env
   run_migrations
   mirror_static_assets
