@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { X, MessageCircle, FileText, ChevronLeft, ExternalLink, Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 
 export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const currentUser = useCurrentUser();
+  const router = useRouter();
   const allCases = useCases({}) || [];
   const staff = useStaffDirectory() || [];
   const { data: threads } = useDmThreads();
@@ -180,7 +182,7 @@ export function CommandCenter({ isOpen, onClose }: { isOpen: boolean; onClose: (
                           setSelectedDm(t._id);
                           setMobileShowChat(true);
                           onClose();
-                          window.location.href = `/staff/team-chat?dm=${t._id}`;
+                          router.push(`/staff/team-chat?dm=${t._id}`);
                         }}
                         className="w-full text-left p-3 rounded-lg hover:bg-muted border border-transparent"
                       >

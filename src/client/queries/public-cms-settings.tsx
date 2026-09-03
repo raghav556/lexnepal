@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCmsSettings } from "@/client/queries/cms";
 import { queryKeys } from "@/client/queries/query-keys";
-import { subscribeToCmsSettingsUpdates } from "@/client/queries/cms-settings-sync";
+import { subscribeToCmsSettingsUpdates } from "@/lib/cms-settings-sync";
 
 const PublicCmsSettingsContext = createContext<Record<string, unknown> | undefined>(undefined);
 

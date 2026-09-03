@@ -14,6 +14,7 @@ import { localAuthClient } from "@/client/auth/local-auth-client";
 import { apiClient } from "@/client/api/client";
 import { ApiClientError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
+import { useNavigate } from "@/client/navigation";
 import type { UserDto } from "@/shared/contracts/identity";
 
 export const AUTH_REDIRECT_REASON_KEY = "auth_redirect_reason";
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const session = localAuthClient.useSession();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const navigate = useNavigate();
 
   const hasSession = Boolean(session.data?.user);
   const sessionPending = session.isPending;
@@ -78,9 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (reason) {
         sessionStorage.setItem(AUTH_REDIRECT_REASON_KEY, reason);
       }
-      window.location.assign(`/sign-in?next=${next}`);
+      navigate(`/sign-in?next=${next}`, { replace: true });
     },
-    [isRedirecting, queryClient],
+    [isRedirecting, navigate, queryClient],
   );
 
   useEffect(() => {
@@ -96,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window === "undefined") return;
       if (window.location.pathname.startsWith("/mfa-enroll")) return;
       const next = encodeURIComponent(currentPathWithSearch());
-      window.location.assign(`/mfa-enroll?next=${next}`);
+      navigate(`/mfa-enroll?next=${next}`, { replace: true });
     }
-  }, [meQuery.isError, meQuery.error, redirectToSignIn]);
+  }, [meQuery.isError, meQuery.error, redirectToSignIn, navigate]);
 
   const identityUser = useMemo((): UserDto | null | undefined => {
     if (sessionPending) return undefined;
@@ -128,8 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signout = useCallback(async () => {
     await localAuthClient.signOut();
     queryClient.removeQueries({ queryKey: queryKeys.identity.me });
-    window.location.href = "/sign-in";
-  }, [queryClient]);
+    navigate("/sign-in", { replace: true });
+  }, [navigate, queryClient]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

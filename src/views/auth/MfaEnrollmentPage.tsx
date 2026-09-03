@@ -65,7 +65,8 @@ export default function MfaEnrollmentPage() {
       const result = await localAuthClient.twoFactor.enable({ password });
       if (result.error) throw new Error(result.error.message);
       const data = result.data;
-      if (!data?.totpURI) throw new Error("TOTP enrollment did not return a TOTP payload");
+      if (data?.method !== "totp" || !data.totpURI)
+        throw new Error("TOTP enrollment did not return a TOTP payload");
       setTotpEnrollment(
         normalizeTotpEnrollment({
           totpURI: data.totpURI,

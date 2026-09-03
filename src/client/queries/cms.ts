@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { queryKeys } from "@/client/queries/query-keys";
-import { signalCmsSettingsUpdated } from "@/client/queries/cms-settings-sync";
+import { signalCmsSettingsUpdated } from "@/lib/cms-settings-sync";
 
 type Filters = Record<string, string | number | boolean | undefined>;
 type CmsCollection =

@@ -23,6 +23,20 @@ if (process.platform === "win32") {
     ],
     { stdio: "inherit" },
   );
+} else {
+  try {
+    const result = spawnSync("bash", ["-c", `fuser -k ${port}/tcp 2>/dev/null || true`], {
+      stdio: "ignore",
+    });
+    // fuser may not be available; lsof is a fallback
+    if (result.status !== 0) {
+      spawnSync("bash", ["-c", `lsof -ti:${port} | xargs -r kill -9 2>/dev/null || true`], {
+        stdio: "ignore",
+      });
+    }
+  } catch {
+    // port-kill is best-effort on Linux
+  }
 }
 
 run(npmCmd, ["run", "build"]);

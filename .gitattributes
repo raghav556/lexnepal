@@ -1,0 +1,65 @@
+# =============================================================================
+# LexNepal line-ending enforcement
+# =============================================================================
+# Prevent CRLF contamination from Windows checkouts.  Shell scripts, Dockerfiles,
+# and config templates must stay LF-only so they execute correctly on Ubuntu.
+# =============================================================================
+
+# Default: auto-normalize text files
+* text=auto
+
+# Shell scripts — LF only (critical for Ubuntu execution)
+*.sh        text eol=lf
+*.bash      text eol=lf
+
+# PowerShell scripts — keep CRLF (native PowerShell expectation on Windows)
+*.ps1       text eol=crlf
+
+# JavaScript / TypeScript / Config — LF
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.js        text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.jsx       text eol=lf
+*.json      text eol=lf
+*.jsonl     text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+
+# Markdown / Documentation — LF
+*.md        text eol=lf
+
+# CSS / HTML — LF
+*.css       text eol=lf
+*.html      text eol=lf
+
+# SQL migrations — LF
+*.sql       text eol=lf
+
+# Docker / Container files — LF (none currently, but future-proof)
+Dockerfile* text eol=lf
+docker-compose*.yml text eol=lf
+
+# Environment / config templates — LF
+.env*       text eol=lf
+
+# Git config
+.gitignore  text eol=lf
+.gitattributes text eol=lf
+
+# Binary files — do not normalize
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.pdf       binary
+*.gz        binary
+*.tar       binary
+*.zip       binary
+*.sql.gz    binary

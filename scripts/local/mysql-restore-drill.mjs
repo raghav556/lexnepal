@@ -24,22 +24,28 @@ function readDatabaseUrl() {
 }
 
 function mysqlBin(name) {
-  const localAppData = process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
-  const portable = join(
-    localAppData,
-    "LexNepal",
-    "MySQL",
-    "server",
-    "mysql-8.4.9-winx64",
-    "bin",
-    name,
-  );
-  if (existsSync(portable)) return portable;
-  const base = "C:\\Program Files\\MySQL";
-  const installations = readdirSync(base).sort().reverse();
-  const installation = installations.find((item) => existsSync(join(base, item, "bin", name)));
-  if (!installation) throw new Error("MySQL installation not found");
-  return join(base, installation, "bin", name);
+  if (process.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
+    const portable = join(
+      localAppData,
+      "LexNepal",
+      "MySQL",
+      "server",
+      "mysql-8.4.9-winx64",
+      "bin",
+      name,
+    );
+    if (existsSync(portable)) return portable;
+    const base = "C:\\Program Files\\MySQL";
+    const installations = readdirSync(base).sort().reverse();
+    const installation = installations.find((item) => existsSync(join(base, item, "bin", name)));
+    if (!installation) throw new Error("MySQL installation not found");
+    return join(base, installation, "bin", name);
+  }
+  // Linux/macOS: resolve from PATH
+  const result = spawnSync("which", [name], { encoding: "utf8" });
+  if (result.status === 0 && result.stdout.trim()) return result.stdout.trim();
+  throw new Error(`${name} is not available in PATH`);
 }
 
 function run(bin, args, env, input) {
@@ -56,23 +62,24 @@ function main() {
   const { user, pass, host, port, db } = readDatabaseUrl();
   const drillDb = "lexnepal_restore_drill";
   if (db === drillDb) throw new Error("Live DB name collides with drill DB");
-  const localAppData = process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
-  const backupRoot = join(localAppData, "LexNepal", "backups");
+  const backupRoot =
+    process.platform === "win32"
+      ? join(process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"), "LexNepal", "backups")
+      : "/tmp/lexnepal/backups";
   mkdirSync(backupRoot, { recursive: true });
 
   let dumps = readdirSync(backupRoot).filter((file) => /^lexnepal-.*\.sql$/.test(file));
   if (dumps.length === 0) {
-    const backup = run(
-      "powershell",
-      [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        join(root, "scripts/local/mysql-backup.ps1"),
-      ],
-      {},
-    );
+    const backupScript =
+      process.platform === "win32"
+        ? join(root, "scripts/local/mysql-backup.ps1")
+        : join(root, "scripts/local/mysql-backup.sh");
+    const backupArgs =
+      process.platform === "win32"
+        ? ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", backupScript]
+        : [backupScript];
+    const backupBin = process.platform === "win32" ? "powershell" : "bash";
+    const backup = run(backupBin, backupArgs, {});
     if (backup.status !== 0) throw new Error(`Backup failed: ${backup.stderr || backup.stdout}`);
     dumps = readdirSync(backupRoot).filter((file) => /^lexnepal-.*\.sql$/.test(file));
   }
@@ -84,7 +91,8 @@ function main() {
     .sort((a, b) => b.mtime - a.mtime)[0]?.path;
   if (!latest) throw new Error("No MySQL backup available");
 
-  const mysql = mysqlBin("mysql.exe");
+  const mysqlBinName = process.platform === "win32" ? "mysql.exe" : "mysql";
+  const mysql = mysqlBin(mysqlBinName);
   const args = [
     "--protocol=TCP",
     `--host=${host}`,

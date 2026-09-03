@@ -14,7 +14,7 @@
     "verify:auth-cookies": "node --env-file-if-exists=.env.local scripts/local/verify-auth-cookies.mjs",
     "verify:auth-production": "node --env-file-if-exists=.env.local scripts/local/verify-auth-production-checklist.mjs",
     "verify:local-production-shaped": "node --env-file-if-exists=.env.local scripts/local/verify-local-production-shaped.mjs",
-    "local:mysql:backup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/mysql-backup.ps1",
+    "local:mysql:backup": "node scripts/local/run-mysql-backup.mjs",
     "local:mysql:restore-drill": "node --env-file-if-exists=.env.local scripts/local/mysql-restore-drill.mjs",
     "verify:invite-activation": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/local/verify-invite-activation.ts",
     "verify:client-portal-grant": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/local/verify-client-portal-grant.ts",

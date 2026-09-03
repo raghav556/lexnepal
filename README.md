@@ -87,6 +87,90 @@ npm run jobs:schedules:seed
 npm run dev
 ```
 
+## Required tech stack for Ubuntu deployment
+
+### Minimum system requirements
+
+| Component | Version | Notes |
+| --- | --- | --- |
+| Node.js | 24.x (pinned in `.nvmrc`) | Use nvm for version management |
+| npm | 11.12.1 (pinned in `package.json` `packageManager`) | Must match exactly |
+| MySQL | 8.4+ | Required for Drizzle ORM and all migrations |
+| OS | Ubuntu 22.04+ (or compatible Linux distro) | Bash/sh required for infrastructure scripts |
+
+### Optional local services
+
+| Component | Purpose | Install |
+| --- | --- | --- |
+| ClamAV (`clamd`, `freshclam`) | On-upload malware scanning | `sudo apt install clamav clamav-daemon` |
+| Mailpit | Local SMTP capture for dev/testing | `go install github.com/axllent/mailpit@latest` or binary download |
+| Docker | Fallback MySQL when native `mysqld` fails (AppArmor) | `sudo apt install docker.io` |
+
+### Required environment variables (production)
+
+Set in `.env.local` (localhost) or server-side `.env.runtime` / process environment:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | MySQL connection URL: `mysql://user:pass@host:port/dbname` |
+| `BETTER_AUTH_SECRET` | Yes | Cryptographic secret, min 32 characters |
+| `BETTER_AUTH_URL` | Yes | Production HTTPS origin (e.g. `https://example.com`) |
+| `APP_PUBLIC_URL` | Yes | Public HTTPS origin for email links, CORS, cookies |
+| `STORAGE_ROOT` | Yes | Private writable directory for document storage |
+| `STORAGE_DOWNLOAD_TOKEN_SECRET` | Yes | HMAC secret for download tokens, min 32 characters |
+| `NODE_ENV` | Yes | `production` for live deployments |
+| `CLAMAV_HOST` / `CLAMAV_PORT` | No | Omit to accept uploads without malware scanning |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | No | Omit to skip queued email delivery |
+
+### Linux deployment process
+
+```bash
+# 1. Install Node 24 via nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+nvm install 24
+
+# 2. Clone and install
+git clone <repo-url> && cd lexnepal
+npm ci
+
+# 3. Configure runtime environment
+cp .env.example .env.local
+# Edit .env.local with production secrets (never commit this file)
+
+# 4. Start local infrastructure (MySQL on 127.0.0.1:3306)
+npm run local:infra:start
+
+# 5. Run migrations and seed the tenant
+npm run db:migrate
+npm run db:seed:tenant
+
+# 6. Build standalone artifact
+npm run build
+
+# 7. Run verification gates
+npm run format:check
+npm run lint
+npm run typecheck
+npm run test
+
+# 8. Start production server
+npm run start
+# Or use the standalone artifact directly:
+# NODE_ENV=production PORT=3001 node .next/standalone/app.cjs
+```
+
+### Background workers (production)
+
+The web process enqueues work but does not execute it. Run these as supervised long-running processes:
+
+```bash
+npm run jobs:worker      # Drains queued jobs (email, scans, cleanup)
+npm run jobs:scheduler   # Triggers scheduled/recurring tasks
+```
+
+Use PM2 or systemd to supervise all three processes (web, worker, scheduler). See
+`ecosystem.config.cjs` for PM2 configuration.
+
 Before starting, replace the blank `BETTER_AUTH_SECRET` and `STORAGE_DOWNLOAD_TOKEN_SECRET` values
 in `.env.local` with separate private random values of at least 32 characters. `.env.local` is
 ignored by Git. Never reuse its local database, document storage, or authentication credentials in

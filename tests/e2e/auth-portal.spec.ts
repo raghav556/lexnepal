@@ -48,6 +48,8 @@ async function expectSignedInPortal(page: Page, pathPrefix: string) {
 async function signOutFromPortal(page: Page) {
   await page.evaluate(async () => {
     await fetch("/api/auth/sign-out", { method: "POST", credentials: "include" });
+    // Runs in the browser page context; router hooks are unavailable in Playwright evaluate.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/sign-in";
   });
   await expect(page).toHaveURL(/\/sign-in/, { timeout: 20_000 });

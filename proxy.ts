@@ -1,10 +1,12 @@
+import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 const REQUEST_ID_HEADER = "x-request-id";
-const REDIRECTS_FILE = require("node:path").join(process.cwd(), ".local", "cms-redirects.json");
+const REDIRECTS_FILE = join(process.cwd(), ".local", "cms-redirects.json");
 function readCmsRedirects(): Array<{ from: string; to: string; permanent?: boolean }> {
   try {
-    return JSON.parse(require("node:fs").readFileSync(REDIRECTS_FILE, "utf8"));
+    return JSON.parse(readFileSync(REDIRECTS_FILE, "utf8"));
   } catch {
     return [];
   }

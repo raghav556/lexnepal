@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "@/client/navigation";
+import { useSearchParams, useNavigate } from "@/client/navigation";
 import { localAuthClient } from "@/client/auth/local-auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 export default function ResetPasswordPage() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const token = params.get("token") ?? "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +58,7 @@ export default function ResetPasswordPage() {
       const result = await localAuthClient.resetPassword({ newPassword: password, token });
       if (result.error) throw new Error(result.error.message);
       toast.success("Password updated. You can now sign in.");
-      window.location.href = "/sign-in";
+      navigate("/sign-in", { replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Password reset failed");
     } finally {

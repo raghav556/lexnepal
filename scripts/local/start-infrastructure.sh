@@ -85,7 +85,7 @@ mysql_url_port() {
 # 1) External MySQL: if DATABASE_URL points at a reachable, non-default
 #    instance, use it directly without starting our own.
 MYSQL_EXTERNAL=0
-if [[ -n "${DATABASE_URL:-}" && "$DATABASE_URL" != mysql://lexnepal:lexnepal_local_dev@127.0.0.1:3306/lexnepal ]]; then
+if [[ -n "${DATABASE_URL:-}" && "$DATABASE_URL" != mysql://ethan:ethan@127.0.0.1:3306/dit_lexnepal ]]; then
   _url_port="$(mysql_url_port "$DATABASE_URL")"
   if port_open "$_url_port"; then
     MYSQL_EXTERNAL=1

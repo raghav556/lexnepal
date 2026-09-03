@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Scale, ArrowRight } from "lucide-react";
 import { SignInButton } from "@/components/ui/signin";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ export function PortalRoleGuard({
   children,
 }: PortalRoleGuardProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const skip = skipRoleGuards();
   const [switching, setSwitching] = useState(false);
   const { identityUser, isLoading, isAuthenticated } = useAuth();
@@ -84,7 +85,7 @@ export function PortalRoleGuard({
       } catch {
         // Still send the user to sign-in even if sign-out fails.
       }
-      window.location.assign(`/sign-in/${allowed}?next=${encodeURIComponent(next)}`);
+      router.replace(`/sign-in/${allowed}?next=${encodeURIComponent(next)}`);
     };
 
     return (
