@@ -35,6 +35,7 @@
     "db:seed:tenant": "node --env-file-if-exists=.env.local --import tsx scripts/db/seed-tenant.ts",
     "db:test": "vitest run tests/database",
     "db:seed": "node --env-file-if-exists=.env.local --import tsx scripts/db/seed.ts",
+    "db:seed:fresh": "npm run db:migrate && npm run db:seed && npm run db:seed:tenant && npm run auth:provision-local",
     "db:index-map": "node scripts/db/generate-index-map.mjs",
     "db:integrity": "node scripts/db/verify-migration-integrity.mjs",
     "db:integrity:update": "node scripts/db/verify-migration-integrity.mjs --write",

@@ -181,15 +181,21 @@ using the `__drizzle_migrations` table. `npm run db:migrate:status` prints the s
 applying changes. `npm run db:seed:tenant` upserts the public firm using `PUBLIC_FIRM_SLUG` and
 `PUBLIC_FIRM_NAME`; it is separate from demo/e2e data.
 
-`npm run db:seed` creates the base firm and a pending placeholder administrator record; that record
-cannot sign in. Local demo login users are provisioned by `npm run e2e:seed` and are listed on the
-development sign-in screen. Their localhost-only fixture details are documented in
+`npm run db:seed` creates the base firm plus three working accounts on it — `admin`
+(`admin@srimarlaw.com.np`), `staff` (default `associate`, `staff@srimarlaw.com.np`), and `client`
+(`client@srimarlaw.com.np`) — and a linked `clients` row for the client. Each account gets a Better
+Auth scrypt identity with `email_verified=true` and signs in with the default seed password
+`SrimarSeed123!` (no email/reset flow). Re-running it is idempotent and keeps accounts active.
+Override the accounts or password with `SEED_ADMIN_*`, `SEED_STAFF_*`, `SEED_CLIENT_*`, and
+`SEED_PASSWORD`. Local demo login users for the sign-in screen are provisioned separately by
+`npm run e2e:seed` and are listed on the development sign-in screen. Their localhost-only fixture
+details are documented in
 [`doc/migration/PHASE_AUTH_0_BASELINE.md`](doc/migration/PHASE_AUTH_0_BASELINE.md); they must never
-be copied into a live environment.
+be copied into a live environment. Rotate the seed password after first sign-in.
 
-`npm run auth:provision-local` is different: it creates local identities and sends setup links to
-Mailpit for existing users with email addresses. Use it for invitation/setup-flow testing, not for
-the fixed demo credentials.
+`npm run auth:provision-local` differs: it creates local identities and sends setup links to
+Mailpit for existing users with email addresses — use it for invitation/setup-flow testing, not for
+the fixed seed credentials from `npm run db:seed`.
 
 ### Canonical local firm
 

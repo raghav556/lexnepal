@@ -155,12 +155,12 @@ else
       die "Local MySQL could not start and the Docker daemon is not running; start Docker or use an external MySQL via DATABASE_URL"
     fi
     log "Starting MySQL via Docker on 127.0.0.1:3306"
-    docker rm -f lexnepal-mysql >/dev/null 2>&1 || true
+    docker rm -f dit-lexnepal-mysql >/dev/null 2>&1 || true
     docker run -d \
-      --name lexnepal-mysql \
+      --name dit-lexnepal-mysql \
       -p 127.0.0.1:3306:3306 \
       -e MYSQL_ROOT_PASSWORD=lexnepal_local_root \
-      -e MYSQL_DATABASE=lexnepal \
+      -e MYSQL_DATABASE=dit_lexnepal \
       -e MYSQL_USER=lexnepal \
       -e MYSQL_PASSWORD=lexnepal_local_dev \
       --restart unless-stopped \
@@ -176,7 +176,7 @@ else
   if [[ -n "${DOCKER_MYSQL:-}" ]]; then
     _root_auth=(--password=lexnepal_local_root)
   fi
-  mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root "${_root_auth[@]}" --execute="CREATE DATABASE IF NOT EXISTS lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_restore_drill CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; CREATE USER IF NOT EXISTS 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_test.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'localhost'; FLUSH PRIVILEGES;" >/dev/null ||
+  mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root "${_root_auth[@]}" --execute="CREATE DATABASE IF NOT EXISTS dit_lexnepal CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS dit_lexnepal_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE DATABASE IF NOT EXISTS lexnepal_restore_drill CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; CREATE USER IF NOT EXISTS 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'127.0.0.1' IDENTIFIED BY 'lexnepal_local_dev'; ALTER USER 'lexnepal'@'localhost' IDENTIFIED BY 'lexnepal_local_dev'; GRANT ALL PRIVILEGES ON dit_lexnepal.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON dit_lexnepal_test.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'127.0.0.1'; GRANT ALL PRIVILEGES ON dit_lexnepal.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON dit_lexnepal_test.* TO 'lexnepal'@'localhost'; GRANT ALL PRIVILEGES ON lexnepal_restore_drill.* TO 'lexnepal'@'localhost'; FLUSH PRIVILEGES;" >/dev/null ||
     die "LexNepal MySQL database/user provisioning failed"
 fi
 
@@ -248,7 +248,7 @@ elif [[ "$LOCAL_MAILPIT_REQUIRED" == "0" ]]; then
 fi
 
 if [[ "$LOCAL_MYSQL_REQUIRED" == "1" ]]; then
-  printf 'MySQL:        ready at 127.0.0.1:3306 (database: lexnepal)\n'
+  printf 'MySQL:        ready at 127.0.0.1:3306 (database: dit_lexnepal)\n'
 else
   printf 'MySQL:        external (%s)\n' "$DATABASE_URL"
 fi

@@ -38,6 +38,48 @@ Forward migrations are run by `npm run db:migrate`, backed by `drizzle-kit migra
 drizzle.config.ts`. Do not use fixture seeds, fresh resets, or destructive down migrations for live
 deployment.
 
+### Local MySQL credentials
+
+Local database credentials live in the repo root `.env.local` (git-ignored, never commit it) under
+`DATABASE_URL`, e.g.:
+
+```
+DATABASE_URL=mysql://ethan:ethan@127.0.0.1:3306/dit_lexnepal
+```
+
+Start the local MySQL with `npm run local:infra:start`. Production credentials belong in the
+server-side `.env.runtime` (passenger app root), not `.env.local`.
+
+### Fresh migrate + seed (local)
+
+Run with a Node >= 20 shell (the project targets Node 24; Node < 20 rejects
+`--env-file-if-exists`). From the repo root:
+
+```
+npm run db:migrate        # apply drizzle/ migrations to the local DATABASE_URL
+npm run db:seed           # create the firm + seed admin/staff/client accounts
+npm run db:seed:tenant    # ensure the srimar-law public tenant
+npm run auth:provision-local   # (resend setup links if you prefer the email flow)
+```
+
+`db:seed` provisions the `srimar-law` firm and three accounts: one `admin`, one `staff`
+(default `associate`), and one `client` (individual, `kyc_status=pending`), plus the linked
+`clients` row. Each account gets a working Better Auth **scrypt** identity with
+`email_verified=true` so they can sign in immediately — no verification email required.
+
+Default seed values (override with `SEED_PASSWORD`, `SEED_ADMIN_EMAIL`, `SEED_STAFF_*`,
+`SEED_CLIENT_*`):
+
+| key      | role    | email                      |
+| -------- | ------- | -------------------------- |
+| admin    | admin   | admin@srimarlaw.com.np    |
+| staff    | associate | staff@srimarlaw.com.np   |
+| client   | client  | client@srimarlaw.com.np   |
+
+Default seed password: `SrimarSeed123!` (12+ chars, satisfies Better Auth minimum). Rotate it on
+first sign-in; pass `SEED_PASSWORD` to seed a different value. Re-running `db:seed` is idempotent —
+it re-keys the Better Auth identity for the seed emails and keeps the accounts active.
+
 ## Auth
 
 | Variable                   | Purpose                                                                 |

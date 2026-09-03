@@ -76,9 +76,22 @@ apply_defaults() {
   : "${DEPLOY_PREFLIGHT_ONLY:=0}"
   : "${REMOTE_BACKUP_COMMAND:=}"
   : "${REMOTE_MIGRATION_COMMAND:=}"
+  : "${RUN_REMOTE_MIGRATIONS:=1}"
   : "${REMOTE_ROLLBACK_COMMAND:=}"
   : "${RUNTIME_ENV_SOURCE:=}"
   : "${MIRROR_STATIC_TO_PUBLIC_HTML:=0}"
+  # Optional cPanel Node.js environment activation: sourced before every remote
+  # command, then the working directory is moved to the app release. Derived from
+  # APP_PATH ("<userroot>/nodevenv/<apps/lexnepal>/current/24/bin/activate") so it
+  # adapts to the host; override REMOTE_ACTIVATE_CMD in deploy.env if needed.
+  if [[ -z "${REMOTE_ACTIVATE_CMD:-}" && "$APP_PATH" == *"/"* ]]; then
+    local userroot="${APP_PATH%/*/*}"
+    local rel="${APP_PATH#"$userroot"/}"
+    if [[ "$rel" == apps/* ]]; then
+      REMOTE_ACTIVATE_CMD="source \"$userroot/nodevenv/$rel/current/24/bin/activate\" && cd \"$APP_PATH/current\""
+    fi
+  fi
+  : "${REMOTE_ACTIVATE_CMD:=cd \"$APP_PATH/current\"}"
 }
 
 load_nvm() {
@@ -181,6 +194,9 @@ prepare_artifact() {
   fi
   mkdir -p "$STANDALONE_DIR/.next/static"
   cp -R "$BUILD_OUTPUT_DIR/static/." "$STANDALONE_DIR/.next/static/"
+  # Strip local env files that `next build` copies into the standalone output. Runtime
+  # config is supplied separately as host env or an on-server .env.runtime file.
+  find "$STANDALONE_DIR" -type f \( -name '.env' -o -name '.env.local' -o -name '.env.runtime' \) -delete
   assert_no_local_env_in_artifact
 }
 
@@ -196,6 +212,9 @@ write_archive() {
 
 run_remote() {
   local command="$1"
+  if [[ -n "${REMOTE_ACTIVATE_CMD:-}" ]]; then
+    command="$REMOTE_ACTIVATE_CMD && $command"
+  fi
   if [[ -n "$REMOTE_NODE_BIN_DIR" ]]; then
     command="export PATH='$REMOTE_NODE_BIN_DIR':\$PATH; $command"
   fi
@@ -230,10 +249,14 @@ backup_remote() {
 }
 
 activate_release() {
-  run_remote "mkdir -p '$REMOTE_RELEASE_DIR' && tar -xzf '$REMOTE_ARCHIVE' -C '$REMOTE_RELEASE_DIR' && ln -sfn '$REMOTE_RELEASE_DIR' '$APP_PATH/current' && rm -f '$REMOTE_ARCHIVE'"
+  run_remote "mkdir -p '$REMOTE_RELEASE_DIR' && tar -xzf '$REMOTE_ARCHIVE' -C '$REMOTE_RELEASE_DIR' && if [ -e '$APP_PATH/current' ] && [ ! -L '$APP_PATH/current' ]; then mv '$APP_PATH/current' '$APP_PATH/current.old.$(date +%s)'; fi && ln -sfn '$REMOTE_RELEASE_DIR' '$APP_PATH/current' && rm -f '$REMOTE_ARCHIVE'"
 }
 
 run_migrations() {
+  if [[ "$RUN_REMOTE_MIGRATIONS" != "1" ]]; then
+    log "RUN_REMOTE_MIGRATIONS != 1; skipping automatic database migration (run manually on the server)"
+    return 0
+  fi
   if [[ -z "$REMOTE_MIGRATION_COMMAND" ]]; then
     log "REMOTE_MIGRATION_COMMAND not set; skipping automatic database migration"
     return 0
@@ -305,8 +328,8 @@ deploy() {
   write_archive
   upload_artifact
   backup_remote
-  write_runtime_env
   activate_release
+  write_runtime_env
   run_migrations
   mirror_static_assets
   restart_remote

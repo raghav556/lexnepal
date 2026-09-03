@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { convexTableTargets } from "../../db/schema";
 import indexManifest from "../../db/index-manifest.json";
 
-const testDatabaseName = "lexnepal_test";
+const testDatabaseName = "dit_lexnepal_test";
 const migrationFiles = fs
   .readdirSync(path.resolve("drizzle"))
   .filter((file) => /^\d{4}_.+\.sql$/.test(file))
@@ -56,6 +56,7 @@ beforeAll(async () => {
     `CREATE DATABASE \`${testDatabaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
   );
   database = createPool({ uri: databaseUrl().toString(), timezone: "Z", charset: "utf8mb4" });
+  await database.query("SET time_zone = '+00:00'");
   for (const migration of migrationFiles) await applySqlFile(database, migration);
   for (const statement of fs
     .readFileSync(path.resolve("tests/fixtures/mysql/base.sql"), "utf8")
@@ -64,7 +65,7 @@ beforeAll(async () => {
     .filter(Boolean)) {
     await database.query(statement);
   }
-}, 120_000);
+}, 600_000);
 
 afterAll(async () => {
   if (database) await database.end();

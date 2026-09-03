@@ -53,6 +53,11 @@ Optional production integrations:
 No localhost URLs, Mailpit settings, local storage token secrets, fixture/demo credentials, or
 repository `.env.local` files should be used in production.
 
+`deploy.sh` writes `RUNTIME_ENV_SOURCE` to the **active release** (after `activate_release` flips
+the `current` symlink), so a freshly built release always boots with the runtime secrets — never the
+dev placeholders. Local development secrets belong in `DATABASE_URL` inside `.env.local` at the repo
+root (e.g. `mysql://ethan:ethan@127.0.0.1:3306/dit_lexnepal`).
+
 ## Restart
 
 Passenger-compatible cPanel hosts normally restart by touching:
@@ -97,12 +102,21 @@ Print migration status without applying changes:
 npm run db:migrate:status
 ```
 
-Seed the public tenant after migrations by setting `PUBLIC_FIRM_SLUG` / `PUBLIC_FIRM_NAME` and
-running:
+Seed the default tenant by setting `PUBLIC_FIRM_SLUG` / `PUBLIC_FIRM_NAME` and running:
 
 ```bash
 npm run db:seed:tenant
 ```
+
+`npm run db:seed` (run first, once) creates the `srimar-law` firm plus three working accounts —
+`admin` (`admin@srimarlaw.com.np`), `staff` (default `associate`, `staff@srimarlaw.com.np`), and
+`client` (`client@srimarlaw.com.np`) — and a linked `clients` row for the client
+(`kyc_status=pending`). Each account gets a Better Auth **scrypt** identity with
+`email_verified=true`, so they can sign in immediately with the default seed password
+`SrimarSeed123!` (no verification email or reset flow). Override the accounts or password with
+`SEED_ADMIN_*`, `SEED_STAFF_*`, `SEED_CLIENT_*`, and `SEED_PASSWORD`. Re-running `db:seed` is
+idempotent: it re-keys the Better Auth identity for the seed emails and keeps accounts active.
+Rotate the seed password after first sign-in.
 
 ## Deployment Command
 
