@@ -19,12 +19,12 @@ try {
   await db.transaction(async (transaction) => {
     await transaction
       .insert(firms)
-      .values({ name: "Srimar Law", slug: "lexnepal", legacyConvexId: "seed_default_firm" })
+      .values({ name: "Srimar Law", slug: "srimar-law", legacyConvexId: "seed_default_firm" })
       .onDuplicateKeyUpdate({ set: { name: "Srimar Law", updatedAt: new Date() } });
     const [firm] = await transaction
       .select({ id: firms.id })
       .from(firms)
-      .where(eq(firms.slug, "lexnepal"))
+      .where(eq(firms.slug, "srimar-law"))
       .limit(1);
     if (!firm) throw new Error("Seed firm upsert did not produce a row");
 
