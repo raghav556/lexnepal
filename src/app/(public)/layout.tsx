@@ -3,26 +3,43 @@ import type { ReactNode } from "react";
 import { getCmsService } from "@/server/services/cms-service";
 import { PublicLayoutShell, type PublicNavEntry } from "./public-layout-shell";
 
-/** CMS content must refresh on every request — never bake admin edits into a static shell. */
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import {
+  DEFAULT_PUBLIC_HEADER_NAV,
+  DEFAULT_FOOTER_NAV_COL1,
+  DEFAULT_FOOTER_NAV_COL2,
+} from "@/shared/public-routes";
+
+/** ISR revalidation cache: keeps responses fast while reflecting CMS updates within 60 seconds. */
+export const revalidate = 60;
+
+const DEFAULT_PUBLIC_SETTINGS: Record<string, unknown> = {
+  firmName: "Srimar Law",
+  tagline: "Advocates & Legal Consultants",
+  businessHoursText: "Office Hours: Sun-Fri 9AM-6PM",
+};
 
 async function loadNav(location: string): Promise<PublicNavEntry[]> {
   try {
-    return (await getCmsService().listPublic(
+    const list = (await getCmsService().listPublic(
       "navigation",
       new URLSearchParams({ location }),
     )) as PublicNavEntry[];
+    if (list && list.length > 0) return list;
   } catch {
-    return [];
+    // Graceful fallback below
   }
+  if (location === "header") return DEFAULT_PUBLIC_HEADER_NAV as PublicNavEntry[];
+  if (location === "footer_col_1") return DEFAULT_FOOTER_NAV_COL1 as PublicNavEntry[];
+  if (location === "footer_col_2") return DEFAULT_FOOTER_NAV_COL2 as PublicNavEntry[];
+  return [];
 }
 
 async function loadSettings(): Promise<Record<string, unknown>> {
   try {
-    return (await getCmsService().getPublicSettings()) as Record<string, unknown>;
+    const settings = (await getCmsService().getPublicSettings()) as Record<string, unknown>;
+    return { ...DEFAULT_PUBLIC_SETTINGS, ...settings };
   } catch {
-    return {};
+    return DEFAULT_PUBLIC_SETTINGS;
   }
 }
 
@@ -40,12 +57,13 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: { default: firmName, template },
       description,
-      ...(favicon ? { icons: { icon: favicon } } : {}),
+      icons: { icon: favicon || "/favicon.ico" },
     };
   } catch {
     return {
       title: "Law Firm",
       description: "Legal practice in Nepal",
+      icons: { icon: "/favicon.ico" },
     };
   }
 }

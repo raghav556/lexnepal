@@ -37,6 +37,7 @@ import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
 import { resolvePublicTitle } from "@/shared/leadership";
 import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
+import { DEFAULT_PRACTICE_AREAS } from "@/shared/public-routes";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 
@@ -140,7 +141,7 @@ const FAQS = [
 function useCountUp(target: number, duration = 2000) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "0px 0px 40px 0px" });
 
   useEffect(() => {
     if (!isInView) return;
@@ -218,13 +219,15 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function HomePage() {
   const settings = usePublicCmsSettings();
-  const firmName = String(settings?.firmName ?? "Our Firm");
+  const firmName = String(settings?.firmName || "Srimar Law");
   const practiceAreasRaw = usePracticeAreas({ isActive: true }, "public") || [];
   const practiceAreas = useMemo(() => {
-    const featured = practiceAreasRaw.filter(
+    const listToFilter =
+      practiceAreasRaw.length > 0 ? practiceAreasRaw : (DEFAULT_PRACTICE_AREAS as any[]);
+    const featured = listToFilter.filter(
       (a: { showOnHome?: boolean }) => a.showOnHome !== false,
     );
-    const list = (featured.length > 0 ? featured : practiceAreasRaw).slice();
+    const list = (featured.length > 0 ? featured : listToFilter).slice();
     list.sort(
       (
         a: { displayOrder?: number; title?: string },
@@ -1199,15 +1202,17 @@ export default function HomePage() {
             </div>
           </FadeInUp>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-primary-foreground/60">
-            <span className="inline-flex items-center justify-center gap-1.5 break-all">
-              <Phone className="w-3.5 h-3.5 shrink-0" /> {settings?.phone ?? ""}
-            </span>
-            {settings?.address && (
+            {settings?.phone ? (
+              <span className="inline-flex items-center justify-center gap-1.5 break-all">
+                <Phone className="w-3.5 h-3.5 shrink-0" /> {String(settings.phone)}
+              </span>
+            ) : null}
+            {settings?.address ? (
               <span className="inline-flex items-start sm:items-center justify-center gap-1.5 text-center sm:text-left max-w-sm mx-auto">
                 <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 sm:mt-0" />{" "}
-                <span className="break-words">{settings.address}</span>
+                <span className="break-words">{String(settings.address)}</span>
               </span>
-            )}
+            ) : null}
           </div>
         </div>
       </section>

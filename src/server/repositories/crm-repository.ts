@@ -65,9 +65,28 @@ export class CrmRepository {
     const [row] = await database
       .select({ id: firms.id })
       .from(firms)
-      .where(eq(firms.slug, slug))
+      .where(and(eq(firms.slug, slug), eq(firms.isActive, true), isNull(firms.deletedAt)))
       .limit(1);
-    return row?.id ?? null;
+    if (row?.id) return row.id;
+
+    // Resilient fallback: Try known alternative slugs if configured slug has a mismatch
+    const fallbackSlugs = ["srimar-law", "lexnepal"].filter((s) => s !== slug);
+    for (const alt of fallbackSlugs) {
+      const [altFirm] = await database
+        .select({ id: firms.id })
+        .from(firms)
+        .where(and(eq(firms.slug, alt), eq(firms.isActive, true), isNull(firms.deletedAt)))
+        .limit(1);
+      if (altFirm?.id) return altFirm.id;
+    }
+
+    // Last resort fallback: First active firm in database
+    const [anyActive] = await database
+      .select({ id: firms.id })
+      .from(firms)
+      .where(and(eq(firms.isActive, true), isNull(firms.deletedAt)))
+      .limit(1);
+    return anyActive?.id ?? null;
   }
 
   async listLeads(firmId: string, filters: LeadListInput = {}) {

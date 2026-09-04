@@ -50,7 +50,26 @@ export class MySqlCmsRepository {
       .from(firms)
       .where(and(eq(firms.slug, slug), eq(firms.isActive, true), isNull(firms.deletedAt)))
       .limit(1);
-    return firm?.id ?? null;
+    if (firm?.id) return firm.id;
+
+    // Resilient fallback: Try known alternative slugs if configured slug has a mismatch
+    const fallbackSlugs = ["srimar-law", "lexnepal"].filter((s) => s !== slug);
+    for (const alt of fallbackSlugs) {
+      const [altFirm] = await database
+        .select({ id: firms.id })
+        .from(firms)
+        .where(and(eq(firms.slug, alt), eq(firms.isActive, true), isNull(firms.deletedAt)))
+        .limit(1);
+      if (altFirm?.id) return altFirm.id;
+    }
+
+    // Last resort fallback: First active firm in database (prevents complete 503 public website outage)
+    const [anyActive] = await database
+      .select({ id: firms.id })
+      .from(firms)
+      .where(and(eq(firms.isActive, true), isNull(firms.deletedAt)))
+      .limit(1);
+    return anyActive?.id ?? null;
   }
 
   async getSettings(firmId: string) {
