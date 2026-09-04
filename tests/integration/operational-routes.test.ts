@@ -5,6 +5,7 @@ import {
   versionResponseSchema,
 } from "@/shared/contracts/operations";
 import { resetServerEnvironmentForTests } from "@/server/env";
+import { evaluateReadiness } from "@/server/services/readiness";
 import { GET as health } from "../../src/app/api/v1/health/route";
 import { GET as readiness } from "../../src/app/api/v1/readiness/route";
 import { GET as version } from "../../src/app/api/v1/version/route";
@@ -30,6 +31,7 @@ describe("operational Route Handlers", () => {
     expect(response.status).toBe(200);
     expect(body.mode).toBe("foundation");
     expect(body.checks.database).toContain("not required");
+    expect(body.checks.publicFirm).toContain("not required");
   });
 
   it("fails readiness when database mode lacks configuration", async () => {
@@ -39,6 +41,43 @@ describe("operational Route Handlers", () => {
     const body = readinessResponseSchema.parse(await response.json());
     expect(response.status).toBe(503);
     expect(body.status).toBe("degraded");
+    expect(body.checks.publicFirm).toContain("DATABASE_URL is missing");
+  });
+
+  it("fails database readiness when the exact public firm is unavailable", async () => {
+    process.env.READINESS_REQUIRE_DATABASE = "true";
+    process.env.DATABASE_URL = "mysql://test:test@127.0.0.1:3306/lexnepal_test";
+    process.env.PUBLIC_FIRM_SLUG = "srimar-law";
+    resetServerEnvironmentForTests();
+    let checkedSlug = "";
+
+    const result = await evaluateReadiness(new Date("2026-09-04T00:00:00.000Z"), {
+      databaseIsReachable: async () => true,
+      publicFirmIsConfigured: async (slug) => {
+        checkedSlug = slug;
+        return false;
+      },
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.body.status).toBe("degraded");
+    expect(result.body.checks.publicFirm).toContain("missing");
+    expect(checkedSlug).toBe("srimar-law");
+  });
+
+  it("passes database readiness when the configured public firm exists", async () => {
+    process.env.READINESS_REQUIRE_DATABASE = "true";
+    process.env.DATABASE_URL = "mysql://test:test@127.0.0.1:3306/lexnepal_test";
+    process.env.PUBLIC_FIRM_SLUG = "srimar-law";
+    resetServerEnvironmentForTests();
+
+    const result = await evaluateReadiness(new Date("2026-09-04T00:00:00.000Z"), {
+      databaseIsReachable: async () => true,
+      publicFirmIsConfigured: async (slug) => slug === "srimar-law",
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.body.checks.publicFirm).toBe("configured");
   });
 
   it("returns a safe structured error for an invalid environment", async () => {

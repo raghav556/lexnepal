@@ -545,7 +545,9 @@ function PublicLayoutShellInner({
         ? { ...link, children: paChildren.length > 0 ? paChildren : undefined }
         : link,
     );
-    return resolved.length > 0 ? resolved : (DEFAULT_PUBLIC_HEADER_NAV as unknown as PublicNavLink[]);
+    return resolved.length > 0
+      ? resolved
+      : (DEFAULT_PUBLIC_HEADER_NAV as unknown as PublicNavLink[]);
   }, [headerNav, practiceAreasLive]);
 
   const footer1Links = useMemo(() => {
@@ -754,11 +756,11 @@ function PublicLayoutShellInner({
             <span className="text-primary-foreground/60">{businessHours}</span>
             {Boolean(
               settings?.facebookUrl ||
-                settings?.linkedinUrl ||
-                settings?.twitterUrl ||
-                settings?.instagramUrl ||
-                settings?.youtubeUrl ||
-                settings?.tiktokUrl,
+              settings?.linkedinUrl ||
+              settings?.twitterUrl ||
+              settings?.instagramUrl ||
+              settings?.youtubeUrl ||
+              settings?.tiktokUrl,
             ) && (
               <div className="hidden lg:flex items-center gap-4">
                 <div className="w-px h-4 bg-primary-foreground/20" />

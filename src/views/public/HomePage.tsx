@@ -224,9 +224,7 @@ export default function HomePage() {
   const practiceAreas = useMemo(() => {
     const listToFilter =
       practiceAreasRaw.length > 0 ? practiceAreasRaw : (DEFAULT_PRACTICE_AREAS as any[]);
-    const featured = listToFilter.filter(
-      (a: { showOnHome?: boolean }) => a.showOnHome !== false,
-    );
+    const featured = listToFilter.filter((a: { showOnHome?: boolean }) => a.showOnHome !== false);
     const list = (featured.length > 0 ? featured : listToFilter).slice();
     list.sort(
       (

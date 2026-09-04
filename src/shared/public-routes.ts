@@ -59,42 +59,47 @@ export const DEFAULT_PRACTICE_AREAS = [
     title: "Corporate Law",
     slug: "corporate-law",
     icon: "Briefcase",
-    description: "Company incorporation, joint ventures, governance, commercial contracts, and compliance.",
+    description:
+      "Company incorporation, joint ventures, governance, commercial contracts, and compliance.",
   },
   {
     id: "default-criminal",
     title: "Criminal Defense",
     slug: "criminal-defense",
     icon: "Shield",
-    description: "Expert trial representation, bail hearings, white-collar crime defense, and appellate advocacy.",
+    description:
+      "Expert trial representation, bail hearings, white-collar crime defense, and appellate advocacy.",
   },
   {
     id: "default-property",
     title: "Property & Real Estate",
     slug: "property-real-estate",
     icon: "Building",
-    description: "Land title due diligence, transfer registrations, lease agreements, and tenancy dispute resolution.",
+    description:
+      "Land title due diligence, transfer registrations, lease agreements, and tenancy dispute resolution.",
   },
   {
     id: "default-family",
     title: "Family & Civil Law",
     slug: "family-civil-law",
     icon: "Users",
-    description: "Matrimonial disputes, partition suits, inheritance succession, child custody, and mediation.",
+    description:
+      "Matrimonial disputes, partition suits, inheritance succession, child custody, and mediation.",
   },
   {
     id: "default-banking",
     title: "Banking & Finance",
     slug: "banking-finance",
     icon: "DollarSign",
-    description: "Loan documentation, recovery litigation, financial regulatory compliance, and securities advisory.",
+    description:
+      "Loan documentation, recovery litigation, financial regulatory compliance, and securities advisory.",
   },
   {
     id: "default-ip",
     title: "Intellectual Property",
     slug: "intellectual-property",
     icon: "Award",
-    description: "Trademark and copyright registration, patent prosecution, trade secrets, and infringement litigation.",
+    description:
+      "Trademark and copyright registration, patent prosecution, trade secrets, and infringement litigation.",
   },
 ];
-

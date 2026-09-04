@@ -26,13 +26,7 @@ const allowedStaffRoles = new Set([
   "intern",
 ] as const);
 type SeedRole =
-  | "admin"
-  | "client"
-  | "partner"
-  | "senior_associate"
-  | "associate"
-  | "paralegal"
-  | "intern";
+  "admin" | "client" | "partner" | "senior_associate" | "associate" | "paralegal" | "intern";
 const seedAccounts: Array<{ key: string; name: string; email: string; role: SeedRole }> = [
   {
     key: "admin",
@@ -73,7 +67,11 @@ async function upsertFirmId() {
     .insert(firms)
     .values({ name: "Srimar Law", slug: "srimar-law", legacyConvexId: "seed_default_firm" })
     .onDuplicateKeyUpdate({ set: { name: "Srimar Law", updatedAt: new Date() } });
-  const [firm] = await db.select({ id: firms.id }).from(firms).where(eq(firms.slug, "srimar-law")).limit(1);
+  const [firm] = await db
+    .select({ id: firms.id })
+    .from(firms)
+    .where(eq(firms.slug, "srimar-law"))
+    .limit(1);
   if (!firm) throw new Error("Seed firm upsert did not produce a row");
   return firm.id;
 }
@@ -111,9 +109,7 @@ async function upsertUser(firmId: string, account: (typeof seedAccounts)[number]
   return { id: user.id, name: account.name, email: user.email };
 }
 
-async function provisionIdentity(
-  user: { id: string; name: string; email: string },
-) {
+async function provisionIdentity(user: { id: string; name: string; email: string }) {
   // Re-key the seed accounts deterministically: drop any prior auth link for this
   // email so re-running the seeder reconstructs a consistent identity.
   const [prior] = await db
@@ -126,27 +122,23 @@ async function provisionIdentity(
   }
 
   const authUserId = randomUUID();
-  await db
-    .insert(authUsers)
-    .values({
-      id: authUserId,
-      lexnepalUserId: user.id,
-      name: user.name,
-      email: user.email,
-      emailVerified: true,
-      role: "user",
-    });
+  await db.insert(authUsers).values({
+    id: authUserId,
+    lexnepalUserId: user.id,
+    name: user.name,
+    email: user.email,
+    emailVerified: true,
+    role: "user",
+  });
 
   const password = await hashPassword(seedPassword);
-  await db
-    .insert(authAccounts)
-    .values({
-      id: randomUUID(),
-      accountId: user.email,
-      providerId: "email",
-      userId: authUserId,
-      password,
-    });
+  await db.insert(authAccounts).values({
+    id: randomUUID(),
+    accountId: user.email,
+    providerId: "email",
+    userId: authUserId,
+    password,
+  });
 
   await db
     .update(users)
@@ -196,7 +188,9 @@ try {
       password: seedPassword,
     })}\n`,
   );
-  console.log("Seed completed. All accounts are active and can sign in with the printed email + password.");
+  console.log(
+    "Seed completed. All accounts are active and can sign in with the printed email + password.",
+  );
   console.log("Change the password after first sign-in (or reset SEED_PASSWORD for a clean seed).");
 } finally {
   await pool.end();

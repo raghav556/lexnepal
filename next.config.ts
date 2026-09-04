@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
+const deploymentGitSha = process.env.GIT_SHA?.trim();
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -35,6 +36,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  ...(deploymentGitSha ? { generateBuildId: async () => deploymentGitSha } : {}),
   poweredByHeader: false,
   reactStrictMode: true,
   allowedDevOrigins: ["127.0.0.1"],

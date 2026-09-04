@@ -127,9 +127,20 @@ Create `~/.config/lexnepal/deploy.env` from `doc/deployment/deploy.env.example`,
 ./deploy.sh
 ```
 
+`SMOKE_BASE_URL` is required for a real deployment. After restart, deployment now fails unless
+database readiness, public CMS settings, public header navigation, deployed Git SHA, and homepage
+fallback rendering all verify successfully. The readiness check also requires an exact active,
+non-deleted `PUBLIC_FIRM_SLUG` record whenever `READINESS_REQUIRE_DATABASE=true`.
+Deployment validates the server/app targets and requires an HTTPS smoke URL before contacting the
+server. The npm patch version may differ from `packageManager`, but its major version must match.
+
 `--preflight` performs local validation and build checks only. The deployment file must live outside
 the repository; `deploy.sh` refuses repo-local deploy env files.
 
 If the build needs database-backed static data, set `BUILD_DATABASE_URL` to a safe staging or
 sanitized database for preflight. Do not point preflight at production unless that access is
 explicitly approved.
+
+When `BUILD_DATABASE_URL` is unset, the deployment deliberately uses an unavailable build-only
+database address. Public ISR pages therefore compile with deterministic Srimar Law/navigation
+fallbacks instead of accidentally embedding localhost or production CMS data in the artifact.
