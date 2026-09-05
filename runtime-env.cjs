@@ -29,3 +29,19 @@ if (fs.existsSync(envPath)) {
     if (process.env[key] === undefined) process.env[key] = value;
   }
 }
+
+// Deployment metadata is non-secret and travels with the standalone artifact.
+// Runtime environment variables still win when the host explicitly supplies them.
+const buildIdPath = path.join(process.cwd(), ".next", "BUILD_ID");
+if (process.env.GIT_SHA === undefined && fs.existsSync(buildIdPath)) {
+  const buildId = fs.readFileSync(buildIdPath, "utf8").trim();
+  if (buildId) process.env.GIT_SHA = buildId;
+}
+
+const packagePath = path.join(process.cwd(), "package.json");
+if (process.env.APP_VERSION === undefined && fs.existsSync(packagePath)) {
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  if (typeof packageJson.version === "string" && packageJson.version) {
+    process.env.APP_VERSION = packageJson.version;
+  }
+}

@@ -1,0 +1,51 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+function source(path: string) {
+  return readFileSync(resolve(process.cwd(), path), "utf8");
+}
+
+describe("public production resilience", () => {
+  it("renders deterministic branding and navigation fallbacks", () => {
+    const layout = source("src/app/(public)/layout.tsx");
+    const shell = source("src/app/(public)/public-layout-shell.tsx");
+    const routes = source("src/shared/public-routes.ts");
+
+    expect(layout).toContain('firmName: "Srimar Law"');
+    expect(layout).toContain("DEFAULT_PUBLIC_HEADER_NAV");
+    expect(shell).toContain("DEFAULT_PUBLIC_HEADER_NAV");
+    expect(shell).toContain("initialData: initial && initial.length > 0 ? initial : undefined");
+    expect(routes).toContain('{ label: "Home", href: "/"');
+  });
+
+  it("never resolves public traffic to an arbitrary active firm", () => {
+    for (const path of [
+      "src/server/repositories/cms-repository.ts",
+      "src/server/repositories/crm-repository.ts",
+    ]) {
+      const repository = source(path);
+      expect(repository).not.toContain("fallbackSlugs");
+      expect(repository).not.toContain("anyActive");
+      expect(repository).toContain("eq(firms.slug, slug)");
+      expect(repository).toContain("eq(firms.isActive, true)");
+      expect(repository).toContain("isNull(firms.deletedAt)");
+    }
+  });
+
+  it("makes deployments traceable and validates public CMS after restart", () => {
+    const deploy = source("deploy.sh");
+    const runtimeEnvironment = source("runtime-env.cjs");
+    const nextConfig = source("next.config.ts");
+
+    expect(deploy).toContain("prepare_build_metadata");
+    expect(deploy).toContain("validate_deploy_configuration");
+    expect(deploy).toContain("/api/v1/public/cms/settings");
+    expect(deploy).toContain("/api/v1/public/cms/navigation?location=header");
+    expect(deploy).toContain("EXPECTED_GIT_SHA");
+    expect(deploy).toContain('aria-label="Loading navigation"');
+    expect(deploy).toContain("127.0.0.1:1/lexnepal_build");
+    expect(runtimeEnvironment).toContain('path.join(process.cwd(), ".next", "BUILD_ID")');
+    expect(nextConfig).toContain("generateBuildId");
+  });
+});

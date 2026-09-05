@@ -1,0 +1,1 @@
+ALTER TABLE `document_upload_intents` ADD `metadata` json;

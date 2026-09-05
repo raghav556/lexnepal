@@ -65,7 +65,7 @@ export class CrmRepository {
     const [row] = await database
       .select({ id: firms.id })
       .from(firms)
-      .where(eq(firms.slug, slug))
+      .where(and(eq(firms.slug, slug), eq(firms.isActive, true), isNull(firms.deletedAt)))
       .limit(1);
     return row?.id ?? null;
   }

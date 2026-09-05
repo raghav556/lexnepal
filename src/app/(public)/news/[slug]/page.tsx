@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import NewsPostPage from "@/views/public/NewsPostPage";
 import { getCmsService } from "@/server/services/cms-service";
 import { isUuidParam } from "@/shared/news-visibility";
+import { AppError } from "@/shared/errors/api-error";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -39,11 +40,18 @@ export default async function Page({ params }: Props) {
     let item: { slug?: string } | null = null;
     try {
       item = (await getCmsService().getPublicNewsItem(slug)) as { slug?: string };
-    } catch {
-      notFound();
+    } catch (error) {
+      if (error instanceof AppError && error.status === 404) notFound();
+      throw error;
     }
     if (item?.slug) redirect(`/news/${item.slug}`);
     notFound();
+  }
+  try {
+    await getCmsService().getPublicNewsBySlug(slug);
+  } catch (error) {
+    if (error instanceof AppError && error.status === 404) notFound();
+    throw error;
   }
   return <NewsPostPage slug={slug} />;
 }

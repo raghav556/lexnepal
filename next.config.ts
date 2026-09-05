@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
+const deploymentGitSha = process.env.GIT_SHA?.trim();
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -35,6 +36,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  ...(deploymentGitSha ? { generateBuildId: async () => deploymentGitSha } : {}),
   poweredByHeader: false,
   reactStrictMode: true,
   allowedDevOrigins: ["127.0.0.1"],
@@ -43,6 +45,11 @@ const nextConfig: NextConfig = {
     VITE_HERCULES_OIDC_CLIENT_ID: process.env.VITE_HERCULES_OIDC_CLIENT_ID,
     VITE_AUTH_REDIRECT_URI: process.env.VITE_AUTH_REDIRECT_URI,
     DEV: process.env.NODE_ENV !== "production" ? "true" : "",
+  },
+  experimental: {
+    // Keep the complete portal route tree usable on modest localhost machines.
+    preloadEntriesOnStart: false,
+    webpackMemoryOptimizations: true,
   },
   turbopack: {
     // Avoid picking a parent lockfile (e.g. under the user home) as the workspace root.

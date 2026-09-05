@@ -15,12 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: firmName,
       description,
-      ...(favicon ? { icons: { icon: favicon } } : {}),
+      icons: { icon: favicon || "/favicon.ico" },
     };
   } catch {
     return {
       title: "Law Firm",
       description: "Trusted legal counsel in Nepal",
+      icons: { icon: "/favicon.ico" },
     };
   }
 }

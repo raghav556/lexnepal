@@ -40,6 +40,9 @@ import {
   DEFAULT_PRIMARY_CTA_SHORT_LABEL,
   DEFAULT_PRIVACY_POLICY_URL,
   DEFAULT_TERMS_OF_SERVICE_URL,
+  DEFAULT_PUBLIC_HEADER_NAV,
+  DEFAULT_FOOTER_NAV_COL1,
+  DEFAULT_FOOTER_NAV_COL2,
 } from "@/shared/public-routes";
 import { isPracticeAreasNavRoot } from "@/shared/practice-areas-visibility";
 import { usePracticeAreas } from "@/client/queries/cms";
@@ -81,7 +84,7 @@ function entryId(entry: PublicNavEntry): string {
 function toLeafLink(entry: PublicNavEntry): PublicNavLink {
   return {
     label: String(entry.label ?? ""),
-    href: String(entry.url ?? "/"),
+    href: String(entry.url ?? entry.href ?? "/"),
     openInNewTab: Boolean(entry.openInNewTab),
   };
 }
@@ -131,10 +134,9 @@ function usePublicNav(
         query: { location },
         signal,
       }),
-    placeholderData: initial,
-    staleTime: 0,
-    refetchOnMount: "always" as const,
-    retry: 2,
+    initialData: initial && initial.length > 0 ? initial : undefined,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 
@@ -516,7 +518,11 @@ function PublicLayoutShellInner({
   const footerTitle2 = String(settings?.footerCol2Title || "Explore");
 
   const navLinks = useMemo(() => {
-    const base = mapCmsNav(headerNav ?? []);
+    const raw =
+      headerNav && headerNav.length > 0
+        ? headerNav
+        : (DEFAULT_PUBLIC_HEADER_NAV as unknown as PublicNavEntry[]);
+    const base = mapCmsNav(raw);
     const paChildren: PublicNavLink[] = [...(practiceAreasLive ?? [])]
       .sort(
         (
@@ -534,14 +540,34 @@ function PublicLayoutShellInner({
     if (paChildren.length > 0) {
       paChildren.push({ label: "View all practice areas", href: "/practice-areas" });
     }
-    return base.map((link) =>
+    const resolved = base.map((link) =>
       isPracticeAreasNavRoot(link)
         ? { ...link, children: paChildren.length > 0 ? paChildren : undefined }
         : link,
     );
+    return resolved.length > 0
+      ? resolved
+      : (DEFAULT_PUBLIC_HEADER_NAV as unknown as PublicNavLink[]);
   }, [headerNav, practiceAreasLive]);
-  const footer1Links = useMemo(() => mapCmsNav(footerCol1Nav ?? []), [footerCol1Nav]);
-  const footer2Links = useMemo(() => mapCmsNav(footerCol2Nav ?? []), [footerCol2Nav]);
+
+  const footer1Links = useMemo(() => {
+    const raw =
+      footerCol1Nav && footerCol1Nav.length > 0
+        ? footerCol1Nav
+        : (DEFAULT_FOOTER_NAV_COL1 as unknown as PublicNavEntry[]);
+    const mapped = mapCmsNav(raw);
+    return mapped.length > 0 ? mapped : (DEFAULT_FOOTER_NAV_COL1 as unknown as PublicNavLink[]);
+  }, [footerCol1Nav]);
+
+  const footer2Links = useMemo(() => {
+    const raw =
+      footerCol2Nav && footerCol2Nav.length > 0
+        ? footerCol2Nav
+        : (DEFAULT_FOOTER_NAV_COL2 as unknown as PublicNavEntry[]);
+    const mapped = mapCmsNav(raw);
+    return mapped.length > 0 ? mapped : (DEFAULT_FOOTER_NAV_COL2 as unknown as PublicNavLink[]);
+  }, [footerCol2Nav]);
+
   const showNavSkeleton = navLinks.length === 0;
 
   const ctaLabel = String(settings?.primaryCtaLabel || DEFAULT_PRIMARY_CTA_LABEL);
@@ -709,74 +735,105 @@ function PublicLayoutShellInner({
       <div className="hidden md:block bg-primary text-primary-foreground py-2 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-y-2">
           <div className="flex flex-wrap gap-4 sm:gap-6">
-            <a
-              href={settings?.phone ? `tel:${settings.phone}` : undefined}
-              className="flex items-center gap-1.5 hover:text-accent transition-colors"
-            >
-              <Phone className="w-3.5 h-3.5" /> {String(settings?.phone ?? "")}
-            </a>
-            <a
-              href={settings?.email ? `mailto:${settings.email}` : undefined}
-              className="flex items-center gap-1.5 hover:text-accent transition-colors"
-            >
-              <Mail className="w-3.5 h-3.5" /> {String(settings?.email ?? "")}
-            </a>
+            {settings?.phone ? (
+              <a
+                href={`tel:${settings.phone}`}
+                className="flex items-center gap-1.5 hover:text-accent transition-colors"
+              >
+                <Phone className="w-3.5 h-3.5" /> {String(settings.phone)}
+              </a>
+            ) : null}
+            {settings?.email ? (
+              <a
+                href={`mailto:${settings.email}`}
+                className="flex items-center gap-1.5 hover:text-accent transition-colors"
+              >
+                <Mail className="w-3.5 h-3.5" /> {String(settings.email)}
+              </a>
+            ) : null}
           </div>
           <div className="flex items-center gap-4">
             <span className="text-primary-foreground/60">{businessHours}</span>
-            <div className="hidden lg:flex items-center gap-4">
-              <div className="w-px h-4 bg-primary-foreground/20" />
-              <div className="flex gap-3">
-                <a
-                  href={settings?.facebookUrl || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-accent transition-colors"
-                >
-                  <Facebook className="w-4 h-4" />
-                </a>
-                <a
-                  href={settings?.linkedinUrl || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-accent transition-colors"
-                >
-                  <Linkedin className="w-4 h-4" />
-                </a>
-                <a
-                  href={settings?.twitterUrl || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-accent transition-colors"
-                >
-                  <Twitter className="w-4 h-4" />
-                </a>
-                <a
-                  href={settings?.instagramUrl || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-accent transition-colors"
-                >
-                  <Instagram className="w-4 h-4" />
-                </a>
-                <a
-                  href={settings?.youtubeUrl || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-accent transition-colors"
-                >
-                  <Youtube className="w-4 h-4" />
-                </a>
-                <a
-                  href={settings?.tiktokUrl || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-accent transition-colors"
-                >
-                  <Video className="w-4 h-4" />
-                </a>
+            {Boolean(
+              settings?.facebookUrl ||
+              settings?.linkedinUrl ||
+              settings?.twitterUrl ||
+              settings?.instagramUrl ||
+              settings?.youtubeUrl ||
+              settings?.tiktokUrl,
+            ) && (
+              <div className="hidden lg:flex items-center gap-4">
+                <div className="w-px h-4 bg-primary-foreground/20" />
+                <div className="flex gap-3">
+                  {settings?.facebookUrl && (
+                    <a
+                      href={String(settings.facebookUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-accent transition-colors"
+                      aria-label="Facebook"
+                    >
+                      <Facebook className="w-4 h-4" />
+                    </a>
+                  )}
+                  {settings?.linkedinUrl && (
+                    <a
+                      href={String(settings.linkedinUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-accent transition-colors"
+                      aria-label="LinkedIn"
+                    >
+                      <Linkedin className="w-4 h-4" />
+                    </a>
+                  )}
+                  {settings?.twitterUrl && (
+                    <a
+                      href={String(settings.twitterUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-accent transition-colors"
+                      aria-label="Twitter"
+                    >
+                      <Twitter className="w-4 h-4" />
+                    </a>
+                  )}
+                  {settings?.instagramUrl && (
+                    <a
+                      href={String(settings.instagramUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-accent transition-colors"
+                      aria-label="Instagram"
+                    >
+                      <Instagram className="w-4 h-4" />
+                    </a>
+                  )}
+                  {settings?.youtubeUrl && (
+                    <a
+                      href={String(settings.youtubeUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-accent transition-colors"
+                      aria-label="YouTube"
+                    >
+                      <Youtube className="w-4 h-4" />
+                    </a>
+                  )}
+                  {settings?.tiktokUrl && (
+                    <a
+                      href={String(settings.tiktokUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-accent transition-colors"
+                      aria-label="TikTok"
+                    >
+                      <Video className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

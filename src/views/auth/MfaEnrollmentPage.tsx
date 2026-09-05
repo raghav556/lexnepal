@@ -41,10 +41,13 @@ export default function MfaEnrollmentPage() {
     try {
       await queryClient.invalidateQueries({ queryKey: queryKeys.identity.me });
       const me = await apiClient.request<UserDto>("/api/v1/users/me");
-      const dest = explicitNext ?? getPortalForRole(me.role as UserRole);
+      const home = getPortalForRole(me.role as UserRole);
+      const nextPath = explicitNext?.split(/[?#]/, 1)[0];
+      const dest =
+        nextPath === home || nextPath?.startsWith(`${home}/`) ? explicitNext! : home;
       window.location.assign(dest);
     } catch {
-      window.location.assign(explicitNext ?? "/admin");
+      toast.error("Could not load your account. Please try again.");
     }
   }, [explicitNext, queryClient]);
 

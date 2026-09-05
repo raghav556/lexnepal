@@ -8,6 +8,7 @@ import {
   auditLog,
   documents,
   documentTagAssignments,
+  documentTags,
   documentUploadIntents,
   storageMigrationItems,
 } from "@/server/db/schema";
@@ -41,6 +42,7 @@ export class MySqlDocumentStorageRepository
       parentDocumentId: intent.parentDocumentId,
       documentId: intent.documentId,
       originalFileName: intent.originalFileName,
+      metadata: intent.metadata,
       declaredMimeType: intent.declaredMimeType,
       declaredSizeBytes: intent.declaredSizeBytes,
       expectedSha256: intent.expectedSha256,
@@ -261,9 +263,9 @@ export class MySqlDocumentStorageRepository
             firmId: intent.firmId,
             caseId: parent?.caseId ?? intent.caseId,
             documentNumber: `DOC-${input.intentId}`,
-            title: parent?.title ?? intent.originalFileName,
-            description: parent?.description,
-            type: parent?.type ?? "other",
+            title: parent?.title ?? intent.metadata?.title ?? intent.originalFileName,
+            description: parent ? parent.description : intent.metadata?.description,
+            type: parent?.type ?? intent.metadata?.type ?? "other",
             storageId: input.protectedKey,
             mimeType: intent.declaredMimeType,
             sizeBytes: intent.declaredSizeBytes,
@@ -271,9 +273,10 @@ export class MySqlDocumentStorageRepository
             version,
             parentDocumentId: intent.parentDocumentId,
             uploadedBy: intent.createdBy,
-            isTemplate: parent?.isTemplate ?? false,
-            isPrivileged: parent?.isPrivileged ?? false,
-            confidentialityLevel: parent?.confidentialityLevel ?? "internal",
+            isTemplate: parent?.isTemplate ?? intent.metadata?.isTemplate ?? false,
+            isPrivileged: parent?.isPrivileged ?? intent.metadata?.isPrivileged ?? false,
+            confidentialityLevel:
+              parent?.confidentialityLevel ?? intent.metadata?.confidentialityLevel ?? "internal",
             retentionPolicy: parent?.retentionPolicy,
             retentionUntil: parent?.retentionUntil,
             isOnLegalHold: parent?.isOnLegalHold ?? false,
@@ -288,6 +291,24 @@ export class MySqlDocumentStorageRepository
           .$returningId(),
         (id) => transaction.select().from(documents).where(eq(documents.id, id)).limit(1),
       );
+      if (!parent && intent.metadata?.tags?.length) {
+        for (const name of new Set(intent.metadata.tags)) {
+          await transaction
+            .insert(documentTags)
+            .values({ firmId: intent.firmId, name })
+            .onDuplicateKeyUpdate({ set: { deletedAt: null, updatedAt: input.at } });
+          const [tag] = await transaction
+            .select({ id: documentTags.id })
+            .from(documentTags)
+            .where(and(eq(documentTags.firmId, intent.firmId), eq(documentTags.name, name)))
+            .limit(1);
+          await transaction.insert(documentTagAssignments).values({
+            firmId: intent.firmId,
+            documentId: document.id,
+            tagId: tag!.id,
+          });
+        }
+      }
       if (parent) {
         const parentTags = await transaction
           .select({ tagId: documentTagAssignments.tagId })
@@ -463,6 +484,7 @@ function mapIntent(intent: typeof documentUploadIntents.$inferSelect): UploadInt
     parentDocumentId: intent.parentDocumentId,
     documentId: intent.documentId,
     originalFileName: intent.originalFileName,
+    metadata: intent.metadata,
     declaredMimeType: intent.declaredMimeType,
     declaredSizeBytes: intent.declaredSizeBytes,
     expectedSha256: intent.expectedSha256,

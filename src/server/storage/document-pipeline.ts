@@ -18,6 +18,7 @@ import {
   validateUploadedFile,
 } from "@/server/storage/file-validation";
 import type { ObjectStorage, UploadGrant } from "@/server/storage/object-storage";
+import type { DocumentUploadMetadata } from "@/shared/contracts/documents";
 
 export type UploadIntentStatus =
   "pending" | "uploaded" | "scanning" | "promoted" | "rejected" | "expired";
@@ -30,6 +31,7 @@ export interface UploadIntentRecord {
   parentDocumentId: string | null;
   documentId: string | null;
   originalFileName: string;
+  metadata?: DocumentUploadMetadata | null;
   declaredMimeType: string;
   declaredSizeBytes: number;
   expectedSha256: string | null;
@@ -88,6 +90,7 @@ export interface CreateUploadIntentInput {
   sha256?: string;
   caseId?: string;
   parentDocumentId?: string;
+  metadata?: DocumentUploadMetadata;
 }
 
 export class DocumentPipelineService {
@@ -126,6 +129,7 @@ export class DocumentPipelineService {
       parentDocumentId: input.parentDocumentId ?? null,
       documentId: null,
       originalFileName: safeName,
+      metadata: input.metadata ?? null,
       declaredMimeType: input.mimeType.toLowerCase(),
       declaredSizeBytes: input.sizeBytes,
       expectedSha256: input.sha256?.toLowerCase() ?? null,

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { DocumentUploadMetadata } from "../src/shared/contracts/documents";
 import { sql } from "drizzle-orm";
 import type { AnyMySqlColumn } from "drizzle-orm/mysql-core";
 import {
@@ -777,6 +778,7 @@ export const documentUploadIntents = mysqlTable(
     }),
     documentId: uuidColumn("document_id").references(() => documents.id, { onDelete: "restrict" }),
     originalFileName: stringColumn("original_file_name").notNull(),
+    metadata: json("metadata").$type<DocumentUploadMetadata>(),
     declaredMimeType: stringColumn("declared_mime_type").notNull(),
     declaredSizeBytes: bigint("declared_size_bytes", { mode: "number" }).notNull(),
     expectedSha256: stringColumn("expected_sha256"),
@@ -1752,6 +1754,7 @@ export const authAccounts = mysqlTable(
     id: stringColumn("id").primaryKey(),
     accountId: stringColumn("account_id").notNull(),
     providerId: stringColumn("provider_id").notNull(),
+    issuer: stringColumn("issuer").default("local:credential").notNull(),
     userId: stringColumn("user_id")
       .notNull()
       .references(() => authUsers.id, { onDelete: "cascade" }),
@@ -1768,6 +1771,7 @@ export const authAccounts = mysqlTable(
   (table) => [
     index("auth_accounts_user_idx").on(table.userId),
     uniqueIndex("auth_accounts_provider_account_unique").on(table.providerId, table.accountId),
+    uniqueIndex("auth_accounts_issuer_account_unique").on(table.issuer, table.accountId),
   ],
 );
 

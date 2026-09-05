@@ -18,7 +18,7 @@ export function RevealText({
   as?: any;
 }) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const isInView = useInView(ref, { once: true, margin: "0px 0px 40px 0px" });
 
   return (
     <Component ref={ref} className={cn("overflow-hidden block", className)}>
@@ -46,9 +46,9 @@ export function FadeInUp({
   yOffset?: number;
 }) {
   const ref = useRef(null);
-  // Use a generous root margin so content inside nested scroll panes (admin/staff shells)
-  // becomes visible instead of staying stuck at opacity 0.
-  const isInView = useInView(ref, { once: true, margin: "0px 0px -40px 0px" });
+  // Use a generous root margin so content inside nested scroll panes and normal viewports
+  // becomes visible smoothly instead of staying stuck at opacity 0.
+  const isInView = useInView(ref, { once: true, margin: "0px 0px 40px 0px" });
 
   return (
     <motion.div

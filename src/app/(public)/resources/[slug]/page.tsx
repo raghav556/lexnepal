@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { AppError } from "@/shared/errors/api-error";
 import ResourceDetailPage from "@/views/public/ResourceDetailPage";
 import { getCmsService } from "@/server/services/cms-service";
 
@@ -31,5 +33,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
+  try {
+    await getCmsService().getPublicResource(slug);
+  } catch (error) {
+    if (error instanceof AppError && error.status === 404) notFound();
+    throw error;
+  }
   return <ResourceDetailPage slug={slug} />;
 }

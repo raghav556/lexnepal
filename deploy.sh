@@ -123,9 +123,21 @@ select_node() {
     die "Node major $required_major is required, but current node is $(node -v)"
   local required_npm
   required_npm="$(package_manager_npm_version)"
-  if [[ -n "$required_npm" && "$(npm -v)" != "$required_npm" ]]; then
-    die "npm $required_npm is required, but current npm is $(npm -v)"
+  local current_npm
+  current_npm="$(npm -v)"
+  if [[ -n "$required_npm" && "${current_npm%%.*}" != "${required_npm%%.*}" ]]; then
+    die "npm major ${required_npm%%.*} is required, but current npm is $current_npm"
   fi
+  if [[ -n "$required_npm" && "$current_npm" != "$required_npm" ]]; then
+    log "Using npm $current_npm (packageManager recommends $required_npm; major versions match)"
+  fi
+}
+
+validate_deploy_configuration() {
+  [[ "$SERVER" != "deploy@example.com" ]] || die "Configure SERVER before deployment"
+  [[ "$APP_PATH" != *"USERNAME"* ]] || die "Configure APP_PATH before deployment"
+  [[ -n "$SMOKE_BASE_URL" ]] || die "Configure SMOKE_BASE_URL before deployment"
+  [[ "$SMOKE_BASE_URL" == https://* ]] || die "SMOKE_BASE_URL must use HTTPS"
 }
 
 install_dependencies() {
@@ -141,9 +153,19 @@ run_local_gates() {
   npm run test
   npm run db:integrity
   npm run db:check
+  prepare_build_metadata
   prepare_build_database_url
   ensure_build_time_auth_secret
   npm run build
+}
+
+prepare_build_metadata() {
+  if [[ -z "${GIT_SHA:-}" ]]; then GIT_SHA="$(git rev-parse HEAD)"; fi
+  if [[ -z "${APP_VERSION:-}" ]]; then
+    APP_VERSION="$(node -p "require('./package.json').version")"
+  fi
+  export GIT_SHA APP_VERSION
+  log "Building version $APP_VERSION from commit $GIT_SHA"
 }
 
 prepare_build_database_url() {
@@ -151,14 +173,11 @@ prepare_build_database_url() {
     export DATABASE_URL="$BUILD_DATABASE_URL"
     return 0
   fi
-  if [[ "$MODE" == "--preflight" ]]; then
-    export DATABASE_URL="mysql://ethan:ethan@127.0.0.1:3306/dit_lexnepal"
-    log "Using local placeholder DATABASE_URL for preflight; set BUILD_DATABASE_URL to opt into DB-backed build data"
-    return 0
-  fi
-  if [[ -n "${DATABASE_URL:-}" ]]; then return 0; fi
-  export DATABASE_URL="mysql://ethan:ethan@127.0.0.1:3306/dit_lexnepal"
-  log "Using local placeholder DATABASE_URL for build-time config collection"
+  # Public ISR pages must never capture a developer or production database by
+  # accident. Their server components degrade to deterministic public fallbacks
+  # during this build and revalidate against the runtime database after launch.
+  export DATABASE_URL="mysql://build:build@127.0.0.1:1/lexnepal_build"
+  log "Using an isolated unavailable DATABASE_URL so public fallbacks are deterministic; set BUILD_DATABASE_URL to opt into sanitized DB-backed build data"
 }
 
 ensure_build_time_auth_secret() {
@@ -305,10 +324,35 @@ restart_remote() {
 }
 
 smoke_check() {
-  local url="${READINESS_URL:-}"
-  if [[ -z "$url" && -n "$SMOKE_BASE_URL" ]]; then url="${SMOKE_BASE_URL%/}/api/v1/readiness"; fi
-  [[ -n "$url" ]] || return 0
-  curl -fsS "$url" >/dev/null
+  [[ -n "$SMOKE_BASE_URL" ]] || die "SMOKE_BASE_URL is required for post-deploy verification"
+  local base="${SMOKE_BASE_URL%/}"
+  local readiness_url="${READINESS_URL:-$base/api/v1/readiness}"
+  local curl_args=(--fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2)
+
+  curl "${curl_args[@]}" "$readiness_url" >/dev/null
+  curl "${curl_args[@]}" "$base/api/v1/public/cms/settings" >/dev/null
+  curl "${curl_args[@]}" "$base/api/v1/public/cms/navigation?location=header" >/dev/null
+
+  local version_json
+  version_json="$(curl "${curl_args[@]}" "$base/api/v1/version")"
+  VERSION_JSON="$version_json" EXPECTED_GIT_SHA="$GIT_SHA" node -e '
+    const version = JSON.parse(process.env.VERSION_JSON);
+    if (version.gitSha !== process.env.EXPECTED_GIT_SHA) {
+      throw new Error(`Expected deployed gitSha ${process.env.EXPECTED_GIT_SHA}, received ${version.gitSha}`);
+    }
+  '
+
+  local homepage
+  homepage="$(curl "${curl_args[@]}" "$base/")"
+  grep -Fq 'aria-label="Main navigation"' <<<"$homepage" ||
+    die "Homepage smoke check did not find the main navigation"
+  if grep -Fq 'aria-label="Loading navigation"' <<<"$homepage"; then
+    die "Homepage smoke check found a stuck navigation skeleton"
+  fi
+  grep -Fq 'Srimar Law' <<<"$homepage" ||
+    die "Homepage smoke check did not find Srimar Law branding"
+
+  log "Post-deploy public website checks passed for $GIT_SHA"
 }
 
 rollback_remote() {
@@ -319,6 +363,7 @@ rollback_remote() {
 preflight() {
   load_deploy_env
   apply_defaults
+  if [[ -f "$DEPLOY_ENV_FILE" ]]; then validate_deploy_configuration; fi
   select_node
   install_dependencies
   run_local_gates
@@ -330,6 +375,7 @@ preflight() {
 deploy() {
   load_deploy_env
   apply_defaults
+  validate_deploy_configuration
   init_ssh
   select_node
   install_dependencies

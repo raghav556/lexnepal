@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- CMS entries are schema-less per collection */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
+import { ApiClientError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
 import { signalCmsSettingsUpdated } from "@/lib/cms-settings-sync";
 
@@ -120,8 +121,14 @@ export function useLegalPage(
 ) {
   return useQuery({
     queryKey: [...queryKeys.cms.legal(slug), scope],
-    queryFn: ({ signal }) =>
-      apiClient.request<any>(`${basePath(scope)}/legal-pages/${slug}`, { signal }),
+    queryFn: async ({ signal }) => {
+      try {
+        return await apiClient.request<any>(`${basePath(scope)}/legal-pages/${slug}`, { signal });
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 404) return null;
+        throw error;
+      }
+    },
   }).data;
 }
 

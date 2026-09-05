@@ -3,6 +3,8 @@ import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
 import { useDocuments, useUploadDocument } from "@/client/queries/documents";
 import { useDocumentTemplates } from "@/client/queries/templates";
+import { useCurrentFirm, useUsers } from "@/client/queries/identity";
+import { formatBs, gregorianToBs } from "@/lib/nepali-calendar";
 import { FileText, Loader2, Download, Settings, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations";
@@ -14,8 +16,14 @@ import {
   PortalPageShell,
 } from "@/components/dashboard";
 
-function mergeTemplate(content: string, vars: Record<string, string>) {
-  return content.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "");
+function mergeTemplate(content: string, vars: Record<string, string>, isHtml: boolean) {
+  const text = isHtml
+    ? new DOMParser().parseFromString(
+        content.replace(/<br\s*\/?\s*>|<\/(?:p|h[1-6]|li|div)>/gi, "\n"),
+        "text/html",
+      ).body.textContent || ""
+    : content;
+  return text.replace(/\{\{([\w.]+)\}\}/g, (_, key) => vars[key] ?? "").trim();
 }
 
 export default function AdminDocumentGenerator() {
@@ -23,6 +31,8 @@ export default function AdminDocumentGenerator() {
   const fileTemplates = (useDocuments({ isTemplate: true }) || []) as any[];
   const clients = useClients() || [];
   const cases = useCases({}) || [];
+  const users = useUsers() || [];
+  const firm = useCurrentFirm();
   const uploadDocument = useUploadDocument();
 
   const templates = useMemo(() => {
@@ -59,15 +69,37 @@ export default function AdminDocumentGenerator() {
     try {
       const client = clients.find((c: any) => c._id === selectedClient);
       const matter = cases.find((c: any) => c._id === selectedCase);
+      if (!client || !matter || matter.clientId !== client._id) {
+        toast.error("Please select a case belonging to the selected client.");
+        return;
+      }
+      const lawyer = users.find((user) => user.id === matter.assignedLawyerId);
+      const today = new Date();
+      const date = today.toLocaleDateString("en-GB");
       const vars = {
+        "client.name": client.fullName,
+        "client.phone": client.phone || "",
+        "client.address": client.address || "",
+        "case.number": matter.caseNumber,
+        "case.title": matter.title,
+        "case.court": matter.court || "N/A",
+        "lawyer.name": lawyer?.name || "",
+        "lawyer.barNumber": lawyer?.barCouncilNumber || "",
+        "firm.name": firm?.name || "",
+        today_bs: formatBs(gregorianToBs(today)),
+        today_gregorian: date,
         CLIENT_NAME: client?.fullName || "",
         CASE_TITLE: matter?.title || "",
         CASE_NUMBER: matter?.caseNumber || "",
         COURT_NAME: matter?.court || "N/A",
         JUDGE_NAME: matter?.judge || "N/A",
-        TODAY_DATE: new Date().toLocaleDateString("en-GB"),
+        TODAY_DATE: date,
       };
-      const text = mergeTemplate(selectedTemplate.content || "", vars);
+      const text = mergeTemplate(
+        selectedTemplate.content || "",
+        vars,
+        selectedTemplate.source === "templates",
+      );
       setMergedText(text);
 
       const pdf = new jsPDF();
@@ -186,7 +218,10 @@ export default function AdminDocumentGenerator() {
                       required
                       className="w-full min-w-0 h-10 px-3 rounded-md border border-input bg-background text-sm"
                       value={selectedClient}
-                      onChange={(e) => setSelectedClient(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedClient(e.target.value);
+                        setSelectedCase("");
+                      }}
                     >
                       <option value="">-- Choose Client --</option>
                       {clients.map((c: any) => (
