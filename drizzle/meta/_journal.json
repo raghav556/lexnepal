@@ -15,6 +15,13 @@
       "when": 1788316154311,
       "tag": "0001_mysql_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1788581900000,
+      "tag": "0002_auth_account_issuer",
+      "breakpoints": true
     }
   ]
 }

@@ -1752,6 +1752,7 @@ export const authAccounts = mysqlTable(
     id: stringColumn("id").primaryKey(),
     accountId: stringColumn("account_id").notNull(),
     providerId: stringColumn("provider_id").notNull(),
+    issuer: stringColumn("issuer").default("local:credential").notNull(),
     userId: stringColumn("user_id")
       .notNull()
       .references(() => authUsers.id, { onDelete: "cascade" }),
@@ -1768,6 +1769,7 @@ export const authAccounts = mysqlTable(
   (table) => [
     index("auth_accounts_user_idx").on(table.userId),
     uniqueIndex("auth_accounts_provider_account_unique").on(table.providerId, table.accountId),
+    uniqueIndex("auth_accounts_issuer_account_unique").on(table.issuer, table.accountId),
   ],
 );
 

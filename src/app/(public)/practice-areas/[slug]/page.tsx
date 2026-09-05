@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { AppError } from "@/shared/errors/api-error";
 import PracticeAreaDetailPage from "@/views/public/PracticeAreaDetailPage";
 import { getCmsService } from "@/server/services/cms-service";
 
@@ -24,5 +26,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
+  try {
+    await getCmsService().getPublicPracticeArea(slug);
+  } catch (error) {
+    if (error instanceof AppError && error.status === 404) notFound();
+    throw error;
+  }
   return <PracticeAreaDetailPage slug={slug} />;
 }

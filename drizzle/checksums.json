@@ -8,6 +8,10 @@
     {
       "file": "drizzle/0001_mysql_integrity.sql",
       "sha256": "feee7dd8f53939efffbb20c6c544cf484bbfe93ba6666fe352655cc6b2dae0a6"
+    },
+    {
+      "file": "drizzle/0002_auth_account_issuer.sql",
+      "sha256": "655822c2ba0fb1b2eefe288886bdf056c41935ce6d036f5bebd38ac6975c5ede"
     }
   ]
 }

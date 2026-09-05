@@ -97,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isMfaEnrollmentRequired(meQuery.error)) {
       if (typeof window === "undefined") return;
       if (window.location.pathname.startsWith("/mfa-enroll")) return;
+      // The sign-in form owns its MFA redirect and preserves the requested portal.
+      if (window.location.pathname.startsWith("/sign-in")) return;
       const next = encodeURIComponent(currentPathWithSearch());
       navigate(`/mfa-enroll?next=${next}`, { replace: true });
     }

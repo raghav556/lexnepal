@@ -37,7 +37,6 @@ import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
 import { resolvePublicTitle } from "@/shared/leadership";
 import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
-import { DEFAULT_PRACTICE_AREAS } from "@/shared/public-routes";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 
@@ -222,8 +221,7 @@ export default function HomePage() {
   const firmName = String(settings?.firmName || "Srimar Law");
   const practiceAreasRaw = usePracticeAreas({ isActive: true }, "public") || [];
   const practiceAreas = useMemo(() => {
-    const listToFilter =
-      practiceAreasRaw.length > 0 ? practiceAreasRaw : (DEFAULT_PRACTICE_AREAS as any[]);
+    const listToFilter = practiceAreasRaw;
     const featured = listToFilter.filter((a: { showOnHome?: boolean }) => a.showOnHome !== false);
     const list = (featured.length > 0 ? featured : listToFilter).slice();
     list.sort(

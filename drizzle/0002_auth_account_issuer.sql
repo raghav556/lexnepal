@@ -1,0 +1,2 @@
+ALTER TABLE `auth_accounts` ADD `issuer` varchar(255) DEFAULT 'local:credential' NOT NULL;--> statement-breakpoint
+ALTER TABLE `auth_accounts` ADD CONSTRAINT `auth_accounts_issuer_account_unique` UNIQUE(`issuer`,`account_id`);
