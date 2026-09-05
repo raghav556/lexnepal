@@ -15,7 +15,12 @@ import type {
   SearchDocumentsInput,
 } from "@/shared/contracts/domains";
 
-async function uploadViaIntent(input: { file: File; caseId?: string; parentDocumentId?: string }) {
+async function uploadViaIntent(input: {
+  file: File;
+  caseId?: string;
+  parentDocumentId?: string;
+  metadata?: Record<string, unknown>;
+}) {
   const sha256 = await computeSHA256(input.file);
   const intent = await apiClient.request<{
     intentId: string;
@@ -29,6 +34,7 @@ async function uploadViaIntent(input: { file: File; caseId?: string; parentDocum
       sha256,
       caseId: input.caseId,
       parentDocumentId: input.parentDocumentId,
+      metadata: input.metadata,
     },
   });
   const form = new FormData();
@@ -98,9 +104,7 @@ export function useDocumentVersions(documentId: string | null): DocumentDto[] {
 }
 
 /**
- * Uploads through the quarantine intent flow (intent → object storage → scan → promote).
- * Metadata beyond `caseId`/`parentDocumentId` is accepted for call-site compatibility but is not
- * yet applied by the intent API; patch the document afterwards to set title/type/tags.
+ * Uploads the file and its metadata through quarantine, scanning, and promotion.
  */
 export function useUploadDocument() {
   const queryClient = useQueryClient();
@@ -122,6 +126,15 @@ export function useUploadDocument() {
           file: input.file,
           caseId: input.caseId,
           parentDocumentId: input.parentDocumentId,
+          metadata: {
+            title: input.title,
+            description: input.description,
+            type: input.type,
+            tags: input.tags,
+            isTemplate: input.isTemplate,
+            isPrivileged: input.isPrivileged,
+            confidentialityLevel: input.confidentialityLevel,
+          },
         });
         await queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
         return result;

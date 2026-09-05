@@ -46,6 +46,11 @@ const nextConfig: NextConfig = {
     VITE_AUTH_REDIRECT_URI: process.env.VITE_AUTH_REDIRECT_URI,
     DEV: process.env.NODE_ENV !== "production" ? "true" : "",
   },
+  experimental: {
+    // Keep the complete portal route tree usable on modest localhost machines.
+    preloadEntriesOnStart: false,
+    webpackMemoryOptimizations: true,
+  },
   turbopack: {
     // Avoid picking a parent lockfile (e.g. under the user home) as the workspace root.
     root: rootDir,

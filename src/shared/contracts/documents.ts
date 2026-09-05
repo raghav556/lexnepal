@@ -82,6 +82,18 @@ export const publicDocumentShareSchema = z.object({
   password: optionalText(200),
 });
 
+export const documentUploadMetadataSchema = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  description: optionalText(10_000),
+  type: documentTypeSchema.optional(),
+  tags: z.array(z.string().trim().min(1).max(100)).max(30).optional(),
+  isTemplate: z.boolean().optional(),
+  isPrivileged: z.boolean().optional(),
+  confidentialityLevel: confidentialitySchema.optional(),
+});
+
+export type DocumentUploadMetadata = z.infer<typeof documentUploadMetadataSchema>;
+
 export const documentUploadIntentSchema = z.object({
   fileName: z.string().trim().min(1).max(240),
   mimeType: z.string().trim().min(1).max(160),
@@ -92,6 +104,7 @@ export const documentUploadIntentSchema = z.object({
     .optional(),
   caseId: uuidSchema.optional(),
   parentDocumentId: uuidSchema.optional(),
+  metadata: documentUploadMetadataSchema.optional(),
 });
 
 export type DocumentListInput = z.infer<typeof documentListSchema>;

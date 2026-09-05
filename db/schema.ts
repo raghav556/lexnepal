@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { DocumentUploadMetadata } from "../src/shared/contracts/documents";
 import { sql } from "drizzle-orm";
 import type { AnyMySqlColumn } from "drizzle-orm/mysql-core";
 import {
@@ -777,6 +778,7 @@ export const documentUploadIntents = mysqlTable(
     }),
     documentId: uuidColumn("document_id").references(() => documents.id, { onDelete: "restrict" }),
     originalFileName: stringColumn("original_file_name").notNull(),
+    metadata: json("metadata").$type<DocumentUploadMetadata>(),
     declaredMimeType: stringColumn("declared_mime_type").notNull(),
     declaredSizeBytes: bigint("declared_size_bytes", { mode: "number" }).notNull(),
     expectedSha256: stringColumn("expected_sha256"),
