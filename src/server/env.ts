@@ -16,12 +16,7 @@ const serverEnvironmentSchema = z.object({
     .default("false")
     .transform((value) => value === "true"),
   DATABASE_URL: optionalUrl,
-  DATABASE_POOL_CONNECTION_LIMIT: z
-    .coerce.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(4),
+  DATABASE_POOL_CONNECTION_LIMIT: z.coerce.number().int().min(1).max(100).default(4),
   AUTH_PROVIDER: z.enum(["local", "hercules"]).default("local"),
   HERCULES_OIDC_AUTHORITY: optionalUrl,
   HERCULES_OIDC_CLIENT_ID: z.preprocess(
