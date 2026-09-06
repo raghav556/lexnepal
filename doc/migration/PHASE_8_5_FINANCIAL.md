@@ -1,6 +1,10 @@
 # Phase 8.5: Financial Domain Migration
 
-## Current status
+> **Retired domain record.** Finance and billing were deliberately removed from LexNepal. This file
+> is preserved only as migration history and must not be used to restore finance routes or runtime
+> behavior.
+
+## Historical status
 
 Status: `complete_local`. Next.js/PostgreSQL are authoritative locally through `VITE_BACKEND_FINANCE=next`. Convex branches remain inside typed adapters for rollback. Production cutover still requires an immutable export, approved firm map and production reconciliation.
 

@@ -74,11 +74,12 @@ apply_defaults() {
   : "${WRITE_RUNTIME_ENV:=0}"
   : "${DEPLOY_PREFLIGHT_ONLY:=0}"
   : "${REMOTE_BACKUP_COMMAND:=}"
-  : "${REMOTE_MIGRATION_COMMAND:=}"
+  : "${REMOTE_MIGRATION_COMMAND:=node runtime/migrate.mjs}"
   : "${RUN_REMOTE_MIGRATIONS:=1}"
   : "${REMOTE_ROLLBACK_COMMAND:=}"
   : "${RUNTIME_ENV_SOURCE:=}"
   : "${MIRROR_STATIC_TO_PUBLIC_HTML:=0}"
+  : "${REMOTE_BACKGROUND_RESTART_COMMAND:=}"
   # Optional cPanel Node.js environment activation: sourced before every remote
   # command, then the working directory is moved to the app release. Derived from
   # APP_PATH ("<userroot>/nodevenv/<apps/lexnepal>/current/24/bin/activate") so it
@@ -138,6 +139,16 @@ validate_deploy_configuration() {
   [[ "$APP_PATH" != *"USERNAME"* ]] || die "Configure APP_PATH before deployment"
   [[ -n "$SMOKE_BASE_URL" ]] || die "Configure SMOKE_BASE_URL before deployment"
   [[ "$SMOKE_BASE_URL" == https://* ]] || die "SMOKE_BASE_URL must use HTTPS"
+  if [[ "$REMOTE_RESTART_MODE" == "passenger" && -z "$REMOTE_BACKGROUND_RESTART_COMMAND" ]]; then
+    die "Passenger deployment requires REMOTE_BACKGROUND_RESTART_COMMAND for the worker and scheduler"
+  fi
+}
+
+assert_clean_release_source() {
+  git diff --quiet || die "Tracked working-tree changes must be committed before deployment"
+  git diff --cached --quiet || die "Staged changes must be committed before deployment"
+  [[ -z "$(git ls-files --others --exclude-standard)" ]] ||
+    die "Untracked, non-ignored files must be committed or removed before deployment"
 }
 
 install_dependencies() {
@@ -205,7 +216,9 @@ assert_no_local_env_in_artifact() {
 
 prepare_artifact() {
   assert_standalone
-  cp runtime-env.cjs app.cjs "$STANDALONE_DIR/"
+  npm run build:runtime -- "$STANDALONE_DIR/runtime"
+  cp runtime-env.cjs app.cjs ecosystem.config.cjs "$STANDALONE_DIR/"
+  cp -R drizzle "$STANDALONE_DIR/"
   if [[ -d public ]]; then
     mkdir -p "$STANDALONE_DIR/public"
     cp -R public/. "$STANDALONE_DIR/public/"
@@ -216,6 +229,7 @@ prepare_artifact() {
   # config is supplied separately as host env or an on-server .env.runtime file.
   find "$STANDALONE_DIR" -type f \( -name '.env' -o -name '.env.local' -o -name '.env.runtime' \) -delete
   assert_no_local_env_in_artifact
+  node scripts/deploy/verify-artifact.mjs "$STANDALONE_DIR"
 }
 
 write_archive() {
@@ -308,7 +322,7 @@ restart_remote() {
       run_remote "mkdir -p '$APP_PATH/current/tmp' && touch '$APP_PATH/current/tmp/restart.txt'"
       ;;
     pm2)
-      run_remote "pm2 reload '$PM2_APP_NAME' || pm2 restart '$PM2_APP_NAME'"
+      run_remote "pm2 startOrReload ecosystem.config.cjs --update-env"
       ;;
     command)
       [[ -n "${REMOTE_RESTART_COMMAND:-}" ]] || die "REMOTE_RESTART_MODE=command requires REMOTE_RESTART_COMMAND"
@@ -321,6 +335,9 @@ restart_remote() {
       die "Unknown REMOTE_RESTART_MODE=$REMOTE_RESTART_MODE"
       ;;
   esac
+  if [[ -n "$REMOTE_BACKGROUND_RESTART_COMMAND" ]]; then
+    run_remote "$REMOTE_BACKGROUND_RESTART_COMMAND"
+  fi
 }
 
 smoke_check() {
@@ -365,6 +382,7 @@ preflight() {
   apply_defaults
   if [[ -f "$DEPLOY_ENV_FILE" ]]; then validate_deploy_configuration; fi
   select_node
+  assert_clean_release_source
   install_dependencies
   run_local_gates
   prepare_artifact
@@ -378,6 +396,7 @@ deploy() {
   validate_deploy_configuration
   init_ssh
   select_node
+  assert_clean_release_source
   install_dependencies
   run_local_gates
   prepare_artifact

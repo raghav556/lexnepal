@@ -28,7 +28,7 @@ production credentials, real providers, and live data are deliberately deferred
 
 ## 2. Tech stack
 - Next.js 16 (App Router) + React 19 + TypeScript (strict)
-- MySQL 8.4 (project-owned instance on 127.0.0.1:3307) + Drizzle ORM
+- MySQL 8.4 (project-owned instance on 127.0.0.1:3306) + Drizzle ORM
   - Schema source of truth: db/schema.ts; generated SQL migrations in drizzle/
   - Migration checksums: drizzle/checksums.json (verified by npm run db:integrity)
 - Better Auth (local identity authority, MFA/TOTP, invitations, cookies)
@@ -119,13 +119,10 @@ Never infer tenant from the repo/product name.
   build a firm switcher or full multi-tenancy until the product requires it;
   when needed, add firm context/filter helpers, do not rewrite portal UI
 
-## 11. Remaining roadmap (future, not started)
-True multi-tenant SaaS work that remains: firm signup/onboarding, enforcing
-firmId on every query, per-firm CMS scoping, per-firm branding, platform
-subscription billing, super-admin console, optional firm switcher, enterprise
-SSO (Okta/Azure AD + SCIM). Also deferred: real email/SMS providers, OCR,
-court-data integrations, payment gateways (eSewa/Khalti/ConnectIPS), and the
-full production-launch phase.
+## 11. Remaining roadmap
+Multi-tenant SaaS, subscription billing, and payment gateways are outside the product scope. The
+remaining work is the separately controlled production-readiness gate: real providers, operational
+ownership, staging evidence, and monitored cutover.
 
 ## 12. How to work with me
 - Assume I will paste code, errors, or file paths from this repo. Interpret them

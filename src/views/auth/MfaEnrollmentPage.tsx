@@ -43,8 +43,7 @@ export default function MfaEnrollmentPage() {
       const me = await apiClient.request<UserDto>("/api/v1/users/me");
       const home = getPortalForRole(me.role as UserRole);
       const nextPath = explicitNext?.split(/[?#]/, 1)[0];
-      const dest =
-        nextPath === home || nextPath?.startsWith(`${home}/`) ? explicitNext! : home;
+      const dest = nextPath === home || nextPath?.startsWith(`${home}/`) ? explicitNext! : home;
       window.location.assign(dest);
     } catch {
       toast.error("Could not load your account. Please try again.");

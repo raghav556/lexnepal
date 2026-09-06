@@ -1,10 +1,14 @@
 import fs from "node:fs/promises";
+import syncFs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { createPool } from "mysql2/promise";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+const root = syncFs.existsSync(path.join(scriptDirectory, "../drizzle"))
+  ? path.resolve(scriptDirectory, "..")
+  : path.resolve(scriptDirectory, "../..");
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {

@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "lexnepal-web",
-      script: ".next/standalone/app.cjs",
+      script: "app.cjs",
       cwd: process.env.APP_PATH || __dirname,
       env: {
         NODE_ENV: "production",
@@ -12,18 +12,18 @@ module.exports = {
     },
     {
       name: "lexnepal-worker",
-      script: "npm",
-      args: "run jobs:worker",
-      cwd: process.env.APP_SOURCE_PATH || __dirname,
+      script: "runtime/worker.mjs",
+      node_args: "--conditions=react-server",
+      cwd: process.env.APP_PATH || __dirname,
       env: {
         NODE_ENV: "production",
       },
     },
     {
       name: "lexnepal-scheduler",
-      script: "npm",
-      args: "run jobs:scheduler",
-      cwd: process.env.APP_SOURCE_PATH || __dirname,
+      script: "runtime/scheduler.mjs",
+      node_args: "--conditions=react-server",
+      cwd: process.env.APP_PATH || __dirname,
       env: {
         NODE_ENV: "production",
       },

@@ -1,5 +1,9 @@
 # Phase 8 — Multi-Firm SaaS (prepared, not shipped)
 
+> **Archived product option — out of scope.** LexNepal is the single-firm Srimar Law application.
+> This document is retained only as historical planning and must not drive current implementation
+> or release work.
+
 LexNepal is complete as a **single-firm** product. Schema already includes:
 
 - `firms` table (`name`, `slug`, `isActive`)

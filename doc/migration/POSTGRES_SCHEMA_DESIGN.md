@@ -1,5 +1,8 @@
 # PostgreSQL Schema Design
 
+> **Superseded architecture record.** PostgreSQL was replaced before the current release baseline.
+> MySQL migrations under `drizzle/` and the current database schema are authoritative.
+
 **Status:** Phase 3 implemented and verified locally  
 **Date:** 2026-08-02  
 **Schema source:** `db/schema.ts`  
