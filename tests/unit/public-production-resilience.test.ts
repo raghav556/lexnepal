@@ -53,6 +53,7 @@ describe("public production resilience", () => {
     const deploy = source("deploy.sh");
     const runtimeBuilder = source("scripts/deploy/build-runtime-entrypoints.mjs");
     const artifactVerifier = source("scripts/deploy/verify-artifact.mjs");
+    const inventory = source("scripts/migration/generate-convex-inventory.mjs");
     const ecosystem = source("ecosystem.config.cjs");
 
     expect(deploy).toContain("assert_clean_release_source");
@@ -65,6 +66,7 @@ describe("public production resilience", () => {
     expect(runtimeBuilder).toContain('migrate: "scripts/db/migrate.mjs"');
     expect(artifactVerifier).toContain('".env.local"');
     expect(artifactVerifier).toContain('"tests"');
+    expect(inventory).toContain('"convex-source.zip"');
     expect(ecosystem).toContain('script: "runtime/worker.mjs"');
     expect(ecosystem).toContain('script: "runtime/scheduler.mjs"');
   });

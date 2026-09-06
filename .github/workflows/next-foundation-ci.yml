@@ -43,6 +43,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run audit:production
+      - run: npm run migration:archive-convex -- --verify
       - run: npm run migration:inventory
       - run: npm run db:index-map
       - name: Verify generated inventory is committed

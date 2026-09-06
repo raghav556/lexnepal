@@ -12,10 +12,10 @@
 | Public mutations | 141 |
 | Public actions | 0 |
 | Internal functions | 5 |
-| Direct frontend API references | 325 |
-| Frontend files with API references | 75 |
-| Runtime storage/scheduler/internal-call dependencies | 26 |
-| Frontend references without a Convex export | 4 |
+| Direct frontend API references | 0 |
+| Frontend files with API references | 0 |
+| Runtime storage/scheduler/internal-call dependencies | 20 |
+| Frontend references without a Convex export | 0 |
 | Tables without a direct `firmId` field | 28 |
 | Public exports without a detected auth helper | 48 |
 
@@ -33,10 +33,7 @@ All existing Convex exports and tables are initially classified as `migrate`; th
 
 ## Unresolved references
 
-- `briefs.create`
-- `briefs.delete`
-- `briefs.list`
-- `briefs.update`
+- None detected.
 
 ## Tables requiring tenant-ownership design
 
