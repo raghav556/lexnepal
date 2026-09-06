@@ -170,6 +170,7 @@ run_local_gates() {
   prepare_build_metadata
   prepare_build_database_url
   ensure_build_time_auth_secret
+  ensure_build_time_storage_secret
   npm run build
 }
 
@@ -195,7 +196,7 @@ prepare_build_database_url() {
 }
 
 ensure_build_time_auth_secret() {
-  if [[ -n "${BETTER_AUTH_SECRET:-}" ]]; then return 0; fi
+  if [[ -n "${BETTER_AUTH_SECRET:-}" && "$BETTER_AUTH_SECRET" != "lexnepal-local-development-secret-change-me" ]]; then return 0; fi
   if [[ -n "$RUNTIME_ENV_SOURCE" && -f "$RUNTIME_ENV_SOURCE" ]] &&
     grep -Eq '^BETTER_AUTH_SECRET=.{32,}' "$RUNTIME_ENV_SOURCE"; then
     export BETTER_AUTH_SECRET="lexnepal-deploy-build-placeholder-32-chars"
@@ -204,6 +205,12 @@ ensure_build_time_auth_secret() {
   fi
   export BETTER_AUTH_SECRET="lexnepal-deploy-build-placeholder-32-chars"
   log "Using a temporary build-time BETTER_AUTH_SECRET; configure the real runtime secret before launch"
+}
+
+ensure_build_time_storage_secret() {
+  if [[ -n "${STORAGE_DOWNLOAD_TOKEN_SECRET:-}" && "$STORAGE_DOWNLOAD_TOKEN_SECRET" != "lexnepal-local-storage-download-secret-change-me" ]]; then return 0; fi
+  export STORAGE_DOWNLOAD_TOKEN_SECRET="lexnepal-deploy-build-storage-placeholder"
+  log "Using a temporary build-time STORAGE_DOWNLOAD_TOKEN_SECRET; runtime will use host env/.env.runtime"
 }
 
 assert_standalone() {

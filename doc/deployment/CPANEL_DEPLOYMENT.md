@@ -150,3 +150,5 @@ migration test suite without this isolation boundary.
 When `BUILD_DATABASE_URL` is unset, the deployment deliberately uses an unavailable build-only
 database address. Public ISR pages therefore compile with deterministic Srimar Law/navigation
 fallbacks instead of accidentally embedding localhost or production CMS data in the artifact.
+Preflight also supplies temporary build-only auth and storage signing secrets when the shell has
+none or contains the documented local placeholders. Runtime still requires independent real secrets.
