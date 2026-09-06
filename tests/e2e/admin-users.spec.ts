@@ -49,7 +49,7 @@ test.describe("Admin users directory", () => {
     await expect(page.getByRole("button", { name: /new client/i })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Clients", exact: true })).toBeVisible();
     await expect(page.locator("table")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Total clients").first()).toBeVisible();
   });

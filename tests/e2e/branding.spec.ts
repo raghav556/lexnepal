@@ -78,6 +78,10 @@ test.describe("published firm branding", () => {
     const branding = await getPublishedBranding(page);
     await signIn(page, E2E_USERS.admin.email);
     await expect(page).toHaveURL(/\/admin(\/|$)/, { timeout: 20_000 });
+    const saved = await page.request.put("/api/v1/cms/settings", {
+      data: { settings: [{ key: "logoUrl", value: branding.logoUrl }] },
+    });
+    expect(saved.ok()).toBe(true);
     await page.goto("/admin/cms");
     await page.getByRole("tab", { name: "Branding & Media" }).click();
     await expectRenderedLogo(page.getByAltText("Preview").first(), branding.logoUrl);

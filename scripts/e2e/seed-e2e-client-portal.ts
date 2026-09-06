@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 /**
@@ -10,10 +11,13 @@ import { returningInsert, returningMutation } from "@/server/db/mysql-returning"
 import { and, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { cases, caseTeamMembers, clients, documents, tasks, users } from "../../db/schema";
+import { getDocumentStorageRuntime } from "../../src/server/storage/runtime";
 import { E2E_USERS, seedE2eUsers } from "./seed-e2e-users";
 
 const CASE_NUMBER = "E2E-PORTAL-001";
 const DOC_NUMBER = "E2E-PORTAL-DOC-001";
+const DOC_VERSION_NUMBER = "E2E-PORTAL-DOC-001-V2";
+const SECOND_DOC_NUMBER = "E2E-PORTAL-DOC-002";
 const TASK_TITLE = "Provide ID copy";
 
 export async function seedE2eClientPortal() {
@@ -198,6 +202,8 @@ export async function seedE2eClientPortal() {
   }
 
   const storageId = `protected/${firmId}/e2e-portal-shared-doc`;
+  const rootBytes = Buffer.from("%PDF-1.7\nLexNepal E2E portal document version 1\n");
+  const rootSha256 = createHash("sha256").update(rootBytes).digest("hex");
   const [existingDoc] = await db
     .select()
     .from(documents)
@@ -221,6 +227,10 @@ export async function seedE2eClientPortal() {
           isPrivileged: false,
           confidentialityLevel: "public",
           uploadStatus: "clean",
+          storageId,
+          mimeType: "application/pdf",
+          sizeBytes: rootBytes.length,
+          sha256: rootSha256,
           uploadedBy: staffUser.id,
           updatedAt: new Date(),
         })
@@ -240,7 +250,8 @@ export async function seedE2eClientPortal() {
           type: "correspondence",
           storageId,
           mimeType: "application/pdf",
-          sizeBytes: 256,
+          sizeBytes: rootBytes.length,
+          sha256: rootSha256,
           uploadedBy: staffUser.id,
           isTemplate: false,
           isPrivileged: false,
@@ -253,6 +264,110 @@ export async function seedE2eClientPortal() {
     );
     documentId = created!.id;
   }
+
+  const versionBytes = Buffer.from("%PDF-1.7\nLexNepal E2E portal document version 2\n");
+  const versionStorageId = `protected/${firmId}/e2e-portal-shared-doc-v2`;
+  const versionSha256 = createHash("sha256").update(versionBytes).digest("hex");
+  const [existingVersion] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.firmId, firmId), eq(documents.documentNumber, DOC_VERSION_NUMBER)))
+    .limit(1);
+  if (existingVersion) {
+    await db
+      .update(documents)
+      .set({
+        caseId,
+        title: "Welcome letter (shared)",
+        storageId: versionStorageId,
+        mimeType: "application/pdf",
+        sizeBytes: versionBytes.length,
+        sha256: versionSha256,
+        version: 2,
+        parentDocumentId: documentId,
+        uploadedBy: staffUser.id,
+        uploadStatus: "clean",
+        isPrivileged: false,
+        confidentialityLevel: "public",
+        deletedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(documents.id, existingVersion.id));
+  } else {
+    await db.insert(documents).values({
+      firmId,
+      caseId,
+      documentNumber: DOC_VERSION_NUMBER,
+      title: "Welcome letter (shared)",
+      type: "correspondence",
+      storageId: versionStorageId,
+      mimeType: "application/pdf",
+      sizeBytes: versionBytes.length,
+      sha256: versionSha256,
+      version: 2,
+      parentDocumentId: documentId,
+      uploadedBy: staffUser.id,
+      isTemplate: false,
+      isPrivileged: false,
+      uploadStatus: "clean",
+      confidentialityLevel: "public",
+      status: "approved",
+    });
+  }
+
+  const secondBytes = Buffer.from("%PDF-1.7\nLexNepal E2E second portal document\n");
+  const secondStorageId = `protected/${firmId}/e2e-portal-second-doc`;
+  const secondSha256 = createHash("sha256").update(secondBytes).digest("hex");
+  const [existingSecond] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.firmId, firmId), eq(documents.documentNumber, SECOND_DOC_NUMBER)))
+    .limit(1);
+  if (existingSecond) {
+    await db
+      .update(documents)
+      .set({
+        caseId,
+        title: "Case checklist (shared)",
+        storageId: secondStorageId,
+        mimeType: "application/pdf",
+        sizeBytes: secondBytes.length,
+        sha256: secondSha256,
+        uploadedBy: staffUser.id,
+        uploadStatus: "clean",
+        isPrivileged: false,
+        confidentialityLevel: "public",
+        deletedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(documents.id, existingSecond.id));
+  } else {
+    await db.insert(documents).values({
+      firmId,
+      caseId,
+      documentNumber: SECOND_DOC_NUMBER,
+      title: "Case checklist (shared)",
+      type: "correspondence",
+      storageId: secondStorageId,
+      mimeType: "application/pdf",
+      sizeBytes: secondBytes.length,
+      sha256: secondSha256,
+      uploadedBy: staffUser.id,
+      isTemplate: false,
+      isPrivileged: false,
+      uploadStatus: "clean",
+      confidentialityLevel: "public",
+      status: "approved",
+    });
+  }
+
+  const storage = getDocumentStorageRuntime().storage;
+  await storage.initialize();
+  await Promise.all([
+    storage.putObject(storageId, rootBytes, "application/pdf", { sha256: rootSha256 }),
+    storage.putObject(versionStorageId, versionBytes, "application/pdf", { sha256: versionSha256 }),
+    storage.putObject(secondStorageId, secondBytes, "application/pdf", { sha256: secondSha256 }),
+  ]);
 
   if (staff2User) {
     await db

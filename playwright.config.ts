@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL =
-  process.env.E2E_BASE_URL ?? process.env.NEXT_PROOF_BASE_URL ?? "http://127.0.0.1:3001";
+  process.env.E2E_BASE_URL ?? process.env.NEXT_PROOF_BASE_URL ?? "http://localhost:3001";
 
 /**
  * R5.7 browser smoke against Next on :3001.
