@@ -58,6 +58,7 @@ describe("public production resilience", () => {
     expect(deploy).toContain("assert_clean_release_source");
     expect(deploy).toContain("REMOTE_MIGRATION_COMMAND:=node runtime/migrate.mjs");
     expect(deploy).toContain("REMOTE_BACKGROUND_RESTART_COMMAND");
+    expect(deploy).toContain('DATABASE_URL="$DEPLOY_TEST_DATABASE_URL" npm run test');
     expect(deploy).toContain("verify-artifact.mjs");
     expect(runtimeBuilder).toContain('worker: "scripts/jobs/worker.ts"');
     expect(runtimeBuilder).toContain('migrate: "scripts/db/migrate.mjs"');

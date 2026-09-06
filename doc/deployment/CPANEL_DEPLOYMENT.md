@@ -143,6 +143,10 @@ If the build needs database-backed static data, set `BUILD_DATABASE_URL` to a sa
 sanitized database for preflight. Do not point preflight at production unless that access is
 explicitly approved.
 
+Set `DEPLOY_TEST_DATABASE_URL` to a disposable MySQL authority that may create and drop the fixed
+`dit_lexnepal_test` database. Never point this variable at production. Preflight refuses to run the
+migration test suite without this isolation boundary.
+
 When `BUILD_DATABASE_URL` is unset, the deployment deliberately uses an unavailable build-only
 database address. Public ISR pages therefore compile with deterministic Srimar Law/navigation
 fallbacks instead of accidentally embedding localhost or production CMS data in the artifact.

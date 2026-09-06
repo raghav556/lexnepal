@@ -64,6 +64,7 @@ apply_defaults() {
   : "${PUBLIC_HTML_PATH:=/home/USERNAME/public_html}"
   : "${BUILD_OUTPUT_DIR:=.next}"
   : "${STANDALONE_DIR:=.next/standalone}"
+  : "${DEPLOY_TEST_DATABASE_URL:=}"
   : "${REMOTE_RESTART_MODE:=passenger}"
   : "${PM2_APP_NAME:=lexnepal}"
   : "${REMOTE_NODE_BIN:=node}"
@@ -139,6 +140,8 @@ validate_deploy_configuration() {
   [[ "$APP_PATH" != *"USERNAME"* ]] || die "Configure APP_PATH before deployment"
   [[ -n "$SMOKE_BASE_URL" ]] || die "Configure SMOKE_BASE_URL before deployment"
   [[ "$SMOKE_BASE_URL" == https://* ]] || die "SMOKE_BASE_URL must use HTTPS"
+  [[ -n "$DEPLOY_TEST_DATABASE_URL" ]] ||
+    die "DEPLOY_TEST_DATABASE_URL is required for isolated migration tests"
   if [[ "$REMOTE_RESTART_MODE" == "passenger" && -z "$REMOTE_BACKGROUND_RESTART_COMMAND" ]]; then
     die "Passenger deployment requires REMOTE_BACKGROUND_RESTART_COMMAND for the worker and scheduler"
   fi
@@ -161,7 +164,7 @@ run_local_gates() {
   npm run format:check
   npm run lint
   npm run typecheck
-  npm run test
+  DATABASE_URL="$DEPLOY_TEST_DATABASE_URL" npm run test
   npm run db:integrity
   npm run db:check
   prepare_build_metadata
