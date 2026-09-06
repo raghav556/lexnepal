@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/local/run-dev.mjs",
     "dev:next": "node --env-file-if-exists=.env.local scripts/local/run-next.mjs dev --port 3001",
-    "build": "node --env-file-if-exists=.env.local scripts/local/run-next.mjs build",
+    "build": "node --env-file-if-exists=.env.local scripts/local/run-next.mjs build --webpack",
     "build:runtime": "node scripts/deploy/build-runtime-entrypoints.mjs",
     "verify:artifact": "node scripts/deploy/verify-artifact.mjs .next/standalone",
     "start": "node --env-file-if-exists=.env.local scripts/local/run-next.mjs start --port 3001",
