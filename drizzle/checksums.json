@@ -18,8 +18,8 @@
       "sha256": "04bfa99ce1158fb9ca2c7426c31c17d9d5f662b24b8674c3cae8b501e617cb74"
     },
     {
-      "file": "drizzle/0004_nullable_deleted_at.sql",
-      "sha256": "2228cb57e664cd3f62cd1d775c48bdebb0bf532c2b3a9fd91cf27bb48be05f82"
+      "file": "drizzle/0004_nullable_timestamps.sql",
+      "sha256": "d87fb41b3af2b80891b860280b620043eaef20725a8b292d457b04a4121446c6"
     }
   ]
 }

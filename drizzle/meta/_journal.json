@@ -34,7 +34,7 @@
       "idx": 4,
       "version": "5",
       "when": 1788793941993,
-      "tag": "0004_nullable_deleted_at",
+      "tag": "0004_nullable_timestamps",
       "breakpoints": true
     }
   ]
