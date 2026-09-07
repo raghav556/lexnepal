@@ -1,12 +1,15 @@
 Table,Index,Unique,Columns/expression,Documented query pattern,Migration
 appointments,appointments_firm_assigned_idx,no,"firm_id,assigned_lawyer_id",Documented operational lookup for appointments,drizzle/0000_initial_mysql_schema.sql
 appointments,appointments_firm_date_idx,no,"firm_id,appointment_date",Firm-scoped appointments chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+appointments,appointments_firm_id_id_unique,yes,"firm_id, id",Enforce appointments business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 appointments,appointments_firm_lead_idx,no,"firm_id,lead_id",Documented operational lookup for appointments,drizzle/0000_initial_mysql_schema.sql
 appointments,appointments_firm_status_idx,no,"firm_id,status",Firm-scoped appointments status queue or filter,drizzle/0000_initial_mysql_schema.sql
 appointments,appointments_legacy_convex_id_unique,yes,legacy_convex_id,Enforce appointments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 attendance,attendance_firm_date_idx,no,"firm_id,attendance_date",Firm-scoped attendance chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+attendance,attendance_firm_id_id_unique,yes,"firm_id, id",Enforce attendance business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 attendance,attendance_firm_user_date_unique,yes,"firm_id,user_id,attendance_date",Enforce attendance business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 attendance,attendance_legacy_convex_id_unique,yes,legacy_convex_id,Enforce attendance business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+audit_log,audit_log_firm_id_id_unique,yes,"firm_id, id",Enforce audit_log business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 audit_log,audit_log_firm_request_id_idx,no,"firm_id,request_id",Documented operational lookup for audit_log,drizzle/0000_initial_mysql_schema.sql
 audit_log,audit_log_firm_resource_created_idx,no,"firm_id,resource,created_at",Firm-scoped audit_log chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
 audit_log,audit_log_firm_user_created_idx,no,"firm_id,user_id,created_at",Firm-scoped audit_log lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
@@ -21,80 +24,104 @@ auth_two_factors,auth_two_factors_user_unique,yes,user_id,Enforce auth_two_facto
 auth_users,auth_users_email_unique,yes,email,Enforce auth_users business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 auth_users,auth_users_lexnepal_user_unique,yes,lexnepal_user_id,Enforce auth_users business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 auth_verifications,auth_verifications_identifier_idx,no,identifier,Documented operational lookup for auth_verifications,drizzle/0000_initial_mysql_schema.sql
+avatar_upload_intents,avatar_upload_intents_firm_id_id_unique,yes,"firm_id, id",Enforce avatar_upload_intents business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 avatar_upload_intents,avatar_upload_intents_firm_status_idx,no,"firm_id,status,expires_at",Firm-scoped avatar_upload_intents status queue or filter,drizzle/0000_initial_mysql_schema.sql
 avatar_upload_intents,avatar_upload_intents_legacy_convex_id_unique,yes,legacy_convex_id,Enforce avatar_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 avatar_upload_intents,avatar_upload_intents_quarantine_key_unique,yes,quarantine_key,Enforce avatar_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 avatar_upload_intents,avatar_upload_intents_user_idx,no,"firm_id,user_id",Firm-scoped avatar_upload_intents lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
+blog_posts,blog_posts_firm_id_id_unique,yes,"firm_id, id",Enforce blog_posts business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 blog_posts,blog_posts_firm_slug_unique,yes,"firm_id,slug",Enforce blog_posts business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 blog_posts,blog_posts_firm_status_publish_idx,no,"firm_id,status,publish_date",Firm-scoped blog_posts status queue or filter,drizzle/0000_initial_mysql_schema.sql
 blog_posts,blog_posts_legacy_convex_id_unique,yes,legacy_convex_id,Enforce blog_posts business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+career_requirements,career_requirements_firm_id_id_unique,yes,"firm_id, id",Enforce career_requirements business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 career_requirements,career_requirements_legacy_convex_id_unique,yes,legacy_convex_id,Enforce career_requirements business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 career_requirements,career_requirements_position_unique,yes,"firm_id,career_id,position",Enforce career_requirements business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 careers,careers_firm_active_idx,no,"firm_id,is_active",Firm-scoped careers status queue or filter,drizzle/0000_initial_mysql_schema.sql
+careers,careers_firm_id_id_unique,yes,"firm_id, id",Enforce careers business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 careers,careers_legacy_convex_id_unique,yes,legacy_convex_id,Enforce careers business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+case_team_members,case_team_members_firm_id_id_unique,yes,"firm_id, id",Enforce case_team_members business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 case_team_members,case_team_members_legacy_convex_id_unique,yes,legacy_convex_id,Enforce case_team_members business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 case_team_members,case_team_members_unique,yes,"firm_id,case_id,user_id",Enforce case_team_members business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 case_team_members,case_team_members_user_idx,no,"firm_id,user_id",Firm-scoped case_team_members lookup by case,drizzle/0000_initial_mysql_schema.sql
 cases,cases_firm_case_number_unique,yes,"firm_id,case_number",Enforce cases business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 cases,cases_firm_client_idx,no,"firm_id,client_id",Firm-scoped cases lookup by case,drizzle/0000_initial_mysql_schema.sql
+cases,cases_firm_id_id_unique,yes,"firm_id, id",Enforce cases business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 cases,cases_firm_lawyer_idx,no,"firm_id,assigned_lawyer_id",Firm-scoped cases lookup by case,drizzle/0000_initial_mysql_schema.sql
 cases,cases_firm_status_idx,no,"firm_id,status",Firm-scoped cases lookup by case,drizzle/0000_initial_mysql_schema.sql
 cases,cases_legacy_convex_id_unique,yes,legacy_convex_id,Enforce cases business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 client_kyc_files,client_kyc_files_client_idx,no,"firm_id,client_id",Firm-scoped client_kyc_files lookup by client,drizzle/0000_initial_mysql_schema.sql
+client_kyc_files,client_kyc_files_firm_id_id_unique,yes,"firm_id, id",Enforce client_kyc_files business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 client_kyc_files,client_kyc_files_legacy_convex_id_unique,yes,legacy_convex_id,Enforce client_kyc_files business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 client_kyc_files,client_kyc_files_storage_unique,yes,"firm_id,storage_id",Enforce client_kyc_files business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 client_kyc_upload_intents,client_kyc_upload_intents_client_idx,no,"firm_id,client_id",Firm-scoped client_kyc_upload_intents lookup by client,drizzle/0000_initial_mysql_schema.sql
+client_kyc_upload_intents,client_kyc_upload_intents_firm_id_id_unique,yes,"firm_id, id",Enforce client_kyc_upload_intents business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 client_kyc_upload_intents,client_kyc_upload_intents_legacy_convex_id_unique,yes,legacy_convex_id,Enforce client_kyc_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 client_kyc_upload_intents,client_kyc_upload_intents_quarantine_key_unique,yes,quarantine_key,Enforce client_kyc_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 client_kyc_upload_intents,client_kyc_upload_intents_status_idx,no,"firm_id,status,expires_at",Firm-scoped client_kyc_upload_intents status queue or filter,drizzle/0000_initial_mysql_schema.sql
+clients,clients_firm_id_id_unique,yes,"firm_id, id",Enforce clients business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 clients,clients_firm_kyc_status_idx,no,"firm_id,kyc_status",Firm-scoped clients status queue or filter,drizzle/0000_initial_mysql_schema.sql
 clients,clients_firm_name_idx,no,"firm_id,full_name",Firm-scoped clients lookup by client,drizzle/0000_initial_mysql_schema.sql
 clients,clients_firm_user_unique,yes,"firm_id,user_id",Enforce clients business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 clients,clients_legacy_convex_id_unique,yes,legacy_convex_id,Enforce clients business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 cms_asset_upload_intents,cms_asset_upload_intents_creator_idx,no,"firm_id,created_by",Documented operational lookup for cms_asset_upload_intents,drizzle/0000_initial_mysql_schema.sql
+cms_asset_upload_intents,cms_asset_upload_intents_firm_id_id_unique,yes,"firm_id, id",Enforce cms_asset_upload_intents business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 cms_asset_upload_intents,cms_asset_upload_intents_firm_status_idx,no,"firm_id,status,expires_at",Firm-scoped cms_asset_upload_intents status queue or filter,drizzle/0000_initial_mysql_schema.sql
 cms_asset_upload_intents,cms_asset_upload_intents_legacy_convex_id_unique,yes,legacy_convex_id,Enforce cms_asset_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 cms_asset_upload_intents,cms_asset_upload_intents_quarantine_key_unique,yes,quarantine_key,Enforce cms_asset_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+cms_settings,cms_settings_firm_id_id_unique,yes,"firm_id, id",Enforce cms_settings business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 cms_settings,cms_settings_firm_key_unique,yes,"firm_id,key",Enforce cms_settings business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 cms_settings,cms_settings_legacy_convex_id_unique,yes,legacy_convex_id,Enforce cms_settings business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 conflict_checks,conflict_checks_firm_checked_at_idx,no,"firm_id,checked_at",Documented operational lookup for conflict_checks,drizzle/0000_initial_mysql_schema.sql
+conflict_checks,conflict_checks_firm_id_id_unique,yes,"firm_id, id",Enforce conflict_checks business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 conflict_checks,conflict_checks_firm_status_idx,no,"firm_id,status",Firm-scoped conflict_checks status queue or filter,drizzle/0000_initial_mysql_schema.sql
 conflict_checks,conflict_checks_legacy_convex_id_unique,yes,legacy_convex_id,Enforce conflict_checks business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+dm_message_attachments,dm_message_attachments_firm_id_id_unique,yes,"firm_id, id",Enforce dm_message_attachments business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 dm_message_attachments,dm_message_attachments_legacy_convex_id_unique,yes,legacy_convex_id,Enforce dm_message_attachments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 dm_message_attachments,dm_message_attachments_position_unique,yes,"firm_id,message_id,position",Enforce dm_message_attachments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+dm_message_reads,dm_message_reads_firm_id_id_unique,yes,"firm_id, id",Enforce dm_message_reads business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 dm_message_reads,dm_message_reads_legacy_convex_id_unique,yes,legacy_convex_id,Enforce dm_message_reads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 dm_message_reads,dm_message_reads_unique,yes,"firm_id,message_id,user_id",Enforce dm_message_reads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 dm_message_reads,dm_message_reads_user_idx,no,"firm_id,user_id",Firm-scoped dm_message_reads lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
+dm_messages,dm_messages_firm_id_id_unique,yes,"firm_id, id",Enforce dm_messages business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 dm_messages,dm_messages_legacy_convex_id_unique,yes,legacy_convex_id,Enforce dm_messages business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 dm_messages,dm_messages_thread_created_idx,no,"firm_id,thread_id,created_at",Firm-scoped dm_messages status queue or filter,drizzle/0000_initial_mysql_schema.sql
 dm_threads,dm_threads_firm_high_idx,no,"firm_id,user_high_id",Firm-scoped dm_threads status queue or filter,drizzle/0000_initial_mysql_schema.sql
+dm_threads,dm_threads_firm_id_id_unique,yes,"firm_id, id",Enforce dm_threads business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 dm_threads,dm_threads_firm_low_idx,no,"firm_id,user_low_id",Firm-scoped dm_threads status queue or filter,drizzle/0000_initial_mysql_schema.sql
 dm_threads,dm_threads_legacy_convex_id_unique,yes,legacy_convex_id,Enforce dm_threads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 dm_threads,dm_threads_pair_unique,yes,"firm_id,user_low_id,user_high_id",Enforce dm_threads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_scan_jobs,document_scan_jobs_available_idx,no,"status,available_at",Firm-scoped document_scan_jobs lookup by document,drizzle/0000_initial_mysql_schema.sql
+document_scan_jobs,document_scan_jobs_firm_id_id_unique,yes,"firm_id, id",Enforce document_scan_jobs business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_scan_jobs,document_scan_jobs_intent_unique,yes,"firm_id,upload_intent_id",Enforce document_scan_jobs business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_scan_jobs,document_scan_jobs_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_scan_jobs business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_shares,document_shares_active_expiry_idx,no,"firm_id,is_active,expires_at",Firm-scoped document_shares status queue or filter,drizzle/0000_initial_mysql_schema.sql
 document_shares,document_shares_firm_document_idx,no,"firm_id,document_id",Firm-scoped document_shares lookup by document,drizzle/0000_initial_mysql_schema.sql
+document_shares,document_shares_firm_id_id_unique,yes,"firm_id, id",Enforce document_shares business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_shares,document_shares_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_shares business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_shares,document_shares_token_unique,yes,token,Enforce document_shares business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+document_tag_assignments,document_tag_assignments_firm_id_id_unique,yes,"firm_id, id",Enforce document_tag_assignments business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_tag_assignments,document_tag_assignments_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_tag_assignments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_tag_assignments,document_tag_assignments_tag_idx,no,"firm_id,tag_id",Firm-scoped document_tag_assignments lookup by document,drizzle/0000_initial_mysql_schema.sql
 document_tag_assignments,document_tag_assignments_unique,yes,"firm_id,document_id,tag_id",Enforce document_tag_assignments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+document_tags,document_tags_firm_id_id_unique,yes,"firm_id, id",Enforce document_tags business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_tags,document_tags_firm_name_unique,yes,"firm_id,name",Enforce document_tags business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_tags,document_tags_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_tags business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+document_templates,document_templates_firm_id_id_unique,yes,"firm_id, id",Enforce document_templates business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_templates,document_templates_firm_title_unique,yes,"firm_id,title",Enforce document_templates business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_templates,document_templates_firm_type_idx,no,"firm_id,type",Firm-scoped document_templates lookup by document,drizzle/0000_initial_mysql_schema.sql
 document_templates,document_templates_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_templates business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_upload_intents,document_upload_intents_creator_idx,no,"firm_id,created_by",Firm-scoped document_upload_intents lookup by document,drizzle/0000_initial_mysql_schema.sql
+document_upload_intents,document_upload_intents_firm_id_id_unique,yes,"firm_id, id",Enforce document_upload_intents business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_upload_intents,document_upload_intents_firm_status_expiry_idx,no,"firm_id,status,expires_at",Firm-scoped document_upload_intents status queue or filter,drizzle/0000_initial_mysql_schema.sql
 document_upload_intents,document_upload_intents_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_upload_intents,document_upload_intents_quarantine_key_unique,yes,quarantine_key,Enforce document_upload_intents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+document_upload_rate_limits,document_upload_rate_limits_firm_id_id_unique,yes,"firm_id, id",Enforce document_upload_rate_limits business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 document_upload_rate_limits,document_upload_rate_limits_legacy_convex_id_unique,yes,legacy_convex_id,Enforce document_upload_rate_limits business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 document_upload_rate_limits,document_upload_rate_limits_user_idx,no,"firm_id,user_id",Firm-scoped document_upload_rate_limits lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 document_upload_rate_limits,document_upload_rate_limits_window_unique,yes,"firm_id,user_id,window_started_at",Enforce document_upload_rate_limits business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 documents,documents_firm_case_idx,no,"firm_id,case_id",Firm-scoped documents lookup by case,drizzle/0000_initial_mysql_schema.sql
 documents,documents_firm_deleted_idx,no,"firm_id,deleted_at",Firm-scoped documents lookup by document,drizzle/0000_initial_mysql_schema.sql
+documents,documents_firm_id_id_unique,yes,"firm_id, id",Enforce documents business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 documents,documents_firm_number_unique,yes,"firm_id,document_number",Enforce documents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 documents,documents_firm_parent_idx,no,"firm_id,parent_document_id",Firm-scoped documents lookup by document,drizzle/0000_initial_mysql_schema.sql
 documents,documents_firm_signature_idx,no,"firm_id,intended_signer_user_id,signature_status",Firm-scoped documents lookup by document,drizzle/0000_initial_mysql_schema.sql
@@ -105,108 +132,141 @@ documents,documents_firm_uploader_idx,no,"firm_id,uploaded_by",Firm-scoped docum
 documents,documents_legacy_convex_id_unique,yes,legacy_convex_id,Enforce documents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 documents,documents_parent_version_unique,yes,"firm_id,parent_document_id,version",Enforce documents business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 documents,documents_search_fulltext_idx,no,"title, description, searchable_text",Full-text document discovery by title description and extracted text,drizzle/0001_mysql_integrity.sql
+durable_job_attempts,durable_job_attempts_firm_id_id_unique,yes,"firm_id, id",Enforce durable_job_attempts business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 durable_job_attempts,durable_job_attempts_job_idx,no,"firm_id,job_id,started_at",Documented operational lookup for durable_job_attempts,drizzle/0000_initial_mysql_schema.sql
 durable_job_attempts,durable_job_attempts_legacy_convex_id_unique,yes,legacy_convex_id,Enforce durable_job_attempts business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 durable_job_attempts,durable_job_attempts_number_unique,yes,"firm_id,job_id,attempt_number",Enforce durable_job_attempts business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+durable_job_effects,durable_job_effects_firm_id_id_unique,yes,"firm_id, id",Enforce durable_job_effects business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 durable_job_effects,durable_job_effects_key_unique,yes,"firm_id,job_id,effect_key",Enforce durable_job_effects business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 durable_job_effects,durable_job_effects_legacy_convex_id_unique,yes,legacy_convex_id,Enforce durable_job_effects business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 durable_jobs,durable_jobs_claim_idx,no,"status,available_at,priority,created_at",Documented operational lookup for durable_jobs,drizzle/0000_initial_mysql_schema.sql
+durable_jobs,durable_jobs_firm_id_id_unique,yes,"firm_id, id",Enforce durable_jobs business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 durable_jobs,durable_jobs_firm_status_idx,no,"firm_id,status,created_at",Firm-scoped durable_jobs status queue or filter,drizzle/0000_initial_mysql_schema.sql
 durable_jobs,durable_jobs_idempotency_unique,yes,"firm_id,type,idempotency_key",Enforce durable_jobs business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 durable_jobs,durable_jobs_legacy_convex_id_unique,yes,legacy_convex_id,Enforce durable_jobs business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 durable_schedules,durable_schedules_due_idx,no,"is_active,next_run_at",Firm-scoped durable_schedules chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+durable_schedules,durable_schedules_firm_id_id_unique,yes,"firm_id, id",Enforce durable_schedules business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 durable_schedules,durable_schedules_firm_name_unique,yes,"firm_id,name",Enforce durable_schedules business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 durable_schedules,durable_schedules_legacy_convex_id_unique,yes,legacy_convex_id,Enforce durable_schedules business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+firm_settings,firm_settings_firm_id_id_unique,yes,"firm_id, id",Enforce firm_settings business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 firm_settings,firm_settings_firm_key_unique,yes,"firm_id,key",Enforce firm_settings business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 firm_settings,firm_settings_legacy_convex_id_unique,yes,legacy_convex_id,Enforce firm_settings business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 firms,firms_legacy_convex_id_unique,yes,legacy_convex_id,Enforce firms business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 firms,firms_slug_unique,yes,slug,Enforce firms business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 hearings,hearings_firm_case_idx,no,"firm_id,case_id",Firm-scoped hearings lookup by case,drizzle/0000_initial_mysql_schema.sql
 hearings,hearings_firm_date_idx,no,"firm_id,date_gregorian",Firm-scoped hearings chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+hearings,hearings_firm_id_id_unique,yes,"firm_id, id",Enforce hearings business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 hearings,hearings_legacy_convex_id_unique,yes,legacy_convex_id,Enforce hearings business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+job_applications,job_applications_firm_id_id_unique,yes,"firm_id, id",Enforce job_applications business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 job_applications,job_applications_firm_job_idx,no,"firm_id,job_id",Documented operational lookup for job_applications,drizzle/0000_initial_mysql_schema.sql
 job_applications,job_applications_firm_status_idx,no,"firm_id,status",Firm-scoped job_applications status queue or filter,drizzle/0000_initial_mysql_schema.sql
 job_applications,job_applications_legacy_convex_id_unique,yes,legacy_convex_id,Enforce job_applications business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 leads,leads_firm_assigned_idx,no,"firm_id,assigned_to",Documented operational lookup for leads,drizzle/0000_initial_mysql_schema.sql
+leads,leads_firm_id_id_unique,yes,"firm_id, id",Enforce leads business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 leads,leads_firm_status_idx,no,"firm_id,status",Firm-scoped leads status queue or filter,drizzle/0000_initial_mysql_schema.sql
 leads,leads_intake_token_unique,yes,intake_token,Enforce leads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 leads,leads_legacy_convex_id_unique,yes,legacy_convex_id,Enforce leads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+leave_balances,leave_balances_firm_id_id_unique,yes,"firm_id, id",Enforce leave_balances business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 leave_balances,leave_balances_firm_user_type_year_unique,yes,"firm_id,user_id,type,year",Enforce leave_balances business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 leave_balances,leave_balances_firm_user_year_idx,no,"firm_id,user_id,year",Firm-scoped leave_balances lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 leave_balances,leave_balances_legacy_convex_id_unique,yes,legacy_convex_id,Enforce leave_balances business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+leave_requests,leave_requests_firm_id_id_unique,yes,"firm_id, id",Enforce leave_requests business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 leave_requests,leave_requests_firm_status_idx,no,"firm_id,status",Firm-scoped leave_requests status queue or filter,drizzle/0000_initial_mysql_schema.sql
 leave_requests,leave_requests_firm_user_idx,no,"firm_id,user_id",Firm-scoped leave_requests lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 leave_requests,leave_requests_legacy_convex_id_unique,yes,legacy_convex_id,Enforce leave_requests business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+legal_pages,legal_pages_firm_id_id_unique,yes,"firm_id, id",Enforce legal_pages business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 legal_pages,legal_pages_firm_slug_unique,yes,"firm_id,slug",Enforce legal_pages business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 legal_pages,legal_pages_legacy_convex_id_unique,yes,legacy_convex_id,Enforce legal_pages business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+message_attachments,message_attachments_firm_id_id_unique,yes,"firm_id, id",Enforce message_attachments business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 message_attachments,message_attachments_legacy_convex_id_unique,yes,legacy_convex_id,Enforce message_attachments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 message_attachments,message_attachments_position_unique,yes,"firm_id,message_id,position",Enforce message_attachments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+message_reads,message_reads_firm_id_id_unique,yes,"firm_id, id",Enforce message_reads business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 message_reads,message_reads_legacy_convex_id_unique,yes,legacy_convex_id,Enforce message_reads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 message_reads,message_reads_unique,yes,"firm_id,message_id,user_id",Enforce message_reads business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 message_reads,message_reads_user_idx,no,"firm_id,user_id",Firm-scoped message_reads lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 messages,messages_firm_case_created_idx,no,"firm_id,case_id,created_at",Firm-scoped messages lookup by case,drizzle/0000_initial_mysql_schema.sql
+messages,messages_firm_id_id_unique,yes,"firm_id, id",Enforce messages business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 messages,messages_firm_sender_idx,no,"firm_id,sender_id",Documented operational lookup for messages,drizzle/0000_initial_mysql_schema.sql
 messages,messages_legacy_convex_id_unique,yes,legacy_convex_id,Enforce messages business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+navigation,navigation_firm_id_id_unique,yes,"firm_id, id",Enforce navigation business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 navigation,navigation_firm_location_sibling_order_unique,yes,"firm_id,location,parent_scope,display_order",Enforce navigation business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 navigation,navigation_firm_parent_idx,no,"firm_id,parent_id",Firm-scoped navigation hierarchy traversal,drizzle/0000_initial_mysql_schema.sql
 navigation,navigation_legacy_convex_id_unique,yes,legacy_convex_id,Enforce navigation business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 news_and_awards,news_and_awards_firm_date_idx,no,"firm_id,publication_date",Firm-scoped news_and_awards chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+news_and_awards,news_and_awards_firm_id_id_unique,yes,"firm_id, id",Enforce news_and_awards business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 news_and_awards,news_and_awards_firm_slug_unique,yes,"firm_id,slug",Enforce news_and_awards business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 news_and_awards,news_and_awards_firm_status_idx,no,"firm_id,status",Firm-scoped news_and_awards status queue or filter,drizzle/0000_initial_mysql_schema.sql
 news_and_awards,news_and_awards_firm_type_idx,no,"firm_id,type",Firm-scoped news_and_awards classification filter,drizzle/0000_initial_mysql_schema.sql
 news_and_awards,news_and_awards_legacy_convex_id_unique,yes,legacy_convex_id,Enforce news_and_awards business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 newsletter_subscribers,newsletter_subscribers_firm_email_unique,yes,"firm_id,email",Enforce newsletter_subscribers business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+newsletter_subscribers,newsletter_subscribers_firm_id_id_unique,yes,"firm_id, id",Enforce newsletter_subscribers business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 newsletter_subscribers,newsletter_subscribers_legacy_convex_id_unique,yes,legacy_convex_id,Enforce newsletter_subscribers business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 notifications,notifications_firm_created_idx,no,"firm_id,created_at",Firm-scoped notifications chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+notifications,notifications_firm_id_id_unique,yes,"firm_id, id",Enforce notifications business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 notifications,notifications_firm_user_read_idx,no,"firm_id,user_id,is_read",Firm-scoped notifications lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 notifications,notifications_legacy_convex_id_unique,yes,legacy_convex_id,Enforce notifications business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+payroll_run_lines,payroll_run_lines_firm_id_id_unique,yes,"firm_id, id",Enforce payroll_run_lines business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 payroll_run_lines,payroll_run_lines_firm_run_idx,no,"firm_id,run_id",Documented operational lookup for payroll_run_lines,drizzle/0000_initial_mysql_schema.sql
 payroll_run_lines,payroll_run_lines_firm_user_idx,no,"firm_id,user_id",Firm-scoped payroll_run_lines lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 payroll_run_lines,payroll_run_lines_legacy_convex_id_unique,yes,legacy_convex_id,Enforce payroll_run_lines business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 payroll_run_lines,payroll_run_lines_run_user_unique,yes,"run_id,user_id",Enforce payroll_run_lines business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+payroll_runs,payroll_runs_firm_id_id_unique,yes,"firm_id, id",Enforce payroll_runs business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 payroll_runs,payroll_runs_firm_period_idx,no,"firm_id,period_start,period_end",Documented operational lookup for payroll_runs,drizzle/0000_initial_mysql_schema.sql
 payroll_runs,payroll_runs_firm_status_idx,no,"firm_id,status",Firm-scoped payroll_runs status queue or filter,drizzle/0000_initial_mysql_schema.sql
 payroll_runs,payroll_runs_legacy_convex_id_unique,yes,legacy_convex_id,Enforce payroll_runs business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 practice_areas,practice_areas_firm_active_order_idx,no,"firm_id,is_active,display_order",Firm-scoped practice_areas status queue or filter,drizzle/0000_initial_mysql_schema.sql
+practice_areas,practice_areas_firm_id_id_unique,yes,"firm_id, id",Enforce practice_areas business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 practice_areas,practice_areas_firm_slug_unique,yes,"firm_id,slug",Enforce practice_areas business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 practice_areas,practice_areas_legacy_convex_id_unique,yes,legacy_convex_id,Enforce practice_areas business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+research_note_tags,research_note_tags_firm_id_id_unique,yes,"firm_id, id",Enforce research_note_tags business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 research_note_tags,research_note_tags_firm_tag_idx,no,"firm_id,tag",Documented operational lookup for research_note_tags,drizzle/0000_initial_mysql_schema.sql
 research_note_tags,research_note_tags_legacy_convex_id_unique,yes,legacy_convex_id,Enforce research_note_tags business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 research_note_tags,research_note_tags_unique,yes,"firm_id,research_note_id,tag",Enforce research_note_tags business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 research_notes,research_notes_firm_author_idx,no,"firm_id,author_id",Firm-scoped research_notes lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 research_notes,research_notes_firm_case_idx,no,"firm_id,case_id",Firm-scoped research_notes lookup by case,drizzle/0000_initial_mysql_schema.sql
 research_notes,research_notes_firm_category_idx,no,"firm_id,category",Firm-scoped research_notes classification filter,drizzle/0000_initial_mysql_schema.sql
+research_notes,research_notes_firm_id_id_unique,yes,"firm_id, id",Enforce research_notes business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 research_notes,research_notes_legacy_convex_id_unique,yes,legacy_convex_id,Enforce research_notes business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 resources,resources_firm_category_idx,no,"firm_id,category",Firm-scoped resources classification filter,drizzle/0000_initial_mysql_schema.sql
+resources,resources_firm_id_id_unique,yes,"firm_id, id",Enforce resources business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 resources,resources_firm_slug_unique,yes,"firm_id,slug",Enforce resources business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 resources,resources_firm_status_idx,no,"firm_id,status",Firm-scoped resources status queue or filter,drizzle/0000_initial_mysql_schema.sql
 resources,resources_legacy_convex_id_unique,yes,legacy_convex_id,Enforce resources business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 sessions,sessions_expiry_idx,no,expires_at,Firm-scoped sessions chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+sessions,sessions_firm_id_id_unique,yes,"firm_id, id",Enforce sessions business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 sessions,sessions_firm_user_active_idx,no,"firm_id,user_id,last_active",Firm-scoped sessions lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 sessions,sessions_legacy_convex_id_unique,yes,legacy_convex_id,Enforce sessions business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 sessions,sessions_token_hash_unique,yes,token_hash,Enforce sessions business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 signature_envelopes,signature_envelopes_firm_case_idx,no,"firm_id,case_id",Firm-scoped signature_envelopes lookup by case,drizzle/0000_initial_mysql_schema.sql
 signature_envelopes,signature_envelopes_firm_document_idx,no,"firm_id,document_id",Firm-scoped signature_envelopes lookup by document,drizzle/0000_initial_mysql_schema.sql
+signature_envelopes,signature_envelopes_firm_id_id_unique,yes,"firm_id, id",Enforce signature_envelopes business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 signature_envelopes,signature_envelopes_firm_status_idx,no,"firm_id,status",Firm-scoped signature_envelopes status queue or filter,drizzle/0000_initial_mysql_schema.sql
 signature_envelopes,signature_envelopes_legacy_convex_id_unique,yes,legacy_convex_id,Enforce signature_envelopes business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 signature_recipients,signature_recipients_envelope_order_unique,yes,"firm_id,envelope_id,routing_order",Enforce signature_recipients business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 signature_recipients,signature_recipients_envelope_user_unique,yes,"firm_id,envelope_id,user_id",Enforce signature_recipients business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+signature_recipients,signature_recipients_firm_id_id_unique,yes,"firm_id, id",Enforce signature_recipients business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 signature_recipients,signature_recipients_legacy_convex_id_unique,yes,legacy_convex_id,Enforce signature_recipients business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 signature_recipients,signature_recipients_user_status_idx,no,"firm_id,user_id,status",Firm-scoped signature_recipients lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 signing_challenges,signing_challenges_expiry_idx,no,"firm_id,expires_at",Firm-scoped signing_challenges chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
+signing_challenges,signing_challenges_firm_id_id_unique,yes,"firm_id, id",Enforce signing_challenges business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 signing_challenges,signing_challenges_legacy_convex_id_unique,yes,legacy_convex_id,Enforce signing_challenges business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 signing_challenges,signing_challenges_user_document_idx,no,"firm_id,user_id,document_id",Firm-scoped signing_challenges lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
+sop_template_tasks,sop_template_tasks_firm_id_id_unique,yes,"firm_id, id",Enforce sop_template_tasks business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 sop_template_tasks,sop_template_tasks_legacy_convex_id_unique,yes,legacy_convex_id,Enforce sop_template_tasks business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 sop_template_tasks,sop_template_tasks_position_unique,yes,"firm_id,sop_template_id,position",Enforce sop_template_tasks business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+sop_templates,sop_templates_firm_id_id_unique,yes,"firm_id, id",Enforce sop_templates business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 sop_templates,sop_templates_firm_key_unique,yes,"firm_id,key",Enforce sop_templates business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 sop_templates,sop_templates_firm_practice_idx,no,"firm_id,practice_area",Firm-scoped sop_templates classification filter,drizzle/0000_initial_mysql_schema.sql
 sop_templates,sop_templates_legacy_convex_id_unique,yes,legacy_convex_id,Enforce sop_templates business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 storage_migration_items,storage_migration_items_destination_unique,yes,destination_key,Enforce storage_migration_items business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+storage_migration_items,storage_migration_items_firm_id_id_unique,yes,"firm_id, id",Enforce storage_migration_items business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 storage_migration_items,storage_migration_items_firm_status_idx,no,"firm_id,status",Firm-scoped storage_migration_items status queue or filter,drizzle/0000_initial_mysql_schema.sql
 storage_migration_items,storage_migration_items_legacy_convex_id_unique,yes,legacy_convex_id,Enforce storage_migration_items business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 storage_migration_items,storage_migration_items_legacy_unique,yes,"firm_id,legacy_storage_id",Enforce storage_migration_items business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+task_comments,task_comments_firm_id_id_unique,yes,"firm_id, id",Enforce task_comments business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 task_comments,task_comments_firm_task_idx,no,"firm_id,task_id,created_at",Documented operational lookup for task_comments,drizzle/0000_initial_mysql_schema.sql
 task_comments,task_comments_legacy_convex_id_unique,yes,legacy_convex_id,Enforce task_comments business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+task_watchers,task_watchers_firm_id_id_unique,yes,"firm_id, id",Enforce task_watchers business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 task_watchers,task_watchers_legacy_convex_id_unique,yes,legacy_convex_id,Enforce task_watchers business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 task_watchers,task_watchers_unique,yes,"firm_id,task_id,user_id",Enforce task_watchers business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 task_watchers,task_watchers_user_idx,no,"firm_id,user_id",Firm-scoped task_watchers lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
@@ -214,26 +274,34 @@ tasks,tasks_firm_assignee_idx,no,"firm_id,assigned_to",Firm-scoped tasks lookup 
 tasks,tasks_firm_case_idx,no,"firm_id,case_id",Firm-scoped tasks lookup by case,drizzle/0000_initial_mysql_schema.sql
 tasks,tasks_firm_due_idx,no,"firm_id,due_date",Firm-scoped tasks chronological or reminder query,drizzle/0000_initial_mysql_schema.sql
 tasks,tasks_firm_hearing_idx,no,"firm_id,hearing_id",Documented operational lookup for tasks,drizzle/0000_initial_mysql_schema.sql
+tasks,tasks_firm_id_id_unique,yes,"firm_id, id",Enforce tasks business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 tasks,tasks_firm_parent_idx,no,"firm_id,parent_task_id",Firm-scoped tasks hierarchy traversal,drizzle/0000_initial_mysql_schema.sql
 tasks,tasks_firm_status_idx,no,"firm_id,status",Firm-scoped tasks status queue or filter,drizzle/0000_initial_mysql_schema.sql
 tasks,tasks_legacy_convex_id_unique,yes,legacy_convex_id,Enforce tasks business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+template_variables,template_variables_firm_id_id_unique,yes,"firm_id, id",Enforce template_variables business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 template_variables,template_variables_legacy_convex_id_unique,yes,legacy_convex_id,Enforce template_variables business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 template_variables,template_variables_position_unique,yes,"firm_id,template_id,position",Enforce template_variables business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 template_variables,template_variables_unique,yes,"firm_id,template_id,variable",Enforce template_variables business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 templates,templates_firm_category_idx,no,"firm_id,category",Firm-scoped templates classification filter,drizzle/0000_initial_mysql_schema.sql
+templates,templates_firm_id_id_unique,yes,"firm_id, id",Enforce templates business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 templates,templates_firm_title_unique,yes,"firm_id,title",Enforce templates business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 templates,templates_legacy_convex_id_unique,yes,legacy_convex_id,Enforce templates business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 testimonials,testimonials_firm_approved_idx,no,"firm_id,is_approved",Firm-scoped testimonials status queue or filter,drizzle/0000_initial_mysql_schema.sql
 testimonials,testimonials_firm_approved_order_idx,no,"firm_id,is_approved,display_order",Firm-scoped testimonials status queue or filter,drizzle/0000_initial_mysql_schema.sql
+testimonials,testimonials_firm_id_id_unique,yes,"firm_id, id",Enforce testimonials business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 testimonials,testimonials_legacy_convex_id_unique,yes,legacy_convex_id,Enforce testimonials business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+user_educations,user_educations_firm_id_id_unique,yes,"firm_id, id",Enforce user_educations business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 user_educations,user_educations_legacy_convex_id_unique,yes,legacy_convex_id,Enforce user_educations business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 user_educations,user_educations_position_unique,yes,"firm_id,user_id,position",Enforce user_educations business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+user_notable_cases,user_notable_cases_firm_id_id_unique,yes,"firm_id, id",Enforce user_notable_cases business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 user_notable_cases,user_notable_cases_legacy_convex_id_unique,yes,legacy_convex_id,Enforce user_notable_cases business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 user_notable_cases,user_notable_cases_position_unique,yes,"firm_id,user_id,position",Enforce user_notable_cases business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+user_practice_areas,user_practice_areas_firm_id_id_unique,yes,"firm_id, id",Enforce user_practice_areas business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 user_practice_areas,user_practice_areas_legacy_convex_id_unique,yes,legacy_convex_id,Enforce user_practice_areas business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 user_practice_areas,user_practice_areas_unique,yes,"firm_id,user_id,practice_area",Enforce user_practice_areas business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 users,users_activation_token_unique,yes,activation_token,Enforce users business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 users,users_firm_email_unique,yes,"firm_id,email",Enforce users business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+users,users_firm_id_id_unique,yes,"firm_id, id",Enforce users business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 users,users_firm_role_idx,no,"firm_id,role",Firm-scoped users lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 users,users_legacy_convex_id_unique,yes,legacy_convex_id,Enforce users business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 users,users_token_identifier_unique,yes,token_identifier,Enforce users business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql

@@ -1001,7 +1001,7 @@ export default function AdminUsersPage() {
                   <p className="text-sm text-muted-foreground">No activity recorded.</p>
                 ) : (
                   userActivity.slice(0, 5).map((log: any) => (
-                    <div key={log._id} className="flex items-start gap-2 text-sm">
+                    <div key={log._id ?? log.id} className="flex items-start gap-2 text-sm">
                       <History className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                       <div>
                         <span className="text-muted-foreground">

@@ -1,35 +1,32 @@
-import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { drizzle } from "drizzle-orm/mysql2";
+import { migrate } from "drizzle-orm/mysql2/migrator";
+import { createPool } from "mysql2/promise";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const drizzleKit = path.join(root, "node_modules/drizzle-kit/bin.cjs");
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+const root = fs.existsSync(path.join(scriptDirectory, "../drizzle"))
+  ? path.resolve(scriptDirectory, "..")
+  : path.resolve(scriptDirectory, "../..");
+const databaseUrl = process.env.DATABASE_URL;
 
-const migration = spawnSync(
-  process.execPath,
-  [drizzleKit, "migrate", "--config", "drizzle.config.ts"],
-  { cwd: root, stdio: "inherit" },
-);
-
-if (migration.error) {
-  console.error(migration.error.message);
+if (!databaseUrl) {
+  console.error("DATABASE_URL is required to run migrations.");
   process.exit(1);
 }
 
-if (migration.status !== 0) process.exit(migration.status ?? 1);
+const pool = createPool({
+  uri: databaseUrl,
+  connectionLimit: 1,
+  charset: "utf8mb4",
+  timezone: "Z",
+});
 
-const status = spawnSync(
-  process.execPath,
-  ["--env-file-if-exists=.env.local", "scripts/db/migration-status.mjs"],
-  {
-    cwd: root,
-    stdio: "inherit",
-  },
-);
-
-if (status.error) {
-  console.error(status.error.message);
-  process.exit(1);
+try {
+  await migrate(drizzle(pool), { migrationsFolder: path.join(root, "drizzle") });
+} finally {
+  await pool.end();
 }
 
-process.exit(status.status ?? 0);
+await import("./migration-status.mjs");

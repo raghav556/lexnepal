@@ -1,4 +1,9 @@
-import { returningInsert, returningMutation, returningUpsert } from "@/server/db/mysql-returning";
+import {
+  returningDelete,
+  returningInsert,
+  returningMutation,
+  returningUpsert,
+} from "@/server/db/mysql-returning";
 /* eslint-disable @typescript-eslint/no-explicit-any -- generic audited CRUD is restricted to the CMS table allowlist */
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -878,29 +883,14 @@ export class MySqlCmsRepository {
   }
   async deleteNavigation(firmId: string, id: string, audit: AuditContext) {
     return database.transaction(async (tx) => {
-      const now = audit.occurredAt;
-      const rows = await returningMutation(
-        tx
-          .update(navigation)
-          .set({ deletedAt: now, updatedAt: now })
-          .where(
-            and(
-              eq(navigation.firmId, firmId),
-              sql`(${navigation.id} = ${id} OR ${navigation.parentId} = ${id})`,
-              isNull(navigation.deletedAt),
-            ),
-          ),
-        () =>
-          tx
-            .select()
-            .from(navigation)
-            .where(
-              and(
-                eq(navigation.firmId, firmId),
-                sql`(${navigation.id} = ${id} OR ${navigation.parentId} = ${id})`,
-                isNull(navigation.deletedAt),
-              ),
-            ),
+      const target = and(
+        eq(navigation.firmId, firmId),
+        sql`(${navigation.id} = ${id} OR ${navigation.parentId} = ${id})`,
+        isNull(navigation.deletedAt),
+      );
+      const rows = await returningDelete(
+        () => tx.select().from(navigation).where(target),
+        () => tx.delete(navigation).where(target),
       );
       await writeAudit(
         tx,

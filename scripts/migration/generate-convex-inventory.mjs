@@ -1,10 +1,13 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import JSZip from "jszip";
 import * as ts from "typescript";
 
 const root = process.cwd();
-const convexDir = path.join(root, "convex");
+let convexSourceRoot = root;
+let extractedConvexRoot;
 const srcDir = path.join(root, "src");
 const outputDir = path.join(root, "doc", "migration");
 const knownKinds = new Set([
@@ -28,6 +31,45 @@ const authHelpers = [
   "assertDocument",
 ];
 
+async function resolveConvexDirectory() {
+  const liveDirectory = path.join(root, "convex");
+  if (fs.existsSync(liveDirectory)) return liveDirectory;
+
+  const archivePath = path.join(
+    root,
+    "doc",
+    "migration",
+    "archive",
+    "convex-decommission",
+    "convex-source.zip",
+  );
+  if (!fs.existsSync(archivePath)) {
+    throw new Error(`Convex source is unavailable at ${liveDirectory} or ${archivePath}`);
+  }
+
+  extractedConvexRoot = fs.mkdtempSync(path.join(os.tmpdir(), "lexnepal-convex-inventory-"));
+  convexSourceRoot = extractedConvexRoot;
+  const zip = await JSZip.loadAsync(fs.readFileSync(archivePath));
+  const entries = Object.values(zip.files).filter(
+    (entry) => !entry.dir && entry.name.startsWith("convex/"),
+  );
+  if (entries.length === 0) throw new Error(`Convex archive has no source files: ${archivePath}`);
+
+  await Promise.all(
+    entries.map(async (entry) => {
+      if (entry.name.split("/").includes("..")) {
+        throw new Error(`Unsafe path in Convex archive: ${entry.name}`);
+      }
+      const destination = path.join(extractedConvexRoot, ...entry.name.split("/"));
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.writeFileSync(destination, await entry.async("nodebuffer"));
+    }),
+  );
+  return path.join(extractedConvexRoot, "convex");
+}
+
+const convexDir = await resolveConvexDirectory();
+
 function walk(dir, extensions) {
   const files = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -41,7 +83,8 @@ function walk(dir, extensions) {
 }
 
 function relative(file) {
-  return path.relative(root, file).replaceAll("\\", "/");
+  const sourceRoot = file.startsWith(`${convexSourceRoot}${path.sep}`) ? convexSourceRoot : root;
+  return path.relative(sourceRoot, file).replaceAll("\\", "/");
 }
 
 function sourceFile(file) {
@@ -78,7 +121,10 @@ function csvCell(value) {
 }
 
 function csv(columns, rows) {
-  return `${columns.map(csvCell).join(",")}\n${rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")).join("\n")}\n`;
+  const body = rows
+    .map((row) => columns.map((column) => csvCell(row[column])).join(","))
+    .join("\n");
+  return `${columns.map(csvCell).join(",")}\n${body ? `${body}\n` : ""}`;
 }
 
 function propertyName(node, ast) {
@@ -877,4 +923,8 @@ function writeInventories() {
 }
 
 fs.mkdirSync(outputDir, { recursive: true });
-writeInventories();
+try {
+  writeInventories();
+} finally {
+  if (extractedConvexRoot) fs.rmSync(extractedConvexRoot, { recursive: true, force: true });
+}

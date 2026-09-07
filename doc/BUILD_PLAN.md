@@ -1,5 +1,9 @@
 # LexNepal — Full Build Plan (Updated)
 
+> **Historical document.** This plan describes the retired Vite/Convex and finance-era
+> implementation. The current application uses Next.js, MySQL, and local filesystem storage as a
+> single-firm Srimar Law system. Do not use this document as current implementation guidance.
+
 **App:** Nepal law firm management platform  
 **Stack:** Vite + React + TypeScript + Convex + Hercules Auth  
 **Last updated:** Aug 2026 (audit roadmap implementation)

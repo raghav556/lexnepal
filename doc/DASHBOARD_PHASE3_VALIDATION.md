@@ -1,5 +1,9 @@
 # Srimar Law Dashboard Phase 3 Validation
 
+> **Historical validation snapshot.** The browser-capture limitation recorded below was resolved by
+> later full Playwright coverage. Use the current test suite and local release sign-off for release
+> evidence.
+
 ## Completion status
 
 The automated color, source-boundary, responsive-code, and runtime route checks are complete.

@@ -43,10 +43,11 @@ reminders, analytics, and any configured async integrations.
 
 For a VPS, PM2 or systemd can supervise:
 
-- `lexnepal-web`: `.next/standalone/app.cjs`
-- `lexnepal-worker`: `npm run jobs:worker`
-- `lexnepal-scheduler`: `npm run jobs:scheduler`
+- `lexnepal-web`: `app.cjs`
+- `lexnepal-worker`: `runtime/worker.mjs`
+- `lexnepal-scheduler`: `runtime/scheduler.mjs`
 
-Because worker and scheduler entrypoints are TypeScript scripts using `tsx`, the current worker
-deployment model needs the source checkout with dev tooling installed. A future compiled-worker
-artifact can reduce that requirement.
+`deploy.sh` compiles the worker and scheduler into the standalone release and packages the MySQL
+migrations. PM2 can start all three processes from the packaged `ecosystem.config.cjs`. Passenger
+deployments must configure `REMOTE_BACKGROUND_RESTART_COMMAND` for independently supervised worker
+and scheduler processes.

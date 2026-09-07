@@ -174,7 +174,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
 
   const staffDirectory = useStaffDirectory();
   const users = staffDirectory ?? [];
-  const cmsPracticeAreas = usePracticeAreas({}, "admin") || [];
+  const cmsPracticeAreas = usePracticeAreas({}, portal === "staff" ? "public" : "admin") || [];
   const practiceAreaTitles = cmsPracticeAreas
     .filter((a: { isActive?: boolean }) => a.isActive !== false)
     .map((a: { title?: string }) => String(a.title ?? "").trim())

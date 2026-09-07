@@ -272,7 +272,10 @@ function AdminMobileChrome() {
 
       {open && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-dashboard-canvas-elevated pt-14">
-          <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
+          <nav
+            aria-label="Mobile navigation"
+            className="flex-1 space-y-1 overflow-y-auto px-4 py-4"
+          >
             {NAV.map((item, idx) => {
               if (item.heading) {
                 return (

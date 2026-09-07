@@ -1,27 +1,21 @@
 Type,Source,Line,Operation,Target/dependency,Decision,Status,Notes
-storage,convex/clients.ts,79,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
+storage,convex/clients.ts,79,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
 cron,convex/crons.ts,7,daily,tasks.sendOverdueReminders,replace,inventoried,Replace with durable scheduler/queue
 scheduler,convex/documents.ts,364,runAfter,documentSecurity.scanDocumentInternal,replace,inventoried,Replace with durable scheduler/queue
-storage,convex/documents.ts,461,delete,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,462,delete,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,500,generateUploadUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,517,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,526,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,783,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,785,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documents.ts,908,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/documentSecurity.ts,53,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
+storage,convex/documents.ts,461,delete,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,462,delete,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,500,generateUploadUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,517,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,526,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,783,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,785,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documents.ts,908,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/documentSecurity.ts,53,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
 internal call,convex/documentSecurity.ts,101,runMutation,documentSecurity.markScanning,replace,inventoried,Replace with internal domain-service call
 internal call,convex/documentSecurity.ts,103,runQuery,documentSecurity.getScanTarget,replace,inventoried,Replace with internal domain-service call
 internal call,convex/documentSecurity.ts,105,runMutation,documentSecurity.completeScan,replace,inventoried,Replace with internal domain-service call
 internal call,convex/documentSecurity.ts,145,runMutation,documentSecurity.completeScan,replace,inventoried,Replace with internal domain-service call
 internal call,convex/documentSecurity.ts,153,runMutation,documentSecurity.completeScan,replace,inventoried,Replace with internal domain-service call
-storage,convex/users.ts,644,generateUploadUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-storage,convex/users.ts,652,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/components/documents/MultiFileUploadModal.tsx,164,XHR POST,postUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/components/documents/TemplateGeneratorModal.tsx,68,fetch POST,uploadUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/pages/client/ClientDocumentsPage.tsx,86,fetch POST,postUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/pages/client/ClientKYCOnboarding.tsx,98,fetch POST,postUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/pages/client/ClientSignaturesPage.tsx,263,fetch POST,postUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/pages/shared/SharedProfilePage.tsx,123,fetch POST,uploadUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
-browser storage upload,src/pages/staff/StaffDocumentsPage.tsx,223,fetch POST,postUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined presigned upload
+storage,convex/users.ts,644,generateUploadUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+storage,convex/users.ts,652,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
+browser storage upload,src/views/client/ClientSignaturesPage.tsx,335,fetch POST,uploadUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant

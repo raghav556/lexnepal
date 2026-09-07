@@ -34,9 +34,10 @@ environment variables, PM2/systemd environment, or a server-side `.env.runtime` 
 | -------------- | ----------------------------------------------------------------- |
 | `DATABASE_URL` | MySQL connection URL used by Drizzle and runtime database access. |
 
-Forward migrations are run by `npm run db:migrate`, backed by `drizzle-kit migrate --config
-drizzle.config.ts`. Do not use fixture seeds, fresh resets, or destructive down migrations for live
-deployment.
+Forward migrations use the Drizzle ORM migrator through `npm run db:migrate` locally and the
+packaged `node runtime/migrate.mjs` entrypoint in a standalone release. Drizzle Kit remains the
+schema generation and validation tool. Do not use fixture seeds, fresh resets, or destructive down
+migrations for live deployment.
 
 ### Local MySQL credentials
 

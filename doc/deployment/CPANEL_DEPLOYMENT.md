@@ -80,26 +80,28 @@ public assets. Never place private document storage under `public_html`.
 Passenger usually supervises only the web process. LexNepal also needs:
 
 ```bash
-npm run jobs:worker
-npm run jobs:scheduler
+node runtime/worker.mjs
+node runtime/scheduler.mjs
 ```
 
 If cPanel cannot run persistent worker/scheduler processes, queued email, malware scans, reminders,
 scheduled analytics, cleanup, and similar jobs will not drain reliably. Use PM2/systemd on a VPS or
-another host that can supervise these processes.
+another host that can supervise these processes. Set `REMOTE_BACKGROUND_RESTART_COMMAND` for a
+Passenger deployment; `deploy.sh` refuses to deploy without it.
 
 ## Database Setup
 
-Run migrations and print applied/pending status with:
+The release contains compiled migration tooling and `deploy.sh` runs it by default. Run it manually
+from the deployed release with:
 
 ```bash
-npm run db:migrate
+node runtime/migrate.mjs
 ```
 
 Print migration status without applying changes:
 
 ```bash
-npm run db:migrate:status
+node runtime/migration-status.mjs
 ```
 
 Seed the default tenant by setting `PUBLIC_FIRM_SLUG` / `PUBLIC_FIRM_NAME` and running:
@@ -141,6 +143,12 @@ If the build needs database-backed static data, set `BUILD_DATABASE_URL` to a sa
 sanitized database for preflight. Do not point preflight at production unless that access is
 explicitly approved.
 
+Set `DEPLOY_TEST_DATABASE_URL` to a disposable MySQL authority that may create and drop the fixed
+`dit_lexnepal_test` database. Never point this variable at production. Preflight refuses to run the
+migration test suite without this isolation boundary.
+
 When `BUILD_DATABASE_URL` is unset, the deployment deliberately uses an unavailable build-only
 database address. Public ISR pages therefore compile with deterministic Srimar Law/navigation
 fallbacks instead of accidentally embedding localhost or production CMS data in the artifact.
+Preflight also supplies temporary build-only auth and storage signing secrets when the shell has
+none or contains the documented local placeholders. Runtime still requires independent real secrets.

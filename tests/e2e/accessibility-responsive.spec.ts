@@ -107,7 +107,7 @@ test.describe("Responsive accessibility smoke", () => {
       "aria-expanded",
       "true",
     );
-    await expect(page.getByRole("button", { name: "About", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "About Us", exact: true })).toBeVisible();
   });
 
   test("authenticated mobile navigation is keyboard operable", async ({ page }) => {
@@ -116,6 +116,6 @@ test.describe("Responsive accessibility smoke", () => {
     await menuButton.focus();
     await expect(menuButton).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page.locator("div.fixed.inset-0 nav")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
   });
 });

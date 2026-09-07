@@ -1,5 +1,9 @@
 # LexNepal Convex-to-Next.js Migration Plan
 
+> **Historical migration record.** Convex and PostgreSQL are no longer runtime targets. The
+> completed application uses Next.js with MySQL and local filesystem storage. Preserve this file
+> only as migration history; current release decisions live in the production-readiness tracker.
+
 **Status:** Foundations (Phases 0–7) implemented locally; Phase 8 partially complete; Phases 9–13 remaining  
 **Created:** 2026-08-02  
 **Updated remaining-work tracker:** [`migration/REMAINING_WORK_PLAN.md`](migration/REMAINING_WORK_PLAN.md) (2026-08-04)  
