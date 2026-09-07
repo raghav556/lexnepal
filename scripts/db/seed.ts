@@ -65,8 +65,13 @@ const db = drizzle(pool);
 async function upsertFirmId() {
   await db
     .insert(firms)
-    .values({ name: "Srimar Law", slug: "srimar-law", legacyConvexId: "seed_default_firm" })
-    .onDuplicateKeyUpdate({ set: { name: "Srimar Law", updatedAt: new Date() } });
+    .values({
+      name: "Srimar Law",
+      slug: "srimar-law",
+      legacyConvexId: "seed_default_firm",
+      deletedAt: null,
+    })
+    .onDuplicateKeyUpdate({ set: { name: "Srimar Law", deletedAt: null, updatedAt: new Date() } });
   const [firm] = await db
     .select({ id: firms.id })
     .from(firms)

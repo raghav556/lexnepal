@@ -29,6 +29,13 @@
       "when": 1788619208947,
       "tag": "0003_document_upload_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1788793941993,
+      "tag": "0004_nullable_deleted_at",
+      "breakpoints": true
     }
   ]
 }

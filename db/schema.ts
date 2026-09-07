@@ -34,7 +34,7 @@ const reusableMysqlEnum =
 const lifecycleColumns = () => ({
   createdAt: utcDateTime("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: utcDateTime("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  deletedAt: utcDateTime("deleted_at", { withTimezone: true }),
+  deletedAt: utcDateTime("deleted_at", { withTimezone: true }).default(sql`NULL`),
 });
 
 const identityColumns = () => ({

@@ -21,8 +21,10 @@ const db = drizzle(pool);
 try {
   await db
     .insert(firms)
-    .values({ name, slug, legacyConvexId: `tenant:${slug}`, isActive: true })
-    .onDuplicateKeyUpdate({ set: { name, isActive: true, updatedAt: new Date() } });
+    .values({ name, slug, legacyConvexId: `tenant:${slug}`, isActive: true, deletedAt: null })
+    .onDuplicateKeyUpdate({
+      set: { name, isActive: true, deletedAt: null, updatedAt: new Date() },
+    });
 
   const [firm] = await db
     .select({ id: firms.id, name: firms.name, slug: firms.slug })
