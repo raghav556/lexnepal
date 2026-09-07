@@ -162,7 +162,9 @@ run_local_gates() {
   if [[ -n "$DEPLOY_TEST_DATABASE_URL" ]]; then
     DATABASE_URL="$DEPLOY_TEST_DATABASE_URL" npm run test
   else
-    npm run test
+    npm run test:unit
+    npm run test:integration
+    npm run test:migration-characterization
   fi
   npm run db:integrity
   npm run db:check
