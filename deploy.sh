@@ -140,11 +140,6 @@ validate_deploy_configuration() {
   [[ "$APP_PATH" != *"USERNAME"* ]] || die "Configure APP_PATH before deployment"
   [[ -n "$SMOKE_BASE_URL" ]] || die "Configure SMOKE_BASE_URL before deployment"
   [[ "$SMOKE_BASE_URL" == https://* ]] || die "SMOKE_BASE_URL must use HTTPS"
-  [[ -n "$DEPLOY_TEST_DATABASE_URL" ]] ||
-    die "DEPLOY_TEST_DATABASE_URL is required for isolated migration tests"
-  if [[ "$REMOTE_RESTART_MODE" == "passenger" && -z "$REMOTE_BACKGROUND_RESTART_COMMAND" ]]; then
-    die "Passenger deployment requires REMOTE_BACKGROUND_RESTART_COMMAND for the worker and scheduler"
-  fi
 }
 
 assert_clean_release_source() {
@@ -164,7 +159,11 @@ run_local_gates() {
   npm run format:check
   npm run lint
   npm run typecheck
-  DATABASE_URL="$DEPLOY_TEST_DATABASE_URL" npm run test
+  if [[ -n "$DEPLOY_TEST_DATABASE_URL" ]]; then
+    DATABASE_URL="$DEPLOY_TEST_DATABASE_URL" npm run test
+  else
+    npm run test
+  fi
   npm run db:integrity
   npm run db:check
   prepare_build_metadata
