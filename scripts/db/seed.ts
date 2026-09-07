@@ -139,8 +139,8 @@ async function provisionIdentity(user: { id: string; name: string; email: string
   const password = await hashPassword(seedPassword);
   await db.insert(authAccounts).values({
     id: randomUUID(),
-    accountId: user.email,
-    providerId: "email",
+    accountId: authUserId,
+    providerId: "credential",
     userId: authUserId,
     password,
   });
