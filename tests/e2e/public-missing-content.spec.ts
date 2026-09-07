@@ -10,7 +10,9 @@ test.describe("Public missing content", () => {
         route.fulfill({
           status: 404,
           contentType: "application/json",
-          body: JSON.stringify({ error: { code: "NOT_FOUND", message: "Legal page was not found" } }),
+          body: JSON.stringify({
+            error: { code: "NOT_FOUND", message: "Legal page was not found" },
+          }),
         }),
       );
       await page.goto(`/${slug}`);
