@@ -97,8 +97,8 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
 
   const isStaff = portal === "staff";
   const isClient = portal === "client";
-  // Client uses light styling similar to staff but with indigo accent
-  const isLight = isStaff || isClient;
+  // All portals use the light working-surface topbar over their own theme tokens.
+  const isLight = isStaff || isClient || portal === "admin";
 
   return (
     <header
@@ -156,7 +156,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
               ? "bg-indigo-50 border-indigo-200/80 text-indigo-700"
               : isStaff
                 ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
-                : "bg-emerald-950/60 border-emerald-800/80 text-emerald-400",
+                : "bg-emerald-50 border-emerald-200/80 text-emerald-700",
           )}
         >
           <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -210,7 +210,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
                   ? "bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500/30"
                   : isStaff
                     ? "bg-purple-700 hover:bg-purple-800 text-white focus:ring-purple-500/30"
-                    : "bg-emerald-600 hover:bg-emerald-500 text-white focus:ring-emerald-500/30",
+                    : "bg-dashboard-sidebar hover:bg-dashboard-sidebar-deep text-white focus:ring-dashboard-sidebar-focus/30",
               )}
             >
               <Plus className="size-3.5" />

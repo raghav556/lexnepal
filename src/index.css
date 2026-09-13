@@ -307,11 +307,12 @@
   --dashboard-accent: #d6ab42;
   --dashboard-accent-soft: #fff6dc;
   --dashboard-accent-foreground: #6b4e08;
-  --dashboard-hero-start: #111a35;
-  --dashboard-hero-end: #4c3fb4;
-  --dashboard-hero-foreground: #f8fafc;
-  --dashboard-hero-muted: #f8fafc;
-  --dashboard-hero-border: #6559c6;
+  /* Admin reference (Phase 3D): light working canvas and hero over the navy sidebar. */
+  --dashboard-hero-start: #ffffff;
+  --dashboard-hero-end: #f8fafc;
+  --dashboard-hero-foreground: #0f172a;
+  --dashboard-hero-muted: #64748b;
+  --dashboard-hero-border: #e2e8f0;
   --dashboard-chart-1: #9a6b00;
   --dashboard-chart-2: #059669;
   --dashboard-chart-3: #5b5ce2;
