@@ -37,6 +37,8 @@ export interface PortalPageShellProps {
   icon?: LucideIcon;
   actions?: React.ReactNode;
   heroChildren?: React.ReactNode;
+  /** Extra classes for the hero section (portal-scoped calibration hook). */
+  heroClassName?: string;
   metrics?: PortalMetric[];
   loading?: boolean;
   loadingLabel?: string;
@@ -79,6 +81,7 @@ export function PortalPageShell({
   icon,
   actions,
   heroChildren,
+  heroClassName,
   metrics,
   loading = false,
   loadingLabel = "Loading workspace…",
@@ -172,6 +175,7 @@ export function PortalPageShell({
       lang={language === "ne" ? "ne" : "en"}
     >
       <HeroComponent
+        className={heroClassName}
         eyebrow={eyebrow ?? (decorated && firmName ? firmName : undefined)}
         title={titleNode}
         description={descriptionNode}

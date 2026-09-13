@@ -10,6 +10,7 @@ export * from "./portal-topbar";
 export * from "./portal-footer";
 export * from "./portal-sidebar";
 export * from "./portal-mobile-nav";
+export * from "./schedule-timeline";
 export type { DashboardTone } from "@/lib/dashboard-semantics";
 export {
   getDashboardStatusTone,

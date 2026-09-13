@@ -363,6 +363,29 @@
   --dashboard-chart-3: #2563eb;
   --dashboard-chart-4: #d97706;
   --dashboard-chart-5: #0d9488;
+
+  /*
+   * Staff reference shell (Phase 3C): deep legal navy sidebar with a
+   * restrained gold brand accent. Staff-scoped overrides only — the shared
+   * sidebar defaults and the admin/client palettes are untouched.
+   */
+  --dashboard-sidebar: #10233f;
+  --dashboard-sidebar-deep: #0b1930;
+  --dashboard-sidebar-bg-from: #10233f;
+  --dashboard-sidebar-bg-to: #0b1930;
+  --dashboard-sidebar-muted: #a9b8cd;
+  --dashboard-sidebar-heading: #8ca0ba;
+  --dashboard-sidebar-heading-bar: #d6ab42;
+  --dashboard-sidebar-active: #1d3054;
+  --dashboard-sidebar-active-foreground: #ffffff;
+  --dashboard-sidebar-active-border: #2c4571;
+  --dashboard-sidebar-active-icon: #e4bd5b;
+  --dashboard-sidebar-hover: #16294a;
+  --dashboard-sidebar-border: #24395c;
+  --dashboard-sidebar-brand-bg: #1a2c4e;
+  --dashboard-sidebar-brand-border: #2c4571;
+  --dashboard-sidebar-chevron: #a9b8cd;
+  --dashboard-sidebar-focus: #d6ab42;
 }
 
 .dashboard-theme.dashboard-client {
