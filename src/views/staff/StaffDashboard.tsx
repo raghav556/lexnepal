@@ -546,56 +546,54 @@ export default function StaffDashboard() {
             />
           ) : (
             <DashboardTable>
-              <table>
-                <DashboardTableHead>
-                  <tr>
-                    <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell>Next hearing</DashboardTableHeaderCell>
-                  </tr>
-                </DashboardTableHead>
-                <DashboardTableBody>
-                  {activeCases.slice(0, 5).map((item) => {
-                    const nextHearing = nextHearingByCase.get(item._id);
-                    return (
-                      <DashboardTableRow key={item._id}>
-                        <DashboardTableCell>
-                          <span className="block text-xs font-medium tabular-nums text-muted-foreground">
-                            {item.caseNumber}
+              <DashboardTableHead>
+                <tr>
+                  <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                  <DashboardTableHeaderCell>Next hearing</DashboardTableHeaderCell>
+                </tr>
+              </DashboardTableHead>
+              <DashboardTableBody>
+                {activeCases.slice(0, 5).map((item) => {
+                  const nextHearing = nextHearingByCase.get(item._id);
+                  return (
+                    <DashboardTableRow key={item._id}>
+                      <DashboardTableCell>
+                        <span className="block text-xs font-medium tabular-nums text-muted-foreground">
+                          {item.caseNumber}
+                        </span>
+                        <Link
+                          href={`/staff/cases/${item._id}`}
+                          className="block max-w-[16rem] truncate text-sm font-semibold text-foreground hover:text-dashboard-primary"
+                        >
+                          {item.title}
+                        </Link>
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        <span className="block max-w-[10rem] truncate text-sm">
+                          {clientNameById.get(item.clientId) ?? "Client record"}
+                        </span>
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        <StatusBadge tone={getDashboardStatusTone(item.status)}>
+                          {item.status}
+                        </StatusBadge>
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        {nextHearing ? (
+                          <span className="text-xs text-muted-foreground">
+                            {nextHearing.dateBs}
+                            <span className="block">{nextHearing.court}</span>
                           </span>
-                          <Link
-                            href={`/staff/cases/${item._id}`}
-                            className="block max-w-[16rem] truncate text-sm font-semibold text-foreground hover:text-dashboard-primary"
-                          >
-                            {item.title}
-                          </Link>
-                        </DashboardTableCell>
-                        <DashboardTableCell>
-                          <span className="block max-w-[10rem] truncate text-sm">
-                            {clientNameById.get(item.clientId) ?? "Client record"}
-                          </span>
-                        </DashboardTableCell>
-                        <DashboardTableCell>
-                          <StatusBadge tone={getDashboardStatusTone(item.status)}>
-                            {item.status}
-                          </StatusBadge>
-                        </DashboardTableCell>
-                        <DashboardTableCell>
-                          {nextHearing ? (
-                            <span className="text-xs text-muted-foreground">
-                              {nextHearing.dateBs}
-                              <span className="block">{nextHearing.court}</span>
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </DashboardTableCell>
-                      </DashboardTableRow>
-                    );
-                  })}
-                </DashboardTableBody>
-              </table>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </DashboardTableCell>
+                    </DashboardTableRow>
+                  );
+                })}
+              </DashboardTableBody>
             </DashboardTable>
           )}
         </DashboardSection>
