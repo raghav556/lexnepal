@@ -1,16 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import {
   AlertTriangle,
   Activity,
   FileText,
   Settings,
   Shield,
-  Menu,
-  X,
   Globe,
   PenTool,
   Briefcase,
@@ -25,27 +21,26 @@ import {
   Newspaper,
   User as UserIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
 import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
 import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
-import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
-import { PortalBrandingProvider, PortalTopbar, PortalFooter } from "@/components/dashboard";
+import {
+  PortalBrandingProvider,
+  PortalTopbar,
+  PortalFooter,
+  PortalSidebar,
+  PortalSidebarGroup,
+  PortalSidebarItem,
+  PortalMobileNav,
+  splitPortalNavGroups,
+  PORTAL_SIDEBAR_ACTIVE_SHADOW,
+  type PortalNavItemData,
+} from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
 
-type NavItem = {
-  label?: string;
-  i18nKey?: string;
-  href?: string;
-  icon?: LucideIcon;
-  heading?: string;
-};
-type NavLink = NavItem & { href: string; icon: LucideIcon };
-const isNavLink = (item: NavItem): item is NavLink => Boolean(item.href && item.icon);
-
-const NAV: NavItem[] = [
+const NAV: PortalNavItemData[] = [
   { heading: "Overview" },
   { label: "Dashboard", i18nKey: "nav.dashboard", href: "/admin", icon: LayoutDashboard },
   {
@@ -129,22 +124,44 @@ const NAV: NavItem[] = [
 
 function useIsActive() {
   const pathname = usePathname();
-  return (href?: string) => {
-    if (!href) return false;
+  return (href: string) => {
     if (href === "/admin") return pathname === "/admin";
     if (href === "/admin/cms") return pathname === "/admin/cms";
     return pathname.startsWith(href);
   };
 }
 
+const navGroups = splitPortalNavGroups(NAV);
+
+const desktopItemClassName = (active: boolean) =>
+  cn(
+    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+    active
+      ? "text-dashboard-sidebar-active-foreground bg-dashboard-sidebar-active border border-dashboard-sidebar-active-border shadow-lg"
+      : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover border border-transparent focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
+  );
+
+const desktopIconClassName = (active: boolean) =>
+  active ? "text-dashboard-sidebar-active-icon" : undefined;
+
+const mobileItemClassName = (active: boolean) =>
+  cn(
+    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+    active
+      ? "bg-dashboard-primary-soft text-dashboard-primary"
+      : "text-dashboard-neutral hover:bg-dashboard-panel-hover hover:text-foreground",
+  );
+
 function AdminDesktopSidebar() {
   const { t } = useI18n();
   const isActive = useIsActive();
 
   return (
-    <aside className="hidden h-full min-h-0 md:flex md:w-56 flex-col bg-gradient-to-b from-dashboard-sidebar-bg-from to-dashboard-sidebar-bg-to border-r border-dashboard-sidebar-border shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.25)]">
-      {/* Brand header */}
-      <div className="flex items-center justify-between gap-3 border-b border-dashboard-sidebar-border px-4 py-4">
+    <PortalSidebar
+      navAriaLabel="Portal navigation"
+      className="h-full min-h-0 md:w-[var(--dashboard-sidebar-width)] bg-gradient-to-b from-dashboard-sidebar-bg-from to-dashboard-sidebar-bg-to border-r border-dashboard-sidebar-border shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.25)]"
+      brandClassName="flex items-center justify-between gap-3 border-b border-dashboard-sidebar-border px-4 py-4"
+      brand={
         <PortalFirmBrand
           href="/admin"
           subtitle={t("nav.admin_console")}
@@ -156,88 +173,55 @@ function AdminDesktopSidebar() {
           nameClassName="whitespace-nowrap text-[15px] leading-5 tracking-[-0.01em] text-dashboard-sidebar-foreground"
           subtitleClassName="mt-0.5 whitespace-nowrap text-[10px] font-semibold uppercase leading-4 tracking-[0.14em] text-dashboard-sidebar-muted"
         />
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {NAV.map((item, idx) => {
-          if (item.heading) {
+      }
+      navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      footer={
+        <div className="border-t border-dashboard-sidebar-border px-3 py-4">
+          <PortalAccountMenu
+            profileHref="/admin/profile"
+            variant="dropdown"
+            fallbackName="Admin"
+            showLanguageToggle
+            darkTrigger
+            className="admin-sidebar-account"
+          />
+        </div>
+      }
+    >
+      {navGroups.map((group, groupIndex) => (
+        <PortalSidebarGroup key={group.label ?? `group-${groupIndex}`} label={group.label}>
+          {group.items.map(({ href, icon: Icon, label, i18nKey }) => {
+            const active = isActive(href);
             return (
-              <div
-                key={`heading-${idx}`}
-                className="mt-5 mb-2 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-dashboard-sidebar-heading before:h-3 before:w-0.5 before:rounded-full before:bg-dashboard-sidebar-heading-bar"
-              >
-                {item.heading}
-              </div>
-            );
-          }
-          if (!isNavLink(item)) return null;
-          const { label, i18nKey, href, icon: Icon } = item;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                isActive(href)
-                  ? "text-dashboard-sidebar-active-foreground bg-dashboard-sidebar-active border border-dashboard-sidebar-active-border shadow-lg"
-                  : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover border border-transparent focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
-              )}
-              style={
-                isActive(href)
-                  ? {
-                      boxShadow:
-                        "0 2px 12px var(--dashboard-sidebar-brand-glow), inset 0 1px 0 var(--dashboard-sidebar-border)",
-                    }
-                  : undefined
-              }
-            >
-              <Icon
-                className={cn(
-                  "w-4 h-4 shrink-0",
-                  isActive(href) ? "text-dashboard-sidebar-active-icon" : "",
-                )}
+              <PortalSidebarItem
+                key={href}
+                href={href}
+                icon={Icon}
+                label={label}
+                i18nKey={i18nKey}
+                active={active}
+                className={desktopItemClassName(active)}
+                iconClassName={desktopIconClassName(active)}
+                style={active ? PORTAL_SIDEBAR_ACTIVE_SHADOW : undefined}
               />
-              {(() => {
-                const translated = i18nKey ? t(i18nKey) : "";
-                return translated && translated !== i18nKey ? translated : label;
-              })()}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Account footer */}
-      <div className="px-3 py-4 border-t border-dashboard-sidebar-border">
-        <PortalAccountMenu
-          profileHref="/admin/profile"
-          variant="dropdown"
-          fallbackName="Admin"
-          showLanguageToggle
-          darkTrigger
-          className="admin-sidebar-account"
-        />
-      </div>
-    </aside>
+            );
+          })}
+        </PortalSidebarGroup>
+      ))}
+    </PortalSidebar>
   );
 }
 
 function AdminMobileChrome() {
-  const [open, setOpen] = useState(false);
-  const { t, language, setLanguage } = useI18n();
+  const { t } = useI18n();
   const isActive = useIsActive();
-  const pathname = usePathname();
-
-  // Collapse the drawer whenever the route changes, including browser back/forward.
-  const [drawerPathname, setDrawerPathname] = useState(pathname);
-  if (drawerPathname !== pathname) {
-    setDrawerPathname(pathname);
-    setOpen(false);
-  }
 
   return (
-    <>
-      <div className="md:hidden sticky top-0 z-50 bg-dashboard-canvas-elevated/95 backdrop-blur border-b border-dashboard-border flex items-center justify-between px-4 h-14 shrink-0 w-full">
+    <PortalMobileNav
+      navAriaLabel="Mobile navigation"
+      items={NAV}
+      isActive={isActive}
+      brand={
         <PortalFirmBrand
           href="/admin"
           subtitle={t("nav.admin_console")}
@@ -249,77 +233,23 @@ function AdminMobileChrome() {
           nameClassName="text-sm text-foreground"
           subtitleClassName="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground"
         />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setLanguage(language === "en" ? "ne" : "en")}
-            className="w-7 h-7 rounded-full bg-dashboard-primary text-[10px] font-bold text-dashboard-primary-foreground flex items-center justify-center focus-visible:ring-2 focus-visible:ring-dashboard-focus"
-            aria-label={`Switch language to ${language === "en" ? "Nepali" : "English"}`}
-          >
-            {language === "en" ? "ने" : "EN"}
-          </button>
-          <NotificationBell />
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="p-1 text-foreground focus-visible:ring-2 focus-visible:ring-dashboard-focus"
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-
-      {open && (
-        <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-dashboard-canvas-elevated pt-14">
-          <nav
-            aria-label="Mobile navigation"
-            className="flex-1 space-y-1 overflow-y-auto px-4 py-4"
-          >
-            {NAV.map((item, idx) => {
-              if (item.heading) {
-                return (
-                  <div
-                    key={`mheading-${idx}`}
-                    className="text-xs font-semibold text-muted-foreground mt-4 mb-1 px-3 uppercase tracking-wider"
-                  >
-                    {item.heading}
-                  </div>
-                );
-              }
-              const { label, i18nKey, href, icon: Icon } = item;
-              if (!href || !Icon) return null;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
-                    isActive(href)
-                      ? "bg-dashboard-primary-soft text-dashboard-primary"
-                      : "text-dashboard-neutral hover:bg-dashboard-panel-hover hover:text-foreground",
-                  )}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {(() => {
-                    const translated = i18nKey ? t(i18nKey) : "";
-                    return translated && translated !== i18nKey ? translated : label;
-                  })()}
-                </Link>
-              );
-            })}
-          </nav>
-          <PortalAccountMenu
-            profileHref="/admin/profile"
-            variant="drawer"
-            fallbackName="Admin"
-            showLanguageToggle
-            onAction={() => setOpen(false)}
-          />
-        </div>
+      }
+      headerClassName="bg-dashboard-canvas-elevated/95 border-dashboard-border"
+      langButtonClassName="focus-visible:ring-dashboard-focus"
+      menuButtonClassName="text-foreground focus-visible:ring-dashboard-focus"
+      drawerClassName="bg-dashboard-canvas-elevated"
+      headingClassName="text-xs font-semibold text-muted-foreground mt-4 mb-1 px-3 uppercase tracking-wider"
+      itemClassName={mobileItemClassName}
+      accountMenu={(close) => (
+        <PortalAccountMenu
+          profileHref="/admin/profile"
+          variant="drawer"
+          fallbackName="Admin"
+          showLanguageToggle
+          onAction={close}
+        />
       )}
-    </>
+    />
   );
 }
 

@@ -103,7 +103,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b px-4 md:px-6 transition-colors select-none shrink-0",
+        "sticky top-0 z-30 flex h-[var(--dashboard-topbar-height)] w-full items-center justify-between border-b px-4 md:px-6 transition-colors select-none shrink-0",
         isLight
           ? "border-slate-200/80 bg-white/90 backdrop-blur-md text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.03)]"
           : "border-slate-800/80 bg-slate-900/90 backdrop-blur-md text-slate-100 shadow-[0_1px_8px_rgba(0,0,0,0.25)]",
