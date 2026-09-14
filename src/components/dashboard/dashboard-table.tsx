@@ -69,7 +69,10 @@ export function DashboardTableCell({ className, ...props }: React.ComponentProps
 export function DashboardFilterBar({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center", className)}
+      className={cn(
+        "flex flex-col gap-3 border border-dashboard-border bg-dashboard-panel sm:flex-row sm:flex-wrap sm:items-center",
+        className,
+      )}
       {...props}
     >
       {children}
