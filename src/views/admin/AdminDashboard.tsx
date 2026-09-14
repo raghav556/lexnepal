@@ -6,6 +6,9 @@ import {
   Sparkles,
   UserPlus,
   Users,
+  AlertTriangle,
+  BarChart3,
+  Briefcase,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
 import { useCases } from "@/client/queries/cases";
@@ -14,6 +17,7 @@ import { useLeads } from "@/client/queries/crm";
 import { useHearings } from "@/client/queries/hearings";
 import { useTasks } from "@/client/queries/tasks";
 import {
+  ActionPanel,
   ChartSurface,
   DashboardButton,
   DashboardListRow,
@@ -69,6 +73,8 @@ export default function AdminDashboard() {
       portal="admin"
       loading={isLoading}
       loadingLabel="Preparing operational intelligence…"
+      decorated
+      showTodayDate
       eyebrow="Executive command center"
       title="Firm operations, clearly in focus"
       description="Live matter, client, hearing, task, and intake intelligence for the firm."
@@ -90,6 +96,18 @@ export default function AdminDashboard() {
           <StatusBadge tone={openTasks.length > 0 ? "warning" : "success"} icon={CheckSquare}>
             {openTasks.length} open task{openTasks.length === 1 ? "" : "s"}
           </StatusBadge>
+          <StatusBadge
+            tone={openLeads.length > 0 ? "information" : "neutral"}
+            icon={UserPlus}
+          >
+            {openLeads.length} open lead{openLeads.length === 1 ? "" : "s"}
+          </StatusBadge>
+          <StatusBadge
+            tone={upcomingHearings.length > 0 ? "primary" : "neutral"}
+            icon={CalendarDays}
+          >
+            {upcomingHearings.length} hearing{upcomingHearings.length === 1 ? "" : "s"}
+          </StatusBadge>
           <StatusBadge tone="primary">Live database</StatusBadge>
         </div>
       }
@@ -99,14 +117,14 @@ export default function AdminDashboard() {
           value: String(activeCases.length),
           icon: FolderOpen,
           tone: DASHBOARD_METRIC_TONES.cases,
-          helperText: "Matters in progress",
+          helperText: `${cases.length} total matters`,
         },
         {
           label: "Active clients",
           value: String(activeClients.length),
           icon: Users,
           tone: DASHBOARD_METRIC_TONES.people,
-          helperText: "Current client relationships",
+          helperText: `${clients.length} in directory`,
         },
         {
           label: "Open leads",
@@ -124,6 +142,77 @@ export default function AdminDashboard() {
         },
       ]}
     >
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ActionPanel
+          title="People & intake"
+          description="Directory and CRM"
+          icon={Users}
+          tone="information"
+          actions={
+            <DashboardButton asChild size="sm" variant="outline">
+              <Link href="/admin/users">Users</Link>
+            </DashboardButton>
+          }
+        >
+          <div className="flex flex-wrap gap-2">
+            <DashboardButton asChild size="sm" variant="ghost">
+              <Link href="/admin/clients">Clients</Link>
+            </DashboardButton>
+            <DashboardButton asChild size="sm" variant="ghost">
+              <Link href="/admin/crm">CRM</Link>
+            </DashboardButton>
+          </div>
+        </ActionPanel>
+
+        <ActionPanel
+          title="Matters & conflict"
+          description="Case operations"
+          icon={Briefcase}
+          tone="primary"
+          actions={
+            <DashboardButton asChild size="sm" variant="outline">
+              <Link href="/admin/conflict-checker">
+                <AlertTriangle className="size-3.5" aria-hidden /> Check
+              </Link>
+            </DashboardButton>
+          }
+        >
+          <p className="text-xs opacity-80">
+            {activeCases.length} active · {openTasks.length} open tasks
+          </p>
+        </ActionPanel>
+
+        <ActionPanel
+          title="Calendar"
+          description="Hearings and bookings"
+          icon={CalendarDays}
+          tone="warning"
+          actions={
+            <DashboardButton asChild size="sm" variant="outline">
+              <Link href="/admin/appointments">Appointments</Link>
+            </DashboardButton>
+          }
+        >
+          <p className="text-xs opacity-80">
+            {upcomingHearings.length} hearing{upcomingHearings.length === 1 ? "" : "s"} upcoming
+          </p>
+        </ActionPanel>
+
+        <ActionPanel
+          title="Intelligence"
+          description="Deep operational analytics"
+          icon={BarChart3}
+          tone="success"
+          actions={
+            <DashboardButton asChild size="sm" variant="outline">
+              <Link href="/admin/analytics">Open analytics</Link>
+            </DashboardButton>
+          }
+        >
+          <p className="text-xs opacity-80">Practice, task, and hearing trends</p>
+        </ActionPanel>
+      </div>
+
       <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
         <ChartSurface title="Active matters by practice area" description="Current portfolio mix">
           {Object.keys(casesByPractice).length === 0 ? (
@@ -193,17 +282,22 @@ export default function AdminDashboard() {
             />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {Object.entries(casesByStatus).map(([status, count]) => (
-                <div
-                  key={status}
-                  className="rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/50 p-4"
-                >
-                  <p className="text-2xl font-bold text-foreground">{count}</p>
-                  <p className="mt-1 text-xs font-medium capitalize text-muted-foreground">
-                    {status.replaceAll("_", " ")}
-                  </p>
-                </div>
-              ))}
+              {Object.entries(casesByStatus).map(([status, count]) => {
+                const tone = getDashboardStatusTone(status);
+                return (
+                  <div
+                    key={status}
+                    className="rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/50 p-4"
+                  >
+                    <div className="mb-2">
+                      <StatusBadge tone={tone} className="capitalize">
+                        {status.replaceAll("_", " ")}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{count}</p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ChartSurface>
@@ -214,6 +308,11 @@ export default function AdminDashboard() {
               title="No upcoming hearings"
               description="Scheduled hearings will appear here."
               icon={CalendarDays}
+              action={
+                <DashboardButton asChild size="sm" variant="outline">
+                  <Link href="/admin/appointments">View appointments</Link>
+                </DashboardButton>
+              }
             />
           ) : (
             <div className="space-y-3">
@@ -233,6 +332,54 @@ export default function AdminDashboard() {
                   </DashboardListRow>
                 );
               })}
+            </div>
+          )}
+        </ChartSurface>
+
+        <ChartSurface
+          title="Open intake leads"
+          description="New and contacted enquiries needing follow-up"
+          className="xl:col-span-2"
+        >
+          {openLeads.length === 0 ? (
+            <EmptyState
+              title="No open leads"
+              description="New CRM enquiries will appear here when they arrive."
+              icon={UserPlus}
+              action={
+                <DashboardButton asChild size="sm" variant="outline">
+                  <Link href="/admin/crm">Open CRM</Link>
+                </DashboardButton>
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {openLeads.slice(0, 6).map((lead) => (
+                <DashboardListRow key={lead._id ?? lead.id}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {lead.name || lead.fullName || "Lead"}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {[lead.email, lead.phone, lead.source].filter(Boolean).join(" · ") ||
+                        "No contact details"}
+                    </p>
+                  </div>
+                  <StatusBadge tone={getDashboardStatusTone(lead.status)} className="capitalize">
+                    {(lead.status || "new").replaceAll("_", " ")}
+                  </StatusBadge>
+                </DashboardListRow>
+              ))}
+              {openLeads.length > 6 ? (
+                <div className="pt-1">
+                  <DashboardButton asChild size="sm" variant="ghost">
+                    <Link href="/admin/crm">
+                      View all {openLeads.length} leads{" "}
+                      <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
+                  </DashboardButton>
+                </div>
+              ) : null}
             </div>
           )}
         </ChartSurface>

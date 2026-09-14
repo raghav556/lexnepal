@@ -46,12 +46,18 @@ const toneClasses: Record<DashboardTone, string> = {
 };
 
 const metricToneClasses: Record<DashboardTone, string> = {
-  primary: "border-dashboard-border/80 bg-dashboard-panel shadow-sm",
-  neutral: "border-dashboard-border/80 bg-dashboard-panel shadow-sm",
-  information: "border-dashboard-border/80 bg-dashboard-panel shadow-sm",
-  success: "border-dashboard-border/80 bg-dashboard-panel shadow-sm",
-  warning: "border-dashboard-border/80 bg-dashboard-panel shadow-sm",
-  danger: "border-dashboard-border/80 bg-dashboard-panel shadow-sm",
+  primary:
+    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-primary bg-dashboard-panel shadow-sm",
+  neutral:
+    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-neutral bg-dashboard-panel shadow-sm",
+  information:
+    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-information bg-dashboard-panel shadow-sm",
+  success:
+    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-success bg-dashboard-panel shadow-sm",
+  warning:
+    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-warning bg-dashboard-panel shadow-sm",
+  danger:
+    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-danger bg-dashboard-panel shadow-sm",
 };
 
 interface StatefulProps {
