@@ -49,11 +49,13 @@ function formatTime(ts: number) {
 export default function AdminAuditPage() {
   const [resourceFilter, setResourceFilter] = useState<string>("all");
 
-  const auditLog =
-    useAuditEvents(resourceFilter !== "all" ? { resource: resourceFilter } : {}) || [];
-  const users = useUsers() || [];
-
-  const isLoading = auditLog === undefined;
+  const auditEvents = useAuditEvents(
+    resourceFilter !== "all" ? { resource: resourceFilter } : {},
+  );
+  const usersResult = useUsers();
+  const auditLog = auditEvents ?? [];
+  const users = usersResult ?? [];
+  const isLoading = auditEvents === undefined;
 
   const getUserName = (userId: string) =>
     users.find((u: any) => u._id === userId)?.name || "Unknown User";
