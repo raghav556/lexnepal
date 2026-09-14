@@ -69,6 +69,14 @@ function resolveLocalized(
   return fallback;
 }
 
+function metricsGridClass(count: number): string {
+  if (count >= 5) return "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5";
+  if (count === 3) return "grid grid-cols-1 gap-4 sm:grid-cols-3";
+  if (count === 1) return "grid grid-cols-1 gap-4";
+  if (count === 2) return "grid grid-cols-1 gap-4 sm:grid-cols-2";
+  return "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4";
+}
+
 export function PortalPageShell({
   portal,
   eyebrow,
@@ -180,9 +188,9 @@ export function PortalPageShell({
         actions={actions}
       >
         {showTodayDate ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <CalendarDays
-              className="size-3.5 text-slate-500 dark:text-slate-400 shrink-0"
+              className="size-3.5 shrink-0 text-dashboard-neutral"
               aria-hidden
             />
             <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />
@@ -192,7 +200,7 @@ export function PortalPageShell({
       </HeroComponent>
 
       {metrics && metrics.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className={metricsGridClass(metrics.length)}>
           {metrics.map((metric) => (
             <MetricCard
               key={String(metric.label)}
