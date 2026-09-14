@@ -97,16 +97,16 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
 
   const isStaff = portal === "staff";
   const isClient = portal === "client";
-  // Client uses light styling similar to staff but with indigo accent
   const isLight = isStaff || isClient;
+  const hasCommandCenter = typeof onOpenCommandCenter === "function";
 
   return (
     <header
       className={cn(
         "sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b px-4 md:px-6 transition-colors select-none shrink-0",
         isLight
-          ? "border-slate-200/80 bg-white/90 backdrop-blur-md text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.03)]"
-          : "border-slate-800/80 bg-slate-900/90 backdrop-blur-md text-slate-100 shadow-[0_1px_8px_rgba(0,0,0,0.25)]",
+          ? "border-dashboard-border bg-dashboard-panel/90 backdrop-blur-md text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.03)]"
+          : "border-dashboard-border bg-dashboard-canvas-elevated/90 backdrop-blur-md text-foreground shadow-[0_1px_8px_rgba(0,0,0,0.25)]",
         className,
       )}
     >
@@ -117,16 +117,13 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
             <React.Fragment key={crumb.href}>
               {idx > 0 && (
                 <ChevronRight
-                  className={cn("size-3.5 shrink-0", isLight ? "text-slate-400" : "text-slate-600")}
+                  className="size-3.5 shrink-0 text-dashboard-neutral"
                   aria-hidden="true"
                 />
               )}
               {crumb.isLast ? (
                 <span
-                  className={cn(
-                    "font-semibold truncate max-w-[160px] sm:max-w-[240px]",
-                    isLight ? "text-slate-900" : "text-white",
-                  )}
+                  className="font-semibold truncate max-w-[160px] sm:max-w-[240px] text-foreground"
                   aria-current="page"
                 >
                   {crumb.label}
@@ -134,12 +131,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
               ) : (
                 <Link
                   href={crumb.href}
-                  className={cn(
-                    "transition-colors hover:underline truncate max-w-[120px]",
-                    isLight
-                      ? "text-slate-500 hover:text-slate-900"
-                      : "text-slate-400 hover:text-slate-200",
-                  )}
+                  className="transition-colors hover:underline truncate max-w-[120px] text-dashboard-neutral hover:text-foreground"
                 >
                   {crumb.label}
                 </Link>
@@ -153,49 +145,42 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
           className={cn(
             "hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ml-3",
             isClient
-              ? "bg-indigo-50 border-indigo-200/80 text-indigo-700"
-              : isStaff
-                ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
-                : "bg-emerald-950/60 border-emerald-800/80 text-emerald-400",
+              ? "bg-dashboard-information-soft border-dashboard-information/35 text-dashboard-information-foreground"
+              : "bg-dashboard-success-soft border-dashboard-success/35 text-dashboard-success-foreground",
           )}
         >
-          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="size-1.5 rounded-full bg-dashboard-success animate-pulse" />
           <span>{isClient ? "Secure Session" : "Live Enterprise"}</span>
         </div>
       </div>
 
-      {/* CENTER / SEARCH: Global Command Palette Trigger */}
-      <div className="flex-1 max-w-md mx-2 hidden sm:block">
-        <button
-          type="button"
-          onClick={onOpenCommandCenter}
-          className={cn(
-            "w-full flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl border text-xs transition-all shadow-2xs group focus:outline-none focus:ring-2",
-            isLight
-              ? "bg-slate-50/90 border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-500 hover:text-slate-800 focus:ring-purple-500/20"
-              : "bg-slate-800/80 border-slate-700/80 hover:bg-slate-800 hover:border-slate-600 text-slate-400 hover:text-slate-200 focus:ring-emerald-500/20",
-          )}
-        >
-          <div className="flex items-center gap-2 truncate">
-            <Search className="size-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
-            <span className="truncate">
-              {isClient
-                ? "Search your cases, documents, messages…"
-                : "Search cases, clients, documents, tasks…"}
-            </span>
-          </div>
-          <kbd
+      {/* CENTER / SEARCH: Global Command Palette Trigger (only when handler provided) */}
+      {hasCommandCenter ? (
+        <div className="flex-1 max-w-md mx-2 hidden sm:block">
+          <button
+            type="button"
+            onClick={onOpenCommandCenter}
             className={cn(
-              "hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold font-mono border",
-              isLight
-                ? "bg-white border-slate-200 text-slate-500 shadow-2xs"
-                : "bg-slate-900 border-slate-700 text-slate-400",
+              "w-full flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl border text-xs transition-all shadow-2xs group focus:outline-none focus:ring-2 focus:ring-dashboard-focus/40",
+              "bg-dashboard-neutral-soft/80 border-dashboard-border hover:bg-dashboard-panel-hover hover:border-dashboard-primary/30 text-dashboard-neutral hover:text-foreground",
             )}
           >
-            <Command className="size-2.5" /> K
-          </kbd>
-        </button>
-      </div>
+            <div className="flex items-center gap-2 truncate">
+              <Search className="size-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
+              <span className="truncate">
+                {isClient
+                  ? "Search your cases, documents, messages…"
+                  : "Search cases, clients, documents, tasks…"}
+              </span>
+            </div>
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold font-mono border bg-dashboard-panel border-dashboard-border text-dashboard-neutral shadow-2xs">
+              <Command className="size-2.5" /> K
+            </kbd>
+          </button>
+        </div>
+      ) : (
+        <div className="flex-1 max-w-md mx-2 hidden sm:block" aria-hidden />
+      )}
 
       {/* RIGHT: Quick Actions + Today Date + Notification Center */}
       <div className="flex items-center gap-2.5 shrink-0">
@@ -204,14 +189,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all focus:outline-none focus:ring-2",
-                isClient
-                  ? "bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500/30"
-                  : isStaff
-                    ? "bg-purple-700 hover:bg-purple-800 text-white focus:ring-purple-500/30"
-                    : "bg-emerald-600 hover:bg-emerald-500 text-white focus:ring-emerald-500/30",
-              )}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-dashboard-focus/40 bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
             >
               <Plus className="size-3.5" />
               <span className="hidden sm:inline">{isClient ? "Quick Action" : "Create"}</span>
@@ -226,17 +204,18 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
               <>
                 <DropdownMenuItem asChild>
                   <Link href="/client/messages" className="flex items-center gap-2 text-xs">
-                    <MessageSquare className="size-3.5 text-indigo-600" /> Message Legal Team
+                    <MessageSquare className="size-3.5 text-dashboard-information" /> Message Legal
+                    Team
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/client/documents" className="flex items-center gap-2 text-xs">
-                    <Upload className="size-3.5 text-blue-600" /> Upload Document
+                    <Upload className="size-3.5 text-dashboard-primary" /> Upload Document
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/client/booking" className="flex items-center gap-2 text-xs">
-                    <CalendarPlus2 className="size-3.5 text-teal-600" /> Book Appointment
+                    <CalendarPlus2 className="size-3.5 text-dashboard-success" /> Book Appointment
                   </Link>
                 </DropdownMenuItem>
               </>
@@ -244,22 +223,22 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
               <>
                 <DropdownMenuItem asChild>
                   <Link href="/staff/tasks" className="flex items-center gap-2 text-xs">
-                    <FilePlus className="size-3.5 text-purple-600" /> New Task
+                    <FilePlus className="size-3.5 text-dashboard-primary" /> New Task
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/staff/cases" className="flex items-center gap-2 text-xs">
-                    <FolderPlus className="size-3.5 text-blue-600" /> New Case Matter
+                    <FolderPlus className="size-3.5 text-dashboard-information" /> New Case Matter
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/staff/hearings" className="flex items-center gap-2 text-xs">
-                    <CalendarPlus className="size-3.5 text-amber-600" /> Schedule Hearing
+                    <CalendarPlus className="size-3.5 text-dashboard-warning" /> Schedule Hearing
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/staff/clients" className="flex items-center gap-2 text-xs">
-                    <UserPlus className="size-3.5 text-emerald-600" /> Add Client
+                    <UserPlus className="size-3.5 text-dashboard-success" /> Add Client
                   </Link>
                 </DropdownMenuItem>
               </>
@@ -267,17 +246,17 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
               <>
                 <DropdownMenuItem asChild>
                   <Link href="/admin/users" className="flex items-center gap-2 text-xs">
-                    <UserPlus className="size-3.5 text-emerald-500" /> Add Firm User
+                    <UserPlus className="size-3.5 text-dashboard-success" /> Add Firm User
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/admin/conflict-checker" className="flex items-center gap-2 text-xs">
-                    <ShieldCheck className="size-3.5 text-amber-500" /> Run Conflict Check
+                    <ShieldCheck className="size-3.5 text-dashboard-warning" /> Run Conflict Check
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/admin/cms/homepage" className="flex items-center gap-2 text-xs">
-                    <Sparkles className="size-3.5 text-blue-500" /> Edit Homepage CMS
+                    <Sparkles className="size-3.5 text-dashboard-information" /> Edit Homepage CMS
                   </Link>
                 </DropdownMenuItem>
               </>
@@ -288,24 +267,14 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
         {/* Date Display (AD / BS) */}
         <div className="hidden lg:block">
           <DualDateDisplay
-            className={cn(
-              "px-2.5 py-1 rounded-lg border text-[11px] font-medium leading-tight",
-              isLight
-                ? "bg-slate-50/80 border-slate-200 text-slate-600"
-                : "bg-slate-800/60 border-slate-700/80 text-slate-300",
-            )}
+            className="px-2.5 py-1 rounded-lg border text-[11px] font-medium leading-tight bg-dashboard-neutral-soft/80 border-dashboard-border text-dashboard-neutral"
           />
         </div>
 
         {/* Notification Bell */}
         <div className="flex items-center">
           <NotificationBell
-            triggerClassName={cn(
-              "size-8 rounded-lg border transition-colors",
-              isLight
-                ? "border-slate-200 bg-white hover:bg-slate-100 text-slate-700 shadow-2xs"
-                : "border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200",
-            )}
+            triggerClassName="size-8 rounded-lg border transition-colors border-dashboard-border bg-dashboard-panel hover:bg-dashboard-panel-hover text-foreground shadow-2xs"
           />
         </div>
       </div>
