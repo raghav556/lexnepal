@@ -79,7 +79,13 @@ export function getServerEnvironment(): ServerEnvironment {
     const fields = parsed.error.issues.map((issue) => issue.path.join(".") || "environment");
     throw new Error(`Invalid server environment fields: ${[...new Set(fields)].join(", ")}`);
   }
+  const isBuildPhase =
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.npm_lifecycle_event === "build" ||
+    process.env.NEXT_IS_BUILD === "1";
+
   if (
+    !isBuildPhase &&
     parsed.data.NODE_ENV === "production" &&
     parsed.data.AUTH_PROVIDER === "local" &&
     parsed.data.BETTER_AUTH_SECRET === "lexnepal-local-development-secret-change-me"
@@ -87,6 +93,7 @@ export function getServerEnvironment(): ServerEnvironment {
     throw new Error("BETTER_AUTH_SECRET must be replaced before production startup");
   }
   if (
+    !isBuildPhase &&
     parsed.data.NODE_ENV === "production" &&
     parsed.data.STORAGE_DOWNLOAD_TOKEN_SECRET === "lexnepal-local-storage-download-secret-change-me"
   ) {
