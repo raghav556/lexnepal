@@ -95,13 +95,13 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
 
   const isStaff = portal === "staff";
   const isClient = portal === "client";
-  const isLight = isStaff || isClient;
+  const isLight = isStaff || isClient || portal === "admin";
   const showCommandSearch = typeof onOpenCommandCenter === "function";
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 w-full shrink-0 select-none items-center justify-between border-b px-4 transition-colors md:px-6",
+        "sticky top-0 z-30 flex h-[var(--dashboard-topbar-height)] w-full shrink-0 select-none items-center justify-between border-b px-4 transition-colors md:px-6",
         isLight
           ? "border-dashboard-border bg-dashboard-panel/90 text-foreground shadow-sm backdrop-blur-md"
           : "border-dashboard-border bg-dashboard-canvas-elevated/90 text-foreground shadow-sm backdrop-blur-md",

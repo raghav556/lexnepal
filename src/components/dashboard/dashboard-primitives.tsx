@@ -17,6 +17,9 @@ export type DashboardState =
   | "error"
   | "success";
 
+/** Shared surface density: compact is for dense operational dashboards. */
+export type DashboardDensity = "default" | "compact";
+
 type DashboardIcon = React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
 const stateClasses: Record<DashboardState, string> = {
@@ -143,7 +146,32 @@ export interface MetricCardProps extends React.ComponentProps<"article">, Statef
   icon?: DashboardIcon;
   tone?: DashboardTone;
   trend?: React.ReactNode;
+  /** "compact" reduces padding, icon, and value size for dense KPI rows. */
+  density?: DashboardDensity;
+  /**
+   * Decorative navigation affordance (chevron). Navigation itself stays with
+   * the caller (e.g. wrapping Link) so the card never fetches or routes.
+   */
+  chevron?: boolean;
 }
+
+const metricDensityClasses: Record<
+  DashboardDensity,
+  { card: string; icon: string; iconGlyph: string; value: string }
+> = {
+  default: {
+    card: "p-4",
+    icon: "size-9 rounded-lg",
+    iconGlyph: "size-4",
+    value: "mt-3 text-2xl",
+  },
+  compact: {
+    card: "p-3",
+    icon: "size-8 rounded-md",
+    iconGlyph: "size-3.5",
+    value: "mt-2 text-xl",
+  },
+};
 
 export function MetricCard({
   label,
@@ -152,17 +180,22 @@ export function MetricCard({
   icon: Icon,
   tone = "information",
   trend,
+  density = "default",
+  chevron = false,
   state = "default",
   className,
   ...props
 }: MetricCardProps) {
+  const densityClasses = metricDensityClasses[density];
   return (
     <article
       data-slot="metric-card"
       data-state={state}
+      data-density={density}
       aria-busy={state === "loading" || undefined}
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-dashboard-border bg-dashboard-panel p-4 shadow-sm transition-all",
+        "group relative overflow-hidden rounded-xl border border-dashboard-border bg-dashboard-panel shadow-sm transition-all",
+        densityClasses.card,
         "hover:border-dashboard-primary/40 hover:shadow-md focus-within:ring-2 focus-within:ring-dashboard-focus focus-within:ring-offset-2 focus-within:ring-offset-dashboard-canvas",
         metricToneClasses[tone],
         stateClasses[state],
@@ -174,16 +207,39 @@ export function MetricCard({
         {Icon ? (
           <span
             className={cn(
-              "flex size-9 items-center justify-center rounded-lg border",
+              "flex items-center justify-center border",
+              densityClasses.icon,
               toneClasses[tone],
             )}
           >
-            <Icon className="size-4" aria-hidden />
+            <Icon className={densityClasses.iconGlyph} aria-hidden />
           </span>
         ) : null}
-        {trend ? <span className="text-xs font-medium text-muted-foreground">{trend}</span> : null}
+        {trend || chevron ? (
+          <span className="flex items-center gap-1">
+            {trend ? (
+              <span className="text-xs font-medium text-muted-foreground">{trend}</span>
+            ) : null}
+            {chevron ? (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+                className="size-4 shrink-0 text-dashboard-neutral transition-transform group-hover:translate-x-0.5"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            ) : null}
+          </span>
+        ) : null}
       </div>
-      <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+      <p className={cn("font-bold tracking-tight text-foreground", densityClasses.value)}>
+        {value}
+      </p>
       <p className="mt-0.5 text-xs font-medium text-muted-foreground">{label}</p>
       {helperText ? <p className="mt-2 text-xs text-dashboard-neutral">{helperText}</p> : null}
     </article>
@@ -196,22 +252,32 @@ export interface DashboardSectionProps
   description?: React.ReactNode;
   icon?: DashboardIcon;
   actions?: React.ReactNode;
+  /** "compact" reduces header and body padding for dense dashboards. */
+  density?: DashboardDensity;
 }
+
+const sectionDensityClasses: Record<DashboardDensity, { header: string; body: string }> = {
+  default: { header: "px-5 py-4", body: "p-5" },
+  compact: { header: "px-4 py-3", body: "p-4" },
+};
 
 export function DashboardSection({
   title,
   description,
   icon: Icon,
   actions,
+  density = "default",
   state = "default",
   className,
   children,
   ...props
 }: DashboardSectionProps) {
+  const densityClasses = sectionDensityClasses[density];
   return (
     <section
       data-slot="dashboard-section"
       data-state={state}
+      data-density={density}
       aria-busy={state === "loading" || undefined}
       className={cn(
         "rounded-xl border border-dashboard-border bg-dashboard-panel shadow-sm transition-all hover:border-dashboard-border/90",
@@ -221,7 +287,12 @@ export function DashboardSection({
       {...props}
     >
       {title || description || Icon || actions ? (
-        <header className="flex flex-col gap-3 border-b border-dashboard-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <header
+          className={cn(
+            "flex flex-col gap-3 border-b border-dashboard-border sm:flex-row sm:items-center sm:justify-between",
+            densityClasses.header,
+          )}
+        >
           <div className="flex min-w-0 items-start gap-2.5">
             {Icon ? (
               <Icon className="mt-0.5 size-4 shrink-0 text-dashboard-primary" aria-hidden />
@@ -238,7 +309,7 @@ export function DashboardSection({
           {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
         </header>
       ) : null}
-      <div className="p-5">{children}</div>
+      <div className={densityClasses.body}>{children}</div>
     </section>
   );
 }

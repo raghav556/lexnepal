@@ -279,6 +279,23 @@
   --dashboard-sidebar-brand-glow: rgba(109, 40, 217, 0.3);
   --dashboard-sidebar-chevron: rgba(167, 139, 250, 0.5);
   --dashboard-sidebar-focus: rgba(109, 40, 217, 0.5);
+
+  /*
+   * Shared geometry & density foundation.
+   * Values intentionally mirror the current portal shells (sidebar w-56,
+   * topbar h-14, page gutters p-4/sm:p-6, section rhythm space-y-6,
+   * panel padding p-5/p-4, card radius rounded-xl) so later phases can
+   * consume tokens without visual drift.
+   */
+  --dashboard-sidebar-width: 14rem;
+  --dashboard-topbar-height: 3.5rem;
+  --dashboard-content-gutter: 1.5rem;
+  --dashboard-content-gutter-compact: 1rem;
+  --dashboard-section-gap: 1.5rem;
+  --dashboard-panel-padding: 1.25rem;
+  --dashboard-panel-padding-compact: 1rem;
+  --dashboard-radius-card: 0.75rem;
+  --dashboard-hero-pattern-opacity: 0.05;
 }
 
 .dashboard-theme.dashboard-admin {
@@ -290,11 +307,12 @@
   --dashboard-accent: #d6ab42;
   --dashboard-accent-soft: #fff6dc;
   --dashboard-accent-foreground: #6b4e08;
-  --dashboard-hero-start: #111a35;
-  --dashboard-hero-end: #4c3fb4;
-  --dashboard-hero-foreground: #f8fafc;
-  --dashboard-hero-muted: #f8fafc;
-  --dashboard-hero-border: #6559c6;
+  /* Admin reference (Phase 3D): light working canvas and hero over the navy sidebar. */
+  --dashboard-hero-start: #ffffff;
+  --dashboard-hero-end: #f8fafc;
+  --dashboard-hero-foreground: #0f172a;
+  --dashboard-hero-muted: #64748b;
+  --dashboard-hero-border: #e2e8f0;
   --dashboard-chart-1: #9a6b00;
   --dashboard-chart-2: #059669;
   --dashboard-chart-3: #5b5ce2;
@@ -346,6 +364,29 @@
   --dashboard-chart-3: #2563eb;
   --dashboard-chart-4: #d97706;
   --dashboard-chart-5: #0d9488;
+
+  /*
+   * Staff reference shell (Phase 3C): deep legal navy sidebar with a
+   * restrained gold brand accent. Staff-scoped overrides only — the shared
+   * sidebar defaults and the admin/client palettes are untouched.
+   */
+  --dashboard-sidebar: #10233f;
+  --dashboard-sidebar-deep: #0b1930;
+  --dashboard-sidebar-bg-from: #10233f;
+  --dashboard-sidebar-bg-to: #0b1930;
+  --dashboard-sidebar-muted: #a9b8cd;
+  --dashboard-sidebar-heading: #8ca0ba;
+  --dashboard-sidebar-heading-bar: #d6ab42;
+  --dashboard-sidebar-active: #1d3054;
+  --dashboard-sidebar-active-foreground: #ffffff;
+  --dashboard-sidebar-active-border: #2c4571;
+  --dashboard-sidebar-active-icon: #e4bd5b;
+  --dashboard-sidebar-hover: #16294a;
+  --dashboard-sidebar-border: #24395c;
+  --dashboard-sidebar-brand-bg: #1a2c4e;
+  --dashboard-sidebar-brand-border: #2c4571;
+  --dashboard-sidebar-chevron: #a9b8cd;
+  --dashboard-sidebar-focus: #d6ab42;
 }
 
 .dashboard-theme.dashboard-client {
@@ -390,6 +431,8 @@
   --dashboard-sidebar-brand-glow: rgba(59, 130, 246, 0.35);
   --dashboard-sidebar-chevron: rgba(147, 197, 253, 0.5);
   --dashboard-sidebar-focus: rgba(96, 165, 250, 0.5);
+  /* The client shell uses a slightly wider sidebar (md:w-60). */
+  --dashboard-sidebar-width: 15rem;
 }
 
 .dark.dashboard-theme,
@@ -601,7 +644,7 @@
   position: absolute;
   inset: 0;
   background-image: var(--nepal-dhaka-pattern);
-  opacity: 0.05;
+  opacity: var(--dashboard-hero-pattern-opacity, 0.05);
   pointer-events: none;
 }
 
