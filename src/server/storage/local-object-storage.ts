@@ -26,6 +26,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 export class LocalObjectStorage implements ObjectStorage {
   private readonly root: string;
   private readonly appBaseUrl: string;
+  private readonly activeClaims = new Set<string>();
 
   constructor(options: LocalObjectStorageOptions) {
     this.root = path.resolve(options.root);
@@ -107,11 +108,16 @@ export class LocalObjectStorage implements ObjectStorage {
 
   async storeGrantedUpload(grantId: string, bytes: Uint8Array): Promise<StoredObject> {
     if (!UUID_PATTERN.test(grantId)) throw new Error("Upload grant is invalid or expired");
+    if (this.activeClaims.has(grantId)) {
+      throw new Error("Upload grant is invalid or expired");
+    }
+    this.activeClaims.add(grantId);
     const grantFile = this.uploadGrantPath(grantId);
     const claimedFile = `${grantFile}.${randomUUID()}.claimed`;
     try {
       await fs.rename(grantFile, claimedFile);
     } catch {
+      this.activeClaims.delete(grantId);
       throw new Error("Upload grant is invalid or expired");
     }
     try {
@@ -133,6 +139,7 @@ export class LocalObjectStorage implements ObjectStorage {
       };
     } finally {
       await fs.rm(claimedFile, { force: true });
+      this.activeClaims.delete(grantId);
     }
   }
 

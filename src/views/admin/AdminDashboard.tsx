@@ -14,9 +14,6 @@ import {
   Sparkles,
   UserPlus,
   Users,
-  AlertTriangle,
-  BarChart3,
-  Briefcase,
 } from "lucide-react";
 import {
   Area,
@@ -40,7 +37,6 @@ import { useLeaveRequests } from "@/client/queries/hr";
 import { useTaskWorkload, useTasks } from "@/client/queries/tasks";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
-  ActionPanel,
   ChartSurface,
   DashboardButton,
   DashboardListRow,
@@ -117,7 +113,6 @@ export default function AdminDashboard() {
   const scheduledHearings = hearings.filter((item) => item.status === "scheduled");
   const activeCases = cases.filter((item) => item.status === "active");
   const openTasks = tasks.filter((item) => item.status === "todo" || item.status === "in_progress");
-  const openLeads = leads.filter((l: any) => l.status === "new" || l.status === "contacted");
 
   const caseTitleById = useMemo(() => {
     const map = new Map<string, string>();
@@ -358,18 +353,10 @@ export default function AdminDashboard() {
       portal="admin"
       loading={isLoading}
       loadingLabel="Preparing operational intelligence…"
-<<<<<<< HEAD
-      decorated
-      showTodayDate
-      eyebrow="Executive command center"
-      title="Firm operations, clearly in focus"
-      description="Live matter, client, hearing, task, and intake intelligence for the firm."
-=======
       heroClassName="p-4 sm:p-5 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
       eyebrow={<DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />}
       title={firstName ? `${greeting}, ${firstName}` : greeting}
       description="Here's what requires organizational attention today."
->>>>>>> modernization/phase-4b-tasks-domain
       icon={Sparkles}
       actions={
         <>
@@ -388,128 +375,6 @@ export default function AdminDashboard() {
           <StatusBadge tone={openTasks.length > 0 ? "warning" : "success"} icon={CheckSquare}>
             {openTasks.length} open task{openTasks.length === 1 ? "" : "s"}
           </StatusBadge>
-<<<<<<< HEAD
-          <StatusBadge
-            tone={openLeads.length > 0 ? "information" : "neutral"}
-            icon={UserPlus}
-          >
-            {openLeads.length} open lead{openLeads.length === 1 ? "" : "s"}
-          </StatusBadge>
-          <StatusBadge
-            tone={upcomingHearings.length > 0 ? "primary" : "neutral"}
-            icon={CalendarDays}
-          >
-            {upcomingHearings.length} hearing{upcomingHearings.length === 1 ? "" : "s"}
-          </StatusBadge>
-          <StatusBadge tone="primary">Live database</StatusBadge>
-        </div>
-      }
-      metrics={[
-        {
-          label: "Active cases",
-          value: String(activeCases.length),
-          icon: FolderOpen,
-          tone: DASHBOARD_METRIC_TONES.cases,
-          helperText: `${cases.length} total matters`,
-        },
-        {
-          label: "Active clients",
-          value: String(activeClients.length),
-          icon: Users,
-          tone: DASHBOARD_METRIC_TONES.people,
-          helperText: `${clients.length} in directory`,
-        },
-        {
-          label: "Open leads",
-          value: String(openLeads.length),
-          icon: UserPlus,
-          tone: "information",
-          helperText: "New or contacted enquiries",
-        },
-        {
-          label: "Upcoming hearings",
-          value: String(upcomingHearings.length),
-          icon: CalendarDays,
-          tone: DASHBOARD_METRIC_TONES.hearings,
-          helperText: "Scheduled court commitments",
-        },
-      ]}
-    >
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <ActionPanel
-          title="People & intake"
-          description="Directory and CRM"
-          icon={Users}
-          tone="information"
-          actions={
-            <DashboardButton asChild size="sm" variant="outline">
-              <Link href="/admin/users">Users</Link>
-            </DashboardButton>
-          }
-        >
-          <div className="flex flex-wrap gap-2">
-            <DashboardButton asChild size="sm" variant="ghost">
-              <Link href="/admin/clients">Clients</Link>
-            </DashboardButton>
-            <DashboardButton asChild size="sm" variant="ghost">
-              <Link href="/admin/crm">CRM</Link>
-            </DashboardButton>
-          </div>
-        </ActionPanel>
-
-        <ActionPanel
-          title="Matters & conflict"
-          description="Case operations"
-          icon={Briefcase}
-          tone="primary"
-          actions={
-            <DashboardButton asChild size="sm" variant="outline">
-              <Link href="/admin/conflict-checker">
-                <AlertTriangle className="size-3.5" aria-hidden /> Check
-              </Link>
-            </DashboardButton>
-          }
-        >
-          <p className="text-xs opacity-80">
-            {activeCases.length} active · {openTasks.length} open tasks
-          </p>
-        </ActionPanel>
-
-        <ActionPanel
-          title="Calendar"
-          description="Hearings and bookings"
-          icon={CalendarDays}
-          tone="warning"
-          actions={
-            <DashboardButton asChild size="sm" variant="outline">
-              <Link href="/admin/appointments">Appointments</Link>
-            </DashboardButton>
-          }
-        >
-          <p className="text-xs opacity-80">
-            {upcomingHearings.length} hearing{upcomingHearings.length === 1 ? "" : "s"} upcoming
-          </p>
-        </ActionPanel>
-
-        <ActionPanel
-          title="Intelligence"
-          description="Deep operational analytics"
-          icon={BarChart3}
-          tone="success"
-          actions={
-            <DashboardButton asChild size="sm" variant="outline">
-              <Link href="/admin/analytics">Open analytics</Link>
-            </DashboardButton>
-          }
-        >
-          <p className="text-xs opacity-80">Practice, task, and hearing trends</p>
-        </ActionPanel>
-      </div>
-
-      <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
-        <ChartSurface title="Active matters by practice area" description="Current portfolio mix">
-          {Object.keys(casesByPractice).length === 0 ? (
-=======
           <StatusBadge tone={pendingApprovalsTotal > 0 ? "danger" : "success"}>
             {pendingApprovalsTotal} pending approval{pendingApprovalsTotal === 1 ? "" : "s"}
           </StatusBadge>
@@ -551,7 +416,6 @@ export default function AdminDashboard() {
           }
         >
           {operationsSeries.length === 0 ? (
->>>>>>> modernization/phase-4b-tasks-domain
             <EmptyState
               title="No hearing history yet"
               description="Monthly hearing activity appears as hearings are scheduled."
@@ -852,42 +716,6 @@ export default function AdminDashboard() {
             </div>
           )}
         </DashboardSection>
-
-        {openLeads.length > 0 && (
-          <DashboardSection
-            className="xl:col-span-12"
-            density="compact"
-            title="Open intake leads"
-            description="New and contacted enquiries needing follow-up"
-            icon={UserPlus}
-            actions={
-              <DashboardButton asChild variant="ghost" size="sm">
-                <Link href="/admin/crm">
-                  Open CRM <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
-              </DashboardButton>
-            }
-          >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {openLeads.slice(0, 6).map((lead: any) => (
-                <DashboardListRow key={lead._id ?? lead.id}>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {lead.name || lead.fullName || "Lead"}
-                    </p>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">
-                      {[lead.email, lead.phone, lead.source].filter(Boolean).join(" · ") ||
-                        "No contact details"}
-                    </p>
-                  </div>
-                  <StatusBadge tone={getDashboardStatusTone(lead.status)} className="capitalize">
-                    {(lead.status || "new").replaceAll("_", " ")}
-                  </StatusBadge>
-                </DashboardListRow>
-              ))}
-            </div>
-          </DashboardSection>
-        )}
       </div>
     </PortalPageShell>
   );

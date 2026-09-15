@@ -193,10 +193,7 @@ export function PortalPageShell({
       >
         {showTodayDate ? (
           <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <CalendarDays
-              className="size-3.5 shrink-0 text-dashboard-neutral"
-              aria-hidden
-            />
+            <CalendarDays className="size-3.5 shrink-0 text-dashboard-neutral" aria-hidden />
             <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />
           </div>
         ) : null}

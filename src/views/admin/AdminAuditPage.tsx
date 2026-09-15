@@ -49,9 +49,7 @@ function formatTime(ts: number) {
 export default function AdminAuditPage() {
   const [resourceFilter, setResourceFilter] = useState<string>("all");
 
-  const auditEvents = useAuditEvents(
-    resourceFilter !== "all" ? { resource: resourceFilter } : {},
-  );
+  const auditEvents = useAuditEvents(resourceFilter !== "all" ? { resource: resourceFilter } : {});
   const usersResult = useUsers();
   const auditLog = auditEvents ?? [];
   const users = usersResult ?? [];

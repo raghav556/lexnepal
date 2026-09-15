@@ -262,9 +262,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
         </div>
 
         <div className="flex items-center">
-          <NotificationBell
-            triggerClassName="size-8 rounded-lg border border-dashboard-border bg-dashboard-panel text-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover"
-          />
+          <NotificationBell triggerClassName="size-8 rounded-lg border border-dashboard-border bg-dashboard-panel text-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover" />
         </div>
       </div>
     </header>
