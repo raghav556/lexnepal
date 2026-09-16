@@ -16,7 +16,6 @@
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "baseUrl": ".",
     "paths": {
       "@/client/navigation": ["./src/client/navigation/next.tsx"],
       "@/*": ["./src/*"]
