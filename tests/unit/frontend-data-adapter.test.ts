@@ -55,6 +55,74 @@ describe("normalized API errors", () => {
   });
 });
 
+describe("API request lifecycle", () => {
+  it("keeps GET requests alive for React Query remount reuse", async () => {
+    let receivedSignal: AbortSignal | null | undefined;
+    const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      receivedSignal = init?.signal;
+      return Response.json({ data: [] });
+    });
+    const client = new ApiClient({
+      baseUrl: "https://lexnepal.test",
+      fetcher: fetcher as typeof fetch,
+    });
+
+    await client.request("/api/v1/tasks", { signal: new AbortController().signal });
+
+    expect(receivedSignal).toBeUndefined();
+  });
+
+  it("shares identical GET requests while they are in flight", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetcher = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const client = new ApiClient({
+      baseUrl: "https://lexnepal.test",
+      fetcher: fetcher as typeof fetch,
+    });
+
+    const first = client.request("/api/v1/tasks");
+    const second = client.request("/api/v1/tasks");
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    resolveFetch(Response.json({ data: [{ id: "task-1" }] }));
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      [{ id: "task-1" }],
+      [{ id: "task-1" }],
+    ]);
+
+    const third = client.request("/api/v1/tasks");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    resolveFetch(Response.json({ data: [] }));
+    await third;
+  });
+
+  it("still forwards explicit abort signals for mutations", async () => {
+    let receivedSignal: AbortSignal | null | undefined;
+    const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      receivedSignal = init?.signal;
+      return new Response(null, { status: 204 });
+    });
+    const client = new ApiClient({
+      baseUrl: "https://lexnepal.test",
+      fetcher: fetcher as typeof fetch,
+    });
+    const controller = new AbortController();
+
+    await client.request("/api/v1/tasks", {
+      method: "POST",
+      body: { title: "Prepare filing" },
+      signal: controller.signal,
+    });
+
+    expect(receivedSignal).toBe(controller.signal);
+  });
+});
+
 describe("decommissioned backend boundary", () => {
   it("has no Convex or react-router imports left in the app source", () => {
     const root = path.resolve("src");

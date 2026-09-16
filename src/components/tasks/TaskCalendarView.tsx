@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
+import { StatusBadge, getDashboardStatusTone } from "@/components/dashboard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   addMonths,
@@ -13,7 +13,7 @@ import {
   isSameMonth,
 } from "date-fns";
 import { getBSDate } from "@/lib/bs-calendar.ts";
-import { PRIORITY_COLORS, isTaskOverdue } from "@/lib/task-constants.ts";
+import { isTaskOverdue } from "@/lib/task-constants.ts";
 import { cn } from "@/lib/utils.ts";
 
 type Props = {
@@ -101,9 +101,12 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
                       isTaskOverdue(t) ? "bg-destructive/15 text-destructive" : "bg-secondary/60",
                     )}
                   >
-                    <Badge className={`text-[8px] px-1 py-0 mr-0.5 ${PRIORITY_COLORS[t.priority]}`}>
+                    <StatusBadge
+                      tone={getDashboardStatusTone(t.priority)}
+                      className="mr-0.5 px-1 py-0 text-[8px] uppercase"
+                    >
                       {t.priority?.[0]}
-                    </Badge>
+                    </StatusBadge>
                     {t.title}
                   </button>
                 ))}

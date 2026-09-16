@@ -39,8 +39,9 @@ import {
   DashboardTableHeaderCell,
   DashboardTableRow,
   EmptyState,
+  HeroHealthChip,
+  HeroStatChip,
   PortalPageShell,
-  QuickActionTile,
   ScheduleTimeline,
   StatusBadge,
 } from "@/components/dashboard";
@@ -102,6 +103,30 @@ function initialsOf(name: string): string {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("") || "?"
+  );
+}
+
+/** Layout-shaped loading placeholder mirroring the dashboard structure. */
+function DashboardLoadingSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Loading dashboard">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-32 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel"
+          />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="h-72 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel xl:col-span-2" />
+        <div className="h-72 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="h-64 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel" />
+        <div className="h-64 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel" />
+      </div>
+    </div>
   );
 }
 
@@ -247,14 +272,6 @@ export default function StaffDashboard() {
       helper: "From client matters",
       href: "/staff/messages",
     },
-    {
-      label: "Team members",
-      value: String(users.length),
-      icon: Users,
-      tone: DASHBOARD_METRIC_TONES.people,
-      helper: "In the firm directory",
-      href: undefined,
-    },
   ];
 
   // My Day: real hearings + appointments for today, chronologically sorted.
@@ -333,9 +350,7 @@ export default function StaffDashboard() {
   return (
     <PortalPageShell
       portal="staff"
-      loading={isLoading}
-      loadingLabel="Preparing your operations workspace…"
-      heroClassName="hero-animate-in p-4 sm:p-5 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
+      heroClassName="hero-animate-in p-5 sm:p-7 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
       eyebrow={<DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />}
       title={firstName ? `Good ${dayPart}, ${firstName}` : `Good ${dayPart}`}
       description="A focused view of hearings, deadlines, cases, and team capacity."
@@ -344,464 +359,528 @@ export default function StaffDashboard() {
         <>
           <DashboardButton asChild size="sm" variant="primary">
             <Link href="/staff/tasks">
-              Open tasks <ArrowRight className="size-3.5" aria-hidden />
+              Review today&apos;s work <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </DashboardButton>
-          <DashboardButton asChild size="sm" variant="outline">
+          <DashboardButton
+            asChild
+            size="sm"
+            variant="outline"
+            className="border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20"
+          >
             <Link href="/staff/hearings">Hearings</Link>
           </DashboardButton>
         </>
       }
       heroChildren={
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge tone={urgentPending ? "danger" : "success"}>
-            {urgentPending ? "Urgent items present" : "Work queue healthy"}
-          </StatusBadge>
-          {overdueCount > 0 ? (
-            <StatusBadge tone="danger" icon={AlertTriangle}>
-              {overdueCount} overdue {overdueCount === 1 ? "task" : "tasks"}
-            </StatusBadge>
-          ) : null}
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          <HeroHealthChip
+            healthy={!urgentPending && overdueCount === 0}
+            overdueCount={overdueCount}
+          />
+          <HeroStatChip
+            href="/staff/hearings"
+            icon={CalendarDays}
+            value={hearingsTodayCount}
+            label="hearings today"
+          />
+          <HeroStatChip
+            href="/staff/tasks"
+            icon={CheckSquare}
+            value={dueTodayCount}
+            label="tasks due today"
+          />
+          <HeroStatChip
+            href="/staff/messages"
+            icon={MessageSquare}
+            value={unreadTotal}
+            label="unread messages"
+          />
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {metrics.map((metric) => {
-          const card = (
-            <MetricCard
-              label={metric.label}
-              value={metric.value}
-              icon={metric.icon}
-              tone={metric.tone}
-              helperText={metric.helper}
-              density="compact"
-              chevron={Boolean(metric.href)}
-              className={cn(
-                "h-full card-micro-lift",
-                metric.href &&
-                  "transition-all group-hover:border-dashboard-primary/50 group-hover:shadow-md",
-              )}
-            />
-          );
-          return metric.href ? (
-            <Link
-              key={metric.label}
-              href={metric.href}
-              className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
-            >
-              {card}
-            </Link>
-          ) : (
-            <div key={metric.label}>{card}</div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <DashboardSection
-          density="compact"
-          className="flex flex-col min-h-[300px] h-full card-micro-lift"
-          title="My Day"
-          description="Today's schedule at a glance"
-          icon={CalendarDays}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/appointments">
-                View calendar <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {myDay.length === 0 ? (
-            <EmptyState
-              title="Nothing scheduled today"
-              description="Hearings and appointments for today will appear here."
-              icon={CalendarDays}
-              tone="neutral"
-            />
-          ) : (
-            <ScheduleTimeline entries={myDay} />
-          )}
-        </DashboardSection>
-
-        <DashboardSection
-          density="compact"
-          className="flex flex-col min-h-[300px] h-full card-micro-lift"
-          title="Priority Tasks"
-          description="Ordered by urgency and due date"
-          icon={CheckSquare}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/tasks">
-                View All <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {priorityTasks.length === 0 ? (
-            <EmptyState
-              title="No pending tasks"
-              description="Your active task queue is clear."
-              icon={CheckSquare}
-              tone="success"
-            />
-          ) : (
-            <div className="space-y-3">
-              {priorityTasks.map((task) => {
-                const tone = getDashboardStatusTone(task.priority);
-                const due = (task as { dueDate?: string | null }).dueDate;
-                const dueIso = due?.slice(0, 10);
-                const dueBadge =
-                  dueIso && dueIso < todayIso ? (
-                    <StatusBadge tone="danger">Overdue</StatusBadge>
-                  ) : dueIso === todayIso ? (
-                    <StatusBadge tone="warning">Due today</StatusBadge>
-                  ) : (
-                    <StatusBadge tone={tone} className="uppercase">
-                      {task.priority}
-                    </StatusBadge>
-                  );
-                return (
-                  <DashboardListRow key={task._id}>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{task.title}</p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {task.caseId
-                          ? (caseTitleById.get(task.caseId) ?? "Matter")
-                          : "No matter linked"}
-                        {dueIso ? ` · Due ${dueIso}` : ""}
-                      </p>
-                    </div>
-                    {dueBadge}
-                  </DashboardListRow>
-                );
-              })}
-            </div>
-          )}
-        </DashboardSection>
-
-        <DashboardSection
-          density="compact"
-          className="flex flex-col min-h-[300px] h-full card-micro-lift"
-          title="Upcoming Hearings"
-          description="Court commitments and milestone dates"
-          icon={CalendarDays}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/hearings">
-                View All <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {upcomingHearings.length === 0 ? (
-            <EmptyState
-              title="No upcoming hearings"
-              description="New scheduled court hearings will appear here."
-              icon={CalendarDays}
-              tone="neutral"
-            />
-          ) : (
-            <div className="space-y-3">
-              {upcomingHearings.map((hearing) => {
-                const urgent = hearing.purpose?.toLowerCase().includes("final") || false;
-                const dateParts = hearing.dateBs.split(" ");
-                return (
-                  <div
-                    key={hearing._id}
-                    className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3.5 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
-                  >
-                    <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary">
-                      <span className="text-xs font-bold leading-none">
-                        {dateParts[0] || "Court"}
-                      </span>
-                      <span className="mt-1 text-[10px] leading-none opacity-80">
-                        {dateParts[1] || ""}
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {caseTitleById.get(hearing.caseId) ?? "Matter hearing"}
-                      </p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {hearing.court}
-                        {hearing.time ? ` · ${hearing.time}` : ""}
-                      </p>
-                    </div>
-                    {urgent ? (
-                      <StatusBadge tone="danger" icon={AlertTriangle}>
-                        Urgent
-                      </StatusBadge>
-                    ) : (
-                      <StatusBadge tone="warning">Scheduled</StatusBadge>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </DashboardSection>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <DashboardSection
-          density="compact"
-          className="xl:col-span-5 card-micro-lift"
-          title="My Cases"
-          description="Active matters and their next court dates"
-          icon={FolderOpen}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/cases">
-                View All <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {activeCases.length === 0 ? (
-            <EmptyState
-              title="No active matters"
-              description="Cases assigned to you will appear here."
-              icon={FolderOpen}
-              tone="neutral"
-            />
-          ) : (
-            <DashboardTable>
-              <DashboardTableHead>
-                <tr>
-                  <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Next hearing</DashboardTableHeaderCell>
-                </tr>
-              </DashboardTableHead>
-              <DashboardTableBody>
-                {activeCases.slice(0, 5).map((item) => {
-                  const nextHearing = nextHearingByCase.get(item._id);
-                  return (
-                    <DashboardTableRow key={item._id}>
-                      <DashboardTableCell>
-                        <span className="block text-xs font-medium tabular-nums text-muted-foreground">
-                          {item.caseNumber}
-                        </span>
-                        <Link
-                          href={`/staff/cases/${item._id}`}
-                          className="block max-w-[16rem] truncate text-sm font-semibold text-foreground hover:text-dashboard-primary"
-                        >
-                          {item.title}
-                        </Link>
-                      </DashboardTableCell>
-                      <DashboardTableCell>
-                        <span className="block max-w-[10rem] truncate text-sm">
-                          {clientNameById.get(item.clientId) ?? "Client record"}
-                        </span>
-                      </DashboardTableCell>
-                      <DashboardTableCell>
-                        <StatusBadge tone={getDashboardStatusTone(item.status)}>
-                          {item.status}
-                        </StatusBadge>
-                      </DashboardTableCell>
-                      <DashboardTableCell>
-                        {nextHearing ? (
-                          <span className="text-xs text-muted-foreground">
-                            {nextHearing.dateBs}
-                            <span className="block">{nextHearing.court}</span>
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </DashboardTableCell>
-                    </DashboardTableRow>
-                  );
-                })}
-              </DashboardTableBody>
-            </DashboardTable>
-          )}
-        </DashboardSection>
-
-        <DashboardSection
-          density="compact"
-          className="xl:col-span-3 card-micro-lift"
-          title="Recent Documents"
-          description="Latest uploads across your matters"
-          icon={FileText}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/documents">
-                View All <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {recentDocuments.length === 0 ? (
-            <EmptyState
-              title="No documents yet"
-              description="Recently uploaded documents will appear here."
-              icon={FileText}
-              tone="neutral"
-            />
-          ) : (
-            <div className="space-y-3">
-              {recentDocuments.map((document) => (
-                <div
-                  key={document._id}
-                  className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+      {isLoading ? (
+        <DashboardLoadingSkeleton />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => {
+              const card = (
+                <MetricCard
+                  label={metric.label}
+                  value={metric.value}
+                  icon={metric.icon}
+                  tone={metric.tone}
+                  helperText={metric.helper}
+                  density="compact"
+                  chevron={Boolean(metric.href)}
+                  className={cn(
+                    "h-full card-micro-lift",
+                    metric.href &&
+                      "transition-all group-hover:border-dashboard-primary/50 group-hover:shadow-md",
+                  )}
+                />
+              );
+              return metric.href ? (
+                <Link
+                  key={metric.label}
+                  href={metric.href}
+                  className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashboard-information/30 bg-dashboard-information-soft text-[10px] font-bold text-dashboard-information-foreground">
-                    {documentTypeLabel(document.mimeType)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {document.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {document.caseId
-                        ? (caseTitleById.get(document.caseId) ?? "Matter document")
-                        : "Unassigned"}
-                      {relativeTime(document.updatedAt ?? document.createdAt)
-                        ? ` · ${relativeTime(document.updatedAt ?? document.createdAt)}`
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </DashboardSection>
+                  {card}
+                </Link>
+              ) : (
+                <div key={metric.label}>{card}</div>
+              );
+            })}
+          </div>
 
-        <DashboardSection
-          density="compact"
-          className="xl:col-span-4 card-micro-lift"
-          title="Messages & Team Updates"
-          description="Latest direct messages from the team"
-          icon={MessagesSquare}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/team-chat">
-                View All <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {dmThreads.length === 0 ? (
-            <EmptyState
-              title="No team messages yet"
-              description="Direct messages from colleagues will appear here."
-              icon={MessagesSquare}
-              tone="neutral"
-            />
-          ) : (
-            <div className="space-y-3">
-              {dmThreads.slice(0, 5).map((thread) => (
-                <div
-                  key={thread._id}
-                  className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashboard-sidebar-border bg-dashboard-sidebar-active text-xs font-bold text-dashboard-sidebar-active-foreground">
-                    {initialsOf(thread.peerName)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {thread.peerName}
-                      </p>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
-                        {relativeTime(thread.lastMessageAt)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {thread.lastMessage?.content ?? "No messages yet"}
-                    </p>
-                  </div>
-                  {thread.unreadCount ? (
-                    <StatusBadge tone="information">{thread.unreadCount} new</StatusBadge>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </DashboardSection>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <DashboardSection
-          density="compact"
-          className="xl:col-span-2 card-micro-lift"
-          title="Team Workload"
-          description="Open, high-priority, and overdue assignments"
-          icon={Users}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/staff/tasks">
-                Open board <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {workload.length === 0 ? (
-            <EmptyState
-              title="No open workload"
-              description="Assignments will populate this team view."
-              icon={Users}
-              tone="neutral"
-            />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-              {workload.slice(0, 6).map((row) => {
-                const user = userNameById.get(row.assignedTo);
-                const tone: DashboardTone =
-                  row.overdue > 0 ? "danger" : row.urgent > 0 ? "warning" : "neutral";
-                const load = Math.min(Math.max(Number(row.total) * 12, 12), 100);
-                return (
-                  <div
-                    key={row.assignedTo}
-                    className="rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-4 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {user?.name || "Team member"}
-                      </p>
-                      <StatusBadge tone={tone}>
-                        {row.overdue > 0 ? `${row.overdue} overdue` : `${row.total} open`}
-                      </StatusBadge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {user?.role ? `${user.role.replace("_", " ")} · ` : ""}
-                      {row.total} open · {row.urgent} high priority
-                    </p>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full border border-dashboard-border/30 bg-dashboard-panel">
-                      <div
-                        className={`h-full rounded-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
-                        style={{ width: `${load}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </DashboardSection>
-
-        <DashboardSection
-          density="compact"
-          className="card-micro-lift"
-          title="Quick Actions"
-          description="Create, add, or manage items quickly"
-          icon={Sparkles}
-        >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3">
+          <nav aria-label="Quick actions" className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Quick actions
+            </span>
             {quickActions.map((action) => (
-              <QuickActionTile
+              <Link
                 key={action.href + action.label}
                 href={action.href}
-                icon={action.icon}
-                label={action.label}
-                description={action.description}
-              />
+                title={action.description}
+                className="group inline-flex items-center gap-2 rounded-full border border-dashboard-border bg-dashboard-panel px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-dashboard-primary/40 hover:text-dashboard-primary hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas"
+              >
+                <action.icon
+                  className="size-3.5 text-dashboard-primary transition-transform group-hover:scale-110"
+                  aria-hidden
+                />
+                {action.label}
+              </Link>
             ))}
+          </nav>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="min-w-0 space-y-6 xl:col-span-2">
+              <DashboardSection
+                density="compact"
+                className="card-micro-lift"
+                title="My Day"
+                description="Today's hearings and appointments, in order"
+                icon={CalendarDays}
+                actions={
+                  <DashboardButton asChild variant="ghost" size="sm">
+                    <Link href="/staff/appointments">
+                      View calendar <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
+                  </DashboardButton>
+                }
+              >
+                {myDay.length === 0 ? (
+                  <EmptyState
+                    title="Nothing scheduled today"
+                    description="Hearings and appointments for today will appear here."
+                    icon={CalendarDays}
+                    tone="neutral"
+                    action={
+                      <DashboardButton asChild variant="secondary" size="sm">
+                        <Link href="/staff/appointments">Book appointment</Link>
+                      </DashboardButton>
+                    }
+                  />
+                ) : (
+                  <ScheduleTimeline entries={myDay} />
+                )}
+              </DashboardSection>
+
+              <DashboardSection
+                density="compact"
+                className="card-micro-lift"
+                title="My Cases"
+                description="Active matters and their next court dates"
+                icon={FolderOpen}
+                actions={
+                  <DashboardButton asChild variant="ghost" size="sm">
+                    <Link href="/staff/cases">
+                      View All <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
+                  </DashboardButton>
+                }
+              >
+                {activeCases.length === 0 ? (
+                  <EmptyState
+                    title="No active matters"
+                    description="Cases assigned to you will appear here."
+                    icon={FolderOpen}
+                    tone="neutral"
+                    action={
+                      <DashboardButton asChild variant="secondary" size="sm">
+                        <Link href="/staff/cases">Open cases</Link>
+                      </DashboardButton>
+                    }
+                  />
+                ) : (
+                  <DashboardTable>
+                    <DashboardTableHead>
+                      <tr>
+                        <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
+                        <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
+                        <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                        <DashboardTableHeaderCell>Next hearing</DashboardTableHeaderCell>
+                      </tr>
+                    </DashboardTableHead>
+                    <DashboardTableBody>
+                      {activeCases.slice(0, 5).map((item) => {
+                        const nextHearing = nextHearingByCase.get(item._id);
+                        return (
+                          <DashboardTableRow key={item._id}>
+                            <DashboardTableCell>
+                              <span className="block text-xs font-medium tabular-nums text-muted-foreground">
+                                {item.caseNumber}
+                              </span>
+                              <Link
+                                href={`/staff/cases/${item._id}`}
+                                className="block max-w-[16rem] truncate text-sm font-semibold text-foreground hover:text-dashboard-primary"
+                              >
+                                {item.title}
+                              </Link>
+                            </DashboardTableCell>
+                            <DashboardTableCell>
+                              <span className="block max-w-[10rem] truncate text-sm">
+                                {clientNameById.get(item.clientId) ?? "Client record"}
+                              </span>
+                            </DashboardTableCell>
+                            <DashboardTableCell>
+                              <StatusBadge tone={getDashboardStatusTone(item.status)}>
+                                {item.status}
+                              </StatusBadge>
+                            </DashboardTableCell>
+                            <DashboardTableCell>
+                              {nextHearing ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {nextHearing.dateBs}
+                                  <span className="block">{nextHearing.court}</span>
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </DashboardTableCell>
+                          </DashboardTableRow>
+                        );
+                      })}
+                    </DashboardTableBody>
+                  </DashboardTable>
+                )}
+              </DashboardSection>
+            </div>
+
+            <div className="min-w-0 space-y-6">
+              <DashboardSection
+                density="compact"
+                className="card-micro-lift"
+                title="Priority Tasks"
+                description="Ordered by urgency and due date"
+                icon={CheckSquare}
+                actions={
+                  <DashboardButton asChild variant="ghost" size="sm">
+                    <Link href="/staff/tasks">
+                      View All <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
+                  </DashboardButton>
+                }
+              >
+                {priorityTasks.length === 0 ? (
+                  <EmptyState
+                    title="No pending tasks"
+                    description="Your active task queue is clear."
+                    icon={CheckSquare}
+                    tone="success"
+                    action={
+                      <DashboardButton asChild variant="secondary" size="sm">
+                        <Link href="/staff/tasks">Create task</Link>
+                      </DashboardButton>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {priorityTasks.map((task) => {
+                      const tone = getDashboardStatusTone(task.priority);
+                      const due = (task as { dueDate?: string | null }).dueDate;
+                      const dueIso = due?.slice(0, 10);
+                      const dueBadge =
+                        dueIso && dueIso < todayIso ? (
+                          <StatusBadge tone="danger">Overdue</StatusBadge>
+                        ) : dueIso === todayIso ? (
+                          <StatusBadge tone="warning">Due today</StatusBadge>
+                        ) : (
+                          <StatusBadge tone={tone} className="uppercase">
+                            {task.priority}
+                          </StatusBadge>
+                        );
+                      return (
+                        <DashboardListRow key={task._id}>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {task.title}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
+                              {task.caseId
+                                ? (caseTitleById.get(task.caseId) ?? "Matter")
+                                : "No matter linked"}
+                              {dueIso ? ` · Due ${dueIso}` : ""}
+                            </p>
+                          </div>
+                          {dueBadge}
+                        </DashboardListRow>
+                      );
+                    })}
+                  </div>
+                )}
+              </DashboardSection>
+
+              <DashboardSection
+                density="compact"
+                className="card-micro-lift"
+                title="Upcoming Hearings"
+                description="Next court commitments"
+                icon={CalendarDays}
+                actions={
+                  <DashboardButton asChild variant="ghost" size="sm">
+                    <Link href="/staff/hearings">
+                      View All <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
+                  </DashboardButton>
+                }
+              >
+                {upcomingHearings.length === 0 ? (
+                  <EmptyState
+                    title="No upcoming hearings"
+                    description="New scheduled court hearings will appear here."
+                    icon={CalendarDays}
+                    tone="neutral"
+                    action={
+                      <DashboardButton asChild variant="secondary" size="sm">
+                        <Link href="/staff/hearings">Add hearing</Link>
+                      </DashboardButton>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingHearings.map((hearing) => {
+                      const urgent = hearing.purpose?.toLowerCase().includes("final") || false;
+                      const dateParts = hearing.dateBs.split(" ");
+                      return (
+                        <div
+                          key={hearing._id}
+                          className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3.5 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+                        >
+                          <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary">
+                            <span className="text-xs font-bold leading-none">
+                              {dateParts[0] || "Court"}
+                            </span>
+                            <span className="mt-1 text-[10px] leading-none opacity-80">
+                              {dateParts[1] || ""}
+                            </span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {caseTitleById.get(hearing.caseId) ?? "Matter hearing"}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
+                              {hearing.court}
+                              {hearing.time ? ` · ${hearing.time}` : ""}
+                            </p>
+                          </div>
+                          {urgent ? (
+                            <StatusBadge tone="danger" icon={AlertTriangle}>
+                              Urgent
+                            </StatusBadge>
+                          ) : (
+                            <StatusBadge tone="warning">Scheduled</StatusBadge>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </DashboardSection>
+
+              <DashboardSection
+                density="compact"
+                className="card-micro-lift"
+                title="Messages & Team Updates"
+                description="Latest from your team"
+                icon={MessagesSquare}
+                actions={
+                  <DashboardButton asChild variant="ghost" size="sm">
+                    <Link href="/staff/team-chat">
+                      View All <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
+                  </DashboardButton>
+                }
+              >
+                {dmThreads.length === 0 ? (
+                  <EmptyState
+                    title="No team messages yet"
+                    description="Direct messages from colleagues will appear here."
+                    icon={MessagesSquare}
+                    tone="neutral"
+                    action={
+                      <DashboardButton asChild variant="secondary" size="sm">
+                        <Link href="/staff/team-chat">Open team chat</Link>
+                      </DashboardButton>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {dmThreads.slice(0, 5).map((thread) => (
+                      <div
+                        key={thread._id}
+                        className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+                      >
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashboard-sidebar-border bg-dashboard-sidebar-active text-xs font-bold text-dashboard-sidebar-active-foreground">
+                          {initialsOf(thread.peerName)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {thread.peerName}
+                            </p>
+                            <span className="shrink-0 text-[10px] text-muted-foreground">
+                              {relativeTime(thread.lastMessageAt)}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {thread.lastMessage?.content ?? "No messages yet"}
+                          </p>
+                        </div>
+                        {thread.unreadCount ? (
+                          <StatusBadge tone="information">{thread.unreadCount} new</StatusBadge>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </DashboardSection>
+            </div>
           </div>
-        </DashboardSection>
-      </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <DashboardSection
+              density="compact"
+              className="card-micro-lift"
+              title="Recent Documents"
+              description="Latest uploads across your matters"
+              icon={FileText}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/documents">
+                    View All <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {recentDocuments.length === 0 ? (
+                <EmptyState
+                  title="No documents yet"
+                  description="Recently uploaded documents will appear here."
+                  icon={FileText}
+                  tone="neutral"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/documents">Upload document</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {recentDocuments.map((document) => (
+                    <div
+                      key={document._id}
+                      className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashboard-information/30 bg-dashboard-information-soft text-[10px] font-bold text-dashboard-information-foreground">
+                        {documentTypeLabel(document.mimeType)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {document.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {document.caseId
+                            ? (caseTitleById.get(document.caseId) ?? "Matter document")
+                            : "Unassigned"}
+                          {relativeTime(document.updatedAt ?? document.createdAt)
+                            ? ` · ${relativeTime(document.updatedAt ?? document.createdAt)}`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
+
+            <DashboardSection
+              density="compact"
+              className="card-micro-lift"
+              title="Team Workload"
+              description="Open, high-priority, and overdue assignments"
+              icon={Users}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/tasks">
+                    Open board <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {workload.length === 0 ? (
+                <EmptyState
+                  title="No open workload"
+                  description="Assignments will populate this team view."
+                  icon={Users}
+                  tone="neutral"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/tasks">Open task board</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                  {workload.slice(0, 6).map((row) => {
+                    const user = userNameById.get(row.assignedTo);
+                    const tone: DashboardTone =
+                      row.overdue > 0 ? "danger" : row.urgent > 0 ? "warning" : "neutral";
+                    const load = Math.min(Math.max(Number(row.total) * 12, 12), 100);
+                    return (
+                      <div
+                        key={row.assignedTo}
+                        className="rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-4 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {user?.name || "Team member"}
+                          </p>
+                          <StatusBadge tone={tone}>
+                            {row.overdue > 0 ? `${row.overdue} overdue` : `${row.total} open`}
+                          </StatusBadge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {user?.role ? `${user.role.replace("_", " ")} · ` : ""}
+                          {row.total} open · {row.urgent} high priority
+                        </p>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full border border-dashboard-border/30 bg-dashboard-panel">
+                          <div
+                            className={`h-full rounded-full ${DASHBOARD_TONE_FILL_CLASSES[tone]}`}
+                            style={{ width: `${load}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </DashboardSection>
+          </div>
+        </>
+      )}
     </PortalPageShell>
   );
 }

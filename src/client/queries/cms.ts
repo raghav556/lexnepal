@@ -81,10 +81,11 @@ export function useCmsSettings(
     queryKey: queryKeys.cms.settings(scope),
     queryFn: ({ signal }) =>
       apiClient.request<Record<string, any>>(`${basePath(scope)}/settings`, { signal }),
-    // Public: SSR seeds UI without locking the query — always refetch so admin CMS edits show.
-    // Admin: keep initialData + short stale window for editor stability.
+    // Public settings arrive from the server layout. Keep that snapshot fresh
+    // for the same 60-second window as the public layout, then rely on the
+    // existing CMS update signal for immediate editor-driven invalidation.
     ...(scope === "public"
-      ? { placeholderData: initialData, staleTime: 0, refetchOnMount: "always" as const }
+      ? { initialData, staleTime: 60_000 }
       : { initialData, staleTime: 15_000 }),
   }).data;
 }

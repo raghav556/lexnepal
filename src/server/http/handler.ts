@@ -34,6 +34,18 @@ function errorResponse(error: unknown, requestId: string): Response {
 
 export function withApiHandler(route: string, handler: ApiHandler) {
   return async function handledRoute(request: Request): Promise<Response> {
+    /*
+     * Loading the route module is enough to compile it. Skip database/auth
+     * work for the local development warm-up so startup stays side-effect
+     * free and does not emit misleading authentication errors.
+     */
+    if (
+      process.env.NODE_ENV === "development" &&
+      request.headers.get("x-lexnepal-preview-warmup") === "1"
+    ) {
+      return new Response(null, { status: 204 });
+    }
+
     const startedAt = performance.now();
     const requestId = resolveRequestId(request.headers);
     const logger = createLogger({ requestId, route, method: request.method });

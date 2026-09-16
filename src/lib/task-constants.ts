@@ -3,13 +3,6 @@ export type TaskPriority = "low" | "medium" | "high" | "urgent";
 export type TaskCategory = "filing" | "research" | "client" | "court" | "admin" | "other";
 export type RecurrenceRule = "daily" | "weekly" | "monthly";
 
-export const PRIORITY_COLORS: Record<TaskPriority | string, string> = {
-  urgent: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  high: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  low: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-};
-
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   in_progress: "In Progress",

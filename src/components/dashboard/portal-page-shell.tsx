@@ -71,6 +71,8 @@ function resolveLocalized(
   return fallback;
 }
 
+const DEFAULT_STAFF_HERO_CLASS = "hero-animate-in p-5 sm:p-7 [&_h1]:text-3xl [&_h1]:xl:text-4xl";
+
 function metricsGridClass(count: number): string {
   if (count >= 5) return "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5";
   if (count === 3) return "grid grid-cols-1 gap-4 sm:grid-cols-3";
@@ -143,7 +145,7 @@ export function PortalPageShell({
   const useDecoratedHero = decorated && portal !== "admin";
   const HeroComponent = useDecoratedHero ? NepalDecoratedHero : DashboardHero;
   const brandLeading =
-    useDecoratedHero && logoUrl ? (
+    useDecoratedHero && logoUrl && !icon ? (
       <FirmBrand
         firmName={firmName}
         logoUrl={logoUrl}
@@ -189,7 +191,7 @@ export function PortalPageShell({
       lang={language === "ne" ? "ne" : "en"}
     >
       <HeroComponent
-        className={heroClassName}
+        className={cn(portal === "staff" ? DEFAULT_STAFF_HERO_CLASS : undefined, heroClassName)}
         eyebrow={eyebrow ?? (useDecoratedHero && firmName ? firmName : undefined)}
         title={titleNode}
         description={descriptionNode}
@@ -197,7 +199,7 @@ export function PortalPageShell({
         leading={brandLeading}
         actions={actions}
       >
-        {showTodayDate ? (
+        {showTodayDate && eyebrow === undefined ? (
           <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-white/70">
             <CalendarDays className="size-3.5 shrink-0 text-white/60" aria-hidden />
             <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -35,11 +36,7 @@ import {
   Link2,
   ScanText,
 } from "lucide-react";
-import MultiFileUploadModal from "@/components/documents/MultiFileUploadModal.tsx";
 import { AdvancedSearch } from "@/components/documents/AdvancedSearch.tsx";
-import { TagManagementModal } from "@/components/documents/TagManagementModal.tsx";
-import { TemplateGeneratorModal } from "@/components/documents/TemplateGeneratorModal.tsx";
-import { DocumentShareModal } from "@/components/documents/DocumentShareModal.tsx";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +76,24 @@ import {
   useSendEnvelope,
   useRequestSignature,
 } from "@/client/queries/envelopes";
+
+const TagManagementModal = dynamic(
+  () =>
+    import("@/components/documents/TagManagementModal").then((module) => module.TagManagementModal),
+  { ssr: false },
+);
+const TemplateGeneratorModal = dynamic(
+  () =>
+    import("@/components/documents/TemplateGeneratorModal").then(
+      (module) => module.TemplateGeneratorModal,
+    ),
+  { ssr: false },
+);
+const DocumentShareModal = dynamic(
+  () =>
+    import("@/components/documents/DocumentShareModal").then((module) => module.DocumentShareModal),
+  { ssr: false },
+);
 
 const DOC_TYPES = [
   "pleading",
@@ -1408,16 +1423,19 @@ export default function StaffDocumentsPage() {
           </DialogContent>
         </Dialog>
 
-        <TagManagementModal isOpen={isTagsModalOpen} onClose={() => setIsTagsModalOpen(false)} />
-        <TemplateGeneratorModal
-          isOpen={isTemplateModalOpen}
-          onClose={() => setIsTemplateModalOpen(false)}
-        />
-        <DocumentShareModal
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          document={activeSidebarDoc}
-        />
+        {isTagsModalOpen ? (
+          <TagManagementModal isOpen onClose={() => setIsTagsModalOpen(false)} />
+        ) : null}
+        {isTemplateModalOpen ? (
+          <TemplateGeneratorModal isOpen onClose={() => setIsTemplateModalOpen(false)} />
+        ) : null}
+        {isShareModalOpen ? (
+          <DocumentShareModal
+            isOpen
+            onClose={() => setIsShareModalOpen(false)}
+            document={activeSidebarDoc}
+          />
+        ) : null}
       </div>
     </PortalPageShell>
   );

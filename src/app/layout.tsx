@@ -2,29 +2,17 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "../index.css";
 import { Providers } from "./providers";
-import { getCmsService } from "@/server/services/cms-service";
 
-export async function generateMetadata(): Promise<Metadata> {
-  try {
-    const settings = await getCmsService().getPublicSettings();
-    const firmName = String(settings.firmName || "Law Firm");
-    const description = String(
-      settings.seoMetaDescription || `${firmName} — trusted legal counsel in Nepal`,
-    );
-    const favicon = typeof settings.faviconUrl === "string" ? settings.faviconUrl : undefined;
-    return {
-      title: firmName,
-      description,
-      icons: { icon: favicon || "/favicon.ico" },
-    };
-  } catch {
-    return {
-      title: "Law Firm",
-      description: "Trusted legal counsel in Nepal",
-      icons: { icon: "/favicon.ico" },
-    };
-  }
-}
+/*
+ * Keep the universal shell independent of the database. Public routes provide
+ * CMS-driven metadata in their nested layout; authenticated and auth routes
+ * should not wait on public CMS settings before they can render.
+ */
+export const metadata: Metadata = {
+  title: "LexNepal",
+  description: "Secure legal practice management",
+  icons: { icon: "/favicon.ico" },
+};
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (

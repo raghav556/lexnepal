@@ -48,28 +48,45 @@ const toneClasses: Record<DashboardTone, string> = {
   danger: "border-dashboard-danger/35 bg-dashboard-danger-soft text-dashboard-danger-foreground",
 };
 
+/*
+ * Quiet-chrome metric cards: a neutral panel carries the content, while tone
+ * is expressed through the icon chip and the hover border. All colors come
+ * from portal-scoped CSS variables so staff (violet), admin (blue), and
+ * client themes share one implementation.
+ */
 const metricToneClasses: Record<DashboardTone, string> = {
   primary:
-    "border-[#BFDCFF] bg-[#E4F1FF] text-[#1E3A8A] shadow-sm hover:shadow-md hover:border-[#95C7FF] dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200",
+    "border-dashboard-border bg-dashboard-panel text-foreground shadow-sm hover:shadow-md hover:border-dashboard-primary/45",
   neutral:
-    "border-slate-200 bg-slate-50 text-slate-900 shadow-sm hover:shadow-md hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-200",
+    "border-dashboard-border bg-dashboard-panel text-foreground shadow-sm hover:shadow-md hover:border-dashboard-neutral/45",
   information:
-    "border-[#BFDBFE] bg-[#EFF6FF] text-[#1E3A8A] shadow-sm hover:shadow-md hover:border-[#93C5FD] dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200",
+    "border-dashboard-border bg-dashboard-panel text-foreground shadow-sm hover:shadow-md hover:border-dashboard-information/45",
   success:
-    "border-[#BBF7D0] bg-[#F0FDF4] text-[#14532D] shadow-sm hover:shadow-md hover:border-[#86EFAC] dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200",
+    "border-dashboard-border bg-dashboard-panel text-foreground shadow-sm hover:shadow-md hover:border-dashboard-success/45",
   warning:
-    "border-[#FED7AA] bg-[#FFF7ED] text-[#7C2D12] shadow-sm hover:shadow-md hover:border-[#FDBA74] dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200",
+    "border-dashboard-border bg-dashboard-panel text-foreground shadow-sm hover:shadow-md hover:border-dashboard-warning/45",
   danger:
-    "border-[#FECACA] bg-[#FEF2F2] text-[#7F1D1D] shadow-sm hover:shadow-md hover:border-[#FCA5A5] dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200",
+    "border-dashboard-border bg-dashboard-panel text-foreground shadow-sm hover:shadow-md hover:border-dashboard-danger/45",
 };
 
 const metricIconToneClasses: Record<DashboardTone, string> = {
-  primary: "bg-[#487FFF] text-white shadow-sm shadow-[#487FFF]/25",
-  neutral: "bg-slate-700 text-white shadow-sm",
-  information: "bg-[#3B82F6] text-white shadow-sm shadow-[#3B82F6]/25",
-  success: "bg-[#16A34A] text-white shadow-sm shadow-[#16A34A]/25",
-  warning: "bg-[#FF9F29] text-white shadow-sm shadow-[#FF9F29]/25",
-  danger: "bg-[#DC2626] text-white shadow-sm shadow-[#DC2626]/25",
+  primary:
+    "bg-dashboard-primary text-dashboard-primary-foreground shadow-sm shadow-dashboard-primary/25",
+  neutral: "bg-dashboard-neutral text-white shadow-sm",
+  information: "bg-dashboard-information text-white shadow-sm shadow-dashboard-information/25",
+  success: "bg-dashboard-success text-white shadow-sm shadow-dashboard-success/25",
+  warning: "bg-dashboard-warning text-white shadow-sm shadow-dashboard-warning/25",
+  danger: "bg-dashboard-danger text-white shadow-sm shadow-dashboard-danger/25",
+};
+
+/* Helper text uses the darker `-foreground` tone variants for WCAG AA contrast on panels. */
+const metricHelperToneClasses: Record<DashboardTone, string> = {
+  primary: "text-dashboard-primary",
+  neutral: "text-muted-foreground",
+  information: "text-dashboard-information-foreground",
+  success: "text-dashboard-success-foreground",
+  warning: "text-dashboard-warning-foreground",
+  danger: "text-dashboard-danger-foreground",
 };
 
 interface StatefulProps {
@@ -121,7 +138,7 @@ export function DashboardHero({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
       />
-      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           {leading}
           {Icon ? (
@@ -207,6 +224,7 @@ export function MetricCard({
       data-slot="metric-card"
       data-state={state}
       data-density={density}
+      data-tone={tone}
       aria-busy={state === "loading" || undefined}
       className={cn(
         "group relative overflow-hidden rounded-2xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg focus-within:ring-2 focus-within:ring-dashboard-focus focus-within:ring-offset-2 focus-within:ring-offset-dashboard-canvas",
@@ -231,7 +249,9 @@ export function MetricCard({
         ) : null}
         {trend || chevron ? (
           <span className="flex items-center gap-1.5">
-            {trend ? <span className="text-xs font-semibold opacity-80">{trend}</span> : null}
+            {trend ? (
+              <span className="text-xs font-semibold text-muted-foreground">{trend}</span>
+            ) : null}
             {chevron ? (
               <svg
                 viewBox="0 0 24 24"
@@ -241,7 +261,7 @@ export function MetricCard({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden
-                className="size-4 shrink-0 opacity-60 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100"
+                className="size-4 shrink-0 text-muted-foreground transition-all duration-200 group-hover:translate-x-1 group-hover:text-dashboard-primary"
               >
                 <path d="m9 18 6-6-6-6" />
               </svg>
@@ -249,9 +269,22 @@ export function MetricCard({
           </span>
         ) : null}
       </div>
-      <p className={cn("tracking-tight font-extrabold", densityClasses.value)}>{value}</p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wider opacity-75">{label}</p>
-      {helperText ? <p className="mt-2 text-xs font-medium opacity-70">{helperText}</p> : null}
+      <p
+        className={cn(
+          "tracking-tight font-extrabold tabular-nums text-foreground",
+          densityClasses.value,
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      {helperText ? (
+        <p className={cn("mt-2 text-xs font-medium", metricHelperToneClasses[tone])}>
+          {helperText}
+        </p>
+      ) : null}
     </article>
   );
 }
@@ -293,7 +326,7 @@ export function DashboardSection({
       data-density={density}
       aria-busy={state === "loading" || undefined}
       className={cn(
-        "rounded-2xl border border-dashboard-border bg-dashboard-panel shadow-[0_4px_20px_-2px_rgba(72,127,255,0.04),0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:shadow-[0_8px_24px_-4px_rgba(72,127,255,0.08)]",
+        "rounded-2xl border border-dashboard-border bg-dashboard-panel shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_-16px_rgba(15,23,42,0.10)] transition-all hover:shadow-[0_2px_4px_rgba(15,23,42,0.05),0_16px_40px_-16px_rgba(15,23,42,0.14)]",
         stateClasses[state],
         className,
       )}
@@ -302,7 +335,7 @@ export function DashboardSection({
       {title || description || Icon || actions ? (
         <header
           className={cn(
-            "flex flex-col gap-3 border-b border-dashboard-border/80 bg-slate-50/40 dark:bg-slate-900/10 sm:flex-row sm:items-center sm:justify-between rounded-t-2xl",
+            "flex flex-col gap-3 border-b border-dashboard-border/70 bg-dashboard-neutral-soft/50 sm:flex-row sm:items-center sm:justify-between rounded-t-2xl",
             densityClasses.header,
             headerClassName,
           )}
@@ -465,7 +498,7 @@ export function EmptyState({
     <div
       data-slot="dashboard-empty-state"
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border/80 bg-gradient-to-b from-slate-50/50 via-dashboard-panel to-blue-50/15 px-6 py-10 text-center",
+        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border/80 bg-gradient-to-b from-dashboard-neutral-soft/70 via-dashboard-panel to-dashboard-panel px-6 py-10 text-center",
         className,
       )}
       {...props}

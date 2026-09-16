@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -19,7 +20,6 @@ import {
   PenTool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CommandCenter } from "@/components/ui/CommandCenter";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
 import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
 import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
@@ -33,13 +33,24 @@ import {
   PortalSidebarItem,
   PortalMobileNav,
   ScrollToTop,
-  GlobalSearchPalette,
   PORTAL_SIDEBAR_ACTIVE_SHADOW,
   splitPortalNavGroups,
   isPortalNavLink,
   type PortalNavItemData,
 } from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
+
+const CommandCenter = dynamic(
+  () => import("@/components/ui/CommandCenter").then((module) => module.CommandCenter),
+  { ssr: false },
+);
+const GlobalSearchPalette = dynamic(
+  () =>
+    import("@/components/dashboard/global-search-palette").then(
+      (module) => module.GlobalSearchPalette,
+    ),
+  { ssr: false },
+);
 
 const NAV: PortalNavItemData[] = [
   { label: "Dashboard", i18nKey: "nav.dashboard", href: "/staff", icon: LayoutDashboard },
@@ -283,12 +294,10 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               <ScrollToTop containerRef={mainRef} />
             </div>
           </div>
-          <GlobalSearchPalette
-            isOpen={searchOpen}
-            onClose={() => setSearchOpen(false)}
-            portal="staff"
-          />
-          <CommandCenter isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+          {searchOpen ? (
+            <GlobalSearchPalette isOpen onClose={() => setSearchOpen(false)} portal="staff" />
+          ) : null}
+          {chatOpen ? <CommandCenter isOpen onClose={() => setChatOpen(false)} /> : null}
         </PortalRoleGuard>
       </div>
     </PortalBrandingProvider>

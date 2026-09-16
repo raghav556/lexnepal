@@ -1,9 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { CheckSquare, Circle, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { StatusBadge, getDashboardStatusTone } from "@/components/dashboard";
 import {
-  PRIORITY_COLORS,
   TASK_STATUS_LABELS,
   formatTaskDue,
   isTaskOverdue,
@@ -20,6 +19,9 @@ type TaskCardProps = {
   onDragStart?: (task: any, e: React.DragEvent) => void;
 };
 
+const interactiveCardClass =
+  "cursor-pointer transition-all hover:shadow-sm hover:border-dashboard-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-1";
+
 export function TaskCard({
   task,
   caseLabel,
@@ -34,13 +36,23 @@ export function TaskCard({
   const done = task.status === "done";
   const cancelled = task.status === "cancelled";
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen(task);
+    }
+  };
+
   if (variant === "list") {
     return (
       <Card
+        role="button"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         className={cn(
-          "hover:shadow-sm cursor-pointer",
+          interactiveCardClass,
           (done || cancelled) && "opacity-75",
-          overdue && "border-destructive/40",
+          overdue && "border-l-4 border-l-dashboard-danger",
         )}
         onClick={() => onOpen(task)}
       >
@@ -49,8 +61,9 @@ export function TaskCard({
             <button
               type="button"
               onClick={(e) => onToggleComplete(task, e)}
-              className="text-muted-foreground hover:text-accent cursor-pointer flex-shrink-0"
+              className="text-muted-foreground hover:text-accent cursor-pointer flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus rounded"
               disabled={cancelled}
+              aria-label={done ? "Reopen task" : "Mark task done"}
             >
               {done ? (
                 <CheckSquare className="w-4 h-4 text-accent" />
@@ -80,12 +93,12 @@ export function TaskCard({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge className={`text-xs capitalize ${PRIORITY_COLORS[task.priority]}`}>
+            <StatusBadge tone={getDashboardStatusTone(task.priority)} className="capitalize">
               {task.priority}
-            </Badge>
-            <Badge variant="secondary" className="text-xs capitalize">
+            </StatusBadge>
+            <StatusBadge tone={getDashboardStatusTone(task.status)}>
               {TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
-            </Badge>
+            </StatusBadge>
           </div>
         </CardContent>
       </Card>
@@ -96,10 +109,13 @@ export function TaskCard({
     <Card
       draggable={draggable && !cancelled}
       onDragStart={(e) => onDragStart?.(task, e)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "hover:shadow-md transition-all cursor-pointer",
+        interactiveCardClass,
         (done || cancelled) && "opacity-75",
-        overdue && "border-destructive/40",
+        overdue && "border-l-4 border-l-dashboard-danger",
         draggable && !cancelled && "cursor-grab active:cursor-grabbing",
       )}
       onClick={() => onOpen(task)}
@@ -112,8 +128,9 @@ export function TaskCard({
           <button
             type="button"
             onClick={(e) => onToggleComplete(task, e)}
-            className="mt-0.5 text-muted-foreground hover:text-accent cursor-pointer flex-shrink-0"
+            className="mt-0.5 text-muted-foreground hover:text-accent cursor-pointer flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus rounded"
             disabled={cancelled}
+            aria-label={done ? "Reopen task" : "Mark task done"}
           >
             {done ? (
               <CheckSquare className="w-4 h-4 text-accent" />
@@ -136,9 +153,12 @@ export function TaskCard({
               </p>
             )}
             <div className="flex items-center justify-between gap-1.5 mt-2 flex-wrap">
-              <Badge className={`text-[9px] uppercase ${PRIORITY_COLORS[task.priority]}`}>
+              <StatusBadge
+                tone={getDashboardStatusTone(task.priority)}
+                className="text-[9px] uppercase"
+              >
                 {task.priority}
-              </Badge>
+              </StatusBadge>
               {due && !done && (
                 <span
                   className={cn(

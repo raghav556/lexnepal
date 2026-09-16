@@ -279,9 +279,12 @@ export function PortalTopbar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="hidden lg:block">
-          <DualDateDisplay className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft px-2.5 py-1 text-[11px] font-medium leading-tight text-muted-foreground" />
-        </div>
+        {/* Portal home heroes already show the dual date — avoid repeating it. */}
+        {pathname !== `/${portal}` ? (
+          <div className="hidden lg:block">
+            <DualDateDisplay className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft px-2.5 py-1 text-[11px] font-medium leading-tight text-muted-foreground" />
+          </div>
+        ) : null}
 
         {onOpenChat ? (
           <div className="flex items-center">

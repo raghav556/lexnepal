@@ -12,8 +12,8 @@ export function Providers({ children }: { children: ReactNode }) {
     <I18nProvider>
       <DataProvider>
         <AuthProvider>
-          <ThemeEngine />
           {children}
+          <ThemeEngine />
           <Toaster richColors position="top-right" />
         </AuthProvider>
       </DataProvider>
