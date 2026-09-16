@@ -9,10 +9,14 @@ const nextCli = fileURLToPath(new URL("../../node_modules/next/dist/bin/next", i
 // to the legacy webpack development compiler.
 // A troubleshooting fallback remains available with: npm run dev -- --webpack.
 const bundler = process.argv.includes("--webpack") ? "--webpack" : "--turbopack";
-const child = spawn(process.execPath, [nextCli, "dev", bundler, "--port", "3001"], {
-  env: process.env,
-  stdio: "inherit",
-});
+const child = spawn(
+  process.execPath,
+  ["--max-old-space-size=4096", nextCli, "dev", bundler, "--port", "3001"],
+  {
+    env: process.env,
+    stdio: "inherit",
+  },
+);
 
 child.on("error", (error) => {
   console.error("[dev] Next failed to start:", error);
