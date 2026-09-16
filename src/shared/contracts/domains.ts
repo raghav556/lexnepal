@@ -42,8 +42,6 @@ export interface CaseDto {
   opposingCounsel?: string | null;
   filingDate?: string | null;
   closedDate?: string | null;
-  conflictChecked?: boolean;
-  conflictClearedBy?: string | null;
   [key: string]: unknown;
 }
 
@@ -64,8 +62,6 @@ export interface ClientDto {
   isActive: boolean;
   [key: string]: unknown;
 }
-
-export type { ConflictHitDto } from "@/shared/contracts/conflicts";
 
 export interface TaskDto {
   _id: string;

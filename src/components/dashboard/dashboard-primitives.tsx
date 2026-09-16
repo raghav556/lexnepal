@@ -50,17 +50,26 @@ const toneClasses: Record<DashboardTone, string> = {
 
 const metricToneClasses: Record<DashboardTone, string> = {
   primary:
-    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-primary bg-dashboard-panel shadow-sm",
+    "border-[#BFDCFF] bg-[#E4F1FF] text-[#1E3A8A] shadow-sm hover:shadow-md hover:border-[#95C7FF] dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200",
   neutral:
-    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-neutral bg-dashboard-panel shadow-sm",
+    "border-slate-200 bg-slate-50 text-slate-900 shadow-sm hover:shadow-md hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-200",
   information:
-    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-information bg-dashboard-panel shadow-sm",
+    "border-[#BFDBFE] bg-[#EFF6FF] text-[#1E3A8A] shadow-sm hover:shadow-md hover:border-[#93C5FD] dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200",
   success:
-    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-success bg-dashboard-panel shadow-sm",
+    "border-[#BBF7D0] bg-[#F0FDF4] text-[#14532D] shadow-sm hover:shadow-md hover:border-[#86EFAC] dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200",
   warning:
-    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-warning bg-dashboard-panel shadow-sm",
+    "border-[#FED7AA] bg-[#FFF7ED] text-[#7C2D12] shadow-sm hover:shadow-md hover:border-[#FDBA74] dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200",
   danger:
-    "border-dashboard-border/80 border-l-[3px] border-l-dashboard-danger bg-dashboard-panel shadow-sm",
+    "border-[#FECACA] bg-[#FEF2F2] text-[#7F1D1D] shadow-sm hover:shadow-md hover:border-[#FCA5A5] dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200",
+};
+
+const metricIconToneClasses: Record<DashboardTone, string> = {
+  primary: "bg-[#487FFF] text-white shadow-sm shadow-[#487FFF]/25",
+  neutral: "bg-slate-700 text-white shadow-sm",
+  information: "bg-[#3B82F6] text-white shadow-sm shadow-[#3B82F6]/25",
+  success: "bg-[#16A34A] text-white shadow-sm shadow-[#16A34A]/25",
+  warning: "bg-[#FF9F29] text-white shadow-sm shadow-[#FF9F29]/25",
+  danger: "bg-[#DC2626] text-white shadow-sm shadow-[#DC2626]/25",
 };
 
 interface StatefulProps {
@@ -94,7 +103,7 @@ export function DashboardHero({
       data-slot="dashboard-hero"
       data-state={state}
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-dashboard-border bg-gradient-to-br from-dashboard-panel via-dashboard-panel to-dashboard-canvas-elevated p-5 text-foreground shadow-sm transition-all sm:p-6",
+        "relative overflow-hidden rounded-2xl border border-[var(--dashboard-hero-border,rgba(255,255,255,0.18))] bg-gradient-to-r from-[var(--dashboard-hero-start,#0f172a)] via-[var(--dashboard-hero-mid,#1e3a8a)] to-[var(--dashboard-hero-end,#487fff)] p-5 text-[var(--dashboard-hero-foreground,#ffffff)] shadow-xl shadow-slate-900/10 transition-all sm:p-7",
         stateClasses[state],
         className,
       )}
@@ -102,31 +111,35 @@ export function DashboardHero({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-dashboard-primary/10 blur-3xl"
+        className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full bg-white/10 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-dashboard-primary/30 to-transparent"
+        className="pointer-events-none absolute left-1/4 -bottom-16 size-56 rounded-full bg-blue-400/15 blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
       />
       <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3.5">
+        <div className="flex min-w-0 items-start gap-4">
           {leading}
           {Icon ? (
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary shadow-sm">
-              <Icon className="size-5" aria-hidden />
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-inner backdrop-blur-md">
+              <Icon className="size-6" aria-hidden />
             </span>
           ) : null}
           <div className="min-w-0">
             {eyebrow ? (
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-dashboard-primary">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/80">
                 {eyebrow}
-              </p>
+              </div>
             ) : null}
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
               {title}
             </h1>
             {description ? (
-              <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1.5 max-w-3xl text-sm font-normal text-white/80">{description}</p>
             ) : null}
           </div>
         </div>
@@ -134,7 +147,9 @@ export function DashboardHero({
           <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div>
         ) : null}
       </div>
-      {children ? <div className="relative z-10 mt-4">{children}</div> : null}
+      {children ? (
+        <div className="relative z-10 mt-5 border-t border-white/15 pt-4">{children}</div>
+      ) : null}
     </section>
   );
 }
@@ -160,16 +175,16 @@ const metricDensityClasses: Record<
   { card: string; icon: string; iconGlyph: string; value: string }
 > = {
   default: {
-    card: "p-4",
-    icon: "size-9 rounded-lg",
-    iconGlyph: "size-4",
-    value: "mt-3 text-2xl",
+    card: "p-4 sm:p-5",
+    icon: "size-11 rounded-xl",
+    iconGlyph: "size-5",
+    value: "mt-3 text-2xl sm:text-3xl font-black",
   },
   compact: {
-    card: "p-3",
-    icon: "size-8 rounded-md",
-    iconGlyph: "size-3.5",
-    value: "mt-2 text-xl",
+    card: "p-3.5 sm:p-4",
+    icon: "size-10 rounded-xl",
+    iconGlyph: "size-4.5",
+    value: "mt-2.5 text-xl sm:text-2xl font-black",
   },
 };
 
@@ -194,9 +209,8 @@ export function MetricCard({
       data-density={density}
       aria-busy={state === "loading" || undefined}
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-dashboard-border bg-dashboard-panel shadow-sm transition-all",
+        "group relative overflow-hidden rounded-2xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg focus-within:ring-2 focus-within:ring-dashboard-focus focus-within:ring-offset-2 focus-within:ring-offset-dashboard-canvas",
         densityClasses.card,
-        "hover:border-dashboard-primary/40 hover:shadow-md focus-within:ring-2 focus-within:ring-dashboard-focus focus-within:ring-offset-2 focus-within:ring-offset-dashboard-canvas",
         metricToneClasses[tone],
         stateClasses[state],
         className,
@@ -207,29 +221,27 @@ export function MetricCard({
         {Icon ? (
           <span
             className={cn(
-              "flex items-center justify-center border",
+              "flex items-center justify-center transition-transform duration-200 group-hover:scale-105",
               densityClasses.icon,
-              toneClasses[tone],
+              metricIconToneClasses[tone],
             )}
           >
             <Icon className={densityClasses.iconGlyph} aria-hidden />
           </span>
         ) : null}
         {trend || chevron ? (
-          <span className="flex items-center gap-1">
-            {trend ? (
-              <span className="text-xs font-medium text-muted-foreground">{trend}</span>
-            ) : null}
+          <span className="flex items-center gap-1.5">
+            {trend ? <span className="text-xs font-semibold opacity-80">{trend}</span> : null}
             {chevron ? (
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden
-                className="size-4 shrink-0 text-dashboard-neutral transition-transform group-hover:translate-x-0.5"
+                className="size-4 shrink-0 opacity-60 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100"
               >
                 <path d="m9 18 6-6-6-6" />
               </svg>
@@ -237,11 +249,9 @@ export function MetricCard({
           </span>
         ) : null}
       </div>
-      <p className={cn("font-bold tracking-tight text-foreground", densityClasses.value)}>
-        {value}
-      </p>
-      <p className="mt-0.5 text-xs font-medium text-muted-foreground">{label}</p>
-      {helperText ? <p className="mt-2 text-xs text-dashboard-neutral">{helperText}</p> : null}
+      <p className={cn("tracking-tight font-extrabold", densityClasses.value)}>{value}</p>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-wider opacity-75">{label}</p>
+      {helperText ? <p className="mt-2 text-xs font-medium opacity-70">{helperText}</p> : null}
     </article>
   );
 }
@@ -252,13 +262,15 @@ export interface DashboardSectionProps
   description?: React.ReactNode;
   icon?: DashboardIcon;
   actions?: React.ReactNode;
+  /** Optional custom class name for the section header (e.g. for card tints). */
+  headerClassName?: string;
   /** "compact" reduces header and body padding for dense dashboards. */
   density?: DashboardDensity;
 }
 
 const sectionDensityClasses: Record<DashboardDensity, { header: string; body: string }> = {
   default: { header: "px-5 py-4", body: "p-5" },
-  compact: { header: "px-4 py-3", body: "p-4" },
+  compact: { header: "px-4 py-3.5", body: "p-4" },
 };
 
 export function DashboardSection({
@@ -266,6 +278,7 @@ export function DashboardSection({
   description,
   icon: Icon,
   actions,
+  headerClassName,
   density = "default",
   state = "default",
   className,
@@ -280,7 +293,7 @@ export function DashboardSection({
       data-density={density}
       aria-busy={state === "loading" || undefined}
       className={cn(
-        "rounded-xl border border-dashboard-border bg-dashboard-panel shadow-sm transition-all hover:border-dashboard-border/90",
+        "rounded-2xl border border-dashboard-border bg-dashboard-panel shadow-[0_4px_20px_-2px_rgba(72,127,255,0.04),0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:shadow-[0_8px_24px_-4px_rgba(72,127,255,0.08)]",
         stateClasses[state],
         className,
       )}
@@ -289,17 +302,20 @@ export function DashboardSection({
       {title || description || Icon || actions ? (
         <header
           className={cn(
-            "flex flex-col gap-3 border-b border-dashboard-border sm:flex-row sm:items-center sm:justify-between",
+            "flex flex-col gap-3 border-b border-dashboard-border/80 bg-slate-50/40 dark:bg-slate-900/10 sm:flex-row sm:items-center sm:justify-between rounded-t-2xl",
             densityClasses.header,
+            headerClassName,
           )}
         >
-          <div className="flex min-w-0 items-start gap-2.5">
+          <div className="flex min-w-0 items-center gap-3">
             {Icon ? (
-              <Icon className="mt-0.5 size-4 shrink-0 text-dashboard-primary" aria-hidden />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-dashboard-primary-soft text-dashboard-primary">
+                <Icon className="size-4" aria-hidden />
+              </span>
             ) : null}
             <div className="min-w-0">
               {title ? (
-                <h2 className="font-serif text-base font-semibold text-foreground">{title}</h2>
+                <h2 className="font-serif text-base font-bold text-foreground">{title}</h2>
               ) : null}
               {description ? (
                 <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
@@ -315,16 +331,22 @@ export function DashboardSection({
 }
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold leading-none",
+  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold leading-none shadow-sm transition-all",
   {
     variants: {
       tone: {
-        primary: toneClasses.primary,
-        neutral: toneClasses.neutral,
-        information: toneClasses.information,
-        success: toneClasses.success,
-        warning: toneClasses.warning,
-        danger: toneClasses.danger,
+        primary:
+          "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300",
+        neutral:
+          "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300",
+        information:
+          "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300",
+        success:
+          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+        warning:
+          "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+        danger:
+          "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300",
       },
       state: stateClasses,
     },
@@ -443,19 +465,19 @@ export function EmptyState({
     <div
       data-slot="dashboard-empty-state"
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed border-dashboard-border/80 bg-dashboard-canvas-elevated/40 px-5 py-9 text-center",
+        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border/80 bg-gradient-to-b from-slate-50/50 via-dashboard-panel to-blue-50/15 px-6 py-10 text-center",
         className,
       )}
       {...props}
     >
       {Icon ? (
-        <span className="mb-3 flex size-10 items-center justify-center rounded-full border border-dashboard-border bg-dashboard-panel text-dashboard-neutral">
-          <Icon className="size-5" aria-hidden />
+        <span className="mb-3.5 flex size-12 items-center justify-center rounded-2xl border border-dashboard-primary/20 bg-dashboard-primary-soft text-dashboard-primary shadow-sm transition-transform duration-300 hover:scale-110">
+          <Icon className="size-6 opacity-75" aria-hidden />
         </span>
       ) : null}
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="text-sm font-bold text-foreground">{title}</h3>
       {description ? (
-        <p className="mt-1 max-w-md text-xs text-muted-foreground">{description}</p>
+        <p className="mt-1.5 max-w-md text-xs text-muted-foreground">{description}</p>
       ) : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
@@ -463,20 +485,20 @@ export function EmptyState({
 }
 
 const dashboardButtonVariants = cva(
-  "inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-all outline-none disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas",
+  "inline-flex h-9 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-all outline-none disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas active:scale-[0.98]",
   {
     variants: {
       variant: {
         primary:
-          "bg-dashboard-primary text-dashboard-primary-foreground shadow-sm hover:bg-dashboard-primary-hover active:bg-dashboard-primary-pressed",
+          "bg-dashboard-primary text-white shadow-sm shadow-blue-500/20 hover:bg-dashboard-primary-hover active:bg-dashboard-primary-pressed",
         secondary:
-          "bg-dashboard-secondary text-dashboard-secondary-foreground hover:bg-dashboard-secondary-hover active:bg-dashboard-secondary-pressed",
+          "border border-dashboard-border bg-white text-foreground hover:bg-dashboard-panel-hover hover:border-dashboard-primary/30 shadow-sm dark:bg-slate-900",
         outline:
           "border border-dashboard-border bg-dashboard-panel text-foreground hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover active:bg-dashboard-panel-pressed",
         ghost:
           "text-dashboard-primary hover:bg-dashboard-primary-soft active:bg-dashboard-panel-pressed",
         destructive:
-          "bg-dashboard-danger text-dashboard-primary-foreground hover:brightness-110 active:brightness-90",
+          "bg-dashboard-danger text-white shadow-sm hover:brightness-110 active:brightness-90",
       },
       state: stateClasses,
       size: {

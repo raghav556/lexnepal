@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   ArrowRight,
@@ -334,7 +335,7 @@ export default function StaffDashboard() {
       portal="staff"
       loading={isLoading}
       loadingLabel="Preparing your operations workspace…"
-      heroClassName="p-4 sm:p-5 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
+      heroClassName="hero-animate-in p-4 sm:p-5 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
       eyebrow={<DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />}
       title={firstName ? `Good ${dayPart}, ${firstName}` : `Good ${dayPart}`}
       description="A focused view of hearings, deadlines, cases, and team capacity."
@@ -365,23 +366,41 @@ export default function StaffDashboard() {
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {metrics.map((metric) => (
-          <MetricCard
-            key={metric.label}
-            label={metric.label}
-            value={metric.value}
-            icon={metric.icon}
-            tone={metric.tone}
-            helperText={metric.helper}
-            density="compact"
-            chevron={Boolean(metric.href)}
-          />
-        ))}
+        {metrics.map((metric) => {
+          const card = (
+            <MetricCard
+              label={metric.label}
+              value={metric.value}
+              icon={metric.icon}
+              tone={metric.tone}
+              helperText={metric.helper}
+              density="compact"
+              chevron={Boolean(metric.href)}
+              className={cn(
+                "h-full card-micro-lift",
+                metric.href &&
+                  "transition-all group-hover:border-dashboard-primary/50 group-hover:shadow-md",
+              )}
+            />
+          );
+          return metric.href ? (
+            <Link
+              key={metric.label}
+              href={metric.href}
+              className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+            >
+              {card}
+            </Link>
+          ) : (
+            <div key={metric.label}>{card}</div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <DashboardSection
           density="compact"
+          className="flex flex-col min-h-[300px] h-full card-micro-lift"
           title="My Day"
           description="Today's schedule at a glance"
           icon={CalendarDays}
@@ -407,6 +426,7 @@ export default function StaffDashboard() {
 
         <DashboardSection
           density="compact"
+          className="flex flex-col min-h-[300px] h-full card-micro-lift"
           title="Priority Tasks"
           description="Ordered by urgency and due date"
           icon={CheckSquare}
@@ -462,6 +482,7 @@ export default function StaffDashboard() {
 
         <DashboardSection
           density="compact"
+          className="flex flex-col min-h-[300px] h-full card-micro-lift"
           title="Upcoming Hearings"
           description="Court commitments and milestone dates"
           icon={CalendarDays}
@@ -525,7 +546,7 @@ export default function StaffDashboard() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <DashboardSection
           density="compact"
-          className="xl:col-span-5"
+          className="xl:col-span-5 card-micro-lift"
           title="My Cases"
           description="Active matters and their next court dates"
           icon={FolderOpen}
@@ -600,7 +621,7 @@ export default function StaffDashboard() {
 
         <DashboardSection
           density="compact"
-          className="xl:col-span-3"
+          className="xl:col-span-3 card-micro-lift"
           title="Recent Documents"
           description="Latest uploads across your matters"
           icon={FileText}
@@ -650,7 +671,7 @@ export default function StaffDashboard() {
 
         <DashboardSection
           density="compact"
-          className="xl:col-span-4"
+          className="xl:col-span-4 card-micro-lift"
           title="Messages & Team Updates"
           description="Latest direct messages from the team"
           icon={MessagesSquare}
@@ -705,7 +726,7 @@ export default function StaffDashboard() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <DashboardSection
           density="compact"
-          className="xl:col-span-2"
+          className="xl:col-span-2 card-micro-lift"
           title="Team Workload"
           description="Open, high-priority, and overdue assignments"
           icon={Users}
@@ -763,6 +784,7 @@ export default function StaffDashboard() {
 
         <DashboardSection
           density="compact"
+          className="card-micro-lift"
           title="Quick Actions"
           description="Create, add, or manage items quickly"
           icon={Sparkles}

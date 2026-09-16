@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Upload,
   CalendarPlus2,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n-context";
@@ -31,9 +32,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface PortalTopbarProps {
+export interface PortalTopbarProps {
   portal: "admin" | "staff" | "client";
   onOpenCommandCenter?: () => void;
+  onOpenSearch?: () => void;
+  onOpenChat?: () => void;
   className?: string;
 }
 
@@ -55,7 +58,6 @@ const SEGMENT_LABELS: Record<string, { label: string; i18nKey?: string }> = {
   hr: { label: "People & HR", i18nKey: "nav.hr" },
   profile: { label: "Profile & Settings", i18nKey: "nav.profile" },
   analytics: { label: "Analytics", i18nKey: "nav.analytics" },
-  "conflict-checker": { label: "Conflict Checker", i18nKey: "nav.conflict_checker" },
   users: { label: "Users", i18nKey: "nav.users" },
   cms: { label: "Public CMS", i18nKey: "nav.cms" },
   homepage: { label: "Homepage Editor" },
@@ -80,7 +82,13 @@ const SEGMENT_LABELS: Record<string, { label: string; i18nKey?: string }> = {
   notifications: { label: "Notifications", i18nKey: "nav.notifications" },
 };
 
-export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalTopbarProps) {
+export function PortalTopbar({
+  portal,
+  onOpenCommandCenter,
+  onOpenSearch,
+  onOpenChat,
+  className,
+}: PortalTopbarProps) {
   const pathname = usePathname();
   const { t } = useI18n();
 
@@ -96,7 +104,8 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
   const isStaff = portal === "staff";
   const isClient = portal === "client";
   const isLight = isStaff || isClient || portal === "admin";
-  const showCommandSearch = typeof onOpenCommandCenter === "function";
+  const handleSearch = onOpenSearch || onOpenCommandCenter;
+  const showCommandSearch = typeof handleSearch === "function";
 
   return (
     <header
@@ -109,7 +118,7 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
       )}
     >
       <div className="flex min-w-0 items-center gap-2 pr-4">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-medium">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[13px] font-medium">
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={crumb.href}>
               {idx > 0 && (
@@ -139,13 +148,13 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
 
         <div
           className={cn(
-            "ml-3 hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium xl:inline-flex",
+            "ml-3 hidden items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-md xl:inline-flex shadow-2xs",
             isClient
-              ? "border-dashboard-information/40 bg-dashboard-information-soft text-dashboard-information-foreground"
-              : "border-dashboard-success/40 bg-dashboard-success-soft text-dashboard-success-foreground",
+              ? "border-emerald-500/30 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border-emerald-500/30 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300",
           )}
         >
-          <span className="size-1.5 animate-pulse rounded-full bg-dashboard-success" />
+          <span className="size-1.5 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
           <span>{isClient ? "Secure Session" : "Live Enterprise"}</span>
         </div>
       </div>
@@ -154,21 +163,21 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
         <div className="mx-2 hidden max-w-md flex-1 sm:block">
           <button
             type="button"
-            onClick={onOpenCommandCenter}
+            onClick={handleSearch}
             className={cn(
-              "group flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-1.5 text-xs shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
-              "border-dashboard-border bg-dashboard-neutral-soft text-muted-foreground hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover hover:text-foreground",
+              "group flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-1.5 text-xs shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+              "border-dashboard-border/80 bg-dashboard-neutral-soft/80 text-muted-foreground hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover hover:text-foreground",
             )}
           >
             <div className="flex items-center gap-2 truncate">
-              <Search className="size-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
+              <Search className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-dashboard-primary" />
               <span className="truncate">
                 {isClient
                   ? "Search your cases, documents, messages…"
                   : "Search cases, clients, documents, tasks…"}
               </span>
             </div>
-            <kbd className="hidden items-center gap-0.5 rounded border border-dashboard-border bg-dashboard-panel px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground md:inline-flex">
+            <kbd className="hidden items-center gap-0.5 rounded border border-dashboard-border bg-dashboard-panel px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground shadow-2xs md:inline-flex">
               <Command className="size-2.5" /> K
             </kbd>
           </button>
@@ -178,6 +187,19 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
       )}
 
       <div className="flex shrink-0 items-center gap-2.5">
+        {portal === "admin" ? (
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Preview live public website in new tab"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-dashboard-border bg-dashboard-panel px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-dashboard-panel-hover hover:text-foreground"
+          >
+            <ExternalLink className="size-3 text-dashboard-primary" />
+            <span>Live Site</span>
+          </Link>
+        ) : null}
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -243,8 +265,8 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/admin/conflict-checker" className="flex items-center gap-2 text-xs">
-                    <ShieldCheck className="size-3.5 text-dashboard-warning" /> Run Conflict Check
+                  <Link href="/staff/cases" className="flex items-center gap-2 text-xs">
+                    <FolderPlus className="size-3.5 text-dashboard-warning" /> New Case Matter
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -260,6 +282,20 @@ export function PortalTopbar({ portal, onOpenCommandCenter, className }: PortalT
         <div className="hidden lg:block">
           <DualDateDisplay className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft px-2.5 py-1 text-[11px] font-medium leading-tight text-muted-foreground" />
         </div>
+
+        {onOpenChat ? (
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={onOpenChat}
+              title="Open Team & Client Messages"
+              aria-label="Open Messages"
+              className="flex size-8 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-panel text-muted-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover hover:text-foreground"
+            >
+              <MessageSquare className="size-4" />
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex items-center">
           <NotificationBell triggerClassName="size-8 rounded-lg border border-dashboard-border bg-dashboard-panel text-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover" />

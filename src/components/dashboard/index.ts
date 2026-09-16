@@ -11,6 +11,8 @@ export * from "./portal-footer";
 export * from "./portal-sidebar";
 export * from "./portal-mobile-nav";
 export * from "./schedule-timeline";
+export * from "./scroll-to-top";
+export * from "./global-search-palette";
 export type { DashboardTone } from "@/lib/dashboard-semantics";
 export {
   getDashboardStatusTone,

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   caseCreateSchema,
   clientCreateSchema,
-  conflictSearchSchema,
   kycReviewSchema,
   kycSubmitSchema,
   kycUploadIntentSchema,
@@ -60,7 +59,7 @@ describe("matters contracts", () => {
       kycReviewSchema.safeParse({ decision: "rejected", rejectionReason: "Unreadable ID" }).success,
     ).toBe(true);
   });
-  it("validates complete case relationships and bounded conflict queries", () => {
+  it("validates complete case relationships", () => {
     expect(
       caseCreateSchema.safeParse({
         caseNumber: "CASE-1",
@@ -71,6 +70,5 @@ describe("matters contracts", () => {
         teamMemberIds: [],
       }).success,
     ).toBe(true);
-    expect(conflictSearchSchema.safeParse({ query: "a" }).success).toBe(false);
   });
 });

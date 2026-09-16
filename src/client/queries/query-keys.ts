@@ -34,14 +34,6 @@ export const queryKeys = {
     detail: (id: string) => ["clients", "detail", id] as const,
     kycFiles: (id: string) => ["clients", "detail", id, "kyc-files"] as const,
   },
-  conflicts: {
-    all: ["conflict-checks"] as const,
-    recent: ["conflict-checks", "recent"] as const,
-    stats: ["conflict-checks", "stats"] as const,
-    preview: (query: string, scope?: unknown) =>
-      ["conflict-checks", "preview", query, scope ?? "all"] as const,
-    search: (query: string) => ["conflict-checks", "search", query] as const,
-  },
   tasks: {
     all: ["tasks"] as const,
     list: (filters: unknown) => ["tasks", "list", filters] as const,

@@ -1,44 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Lock, MessageCircle, Paperclip, Send } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { MessageSquare, ShieldCheck, Lock, Globe } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button.tsx";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Input } from "@/components/ui/input.tsx";
 import { useMessages, useMessageCommands } from "@/client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 import { computeSHA256 } from "@/lib/document-utils.ts";
 import { apiClient } from "@/client/api/client";
+import {
+  LuxuryChatBubble,
+  LuxuryChatComposer,
+  LuxuryChatHeader,
+  type UnifiedChatMessage,
+} from "@/components/chat";
 
-type DirectoryUser = { _id?: string; id?: string; name?: string | null };
+type DirectoryUser = { _id?: string; id?: string; name?: string | null; role?: string };
 
-type MatterChatPanelProps = {
+export type MatterChatPanelProps = {
   caseId: string;
   title?: string;
+  subtitle?: string;
+  caseNumber?: string;
   mode: "client" | "staff";
   /**
    * Staff stream filter:
    * - client: only client-visible messages (force Client Reply)
    * - team: only internal case-team messages (force Internal)
-   * - all: mixed list with toggle (legacy Command Center)
+   * - all: mixed list with toggle
    */
   stream?: "client" | "team" | "all";
+  onStreamChange?: (stream: "client" | "team") => void;
   users?: DirectoryUser[];
   className?: string;
   showBack?: boolean;
   onBack?: () => void;
+  onClose?: () => void;
   bordered?: boolean;
 };
 
-async function sha256Hex(file: File): Promise<string> {
-  return computeSHA256(file);
-}
-
-/** Upload a file via document-upload intents; returns storage object key for messageAttachments. */
 async function uploadAttachmentStorageId(file: File, caseId: string): Promise<string> {
-  const sha256 = await sha256Hex(file);
+  const sha256 = await computeSHA256(file);
   const intent = await apiClient.request<{
     intentId: string;
     upload: { url: string; fields: Record<string, string> };
@@ -61,42 +63,55 @@ async function uploadAttachmentStorageId(file: File, caseId: string): Promise<st
     method: "POST",
     body: {},
   });
-  const storageId =
+  return (
     intent.upload.fields.key ||
     intent.upload.fields.Key ||
-    `quarantine-attachment:${intent.intentId}`;
-  return storageId;
+    `quarantine-attachment:${intent.intentId}`
+  );
+}
+
+function formatDateSeparator(dateInput?: string | Date): string {
+  if (!dateInput) return "";
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) return "";
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function MatterChatPanel({
   caseId,
-  title = "Chat",
+  title = "Matter Chat",
+  subtitle,
+  caseNumber,
   mode,
   stream = "all",
+  onStreamChange,
   users = [],
   className,
   showBack,
   onBack,
+  onClose,
   bordered = true,
 }: MatterChatPanelProps) {
   const currentUser = useCurrentUser();
   const listFilter =
     mode === "client" ? false : stream === "team" ? true : stream === "client" ? false : undefined;
-  const { data: messagesResponse } = useMessages(caseId, listFilter);
+
+  const { data: messagesResponse, isLoading } = useMessages(caseId, listFilter);
   const messages = messagesResponse?.page || [];
   const { sendMessage, markMessagesRead } = useMessageCommands();
 
   const forcedInternal = mode === "staff" && stream === "team";
   const forcedClient = mode === "client" || (mode === "staff" && stream === "client");
 
-  const [draft, setDraft] = useState("");
   const [isInternal, setIsInternal] = useState(forcedInternal);
-  const [pendingAttachments, setPendingAttachments] = useState<
-    { name: string; storageId: string }[]
-  >([]);
-  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setIsInternal(forcedInternal);
@@ -113,228 +128,147 @@ export function MatterChatPanel({
   const uid = currentUser?._id || currentUser?.id;
   const sendAsInternal = forcedClient ? false : forcedInternal ? true : isInternal;
 
-  const handleAttach = async (file: File | null) => {
-    if (!file || !caseId) return;
-    setUploading(true);
-    try {
-      const storageId = await uploadAttachmentStorageId(file, caseId);
-      setPendingAttachments((prev) => [...prev, { name: file.name, storageId }]);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to attach file");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  const handleAttachFile = async (file: File) => {
+    if (!caseId) throw new Error("No active matter");
+    const storageId = await uploadAttachmentStorageId(file, caseId);
+    return { name: file.name, storageId };
   };
 
-  const handleSend = async () => {
-    if (!caseId || (!draft.trim() && pendingAttachments.length === 0)) return;
+  const handleSendMessage = async (content: string, attachmentIds?: string[]) => {
+    if (!caseId) return;
     try {
       await sendMessage.mutateAsync({
         caseId,
-        content: draft.trim() || "(attachment)",
+        content: content || "(attachment)",
         isInternal: mode === "staff" ? sendAsInternal : false,
-        attachmentIds: pendingAttachments.map((a) => a.storageId),
+        attachmentIds: attachmentIds && attachmentIds.length > 0 ? attachmentIds : undefined,
       });
-      setDraft("");
-      setPendingAttachments([]);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to send message.");
+      throw err;
     }
   };
 
   const emptyCopy =
     stream === "team"
-      ? "No case team messages yet. Discuss strategy here — clients cannot see this thread."
+      ? "No confidential case team notes yet. Share internal strategy and litigation notes here — clients cannot see this thread."
       : stream === "client"
-        ? "No client-visible messages yet. Reply here to message the client."
-        : "No messages yet. Send a message to start the conversation.";
+        ? "No client-visible messages yet. Reply here to communicate directly with the client."
+        : "No messages yet. Send an update or document to start this matter conversation.";
 
-  const body = (
-    <>
-      <CardHeader className="pb-3 border-b border-border bg-card flex flex-row items-center gap-2 shrink-0">
-        {showBack ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="md:hidden p-1 h-auto"
-            onClick={onBack}
-            aria-label="Back to threads"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        ) : null}
-        <CardTitle className="text-sm font-semibold text-primary font-serif flex-1 truncate">
-          {title}
-        </CardTitle>
-        {stream === "team" ? (
-          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
-            <Lock className="w-3 h-3" /> Team only
-          </span>
-        ) : null}
-      </CardHeader>
+  return (
+    <div
+      className={cn(
+        "flex flex-col h-full min-h-[360px] bg-slate-950 text-slate-100 overflow-hidden",
+        bordered && "border border-slate-800 rounded-2xl shadow-xl",
+        className,
+      )}
+    >
+      {/* Executive Chat Header */}
+      <LuxuryChatHeader
+        type="matter"
+        title={title}
+        subtitle={subtitle || (caseNumber ? `Matter ${caseNumber}` : "Client & Team Messaging")}
+        badge={caseNumber}
+        stream={stream}
+        onStreamChange={onStreamChange}
+        showBack={showBack}
+        onBack={onBack}
+        onClose={onClose}
+      />
 
-      <div className="flex-1 p-4 space-y-3.5 overflow-y-auto bg-secondary/15 flex flex-col justify-end min-h-0">
-        <div className="space-y-3.5 overflow-y-auto max-h-full">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground gap-2">
-              <MessageCircle className="w-8 h-8 text-muted-foreground/50" />
-              <p className="text-xs max-w-xs">{emptyCopy}</p>
+      {/* Stream Notice Bar */}
+      {stream === "team" && (
+        <div className="px-4 py-1.5 bg-amber-950/40 border-b border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-1.5 font-medium shrink-0">
+          <Lock className="size-3 text-amber-400 shrink-0" />
+          <span>Case Team Confidential Room — Messages here are invisible to clients.</span>
+        </div>
+      )}
+      {stream === "client" && mode === "staff" && (
+        <div className="px-4 py-1.5 bg-blue-950/40 border-b border-blue-500/20 text-[11px] text-blue-300 flex items-center gap-1.5 font-medium shrink-0">
+          <Globe className="size-3 text-blue-400 shrink-0" />
+          <span>Client Channel — Messages sent here are directly visible to the client.</span>
+        </div>
+      )}
+
+      {/* Message Stream Area */}
+      <div className="flex-1 p-4 overflow-y-auto space-y-2 bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950">
+        {messages.length === 0 ? (
+          <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6 text-slate-400 gap-3">
+            <div className="size-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
+              <MessageSquare className="size-6" />
             </div>
-          ) : (
-            messages.map((msg: any) => {
+            <p className="text-xs font-medium max-w-sm leading-relaxed text-slate-400">
+              {emptyCopy}
+            </p>
+          </div>
+        ) : (
+          (() => {
+            let lastDate = "";
+            return messages.map((msg: any) => {
               const sender = users.find((u) => u._id === msg.senderId || u.id === msg.senderId);
               const isMe = msg.senderId === uid;
               const dateObj = new Date(msg._creationTime || msg.createdAt);
-              const formattedTime = dateObj.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-              const attachments: string[] = msg.attachmentIds || [];
+              const dateStr = formatDateSeparator(dateObj);
+              const showDateSep = dateStr !== lastDate;
+              if (showDateSep) lastDate = dateStr;
+
+              const attachments = (msg.attachmentIds || []).map((id: string) => ({
+                id,
+                name: id.split("/").pop() || "Attached file",
+                url: `/api/v1/documents/${id}/download`,
+              }));
+
+              const unifiedMsg: UnifiedChatMessage = {
+                id: msg._id || msg.id,
+                senderId: msg.senderId,
+                senderName: isMe
+                  ? "You"
+                  : sender?.name || (mode === "client" ? "Legal Team" : "Staff"),
+                senderRole: isMe ? currentUser?.role : sender?.role,
+                content: msg.content,
+                createdAt: dateObj,
+                isInternal: Boolean(msg.isInternal),
+                isMe,
+                attachments,
+                status: "read",
+              };
 
               return (
-                <div
-                  key={msg._id || msg.id}
-                  className={cn("flex w-full", isMe ? "justify-end" : "justify-start")}
-                >
-                  <div
-                    className={cn(
-                      "rounded-xl px-3.5 py-2.5 max-w-[85%] text-xs shadow-2xs border",
-                      msg.isInternal
-                        ? "bg-muted text-foreground border-border"
-                        : isMe
-                          ? "bg-primary text-primary-foreground border-primary rounded-tr-none"
-                          : "bg-card text-foreground border-border rounded-tl-none",
-                    )}
-                  >
-                    {msg.isInternal && mode === "staff" ? (
-                      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1.5 pb-1 border-b border-border/50">
-                        <Lock className="w-3 h-3" /> Case team
-                      </div>
-                    ) : null}
-                    <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                    {attachments.length > 0 ? (
-                      <div className="mt-2 space-y-1">
-                        {attachments.map((id) => (
-                          <div
-                            key={id}
-                            className="text-[10px] font-medium opacity-80 truncate flex items-center gap-1"
-                          >
-                            <Paperclip className="w-3 h-3 shrink-0" />
-                            {id.split("/").pop()}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div
-                      className={cn(
-                        "text-[9px] mt-1 opacity-75 font-semibold",
-                        isMe && !msg.isInternal
-                          ? "text-primary-foreground/90"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {isMe
-                        ? "You"
-                        : sender?.name || (mode === "client" ? "Legal team" : "Unknown")}{" "}
-                      &bull; {formattedTime}
+                <React.Fragment key={unifiedMsg.id}>
+                  {showDateSep && (
+                    <div className="flex items-center my-3 select-none">
+                      <div className="h-px bg-slate-800 flex-1" />
+                      <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {dateStr}
+                      </span>
+                      <div className="h-px bg-slate-800 flex-1" />
                     </div>
-                  </div>
-                </div>
+                  )}
+                  <LuxuryChatBubble message={unifiedMsg} />
+                </React.Fragment>
               );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      <div className="p-3 border-t border-border bg-card space-y-2 shrink-0">
-        {pendingAttachments.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {pendingAttachments.map((a) => (
-              <span
-                key={a.storageId}
-                className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground truncate max-w-[160px]"
-              >
-                {a.name}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {mode === "staff" && stream === "all" ? (
-          <label className="flex items-center gap-2 cursor-pointer w-fit">
-            <input
-              type="checkbox"
-              className="rounded border-border"
-              checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
-            />
-            <span className="text-xs font-medium text-muted-foreground">
-              {isInternal ? "Internal note (hidden from client)" : "Client reply (visible)"}
-            </span>
-          </label>
-        ) : null}
-        <div className="flex gap-2 items-center">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={(e) => void handleAttach(e.target.files?.[0] || null)}
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Attach file"
-          >
-            <Paperclip className="w-4 h-4" />
-          </Button>
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={
-              sendAsInternal
-                ? "Message the case team (hidden from client)..."
-                : mode === "staff"
-                  ? "Reply to client..."
-                  : "Type your message to advocate..."
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void handleSend();
-              }
-            }}
-          />
-          <Button
-            size="sm"
-            onClick={() => void handleSend()}
-            disabled={(!draft.trim() && pendingAttachments.length === 0) || uploading}
-          >
-            {sendAsInternal ? <Lock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-
-  if (!bordered) {
-    return (
-      <div
-        className={cn(
-          "flex flex-col h-full min-h-[320px] border rounded-xl overflow-hidden",
-          className,
+            });
+          })()
         )}
-      >
-        {body}
+        <div ref={messagesEndRef} />
       </div>
-    );
-  }
 
-  return (
-    <Card className={cn("flex flex-col border overflow-hidden h-full", className)}>{body}</Card>
+      {/* Luxury Chat Composer */}
+      <LuxuryChatComposer
+        isInternal={sendAsInternal}
+        canToggleInternal={mode === "staff" && stream === "all"}
+        onToggleInternal={setIsInternal}
+        onSendMessage={handleSendMessage}
+        onAttachFile={handleAttachFile}
+        placeholder={
+          sendAsInternal
+            ? "Share internal strategy or confidential case notes…"
+            : mode === "staff"
+              ? "Reply to client with legal advice, updates, or instructions…"
+              : "Message your advocate or legal counsel…"
+        }
+      />
+    </div>
   );
 }

@@ -121,6 +121,7 @@
     from {
       transform: translateX(0);
     }
+
     to {
       transform: translateX(-50%);
     }
@@ -136,18 +137,23 @@
   --card-foreground: oklch(0.18 0.015 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.015 260);
-  --primary: oklch(0.32 0.06 265); /* deep navy */
+  --primary: oklch(0.32 0.06 265);
+  /* deep navy */
   --primary-foreground: oklch(0.98 0.004 80);
-  --secondary: oklch(0.94 0.018 80); /* warm ivory */
+  --secondary: oklch(0.94 0.018 80);
+  /* warm ivory */
   --secondary-foreground: oklch(0.32 0.06 265);
   --muted: oklch(0.94 0.008 80);
   --muted-foreground: oklch(0.47 0.02 260);
-  --accent: oklch(0.68 0.12 60); /* gold accent */
+  --accent: oklch(0.68 0.12 60);
+  /* gold accent */
   --accent-foreground: oklch(0.18 0.015 260);
-  --accent-strong: #8a4f0d; /* accessible gold-brown for text on light surfaces */
+  --accent-strong: #8a4f0d;
+  /* accessible gold-brown for text on light surfaces */
   --destructive: oklch(0.58 0.22 27);
   --border: oklch(0.88 0.01 80);
-  --input: oklch(0.96 0.006 80); /* light warm surface for inputs */
+  --input: oklch(0.96 0.006 80);
+  /* light warm surface for inputs */
   --ring: oklch(0.68 0.12 60);
   --chart-1: oklch(0.68 0.12 60);
   --chart-2: oklch(0.55 0.14 200);
@@ -172,7 +178,8 @@
   --card-foreground: oklch(0.93 0.006 80);
   --popover: oklch(0.19 0.018 265);
   --popover-foreground: oklch(0.93 0.006 80);
-  --primary: oklch(0.68 0.12 60); /* gold as primary in dark */
+  --primary: oklch(0.68 0.12 60);
+  /* gold as primary in dark */
   --primary-foreground: oklch(0.14 0.015 265);
   --secondary: oklch(0.24 0.025 265);
   --secondary-foreground: oklch(0.93 0.006 80);
@@ -183,7 +190,8 @@
   --accent-strong: #f6c453;
   --destructive: oklch(0.65 0.2 22);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(0.22 0.02 265); /* dark charcoal surface for inputs - not transparent */
+  --input: oklch(0.22 0.02 265);
+  /* dark charcoal surface for inputs - not transparent */
   --ring: oklch(0.68 0.12 60);
   --chart-1: oklch(0.68 0.12 60);
   --chart-2: oklch(0.6 0.15 200);
@@ -299,50 +307,117 @@
 }
 
 .dashboard-theme.dashboard-admin {
-  --dashboard-primary: #5b5ce2;
-  --dashboard-primary-hover: #4e4fca;
-  --dashboard-primary-pressed: #4142ad;
-  --dashboard-primary-soft: #edecff;
-  --dashboard-focus: #5b5ce2;
-  --dashboard-accent: #d6ab42;
-  --dashboard-accent-soft: #fff6dc;
-  --dashboard-accent-foreground: #6b4e08;
-  /* Admin reference (Phase 3D): light working canvas and hero over the navy sidebar. */
-  --dashboard-hero-start: #ffffff;
-  --dashboard-hero-end: #f8fafc;
-  --dashboard-hero-foreground: #0f172a;
-  --dashboard-hero-muted: #64748b;
-  --dashboard-hero-border: #e2e8f0;
-  --dashboard-chart-1: #9a6b00;
-  --dashboard-chart-2: #059669;
-  --dashboard-chart-3: #5b5ce2;
-  --dashboard-chart-4: #8b5cf6;
-  --dashboard-chart-5: #0891b2;
+  /* ── EduDash Core Palette: Royal Cobalt Blue + Vibrant Tangerine ── */
+  --dashboard-primary: #487fff;
+  --dashboard-primary-hover: #458eff;
+  --dashboard-primary-pressed: #4536b6;
+  --dashboard-primary-soft: #e4f1ff;
+  --dashboard-focus: #487fff;
+  --dashboard-accent: #ff9f29;
+  --dashboard-accent-soft: #fff7ed;
+  --dashboard-accent-foreground: #9a3412;
 
-  /* The admin shell always owns a dark executive sidebar. */
-  --dashboard-sidebar: #101a2c;
-  --dashboard-sidebar-deep: #0c1222;
-  --dashboard-sidebar-bg-from: #101a2c;
-  --dashboard-sidebar-bg-to: #0c1222;
+  /* ── Canvas, Panels & Surfaces ── */
+  --dashboard-canvas: #f5f6fa;
+  --dashboard-canvas-elevated: #ffffff;
+  --dashboard-panel: #ffffff;
+  --dashboard-panel-hover: #f8fafc;
+  --dashboard-border: #e2e8f0;
+
+  /* ── Executive Hero: Deep Navy to Royal Cobalt Gradient ── */
+  --dashboard-hero-start: #0f172a;
+  --dashboard-hero-mid: #1e3a8a;
+  --dashboard-hero-end: #487fff;
+  --dashboard-hero-foreground: #ffffff;
+  --dashboard-hero-muted: rgba(255, 255, 255, 0.8);
+  --dashboard-hero-border: rgba(255, 255, 255, 0.18);
+
+  /* ── Glassmorphism Panel Tokens ── */
+  --dashboard-glass-bg: rgba(255, 255, 255, 0.85);
+  --dashboard-glass-border: rgba(255, 255, 255, 0.6);
+  --dashboard-glass-blur: 16px;
+  --dashboard-glass-shadow: 0 4px 20px -2px rgba(72, 127, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --dashboard-glass-shadow-hover:
+    0 12px 28px -4px rgba(72, 127, 255, 0.12), 0 4px 10px rgba(0, 0, 0, 0.05);
+
+  /* ── EduDash Multi-Tone Metric Cards (Full Pastel Tints + Solid Glyphs) ── */
+  --dashboard-metric-cases-bg: #e4f1ff;
+  --dashboard-metric-cases-border: #bfdcff;
+  --dashboard-metric-cases-icon: #487fff;
+  --dashboard-metric-cases-text: #1e3a8a;
+
+  --dashboard-metric-hearings-bg: #f0fdf4;
+  --dashboard-metric-hearings-border: #bbf7d0;
+  --dashboard-metric-hearings-icon: #16a34a;
+  --dashboard-metric-hearings-text: #14532d;
+
+  --dashboard-metric-leads-bg: #eff6ff;
+  --dashboard-metric-leads-border: #bfdbfe;
+  --dashboard-metric-leads-icon: #3b82f6;
+  --dashboard-metric-leads-text: #1e3a8a;
+
+  --dashboard-metric-danger-bg: #fef2f2;
+  --dashboard-metric-danger-border: #fecaca;
+  --dashboard-metric-danger-icon: #dc2626;
+  --dashboard-metric-danger-text: #7f1d1d;
+
+  --dashboard-metric-warning-bg: #fff7ed;
+  --dashboard-metric-warning-border: #fed7aa;
+  --dashboard-metric-warning-icon: #ff9f29;
+  --dashboard-metric-warning-text: #7c2d12;
+
+  --dashboard-metric-people-bg: #f5edff;
+  --dashboard-metric-people-border: #e9d5ff;
+  --dashboard-metric-people-icon: #8c01f9;
+  --dashboard-metric-people-text: #581c87;
+
+  /* ── Chart Palette ── */
+  --dashboard-chart-1: #487fff;
+  --dashboard-chart-2: #16a34a;
+  --dashboard-chart-3: #ff9f29;
+  --dashboard-chart-4: #8c01f9;
+  --dashboard-chart-5: #06b6d4;
+
+  /* ── Micro-animation Easing & Timing ── */
+  --dashboard-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dashboard-ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dashboard-duration-fast: 150ms;
+  --dashboard-duration-normal: 250ms;
+  --dashboard-duration-slow: 400ms;
+
+  /* ── Section Header Gradient Divider ── */
+  --dashboard-divider-gradient: linear-gradient(
+    90deg,
+    var(--dashboard-primary),
+    var(--dashboard-accent),
+    transparent
+  );
+
+  /* The admin shell always owns a dark executive sidebar with expanded width for tree navigation. */
+  --dashboard-sidebar-width: 17rem;
+  --dashboard-sidebar: #0f172a;
+  --dashboard-sidebar-deep: #090e17;
+  --dashboard-sidebar-bg-from: #0f172a;
+  --dashboard-sidebar-bg-to: #090e17;
   --dashboard-sidebar-foreground: #f8fafc;
-  --dashboard-sidebar-muted: #b7c3d6;
-  --dashboard-sidebar-heading: #9eabc1;
-  --dashboard-sidebar-heading-bar: #e4bd5b;
-  --dashboard-sidebar-active: #e9efff;
-  --dashboard-sidebar-active-foreground: #172033;
-  --dashboard-sidebar-active-border: #a7b9ee;
-  --dashboard-sidebar-active-icon: #3157d5;
-  --dashboard-sidebar-hover: #1b2942;
-  --dashboard-sidebar-border: #5d6f90;
-  --dashboard-sidebar-badge: #202d46;
-  --dashboard-sidebar-badge-foreground: #eef2ff;
-  --dashboard-sidebar-brand: #e4bd5b;
-  --dashboard-sidebar-brand-bg: #292852;
-  --dashboard-sidebar-brand-border: #9a7a32;
-  --dashboard-sidebar-brand-icon: #f6c453;
-  --dashboard-sidebar-brand-glow: rgba(228, 189, 91, 0.24);
-  --dashboard-sidebar-chevron: #b7c3d6;
-  --dashboard-sidebar-focus: #e4bd5b;
+  --dashboard-sidebar-muted: #94a3b8;
+  --dashboard-sidebar-heading: #64748b;
+  --dashboard-sidebar-heading-bar: #487fff;
+  --dashboard-sidebar-active: rgba(72, 127, 255, 0.15);
+  --dashboard-sidebar-active-foreground: #ffffff;
+  --dashboard-sidebar-active-border: rgba(72, 127, 255, 0.38);
+  --dashboard-sidebar-active-icon: #487fff;
+  --dashboard-sidebar-hover: rgba(255, 255, 255, 0.05);
+  --dashboard-sidebar-border: rgba(255, 255, 255, 0.08);
+  --dashboard-sidebar-badge: rgba(72, 127, 255, 0.2);
+  --dashboard-sidebar-badge-foreground: #93c5fd;
+  --dashboard-sidebar-brand: #487fff;
+  --dashboard-sidebar-brand-bg: #141f36;
+  --dashboard-sidebar-brand-border: rgba(72, 127, 255, 0.35);
+  --dashboard-sidebar-brand-icon: #487fff;
+  --dashboard-sidebar-brand-glow: rgba(72, 127, 255, 0.3);
+  --dashboard-sidebar-chevron: #94a3b8;
+  --dashboard-sidebar-focus: #487fff;
 }
 
 .dashboard-theme.dashboard-staff {
@@ -354,11 +429,13 @@
   --dashboard-accent: #d97706;
   --dashboard-accent-soft: #fef3c7;
   --dashboard-accent-foreground: #92400e;
-  --dashboard-hero-start: #ffffff;
-  --dashboard-hero-end: #f8fafc;
-  --dashboard-hero-foreground: #0f172a;
-  --dashboard-hero-muted: #64748b;
-  --dashboard-hero-border: #e2e8f0;
+  /* Executive hero: Deep Plum → Rich Violet → Purple */
+  --dashboard-hero-start: #1e1338;
+  --dashboard-hero-mid: #4c1d95;
+  --dashboard-hero-end: #6d28d9;
+  --dashboard-hero-foreground: #ffffff;
+  --dashboard-hero-muted: rgba(255, 255, 255, 0.8);
+  --dashboard-hero-border: rgba(255, 255, 255, 0.18);
   --dashboard-chart-1: #6d28d9;
   --dashboard-chart-2: #059669;
   --dashboard-chart-3: #2563eb;
@@ -387,6 +464,7 @@
   --dashboard-sidebar-brand-border: #2c4571;
   --dashboard-sidebar-chevron: #a9b8cd;
   --dashboard-sidebar-focus: #d6ab42;
+  --dashboard-sidebar-width: 15.5rem;
 }
 
 .dashboard-theme.dashboard-client {
@@ -402,11 +480,13 @@
   --dashboard-accent: #c99523;
   --dashboard-accent-soft: #fff6dc;
   --dashboard-accent-foreground: #6b4e08;
-  --dashboard-hero-start: #172554;
+  /* Executive hero: Deep Navy → Corporate Blue → Teal */
+  --dashboard-hero-start: #0f172a;
+  --dashboard-hero-mid: #172554;
   --dashboard-hero-end: #0f766e;
   --dashboard-hero-foreground: #f8fafc;
-  --dashboard-hero-muted: #f8fafc;
-  --dashboard-hero-border: #358b83;
+  --dashboard-hero-muted: rgba(255, 255, 255, 0.8);
+  --dashboard-hero-border: rgba(255, 255, 255, 0.18);
   --dashboard-chart-1: #3157d5;
   --dashboard-chart-2: #0f766e;
   --dashboard-chart-3: #9a6b00;
@@ -628,15 +708,16 @@
   font-family: var(--font-nepali);
 }
 
+/*
+ * Nepal Decorated Hero — Preserves the DashboardHero premium gradient
+ * and layers Nepal dhaka geometry + gold accent rail on top.
+ * The base DashboardHero gradient (navy → cobalt → royal blue) shines through;
+ * the decorated layer only adds cultural embellishments.
+ */
 .dashboard-hero-nepal {
-  background-color: var(--dashboard-panel);
-  background-image: linear-gradient(
-    135deg,
-    var(--dashboard-panel) 0%,
-    var(--dashboard-canvas-elevated) 100%
-  );
-  color: var(--foreground);
-  border: 1px solid var(--dashboard-border);
+  /* Don't override DashboardHero's gradient — inherit it.
+     Only add a subtle texture overlay via the border for depth. */
+  border-color: var(--dashboard-hero-border, rgba(255, 255, 255, 0.18));
 }
 
 .dashboard-hero-nepal::after {
@@ -644,8 +725,10 @@
   position: absolute;
   inset: 0;
   background-image: var(--nepal-dhaka-pattern);
-  opacity: var(--dashboard-hero-pattern-opacity, 0.05);
+  opacity: var(--dashboard-hero-pattern-opacity, 0.08);
   pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: overlay;
 }
 
 .dashboard-hero-nepal::before {
@@ -663,10 +746,7 @@
   );
   pointer-events: none;
   z-index: 1;
-}
-
-.dashboard-hero-nepal .font-serif {
-  color: var(--foreground);
+  border-radius: inherit;
 }
 
 /* Gold milestone rail on metric cards in Nepal-themed consoles */
@@ -674,30 +754,183 @@
   display: none;
 }
 
+/* ── Premium Dashboard Animations ── */
+@keyframes dashboard-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboard-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dashboard-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.dashboard-animate-in {
+  opacity: 0;
+  animation: dashboard-fade-in-up 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.dashboard-animate-stagger > * {
+  opacity: 0;
+  animation: dashboard-fade-in-up 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+.dashboard-animate-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.dashboard-animate-stagger > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.dashboard-animate-stagger > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.dashboard-animate-stagger > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.dashboard-animate-stagger > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.dashboard-animate-stagger > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+.dashboard-animate-stagger > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.dashboard-animate-stagger > *:nth-child(8) {
+  animation-delay: 420ms;
+}
+
+@keyframes metric-number-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-metric-value {
+  display: inline-block;
+  animation: metric-number-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle card header tints for executive dashboard visual hierarchy */
+.dashboard-header-tint-chart {
+  background: linear-gradient(
+    to right,
+    rgba(72, 127, 255, 0.08),
+    rgba(99, 102, 241, 0.03),
+    transparent
+  );
+  border-bottom-color: rgba(72, 127, 255, 0.15);
+}
+
+.dashboard-header-tint-priorities-clear {
+  background: linear-gradient(
+    to right,
+    rgba(16, 185, 129, 0.08),
+    rgba(20, 184, 166, 0.03),
+    transparent
+  );
+  border-bottom-color: rgba(16, 185, 129, 0.15);
+}
+
+.dashboard-header-tint-priorities-active {
+  background: linear-gradient(
+    to right,
+    rgba(245, 158, 11, 0.08),
+    rgba(249, 115, 22, 0.03),
+    transparent
+  );
+  border-bottom-color: rgba(245, 158, 11, 0.15);
+}
+
+.dashboard-header-tint-approvals {
+  background: linear-gradient(
+    to right,
+    rgba(245, 158, 11, 0.08),
+    rgba(234, 88, 12, 0.03),
+    transparent
+  );
+  border-bottom-color: rgba(245, 158, 11, 0.15);
+}
+
+.dashboard-header-tint-workload {
+  background: linear-gradient(
+    to right,
+    rgba(99, 102, 241, 0.08),
+    rgba(72, 127, 255, 0.03),
+    transparent
+  );
+  border-bottom-color: rgba(99, 102, 241, 0.15);
+}
+
+.dashboard-header-tint-audit {
+  background: linear-gradient(
+    to right,
+    rgba(148, 163, 184, 0.1),
+    rgba(203, 213, 225, 0.04),
+    transparent
+  );
+  border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   html {
-    scroll-padding-top: 5.5rem; /* sticky public header */
+    scroll-padding-top: 5.5rem;
+    /* sticky public header */
   }
+
   html,
   body {
     overflow-x: clip;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
   /* Ensure all native form elements always have correct foreground color in any theme */
   input,
   textarea,
   select {
     @apply text-foreground;
   }
+
   label {
     color: inherit;
   }
@@ -707,15 +940,144 @@
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: oklch(0.6 0.02 260 / 40%);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.6 0.02 260 / 70%);
+}
+
+/* ── Executive Dashboard Main Canvas Scrollbar ── */
+.dashboard-main-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-main-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dashboard-main-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 9999px;
+}
+
+.dashboard-main-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+}
+
+.dashboard-main-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(72, 127, 255, 0.7);
+  box-shadow: 0 0 12px rgba(72, 127, 255, 0.45);
+}
+
+/* ── Admin Sidebar Custom Luxury Scrollbar ── */
+.admin-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(72, 127, 255, 0.65);
+  box-shadow: 0 0 8px rgba(72, 127, 255, 0.35);
+}
+
+/* ── Collapsible Tree Navigation Guide Rails ── */
+.tree-branch-rail {
+  position: relative;
+}
+
+.tree-branch-rail::before {
+  content: "";
+  position: absolute;
+  left: 0.95rem;
+  top: 0.25rem;
+  bottom: 0.5rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(72, 127, 255, 0.4) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+/* ── Sidebar Subtle Scroll Fade Indicator ── */
+.sidebar-scroll-fade {
+  mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent 100%);
+}
+
+/* ── Staff Sidebar Navigation Refinements ── */
+.staff-nav-item {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.staff-nav-item:hover:not(.staff-nav-item-active) {
+  transform: translateX(2px);
+}
+
+.staff-nav-item-active::before {
+  content: "";
+  position: absolute;
+  left: -0.65rem;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 3.5px;
+  border-radius: 9999px;
+  background: var(--dashboard-sidebar-active-icon, #e4bd5b);
+  box-shadow: 0 0 10px rgba(228, 189, 91, 0.6);
+}
+
+/* ── Hero Subtle Entrance Transition ── */
+@keyframes hero-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-animate-in {
+  animation: hero-slide-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Card Micro-Lift on Hover ── */
+.card-micro-lift {
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-micro-lift:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 24px -4px rgba(0, 0, 0, 0.08),
+    0 4px 10px -2px rgba(0, 0, 0, 0.04);
 }
 
 /* A4 court-ready print layout for Trial Briefs */
@@ -724,12 +1086,14 @@
     size: A4;
     margin: 1.6cm;
   }
+
   html,
   body {
     background: white !important;
     color: black !important;
     overflow: visible !important;
   }
+
   body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

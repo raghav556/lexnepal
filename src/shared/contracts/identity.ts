@@ -19,7 +19,6 @@ export const capabilitySchema = z.enum([
   "kyc.review",
   "cases.view_all",
   "cases.manage",
-  "conflicts.manage",
   "hr.manage",
   "cms.manage",
   "cms.content_submit",

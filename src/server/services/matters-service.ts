@@ -9,10 +9,6 @@ import {
 import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 import { MySqlMattersRepository } from "@/server/repositories/matters-repository";
 import type {
-  ConflictOfficialSearchInput,
-  ConflictPreviewInput,
-} from "@/shared/contracts/conflicts";
-import type {
   CaseCreateInput,
   CaseListInput,
   CaseUpdateInput,
@@ -217,75 +213,6 @@ export class MattersService {
     requireCapability(principal, "cases.manage");
     await requireCaseAccess(principal, caseId, security);
     return repository.updateCase(requireFirmContext(principal).firmId, caseId, input, audit);
-  }
-
-  async searchConflicts(
-    principal: AuthPrincipal,
-    input: ConflictOfficialSearchInput,
-    audit: AuditContext,
-  ) {
-    requireCapability(principal, "conflicts.manage");
-    return repository.searchAndLogConflicts(
-      requireFirmContext(principal).firmId,
-      input.query,
-      audit,
-      {
-        runByName: principal.user.name ?? principal.user.email ?? "Authorized user",
-        scope: input.scope,
-        matterContext: input.matterContext,
-      },
-    );
-  }
-
-  async previewConflicts(principal: AuthPrincipal, input: ConflictPreviewInput) {
-    requireCapability(principal, "conflicts.manage");
-    return repository.previewConflicts(
-      requireFirmContext(principal).firmId,
-      input.query,
-      input.scope,
-    );
-  }
-
-  async getConflictStats(principal: AuthPrincipal) {
-    requireCapability(principal, "conflicts.manage");
-    return repository.getConflictStats(requireFirmContext(principal).firmId);
-  }
-
-  async listConflictChecks(principal: AuthPrincipal) {
-    requireCapability(principal, "conflicts.manage");
-    return repository.listConflictChecks(requireFirmContext(principal).firmId);
-  }
-
-  async decideConflict(
-    principal: AuthPrincipal,
-    checkId: string,
-    input: { status: "cleared" | "conflict"; notes?: string | null },
-    audit: AuditContext,
-  ) {
-    requireCapability(principal, "conflicts.manage");
-    return repository.decideConflictCheck(
-      requireFirmContext(principal).firmId,
-      checkId,
-      input.status,
-      input.notes,
-      audit,
-    );
-  }
-
-  async markCaseConflict(
-    principal: AuthPrincipal,
-    caseId: string,
-    cleared: boolean,
-    audit: AuditContext,
-  ) {
-    requireCapability(principal, "conflicts.manage");
-    await requireCaseAccess(principal, caseId, security);
-    return repository.markCaseConflict(
-      requireFirmContext(principal).firmId,
-      caseId,
-      cleared,
-      audit,
-    );
   }
 
   reviewKyc(

@@ -228,7 +228,10 @@ export default function AdminCMSTeam() {
       description={
         <>
           Edit website bios, practice areas, and visibility. Invite or change roles in{" "}
-          <Link href="/admin/users" className="text-primary underline-offset-2 hover:underline">
+          <Link
+            href="/admin/users"
+            className="text-white underline underline-offset-2 hover:text-white/80"
+          >
             Users
           </Link>
           .

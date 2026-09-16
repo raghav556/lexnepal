@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { ChevronDown, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n-context";
 
@@ -17,6 +17,7 @@ export interface PortalNavItemData {
   href?: string;
   icon?: LucideIcon;
   heading?: string;
+  badge?: React.ReactNode;
 }
 
 export type PortalNavLinkData = PortalNavItemData & { href: string; icon: LucideIcon };
@@ -101,19 +102,52 @@ export interface PortalSidebarGroupProps {
    * "divided": staff heading style with a top separator.
    */
   variant?: "default" | "divided";
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  labelClassName?: string;
 }
 
-/** Renders a fragment so nav spacing utilities keep working across items. */
+/** Renders a fragment or collapsible block for nav groups. */
 export function PortalSidebarGroup({
   label,
   children,
   variant = "default",
+  collapsible = false,
+  defaultOpen = true,
+  labelClassName,
 }: PortalSidebarGroupProps) {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+
   return (
-    <>
+    <div className="space-y-0.5">
       {label !== undefined && label !== null ? (
-        variant === "divided" ? (
-          <div className="mt-5 mb-2 flex items-center gap-2 border-t border-dashboard-sidebar-border px-3 pt-3 text-[11px] font-semibold uppercase tracking-wider text-dashboard-sidebar-heading">
+        collapsible ? (
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className={cn(
+              "mt-4 mb-1.5 flex w-full items-center justify-between px-3 py-1 text-[11.5px] font-bold uppercase tracking-[0.12em] text-dashboard-sidebar-heading transition-colors hover:text-dashboard-sidebar-foreground group",
+              labelClassName,
+            )}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-0.5 rounded-full bg-dashboard-sidebar-heading-bar/80 transition-transform group-hover:scale-y-125" />
+              {label}
+            </span>
+            <ChevronDown
+              className={cn(
+                "size-3.5 text-dashboard-sidebar-chevron transition-transform duration-200",
+                !isOpen && "-rotate-90",
+              )}
+            />
+          </button>
+        ) : variant === "divided" ? (
+          <div
+            className={cn(
+              "mt-5 mb-2 flex items-center gap-2 border-t border-dashboard-sidebar-border px-3 pt-3 text-xs font-semibold uppercase tracking-wider text-dashboard-sidebar-heading",
+              labelClassName,
+            )}
+          >
             <span
               aria-hidden
               className="h-2.5 w-0.5 rounded-full bg-dashboard-sidebar-heading-bar"
@@ -121,13 +155,110 @@ export function PortalSidebarGroup({
             {label}
           </div>
         ) : (
-          <div className="mt-5 mb-2 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-dashboard-sidebar-heading before:h-3 before:w-0.5 before:rounded-full before:bg-dashboard-sidebar-heading-bar">
+          <div
+            className={cn(
+              "mt-4 mb-1.5 flex items-center gap-1.5 px-3 py-1 text-[11.5px] font-bold uppercase tracking-[0.12em] text-dashboard-sidebar-heading",
+              labelClassName,
+            )}
+          >
+            <span
+              aria-hidden
+              className="h-2.5 w-0.5 rounded-full bg-dashboard-sidebar-heading-bar/80"
+            />
             {label}
           </div>
         )
       ) : null}
-      {children}
-    </>
+      {collapsible ? (isOpen ? children : null) : children}
+    </div>
+  );
+}
+
+export interface PortalSidebarTreeBranchProps {
+  label: React.ReactNode;
+  icon?: LucideIcon;
+  badge?: React.ReactNode;
+  active?: boolean;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  className?: string;
+  buttonClassName?: string;
+  childrenClassName?: string;
+  id?: string;
+}
+
+/**
+ * Collapsible branch node inside a sidebar tree.
+ * Owns expand/collapse state, rotating chevron, active highlight, and branch connector rail.
+ */
+export function PortalSidebarTreeBranch({
+  label,
+  icon: Icon,
+  badge,
+  active = false,
+  defaultOpen = false,
+  children,
+  className,
+  buttonClassName,
+  childrenClassName,
+  id,
+}: PortalSidebarTreeBranchProps) {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen || active);
+
+  React.useEffect(() => {
+    if (active) {
+      setIsOpen(true);
+    }
+  }, [active]);
+
+  return (
+    <div className={cn("space-y-1", className)}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-controls={id}
+        className={cn(
+          "group flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-[13.5px] font-medium transition-all duration-200",
+          active
+            ? "text-white bg-white/[0.07] font-semibold"
+            : "text-slate-300 hover:text-white hover:bg-white/[0.04]",
+          buttonClassName,
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2.5 truncate">
+          {Icon ? (
+            <Icon
+              className={cn(
+                "size-[18px] shrink-0 transition-colors",
+                active ? "text-[#487FFF]" : "text-slate-400 group-hover:text-slate-200",
+              )}
+              aria-hidden
+            />
+          ) : null}
+          <span className="truncate">{label}</span>
+        </span>
+        <span className="flex items-center gap-1.5 shrink-0">
+          {badge}
+          <ChevronDown
+            className={cn(
+              "size-3.5 text-slate-400 transition-transform duration-200 group-hover:text-slate-200",
+              !isOpen && "-rotate-90",
+            )}
+            aria-hidden
+          />
+        </span>
+      </button>
+
+      {isOpen ? (
+        <div
+          id={id}
+          className={cn("tree-branch-rail ml-3 pl-3.5 space-y-1 py-0.5", childrenClassName)}
+        >
+          {children}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -138,6 +269,7 @@ export interface PortalSidebarItemProps {
   i18nKey?: string;
   /** Computed by the role wrapper with its own active-route rule. */
   active: boolean;
+  badge?: React.ReactNode;
   onNavigate?: () => void;
   /** Full visual class string (base + active/inactive state) from the wrapper. */
   className?: string;
@@ -148,7 +280,7 @@ export interface PortalSidebarItemProps {
 
 /**
  * Navigation link semantics: link rendering, i18n label resolution, icon slot,
- * and aria-current. Colors and spacing stay in the wrapper prescriptions.
+ * optional badge, and aria-current. Colors and spacing stay in the wrapper prescriptions.
  */
 export function PortalSidebarItem({
   href,
@@ -156,6 +288,7 @@ export function PortalSidebarItem({
   label,
   i18nKey,
   active,
+  badge,
   onNavigate,
   className,
   iconClassName,
@@ -175,8 +308,11 @@ export function PortalSidebarItem({
       className={className}
       style={style}
     >
-      <Icon className={cn("w-4 h-4", iconClassName)} aria-hidden />
-      {resolvedLabel}
+      <span className="flex min-w-0 items-center gap-2.5 truncate">
+        <Icon className={cn("size-4 shrink-0", iconClassName)} aria-hidden />
+        <span className="truncate">{resolvedLabel}</span>
+      </span>
+      {badge ? <span className="shrink-0">{badge}</span> : null}
     </Link>
   );
 }

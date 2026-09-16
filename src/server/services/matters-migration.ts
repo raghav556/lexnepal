@@ -12,7 +12,6 @@ import {
   caseTeamMembers,
   clientKycFiles,
   clients,
-  conflictChecks,
   firms,
   storageMigrationItems,
   users,
@@ -20,7 +19,7 @@ import {
 import { asShadowBoolean, asShadowString, pushMismatch } from "./shadow-compare";
 
 type Value = Record<string, unknown>;
-const tables = ["clients", "cases", "conflictChecks"] as const;
+const tables = ["clients", "cases"] as const;
 export interface MattersMigrationReport {
   source: Record<string, number>;
   migrated: Record<string, number>;
@@ -136,14 +135,6 @@ export async function shadowReadMattersExport(input: {
       "status",
       asShadowString(source.status) ?? "active",
       target.status,
-    );
-    pushMismatch(
-      mismatches,
-      "cases",
-      id,
-      "conflictChecked",
-      asShadowBoolean(source.conflictChecked, false),
-      target.conflictChecked,
     );
   }
 
@@ -307,11 +298,7 @@ export async function migrateMattersExport(input: {
           .filter(Boolean) as Array<{ id: string; firmId: string }>;
         if (members.some((member) => member.firmId !== firmId))
           throw new Error("Case team contains a cross-firm user");
-        const clearer = record.conflictClearedBy
-          ? userMap.get(asString(record.conflictClearedBy) ?? "")
-          : undefined;
-        if (clearer && clearer.firmId !== firmId)
-          throw new Error("Conflict clearer belongs to another firm");
+
         const [row] = await returningUpsert(
           tx
             .insert(cases)
@@ -334,8 +321,6 @@ export async function migrateMattersExport(input: {
               opposingCounsel: asString(record.opposingCounsel),
               filingDate: dateOnly(record.filingDate),
               closedDate: dateOnly(record.closedDate),
-              conflictChecked: asBoolean(record.conflictChecked, false),
-              conflictClearedBy: clearer?.id,
               createdAt: toDate(record._creationTime) ?? new Date(),
             })
             .onDuplicateKeyUpdate({
@@ -360,55 +345,12 @@ export async function migrateMattersExport(input: {
         exceptions.push({ table: "cases", id: legacyId, reason: message(error) });
       }
     }
-
-    for (const record of records.get("conflictChecks") ?? []) {
-      const legacyId = asString(record._id);
-      try {
-        if (!legacyId) throw new Error("Missing legacy ID");
-        const runner = record.runBy ? userMap.get(asString(record.runBy) ?? "") : undefined;
-        const firmId = resolveFirm(record, input, runner?.firmId);
-        await tx
-          .insert(conflictChecks)
-          .values({
-            legacyConvexId: legacyId,
-            firmId,
-            searchQuery: asString(record.searchQuery) ?? "",
-            hitsCount: asNumber(record.hitsCount, 0),
-            status: enumValue(
-              record.status,
-              ["pending", "cleared", "conflict"] as const,
-              "pending",
-            ),
-            runBy: runner?.id,
-            runByName: asString(record.runByName) ?? "Migrated user",
-            checkedAt: toDate(record.timestamp) ?? toDate(record._creationTime) ?? new Date(),
-            notes: asString(record.notes),
-            createdAt: toDate(record._creationTime) ?? new Date(),
-          })
-          .onDuplicateKeyUpdate({
-            set: {
-              firmId,
-              status: enumValue(
-                record.status,
-                ["pending", "cleared", "conflict"] as const,
-                "pending",
-              ),
-              notes: asString(record.notes),
-              updatedAt: new Date(),
-            },
-          });
-        migrated.conflictChecks += 1;
-      } catch (error) {
-        exceptions.push({ table: "conflictChecks", id: legacyId, reason: message(error) });
-      }
-    }
   });
 
   const checks: Record<string, { source: number; target: number }> = {};
   for (const [name, table] of [
     ["clients", clients],
     ["cases", cases],
-    ["conflictChecks", conflictChecks],
   ] as const) {
     const ids = (records.get(name) ?? [])
       .map((row) => asString(row._id))
@@ -455,9 +397,6 @@ function asString(value: unknown) {
 }
 function asBoolean(value: unknown, fallback: boolean) {
   return typeof value === "boolean" ? value : fallback;
-}
-function asNumber(value: unknown, fallback: number) {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 function toDate(value: unknown) {
   if (typeof value !== "string" && typeof value !== "number") return null;

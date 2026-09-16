@@ -3,14 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, like } from "drizzle-orm";
 import { writeAuditLog } from "@/server/audit/write-audit";
 import { getDatabase } from "@/server/db/client";
-import {
-  cases,
-  caseTeamMembers,
-  clients,
-  conflictChecks,
-  notifications,
-  users,
-} from "@/server/db/schema";
+import { cases, caseTeamMembers, clients, notifications, users } from "@/server/db/schema";
 import type { AuditContext } from "@/server/audit/context";
 import type {
   CaseCreateInput,
@@ -21,8 +14,6 @@ import type {
 } from "@/shared/contracts/matters";
 import { AppError } from "@/shared/errors/api-error";
 import type { CaseDto } from "@/shared/contracts/domains";
-import type { ConflictSearchScope } from "@/shared/contracts/conflicts";
-import { runConflictSearch, runMatterBundleSearch } from "@/server/services/conflict-search";
 
 const database = getDatabase();
 
@@ -208,7 +199,7 @@ export class MySqlMattersRepository {
       const [row] = await returningInsert(
         tx
           .insert(cases)
-          .values({ firmId, ...normalizeEmpty(matter), status: "active", conflictChecked: false })
+          .values({ firmId, ...normalizeEmpty(matter), status: "active" })
           .$returningId(),
         (id) => tx.select().from(cases).where(eq(cases.id, id)).limit(1),
       );
@@ -259,143 +250,6 @@ export class MySqlMattersRepository {
       }
       await writeAudit(tx, audit, "case.updated", "cases", row.id, null);
       return caseDto(row, teamMemberIds ?? existingMembers.map((member) => member.userId));
-    });
-  }
-
-  async previewConflicts(firmId: string, query: string, scope?: Partial<ConflictSearchScope>) {
-    return runConflictSearch(firmId, query, scope);
-  }
-
-  async searchAndLogConflicts(
-    firmId: string,
-    query: string,
-    audit: AuditContext,
-    options?: {
-      runByName?: string;
-      scope?: Partial<ConflictSearchScope>;
-      matterContext?: { clientName?: string; opposingCounsel?: string; caseNumber?: string };
-    },
-  ) {
-    const outcome = options?.matterContext
-      ? await runMatterBundleSearch(firmId, query, options.matterContext, options.scope)
-      : await runConflictSearch(firmId, query, options?.scope);
-    const hits = outcome.hits;
-
-    const [check] = await database.transaction(async (tx) => {
-      const inserted = await returningInsert(
-        tx
-          .insert(conflictChecks)
-          .values({
-            firmId,
-            searchQuery: outcome.query,
-            hitsCount: hits.length,
-            status: hits.length ? "pending" : "cleared",
-            runBy: audit.actorId,
-            runByName: options?.runByName?.trim() || "Authorized user",
-            checkedAt: audit.occurredAt,
-          })
-          .$returningId(),
-        (id) => tx.select().from(conflictChecks).where(eq(conflictChecks.id, id)).limit(1),
-      );
-      await writeAudit(
-        tx,
-        audit,
-        "conflict.search_run",
-        "conflict_checks",
-        inserted[0].id,
-        `hits=${hits.length};high=${outcome.summary.high}`,
-      );
-      return inserted;
-    });
-    return { checkId: check.id, ...outcome };
-  }
-
-  async getConflictStats(firmId: string) {
-    const rows = await database
-      .select({
-        status: conflictChecks.status,
-        checkedAt: conflictChecks.checkedAt,
-      })
-      .from(conflictChecks)
-      .where(and(eq(conflictChecks.firmId, firmId), isNull(conflictChecks.deletedAt)));
-
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    return {
-      totalChecks: rows.length,
-      pendingReviews: rows.filter((r) => r.status === "pending").length,
-      clearedCount: rows.filter((r) => r.status === "cleared").length,
-      conflictCount: rows.filter((r) => r.status === "conflict").length,
-      checksThisMonth: rows.filter((r) => r.checkedAt >= monthStart).length,
-    };
-  }
-
-  async listConflictChecks(firmId: string) {
-    const rows = await database
-      .select()
-      .from(conflictChecks)
-      .where(and(eq(conflictChecks.firmId, firmId), isNull(conflictChecks.deletedAt)))
-      .orderBy(desc(conflictChecks.checkedAt))
-      .limit(50);
-    return rows.map((row) => {
-      const dto = toDto(row);
-      dto.timestamp = row.checkedAt.toISOString();
-      return dto;
-    });
-  }
-
-  async decideConflictCheck(
-    firmId: string,
-    checkId: string,
-    status: "cleared" | "conflict",
-    notes: string | null | undefined,
-    audit: AuditContext,
-  ) {
-    return database.transaction(async (tx) => {
-      const [row] = await returningMutation(
-        tx
-          .update(conflictChecks)
-          .set({ status, notes: notes || null, updatedAt: audit.occurredAt })
-          .where(
-            and(
-              eq(conflictChecks.id, checkId),
-              eq(conflictChecks.firmId, firmId),
-              isNull(conflictChecks.deletedAt),
-            ),
-          ),
-        () => tx.select().from(conflictChecks).where(eq(conflictChecks.id, checkId)),
-      );
-      if (!row) throw new AppError("NOT_FOUND", "Conflict check was not found", 404);
-      await writeAudit(tx, audit, "conflict.decision_recorded", "conflict_checks", row.id, status);
-      return toDto(row);
-    });
-  }
-
-  async markCaseConflict(firmId: string, caseId: string, cleared: boolean, audit: AuditContext) {
-    return database.transaction(async (tx) => {
-      const [row] = await returningMutation(
-        tx
-          .update(cases)
-          .set({
-            conflictChecked: true,
-            conflictClearedBy: cleared ? audit.actorId : null,
-            updatedAt: audit.occurredAt,
-          })
-          .where(and(eq(cases.id, caseId), eq(cases.firmId, firmId), isNull(cases.deletedAt))),
-        () => tx.select().from(cases).where(eq(cases.id, caseId)),
-      );
-      if (!row) throw new AppError("NOT_FOUND", "Case was not found", 404);
-      await writeAudit(
-        tx,
-        audit,
-        cleared ? "case.conflict_cleared" : "case.conflict_flagged",
-        "cases",
-        row.id,
-        null,
-      );
-      return { success: true };
     });
   }
 

@@ -25,7 +25,8 @@ import {
   PortalPageShell,
 } from "@/components/dashboard";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
-import { useDmCommands, useDmMessages, useDmThreads } from "@/client/queries/dm";
+import { LuxuryDmPanel } from "@/components/chat";
+import { useDmCommands, useDmThreads } from "@/client/queries/dm";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
@@ -45,14 +46,11 @@ export default function StaffTeamChatPage() {
   const [selectedDm, setSelectedDm] = useState<string | null>(dmParam);
   const [selectedCase, setSelectedCase] = useState<string | null>(caseParam);
   const [mobileShowChat, setMobileShowChat] = useState(Boolean(dmParam || caseParam));
-  const [draft, setDraft] = useState("");
 
   const { data: threads, isLoading: threadsLoading } = useDmThreads();
-  const { data: dmMessages } = useDmMessages(leftTab === "dms" ? selectedDm : null);
-  const { openThread, sendMessage, markRead } = useDmCommands();
+  const { openThread } = useDmCommands();
   const staff = useStaffDirectory() || [];
   const cases = useCases({}) || [];
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const myId = currentUser?._id || currentUser?.id;
 
@@ -68,14 +66,6 @@ export default function StaffTeamChatPage() {
       setMobileShowChat(true);
     }
   }, [dmParam, caseParam]);
-
-  useEffect(() => {
-    if (selectedDm) markRead.mutate(selectedDm);
-  }, [selectedDm, dmMessages.length]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [dmMessages]);
 
   const peerCandidates = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -119,16 +109,6 @@ export default function StaffTeamChatPage() {
       setMobileShowChat(true);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Could not open DM");
-    }
-  };
-
-  const handleSendDm = async () => {
-    if (!selectedDm || !draft.trim()) return;
-    try {
-      await sendMessage.mutateAsync({ threadId: selectedDm, content: draft.trim() });
-      setDraft("");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send");
     }
   };
 
@@ -308,82 +288,16 @@ export default function StaffTeamChatPage() {
           <AnimatePresence mode="wait">
             {leftTab === "dms" && selectedDm ? (
               <DashboardSection className="h-full flex flex-col overflow-hidden !p-0">
-                <motion.div
-                  key={`dm-${selectedDm}`}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.2 }}
-                  className="h-full flex flex-col"
-                >
-                  <div className="p-3 border-b border-border flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="lg:hidden"
-                      onClick={() => setMobileShowChat(false)}
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate">
-                        {selectedThread?.peerName || "DM"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Private staff chat
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-secondary/10">
-                    {dmMessages.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
-                        <MessageSquare className="w-8 h-8 opacity-30" />
-                        Say hello to start the conversation.
-                      </div>
-                    ) : (
-                      dmMessages.map((msg: any) => {
-                        const isMe = msg.senderId === myId;
-                        return (
-                          <motion.div
-                            key={msg._id || msg.id}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={cn("flex", isMe ? "justify-end" : "justify-start")}
-                          >
-                            <div
-                              className={cn(
-                                "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs border",
-                                isMe
-                                  ? "bg-primary text-primary-foreground border-primary rounded-tr-md"
-                                  : "bg-card border-border rounded-tl-md",
-                              )}
-                            >
-                              <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                            </div>
-                          </motion.div>
-                        );
-                      })
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                  <div className="p-3 border-t border-border flex gap-2">
-                    <Input
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      placeholder="Message your teammate…"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          void handleSendDm();
-                        }
-                      }}
-                    />
-                    <Button size="sm" onClick={() => void handleSendDm()} disabled={!draft.trim()}>
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </motion.div>
+                <LuxuryDmPanel
+                  threadId={selectedDm}
+                  peerName={selectedThread?.peerName || "DM"}
+                  peerRole={selectedThread?.peerRole}
+                  peerPresence={presenceLabel(selectedThread?.lastMessageAt)}
+                  showBack
+                  onBack={() => setMobileShowChat(false)}
+                  bordered={false}
+                  className="h-full rounded-2xl"
+                />
               </DashboardSection>
             ) : leftTab === "cases" && selectedCase ? (
               <DashboardSection className="h-full flex flex-col gap-2 !p-3">

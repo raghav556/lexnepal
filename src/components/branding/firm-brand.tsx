@@ -29,6 +29,39 @@ export function shouldDisplayFirmLogo(logoUrl?: string, failedLogoUrl?: string) 
   return Boolean(resolvedLogo && resolvedLogo !== failedLogoUrl);
 }
 
+export function LegalEmblem({
+  className,
+  monogram = "SL",
+  iconClassName,
+}: {
+  className?: string;
+  monogram?: string;
+  iconClassName?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#1e1b4b] border border-blue-500/30 shadow-[0_0_16px_-2px_rgba(72,127,255,0.35)] ring-1 ring-white/10",
+        className,
+      )}
+      aria-hidden
+    >
+      <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-500/25 via-transparent to-transparent" />
+      <span className="relative flex flex-col items-center justify-center">
+        <Scale
+          className={cn(
+            "size-4 text-[#487FFF] drop-shadow-[0_0_6px_rgba(72,127,255,0.6)]",
+            iconClassName,
+          )}
+        />
+        <span className="text-[8px] font-black tracking-widest text-amber-300/90 font-serif -mt-0.5">
+          {monogram}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 export function FirmBrand({
   firmName,
   logoUrl,
@@ -48,6 +81,14 @@ export function FirmBrand({
   const resolvedLogo = logoUrl?.trim() || undefined;
   const [failedLogoUrl, setFailedLogoUrl] = useState<string>();
   const showLogo = shouldDisplayFirmLogo(resolvedLogo, failedLogoUrl);
+  const monogram =
+    resolvedName
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "SL";
 
   const content = (
     <>
@@ -61,15 +102,20 @@ export function FirmBrand({
             logoFit === "cover" ? "object-cover" : "object-contain",
             logoClassName,
           )}
+          onLoad={(e) => {
+            // If the seeded or uploaded asset is a 1x1 dummy pixel, trigger fallback to luxury emblem
+            if (e.currentTarget.naturalWidth <= 1 && e.currentTarget.naturalHeight <= 1) {
+              setFailedLogoUrl(resolvedLogo);
+            }
+          }}
           onError={() => setFailedLogoUrl(resolvedLogo)}
         />
       ) : (
-        <span
-          className={cn("flex shrink-0 items-center justify-center rounded-lg", fallbackClassName)}
-          aria-hidden
-        >
-          <Scale className={cn("size-5", fallbackIconClassName)} />
-        </span>
+        <LegalEmblem
+          className={cn("size-10", fallbackClassName)}
+          iconClassName={fallbackIconClassName}
+          monogram={monogram}
+        />
       )}
       {showName ? (
         <span className={cn("min-w-0 leading-tight", textClassName)}>

@@ -52,7 +52,7 @@ export interface PortalPageShellProps {
 
 const portalGradient: Record<PortalKind, string> = {
   admin:
-    "bg-[radial-gradient(circle_at_82%_8%,var(--dashboard-primary-soft),transparent_28%),var(--dashboard-canvas)]",
+    "bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(72,127,255,0.07),transparent_70%),var(--dashboard-canvas)]",
   staff:
     "bg-[radial-gradient(circle_at_85%_8%,var(--dashboard-primary-soft),transparent_25%),var(--dashboard-canvas)]",
   client:
@@ -135,9 +135,15 @@ export function PortalPageShell({
       resolvedDescription
     );
 
-  const HeroComponent = decorated ? NepalDecoratedHero : DashboardHero;
+  /*
+   * Admin portal always uses the clean DashboardHero (identical to the main
+   * Admin Dashboard). Staff/client keep NepalDecoratedHero with logo, dhaka
+   * pattern, and gold accent rail.
+   */
+  const useDecoratedHero = decorated && portal !== "admin";
+  const HeroComponent = useDecoratedHero ? NepalDecoratedHero : DashboardHero;
   const brandLeading =
-    decorated && logoUrl ? (
+    useDecoratedHero && logoUrl ? (
       <FirmBrand
         firmName={firmName}
         logoUrl={logoUrl}
@@ -184,7 +190,7 @@ export function PortalPageShell({
     >
       <HeroComponent
         className={heroClassName}
-        eyebrow={eyebrow ?? (decorated && firmName ? firmName : undefined)}
+        eyebrow={eyebrow ?? (useDecoratedHero && firmName ? firmName : undefined)}
         title={titleNode}
         description={descriptionNode}
         icon={icon}
@@ -192,8 +198,8 @@ export function PortalPageShell({
         actions={actions}
       >
         {showTodayDate ? (
-          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <CalendarDays className="size-3.5 shrink-0 text-dashboard-neutral" aria-hidden />
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-white/70">
+            <CalendarDays className="size-3.5 shrink-0 text-white/60" aria-hidden />
             <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />
           </div>
         ) : null}

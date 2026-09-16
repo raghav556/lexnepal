@@ -84,7 +84,7 @@ export function DashboardListRow({ className, children, ...props }: React.Compon
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-lg border border-dashboard-border bg-dashboard-panel p-3 transition-colors hover:border-dashboard-primary/25 hover:bg-dashboard-panel-hover sm:flex-row sm:items-center sm:justify-between",
+        "group flex flex-col gap-3 rounded-xl border border-dashboard-border bg-dashboard-panel p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-dashboard-primary/35 hover:bg-dashboard-panel-hover hover:shadow-md sm:flex-row sm:items-center sm:justify-between",
         className,
       )}
       {...props}

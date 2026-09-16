@@ -114,21 +114,6 @@ export const caseListSchema = z.object({
   lawyerId: uuidSchema.optional(),
 });
 
-export const conflictSearchSchema = z.object({ query: z.string().trim().min(2).max(250) });
-export {
-  conflictDecisionSchema,
-  caseConflictDecisionSchema,
-  conflictPreviewSchema,
-  conflictOfficialSearchSchema,
-} from "@/shared/contracts/conflicts";
-export type {
-  ConflictHitDto,
-  ConflictSearchResultDto,
-  ConflictOfficialResultDto,
-  ConflictCheckStatsDto,
-  ConflictSearchScope,
-} from "@/shared/contracts/conflicts";
-
 export type ClientCreateInput = z.infer<typeof clientCreateSchema>;
 export type ClientStaffUpdateInput = z.infer<typeof clientStaffUpdateSchema>;
 export type KycSubmitInput = z.infer<typeof kycSubmitSchema>;

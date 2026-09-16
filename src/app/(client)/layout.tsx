@@ -223,6 +223,7 @@ function ClientMobileChrome() {
           variant="drawer"
           fallbackName="Client"
           showLanguageToggle
+          darkTrigger
           onAction={close}
         />
       )}

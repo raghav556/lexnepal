@@ -285,7 +285,7 @@ export default function AdminHRPage() {
       descriptionKey="portal.hr.description"
       icon={Clock}
       heroChildren={
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/70">
           Staff: {staffUsers.length} · Salaries set: {salarySetCount}
         </p>
       }

@@ -300,11 +300,6 @@ export const navigationLocationEnum = reusableMysqlEnum("navigation_location", [
   "footer_col_1",
   "footer_col_2",
 ]);
-export const conflictStatusEnum = reusableMysqlEnum("conflict_status", [
-  "pending",
-  "cleared",
-  "conflict",
-]);
 export const kycDocumentTypeEnum = reusableMysqlEnum("kyc_document_type", [
   "government_id",
   "proof_of_address",
@@ -446,26 +441,6 @@ export const firmSettings = mysqlTable(
   (table) => [uniqueIndex("firm_settings_firm_key_unique").on(table.firmId, table.key)],
 );
 
-export const conflictChecks = mysqlTable(
-  "conflict_checks",
-  {
-    ...identityColumns(),
-    firmId: tenantColumn(),
-    searchQuery: stringColumn("search_query").notNull(),
-    hitsCount: integer("hits_count").default(0).notNull(),
-    status: conflictStatusEnum("status").notNull(),
-    runBy: uuidColumn("run_by").references(() => users.id, { onDelete: "set null" }),
-    runByName: stringColumn("run_by_name").notNull(),
-    checkedAt: utcDateTime("checked_at", { withTimezone: true }).notNull(),
-    notes: longtext("notes"),
-    ...lifecycleColumns(),
-  },
-  (table) => [
-    index("conflict_checks_firm_status_idx").on(table.firmId, table.status),
-    index("conflict_checks_firm_checked_at_idx").on(table.firmId, table.checkedAt),
-  ],
-);
-
 export const clients = mysqlTable(
   "clients",
   {
@@ -575,10 +550,6 @@ export const cases = mysqlTable(
     opposingCounsel: stringColumn("opposing_counsel"),
     filingDate: date("filing_date"),
     closedDate: date("closed_date"),
-    conflictChecked: boolean("conflict_checked").default(false).notNull(),
-    conflictClearedBy: uuidColumn("conflict_cleared_by").references(() => users.id, {
-      onDelete: "set null",
-    }),
     ...lifecycleColumns(),
   },
   (table) => [
@@ -2157,7 +2128,6 @@ export const convexTableTargets = {
   cases,
   clients,
   cmsSettings,
-  conflictChecks,
   documents,
   documentShares,
   documentTags,

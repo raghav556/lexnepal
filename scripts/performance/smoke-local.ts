@@ -16,7 +16,6 @@ import { GET as listClients } from "../../src/app/api/v1/clients/route";
 import { GET as listCases } from "../../src/app/api/v1/cases/route";
 import { GET as listDocuments } from "../../src/app/api/v1/documents/route";
 import { GET as searchDocuments } from "../../src/app/api/v1/documents/search/route";
-import { POST as conflictSearch } from "../../src/app/api/v1/conflict-checks/search/route";
 import { GET as listTasks } from "../../src/app/api/v1/tasks/route";
 
 const database = getDatabase();
@@ -293,21 +292,6 @@ try {
       if (!response.ok) return { ok: false, detail: `${response.status}` };
       const body = (await response.json()) as { data: unknown[] };
       return { ok: Array.isArray(body.data), rows: body.data.length };
-    }),
-  );
-
-  results.push(
-    await measure("conflictSearch", async () => {
-      const response = await conflictSearch(
-        new Request("http://local/api/v1/conflict-checks/search", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: "Perf Smoke" }),
-        }),
-      );
-      if (!response.ok) return { ok: false, detail: `${response.status} ${await response.text()}` };
-      const body = (await response.json()) as { data: unknown };
-      return { ok: body.data != null, rows: 1 };
     }),
   );
 

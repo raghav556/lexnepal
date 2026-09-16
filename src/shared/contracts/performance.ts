@@ -17,7 +17,6 @@ export const PERFORMANCE_SMOKE_BUDGETS_MS = {
   casesList: 2000,
   documentsList: 2000,
   documentsSearch: 2000,
-  conflictSearch: 2000,
   tasksList: 2000,
 } as const;
 
@@ -33,7 +32,6 @@ export const performanceSmokeBudgetsSchema = z.object({
   casesList: z.number().int().positive().max(30_000),
   documentsList: z.number().int().positive().max(30_000),
   documentsSearch: z.number().int().positive().max(30_000),
-  conflictSearch: z.number().int().positive().max(30_000),
   tasksList: z.number().int().positive().max(30_000),
 });
 

@@ -39,7 +39,6 @@ const adminRoutes = [
   "/admin/cms/resources",
   "/admin/cms/team",
   "/admin/cms/testimonials",
-  "/admin/conflict-checker",
   "/admin/crm",
   "/admin/document-generator",
   "/admin/hr",

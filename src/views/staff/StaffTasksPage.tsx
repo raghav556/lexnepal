@@ -3,7 +3,17 @@ import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Plus, X, Trash2, Loader2, Save, Bell, MessageSquare, Archive } from "lucide-react";
+import {
+  Plus,
+  X,
+  Trash2,
+  Loader2,
+  Save,
+  Bell,
+  MessageSquare,
+  Archive,
+  CheckSquare,
+} from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
 import {
@@ -443,11 +453,12 @@ export default function StaffTasksPage() {
       portal="staff"
       decorated
       showTodayDate
+      heroClassName="hero-animate-in p-4 sm:p-5 [&_h1]:text-2xl [&_h1]:xl:text-3xl"
       eyebrow="Work management"
       titleKey="portal.tasks.title"
       descriptionKey="portal.tasks.description"
       heroChildren={
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+        <p className="text-xs font-medium text-white/70">
           {filteredTasks.length} {t("tasks.shown")} · {tasks.length} {t("tasks.total")}
         </p>
       }
@@ -508,7 +519,7 @@ export default function StaffTasksPage() {
         </div>
       }
     >
-      <DashboardSection title="Filters">
+      <div className="rounded-2xl border border-dashboard-border bg-dashboard-panel p-3.5 sm:p-4 shadow-sm card-micro-lift">
         <DashboardFilterBar className="items-end">
           <div className="flex gap-1 shrink-0">
             <Button
@@ -604,7 +615,7 @@ export default function StaffTasksPage() {
             Reset
           </Button>
         </DashboardFilterBar>
-      </DashboardSection>
+      </div>
 
       {view === "kanban" && (
         <div
@@ -619,7 +630,7 @@ export default function StaffTasksPage() {
               <div
                 key={col.key}
                 className={cn(
-                  "space-y-3 bg-secondary/20 p-3 rounded-xl border border-border/40 transition-colors",
+                  "space-y-3 bg-secondary/15 p-3.5 rounded-2xl border border-border/40 transition-colors shadow-xs",
                   dragOverCol === col.key && "border-primary bg-primary/5",
                 )}
                 onDragOver={(e) => {
@@ -629,17 +640,36 @@ export default function StaffTasksPage() {
                 onDragLeave={() => setDragOverCol((c) => (c === col.key ? null : c))}
                 onDrop={(e) => handleDropOnColumn(col.key, e)}
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground capitalize">{col.label}</h3>
-                  <Badge variant="secondary" className="text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "size-2 rounded-full",
+                        col.key === "todo" && "bg-slate-400",
+                        col.key === "in_progress" && "bg-dashboard-primary",
+                        col.key === "done" && "bg-emerald-500",
+                        col.key === "cancelled" && "bg-rose-500",
+                      )}
+                    />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                      {col.label}
+                    </h3>
+                  </div>
+                  <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5">
                     {colTasks.length}
                   </Badge>
                 </div>
-                <div className="space-y-2 max-h-[70vh] overflow-y-auto min-h-[80px]">
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto min-h-[100px] flex flex-col justify-start">
                   {colTasks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-8">
-                      Drop tasks here
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-8 px-4 my-auto rounded-xl border border-dashed border-dashboard-border/80 bg-dashboard-canvas/40 text-center transition-colors">
+                      <CheckSquare className="size-5 text-muted-foreground/40 mb-1.5" />
+                      <p className="text-xs font-semibold text-muted-foreground/80">
+                        No tasks in {col.label.toLowerCase()}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                        Drag tasks here to update status
+                      </p>
+                    </div>
                   ) : (
                     colTasks.map((task: any) => (
                       <TaskCard

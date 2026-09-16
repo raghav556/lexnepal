@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -32,6 +32,9 @@ import {
   PortalSidebarGroup,
   PortalSidebarItem,
   PortalMobileNav,
+  ScrollToTop,
+  GlobalSearchPalette,
+  PORTAL_SIDEBAR_ACTIVE_SHADOW,
   splitPortalNavGroups,
   isPortalNavLink,
   type PortalNavItemData,
@@ -72,15 +75,15 @@ const navGroups = splitPortalNavGroups(NAV);
 
 const desktopItemClassName = (active: boolean) =>
   cn(
-    "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+    "staff-nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all relative",
     active
-      ? "border border-dashboard-sidebar-active-border bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground font-semibold shadow-sm"
+      ? "staff-nav-item-active border border-dashboard-sidebar-active-border bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground font-semibold shadow-sm"
       : "border border-transparent text-dashboard-sidebar-muted hover:border-dashboard-sidebar-border hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
   );
 
 const desktopIconClassName = (active: boolean) =>
   cn(
-    "shrink-0 transition-colors",
+    "size-[18px] shrink-0 transition-colors",
     active
       ? "text-dashboard-sidebar-active-icon"
       : "text-dashboard-sidebar-muted group-hover:text-dashboard-sidebar-foreground",
@@ -116,16 +119,16 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
           subtitleClassName="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-dashboard-sidebar-muted"
         />
       }
-      navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto"
+      navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto sidebar-scroll-fade"
       footer={
         <>
-          <div className="px-3 pb-2 pt-2 border-t border-dashboard-sidebar-border">
+          <div className="px-3 pb-2 pt-2.5 border-t border-dashboard-sidebar-border">
             <button
               onClick={onOpenChat}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg border border-dashboard-sidebar-border bg-dashboard-sidebar-hover hover:border-dashboard-sidebar-active-border hover:bg-dashboard-sidebar-active text-dashboard-sidebar-muted hover:text-dashboard-sidebar-active-foreground font-medium transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
+              className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg border border-dashboard-sidebar-border bg-dashboard-sidebar-hover hover:border-dashboard-sidebar-active-border hover:bg-dashboard-sidebar-active text-dashboard-sidebar-muted hover:text-dashboard-sidebar-active-foreground font-medium transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
             >
-              <MessageSquare className="w-4 h-4 text-dashboard-sidebar-active-icon shrink-0" />
-              <span className="text-sm">Command Center</span>
+              <MessageSquare className="size-[18px] text-dashboard-sidebar-active-icon shrink-0 transition-transform group-hover:scale-110" />
+              <span className="text-[13.5px]">Command Center</span>
             </button>
           </div>
 
@@ -135,6 +138,8 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
               variant="dropdown"
               fallbackName="Staff"
               showLanguageToggle
+              darkTrigger
+              className="staff-sidebar-account"
             />
           </div>
         </>
@@ -145,6 +150,7 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
           key={group.label ?? `group-${groupIndex}`}
           label={group.label}
           variant="divided"
+          labelClassName="text-[11px] font-bold tracking-[0.14em] text-dashboard-sidebar-heading"
         >
           {group.items.map(({ href, icon: Icon, label, i18nKey }) => (
             <PortalSidebarItem
@@ -156,6 +162,7 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
               active={isActive(href)}
               className={desktopItemClassName(isActive(href))}
               iconClassName={desktopIconClassName(isActive(href))}
+              style={isActive(href) ? PORTAL_SIDEBAR_ACTIVE_SHADOW : undefined}
             />
           ))}
         </PortalSidebarGroup>
@@ -220,6 +227,7 @@ function StaffMobileChrome() {
           variant="drawer"
           fallbackName="Staff"
           showLanguageToggle
+          darkTrigger
           onAction={close}
         />
       )}
@@ -229,7 +237,20 @@ function StaffMobileChrome() {
 }
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
+  const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <PortalBrandingProvider appearance="light">
@@ -246,17 +267,27 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               <StaffMobileChrome />
               <PortalTopbar
                 portal="staff"
+                onOpenSearch={() => setSearchOpen(true)}
+                onOpenChat={() => setChatOpen(true)}
                 onOpenCommandCenter={() => setChatOpen(true)}
                 className="hidden md:flex"
               />
-              <div className="flex-1 min-w-0 overflow-y-auto flex flex-col justify-between">
-                <main className="flex-1 min-w-0 bg-dashboard-canvas print:overflow-visible">
-                  {children}
-                </main>
+              <main
+                ref={mainRef}
+                id="staff-main-canvas"
+                className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth flex flex-col justify-between"
+              >
+                <div className="flex-1 min-w-0">{children}</div>
                 <PortalFooter portal="staff" />
-              </div>
+              </main>
+              <ScrollToTop containerRef={mainRef} />
             </div>
           </div>
+          <GlobalSearchPalette
+            isOpen={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            portal="staff"
+          />
           <CommandCenter isOpen={chatOpen} onClose={() => setChatOpen(false)} />
         </PortalRoleGuard>
       </div>

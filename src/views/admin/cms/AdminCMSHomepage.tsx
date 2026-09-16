@@ -101,7 +101,10 @@ export default function AdminCMSHomepage() {
         <>
           Director message block on the public homepage (<code className="text-xs">/</code>). Hero,
           tagline, and mobile-app banner are managed under{" "}
-          <a href="/admin/cms" className="text-primary underline-offset-2 hover:underline">
+          <a
+            href="/admin/cms"
+            className="text-white underline underline-offset-2 hover:text-white/80"
+          >
             Site Settings
           </a>
           .
