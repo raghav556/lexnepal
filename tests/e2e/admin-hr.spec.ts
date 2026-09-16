@@ -19,7 +19,7 @@ test.describe("Admin HR console", () => {
     await expect(page.getByRole("heading", { name: "HR" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("tab", { name: /Attendance/i })).toBeVisible();
     await expect(page.getByRole("tab", { name: /Leave/i })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /Payroll/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Payroll/i })).toHaveCount(0);
 
     await page.getByRole("tab", { name: /Leave/i }).click();
     await expect(page.getByText("Leave balances", { exact: false })).toBeVisible({
@@ -40,12 +40,5 @@ test.describe("Admin HR console", () => {
         timeout: 15_000,
       });
     }
-
-    await page.getByRole("tab", { name: /Payroll/i }).click();
-    await expect(
-      page.getByText(/Generate draft run|Payroll runs|Live preview/i).first(),
-    ).toBeVisible({
-      timeout: 15_000,
-    });
   });
 });

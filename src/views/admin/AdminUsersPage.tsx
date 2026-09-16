@@ -923,7 +923,7 @@ export default function AdminUsersPage() {
                   {isHrEligible && (
                     <Button variant="outline" size="sm" className="justify-start" asChild>
                       <Link href="/admin/hr">
-                        <ExternalLink className="w-4 h-4 mr-2" /> HR / payroll
+                        <ExternalLink className="w-4 h-4 mr-2" /> HR
                       </Link>
                     </Button>
                   )}

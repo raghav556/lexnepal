@@ -114,7 +114,7 @@ const translations: Record<Language, Record<string, string>> = {
     "portal.appointments.description":
       "Manage firm schedule, online consultations, and lawyer assignments.",
     "portal.hr.title": "HR Management",
-    "portal.hr.description": "Attendance, leave, and payroll for firm staff.",
+    "portal.hr.description": "Attendance and leave for firm staff.",
     "portal.users.title": "User Directory",
     "portal.users.description":
       "Firm identity console — invite, roles, access, and linked records.",
@@ -235,7 +235,7 @@ const translations: Record<Language, Record<string, string>> = {
     "portal.appointments.title": "भेटघाट र पात्रो",
     "portal.appointments.description": "फर्म तालिका, अनलाइन परामर्श, र वकिल तोकाइ व्यवस्थापन।",
     "portal.hr.title": "मानव संसाधन व्यवस्थापन",
-    "portal.hr.description": "हाजिरी, बिदा, र फर्म कर्मचारीको तलब।",
+    "portal.hr.description": "हाजिरी र बिदा व्यवस्थापन।",
     "portal.users.title": "प्रयोगकर्ता निर्देशिका",
     "portal.users.description":
       "फर्म पहिचान कन्सोल — निमन्त्रणा, भूमिका, पहुँच, र लिङ्क गरिएका रेकर्ड।",

@@ -19,7 +19,7 @@ test.describe("Staff HR self-service", () => {
     await expect(page.getByRole("heading", { name: "HR" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("tab", { name: /Attendance/i })).toBeVisible();
     await expect(page.getByRole("tab", { name: /Leave/i })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /Payslips/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Payslips/i })).toHaveCount(0);
 
     await page.getByRole("tab", { name: /Leave/i }).click();
     await expect(page.getByText("Request leave", { exact: true })).toBeVisible();
@@ -40,10 +40,5 @@ test.describe("Staff HR self-service", () => {
     await expect(
       page.getByTestId("leave-request-row").filter({ hasText: reason }).getByText("pending"),
     ).toBeVisible();
-
-    await page.getByRole("tab", { name: /Payslips/i }).click();
-    await expect(page.getByText(/No finalized payslips|Gross|Finalized/i).first()).toBeVisible({
-      timeout: 15_000,
-    });
   });
 });

@@ -95,7 +95,7 @@ const STATIC_PAGES: Array<{
   },
   {
     title: "HR & Leaves Management",
-    subtitle: "Leave requests, attendance & payroll policies",
+    subtitle: "Leave requests and attendance",
     href: "/admin/hr",
     icon: UserCheck,
     keywords: ["vacation", "sick", "workforce"],

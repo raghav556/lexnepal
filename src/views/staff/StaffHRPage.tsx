@@ -6,18 +6,16 @@ import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/confirm-dialog.tsx";
-import { CalendarOff, Clock, DollarSign, Loader2, LogIn, LogOut } from "lucide-react";
+import { CalendarOff, Clock, Loader2, LogIn, LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { formatNPR } from "@/lib/lex-constants.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import {
   useAttendance,
   useHrCommands,
   useLeaveBalances,
   useLeaveRequests,
-  usePayslips,
 } from "@/client/queries/hr";
-import type { LeaveCreateInput, PayslipDto } from "@/shared/contracts/hr";
+import type { LeaveCreateInput } from "@/shared/contracts/hr";
 import { nowHrClockLabel } from "@/shared/hr/timezone";
 import {
   DashboardButton,
@@ -60,9 +58,7 @@ export default function StaffHRPage() {
   const balanceYear = new Date().getUTCFullYear();
   const leaveBalances =
     useLeaveBalances(userId ? { userId, year: balanceYear } : undefined, Boolean(userId)) ?? [];
-  const payslips = usePayslips(Boolean(userId)) ?? [];
   const { upsertAttendance, createLeaveRequest } = useHrCommands();
-  const [printSlip, setPrintSlip] = useState<PayslipDto | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
@@ -198,11 +194,11 @@ export default function StaffHRPage() {
       portal="staff"
       eyebrow="People operations"
       title="HR"
-      description="Clock attendance, request leave, and view finalized payslips."
+      description="Clock attendance and request leave."
       icon={Clock}
     >
       <Tabs defaultValue="attendance" className="w-full min-w-0">
-        <TabsList className="mb-4 h-auto w-full grid grid-cols-3 gap-1">
+        <TabsList className="mb-4 h-auto w-full grid grid-cols-2 gap-1">
           <TabsTrigger value="attendance" className="text-xs sm:text-sm gap-1">
             <Clock className="w-3.5 h-3.5 shrink-0" />
             Attendance
@@ -210,10 +206,6 @@ export default function StaffHRPage() {
           <TabsTrigger value="leave" className="text-xs sm:text-sm gap-1">
             <CalendarOff className="w-3.5 h-3.5 shrink-0" />
             Leave
-          </TabsTrigger>
-          <TabsTrigger value="payroll" className="text-xs sm:text-sm gap-1">
-            <DollarSign className="w-3.5 h-3.5 shrink-0" />
-            Payslips
           </TabsTrigger>
         </TabsList>
 
@@ -402,68 +394,6 @@ export default function StaffHRPage() {
               </div>
             )}
           </DashboardSection>
-        </TabsContent>
-
-        <TabsContent value="payroll" className="mt-0 space-y-4 min-w-0">
-          {payslips.length === 0 ? (
-            <EmptyState
-              title="No payslips yet"
-              description="Your firm HR will publish finalized payslips after payroll finalize."
-              icon={DollarSign}
-            />
-          ) : (
-            payslips.map((slip) => (
-              <DashboardSection
-                key={`${slip.runId}-${slip.line.id}`}
-                className="min-w-0"
-                data-testid="payslip-card"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold">
-                      {slip.label ?? `${slip.periodStart} → ${slip.periodEnd}`}
-                    </p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      {slip.periodStart} → {slip.periodEnd}
-                      {slip.finalizedAt
-                        ? ` · Finalized ${new Date(slip.finalizedAt).toLocaleDateString()}`
-                        : ""}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs print:hidden"
-                    onClick={() => {
-                      setPrintSlip(slip);
-                      setTimeout(() => window.print(), 50);
-                    }}
-                  >
-                    Print
-                  </Button>
-                </div>
-                <div
-                  className={`grid grid-cols-2 gap-x-3 gap-y-1 text-xs ${
-                    printSlip?.runId === slip.runId ? "print:block" : ""
-                  }`}
-                >
-                  <span className="text-muted-foreground">Gross</span>
-                  <span className="text-right tabular-nums">{formatNPR(slip.line.gross)}</span>
-                  <span className="text-muted-foreground">PF (employee)</span>
-                  <span className="text-right tabular-nums">{formatNPR(slip.line.pf)}</span>
-                  <span className="text-muted-foreground">SSF (employer)</span>
-                  <span className="text-right tabular-nums">{formatNPR(slip.line.ssf)}</span>
-                  <span className="text-muted-foreground">Tax</span>
-                  <span className="text-right tabular-nums">{formatNPR(slip.line.tax)}</span>
-                  <span className="font-medium">Net pay</span>
-                  <span className="text-right font-semibold tabular-nums">
-                    {formatNPR(slip.line.net)}
-                  </span>
-                </div>
-              </DashboardSection>
-            ))
-          )}
         </TabsContent>
       </Tabs>
 
