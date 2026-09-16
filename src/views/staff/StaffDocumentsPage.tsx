@@ -10,7 +10,10 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import { getDashboardStatusTone, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
@@ -496,20 +499,34 @@ export default function StaffDocumentsPage() {
       contentClassName="!p-0"
       actions={
         <>
-          <DashboardButton size="sm" variant="secondary" onClick={() => setIsTagsModalOpen(true)}>
-            <Tags className="size-4 mr-2" aria-hidden /> Tags
+          <DashboardButton size="sm" onClick={openNewUpload}>
+            <Upload className="size-3.5" aria-hidden /> Upload file
           </DashboardButton>
           <DashboardButton
             size="sm"
-            variant="secondary"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
             onClick={() => setIsTemplateModalOpen(true)}
           >
-            <LayoutTemplate className="size-4 mr-2" aria-hidden /> Use template
-          </DashboardButton>
-          <DashboardButton size="sm" onClick={openNewUpload}>
-            <Upload className="size-4 mr-2" aria-hidden /> Upload file
+            <LayoutTemplate className="size-3.5" aria-hidden /> Use template
           </DashboardButton>
         </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip icon={FileText} value={allDocs.length} label="files" />
+          <HeroStatChip icon={Clock} value={recentDocs.length} label="recent" />
+          <HeroStatChip
+            icon={Send}
+            value={
+              allDocs.filter((d: { requiresSignature?: boolean; signatureStatus?: string }) =>
+                Boolean(d.requiresSignature && d.signatureStatus === "pending"),
+              ).length
+            }
+            label="awaiting signature"
+          />
+          <HeroStatChip icon={Tags} value={selectedDocs.length} label="selected" />
+        </StaffHeroChipRow>
       }
     >
       <div className="flex h-full overflow-hidden font-sans bg-dashboard-canvas relative">
@@ -517,48 +534,57 @@ export default function StaffDocumentsPage() {
           className={`flex-1 flex flex-col transition-all duration-300 w-full ${activeSidebarDoc ? "mr-[350px] pr-[350px]" : ""}`}
         >
           <div className="p-4 sm:p-6 border-b border-dashboard-border bg-dashboard-panel z-10 flex flex-col gap-4 sticky top-0">
-            <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 w-fit shadow-2xs">
-              <button
-                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                  viewMode === "list"
-                    ? "bg-white text-purple-700 font-semibold shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                onClick={() => {
-                  setViewMode("list");
-                  setSelectedFolder(null);
-                  setSelectedSubFolder(null);
-                }}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 w-fit shadow-2xs">
+                <button
+                  className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                    viewMode === "list"
+                      ? "bg-white text-purple-700 font-semibold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  onClick={() => {
+                    setViewMode("list");
+                    setSelectedFolder(null);
+                    setSelectedSubFolder(null);
+                  }}
+                >
+                  List View
+                </button>
+                <button
+                  className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                    viewMode === "folders"
+                      ? "bg-white text-purple-700 font-semibold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  onClick={() => {
+                    setViewMode("folders");
+                    setSelectedSubFolder(null);
+                  }}
+                >
+                  Folders
+                </button>
+                <button
+                  className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                    viewMode === "trash"
+                      ? "bg-white text-rose-700 font-semibold shadow-xs"
+                      : "text-slate-600 hover:text-rose-700"
+                  }`}
+                  onClick={() => {
+                    setViewMode("trash");
+                    setSelectedFolder(null);
+                    setSelectedSubFolder(null);
+                  }}
+                >
+                  Trash
+                </button>
+              </div>
+              <DashboardButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setIsTagsModalOpen(true)}
               >
-                List View
-              </button>
-              <button
-                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                  viewMode === "folders"
-                    ? "bg-white text-purple-700 font-semibold shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                onClick={() => {
-                  setViewMode("folders");
-                  setSelectedSubFolder(null);
-                }}
-              >
-                Folders
-              </button>
-              <button
-                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                  viewMode === "trash"
-                    ? "bg-white text-rose-700 font-semibold shadow-xs"
-                    : "text-slate-600 hover:text-rose-700"
-                }`}
-                onClick={() => {
-                  setViewMode("trash");
-                  setSelectedFolder(null);
-                  setSelectedSubFolder(null);
-                }}
-              >
-                Trash
-              </button>
+                <Tags className="size-3.5" aria-hidden /> Tags
+              </DashboardButton>
             </div>
 
             <AdvancedSearch cases={cases} onSearch={setSearchFilters} />

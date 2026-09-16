@@ -22,7 +22,11 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  HeroHealthChip,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
 } from "@/components/dashboard";
 
 const LEAVE_TYPES: LeaveCreateInput["type"][] = [
@@ -61,6 +65,7 @@ export default function StaffHRPage() {
   const { upsertAttendance, createLeaveRequest } = useHrCommands();
 
   const [busy, setBusy] = useState(false);
+  const [hrTab, setHrTab] = useState("attendance");
   const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
   const [leaveType, setLeaveType] = useState<LeaveCreateInput["type"]>("annual");
   const [fromDate, setFromDate] = useState(today);
@@ -84,6 +89,11 @@ export default function StaffHRPage() {
     () => [...leaveRequests].sort((a, b) => b.fromDate.localeCompare(a.fromDate)),
     [leaveRequests],
   );
+
+  const pendingLeaveCount = ownLeaves.filter((row) => row.status === "pending").length;
+  const annualBalance = leaveBalances.find((row) => row.type === "annual");
+  const clockedIn = Boolean(todayRecord?.clockIn);
+  const clockedOut = Boolean(todayRecord?.clockOut);
 
   const clockLabel = nowHrClockLabel();
 
@@ -192,12 +202,64 @@ export default function StaffHRPage() {
   return (
     <PortalPageShell
       portal="staff"
-      eyebrow="People operations"
       title="HR"
       description="Clock attendance and request leave."
       icon={Clock}
+      actions={
+        <>
+          {canClockIn ? (
+            <DashboardButton size="sm" variant="primary" onClick={handleClockIn} disabled={busy}>
+              {busy ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <LogIn className="size-3.5" aria-hidden />
+              )}
+              Clock in
+            </DashboardButton>
+          ) : (
+            <DashboardButton
+              size="sm"
+              variant="primary"
+              onClick={handleClockOut}
+              disabled={busy || !canClockOut}
+            >
+              {busy ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <LogOut className="size-3.5" aria-hidden />
+              )}
+              Clock out
+            </DashboardButton>
+          )}
+          <DashboardButton
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+            onClick={() => setHrTab("leave")}
+          >
+            <CalendarOff className="size-3.5" aria-hidden /> Request leave
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroHealthChip
+            healthy={clockedIn}
+            overdueCount={0}
+            healthyLabel={clockedOut ? "Day closed" : "Clocked in"}
+            unhealthyLabel="Not recorded"
+          />
+          <HeroStatChip icon={Clock} value={history.length} label="days recorded" />
+          <HeroStatChip icon={CalendarOff} value={pendingLeaveCount} label="pending leave" />
+          <HeroStatChip
+            icon={CalendarOff}
+            value={annualBalance?.remainingDays ?? "—"}
+            label="annual remaining"
+          />
+        </StaffHeroChipRow>
+      }
     >
-      <Tabs defaultValue="attendance" className="w-full min-w-0">
+      <Tabs value={hrTab} onValueChange={setHrTab} className="w-full min-w-0">
         <TabsList className="mb-4 h-auto w-full grid grid-cols-2 gap-1">
           <TabsTrigger value="attendance" className="text-xs sm:text-sm gap-1">
             <Clock className="w-3.5 h-3.5 shrink-0" />

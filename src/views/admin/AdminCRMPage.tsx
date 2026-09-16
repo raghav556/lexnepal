@@ -43,10 +43,12 @@ import {
   Download,
   Plus,
   Calendar,
+  CalendarDays,
   BookOpen,
 } from "lucide-react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
+import { cn } from "@/lib/utils";
 import { useStaffDirectory } from "@/client/queries/identity";
 import type { LeadCreateInput } from "@/shared/contracts/crm";
 import { contactFormLeadLabel, isContactFormLead } from "@/shared/contact-visibility";
@@ -58,7 +60,10 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
 } from "@/components/dashboard";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -700,12 +705,18 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
     );
   };
 
+  const staffHero = portal === "staff";
+  const kpiRows = kpiLeads as LeadRow[];
+  const newLeadCount = kpiRows.filter((l) => l.status === "new").length;
+  const contactedCount = kpiRows.filter((l) => l.status === "contacted").length;
+  const scheduledCount = kpiRows.filter((l) => l.status === "consultation_scheduled").length;
+
   return (
     <PortalPageShell
       portal={portal}
-      decorated
-      showTodayDate
-      eyebrow="Client intake"
+      decorated={!staffHero}
+      showTodayDate={!staffHero}
+      eyebrow={staffHero ? undefined : "Client intake"}
       title={selfScoped ? "My leads" : undefined}
       titleKey={selfScoped ? undefined : "portal.crm.title"}
       description={
@@ -729,7 +740,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
             type="button"
             size="sm"
             variant="outline"
-            className="h-9 gap-1.5"
+            className={cn("h-9 gap-1.5", staffHero && STAFF_HERO_OUTLINE_BUTTON_CLASS)}
             onClick={() => {
               exportLeadsCsv(filteredLeads, staffName);
               toast.success(`Exported ${filteredLeads.length} lead(s).`);
@@ -738,6 +749,42 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
           >
             <Download className="w-4 h-4" /> Export CSV
           </DashboardButton>
+          {!staffHero ? (
+            <div className="flex bg-muted rounded-md p-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setView("kanban")}
+                className={`p-1.5 rounded-sm transition-colors ${view === "kanban" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label="Kanban view"
+              >
+                <KanbanSquare className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                className={`p-1.5 rounded-sm transition-colors ${view === "list" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label="List view"
+              >
+                <AlignJustify className="w-4 h-4" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      }
+      heroChildren={
+        staffHero ? (
+          <StaffHeroChipRow>
+            <HeroStatChip icon={KanbanSquare} value={kpiRows.length} label="leads" />
+            <HeroStatChip icon={UserPlus} value={newLeadCount} label="new" />
+            <HeroStatChip icon={Phone} value={contactedCount} label="contacted" />
+            <HeroStatChip icon={CalendarDays} value={scheduledCount} label="consults" />
+          </StaffHeroChipRow>
+        ) : undefined
+      }
+      contentClassName="h-full flex flex-col font-sans"
+    >
+      <DashboardFilterBar className="flex-shrink-0 min-w-0">
+        {staffHero ? (
           <div className="flex bg-muted rounded-md p-1 shrink-0">
             <button
               type="button"
@@ -756,11 +803,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
               <AlignJustify className="w-4 h-4" />
             </button>
           </div>
-        </div>
-      }
-      contentClassName="h-full flex flex-col font-sans"
-    >
-      <DashboardFilterBar className="flex-shrink-0 min-w-0">
+        ) : null}
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input

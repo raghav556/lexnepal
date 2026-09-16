@@ -6,7 +6,10 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   DualDateDisplay,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import { getDashboardStatusTone, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
@@ -228,10 +231,7 @@ export default function StaffCaseDetailPage() {
   return (
     <PortalPageShell
       portal="staff"
-      decorated
-      showTodayDate
       className="print:p-0 print:space-y-0"
-      eyebrow={`LEX-${caseData.caseNumber}`}
       title={caseData.title}
       description={caseData.description || "No case description provided."}
       icon={Scale}
@@ -252,21 +252,28 @@ export default function StaffCaseDetailPage() {
             </DashboardButton>
           </div>
         ) : (
-          <DashboardButton size="sm" variant="secondary" onClick={startEditing}>
-            Edit details
-          </DashboardButton>
+          <>
+            <DashboardButton size="sm" onClick={startEditing}>
+              Edit details
+            </DashboardButton>
+            <DashboardButton
+              size="sm"
+              variant="outline"
+              className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+              onClick={() => navigate("/staff/cases")}
+            >
+              <ArrowLeft className="size-3.5" aria-hidden /> Cases
+            </DashboardButton>
+          </>
         )
       }
       heroChildren={
-        <div className="flex items-center gap-2 flex-wrap">
-          <DashboardStatusLabel
-            status={caseData.status}
-            className="text-[10px] uppercase tracking-wider font-bold"
-          />
-          <StatusBadge tone="information" className="text-[10px] uppercase">
-            {caseData.practiceArea}
-          </StatusBadge>
-        </div>
+        <StaffHeroChipRow>
+          <HeroStatChip value={caseData.caseNumber} label="matter no." />
+          <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
+          <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
+          <HeroStatChip icon={FileArchive} value={documents.length} label="documents" />
+        </StaffHeroChipRow>
       }
     >
       <div className="print:hidden space-y-6">

@@ -22,7 +22,10 @@ import {
   DashboardTableHeaderCell,
   DashboardTableRow,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
@@ -433,11 +436,9 @@ export default function StaffClientsPage() {
   return (
     <PortalPageShell
       portal={isAdminSurface ? "admin" : "staff"}
-      decorated={!isAdminSurface}
-      showTodayDate={!isAdminSurface}
       loading={clientsData === undefined}
       loadingLabel="Loading clients…"
-      eyebrow="Client directory"
+      eyebrow={isAdminSurface ? "Client directory" : undefined}
       title="Clients"
       description="CRM records, KYC review, and client portal access — one directory for admin and staff."
       icon={Users}
@@ -456,13 +457,36 @@ export default function StaffClientsPage() {
         helperText: card.label,
       }))}
       actions={
-        <DashboardButton
-          size="sm"
-          onClick={() => setShowCreateModal(true)}
-          className="w-full sm:w-auto shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-1" /> New client
-        </DashboardButton>
+        <>
+          <DashboardButton
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="w-full sm:w-auto shrink-0"
+          >
+            <Plus className="size-3.5" aria-hidden /> New client
+          </DashboardButton>
+          {!isAdminSurface ? (
+            <DashboardButton
+              size="sm"
+              variant="outline"
+              className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+              onClick={() => exportClientsCsv(filteredClients, activeCaseCountByClient)}
+              disabled={filteredClients.length === 0}
+            >
+              <Download className="size-3.5" aria-hidden /> Export CSV
+            </DashboardButton>
+          ) : null}
+        </>
+      }
+      heroChildren={
+        !isAdminSurface ? (
+          <StaffHeroChipRow>
+            <HeroStatChip icon={Users} value={kpi.total} label="total clients" />
+            <HeroStatChip icon={ShieldCheck} value={kpi.kycQueue} label="KYC awaiting" />
+            <HeroStatChip icon={KeyRound} value={kpi.portalLinked} label="portal linked" />
+            <HeroStatChip icon={FolderOpen} value={kpi.activeMatters} label="active matters" />
+          </StaffHeroChipRow>
+        ) : undefined
       }
     >
       <DashboardSection title="Search & filters">

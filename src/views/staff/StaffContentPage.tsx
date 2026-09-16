@@ -14,7 +14,10 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
@@ -356,11 +359,50 @@ export default function StaffContentPage() {
   return (
     <PortalPageShell
       portal="staff"
-      decorated
       titleKey="portal.content.title"
       descriptionKey="portal.content.description"
       icon={PenTool}
       className="max-w-7xl mx-auto"
+      actions={
+        <>
+          <DashboardButton
+            size="sm"
+            onClick={() => {
+              setMainTab("blog");
+              openBlogCreate();
+            }}
+          >
+            <Plus className="size-3.5" aria-hidden /> New article
+          </DashboardButton>
+          <DashboardButton
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+            onClick={() => {
+              setMainTab("news");
+              openNewsCreate();
+            }}
+          >
+            <Newspaper className="size-3.5" aria-hidden /> New news
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip icon={FileText} value={posts.length} label="articles" />
+          <HeroStatChip icon={Newspaper} value={news.length} label="news items" />
+          <HeroStatChip
+            icon={Clock}
+            value={[...posts, ...news].filter((item) => item.status === "draft").length}
+            label="drafts"
+          />
+          <HeroStatChip
+            icon={Send}
+            value={[...posts, ...news].filter((item) => item.status === "pending_review").length}
+            label="in review"
+          />
+        </StaffHeroChipRow>
+      }
     >
       <Tabs value={mainTab} onValueChange={setMainTab} className="w-full min-w-0">
         <TabsList className="grid w-full max-w-md grid-cols-2 h-auto">

@@ -20,7 +20,10 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import {
@@ -115,11 +118,8 @@ export default function StaffCasesPage() {
   return (
     <PortalPageShell
       portal="staff"
-      decorated
-      showTodayDate
       loading={casesData === undefined}
       loadingLabel="Loading matters…"
-      eyebrow="Matter management"
       titleKey="portal.cases.title"
       descriptionKey="portal.cases.description"
       icon={FolderOpen}
@@ -151,9 +151,27 @@ export default function StaffCasesPage() {
         },
       ]}
       actions={
-        <DashboardButton size="sm" onClick={() => setShowCreateModal(true)}>
-          <Plus className="size-4" aria-hidden /> New case
-        </DashboardButton>
+        <>
+          <DashboardButton size="sm" onClick={() => setShowCreateModal(true)}>
+            <Plus className="size-3.5" aria-hidden /> New case
+          </DashboardButton>
+          <DashboardButton
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+            onClick={() => setViewMode(viewMode === "list" ? "board" : "list")}
+          >
+            {viewMode === "list" ? "Board view" : "List view"}
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip icon={FolderOpen} value={cases.length} label="total matters" />
+          <HeroStatChip icon={FolderOpen} value={activeCount} label="active" />
+          <HeroStatChip icon={CalendarDays} value={onHoldCount} label="on hold" />
+          <HeroStatChip icon={Search} value={filteredCases.length} label="in view" />
+        </StaffHeroChipRow>
       }
     >
       <DashboardSection title="Filters & view">

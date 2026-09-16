@@ -42,6 +42,8 @@ import {
   HeroHealthChip,
   HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   ScheduleTimeline,
   StatusBadge,
 } from "@/components/dashboard";
@@ -52,8 +54,6 @@ import {
   type DashboardTone,
 } from "@/lib/dashboard-semantics";
 import { MetricCard } from "@/components/dashboard/dashboard-primitives";
-import { DualDateDisplay } from "@/components/dashboard/dual-date-display";
-
 type WorkloadRow = {
   assignedTo: string;
   total: number;
@@ -350,8 +350,6 @@ export default function StaffDashboard() {
   return (
     <PortalPageShell
       portal="staff"
-      heroClassName="hero-animate-in p-5 sm:p-7 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
-      eyebrow={<DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />}
       title={firstName ? `Good ${dayPart}, ${firstName}` : `Good ${dayPart}`}
       description="A focused view of hearings, deadlines, cases, and team capacity."
       icon={Sparkles}
@@ -366,14 +364,14 @@ export default function StaffDashboard() {
             asChild
             size="sm"
             variant="outline"
-            className="border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
           >
             <Link href="/staff/hearings">Hearings</Link>
           </DashboardButton>
         </>
       }
       heroChildren={
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <StaffHeroChipRow>
           <HeroHealthChip
             healthy={!urgentPending && overdueCount === 0}
             overdueCount={overdueCount}
@@ -396,7 +394,7 @@ export default function StaffDashboard() {
             value={unreadTotal}
             label="unread messages"
           />
-        </div>
+        </StaffHeroChipRow>
       }
     >
       {isLoading ? (

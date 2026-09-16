@@ -7,6 +7,15 @@ type HeroChipIcon = React.ComponentType<{ className?: string; "aria-hidden"?: bo
 const heroChipClass =
   "group flex h-full w-full items-center gap-2.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-white backdrop-blur-sm transition-all";
 
+/** Ghost outline used by the secondary CTA on dark staff heroes. */
+export const STAFF_HERO_OUTLINE_BUTTON_CLASS =
+  "border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20 hover:text-white";
+
+/** Four-up glass chip row used under staff dashboard / tasks heroes. */
+export function StaffHeroChipRow({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">{children}</div>;
+}
+
 export interface HeroStatChipProps {
   icon?: HeroChipIcon;
   value: React.ReactNode;
@@ -45,10 +54,12 @@ export function HeroHealthChip({
   healthy,
   overdueCount,
   healthyLabel = "Work queue healthy",
+  unhealthyLabel,
 }: {
   healthy: boolean;
   overdueCount: number;
   healthyLabel?: string;
+  unhealthyLabel?: string;
 }) {
   return (
     <span className={heroChipClass}>
@@ -62,9 +73,10 @@ export function HeroHealthChip({
       <span className="text-[11px] font-semibold leading-tight text-white/85">
         {healthy
           ? healthyLabel
-          : overdueCount > 0
-            ? `${overdueCount} overdue ${overdueCount === 1 ? "task" : "tasks"}`
-            : "Urgent items present"}
+          : (unhealthyLabel ??
+            (overdueCount > 0
+              ? `${overdueCount} overdue ${overdueCount === 1 ? "task" : "tasks"}`
+              : "Urgent items present"))}
       </span>
     </span>
   );

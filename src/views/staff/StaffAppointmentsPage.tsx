@@ -2,14 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Link } from "@/client/navigation";
 import { useAppointments, useAppointmentCommands } from "@/client/queries/crm";
 import { Button } from "@/components/ui/button.tsx";
 import {
   DashboardButton,
+  DashboardFilterBar,
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import { DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
@@ -132,11 +137,46 @@ export default function StaffAppointmentsPage() {
       portal="staff"
       loading={isLoading || !meId}
       loadingLabel="Loading appointments…"
-      eyebrow="Consultations"
       title="My appointments"
       description="Consultations assigned to you. Times are firm calendar (Asia/Kathmandu)."
       icon={Calendar}
       actions={
+        <>
+          <DashboardButton asChild size="sm" variant="primary">
+            <Link href="/staff/crm">Open CRM</Link>
+          </DashboardButton>
+          <DashboardButton
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+            onClick={() => setStatusFilter("pending")}
+          >
+            Pending
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip
+            icon={Clock}
+            value={(appointments as AptRow[]).filter((a) => a.status === "pending").length}
+            label="pending"
+          />
+          <HeroStatChip
+            icon={CheckCircle}
+            value={(appointments as AptRow[]).filter((a) => a.status === "confirmed").length}
+            label="confirmed"
+          />
+          <HeroStatChip
+            icon={Calendar}
+            value={(appointments as AptRow[]).filter((a) => a.date === today).length}
+            label="today"
+          />
+          <HeroStatChip icon={Video} value={(appointments as AptRow[]).length} label="assigned" />
+        </StaffHeroChipRow>
+      }
+    >
+      <DashboardFilterBar>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="h-9 w-full md:w-[160px] text-xs">
             <SelectValue placeholder="Status" />
@@ -149,8 +189,7 @@ export default function StaffAppointmentsPage() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-      }
-    >
+      </DashboardFilterBar>
       <div className="grid grid-cols-1 gap-4 max-w-5xl">
         {isError ? (
           <EmptyState

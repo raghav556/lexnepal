@@ -22,7 +22,10 @@ import {
   DashboardButton,
   DashboardSection,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
 } from "@/components/dashboard";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { LuxuryDmPanel } from "@/components/chat";
@@ -123,17 +126,34 @@ export default function StaffTeamChatPage() {
   return (
     <PortalPageShell
       portal="staff"
-      eyebrow="Internal collaboration"
       title="Team chat"
       description="1:1 staff DMs and case-team rooms. Clients never see these conversations."
       icon={Users}
       actions={
-        <DashboardButton asChild variant="secondary" size="sm">
-          <Link href="/staff/messages">
-            <MessageSquare className="size-4" aria-hidden />
-            Client messages
-          </Link>
-        </DashboardButton>
+        <>
+          <DashboardButton size="sm" variant="primary" onClick={() => setLeftTab("dms")}>
+            <Users className="size-3.5" aria-hidden /> Direct messages
+          </DashboardButton>
+          <DashboardButton
+            asChild
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+          >
+            <Link href="/staff/messages">
+              <MessageSquare className="size-3.5" aria-hidden />
+              Client messages
+            </Link>
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip icon={Users} value={(threads ?? []).length} label="DM threads" />
+          <HeroStatChip icon={FolderOpen} value={cases.length} label="case rooms" />
+          <HeroStatChip icon={Users} value={peerCandidates.length} label="colleagues" />
+          <HeroStatChip value={leftTab === "dms" ? "DMs" : "Cases"} label="current view" />
+        </StaffHeroChipRow>
       }
       contentClassName="space-y-4"
     >

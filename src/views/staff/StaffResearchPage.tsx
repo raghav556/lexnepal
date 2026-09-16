@@ -41,7 +41,10 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
 } from "@/components/dashboard";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -170,16 +173,44 @@ export default function StaffResearchPage() {
   return (
     <PortalPageShell
       portal="staff"
-      eyebrow="Knowledge base"
       title="Legal research & vault"
       description="Firm knowledge base of precedents, commentary and procedure."
       icon={BookOpen}
       className="h-[calc(100vh-4rem)] overflow-hidden"
       contentClassName="flex flex-col min-h-0 flex-1"
       actions={
-        <DashboardButton onClick={openCreate} className="gap-2">
-          <Plus className="size-4" aria-hidden /> Add to vault
-        </DashboardButton>
+        <>
+          <DashboardButton size="sm" onClick={openCreate} className="gap-2">
+            <Plus className="size-3.5" aria-hidden /> Add to vault
+          </DashboardButton>
+          <DashboardButton
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+            onClick={() => {
+              setCategoryFilter("all");
+              setSearch("");
+            }}
+          >
+            Clear filters
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip icon={BookOpen} value={notes.length} label="vault notes" />
+          <HeroStatChip icon={Search} value={filteredNotes.length} label="in view" />
+          <HeroStatChip
+            icon={FolderOpen}
+            value={notes.filter((n) => Boolean(n.caseId)).length}
+            label="linked to matters"
+          />
+          <HeroStatChip
+            icon={Scale}
+            value={new Set(notes.map((n) => n.category)).size}
+            label="categories"
+          />
+        </StaffHeroChipRow>
       }
     >
       <DashboardSection className="flex-1 flex flex-col min-h-0 overflow-hidden !p-0">

@@ -138,11 +138,17 @@ export function PortalPageShell({
     );
 
   /*
-   * Admin portal always uses the clean DashboardHero (identical to the main
-   * Admin Dashboard). Staff/client keep NepalDecoratedHero with logo, dhaka
-   * pattern, and gold accent rail.
+   * Staff heroes always match the dashboard / tasks banner (clean DashboardHero,
+   * date eyebrow, shared padding). NepalDecoratedHero stays client-only.
+   * Admin already uses the clean DashboardHero.
    */
-  const useDecoratedHero = decorated && portal !== "admin";
+  const useDecoratedHero = decorated && portal === "client";
+  const resolvedEyebrow =
+    portal === "staff" ? (
+      <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />
+    ) : (
+      (eyebrow ?? (useDecoratedHero && firmName ? firmName : undefined))
+    );
   const HeroComponent = useDecoratedHero ? NepalDecoratedHero : DashboardHero;
   const brandLeading =
     useDecoratedHero && logoUrl && !icon ? (
@@ -192,14 +198,14 @@ export function PortalPageShell({
     >
       <HeroComponent
         className={cn(portal === "staff" ? DEFAULT_STAFF_HERO_CLASS : undefined, heroClassName)}
-        eyebrow={eyebrow ?? (useDecoratedHero && firmName ? firmName : undefined)}
+        eyebrow={resolvedEyebrow}
         title={titleNode}
         description={descriptionNode}
         icon={icon}
         leading={brandLeading}
         actions={actions}
       >
-        {showTodayDate && eyebrow === undefined ? (
+        {showTodayDate && resolvedEyebrow == null ? (
           <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-white/70">
             <CalendarDays className="size-3.5 shrink-0 text-white/60" aria-hidden />
             <DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />

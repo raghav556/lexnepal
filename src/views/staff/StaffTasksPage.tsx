@@ -48,11 +48,12 @@ import { useDocuments } from "@/client/queries/documents";
 import { TaskWorkloadView } from "@/components/tasks/TaskWorkloadView.tsx";
 import {
   DashboardButton,
-  DualDateDisplay,
   EmptyState,
   HeroHealthChip,
   HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
   getDashboardStatusTone,
 } from "@/components/dashboard";
@@ -504,12 +505,11 @@ export default function StaffTasksPage() {
   return (
     <PortalPageShell
       portal="staff"
-      eyebrow={<DualDateDisplay isoDate={new Date().toISOString()} alwaysDual />}
       titleKey="portal.tasks.title"
       descriptionKey="portal.tasks.description"
       icon={ClipboardList}
       heroChildren={
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <StaffHeroChipRow>
           <HeroHealthChip
             healthy={taskStats.overdue === 0}
             overdueCount={taskStats.overdue}
@@ -518,7 +518,7 @@ export default function StaffTasksPage() {
           <HeroStatChip icon={ClipboardList} value={taskStats.open} label="open tasks" />
           <HeroStatChip icon={Bell} value={taskStats.dueToday} label="due today" />
           <HeroStatChip icon={CheckSquare} value={taskStats.done} label="done" />
-        </div>
+        </StaffHeroChipRow>
       }
       actions={
         <>
@@ -537,7 +537,7 @@ export default function StaffTasksPage() {
             size="sm"
             onClick={handleScanOverdue}
             disabled={scanning}
-            className="border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20 hover:text-white"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
           >
             {scanning ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />

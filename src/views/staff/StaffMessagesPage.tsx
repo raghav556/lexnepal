@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare, Users } from "lucide-react";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
@@ -15,7 +15,10 @@ import {
   DashboardListRow,
   DashboardSection,
   EmptyState,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
 } from "@/components/dashboard";
 
 export default function StaffMessagesPage() {
@@ -58,18 +61,41 @@ export default function StaffMessagesPage() {
   const selectedCase = cases.find((c: { _id: string }) => c._id === selected);
   const clientName =
     clients.find((cl: { _id: string }) => cl._id === selectedCase?.clientId)?.fullName || "Client";
+  const unreadTotal = Object.values(unreadByCase).reduce(
+    (sum, count) => sum + Number(count || 0),
+    0,
+  );
 
   return (
     <PortalPageShell
       portal="staff"
-      decorated
       titleKey="portal.messages.title"
       descriptionKey="portal.messages.description"
       icon={MessageSquare}
       actions={
-        <DashboardButton asChild variant="secondary" size="sm" className="hidden sm:inline-flex">
-          <Link href="/staff/cases">All cases</Link>
-        </DashboardButton>
+        <>
+          <DashboardButton asChild size="sm" variant="primary">
+            <Link href="/staff/team-chat">
+              <Users className="size-3.5" aria-hidden /> Team chat
+            </Link>
+          </DashboardButton>
+          <DashboardButton
+            asChild
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+          >
+            <Link href="/staff/cases">All cases</Link>
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroStatChip icon={MessageSquare} value={cases.length} label="matter threads" />
+          <HeroStatChip icon={MessageSquare} value={unreadTotal} label="unread" />
+          <HeroStatChip icon={Users} value={clients.length} label="clients" />
+          <HeroStatChip value={selected ? "1" : "0"} label="open thread" />
+        </StaffHeroChipRow>
       }
       contentClassName="space-y-4"
     >

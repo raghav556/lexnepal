@@ -48,7 +48,11 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
+  HeroHealthChip,
+  HeroStatChip,
   PortalPageShell,
+  STAFF_HERO_OUTLINE_BUTTON_CLASS,
+  StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
 import { DASHBOARD_METRIC_TONES, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
@@ -228,6 +232,8 @@ export default function StaffHearingsPage() {
   });
 
   const past = hearings.filter((h: any) => h.status !== "scheduled");
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const hearingsToday = upcoming.filter((h: any) => h.dateGregorian === todayKey).length;
 
   // Calendar Logic
   const daysInMonth = eachDayOfInterval({
@@ -238,9 +244,6 @@ export default function StaffHearingsPage() {
   return (
     <PortalPageShell
       portal="staff"
-      decorated
-      showTodayDate
-      eyebrow="Court operations"
       titleKey="portal.hearings.title"
       descriptionKey="portal.hearings.description"
       icon={CalendarDays}
@@ -266,9 +269,32 @@ export default function StaffHearingsPage() {
         },
       ]}
       actions={
-        <DashboardButton onClick={() => setShowCreateModal(true)}>
-          <Plus className="size-4 mr-2" aria-hidden /> Add hearing
-        </DashboardButton>
+        <>
+          <DashboardButton size="sm" onClick={() => setShowCreateModal(true)}>
+            <Plus className="size-3.5" aria-hidden /> Add hearing
+          </DashboardButton>
+          <DashboardButton
+            size="sm"
+            variant="outline"
+            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
+            onClick={() => setViewMode(viewMode === "list" ? "calendar" : "list")}
+          >
+            {viewMode === "list" ? "Calendar" : "List view"}
+          </DashboardButton>
+        </>
+      }
+      heroChildren={
+        <StaffHeroChipRow>
+          <HeroHealthChip
+            healthy={conflictIds.size === 0}
+            overdueCount={conflictIds.size}
+            healthyLabel="No conflicts"
+            unhealthyLabel={`${conflictIds.size} conflict${conflictIds.size === 1 ? "" : "s"}`}
+          />
+          <HeroStatChip icon={CalendarDays} value={hearingsToday} label="hearings today" />
+          <HeroStatChip icon={CalendarDays} value={upcoming.length} label="scheduled" />
+          <HeroStatChip icon={Clock} value={past.length} label="past archive" />
+        </StaffHeroChipRow>
       }
     >
       <DashboardSection title="View & filters">
