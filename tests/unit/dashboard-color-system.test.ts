@@ -65,6 +65,9 @@ describe("dashboard color system", () => {
     expect(getDashboardStatusTone("contract")).toBe("primary");
     expect(getDashboardStatusTone("evidence")).toBe("success");
     expect(getDashboardStatusTone("pleading")).toBe("information");
+    expect(getDashboardStatusTone("closed")).toBe("neutral");
+    expect(getDashboardStatusTone("closed_won")).toBe("neutral");
+    expect(getDashboardStatusTone("closed_lost")).toBe("neutral");
     expect(getDashboardStatusTone("unknown-state")).toBe("neutral");
     expect(getDashboardStatusTone(null)).toBe("neutral");
   });

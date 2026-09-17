@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { applyCaseStatusAliases } from "@/shared/contracts/case-status";
 
 export const uuidSchema = z.string().uuid();
 const optionalText = (max: number) => z.string().trim().max(max).optional().nullable();
@@ -13,9 +14,11 @@ export const caseStatusSchema = z.enum([
   "inquiry",
   "active",
   "on_hold",
+  "closed",
   "closed_won",
   "closed_lost",
 ]);
+export const closureOutcomeSchema = z.enum(["won", "lost", "settled", "withdrawn", "other"]);
 export const kycDocumentTypeSchema = z.enum(["government_id", "proof_of_address", "other"]);
 
 const clientCreateBaseSchema = z.object({
@@ -77,10 +80,11 @@ export const kycReviewSchema = z
     path: ["rejectionReason"],
   });
 
-export const caseCreateSchema = z.object({
+const caseCreateObjectSchema = z.object({
   caseNumber: z.string().trim().min(1).max(100),
   title: z.string().trim().min(1).max(300),
   description: optionalText(50_000),
+  clientSummary: optionalText(50_000),
   practiceArea: z.string().trim().min(1).max(200),
   clientId: uuidSchema,
   assignedLawyerId: uuidSchema,
@@ -89,9 +93,26 @@ export const caseCreateSchema = z.object({
   judge: optionalText(250),
   opposingCounsel: optionalText(500),
   filingDate: z.string().date().optional().nullable(),
+  status: caseStatusSchema.optional(),
+  closureOutcome: closureOutcomeSchema.optional().nullable(),
 });
 
-export const caseUpdateSchema = caseCreateSchema
+export const caseCreateSchema = caseCreateObjectSchema.transform((value) =>
+  applyCaseStatusAliases(value),
+);
+
+/** Map legacy Staff PATCH `notes` onto `description` for older clients. */
+export function mapCaseUpdateNotes(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const value = { ...(raw as Record<string, unknown>) };
+  if (value.description === undefined && value.notes !== undefined) {
+    value.description = value.notes;
+  }
+  delete value.notes;
+  return applyCaseStatusAliases(value);
+}
+
+const caseUpdateObjectSchema = caseCreateObjectSchema
   .omit({
     caseNumber: true,
     clientId: true,
@@ -105,19 +126,47 @@ export const caseUpdateSchema = caseCreateSchema
     assignedLawyerId: uuidSchema.optional(),
     teamMemberIds: z.array(uuidSchema).max(100).optional(),
     closedDate: z.string().date().optional().nullable(),
+    closureOutcome: closureOutcomeSchema.optional().nullable(),
   })
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 
-export const caseListSchema = z.object({
-  status: caseStatusSchema.optional(),
-  clientId: uuidSchema.optional(),
-  lawyerId: uuidSchema.optional(),
-});
+export const caseUpdateSchema = z.preprocess(mapCaseUpdateNotes, caseUpdateObjectSchema);
+
+export const caseListSchema = z.preprocess(
+  (raw) => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+    return applyCaseStatusAliases(raw as { status?: unknown; closureOutcome?: unknown });
+  },
+  z.object({
+    status: caseStatusSchema.optional(),
+    clientId: uuidSchema.optional(),
+    lawyerId: uuidSchema.optional(),
+  }),
+);
 
 export type ClientCreateInput = z.infer<typeof clientCreateSchema>;
 export type ClientStaffUpdateInput = z.infer<typeof clientStaffUpdateSchema>;
 export type KycSubmitInput = z.infer<typeof kycSubmitSchema>;
 export type KycReviewInput = z.infer<typeof kycReviewSchema>;
+export const casePartySideSchema = z.enum(["our_side", "opposing", "other"]);
+export const casePartyTypeSchema = z.enum(["person", "organisation"]);
+
+export const casePartyCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  side: casePartySideSchema,
+  roleLabel: optionalText(255),
+  partyType: casePartyTypeSchema,
+  clientId: uuidSchema.optional().nullable(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+  clientVisible: z.boolean().optional(),
+});
+
+export const casePartyUpdateSchema = casePartyCreateSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
+
 export type CaseCreateInput = z.infer<typeof caseCreateSchema>;
 export type CaseUpdateInput = z.infer<typeof caseUpdateSchema>;
 export type CaseListInput = z.infer<typeof caseListSchema>;
+export type CasePartyCreateInput = z.infer<typeof casePartyCreateSchema>;
+export type CasePartyUpdateInput = z.infer<typeof casePartyUpdateSchema>;

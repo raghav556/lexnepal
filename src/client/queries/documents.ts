@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   useMutation as useTanstackMutation,
   useQuery as useTanstackQuery,
@@ -15,12 +15,49 @@ import type {
   SearchDocumentsInput,
 } from "@/shared/contracts/domains";
 
+export type DocumentUploadIntentStatus = {
+  intentId: string;
+  status: string;
+  documentId: string | null;
+  caseId: string | null;
+  originalFileName?: string;
+  type?: string | null;
+};
+
+async function waitForDocumentIntent(
+  intentId: string,
+  current?: DocumentUploadIntentStatus,
+): Promise<DocumentUploadIntentStatus> {
+  let latest = current;
+  if (latest?.status === "rejected") {
+    throw new Error("The file was rejected during scanning and was not added to this Misl.");
+  }
+  if (latest?.status === "expired") {
+    throw new Error("The upload expired before scanning finished.");
+  }
+  if (latest?.status === "promoted") return latest;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    latest = await apiClient.request<DocumentUploadIntentStatus>(
+      `/api/v1/document-upload-intents/${intentId}`,
+    );
+    if (latest.status === "promoted") return latest;
+    if (latest.status === "rejected") {
+      throw new Error("The file was rejected during scanning and was not added to this Misl.");
+    }
+    if (latest.status === "expired") {
+      throw new Error("The upload expired before scanning finished.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return latest ?? { intentId, status: "scanning", documentId: null, caseId: null };
+}
+
 async function uploadViaIntent(input: {
   file: File;
   caseId?: string;
   parentDocumentId?: string;
   metadata?: Record<string, unknown>;
-}) {
+}): Promise<DocumentUploadIntentStatus> {
   const sha256 = await computeSHA256(input.file);
   const intent = await apiClient.request<{
     intentId: string;
@@ -42,27 +79,71 @@ async function uploadViaIntent(input: {
   form.append("file", input.file);
   const uploaded = await fetch(intent.upload.url, { method: "POST", body: form });
   if (!uploaded.ok) throw new Error("Object storage rejected the document upload");
-  return apiClient.request<{ status: string }>(
+  const completed = await apiClient.request<DocumentUploadIntentStatus>(
     `/api/v1/document-upload-intents/${intent.intentId}/complete`,
     { method: "POST", body: {} },
   );
+  const settled = await waitForDocumentIntent(intent.intentId, {
+    ...completed,
+    intentId: intent.intentId,
+  });
+  return { ...settled, intentId: intent.intentId };
 }
 
-export function useDocuments(filters: ListDocumentsInput = {}): DocumentDto[] | undefined {
+export function useDocuments(filters: ListDocumentsInput | "skip" = {}): DocumentDto[] | undefined {
+  const activeFilters = filters === "skip" ? {} : filters;
   const next = useTanstackQuery({
-    queryKey: queryKeys.documents.list(filters),
+    queryKey: queryKeys.documents.list(activeFilters),
     queryFn: ({ signal }) =>
       apiClient.request<DocumentDto[]>("/api/v1/documents", {
         query: {
-          caseId: filters.caseId,
-          isTemplate: filters.isTemplate === undefined ? undefined : String(filters.isTemplate),
-          inTrash: filters.inTrash === undefined ? undefined : String(filters.inTrash),
+          caseId: activeFilters.caseId,
+          isTemplate:
+            activeFilters.isTemplate === undefined ? undefined : String(activeFilters.isTemplate),
+          inTrash: activeFilters.inTrash === undefined ? undefined : String(activeFilters.inTrash),
         },
         signal,
       }),
+    enabled: filters !== "skip",
   });
   return next.data;
 }
+
+const SCANNING_INTENT_STATUSES = new Set(["pending", "uploaded", "scanning"]);
+
+export function useWatchDocumentUploadIntents(
+  intentIds: string[],
+  onUpdate: (intent: DocumentUploadIntentStatus) => void,
+) {
+  const key = [...intentIds].sort().join(",");
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    const ids = key.split(",").filter(Boolean);
+    const poll = async () => {
+      await Promise.all(
+        ids.map(async (intentId) => {
+          try {
+            const next = await apiClient.request<DocumentUploadIntentStatus>(
+              `/api/v1/document-upload-intents/${intentId}`,
+            );
+            if (!cancelled) onUpdate({ ...next, intentId });
+          } catch {
+            // Keep watching until the scan settles or the row is removed.
+          }
+        }),
+      );
+    };
+    const timer = window.setInterval(poll, 1500);
+    void poll();
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [key, onUpdate]);
+}
+
+export { SCANNING_INTENT_STATUSES };
 
 export function useDocumentSearch(filters: SearchDocumentsInput | null): DocumentDto[] | undefined {
   const next = useTanstackQuery({
@@ -120,7 +201,7 @@ export function useUploadDocument() {
       isPrivileged?: boolean;
       confidentialityLevel?: string;
       description?: string;
-    }) => {
+    }): Promise<DocumentUploadIntentStatus> => {
       try {
         const result = await uploadViaIntent({
           file: input.file,

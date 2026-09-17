@@ -42,6 +42,7 @@
     "db:index-map": "node scripts/db/generate-index-map.mjs",
     "db:integrity": "node scripts/db/verify-migration-integrity.mjs",
     "db:integrity:update": "node scripts/db/verify-migration-integrity.mjs --write",
+    "db:r2-gate": "node --env-file-if-exists=.env.local scripts/db/r2-cases-safety-gate.mjs",
     "storage:provision": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/storage/provision.ts",
     "storage:verify-local": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/storage/verify-local.ts",
     "storage:verify-clamav": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/storage/verify-clamav.ts",

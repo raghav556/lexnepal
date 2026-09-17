@@ -7,7 +7,7 @@ import { Calendar, MessageCircle, MessageSquare, UserRound, ArrowLeft } from "lu
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { useUnreadMessageCounts } from "@/client/queries/communication";
 import { useMyClient, useMyTeam } from "@/client/queries/clients";
-import { useCases } from "@/client/queries/cases";
+import { useClientCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 import {
@@ -24,7 +24,7 @@ export default function ClientMessagesPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const users = useMyTeam() || [];
   const searchParams = useSearchParams();
   const queryCaseId = searchParams.get("caseId");

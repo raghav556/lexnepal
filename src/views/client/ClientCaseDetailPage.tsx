@@ -17,8 +17,15 @@ import {
   User,
   Scale,
 } from "lucide-react";
-import { useCase } from "@/client/queries/cases";
+import { useClientCaseQuery } from "@/client/queries/cases";
+import { caseQueryFailureKind } from "@/client/queries/case-query-error";
 import { useMyTeam } from "@/client/queries/clients";
+import {
+  CASE_DETAIL_HERO_CLASS,
+  CASE_DETAIL_TABS_LIST_CLASS,
+  CASE_PARTY_SIDE_LABELS,
+} from "@/shared/contracts/case-ui";
+import { CaseQueryState } from "@/components/cases/case-query-state";
 import { useHearings } from "@/client/queries/hearings";
 import { useDocuments, useDownloadDocument } from "@/client/queries/documents";
 import { useTasks } from "@/client/queries/tasks";
@@ -64,19 +71,14 @@ function DocDownload({ documentId }: { documentId: string }) {
 export default function ClientCaseDetailPage() {
   const params = useParams<{ id: string }>();
   const caseId = params?.id || "";
-  const caseData = useCase(caseId || null);
+  const caseQuery = useClientCaseQuery(caseId || null);
+  const caseData = caseQuery.data;
   const team = useMyTeam() || [];
   const hearings = useHearings(caseId ? { caseId } : "skip") || [];
   const documents = useDocuments(caseId ? { caseId } : {}) || [];
   const tasks = useTasks(caseId ? { caseId } : "skip") || [];
   const { data: messagesResponse } = useMessages(caseId || "", false);
   const messages = messagesResponse?.page || [];
-
-  const lawyer = useMemo(
-    () =>
-      team.find((u) => u._id === caseData?.assignedLawyerId || u.id === caseData?.assignedLawyerId),
-    [team, caseData?.assignedLawyerId],
-  );
 
   const checklist = useMemo(
     () =>
@@ -92,7 +94,26 @@ export default function ClientCaseDetailPage() {
   ).length;
   const nextHearing = hearings.find((h: { status?: string }) => h.status === "scheduled");
 
-  if (caseData === undefined) {
+  if (!caseId || caseQuery.isError) {
+    const kind = !caseId ? "not_found" : caseQueryFailureKind(caseQuery.error);
+    return (
+      <CaseQueryState
+        portal="client"
+        kind={kind}
+        scope="detail"
+        backHref="/client/cases"
+        onRetry={
+          caseQuery.isError
+            ? () => {
+                void caseQuery.refetch();
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
+  if (caseQuery.isPending || caseData === undefined) {
     return (
       <PortalPageShell
         portal="client"
@@ -107,40 +128,24 @@ export default function ClientCaseDetailPage() {
 
   if (caseData === null) {
     return (
-      <PortalPageShell
-        portal="client"
-        eyebrow="Case not found"
-        title="Matter unavailable"
-        description="This case is unavailable or is not linked to your portal account."
-        icon={FolderOpen}
-      >
-        <EmptyState
-          title="Case unavailable"
-          description="This case could not be loaded. Please return to your cases list."
-          icon={FolderOpen}
-          action={
-            <DashboardButton asChild variant="outline" size="sm">
-              <Link href="/client/cases">
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back to cases
-              </Link>
-            </DashboardButton>
-          }
-        />
-      </PortalPageShell>
+      <CaseQueryState portal="client" kind="not_found" scope="detail" backHref="/client/cases" />
     );
   }
+
+  const visibleParties = caseData.parties ?? [];
+  const advocate = caseData.advocate;
 
   const metrics = [
     {
       label: "Assigned Advocate",
-      value: lawyer?.name || "Unassigned",
+      value: advocate?.name?.trim() ? advocate.name : "Unassigned",
       icon: User,
       tone: "primary" as const,
-      helperText: lawyer?.email || "Firm advocate",
+      helperText: advocate?.email || "Firm advocate",
     },
     {
       label: "Court Jurisdiction",
-      value: caseData.court || "District Court",
+      value: caseData.court?.trim() ? caseData.court : "Not specified",
       icon: Scale,
       tone: "neutral" as const,
       helperText: caseData.practiceArea,
@@ -176,9 +181,11 @@ export default function ClientCaseDetailPage() {
       showTodayDate
       eyebrow={`Matter #${caseData.caseNumber}`}
       title={caseData.title}
-      description={caseData.description || `Active matter in ${caseData.practiceArea}.`}
+      description={caseData.clientSummary || `Active matter in ${caseData.practiceArea}.`}
       icon={FolderOpen}
       metrics={metrics}
+      metricsClassName="max-sm:hidden"
+      heroClassName={CASE_DETAIL_HERO_CLASS}
       actions={
         <div className="flex flex-wrap gap-2">
           <DashboardButton asChild variant="secondary" size="sm">
@@ -195,7 +202,10 @@ export default function ClientCaseDetailPage() {
       }
     >
       <Tabs defaultValue="overview" className="w-full space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1 border border-dashboard-border bg-dashboard-panel p-1 rounded-xl">
+        <TabsList
+          aria-label="Case sections"
+          className={`${CASE_DETAIL_TABS_LIST_CLASS} border border-dashboard-border bg-dashboard-panel rounded-xl`}
+        >
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="hearings">Hearings ({hearings.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
@@ -245,6 +255,27 @@ export default function ClientCaseDetailPage() {
               </div>
             </div>
           </DashboardSection>
+
+          {visibleParties.length > 0 ? (
+            <DashboardSection
+              title="Parties"
+              description="Parties your legal team has shared with you"
+            >
+              <div className="space-y-3">
+                {visibleParties.map((party) => (
+                  <DashboardListRow key={party.id}>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-sm font-semibold text-foreground">{party.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {CASE_PARTY_SIDE_LABELS[party.side]}
+                        {party.roleLabel ? ` · ${party.roleLabel}` : ""}
+                      </p>
+                    </div>
+                  </DashboardListRow>
+                ))}
+              </div>
+            </DashboardSection>
+          ) : null}
 
           <DashboardSection title="Quick Actions">
             <div className="flex flex-wrap gap-2">

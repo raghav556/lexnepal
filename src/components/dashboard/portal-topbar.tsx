@@ -96,7 +96,15 @@ export function PortalTopbar({
   const breadcrumbs = pathSegments.map((segment, index) => {
     const href = "/" + pathSegments.slice(0, index + 1).join("/");
     const meta = SEGMENT_LABELS[segment] || { label: segment.replace(/-/g, " ") };
-    const label = meta.i18nKey && t(meta.i18nKey) !== meta.i18nKey ? t(meta.i18nKey) : meta.label;
+    const previous = index > 0 ? pathSegments[index - 1] : "";
+    const looksLikeRecordId =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+    const label =
+      portal === "client" && previous === "cases" && looksLikeRecordId
+        ? "Case"
+        : meta.i18nKey && t(meta.i18nKey) !== meta.i18nKey
+          ? t(meta.i18nKey)
+          : meta.label;
     const isLast = index === pathSegments.length - 1;
     return { segment, href, label, isLast };
   });
@@ -265,7 +273,7 @@ export function PortalTopbar({
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/staff/cases" className="flex items-center gap-2 text-xs">
+                  <Link href="/admin/cases?create=1" className="flex items-center gap-2 text-xs">
                     <FolderPlus className="size-3.5 text-dashboard-warning" /> New Case Matter
                   </Link>
                 </DropdownMenuItem>

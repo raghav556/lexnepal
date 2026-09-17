@@ -6,7 +6,7 @@ import { FileText, Download, Upload, Loader2, Eye, Filter, Search } from "lucide
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input.tsx";
 import { useMyClient } from "@/client/queries/clients";
-import { useCases } from "@/client/queries/cases";
+import { useClientCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useDocuments, useUploadDocument, useDownloadDocument } from "@/client/queries/documents";
 import { usePagination } from "@/hooks/use-pagination.ts";
@@ -137,7 +137,7 @@ export default function ClientDocumentsPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const searchParams = useSearchParams();
   const queryCaseId = searchParams.get("caseId") || "";
 

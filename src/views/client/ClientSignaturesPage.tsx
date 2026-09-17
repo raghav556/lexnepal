@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMyClient } from "@/client/queries/clients";
-import { useCases } from "@/client/queries/cases";
+import { useClientCases } from "@/client/queries/cases";
 import { useDocuments, useDownloadDocument } from "@/client/queries/documents";
 import {
   useDeclineEnvelope,
@@ -231,7 +231,7 @@ export default function ClientSignaturesPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const documents = useDocuments({}) || [];
 
   const caseIds = new Set(cases.map((c) => c._id));

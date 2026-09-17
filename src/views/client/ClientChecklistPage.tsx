@@ -12,7 +12,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useMyClient } from "@/client/queries/clients";
-import { useCases } from "@/client/queries/cases";
+import { useClientCases } from "@/client/queries/cases";
 import { useTasks } from "@/client/queries/tasks";
 import { cn } from "@/lib/utils.ts";
 import { formatTaskDue, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
@@ -36,7 +36,7 @@ export default function ClientChecklistPage() {
   const { t } = useI18n();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const tasks = useTasks() || [];
 
   const caseIds = useMemo(() => new Set(cases.map((c: any) => c._id)), [cases]);

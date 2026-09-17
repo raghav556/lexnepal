@@ -4,7 +4,7 @@ import { useQuery as useTanstackQuery, useQueryClient } from "@tanstack/react-qu
 import { apiClient } from "@/client/api/client";
 import { queryKeys } from "@/client/queries/query-keys";
 import { computeSHA256 } from "@/lib/document-utils.ts";
-import type { ClientDto } from "@/shared/contracts/domains";
+import type { ClientCrmDto, ClientDto } from "@/shared/contracts/domains";
 
 export function useClients(): ClientDto[] | undefined {
   return useTanstackQuery({
@@ -13,10 +13,11 @@ export function useClients(): ClientDto[] | undefined {
   }).data;
 }
 
-export function useMyClient(): ClientDto | null | undefined {
+export function useMyClient(): ClientCrmDto | null | undefined {
   const { data, isPending, isError } = useTanstackQuery({
     queryKey: queryKeys.clients.mine,
-    queryFn: ({ signal }) => apiClient.request<ClientDto | null>("/api/v1/clients/me", { signal }),
+    queryFn: ({ signal }) =>
+      apiClient.request<ClientCrmDto | null>("/api/v1/clients/me", { signal }),
     retry: 1,
     staleTime: 30_000,
   });

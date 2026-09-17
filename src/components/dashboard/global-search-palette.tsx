@@ -32,6 +32,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
+import { isLifecycleClosed } from "@/shared/contracts/case-status";
+import { CASE_LIFECYCLE_LABELS, toLifecycleStatus } from "@/shared/contracts/case-ui";
 
 export interface GlobalSearchPaletteProps {
   isOpen: boolean;
@@ -113,6 +115,13 @@ const STATIC_PAGES: Array<{
     href: "/admin/appointments",
     icon: Calendar,
     keywords: ["meetings", "hearings", "calendar"],
+  },
+  {
+    title: "Cases",
+    subtitle: "Matters, parties, and case team",
+    href: "/admin/cases",
+    icon: Briefcase,
+    keywords: ["matters", "files", "litigation", "cases"],
   },
   {
     title: "CMS: Website Settings",
@@ -300,18 +309,20 @@ export function GlobalSearchPalette({
     });
 
     // 2. Cases & Matters
+    const caseBasePath = portal === "admin" ? "/admin/cases" : "/staff/cases";
     casesData.forEach((c) => {
+      const href = `${caseBasePath}/${c._id}`;
       items.push({
         id: `case-${c._id}`,
         category: "cases",
         title: c.title || `Matter ${c.caseNumber}`,
         subtitle: `[${c.caseNumber}] • ${c.practiceArea || "General Legal"}`,
-        badge: String(c.status || "active").toUpperCase(),
-        badgeTone: c.status === "closed" ? "slate" : "blue",
+        badge: CASE_LIFECYCLE_LABELS[toLifecycleStatus(c.status)].toUpperCase(),
+        badgeTone: isLifecycleClosed(c.status) ? "slate" : "blue",
         icon: Briefcase,
-        href: `/staff/cases/${c._id}`,
+        href,
         onSelect: () => {
-          router.push(`/staff/cases/${c._id}`);
+          router.push(href);
           onClose();
         },
       });
@@ -369,6 +380,17 @@ export function GlobalSearchPalette({
         },
       },
       {
+        title: "Create New Case",
+        subtitle: "Open a matter in the Admin Case workspace",
+        icon: Briefcase,
+        badge: "Create",
+        badgeTone: "blue",
+        action: () => {
+          router.push(portal === "staff" ? "/staff/cases?create=1" : "/admin/cases?create=1");
+          onClose();
+        },
+      },
+      {
         title: "Schedule Appointment",
         subtitle: "Book consultation, client meeting or court prep",
         icon: Calendar,
@@ -417,7 +439,7 @@ export function GlobalSearchPalette({
     });
 
     return items;
-  }, [casesData, clientsData, router, onClose]);
+  }, [casesData, clientsData, router, onClose, portal]);
 
   // Filtered items based on query & active tab
   const filteredItems = React.useMemo(() => {
@@ -437,6 +459,7 @@ export function GlobalSearchPalette({
             item.id === "page-3" || // Clients
             item.id === "page-6" || // CRM
             item.id === "page-7" || // Appointments
+            item.href === "/admin/cases" ||
             item.id.startsWith("case-")
           );
         }

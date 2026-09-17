@@ -5,6 +5,11 @@ import { getDashboardStatusTone, type DashboardTone } from "@/lib/dashboard-sema
 import { cn } from "@/lib/utils";
 
 import { useI18n } from "@/lib/i18n-context";
+import {
+  CASE_LIFECYCLE_LABELS,
+  isCaseStatusValue,
+  toLifecycleStatus,
+} from "@/shared/contracts/case-ui";
 
 export interface DashboardStatusLabelProps extends React.ComponentProps<"span"> {
   status?: string | null;
@@ -25,10 +30,13 @@ export function DashboardStatusLabel({
   ...props
 }: DashboardStatusLabelProps) {
   const { t } = useI18n();
-  const resolvedTone = tone ?? getDashboardStatusTone(status);
+  const caseLifecycle = isCaseStatusValue(status) ? toLifecycleStatus(status) : null;
+  const resolvedTone = tone ?? getDashboardStatusTone(caseLifecycle ?? status);
 
   let fallbackDisplay = "Unknown";
-  if (status) {
+  if (caseLifecycle) {
+    fallbackDisplay = CASE_LIFECYCLE_LABELS[caseLifecycle];
+  } else if (status) {
     const key = `status.${String(status).toLowerCase().replace(/[-\s]/g, "_")}`;
     const translated = t(key);
     fallbackDisplay =

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   FileText,
+  FolderOpen,
   Settings,
   Shield,
   Globe,
@@ -92,6 +93,13 @@ const ADMIN_NAV_TREE: NavGroupSection[] = [
   {
     heading: "Practice & Operations",
     items: [
+      {
+        type: "link",
+        label: "Cases",
+        i18nKey: "nav.cases",
+        href: "/admin/cases",
+        icon: FolderOpen,
+      },
       {
         type: "branch",
         id: "crm-branch",

@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDatabase } from "../db/client";
 import { cases, clients, hearings, leads, tasks, users } from "../db/schema";
 import type { AnalyticsDashboardDto } from "@/shared/contracts/analytics";
+import { isLifecycleClosed } from "@/shared/contracts/case-status";
 
 function countBy<T>(rows: T[], key: (row: T) => string) {
   return rows.reduce<Record<string, number>>((counts, row) => {
@@ -64,7 +65,9 @@ export class AnalyticsRepository {
       openTasks: openTasks.length,
       upcomingHearings: scheduledHearings.length,
       mattersByPractice: countBy(activeCases, (row) => row.practiceArea || "Other"),
-      casesByStatus: countBy(allCases, (row) => row.status || "open"),
+      casesByStatus: countBy(allCases, (row) =>
+        isLifecycleClosed(row.status) ? "closed" : row.status || "open",
+      ),
       tasksByStatus: countBy(allTasks, (row) => row.status || "todo"),
       hearingsByMonth,
     };

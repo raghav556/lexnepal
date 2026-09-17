@@ -142,7 +142,7 @@ function auditEventStyle(action: string) {
 }
 
 const QUICK_ACTIONS = [
-  { label: "New case", href: "/admin/cases/new", icon: Briefcase },
+  { label: "New case", href: "/admin/cases?create=1", icon: Briefcase },
   { label: "Schedule hearing", href: "/admin/appointments", icon: CalendarDays },
   { label: "Add client", href: "/admin/clients", icon: UserPlus },
   { label: "Create task", href: "/admin/tasks", icon: CheckSquare },
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
       icon: FolderOpen,
       tone: DASHBOARD_METRIC_TONES.cases,
       helper: "Matters in progress",
-      href: undefined,
+      href: "/admin/cases",
     },
     {
       label: "Upcoming hearings",
@@ -469,18 +469,31 @@ export default function AdminDashboard() {
     >
       {/* ── Tier 1: Metric Grid (3-col, default density, count-up) ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 dashboard-animate-stagger">
-        {metrics.map((metric) => (
-          <MetricCard
-            key={metric.label}
-            label={metric.label}
-            value={<CountUp value={metric.value} />}
-            icon={metric.icon}
-            tone={metric.tone}
-            helperText={metric.helper}
-            density="default"
-            chevron={Boolean(metric.href)}
-          />
-        ))}
+        {metrics.map((metric) => {
+          const card = (
+            <MetricCard
+              label={metric.label}
+              value={<CountUp value={metric.value} />}
+              icon={metric.icon}
+              tone={metric.tone}
+              helperText={metric.helper}
+              density="default"
+              chevron={Boolean(metric.href)}
+            />
+          );
+          if (!metric.href) {
+            return (
+              <div key={metric.label} className="min-w-0">
+                {card}
+              </div>
+            );
+          }
+          return (
+            <Link key={metric.label} href={metric.href} className="min-w-0 block">
+              {card}
+            </Link>
+          );
+        })}
       </div>
 
       {/* ── Tier 3: Quick Actions Strip ── */}
@@ -694,12 +707,14 @@ export default function AdminDashboard() {
                 {attentionCases.map((row) => (
                   <DashboardTableRow key={row.caseId}>
                     <DashboardTableCell>
-                      <span className="block text-xs font-medium tabular-nums text-muted-foreground">
-                        {row.caseNumber}
-                      </span>
-                      <span className="block max-w-[14rem] truncate text-sm font-semibold text-foreground">
-                        {row.title}
-                      </span>
+                      <Link href={`/admin/cases/${row.caseId}`} className="block min-w-0">
+                        <span className="block text-xs font-medium tabular-nums text-muted-foreground">
+                          {row.caseNumber}
+                        </span>
+                        <span className="block max-w-[14rem] truncate text-sm font-semibold text-foreground hover:text-dashboard-primary">
+                          {row.title}
+                        </span>
+                      </Link>
                     </DashboardTableCell>
                     <DashboardTableCell>
                       <span className="block max-w-[10rem] truncate text-sm">

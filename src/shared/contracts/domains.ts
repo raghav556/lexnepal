@@ -32,8 +32,10 @@ export interface CaseDto {
   caseNumber: string;
   title: string;
   description?: string;
+  clientSummary?: string | null;
   practiceArea: string;
   status: string;
+  closureOutcome?: string | null;
   clientId: string;
   assignedLawyerId: string;
   teamMemberIds: string[];
@@ -42,8 +44,19 @@ export interface CaseDto {
   opposingCounsel?: string | null;
   filingDate?: string | null;
   closedDate?: string | null;
+  parties?: unknown[];
+  nextHearing?: string | null;
+  nextTaskDue?: string | null;
   [key: string]: unknown;
 }
+
+export type {
+  ClientAdvocateDto,
+  ClientCaseDto,
+  ClientCrmDto,
+  ClientPartyDto,
+} from "@/shared/contracts/client-allowlists";
+export type { StaffCasePartyDto } from "@/shared/contracts/staff-case";
 
 export interface ClientDto {
   _id: string;

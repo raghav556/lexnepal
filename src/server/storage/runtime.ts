@@ -9,6 +9,7 @@ import { DocumentPipelineService } from "@/server/storage/document-pipeline";
 import {
   ClamAvScanner,
   CompositeDocumentScanner,
+  DevelopmentFallbackScanner,
   HttpCdrScanner,
   TrustingDocumentScanner,
   type DocumentScanner,
@@ -82,10 +83,12 @@ function createDocumentScanner(
     environment.CLAMAV_HOST ?? "127.0.0.1",
     environment.CLAMAV_PORT,
   );
-  return new CompositeDocumentScanner(
+  const scanner = new CompositeDocumentScanner(
     antivirus,
     environment.CDR_ENDPOINT
       ? new HttpCdrScanner(environment.CDR_ENDPOINT, environment.CDR_API_KEY)
       : undefined,
   );
+  if (environment.NODE_ENV === "production") return scanner;
+  return new DevelopmentFallbackScanner(scanner);
 }

@@ -53,7 +53,11 @@ export function useHearing(hearingId: string | null): HearingDto | undefined {
 
 export function useHearingCommands() {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.hearings.all });
+  const invalidate = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.hearings.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.cases.all }),
+    ]);
 
   return {
     async createHearing(input: Record<string, unknown>) {

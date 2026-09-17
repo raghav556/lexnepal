@@ -13,7 +13,11 @@ export const STAFF_HERO_OUTLINE_BUTTON_CLASS =
 
 /** Four-up glass chip row used under staff dashboard / tasks heroes. */
 export function StaffHeroChipRow({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">{children}</div>;
+  return (
+    <div data-hero-chips className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      {children}
+    </div>
+  );
 }
 
 export interface HeroStatChipProps {

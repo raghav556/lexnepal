@@ -3,18 +3,27 @@
 import { useMemo, useState } from "react";
 import { FolderOpen, CalendarDays, Search, UserRound, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useMyClient, useMyTeam } from "@/client/queries/clients";
-import { useCases } from "@/client/queries/cases";
+import { useMyClient } from "@/client/queries/clients";
+import { useClientCasesQuery } from "@/client/queries/cases";
+import { caseQueryFailureKind } from "@/client/queries/case-query-error";
 import { useHearings } from "@/client/queries/hearings";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { isLifecycleClosed } from "@/shared/contracts/case-status";
+import {
+  CASE_LIFECYCLE_LABELS,
+  CASE_LIST_HERO_CLASS,
+  matchesCaseStatusFilter,
+  type CaseStatusFilter,
+} from "@/shared/contracts/case-ui";
+import { CaseQueryState } from "@/components/cases/case-query-state";
+import type { ClientCaseDto } from "@/shared/contracts/domains";
 import {
   DashboardButton,
   DashboardFilterBar,
   DashboardListRow,
-  DashboardListSkeleton,
   DashboardSection,
   DashboardStatusLabel,
   DashboardTable,
@@ -26,29 +35,37 @@ import {
   EmptyState,
   PortalPageShell,
 } from "@/components/dashboard";
-import { DASHBOARD_METRIC_TONES, getDashboardStatusTone } from "@/lib/dashboard-semantics";
+import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
+
+function clientCourtLabel(court: string | null | undefined): string {
+  const value = court?.trim();
+  return value ? value : "Not specified";
+}
+
+function advocateName(matter: ClientCaseDto): string {
+  return matter.advocate?.name?.trim() ? matter.advocate.name : "Unassigned";
+}
 
 export default function ClientCasesPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
-  const users = useMyTeam() || [];
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const cases = casesQuery.data ?? [];
   const hearings = useHearings({}) || [];
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("all");
   const [viewMode, setViewMode] = useState<"list" | "table">("list");
 
   const filteredCases = useMemo(() => {
-    return cases.filter((c: any) => {
+    return cases.filter((c) => {
       const matchesSearch =
         search === "" ||
         c.title?.toLowerCase().includes(search.toLowerCase()) ||
         c.caseNumber?.toLowerCase().includes(search.toLowerCase()) ||
         c.practiceArea?.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesCaseStatusFilter(c.status, statusFilter);
     });
   }, [cases, search, statusFilter]);
 
@@ -57,9 +74,9 @@ export default function ClientCasesPage() {
     itemsPerPage: 8,
   });
 
-  const activeCount = cases.filter((c: any) => c.status === "active").length;
-  const closedCount = cases.filter((c: any) => c.status === "closed").length;
-  const onHoldCount = cases.filter((c: any) => c.status === "on_hold").length;
+  const activeCount = cases.filter((c) => c.status === "active").length;
+  const closedCount = cases.filter((c) => isLifecycleClosed(c.status)).length;
+  const onHoldCount = cases.filter((c) => c.status === "on_hold").length;
 
   if (currentUser === undefined || clientRecord === undefined) {
     return (
@@ -84,12 +101,39 @@ export default function ClientCasesPage() {
         title="My Cases"
         description="Track your open matters and legal representation."
         icon={FolderOpen}
+        heroClassName={CASE_LIST_HERO_CLASS}
       >
         <EmptyState
           title="No client profile linked"
           description="Your portal account is not linked to a firm client record yet. Ask the firm to grant portal access from their Clients list."
           icon={FolderOpen}
         />
+      </PortalPageShell>
+    );
+  }
+
+  if (casesQuery.isError) {
+    return (
+      <CaseQueryState
+        portal="client"
+        kind={caseQueryFailureKind(casesQuery.error)}
+        scope="list"
+        onRetry={() => {
+          void casesQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  if (casesQuery.isPending) {
+    return (
+      <PortalPageShell
+        portal="client"
+        loading
+        loadingLabel="Loading your legal matters…"
+        title="My Cases"
+      >
+        <div />
       </PortalPageShell>
     );
   }
@@ -132,6 +176,8 @@ export default function ClientCasesPage() {
       description="Track your open matters, assigned advocates, and upcoming court hearings."
       icon={FolderOpen}
       metrics={metrics}
+      metricsClassName="max-sm:hidden"
+      heroClassName={CASE_LIST_HERO_CLASS}
       actions={
         <DashboardButton asChild size="sm">
           <Link href="/client/booking">Request new consultation</Link>
@@ -161,13 +207,7 @@ export default function ClientCasesPage() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {status === "all"
-                    ? "All"
-                    : status === "active"
-                      ? "Active"
-                      : status === "on_hold"
-                        ? "On Hold"
-                        : "Closed"}
+                  {status === "all" ? "All" : CASE_LIFECYCLE_LABELS[status]}
                 </button>
               ))}
             </div>
@@ -202,11 +242,9 @@ export default function ClientCasesPage() {
         description={`Showing ${filteredCases.length} matter${filteredCases.length === 1 ? "" : "s"}`}
         icon={FolderOpen}
       >
-        {cases === undefined ? (
-          <DashboardListSkeleton rows={4} />
-        ) : filteredCases.length === 0 ? (
+        {filteredCases.length === 0 ? (
           <EmptyState
-            title="No cases found"
+            title={cases.length === 0 ? "No cases on file" : "No matching cases"}
             description={
               search || statusFilter !== "all"
                 ? "No matters match your filter criteria."
@@ -228,8 +266,7 @@ export default function ClientCasesPage() {
                 </DashboardTableRow>
               </DashboardTableHead>
               <DashboardTableBody>
-                {paginatedItems.map((c: any) => {
-                  const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
+                {paginatedItems.map((c) => {
                   return (
                     <DashboardTableRow key={c._id} striped>
                       <DashboardTableCell className="font-mono text-xs font-semibold text-muted-foreground">
@@ -239,11 +276,9 @@ export default function ClientCasesPage() {
                         <p className="font-semibold text-foreground">{c.title}</p>
                         <p className="text-xs text-muted-foreground">{c.practiceArea}</p>
                       </DashboardTableCell>
-                      <DashboardTableCell className="text-xs">
-                        {lawyer?.name || "Unassigned"}
-                      </DashboardTableCell>
+                      <DashboardTableCell className="text-xs">{advocateName(c)}</DashboardTableCell>
                       <DashboardTableCell className="text-xs text-muted-foreground">
-                        {c.court || "District Court"}
+                        {clientCourtLabel(c.court)}
                       </DashboardTableCell>
                       <DashboardTableCell>
                         <DashboardStatusLabel status={c.status} className="text-xs" />
@@ -271,10 +306,10 @@ export default function ClientCasesPage() {
         ) : (
           <div className="space-y-4">
             <div className="space-y-3">
-              {paginatedItems.map((c: any) => {
-                const lawyer = users.find((u: any) => u._id === c.assignedLawyerId);
+              {paginatedItems.map((c) => {
                 const nextHearingObj = hearings.find(
-                  (h: any) => h.caseId === c._id && h.status === "scheduled",
+                  (h: { caseId?: string; status?: string }) =>
+                    h.caseId === c._id && h.status === "scheduled",
                 );
 
                 return (
@@ -300,9 +335,9 @@ export default function ClientCasesPage() {
                         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <UserRound className="w-3.5 h-3.5 text-dashboard-information" />
-                            Advocate: {lawyer ? lawyer.name : "Unassigned"}
+                            Advocate: {advocateName(c)}
                           </span>
-                          <span>Court: {c.court || "District Court"}</span>
+                          <span>Court: {clientCourtLabel(c.court)}</span>
                         </div>
                         {nextHearingObj ? (
                           <div className="flex items-center gap-1.5 text-xs text-dashboard-primary font-medium">

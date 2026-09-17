@@ -275,6 +275,32 @@ export class DocumentPipelineService {
     return (await this.repository.getIntent(intentId))?.status ?? null;
   }
 
+  async describeUploadIntent(
+    principal: AuthPrincipal,
+    intentId: string,
+  ): Promise<{
+    intentId: string;
+    status: UploadIntentStatus;
+    documentId: string | null;
+    caseId: string | null;
+    originalFileName: string;
+    type: string | null;
+  }> {
+    const intent = await this.requireIntent(intentId);
+    requireSameFirm(principal, intent.firmId);
+    if (intent.createdBy !== principal.user.id && principal.user.role !== "admin") {
+      throw new AppError("FORBIDDEN", "Only the upload owner can inspect this intent", 403);
+    }
+    return {
+      intentId: intent.id,
+      status: intent.status,
+      documentId: intent.documentId,
+      caseId: intent.caseId,
+      originalFileName: intent.originalFileName,
+      type: intent.metadata?.type ?? null,
+    };
+  }
+
   async cleanup(limit = 100): Promise<{ expired: number; deleted: number }> {
     const now = this.now();
     const candidates = await this.repository.listCleanupCandidates(now, limit);

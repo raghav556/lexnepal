@@ -13,8 +13,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
-import { useCases } from "@/client/queries/cases";
-import { useMyClient, useMyTeam } from "@/client/queries/clients";
+import { useClientCases } from "@/client/queries/cases";
+import { useMyClient } from "@/client/queries/clients";
+import { isLifecycleClosed } from "@/shared/contracts/case-status";
 import { useDocuments } from "@/client/queries/documents";
 import { useAppointments } from "@/client/queries/crm";
 import { useHearings } from "@/client/queries/hearings";
@@ -35,14 +36,18 @@ import {
 import { getDashboardStatusTone } from "@/lib/dashboard-semantics";
 import { localDateIso, relativeTime } from "@/lib/dashboard-format";
 
-/** Plain-language, truthful presentation for the real matter status enum. */
+/** Plain-language labels for Client Case DTO lifecycle statuses. */
 const CLIENT_STATUS_LANGUAGE: Record<string, string> = {
   inquiry: "Inquiry under review",
   active: "Active — in progress",
   on_hold: "On hold for now",
-  closed_won: "Resolved favorably",
-  closed_lost: "Closed — final outcome issued",
+  closed: "Closed",
 };
+
+function clientStatusLanguage(status: string): string {
+  if (isLifecycleClosed(status)) return CLIENT_STATUS_LANGUAGE.closed;
+  return CLIENT_STATUS_LANGUAGE[status] ?? status;
+}
 
 function daysUntil(dateIso?: string | null): number | null {
   if (!dateIso) return null;
@@ -63,9 +68,8 @@ export default function ClientDashboard() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const hearings = useHearings({}) || [];
-  const users = useMyTeam() ?? [];
   const documents = useDocuments({}) || [];
   const tasks = useTasks() || [];
   const appointmentsResult = useAppointments({});
@@ -105,19 +109,10 @@ export default function ClientDashboard() {
   // if none is active, the most recently updated matter of any status.
   const featuredMatter = useMemo(() => {
     if (cases.length === 0) return null;
-    const byUpdated = (a: (typeof cases)[number], b: (typeof cases)[number]) =>
-      String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? ""));
-    const active = activeCases.slice().sort(byUpdated);
-    return active[0] ?? cases.slice().sort(byUpdated)[0];
+    return activeCases[0] ?? cases[0];
   }, [cases, activeCases]);
 
-  const featuredLawyer = featuredMatter
-    ? users.find(
-        (user) =>
-          user._id === featuredMatter.assignedLawyerId ||
-          user.id === featuredMatter.assignedLawyerId,
-      )
-    : undefined;
+  const featuredLawyerName = featuredMatter?.advocate?.name?.trim() || null;
   const featuredNextHearing = featuredMatter
     ? myHearings.find((hearing) => hearing.caseId === featuredMatter._id)
     : undefined;
@@ -348,7 +343,7 @@ export default function ClientDashboard() {
               <p className="mt-3 text-sm text-muted-foreground">
                 Current status:{" "}
                 <span className="font-medium text-foreground">
-                  {CLIENT_STATUS_LANGUAGE[featuredMatter.status] ?? featuredMatter.status}
+                  {clientStatusLanguage(featuredMatter.status)}
                 </span>
               </p>
             </div>
@@ -356,7 +351,7 @@ export default function ClientDashboard() {
               {featuredMatter.practiceArea ? (
                 <span>Practice area: {featuredMatter.practiceArea}</span>
               ) : null}
-              {featuredLawyer ? <span>Your lawyer: {featuredLawyer.name}</span> : null}
+              {featuredLawyerName ? <span>Your lawyer: {featuredLawyerName}</span> : null}
               {featuredNextHearing ? (
                 <span className="text-dashboard-information-foreground">
                   Next hearing: {featuredNextHearing.dateBs || featuredNextHearing.dateGregorian}

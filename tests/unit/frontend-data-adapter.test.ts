@@ -140,7 +140,8 @@ describe("decommissioned backend boundary", () => {
     const queriesDir = path.resolve("src/client/queries");
     const offenders: string[] = [];
     for (const entry of fs.readdirSync(queriesDir)) {
-      if (!entry.endsWith(".ts") || entry === "query-keys.ts") continue;
+      if (!entry.endsWith(".ts") || entry === "query-keys.ts" || entry.endsWith("-error.ts"))
+        continue;
       const source = fs.readFileSync(path.join(queriesDir, entry), "utf8");
       if (!source.includes("@/client/api/client")) offenders.push(entry);
     }

@@ -64,8 +64,6 @@ const STATUS_TONES: Record<string, DashboardTone> = {
   absent: "danger",
   cancelled: "danger",
   closed: "neutral",
-  closed_lost: "danger",
-  closed_won: "success",
   completed: "success",
   confirmed: "success",
   consultation_scheduled: "primary",
@@ -108,6 +106,7 @@ const STATUS_TONES: Record<string, DashboardTone> = {
   rejected: "danger",
   scheduled: "warning",
   sent: "information",
+  settled: "information",
   signed: "success",
   submitted: "information",
   suspended: "danger",
@@ -116,6 +115,8 @@ const STATUS_TONES: Record<string, DashboardTone> = {
   unset: "neutral",
   urgent: "danger",
   verified: "success",
+  won: "success",
+  withdrawn: "warning",
   virtual: "information",
   voided: "danger",
 };
@@ -141,7 +142,8 @@ function normalizeDashboardKey(value?: string | null): string {
 export function getDashboardStatusTone(status?: string | null): DashboardTone {
   const key = normalizeDashboardKey(status);
   if (!key) return "neutral";
-  return STATUS_TONES[key] ?? "neutral";
+  const mapped = key === "closed_won" || key === "closed_lost" ? "closed" : key;
+  return STATUS_TONES[mapped] ?? "neutral";
 }
 
 export function getDashboardRoleTone(role?: string | null): DashboardTone {

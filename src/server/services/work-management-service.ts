@@ -22,6 +22,7 @@ import type {
   TaskListInput,
   TaskUpdateInput,
 } from "@/shared/contracts/work-management";
+import { staffMayAccessTask } from "@/shared/contracts/case-collection-scope";
 import { AppError } from "@/shared/errors/api-error";
 
 const repository = new MySqlWorkManagementRepository();
@@ -43,12 +44,16 @@ export class WorkManagementService {
         return repository.listHearings(firmId, filters);
       }
       if (caseIds.length === 0) return [];
-      const rows = await repository.listHearings(firmId, {});
-      const allowed = new Set(caseIds);
-      return rows.filter((h) => allowed.has(String(h.caseId)));
+      return repository.listHearings(firmId, { caseIds });
     }
 
-    return repository.listHearings(firmId, filters);
+    if (principal.capabilities.has("cases.view_all") || filters.caseId) {
+      return repository.listHearings(firmId, filters);
+    }
+
+    const accessibleCaseIds = await security.listCaseIdsForStaff(firmId, principal.user.id);
+    if (accessibleCaseIds.length === 0) return [];
+    return repository.listHearings(firmId, { caseIds: accessibleCaseIds });
   }
 
   async getHearing(principal: AuthPrincipal, hearingId: string) {
@@ -83,6 +88,7 @@ export class WorkManagementService {
 
   async listTasks(principal: AuthPrincipal, filters: TaskListInput) {
     const { firmId } = requireFirmContext(principal);
+    if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
     const rows = await repository.listTasks(firmId, filters);
     if (principal.capabilities.has("cases.view_all")) return rows;
     if (principal.user.role === "client") {
@@ -91,9 +97,17 @@ export class WorkManagementService {
       const caseIds = new Set(await security.listCaseIdsForClient(firmId, clientRecord.id));
       return rows.filter((r) => r.clientVisible && r.caseId && caseIds.has(String(r.caseId)));
     }
-    return rows.filter(
-      (r) =>
-        r.assignedTo === principal.user.id || (r.watchers as string[]).includes(principal.user.id),
+    const accessibleCaseIds = new Set(await security.listCaseIdsForStaff(firmId, principal.user.id));
+    return rows.filter((r) =>
+      staffMayAccessTask(
+        {
+          assignedTo: r.assignedTo as string | null,
+          watchers: r.watchers as string[] | null,
+          caseId: r.caseId as string | null,
+        },
+        principal.user.id,
+        accessibleCaseIds,
+      ),
     );
   }
 
@@ -114,8 +128,20 @@ export class WorkManagementService {
       }
       return row;
     }
-    const watchers = (row.watchers as string[]) || [];
-    if (row.assignedTo === principal.user.id || watchers.includes(principal.user.id)) return row;
+    const accessibleCaseIds = new Set(await security.listCaseIdsForStaff(firmId, principal.user.id));
+    if (
+      staffMayAccessTask(
+        {
+          assignedTo: row.assignedTo as string | null,
+          watchers: row.watchers as string[] | null,
+          caseId: row.caseId as string | null,
+        },
+        principal.user.id,
+        accessibleCaseIds,
+      )
+    ) {
+      return row;
+    }
     throw new AppError("NOT_FOUND", "Task was not found", 404);
   }
 
@@ -132,7 +158,11 @@ export class WorkManagementService {
     audit: AuditContext,
   ) {
     requireCapability(principal, "cases.manage");
-    return repository.updateTask(requireFirmContext(principal).firmId, taskId, input, audit);
+    const { firmId } = requireFirmContext(principal);
+    const existing = await repository.getTask(firmId, taskId);
+    if (!existing) throw new AppError("NOT_FOUND", "Task was not found", 404);
+    if (existing.caseId) await requireCaseAccess(principal, String(existing.caseId), security);
+    return repository.updateTask(firmId, taskId, input, audit);
   }
 
   async archiveTask(principal: AuthPrincipal, taskId: string, audit: AuditContext) {

@@ -36,6 +36,20 @@
       "when": 1788793941993,
       "tag": "0004_nullable_timestamps",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1789220000000,
+      "tag": "0005_cases_domain_foundations",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1789680000000,
+      "tag": "0006_cases_legacy_status_cleanup",
+      "breakpoints": true
     }
   ]
 }

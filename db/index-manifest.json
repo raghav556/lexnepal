@@ -352,6 +352,38 @@
     "queryPattern": "Firm-scoped case_team_members lookup by case"
   },
   {
+    "table": "case_parties",
+    "index": "case_parties_firm_id_id_unique",
+    "unique": true,
+    "columnsOrExpression": "firm_id, id",
+    "migration": "drizzle/0005_cases_domain_foundations.sql",
+    "queryPattern": "Enforce case_parties business or tenant uniqueness"
+  },
+  {
+    "table": "case_parties",
+    "index": "case_parties_legacy_convex_id_unique",
+    "unique": true,
+    "columnsOrExpression": "legacy_convex_id",
+    "migration": "drizzle/0005_cases_domain_foundations.sql",
+    "queryPattern": "Enforce case_parties business or tenant uniqueness"
+  },
+  {
+    "table": "case_parties",
+    "index": "case_parties_case_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,case_id",
+    "migration": "drizzle/0005_cases_domain_foundations.sql",
+    "queryPattern": "Firm-scoped case_parties lookup by case"
+  },
+  {
+    "table": "case_parties",
+    "index": "case_parties_client_idx",
+    "unique": false,
+    "columnsOrExpression": "firm_id,client_id",
+    "migration": "drizzle/0005_cases_domain_foundations.sql",
+    "queryPattern": "Firm-scoped case_parties lookup by optional CRM client"
+  },
+  {
     "table": "cases",
     "index": "cases_firm_case_number_unique",
     "unique": true,

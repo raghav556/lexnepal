@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, Download, Scale, Clock, CheckCircle2 } from "lucide-react";
 import { useMyClient } from "@/client/queries/clients";
-import { useCases } from "@/client/queries/cases";
+import { useClientCases } from "@/client/queries/cases";
 import { useHearings } from "@/client/queries/hearings";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -74,7 +74,7 @@ function downloadHearingsIcs(hearings: any[], cases: any[]) {
 export default function ClientHearingsPage() {
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useCases(clientId ? { clientId } : {}) || [];
+  const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const hearings = useHearings({}) || [];
 
   const [tabFilter, setTabFilter] = useState<"scheduled" | "past" | "all">("scheduled");
@@ -306,7 +306,7 @@ export default function ClientHearingsPage() {
                           )}
                         </DashboardTableCell>
                         <DashboardTableCell className="text-xs text-muted-foreground">
-                          {h.court || "District Court"}
+                          {h.court?.trim() ? h.court : "Not specified"}
                         </DashboardTableCell>
                         <DashboardTableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                           {h.purpose || "Hearing"}
@@ -384,7 +384,7 @@ export default function ClientHearingsPage() {
                         <p className="text-xs text-muted-foreground">
                           Court:{" "}
                           <span className="text-foreground font-medium">
-                            {h.court || "District Court"}
+                            {h.court?.trim() ? h.court : "Not specified"}
                           </span>
                           {h.purpose ? ` · Purpose: ${h.purpose}` : ""}
                         </p>

@@ -20,6 +20,14 @@
     {
       "file": "drizzle/0004_nullable_timestamps.sql",
       "sha256": "d87fb41b3af2b80891b860280b620043eaef20725a8b292d457b04a4121446c6"
+    },
+    {
+      "file": "drizzle/0005_cases_domain_foundations.sql",
+      "sha256": "3f25007089649c702e9e0aeae17986602f25381b3ba8065d089e2e707244ffa7"
+    },
+    {
+      "file": "drizzle/0006_cases_legacy_status_cleanup.sql",
+      "sha256": "be2e3bd7ccc9065876c1e21f5f538cbf72058b83254a381580c4abae84827c81"
     }
   ]
 }

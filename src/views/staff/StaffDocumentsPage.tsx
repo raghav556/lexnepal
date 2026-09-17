@@ -247,7 +247,7 @@ export default function StaffDocumentsPage() {
     if (selectedFile.size > 50 * 1024 * 1024) return toast.error("Files cannot exceed 50 MB.");
     setIsUploading(true);
     try {
-      await uploadDocument({
+      const result = await uploadDocument({
         file: selectedFile,
         caseId: uploadCaseId === "general" ? undefined : uploadCaseId,
         title: selectedFile.name,
@@ -257,10 +257,15 @@ export default function StaffDocumentsPage() {
         isPrivileged,
         parentDocumentId: parentDocumentId || undefined,
       });
+      const onFile = result.status === "promoted";
       toast.success(
         parentDocumentId
-          ? "New version uploaded and quarantined for scanning."
-          : "Document uploaded and quarantined for scanning.",
+          ? onFile
+            ? "New version is on file."
+            : "New version uploaded and quarantined for scanning."
+          : onFile
+            ? "Document uploaded."
+            : "Document uploaded and quarantined for scanning.",
       );
       setIsUploadOpen(false);
     } catch (err: any) {
@@ -519,8 +524,12 @@ export default function StaffDocumentsPage() {
           <HeroStatChip
             icon={Send}
             value={
-              allDocs.filter((d: { requiresSignature?: boolean; signatureStatus?: string }) =>
-                Boolean(d.requiresSignature && d.signatureStatus === "pending"),
+              allDocs.filter(
+                (d) =>
+                  "requiresSignature" in d &&
+                  Boolean(d.requiresSignature) &&
+                  "signatureStatus" in d &&
+                  d.signatureStatus === "pending",
               ).length
             }
             label="awaiting signature"

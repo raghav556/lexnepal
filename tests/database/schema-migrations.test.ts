@@ -82,7 +82,7 @@ describe("MySQL schema migrations", () => {
     const actual = await rows<{ tableName: string; tableCollation: string } & RowDataPacket>(
       `SELECT table_name AS tableName, table_collation AS tableCollation FROM information_schema.tables WHERE table_schema = '${testDatabaseName}' AND table_type = 'BASE TABLE'`,
     );
-    expect(actual).toHaveLength(75);
+    expect(actual).toHaveLength(76);
     const names = new Set(actual.map((row) => row.tableName));
     for (const target of expectedTargets) expect(names.has(target), target).toBe(true);
     expect(actual.every((row) => row.tableCollation.startsWith("utf8mb4_"))).toBe(true);
@@ -92,7 +92,7 @@ describe("MySQL schema migrations", () => {
     const result = await rows<{ tableName: string; isNullable: string } & RowDataPacket>(
       `SELECT table_name AS tableName, is_nullable AS isNullable FROM information_schema.columns WHERE table_schema = '${testDatabaseName}' AND column_name = 'firm_id'`,
     );
-    expect(result).toHaveLength(68);
+    expect(result).toHaveLength(69);
     expect(result.filter((row) => row.isNullable !== "NO")).toEqual([]);
   });
 
@@ -195,5 +195,80 @@ describe("MySQL schema migrations", () => {
     ]) {
       expect(names.has(removed), removed).toBe(false);
     }
+  });
+
+  it("R2/R12: cases domain foundations then leftover status enum cleanup", async () => {
+    const [parties] = await rows<{ count: number } & RowDataPacket>(
+      "SELECT COUNT(*) AS count FROM case_parties",
+    );
+    expect(Number(parties.count)).toBe(0);
+    const [summaries] = await rows<{ count: number } & RowDataPacket>(
+      "SELECT COUNT(*) AS count FROM cases WHERE client_summary IS NOT NULL",
+    );
+    expect(Number(summaries.count)).toBe(0);
+    const [status] = await rows<{ columnType: string } & RowDataPacket>(
+      `SELECT COLUMN_TYPE AS columnType FROM information_schema.columns
+       WHERE table_schema = '${testDatabaseName}' AND table_name = 'cases' AND column_name = 'status'`,
+    );
+    expect(status.columnType).toContain("closed");
+    expect(status.columnType).not.toContain("closed_won");
+    expect(status.columnType).not.toContain("closed_lost");
+
+    await expectRejected(`INSERT INTO cases
+      (id, firm_id, case_number, title, description, practice_area, status, client_id, assigned_lawyer_id, conflict_checked)
+      VALUES
+      ('30000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', 'CASE-R2-WON',
+       'Won matter', 'internal description must stay', 'civil', 'closed_won',
+       '20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', false)`);
+
+    await database.query(`INSERT INTO cases
+      (id, firm_id, case_number, title, description, practice_area, status, closure_outcome, client_id, assigned_lawyer_id, conflict_checked)
+      VALUES
+      ('30000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', 'CASE-R2-WON',
+       'Won matter', 'internal description must stay', 'civil', 'closed', 'won',
+       '20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', false),
+      ('30000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000001', 'CASE-R2-LOST',
+       'Lost matter', 'internal description must stay', 'civil', 'closed', 'lost',
+       '20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', false)`);
+    const converted = await rows<
+      {
+        case_number: string;
+        status: string;
+        closure_outcome: string | null;
+        client_summary: string | null;
+        closed_date: Date | null;
+        description: string | null;
+      } & RowDataPacket
+    >(
+      "SELECT case_number, status, closure_outcome, client_summary, closed_date, description FROM cases WHERE case_number IN ('CASE-R2-WON','CASE-R2-LOST') ORDER BY case_number",
+    );
+    expect(converted).toHaveLength(2);
+    expect(converted[1]).toMatchObject({
+      case_number: "CASE-R2-WON",
+      status: "closed",
+      closure_outcome: "won",
+      client_summary: null,
+      closed_date: null,
+      description: "internal description must stay",
+    });
+    expect(converted[0]).toMatchObject({
+      case_number: "CASE-R2-LOST",
+      status: "closed",
+      closure_outcome: "lost",
+      client_summary: null,
+      closed_date: null,
+    });
+
+    await database.query(`INSERT INTO case_parties (firm_id, case_id, name, side, party_type)
+      VALUES ('00000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001',
+      'Visible later', 'our_side', 'person')`);
+    const [party] = await rows<{ client_visible: number } & RowDataPacket>(
+      "SELECT client_visible FROM case_parties LIMIT 1",
+    );
+    expect(Number(party.client_visible)).toBe(0);
+    await expectRejected(`INSERT INTO case_parties (firm_id, case_id, name, side, party_type)
+      VALUES ('00000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000001',
+      'Cross firm', 'opposing', 'organisation')`);
+    await database.query("DELETE FROM case_parties");
   });
 });

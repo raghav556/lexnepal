@@ -11,11 +11,18 @@ import { MySqlMattersRepository } from "@/server/repositories/matters-repository
 import type {
   CaseCreateInput,
   CaseListInput,
+  CasePartyCreateInput,
+  CasePartyUpdateInput,
   CaseUpdateInput,
   ClientCreateInput,
   ClientStaffUpdateInput,
   KycReviewInput,
 } from "@/shared/contracts/matters";
+import {
+  toClientCaseDto,
+  toClientCrmDto,
+  toClientPartyDto,
+} from "@/shared/contracts/client-allowlists";
 import { AppError } from "@/shared/errors/api-error";
 import { getKycService } from "@/server/services/kyc-service";
 
@@ -30,17 +37,21 @@ export class MattersService {
 
   async getClient(principal: AuthPrincipal, clientId: string) {
     const { firmId } = requireFirmContext(principal);
-    const row = await repository.getClient(firmId, clientId, principal.user.role === "client");
+    const row = await repository.getClient(firmId, clientId, false);
     if (!row) throw new AppError("NOT_FOUND", "Client was not found", 404);
-    if (principal.user.role === "client" && row.userId !== principal.user.id)
-      throw new AppError("NOT_FOUND", "Client was not found", 404);
-    if (principal.user.role !== "client") requireCapability(principal, "clients.view_all");
+    if (principal.user.role === "client") {
+      if (row.userId !== principal.user.id)
+        throw new AppError("NOT_FOUND", "Client was not found", 404);
+      return toClientCrmDto(row as unknown as Record<string, unknown>);
+    }
+    requireCapability(principal, "clients.view_all");
     return row;
   }
 
   async getMyClient(principal: AuthPrincipal) {
     const { firmId, actorId } = requireFirmContext(principal);
-    return repository.getClientByUser(firmId, actorId, true);
+    const row = await repository.getClientByUser(firmId, actorId, false);
+    return row ? toClientCrmDto(row as unknown as Record<string, unknown>) : null;
   }
 
   /**
@@ -62,7 +73,6 @@ export class MattersService {
     const staffIds = new Set<string>();
     for (const matter of matters) {
       if (matter.assignedLawyerId) staffIds.add(matter.assignedLawyerId);
-      for (const memberId of matter.teamMemberIds || []) staffIds.add(memberId);
     }
     if (staffIds.size === 0) return [];
     return repository.listStaffSummaries(firmId, [...staffIds]);
@@ -175,7 +185,8 @@ export class MattersService {
     audit: AuditContext,
   ) {
     const { firmId, actorId } = requireFirmContext(principal);
-    return repository.updateOwnClient(firmId, actorId, input, audit);
+    const row = await repository.updateOwnClient(firmId, actorId, input, audit);
+    return toClientCrmDto(row as unknown as Record<string, unknown>);
   }
 
   async listCases(principal: AuthPrincipal, filters: CaseListInput) {
@@ -184,7 +195,8 @@ export class MattersService {
     if (principal.capabilities.has("cases.view_all")) return rows;
     if (principal.user.role === "client") {
       const client = await repository.getClientByUser(firmId, principal.user.id, false);
-      return client ? rows.filter((row) => row.clientId === client._id) : [];
+      const mine = client ? rows.filter((row) => row.clientId === client._id) : [];
+      return this.toClientCaseDtos(firmId, mine);
     }
     return rows.filter(
       (row) =>
@@ -194,9 +206,35 @@ export class MattersService {
 
   async getCase(principal: AuthPrincipal, caseId: string, withDetails = false) {
     await requireCaseAccess(principal, caseId, security);
-    const row = await repository.getCase(requireFirmContext(principal).firmId, caseId, withDetails);
+    const { firmId } = requireFirmContext(principal);
+    const row = await repository.getCase(firmId, caseId, withDetails);
     if (!row) throw new AppError("NOT_FOUND", "Case was not found", 404);
+    if (principal.user.role === "client") {
+      const [projected] = await this.toClientCaseDtos(firmId, [row]);
+      return projected;
+    }
     return row;
+  }
+
+  private async toClientCaseDtos(firmId: string, rows: Array<Record<string, unknown>>) {
+    const lawyerIds = [
+      ...new Set(
+        rows
+          .map((row) => (row.assignedLawyerId ? String(row.assignedLawyerId) : ""))
+          .filter(Boolean),
+      ),
+    ];
+    const staff = await repository.listStaffSummaries(firmId, lawyerIds);
+    const byId = new Map(staff.map((member) => [member.id, member]));
+    const caseIds = rows.map((row) => String(row._id ?? row.id ?? "")).filter(Boolean);
+    const partiesByCase = await repository.listVisiblePartiesForCases(firmId, caseIds);
+    return rows.map((row) => {
+      const id = String(row._id ?? row.id ?? "");
+      const visible = (partiesByCase.get(id) ?? []).map((party) =>
+        toClientPartyDto(party as unknown as Record<string, unknown>),
+      );
+      return toClientCaseDto(row, byId.get(String(row.assignedLawyerId ?? "")) ?? null, visible);
+    });
   }
 
   async createCase(principal: AuthPrincipal, input: CaseCreateInput, audit: AuditContext) {
@@ -213,6 +251,56 @@ export class MattersService {
     requireCapability(principal, "cases.manage");
     await requireCaseAccess(principal, caseId, security);
     return repository.updateCase(requireFirmContext(principal).firmId, caseId, input, audit);
+  }
+
+  async listParties(principal: AuthPrincipal, caseId: string) {
+    await requireCaseAccess(principal, caseId, security);
+    const { firmId } = requireFirmContext(principal);
+    const rows = await repository.listParties(firmId, caseId, principal.user.role === "client");
+    if (principal.user.role === "client") {
+      return rows.map((row) => toClientPartyDto(row as unknown as Record<string, unknown>));
+    }
+    return rows;
+  }
+
+  async createParty(
+    principal: AuthPrincipal,
+    caseId: string,
+    input: CasePartyCreateInput,
+    audit: AuditContext,
+  ) {
+    requireCapability(principal, "cases.manage");
+    await requireCaseAccess(principal, caseId, security);
+    return repository.createParty(requireFirmContext(principal).firmId, caseId, input, audit);
+  }
+
+  async updateParty(
+    principal: AuthPrincipal,
+    caseId: string,
+    partyId: string,
+    input: CasePartyUpdateInput,
+    audit: AuditContext,
+  ) {
+    requireCapability(principal, "cases.manage");
+    await requireCaseAccess(principal, caseId, security);
+    return repository.updateParty(
+      requireFirmContext(principal).firmId,
+      caseId,
+      partyId,
+      input,
+      audit,
+    );
+  }
+
+  async deleteParty(
+    principal: AuthPrincipal,
+    caseId: string,
+    partyId: string,
+    audit: AuditContext,
+  ) {
+    requireCapability(principal, "cases.manage");
+    await requireCaseAccess(principal, caseId, security);
+    return repository.deleteParty(requireFirmContext(principal).firmId, caseId, partyId, audit);
   }
 
   reviewKyc(

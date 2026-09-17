@@ -9,7 +9,11 @@ import {
   type ScanJobRecord,
   type UploadIntentRecord,
 } from "@/server/storage/document-pipeline";
-import { RetryableScanError, type DocumentScanner } from "@/server/storage/document-scanner";
+import {
+  RetryableScanError,
+  type DocumentScanner,
+  DevelopmentFallbackScanner,
+} from "@/server/storage/document-scanner";
 import { sha256Hex } from "@/server/storage/file-validation";
 import type { ObjectStorage, StoredObject, UploadGrant } from "@/server/storage/object-storage";
 import { migrateLegacyStorage } from "@/server/storage/storage-migration";
@@ -336,6 +340,43 @@ describe("quarantine and scanning pipeline", () => {
     expect(events).toContain("document.scan.retry");
     expect(events).toContain("document.scan.dead_letter");
     expect(repository.jobs.get("job-1")?.attempts).toBe(2);
+  });
+
+  it("describes a promoted intent to its owner and withholds it from other staff", async () => {
+    const repository = new MemoryPipelineRepository();
+    const storage = new MemoryStorage();
+    const pipeline = service(repository, storage, {
+      scan: async () => ({ verdict: "clean", provider: "test-av", details: "OK" }),
+    });
+    const intentId = await createAndUpload(pipeline, storage);
+    await pipeline.completeUpload(principal(), intentId);
+    await pipeline.processNextScan(`complete-${intentId}`, intentId);
+    await expect(pipeline.describeUploadIntent(principal(), intentId)).resolves.toMatchObject({
+      intentId,
+      status: "promoted",
+      documentId: "document-1",
+    });
+    await expect(
+      pipeline.describeUploadIntent(principal("associate", "firm-1", "other-user"), intentId),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("promotes when the primary scanner is unreachable and a development fallback is used", async () => {
+    const repository = new MemoryPipelineRepository();
+    const storage = new MemoryStorage();
+    const pipeline = service(
+      repository,
+      storage,
+      new DevelopmentFallbackScanner({
+        scan: async () => {
+          throw new RetryableScanError("ClamAV scanning failed");
+        },
+      }),
+    );
+    const intentId = await createAndUpload(pipeline, storage);
+    await pipeline.completeUpload(principal(), intentId);
+    await expect(pipeline.processNextScan(`complete-${intentId}`, intentId)).resolves.toBe("clean");
+    expect(repository.intents.get(intentId)?.status).toBe("promoted");
   });
 });
 

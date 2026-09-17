@@ -265,16 +265,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   return (
     <PortalBrandingProvider appearance="light">
-      <div className="dashboard-theme dashboard-staff dashboard-nepal min-h-screen bg-dashboard-canvas text-foreground">
+      <div className="dashboard-theme dashboard-staff dashboard-nepal fixed inset-0 h-[100dvh] min-h-[100dvh] overflow-hidden bg-dashboard-canvas text-foreground">
         <PortalRoleGuard
           allowed="staff"
           title="Lex Workspace"
           description="Authorized staff only. Please sign in with your firm credentials."
         >
           <IdleSessionGuard />
-          <div className="flex h-screen overflow-hidden bg-dashboard-canvas print:h-auto print:overflow-visible">
+          <div className="flex h-full min-h-0 overflow-hidden bg-dashboard-canvas print:h-auto print:overflow-visible">
             <StaffDesktopSidebar onOpenChat={() => setChatOpen(true)} />
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
+            <div className="flex min-h-0 flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
               <StaffMobileChrome />
               <PortalTopbar
                 portal="staff"
@@ -286,11 +286,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               <main
                 ref={mainRef}
                 id="staff-main-canvas"
-                className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth flex flex-col justify-between"
+                className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
               >
-                <div className="flex-1 min-w-0">{children}</div>
-                <PortalFooter portal="staff" />
+                {children}
               </main>
+              <PortalFooter portal="staff" />
               <ScrollToTop containerRef={mainRef} />
             </div>
           </div>

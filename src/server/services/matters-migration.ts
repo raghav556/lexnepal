@@ -17,6 +17,7 @@ import {
   users,
 } from "@/server/db/schema";
 import { asShadowBoolean, asShadowString, pushMismatch } from "./shadow-compare";
+import { applyCaseStatusAliases, toPersistedCaseStatus } from "@/shared/contracts/case-status";
 
 type Value = Record<string, unknown>;
 const tables = ["clients", "cases"] as const;
@@ -133,7 +134,7 @@ export async function shadowReadMattersExport(input: {
       "cases",
       id,
       "status",
-      asShadowString(source.status) ?? "active",
+      applyCaseStatusAliases({ status: asShadowString(source.status) ?? "active" }).status,
       target.status,
     );
   }
@@ -309,11 +310,7 @@ export async function migrateMattersExport(input: {
               title: asString(record.title) ?? "Migrated case",
               description: asString(record.description),
               practiceArea: asString(record.practiceArea) ?? "Other",
-              status: enumValue(
-                record.status,
-                ["inquiry", "active", "on_hold", "closed_won", "closed_lost"] as const,
-                "active",
-              ),
+              ...migratedCaseStatus(record.status),
               clientId: client.id,
               assignedLawyerId: lawyer.id,
               court: asString(record.court),
@@ -409,6 +406,23 @@ function dateOnly(value: unknown) {
 }
 function enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   return typeof value === "string" && allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function migratedCaseStatus(value: unknown) {
+  const aliases = applyCaseStatusAliases({
+    status: enumValue(
+      value,
+      ["inquiry", "active", "on_hold", "closed", "closed_won", "closed_lost"] as const,
+      "active",
+    ),
+  });
+  return {
+    status: toPersistedCaseStatus(String(aliases.status)),
+    closureOutcome:
+      "closureOutcome" in aliases && aliases.closureOutcome !== undefined
+        ? (aliases.closureOutcome as "won" | "lost" | "settled" | "withdrawn" | "other")
+        : null,
+  };
 }
 function message(error: unknown) {
   return error instanceof Error ? error.message : "Unknown migration error";

@@ -82,6 +82,31 @@ export class HttpCdrScanner implements DocumentScanner {
   }
 }
 
+/**
+ * Local/dev only: if ClamAV (or CDR) is configured but unreachable, accept the
+ * file after validation instead of leaving it stuck in quarantine forever.
+ * Production keeps the hard scanner.
+ */
+export class DevelopmentFallbackScanner implements DocumentScanner {
+  constructor(
+    private readonly primary: DocumentScanner,
+    private readonly fallback: DocumentScanner = new TrustingDocumentScanner(),
+  ) {}
+
+  async scan(bytes: Uint8Array, mimeType: string): Promise<ScanResult> {
+    try {
+      return await this.primary.scan(bytes, mimeType);
+    } catch (error) {
+      if (!(error instanceof RetryableScanError)) throw error;
+      const fallback = await this.fallback.scan(bytes, mimeType);
+      return {
+        ...fallback,
+        details: `${fallback.details} Primary scanner unavailable: ${error.message}`,
+      };
+    }
+  }
+}
+
 export class CompositeDocumentScanner implements DocumentScanner {
   constructor(
     private readonly antivirus: DocumentScanner,

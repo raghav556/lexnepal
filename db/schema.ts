@@ -65,9 +65,21 @@ export const caseStatusEnum = reusableMysqlEnum("case_status", [
   "inquiry",
   "active",
   "on_hold",
-  "closed_won",
-  "closed_lost",
+  "closed",
 ]);
+export const caseClosureOutcomeEnum = reusableMysqlEnum("case_closure_outcome", [
+  "won",
+  "lost",
+  "settled",
+  "withdrawn",
+  "other",
+]);
+export const casePartySideEnum = reusableMysqlEnum("case_party_side", [
+  "our_side",
+  "opposing",
+  "other",
+]);
+export const casePartyTypeEnum = reusableMysqlEnum("case_party_type", ["person", "organisation"]);
 export const templateCategoryEnum = reusableMysqlEnum("template_category", [
   "vakalatnama",
   "firad_patra",
@@ -537,8 +549,10 @@ export const cases = mysqlTable(
     caseNumber: stringColumn("case_number").notNull(),
     title: stringColumn("title").notNull(),
     description: longtext("description"),
+    clientSummary: longtext("client_summary"),
     practiceArea: stringColumn("practice_area").notNull(),
     status: caseStatusEnum("status").notNull(),
+    closureOutcome: caseClosureOutcomeEnum("closure_outcome"),
     clientId: uuidColumn("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "restrict" }),
@@ -557,6 +571,29 @@ export const cases = mysqlTable(
     index("cases_firm_client_idx").on(table.firmId, table.clientId),
     index("cases_firm_lawyer_idx").on(table.firmId, table.assignedLawyerId),
     index("cases_firm_status_idx").on(table.firmId, table.status),
+  ],
+);
+export const caseParties = mysqlTable(
+  "case_parties",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    caseId: uuidColumn("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    name: stringColumn("name").notNull(),
+    side: casePartySideEnum("side").notNull(),
+    roleLabel: stringColumn("role_label"),
+    partyType: casePartyTypeEnum("party_type").notNull(),
+    clientId: uuidColumn("client_id").references(() => clients.id, { onDelete: "set null" }),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    clientVisible: boolean("client_visible").default(false).notNull(),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("case_parties_firm_id_id_unique").on(table.firmId, table.id),
+    index("case_parties_case_idx").on(table.firmId, table.caseId),
+    index("case_parties_client_idx").on(table.firmId, table.clientId),
   ],
 );
 export const caseTeamMembers = mysqlTable(

@@ -72,7 +72,11 @@ export function useTaskComments(taskId: string | null): unknown[] | undefined {
 
 export function useTaskCommands() {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+  const invalidate = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.cases.all }),
+    ]);
 
   return {
     async createTask(input: Record<string, unknown>) {

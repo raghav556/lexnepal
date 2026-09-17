@@ -27,7 +27,8 @@ test.describe("Staff HR self-service", () => {
     const reason = `E2E leave ${Date.now()}`;
     // Unpaid leave is intentionally not balance-limited, keeping this smoke test
     // repeatable even when the same persistent local E2E database is reused.
-    await page.getByLabel("Type").selectOption("unpaid");
+    await page.getByLabel("Type").click();
+    await page.getByRole("option", { name: /^unpaid$/i }).click();
     await page.getByLabel("Reason (optional)").fill(reason);
     await page.getByRole("button", { name: "Submit request" }).click();
 

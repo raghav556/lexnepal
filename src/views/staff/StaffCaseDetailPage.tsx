@@ -1,6 +1,34 @@
-import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "@/client/navigation";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useParams, useNavigate, usePathname } from "@/client/navigation";
 import { useSearchParams } from "next/navigation";
+import { CaseIdentity } from "@/components/cases/case-identity";
+import { CaseHearingDialog } from "@/components/cases/case-hearing-dialog";
+import {
+  CaseMislUploadDialog,
+  type CaseMislUploadedFile,
+} from "@/components/cases/case-misl-upload-dialog";
+import { CasePartiesEditor } from "@/components/cases/case-parties-editor";
+import { CaseQueryState } from "@/components/cases/case-query-state";
+import { CaseStatusEditorFields } from "@/components/cases/case-status-filters";
+import { CaseTeamFields } from "@/components/cases/case-team-fields";
+import { DueDateFields } from "@/components/tasks/DueDateFields";
+import {
+  CASE_DETAIL_HERO_CLASS,
+  CASE_DETAIL_TABS_LIST_CLASS,
+  CASE_MISL_BINDERS,
+  CASE_PARTY_SIDE_LABELS,
+  caseStatusWritePayload,
+  earliestIncompleteTaskDueIso,
+  inferredClosureOutcome,
+  mislBinderForType,
+  nextRequiredAction,
+  nextScheduledHearingIso,
+  toLifecycleStatus,
+  type CaseClosureOutcome,
+  type CaseLifecycleStatus,
+  type CaseWorkspaceBasePath,
+} from "@/shared/contracts/case-ui";
 import {
   DashboardButton,
   DashboardSection,
@@ -12,7 +40,6 @@ import {
   StaffHeroChipRow,
   StatusBadge,
 } from "@/components/dashboard";
-import { getDashboardStatusTone, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
 import {
   CalendarDays,
   Clock,
@@ -33,36 +60,58 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.t
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { toast } from "sonner";
-import { useCase, useCaseCommands } from "@/client/queries/cases";
+import { useCaseQuery, useCaseCommands } from "@/client/queries/cases";
+import { caseQueryFailureKind } from "@/client/queries/case-query-error";
 import { useClients } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useHearings } from "@/client/queries/hearings";
-import { useDocuments } from "@/client/queries/documents";
+import {
+  SCANNING_INTENT_STATUSES,
+  useDocuments,
+  useDownloadDocument,
+  useWatchDocumentUploadIntents,
+} from "@/client/queries/documents";
+import { queryKeys } from "@/client/queries/query-keys";
+import type { StaffCasePartyDto } from "@/shared/contracts/staff-case";
 import { useTasks, useTaskCommands, useSopTemplates, useUpdateTask } from "@/client/queries/tasks";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { cn } from "@/lib/utils.ts";
 import { formatTaskDue } from "@/lib/task-constants.ts";
 
-const MISL_CATEGORIES = [
-  { id: "pleadings", label: "Pleadings (Firad/Pratiuttar)" },
-  { id: "evidence", label: "Evidence (Praman)" },
-  { id: "orders", label: "Court Orders (Aadesh)" },
-  { id: "annexure", label: "Annexures & Exhibits" },
-  { id: "misc", label: "Miscellaneous (Others)" },
-];
+const CASE_DETAIL_TABS = [
+  "overview",
+  "tasks",
+  "hearings",
+  "messages",
+  "misl",
+  "parties",
+  "timeline",
+] as const;
+
+function actorUserId(user: { id?: string; _id?: string } | null | undefined): string | undefined {
+  return user?.id ?? user?._id;
+}
 
 export default function StaffCaseDetailPage() {
   const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentUser = useCurrentUser();
+  const isAdminSurface = pathname?.startsWith("/admin") ?? false;
+  const portal = isAdminSurface ? "admin" : "staff";
+  const basePath: CaseWorkspaceBasePath = isAdminSurface ? "/admin/cases" : "/staff/cases";
 
-  const caseData = useCase(caseId || null);
+  const caseQuery = useCaseQuery(caseId || null);
+  const caseData = caseQuery.data;
   const clients = useClients() || [];
   const users = useStaffDirectory() || [];
   const hearings = useHearings(caseId ? { caseId } : "skip") || [];
-  const documents = useDocuments(caseId ? { caseId } : {}) || [];
+  const documents = useDocuments(caseId ? { caseId } : "skip");
+  const mislDocuments = documents ?? [];
+  const downloadDocument = useDownloadDocument();
+  const queryClient = useQueryClient();
   const { update: updateCaseAdapter } = useCaseCommands();
   const updateCase = ({ caseId: targetCaseId, ...input }: any) =>
     updateCaseAdapter(targetCaseId, input);
@@ -82,32 +131,73 @@ export default function StaffCaseDetailPage() {
 
   const tabFromQuery = searchParams.get("tab");
   const modeFromQuery = searchParams.get("mode");
-  const [activeTab, setActiveTab] = useState(tabFromQuery === "messages" ? "messages" : "tasks");
+  const initialTab =
+    tabFromQuery && (CASE_DETAIL_TABS as readonly string[]).includes(tabFromQuery)
+      ? tabFromQuery
+      : "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [messageStream, setMessageStream] = useState<"client" | "team">(
     modeFromQuery === "team" ? "team" : "client",
   );
   useEffect(() => {
-    if (tabFromQuery === "messages") setActiveTab("messages");
+    if (tabFromQuery && (CASE_DETAIL_TABS as readonly string[]).includes(tabFromQuery)) {
+      setActiveTab(tabFromQuery);
+    }
     if (modeFromQuery === "team") setMessageStream("team");
     if (modeFromQuery === "client") setMessageStream("client");
   }, [tabFromQuery, modeFromQuery]);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<CaseLifecycleStatus>("active");
+  const [closureOutcome, setClosureOutcome] = useState<CaseClosureOutcome | null>(null);
   const [court, setCourt] = useState("");
   const [judge, setJudge] = useState("");
-  const [notes, setNotes] = useState("");
+  const [opposingCounsel, setOpposingCounsel] = useState("");
+  const [description, setDescription] = useState("");
+  const [clientSummary, setClientSummary] = useState("");
+  const [assignedLawyerId, setAssignedLawyerId] = useState("");
+  const [teamMemberIds, setTeamMemberIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskDueDateBs, setNewTaskDueDateBs] = useState("");
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [hearingDialogOpen, setHearingDialogOpen] = useState(false);
+  const [mislUploadOpen, setMislUploadOpen] = useState(false);
+  const [pendingMisl, setPendingMisl] = useState<CaseMislUploadedFile[]>([]);
 
-  // E-Misl State
   const [expandedMisl, setExpandedMisl] = useState<Record<string, boolean>>({
     pleadings: true,
     evidence: true,
     orders: true,
+    annexure: true,
+    misc: true,
   });
+
+  const scanningMislIds = pendingMisl
+    .filter((item) => SCANNING_INTENT_STATUSES.has(item.status))
+    .map((item) => item.intentId);
+
+  const handlePendingMislUpdate = useCallback(
+    (intent: { intentId: string; status: string; documentId: string | null }) => {
+      if (intent.status === "promoted") {
+        setPendingMisl((prev) => prev.filter((item) => item.intentId !== intent.intentId));
+        void queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+        toast.success("Document is now on this case Misl.");
+        return;
+      }
+      setPendingMisl((prev) =>
+        prev.map((item) => (item.intentId === intent.intentId ? { ...item, ...intent } : item)),
+      );
+      if (intent.status === "rejected") {
+        toast.error("A Misl upload was rejected during scanning.");
+      }
+    },
+    [queryClient],
+  );
+
+  useWatchDocumentUploadIntents(scanningMislIds, handlePendingMislUpdate);
 
   const timeline = useMemo(() => {
     if (!caseData) return [];
@@ -128,7 +218,17 @@ export default function StaffCaseDetailPage() {
         detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}`,
       });
     }
-    for (const d of documents as any[]) {
+    for (const task of tasks as any[]) {
+      const due = task.dueDate ? String(task.dueDate).slice(0, 10) : "";
+      if (!due) continue;
+      events.push({
+        key: `t-${task._id}`,
+        date: due,
+        label: `Task: ${task.title}`,
+        detail: `${task.status || "todo"}${task.clientVisible ? " · visible to client" : ""}`,
+      });
+    }
+    for (const d of mislDocuments as any[]) {
       events.push({
         key: `d-${d._id}`,
         date: d._creationTime ? new Date(d._creationTime).toISOString().slice(0, 10) : "",
@@ -137,14 +237,24 @@ export default function StaffCaseDetailPage() {
       });
     }
     return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [caseData, hearings, documents]);
+  }, [caseData, hearings, mislDocuments, tasks]);
 
   const startEditing = () => {
     if (caseData) {
-      setStatus(caseData.status);
+      setStatus(toLifecycleStatus(caseData.status));
+      setClosureOutcome(inferredClosureOutcome(caseData.status, caseData.closureOutcome));
       setCourt(caseData.court || "");
       setJudge(caseData.judge || "");
-      setNotes(caseData.description || "");
+      setOpposingCounsel(caseData.opposingCounsel || "");
+      setDescription(caseData.description || "");
+      setClientSummary(caseData.clientSummary || "");
+      const leadId = String(caseData.assignedLawyerId || "");
+      setAssignedLawyerId(leadId);
+      setTeamMemberIds(
+        [...new Set([leadId, ...((caseData.teamMemberIds as string[] | undefined) ?? [])])].filter(
+          Boolean,
+        ),
+      );
       setIsEditing(true);
     }
   };
@@ -153,12 +263,18 @@ export default function StaffCaseDetailPage() {
     if (!caseId) return;
     setIsSaving(true);
     try {
+      const statusWrite = caseStatusWritePayload(status, closureOutcome);
       await updateCase({
         caseId: caseId as any,
-        status: status as any,
+        status: statusWrite.status,
+        closureOutcome: statusWrite.closureOutcome,
         court: court || undefined,
         judge: judge || undefined,
-        notes: notes || undefined,
+        opposingCounsel: opposingCounsel || undefined,
+        description: description || null,
+        clientSummary: clientSummary || null,
+        assignedLawyerId: assignedLawyerId || undefined,
+        teamMemberIds,
       });
       toast.success("Case updated successfully!");
       setIsEditing(false);
@@ -177,10 +293,14 @@ export default function StaffCaseDetailPage() {
       await createTask({
         title: newTaskTitle.trim(),
         caseId: caseId as any,
-        assignedTo: currentUser._id as any,
+        assignedTo: actorUserId(currentUser) as any,
         priority: "medium",
+        dueDate: newTaskDueDate || undefined,
+        dueDateBs: newTaskDueDateBs || undefined,
       });
       setNewTaskTitle("");
+      setNewTaskDueDate("");
+      setNewTaskDueDateBs("");
       toast.success("Task added");
     } catch (err: any) {
       toast.error(err?.message || "Failed to add task");
@@ -193,7 +313,7 @@ export default function StaffCaseDetailPage() {
     if (!caseId || !currentUser) return;
     setIsAddingTask(true);
     try {
-      const res = await runSop(templateKey, caseId, currentUser._id);
+      const res = await runSop(templateKey, caseId, actorUserId(currentUser));
       toast.success(
         `${(res as any).label}: ${(res as any).created} added, ${(res as any).skipped} skipped (already exist).`,
       );
@@ -204,37 +324,61 @@ export default function StaffCaseDetailPage() {
     }
   };
 
-  if (caseData === undefined) {
+  if (!caseId || caseQuery.isError) {
+    const kind = !caseId ? "not_found" : caseQueryFailureKind(caseQuery.error);
     return (
-      <PortalPageShell portal="staff" loading loadingLabel="Loading matter…" title="Case">
+      <CaseQueryState
+        portal={portal}
+        kind={kind}
+        scope="detail"
+        backHref={basePath}
+        onRetry={
+          caseQuery.isError
+            ? () => {
+                void caseQuery.refetch();
+              }
+            : undefined
+        }
+      />
+    );
+  }
+  if (caseQuery.isPending || caseData === undefined) {
+    return (
+      <PortalPageShell portal={portal} loading loadingLabel="Loading matter…" title="Case">
         {null}
       </PortalPageShell>
     );
   }
   if (caseData === null) {
-    return (
-      <PortalPageShell
-        portal="staff"
-        title="Case not found"
-        description="This matter could not be loaded."
-      >
-        <DashboardButton variant="secondary" size="sm" onClick={() => navigate("/staff/cases")}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Return to cases
-        </DashboardButton>
-      </PortalPageShell>
-    );
+    return <CaseQueryState portal={portal} kind="not_found" scope="detail" backHref={basePath} />;
   }
 
   const client = clients.find((c: any) => c._id === caseData.clientId);
   const lawyer = users.find((u: any) => u._id === caseData.assignedLawyerId);
+  const parties = ((caseData.parties ?? []) as StaffCasePartyDto[]).slice();
+  const nextHearingIso = nextScheduledHearingIso(
+    hearings as Array<{ status?: string; dateGregorian?: string | null }>,
+    (caseData.nextHearing as string | null | undefined) ?? null,
+  );
+  const nextTaskIso =
+    earliestIncompleteTaskDueIso(tasks as Array<{ status?: string; dueDate?: string | null }>) ||
+    (caseData.nextTaskDue as string | null | undefined) ||
+    null;
+  const nextAction = nextRequiredAction(nextHearingIso, nextTaskIso);
+  const teamIds = new Set<string>([
+    String(caseData.assignedLawyerId || ""),
+    ...((caseData.teamMemberIds as string[] | undefined) ?? []),
+  ]);
+  const teamRoster = users.filter((user: any) => teamIds.has(user._id) || teamIds.has(user.id));
 
   return (
     <PortalPageShell
-      portal="staff"
+      portal={portal}
       className="print:p-0 print:space-y-0"
       title={caseData.title}
       description={caseData.description || "No case description provided."}
       icon={Scale}
+      heroClassName={CASE_DETAIL_HERO_CLASS}
       actions={
         isEditing ? (
           <div className="flex items-center gap-2">
@@ -260,7 +404,8 @@ export default function StaffCaseDetailPage() {
               size="sm"
               variant="outline"
               className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
-              onClick={() => navigate("/staff/cases")}
+              aria-label="Back to cases"
+              onClick={() => navigate(basePath)}
             >
               <ArrowLeft className="size-3.5" aria-hidden /> Cases
             </DashboardButton>
@@ -269,10 +414,9 @@ export default function StaffCaseDetailPage() {
       }
       heroChildren={
         <StaffHeroChipRow>
-          <HeroStatChip value={caseData.caseNumber} label="matter no." />
           <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
           <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
-          <HeroStatChip icon={FileArchive} value={documents.length} label="documents" />
+          <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents" />
         </StaffHeroChipRow>
       }
     >
@@ -282,30 +426,29 @@ export default function StaffCaseDetailPage() {
             variant="ghost"
             size="sm"
             className="p-1 h-auto"
-            onClick={() => navigate("/staff/cases")}
+            aria-label="Back to cases"
+            onClick={() => navigate(basePath)}
           >
             <ArrowLeft className="w-4 h-4" aria-hidden />
           </DashboardButton>
+          <CaseIdentity
+            caseNumber={caseData.caseNumber}
+            status={caseData.status}
+            closureOutcome={caseData.closureOutcome}
+            practiceArea={caseData.practiceArea}
+          />
         </div>
 
         {isEditing ? (
           <DashboardSection title="Quick editor" state="selected">
             <div className="space-y-3">
+              <CaseStatusEditorFields
+                status={status}
+                closureOutcome={closureOutcome}
+                onStatusChange={setStatus}
+                onOutcomeChange={setClosureOutcome}
+              />
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Status</label>
-                  <select
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-hidden"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <option value="inquiry">Inquiry</option>
-                    <option value="active">Active</option>
-                    <option value="on_hold">On Hold</option>
-                    <option value="closed_won">Closed Won</option>
-                    <option value="closed_lost">Closed Lost</option>
-                  </select>
-                </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Court</label>
                   <Input
@@ -314,8 +457,6 @@ export default function StaffCaseDetailPage() {
                     onChange={(e) => setCourt(e.target.value)}
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Judge Name</label>
                   <Input
@@ -324,27 +465,60 @@ export default function StaffCaseDetailPage() {
                     onChange={(e) => setJudge(e.target.value)}
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Notes / Description</label>
-                  <textarea
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
               </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Opposing counsel</label>
+                <Input
+                  className="bg-background text-xs"
+                  value={opposingCounsel}
+                  onChange={(e) => setOpposingCounsel(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium" htmlFor="case-internal-description">
+                  Internal Case Description
+                </label>
+                <textarea
+                  id="case-internal-description"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium" htmlFor="case-client-summary">
+                  Client-visible Summary
+                </label>
+                <textarea
+                  id="case-client-summary"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-xs focus-visible:outline-hidden min-h-[60px]"
+                  value={clientSummary}
+                  onChange={(e) => setClientSummary(e.target.value)}
+                />
+              </div>
+              <CaseTeamFields
+                lawyers={users}
+                assignedLawyerId={assignedLawyerId}
+                teamMemberIds={teamMemberIds}
+                onLeadChange={setAssignedLawyerId}
+                onTeamChange={setTeamMemberIds}
+              />
             </div>
           </DashboardSection>
         ) : (
-          <DashboardSection title="Matter overview">
+          <DashboardSection title="Matter overview" className="max-sm:hidden">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 {
-                  label: "Client / Retainer",
+                  label: "Client",
                   value: client ? client.fullName : "Unknown",
                   icon: User,
                 },
-                { label: "Lead Advocate", value: lawyer ? lawyer.name : "Unassigned", icon: Scale },
+                {
+                  label: "Responsible Lawyer",
+                  value: lawyer ? lawyer.name : "Unassigned",
+                  icon: Scale,
+                },
                 {
                   label: "Jurisdiction",
                   value: caseData.court || "Not Specified",
@@ -362,8 +536,43 @@ export default function StaffCaseDetailPage() {
                   <p className="text-sm font-semibold text-foreground">{item.value}</p>
                 </div>
               ))}
+              <div className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft/50 p-4 col-span-2">
+                <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
+                  <Clock className="w-3.5 h-3.5" /> Next required action
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {nextAction ? (
+                    <>
+                      {nextAction.kind === "hearing" ? "Hearing" : "Task"} ·{" "}
+                      <DualDateDisplay isoDate={nextAction.iso} />
+                    </>
+                  ) : (
+                    "None scheduled"
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft/50 p-4">
+                <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
+                  <CalendarDays className="w-3.5 h-3.5" /> Next hearing
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {nextHearingIso ? (
+                    <DualDateDisplay isoDate={String(nextHearingIso)} />
+                  ) : (
+                    "None scheduled"
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft/50 p-4">
+                <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
+                  <CheckSquare className="w-3.5 h-3.5" /> Next task date
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {nextTaskIso ? <DualDateDisplay isoDate={String(nextTaskIso)} /> : "None due"}
+                </p>
+              </div>
               {caseData.filingDate ? (
-                <div className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft/50 p-4 col-span-2 lg:col-span-4">
+                <div className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft/50 p-4 col-span-2">
                   <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5">
                     <CalendarDays className="w-3.5 h-3.5" /> Filing date
                   </p>
@@ -377,13 +586,30 @@ export default function StaffCaseDetailPage() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="overflow-x-auto flex-nowrap w-full justify-start h-auto p-1.5 bg-secondary/50 rounded-lg print:hidden">
+          <TabsList
+            aria-label="Case sections"
+            className={`${CASE_DETAIL_TABS_LIST_CLASS} bg-secondary/50 rounded-lg print:hidden`}
+          >
+            <TabsTrigger
+              value="overview"
+              className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"
+            >
+              <Scale className="w-3.5 h-3.5 mr-2" />
+              Overview
+            </TabsTrigger>
             <TabsTrigger
               value="tasks"
               className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"
             >
               <CheckSquare className="w-3.5 h-3.5 mr-2" />
               Tasks & SOPs
+            </TabsTrigger>
+            <TabsTrigger
+              value="hearings"
+              className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-xs px-4"
+            >
+              <CalendarDays className="w-3.5 h-3.5 mr-2" />
+              Hearings
             </TabsTrigger>
             <TabsTrigger
               value="messages"
@@ -415,28 +641,138 @@ export default function StaffCaseDetailPage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Overview */}
+          <TabsContent value="overview" className="mt-6 space-y-4">
+            <DashboardSection title="File notes">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1.5">
+                    Internal Case Description
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {caseData.description || "No internal description."}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1.5">
+                    Client-visible Summary
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {caseData.clientSummary || "No client-visible summary."}
+                  </p>
+                </div>
+              </div>
+            </DashboardSection>
+            <DashboardSection title="Case Team" icon={Users}>
+              {teamRoster.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No team members assigned.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {teamRoster.map((member: any) => {
+                    const isLead =
+                      member._id === caseData.assignedLawyerId ||
+                      member.id === caseData.assignedLawyerId;
+                    return (
+                      <li
+                        key={member._id || member.id}
+                        className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
+                      >
+                        <span>{member.name || member.email}</span>
+                        {isLead ? (
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Responsible Lawyer
+                          </span>
+                        ) : (
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Team
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </DashboardSection>
+            <DashboardSection
+              title="Parties"
+              icon={Users}
+              actions={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setActiveTab("parties")}
+                >
+                  Manage parties
+                </Button>
+              }
+            >
+              {parties.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No case parties yet. The CRM instructing client is not added automatically.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {parties.map((party) => (
+                    <li
+                      key={party.id}
+                      className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
+                    >
+                      <span>
+                        {party.name}
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {CASE_PARTY_SIDE_LABELS[party.side]}
+                          {party.roleLabel ? ` · ${party.roleLabel}` : ""}
+                        </span>
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {party.clientVisible ? "Visible to client" : "Staff only"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </DashboardSection>
+          </TabsContent>
+
           {/* 1. Tasks & SOPs */}
           <TabsContent value="tasks" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2">
                 <DashboardSection title="Active tasks" icon={CheckSquare}>
-                  <form onSubmit={handleCreateTask} className="flex gap-2">
-                    <Input
-                      placeholder="Quick add ad-hoc task..."
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                      disabled={isAddingTask}
-                      className="h-9 text-sm"
+                  <form onSubmit={handleCreateTask} className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Quick add ad-hoc task..."
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        disabled={isAddingTask}
+                        className="h-9 text-sm"
+                      />
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={isAddingTask || !newTaskTitle.trim()}
+                      >
+                        {isAddingTask ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 mr-1" /> Add
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <DueDateFields
+                      idPrefix="case-task"
+                      dueDate={newTaskDueDate}
+                      dueDateBs={newTaskDueDateBs}
+                      onDueDateChange={(ad, bs) => {
+                        setNewTaskDueDate(ad);
+                        setNewTaskDueDateBs(bs);
+                      }}
+                      onDueDateBsChange={setNewTaskDueDateBs}
                     />
-                    <Button type="submit" size="sm" disabled={isAddingTask || !newTaskTitle.trim()}>
-                      {isAddingTask ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4 mr-1" /> Add
-                        </>
-                      )}
-                    </Button>
                   </form>
                   <div className="space-y-2 mt-4">
                     {tasks.length === 0 ? (
@@ -534,6 +870,48 @@ export default function StaffCaseDetailPage() {
             </div>
           </TabsContent>
 
+          <TabsContent value="hearings" className="mt-6">
+            <DashboardSection
+              title="Hearings"
+              icon={CalendarDays}
+              actions={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => setHearingDialogOpen(true)}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Schedule hearing
+                </Button>
+              }
+            >
+              {(hearings as any[]).length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  No hearings on this file.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {(hearings as any[]).map((hearing) => (
+                    <div
+                      key={hearing._id || hearing.id}
+                      className="flex items-center justify-between rounded-lg border border-dashboard-border p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold">{hearing.purpose || "Hearing"}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {hearing.court || caseData.court || "Court not set"} · {hearing.status}
+                        </p>
+                      </div>
+                      {hearing.dateGregorian || hearing.dateBs ? (
+                        <DualDateDisplay isoDate={hearing.dateGregorian || hearing.dateBs} />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
+          </TabsContent>
+
           <TabsContent value="messages" className="mt-6 space-y-3">
             <div className="flex gap-2">
               <Button
@@ -572,31 +950,39 @@ export default function StaffCaseDetailPage() {
               title="Digital Misl (E-Brief)"
               icon={FolderTree}
               actions={
-                <Button size="sm" variant="outline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => setMislUploadOpen(true)}
+                >
                   <Plus className="w-3.5 h-3.5 mr-1" /> Upload File
                 </Button>
               }
             >
-              {documents.length === 0 ? (
+              {documents === undefined && pendingMisl.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+                  <Loader2 className="w-8 h-8 mb-3 animate-spin opacity-40" />
+                  <p>Loading this case Misl…</p>
+                </div>
+              ) : mislDocuments.length === 0 && pendingMisl.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
                   <FileArchive className="w-12 h-12 mb-3 opacity-20" />
                   <p>No documents uploaded to this Misl yet.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {MISL_CATEGORIES.map((category) => {
-                    // For mock purposes, just assign docs arbitrarily to categories based on their type or index
-                    const catDocs = documents.filter((d: any) => {
-                      if (category.id === "pleadings")
-                        return d.type?.includes("PDF") || d.title.includes("Agreement");
-                      if (category.id === "evidence") return d.type?.includes("Image");
-                      if (category.id === "orders")
-                        return d.title.includes("Court") || d.title.includes("Order");
-                      if (category.id === "misc") return true; // fallback
-                      return false;
-                    });
+                  {CASE_MISL_BINDERS.map((category) => {
+                    const catDocs = mislDocuments.filter(
+                      (d: any) => mislBinderForType(d.type) === category.id,
+                    );
+                    const catPending = pendingMisl.filter(
+                      (item) => mislBinderForType(item.type) === category.id,
+                    );
 
-                    if (catDocs.length === 0 && category.id !== "misc") return null;
+                    if (catDocs.length === 0 && catPending.length === 0 && category.id !== "misc") {
+                      return null;
+                    }
 
                     return (
                       <div key={category.id} className="group">
@@ -614,14 +1000,40 @@ export default function StaffCaseDetailPage() {
                             {category.label}
                           </h4>
                           <StatusBadge tone="neutral" className="text-[10px] h-5">
-                            {catDocs.length}
+                            {catDocs.length + catPending.length}
                           </StatusBadge>
                         </div>
                         {expandedMisl[category.id] && (
                           <div className="p-2 space-y-1 bg-card">
-                            {catDocs.length === 0 && (
+                            {catDocs.length === 0 && catPending.length === 0 && (
                               <p className="text-xs text-muted-foreground p-2">Empty binder.</p>
                             )}
+                            {catPending.map((item) => (
+                              <div
+                                key={item.intentId}
+                                className="flex items-center justify-between p-2 rounded-md border border-dashed border-border"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-muted-foreground">
+                                    {SCANNING_INTENT_STATUSES.has(item.status) ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <FileArchive className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">
+                                      {item.title}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground font-mono">
+                                      {item.status === "rejected"
+                                        ? "Rejected during scanning"
+                                        : "Scanning — not on this Misl yet"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                             {catDocs.map((doc: any, idx: number) => (
                               <div
                                 key={doc._id}
@@ -645,7 +1057,24 @@ export default function StaffCaseDetailPage() {
                                     </p>
                                   </div>
                                 </div>
-                                <Button size="sm" variant="ghost" className="h-7 text-xs">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs"
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const url = await downloadDocument(doc.id ?? doc._id);
+                                      window.open(url, "_blank", "noopener,noreferrer");
+                                    } catch (error: unknown) {
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Failed to open document.",
+                                      );
+                                    }
+                                  }}
+                                >
                                   View
                                 </Button>
                               </div>
@@ -661,48 +1090,30 @@ export default function StaffCaseDetailPage() {
           </TabsContent>
 
           {/* 3. Parties & Counsel */}
-          <TabsContent value="parties" className="mt-6">
-            <DashboardSection
-              title="Parties directory"
-              icon={Users}
-              actions={
-                <Button size="sm" variant="outline">
-                  <Plus className="w-3.5 h-3.5 mr-1" /> Add Party
-                </Button>
-              }
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border border-border rounded-lg p-4 bg-card shadow-xs">
-                  <DashboardStatusLabel label="Our client" tone="information" className="mb-2" />
-                  <h3 className="font-bold text-lg">{client?.fullName || "N/A"}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Phone: {client?.phone || "N/A"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Email: {client?.email || "N/A"}</p>
-                  <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      Lead Advocate: {lawyer?.name}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="border border-dashboard-danger/35 rounded-lg p-4 bg-dashboard-danger-soft/40 shadow-xs">
-                  <DashboardStatusLabel label="Opposing party" tone="danger" className="mb-2" />
-                  <h3 className="font-bold text-lg">
-                    {caseData.opposingCounsel || "Not Specified"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Information pending discovery.
-                  </p>
-                  <div className="mt-3 pt-3 border-t border-dashboard-danger/20 flex justify-end">
-                    <Button variant="outline" size="sm" className="h-7 text-xs">
-                      Edit Opposing
-                    </Button>
-                  </div>
+          <TabsContent value="parties" className="mt-6 space-y-4">
+            <DashboardSection title="CRM client" icon={User}>
+              <div className="border border-border rounded-lg p-4 bg-card shadow-xs">
+                <h3 className="font-bold text-lg">{client?.fullName || "N/A"}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Phone: {client?.phone || "N/A"}
+                </p>
+                <p className="text-sm text-muted-foreground">Email: {client?.email || "N/A"}</p>
+                <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Responsible Lawyer: {lawyer?.name || "Unassigned"}
+                  </span>
                 </div>
               </div>
             </DashboardSection>
+            <CasePartiesEditor
+              caseId={String(caseId)}
+              parties={parties}
+              clients={clients.map((entry: any) => ({
+                _id: entry._id ?? entry.id,
+                fullName: entry.fullName,
+              }))}
+            />
           </TabsContent>
 
           {/* 4. Timeline */}
@@ -730,6 +1141,34 @@ export default function StaffCaseDetailPage() {
           </TabsContent>
         </Tabs>
       </div>
+      {caseId ? (
+        <>
+          <CaseHearingDialog
+            open={hearingDialogOpen}
+            onOpenChange={setHearingDialogOpen}
+            caseId={String(caseId)}
+            defaultCourt={caseData.court}
+            defaultJudge={caseData.judge}
+          />
+          <CaseMislUploadDialog
+            open={mislUploadOpen}
+            onOpenChange={setMislUploadOpen}
+            caseId={String(caseId)}
+            onUploaded={(file) => {
+              setExpandedMisl((prev) => ({
+                ...prev,
+                [mislBinderForType(file.type)]: true,
+              }));
+              if (file.status !== "promoted") {
+                setPendingMisl((prev) => [
+                  ...prev.filter((item) => item.intentId !== file.intentId),
+                  file,
+                ]);
+              }
+            }}
+          />
+        </>
+      ) : null}
     </PortalPageShell>
   );
 }

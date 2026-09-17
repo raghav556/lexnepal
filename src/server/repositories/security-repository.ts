@@ -158,6 +158,31 @@ export class MySqlSecurityRepository implements SessionRepository, Authorization
     return rows.map((row) => row.id);
   }
 
+  /** Cases where the user is Responsible Lawyer or on the Case Team. */
+  async listCaseIdsForStaff(firmId: string, userId: string): Promise<string[]> {
+    const leadRows = await this.database
+      .select({ id: cases.id })
+      .from(cases)
+      .where(
+        and(eq(cases.firmId, firmId), eq(cases.assignedLawyerId, userId), isNull(cases.deletedAt)),
+      );
+    const teamRows = await this.database
+      .select({ id: cases.id })
+      .from(caseTeamMembers)
+      .innerJoin(
+        cases,
+        and(eq(cases.id, caseTeamMembers.caseId), eq(cases.firmId, caseTeamMembers.firmId)),
+      )
+      .where(
+        and(
+          eq(caseTeamMembers.firmId, firmId),
+          eq(caseTeamMembers.userId, userId),
+          isNull(cases.deletedAt),
+        ),
+      );
+    return [...new Set([...leadRows, ...teamRows].map((row) => row.id))];
+  }
+
   async getDocument(documentId: string): Promise<DocumentAccessRecord | null> {
     const [document] = await this.database
       .select({

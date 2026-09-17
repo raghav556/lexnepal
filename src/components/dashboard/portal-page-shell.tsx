@@ -40,6 +40,8 @@ export interface PortalPageShellProps {
   /** Extra classes for the hero section (portal-scoped calibration hook). */
   heroClassName?: string;
   metrics?: PortalMetric[];
+  /** Extra classes for the metrics grid (portal-scoped calibration hook). */
+  metricsClassName?: string;
   loading?: boolean;
   loadingLabel?: string;
   /** Nepal dhaka pattern hero with CMS logo/hero image. */
@@ -93,6 +95,7 @@ export function PortalPageShell({
   heroChildren,
   heroClassName,
   metrics,
+  metricsClassName,
   loading = false,
   loadingLabel = "Loading workspace…",
   decorated = false,
@@ -215,7 +218,7 @@ export function PortalPageShell({
       </HeroComponent>
 
       {metrics && metrics.length > 0 ? (
-        <div className={metricsGridClass(metrics.length)}>
+        <div className={cn(metricsGridClass(metrics.length), metricsClassName)}>
           {metrics.map((metric) => (
             <MetricCard
               key={String(metric.label)}

@@ -36,9 +36,11 @@ const database = getDatabase();
 export class MySqlWorkManagementRepository {
   // ── Hearings ────────────────────────────────────────────────────────────────
 
-  async listHearings(firmId: string, filters: HearingListInput) {
+  async listHearings(firmId: string, filters: HearingListInput & { caseIds?: string[] }) {
+    if (filters.caseIds && filters.caseIds.length === 0) return [];
     const predicates = [eq(hearings.firmId, firmId), isNull(hearings.deletedAt)];
     if (filters.caseId) predicates.push(eq(hearings.caseId, filters.caseId));
+    else if (filters.caseIds) predicates.push(inArray(hearings.caseId, filters.caseIds));
     const rows = await database
       .select()
       .from(hearings)
