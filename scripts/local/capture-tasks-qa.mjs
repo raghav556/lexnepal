@@ -9,8 +9,8 @@ const OUT = process.env.QA_OUT || path.join(ROOT, ".local/qa/tasks");
 fs.mkdirSync(OUT, { recursive: true });
 const AXE_PATH = path.join(ROOT, "node_modules/axe-core/axe.min.js");
 
-const EMAIL = process.env.QA_EMAIL || "e2e-staff@example.invalid";
-const PASSWORD = process.env.QA_PASSWORD || "E2E-Smoke-Only-2026!";
+const EMAIL = process.env.QA_EMAIL || "staff@srimarlaw.com.np";
+const PASSWORD = process.env.QA_PASSWORD || "staff@1234";
 
 async function login(page) {
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "127.0.2.11" });

@@ -132,10 +132,10 @@ const STATIC_PAGES: Array<{
   },
   {
     title: "CMS: Homepage Editor",
-    subtitle: "Hero section, practice banners & public CTAs",
+    subtitle: "Director message, trusted-by strip, and homepage CTAs",
     href: "/admin/cms/homepage",
     icon: LayoutDashboard,
-    keywords: ["landing", "frontpage"],
+    keywords: ["landing", "frontpage", "trusted", "confidential"],
   },
   {
     title: "CMS: Menus & Navigation",

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { e2ePasswordFor, E2E_USERS } from "../../scripts/e2e/fixtures";
 import { prepareE2eAuth } from "./auth-helpers";
 
 type PublicBranding = { firmName: string; logoUrl: string; faviconUrl: string };
@@ -31,7 +31,7 @@ async function signIn(page: Page, email: string) {
   await prepareE2eAuth(page, email);
   await page.goto("/sign-in");
   await page.locator("#email").fill(email);
-  await page.locator("#password").fill(E2E_PASSWORD);
+  await page.locator("#password").fill(e2ePasswordFor(email));
   await page.getByRole("button", { name: /sign in securely/i }).click();
 }
 

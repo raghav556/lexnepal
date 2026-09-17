@@ -4,7 +4,7 @@
  * Usage (server on :3001):
  *   npm run verify:users-directory
  */
-import { E2E_PASSWORD, E2E_USERS } from "../e2e/fixtures.ts";
+import { E2E_USERS } from "../e2e/fixtures.ts";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 
@@ -45,7 +45,7 @@ async function signIn(email, password) {
 
 async function main() {
   console.log(`\n=== Phase D users directory — ${BASE} ===\n`);
-  const jar = await signIn(E2E_USERS.admin.email, E2E_PASSWORD);
+  const jar = await signIn(E2E_USERS.admin.email, E2E_USERS.admin.password);
   const cookie = cookieHeader(jar);
 
   const usersRes = await fetch(`${BASE}/api/v1/users`, { headers: { cookie } });

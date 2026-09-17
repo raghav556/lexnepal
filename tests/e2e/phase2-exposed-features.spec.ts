@@ -1,14 +1,14 @@
 import fs from "node:fs/promises";
 import JSZip from "jszip";
 import { expect, test, type Page } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { E2E_USERS } from "../../scripts/e2e/fixtures";
 import { prepareE2eAuth } from "./auth-helpers";
 
 async function signInStaff(page: Page) {
   await prepareE2eAuth(page, E2E_USERS.staff.email);
   await page.goto("/sign-in");
   await page.locator("#email").fill(E2E_USERS.staff.email);
-  await page.locator("#password").fill(E2E_PASSWORD);
+  await page.locator("#password").fill(E2E_USERS.staff.password);
   await page.getByRole("button", { name: /sign in securely/i }).click();
   await expect(page).toHaveURL(/\/staff(\/|$)/, { timeout: 20_000 });
   await expect(page.getByText(E2E_USERS.staff.email, { exact: true })).toBeVisible();

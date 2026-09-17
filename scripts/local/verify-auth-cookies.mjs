@@ -5,8 +5,8 @@
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const PASSWORD = "E2E-Smoke-Only-2026!";
-const ADMIN_EMAIL = "e2e-admin@example.invalid";
+const PASSWORD = "admin@1234";
+const ADMIN_EMAIL = "admin@srimarlaw.com.np";
 
 const AUTH_HEADERS = {
   "content-type": "application/json",

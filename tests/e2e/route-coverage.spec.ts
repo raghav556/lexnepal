@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { e2ePasswordFor, E2E_USERS } from "../../scripts/e2e/fixtures";
 import { prepareE2eAuth } from "./auth-helpers";
 
 const publicRoutes = [
@@ -83,7 +83,7 @@ async function signIn(page: Page, email: string, portal: "/admin" | "/staff" | "
   await prepareE2eAuth(page, email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
-  await page.locator("#password").fill(E2E_PASSWORD);
+  await page.locator("#password").fill(e2ePasswordFor(email));
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${portal}(/|$)`), { timeout: 20_000 });
 }

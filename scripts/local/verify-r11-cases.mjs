@@ -9,7 +9,12 @@ import { createPool } from "mysql2/promise";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3001";
 const CASE_ID = "9e392e5d-a8d7-4cc5-aaaf-6860f2bab0ed";
-const PASSWORD = "E2E-Smoke-Only-2026!";
+const PASSWORDS = {
+  "admin@srimarlaw.com.np": "admin@1234",
+  "staff@srimarlaw.com.np": "staff@1234",
+  "e2e-staff2@example.invalid": "E2E-Smoke-Only-2026!",
+  "client@srimarlaw.com.np": "client@1234",
+};
 const CLIENT_CASE_KEYS = [
   "id",
   "_id",
@@ -75,7 +80,7 @@ async function signIn(email, ip) {
       referer: `${BASE}/sign-in`,
       "x-forwarded-for": ip,
     },
-    body: JSON.stringify({ email, password: PASSWORD, rememberMe: false }),
+    body: JSON.stringify({ email, password: PASSWORDS[email], rememberMe: false }),
   });
   if (!res.ok)
     throw new Error(`sign-in ${email} failed ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -165,10 +170,10 @@ assert(counts.closedWon === 0, `closed_won rows remain: ${counts.closedWon}`);
 assert(counts.closedLost === 0, `closed_lost rows remain: ${counts.closedLost}`);
 assert(counts.autoNamedFromCrm === 0, "CRM client was auto-copied into case_parties");
 
-const staff = await signIn("e2e-staff@example.invalid", "127.0.2.11");
+const staff = await signIn("staff@srimarlaw.com.np", "127.0.2.11");
 const staff2 = await signIn("e2e-staff2@example.invalid", "127.0.2.12");
-const client = await signIn("e2e-client@example.invalid", "127.0.2.13");
-const admin = await signIn("e2e-admin@example.invalid", "127.0.2.10");
+const client = await signIn("client@srimarlaw.com.np", "127.0.2.13");
+const admin = await signIn("admin@srimarlaw.com.np", "127.0.2.10");
 
 const staffCase = await api(staff, `/api/v1/cases/${CASE_ID}?details=true`, "127.0.2.11");
 const staff2Case = await api(staff2, `/api/v1/cases/${CASE_ID}`, "127.0.2.12");

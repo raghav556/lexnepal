@@ -12,7 +12,7 @@
 import { and, eq } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { messages } from "../../db/schema";
-import { E2E_PASSWORD, E2E_USERS } from "../e2e/fixtures";
+import { E2E_USERS } from "../e2e/fixtures";
 import { seedE2eClientPortal } from "../e2e/seed-e2e-client-portal";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
@@ -79,7 +79,7 @@ async function main() {
   assert(seeded.staff2UserId, "staff2 missing — re-run e2e seed after fixtures update");
 
   console.log("1. Staff DM A ↔ B…");
-  const staffJar = await signIn(E2E_USERS.staff.email, E2E_PASSWORD);
+  const staffJar = await signIn(E2E_USERS.staff.email, E2E_USERS.staff.password);
   const openDm = await fetchWithCookies(
     `${BASE}/api/v1/dm/threads`,
     {
@@ -105,7 +105,7 @@ async function main() {
   );
   assert(sendDm.res.ok, `send DM failed ${sendDm.res.status}`);
 
-  const staff2Jar = await signIn(E2E_USERS.staff2.email, E2E_PASSWORD);
+  const staff2Jar = await signIn(E2E_USERS.staff2.email, E2E_USERS.staff2.password);
   const listDm = await fetchWithCookies(
     `${BASE}/api/v1/dm/threads/${threadId}/messages`,
     { headers: { cookie: cookieHeader(staff2Jar) } },
@@ -132,7 +132,7 @@ async function main() {
   );
   assert(teamSend.res.ok, `team message failed ${teamSend.res.status}`);
 
-  const clientJar = await signIn(E2E_USERS.client.email, E2E_PASSWORD);
+  const clientJar = await signIn(E2E_USERS.client.email, E2E_USERS.client.password);
   const clientList = await fetchWithCookies(
     `${BASE}/api/v1/messages?caseId=${seeded.caseId}`,
     { headers: { cookie: cookieHeader(clientJar) } },

@@ -7,11 +7,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
-const PASSWORD = "E2E-Smoke-Only-2026!";
 const USERS = [
-  { label: "admin", email: "e2e-admin@example.invalid", role: "admin", portal: "/admin" },
-  { label: "staff", email: "e2e-staff@example.invalid", role: "associate", portal: "/staff" },
-  { label: "client", email: "e2e-client@example.invalid", role: "client", portal: "/client" },
+  { label: "admin", email: "admin@srimarlaw.com.np", password: "admin@1234", role: "admin", portal: "/admin" },
+  { label: "staff", email: "staff@srimarlaw.com.np", password: "staff@1234", role: "associate", portal: "/staff" },
+  { label: "client", email: "client@srimarlaw.com.np", password: "client@1234", role: "client", portal: "/client" },
 ];
 
 const DOC_PATH = join(
@@ -100,9 +99,9 @@ const AUTH_HEADERS = {
   referer: `${BASE}/sign-in`,
 };
 
-async function signInUser(email, testIp) {
+async function signInUser(email, password, testIp) {
   let jar = new Map();
-  const body = JSON.stringify({ email, password: PASSWORD, rememberMe: false });
+  const body = JSON.stringify({ email, password, rememberMe: false });
   let { res, jar: jar1 } = await fetchWithCookies(
     `${BASE}/api/auth/sign-in/email`,
     { method: "POST", headers: { ...AUTH_HEADERS, "x-forwarded-for": testIp }, body },
@@ -217,7 +216,7 @@ async function main() {
   for (const [index, user] of USERS.entries()) {
     // Role verification is independent from the dedicated rate-limit gate. Isolate each fixture
     // identity so repeated local audits do not contaminate one another's persisted IP counter.
-    const result = await signInUser(user.email, `127.0.0.${10 + index}`);
+    const result = await signInUser(user.email, user.password, `127.0.0.${10 + index}`);
     const roleMatch = result.role === user.role;
     const portal = result.jar ? await checkPortalPage(result.jar, user.portal) : { ok: false };
     const ok = result.ok && roleMatch && portal.ok;

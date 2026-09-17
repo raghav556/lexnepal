@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Home, Save, UserCircle2 } from "lucide-react";
+import { AlertTriangle, Home, Plus, Save, Trash2, UserCircle2 } from "lucide-react";
 import { DashboardButton, DashboardSection, PortalPageShell } from "@/components/dashboard";
 import { toast } from "sonner";
 import { useAdminTeam, useCmsCommands, useCmsSettings } from "@/client/queries/cms";
@@ -15,6 +15,11 @@ import {
   type DirectorMessageSettings,
 } from "@/shared/director-message";
 import { LEADERSHIP_TITLE_EXAMPLES } from "@/shared/leadership";
+import {
+  DEFAULT_TRUSTED_ORGANIZATIONS,
+  parseTrustedOrganizations,
+  type TrustedOrganizationsSettings,
+} from "@/shared/trusted-organizations";
 import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
 import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
 
@@ -25,7 +30,16 @@ export default function AdminCMSHomepage() {
   const { updateSettings } = useCmsCommands();
   const [form, setForm] = useState<DirectorMessageSettings>(DEFAULT_DIRECTOR_MESSAGE);
   const [initialForm, setInitialForm] = useState<DirectorMessageSettings>(DEFAULT_DIRECTOR_MESSAGE);
+  const [trustedForm, setTrustedForm] = useState<TrustedOrganizationsSettings>({
+    ...DEFAULT_TRUSTED_ORGANIZATIONS,
+    names: [...DEFAULT_TRUSTED_ORGANIZATIONS.names],
+  });
+  const [initialTrustedForm, setInitialTrustedForm] = useState<TrustedOrganizationsSettings>({
+    ...DEFAULT_TRUSTED_ORGANIZATIONS,
+    names: [...DEFAULT_TRUSTED_ORGANIZATIONS.names],
+  });
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingTrusted, setIsSavingTrusted] = useState(false);
 
   useEffect(() => {
     const parsed = parseDirectorMessage(settings.director_message);
@@ -33,7 +47,10 @@ export default function AdminCMSHomepage() {
       setForm(parsed);
       setInitialForm(parsed);
     }
-  }, [settings.director_message]);
+    const trusted = parseTrustedOrganizations(settings.trusted_organizations);
+    setTrustedForm(trusted);
+    setInitialTrustedForm(trusted);
+  }, [settings.director_message, settings.trusted_organizations]);
 
   const preview = useMemo(
     () => resolveDirectorProfile(form, adminTeam as Parameters<typeof resolveDirectorProfile>[1]),
@@ -51,6 +68,8 @@ export default function AdminCMSHomepage() {
   );
 
   const hasUnsavedChanges = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const hasUnsavedTrusted =
+    JSON.stringify(trustedForm) !== JSON.stringify(initialTrustedForm);
 
   const handleTeamChange = (teamMemberId: string) => {
     const member = leadershipTeam.find(
@@ -90,17 +109,44 @@ export default function AdminCMSHomepage() {
     }
   };
 
+  const handleSaveTrusted = async () => {
+    const names = trustedForm.names.map((name) => name.trim()).filter(Boolean);
+    setIsSavingTrusted(true);
+    try {
+      const payload: TrustedOrganizationsSettings = {
+        isVisible: trustedForm.isVisible,
+        sectionTitle: trustedForm.sectionTitle.trim() || DEFAULT_TRUSTED_ORGANIZATIONS.sectionTitle,
+        names,
+      };
+      await updateSettings({
+        settings: [{ key: "trusted_organizations", value: payload }],
+      });
+      setTrustedForm(payload);
+      setInitialTrustedForm(payload);
+      toast.success(
+        payload.isVisible
+          ? "Trusted-by section saved."
+          : "Trusted-by section hidden on the public homepage.",
+      );
+    } catch {
+      toast.error("Failed to save trusted-by section.");
+    } finally {
+      setIsSavingTrusted(false);
+    }
+  };
+
   return (
     <PortalPageShell
       portal="admin"
       decorated
       showTodayDate
       eyebrow="Content management"
-      title="Homepage — Director Message"
+      title="Homepage"
       description={
         <>
-          Director message block on the public homepage (<code className="text-xs">/</code>). Hero,
-          tagline, and mobile-app banner are managed under{" "}
+          Public homepage blocks for <code className="text-xs">/</code>. Hide the trusted-by
+          marquee when client relationships are confidential. Hero, tagline, and mobile-app banner
+          are managed under{" "}
           <a
             href="/admin/cms"
             className="text-white underline underline-offset-2 hover:text-white/80"
@@ -124,6 +170,87 @@ export default function AdminCMSHomepage() {
       }
       contentClassName="max-w-5xl mx-auto"
     >
+      <DashboardSection
+        title="Trusted by"
+        description="Marquee of organization names on the public homepage. Turn this off when matters are confidential and you must not publish client relationships."
+      >
+        <div className="space-y-4">
+          <label className="flex items-start gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={trustedForm.isVisible}
+              onChange={(e) => setTrustedForm((p) => ({ ...p, isVisible: e.target.checked }))}
+              className="mt-0.5 rounded border-input"
+            />
+            <span>
+              Show on homepage
+              <span className="block text-xs font-normal text-muted-foreground">
+                Uncheck to hide the entire strip. Saved names are kept so you can show it later.
+              </span>
+            </span>
+          </label>
+          <div className="space-y-2">
+            <Label>Section title</Label>
+            <Input
+              value={trustedForm.sectionTitle}
+              onChange={(e) => setTrustedForm((p) => ({ ...p, sectionTitle: e.target.value }))}
+              placeholder="Trusted By Leading Organizations"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Organization names</Label>
+            <div className="space-y-2">
+              {trustedForm.names.map((name, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={name}
+                    onChange={(e) =>
+                      setTrustedForm((p) => ({
+                        ...p,
+                        names: p.names.map((item, i) => (i === index ? e.target.value : item)),
+                      }))
+                    }
+                    placeholder="Organization name"
+                  />
+                  <DashboardButton
+                    type="button"
+                    variant="outline"
+                    className="shrink-0 px-3"
+                    onClick={() =>
+                      setTrustedForm((p) => ({
+                        ...p,
+                        names: p.names.filter((_, i) => i !== index),
+                      }))
+                    }
+                    aria-label={`Remove ${name || "organization"}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </DashboardButton>
+                </div>
+              ))}
+            </div>
+            <DashboardButton
+              type="button"
+              variant="outline"
+              onClick={() => setTrustedForm((p) => ({ ...p, names: [...p.names, ""] }))}
+              disabled={trustedForm.names.length >= 40}
+            >
+              <Plus className="w-4 h-4" />
+              Add organization
+            </DashboardButton>
+          </div>
+          <DashboardButton
+            onClick={handleSaveTrusted}
+            disabled={isSavingTrusted}
+            state={isSavingTrusted ? "loading" : undefined}
+            className="w-full sm:w-auto"
+          >
+            <Save className="w-4 h-4" />
+            {isSavingTrusted ? "Saving..." : hasUnsavedTrusted ? "Save trusted-by" : "Saved"}
+          </DashboardButton>
+        </div>
+      </DashboardSection>
+
       {form.teamMemberId && linkedMember && linkedMember.isPublicFacing === false && (
         <div className="flex gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-100">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />

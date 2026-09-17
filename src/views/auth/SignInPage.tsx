@@ -40,10 +40,10 @@ import { FirmBrand } from "@/components/branding/firm-brand";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { pickPortalBranding } from "@/lib/portal-branding";
 
-const DEMO_EMAILS: Record<PortalIntent, string> = {
-  admin: "e2e-admin@example.invalid",
-  staff: "e2e-staff@example.invalid",
-  client: "e2e-client@example.invalid",
+const DEMO_ACCOUNTS: Record<PortalIntent, { email: string; password: string }> = {
+  admin: { email: "admin@srimarlaw.com.np", password: "admin@1234" },
+  staff: { email: "staff@srimarlaw.com.np", password: "staff@1234" },
+  client: { email: "client@srimarlaw.com.np", password: "client@1234" },
 };
 
 const PORTAL_ICONS: Record<PortalIntent, typeof UserRound> = {
@@ -345,10 +345,12 @@ export default function SignInPage() {
                     Local demo — {PORTAL_LABELS[activePortal]} portal
                   </p>
                   <p className="mt-1">
-                    Password: <code className="text-foreground">E2E-Smoke-Only-2026!</code>
+                    Password:{" "}
+                    <code className="text-foreground">{DEMO_ACCOUNTS[activePortal].password}</code>
                   </p>
                   <p className="mt-2">
-                    Email: <code className="text-foreground">{DEMO_EMAILS[activePortal]}</code>
+                    Email:{" "}
+                    <code className="text-foreground">{DEMO_ACCOUNTS[activePortal].email}</code>
                   </p>
                 </div>
               ) : null}

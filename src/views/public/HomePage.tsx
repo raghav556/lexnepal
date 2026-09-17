@@ -37,6 +37,10 @@ import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { DirectorMessageSection } from "@/views/public/DirectorMessageSection";
 import { resolvePublicTitle } from "@/shared/leadership";
 import { PracticeAreaIcon, resolvePracticeAreaIconName } from "@/shared/practice-area-icons";
+import {
+  parseTrustedOrganizations,
+  shouldShowTrustedOrganizations,
+} from "@/shared/trusted-organizations";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 
@@ -51,16 +55,6 @@ function formatPostDate(post: {
   if (Number.isNaN(date.getTime())) return null;
   return format(date, "MMM d, yyyy");
 }
-
-const TRUSTED_LOGOS = [
-  "Himalayan Bank Ltd",
-  "Nepal Telecom",
-  "Chaudhary Group",
-  "Ncell Axiata",
-  "Yeti Airlines",
-  "Standard Chartered",
-  "Surya Nepal",
-];
 
 const STATS = [
   { value: 500, suffix: "+", label: "Cases Won" },
@@ -250,6 +244,7 @@ export default function HomePage() {
   const publicTeam = usePublicTeam() || [];
   const allPosts = useBlogPosts({ status: "published" }, "public") || [];
   const recentPosts = allPosts.slice(0, 3);
+  const trustedBy = parseTrustedOrganizations(settings?.trusted_organizations);
 
   // Auto-scrolling testimonial carousel state
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -1001,37 +996,39 @@ export default function HomePage() {
       )}
 
       {/* ===== TRUSTED BY MARQUEE ===== */}
-      <section className="py-8 sm:py-10 border-b border-border bg-secondary/30 overflow-hidden relative isolate">
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-32 bg-gradient-to-r from-secondary/30 to-transparent z-10" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-32 bg-gradient-to-l from-secondary/30 to-transparent z-10" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 relative z-0">
-          <p className="text-center text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-[0.15em] sm:tracking-[0.2em]">
-            Trusted By Leading Organizations
-          </p>
-        </div>
-        <div className="flex w-[200%] animate-[marquee_20s_linear_infinite]">
-          <div className="flex flex-1 justify-around items-center gap-12">
-            {TRUSTED_LOGOS.map((logo, i) => (
-              <span
-                key={`${logo}-${i}`}
-                className="text-xl font-serif font-medium tracking-wide text-foreground/80 whitespace-nowrap hover:text-accent transition-colors cursor-default select-none"
-              >
-                {logo}
-              </span>
-            ))}
+      {shouldShowTrustedOrganizations(trustedBy) ? (
+        <section className="py-8 sm:py-10 border-b border-border bg-secondary/30 overflow-hidden relative isolate">
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-32 bg-gradient-to-r from-secondary/30 to-transparent z-10" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-32 bg-gradient-to-l from-secondary/30 to-transparent z-10" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 relative z-0">
+            <p className="text-center text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-[0.15em] sm:tracking-[0.2em]">
+              {trustedBy.sectionTitle}
+            </p>
           </div>
-          <div className="flex flex-1 justify-around items-center gap-12">
-            {TRUSTED_LOGOS.map((logo, i) => (
-              <span
-                key={`dup-${logo}-${i}`}
-                className="text-xl font-serif font-medium tracking-wide text-foreground/80 whitespace-nowrap hover:text-accent transition-colors cursor-default select-none"
-              >
-                {logo}
-              </span>
-            ))}
+          <div className="flex w-[200%] animate-[marquee_20s_linear_infinite]">
+            <div className="flex flex-1 justify-around items-center gap-12">
+              {trustedBy.names.map((logo, i) => (
+                <span
+                  key={`${logo}-${i}`}
+                  className="text-xl font-serif font-medium tracking-wide text-foreground/80 whitespace-nowrap hover:text-accent transition-colors cursor-default select-none"
+                >
+                  {logo}
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-1 justify-around items-center gap-12">
+              {trustedBy.names.map((logo, i) => (
+                <span
+                  key={`dup-${logo}-${i}`}
+                  className="text-xl font-serif font-medium tracking-wide text-foreground/80 whitespace-nowrap hover:text-accent transition-colors cursor-default select-none"
+                >
+                  {logo}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {/* ===== LATEST INSIGHTS ===== */}
       {recentPosts.length > 0 && (

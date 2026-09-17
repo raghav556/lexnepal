@@ -17,6 +17,7 @@ import {
   blogPosts,
 } from "../../db/schema";
 import { DEFAULT_DIRECTOR_MESSAGE } from "../../src/shared/director-message";
+import { DEFAULT_TRUSTED_ORGANIZATIONS } from "../../src/shared/trusted-organizations";
 import {
   seedBrandAssets,
   seedDirectorMessageAssets,
@@ -599,6 +600,7 @@ export async function seedCmsSmoke() {
     photoUrl: directorAssets.photoUrl,
     signatureUrl: directorAssets.signatureUrl,
   });
+  await upsertSetting(firm.id, "trusted_organizations", DEFAULT_TRUSTED_ORGANIZATIONS);
 
   const brandAssets = await seedBrandAssets(firm.id);
   await upsertSetting(firm.id, "logoUrl", brandAssets.logoUrl);

@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { E2E_USERS } from "../../scripts/e2e/fixtures";
 import { prepareE2eAuth } from "./auth-helpers";
 
 async function signInAdmin(page: Page) {
   await prepareE2eAuth(page, E2E_USERS.admin.email);
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(E2E_USERS.admin.email);
-  await page.locator("#password").fill(E2E_PASSWORD);
+  await page.locator("#password").fill(E2E_USERS.admin.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/admin(\/|$)/, { timeout: 20_000 });
 }

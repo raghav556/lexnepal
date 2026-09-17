@@ -1,20 +1,23 @@
-import { returningInsert } from "@/server/db/mysql-returning";
-import { returningUpsert } from "@/server/db/mysql-returning";
 /**
- * Deterministic Better Auth users for R5.7 browser smoke.
- * Local/dev DBs only (`example.invalid` emails).
+ * Deterministic Better Auth users for local demo and browser smoke.
  */
+import { randomUUID } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
 import { eq, inArray } from "drizzle-orm";
+import { returningInsert, returningUpsert } from "@/server/db/mysql-returning";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
-import { getLocalAuth } from "../../src/server/auth/local-auth";
-import { authUsers, firms, users } from "../../db/schema";
-import { E2E_PASSWORD, E2E_USERS } from "./fixtures";
+import { authAccounts, authUsers, firms, users } from "../../db/schema";
+import { E2E_USERS } from "./fixtures";
 
-export { E2E_PASSWORD, E2E_USERS };
+export { E2E_USERS };
+export { e2ePasswordFor } from "./fixtures";
 
 async function ensureFirmId(): Promise<string> {
   const db = getDatabase();
-  const fixtureEmails = Object.values(E2E_USERS).map((fixture) => fixture.email);
+  const fixtureEmails = Object.values(E2E_USERS).flatMap((fixture) => [
+    fixture.email,
+    ...fixture.previousEmails,
+  ]);
   const existingFixtureUsers = await db
     .select({ firmId: users.firmId })
     .from(users)
@@ -69,9 +72,37 @@ async function deleteAuthUserForEmail(email: string, lexnepalUserId: string) {
 export async function seedE2eUsers() {
   const db = getDatabase();
   const firmId = await ensureFirmId();
-  const auth = getLocalAuth();
 
   for (const fixture of Object.values(E2E_USERS)) {
+    const [existingByCurrent] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, fixture.email))
+      .limit(1);
+    if (!existingByCurrent && fixture.previousEmails.length > 0) {
+      const [existingByPrevious] = await db
+        .select()
+        .from(users)
+        .where(inArray(users.email, fixture.previousEmails))
+        .limit(1);
+      if (existingByPrevious) {
+        await db
+          .update(users)
+          .set({
+            email: fixture.email,
+            name: fixture.name,
+            tokenIdentifier: `e2e:${fixture.email}`,
+            role: fixture.role,
+            isActive: true,
+            isPending: false,
+            deletedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingByPrevious.id));
+        await deleteAuthUserForEmail(existingByPrevious.email, existingByPrevious.id);
+      }
+    }
+
     const [lexUser] = await returningUpsert(
       db
         .insert(users)
@@ -91,6 +122,8 @@ export async function seedE2eUsers() {
             deletedAt: null,
             role: fixture.role,
             name: fixture.name,
+            email: fixture.email,
+            tokenIdentifier: `e2e:${fixture.email}`,
             updatedAt: new Date(),
           },
         }),
@@ -99,22 +132,25 @@ export async function seedE2eUsers() {
 
     await deleteAuthUserForEmail(fixture.email, lexUser!.id);
 
-    const created = await auth.api.createUser({
-      body: {
-        name: fixture.name,
-        email: fixture.email,
-        password: E2E_PASSWORD,
-        role: "user",
-        data: { lexnepalUserId: lexUser!.id },
-      },
+    const authUserId = randomUUID();
+    await db.insert(authUsers).values({
+      id: authUserId,
+      lexnepalUserId: lexUser!.id,
+      name: fixture.name,
+      email: fixture.email,
+      emailVerified: true,
+      role: "user",
     });
-    await db
-      .update(authUsers)
-      .set({ emailVerified: true })
-      .where(eq(authUsers.id, created.user.id));
+    await db.insert(authAccounts).values({
+      id: randomUUID(),
+      accountId: authUserId,
+      providerId: "credential",
+      userId: authUserId,
+      password: await hashPassword(fixture.password),
+    });
   }
 
-  return { firmId, password: E2E_PASSWORD, users: E2E_USERS };
+  return { firmId, users: E2E_USERS };
 }
 
 const invokedDirectly = process.argv[1]

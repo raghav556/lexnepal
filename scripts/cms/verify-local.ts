@@ -428,6 +428,47 @@ try {
     throw new Error(`Homepage director_message public read failed: ${JSON.stringify(dm)}`);
   }
 
+  const trustedPut = await settingsPut(
+    new Request("http://local/api/v1/cms/settings", {
+      method: "PUT",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        settings: [
+          {
+            key: "trusted_organizations",
+            value: {
+              isVisible: false,
+              sectionTitle: "CMS Verify Trusted By",
+              names: ["CMS Verify Org"],
+            },
+          },
+        ],
+      }),
+    }),
+  );
+  if (trustedPut.status !== 200) {
+    throw new Error(
+      `Homepage trusted_organizations save failed: ${trustedPut.status} ${await trustedPut.text()}`,
+    );
+  }
+  const publicTrusted = await publicSettingsGet(
+    new Request("http://local/api/v1/public/cms/settings"),
+  );
+  const publicTrustedBody = (await publicTrusted.json()) as {
+    data: {
+      trusted_organizations?: { isVisible?: boolean; sectionTitle?: string; names?: string[] };
+    };
+  };
+  const trusted = publicTrustedBody.data.trusted_organizations;
+  if (
+    !trusted ||
+    trusted.isVisible !== false ||
+    trusted.sectionTitle !== "CMS Verify Trusted By" ||
+    trusted.names?.[0] !== "CMS Verify Org"
+  ) {
+    throw new Error(`Homepage trusted_organizations public read failed: ${JSON.stringify(trusted)}`);
+  }
+
   // Brand assets: upload logo/favicon/hero → settings → public settings + asset redirects.
   const brandLogoUrl = await uploadCmsAssetVerify("logo");
   const brandFaviconUrl = await uploadCmsAssetVerify("favicon");

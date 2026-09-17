@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "../../scripts/e2e/fixtures";
+import { E2E_USERS } from "../../scripts/e2e/fixtures";
 
 test("document generator resolves editor variables and clears a case when the client changes", async ({
   page,
 }) => {
   const login = await page.request.post("/api/auth/sign-in/email", {
-    data: { email: E2E_USERS.admin.email, password: E2E_PASSWORD },
+    data: { email: E2E_USERS.admin.email, password: E2E_USERS.admin.password },
   });
   expect(login.ok()).toBe(true);
   const data = {

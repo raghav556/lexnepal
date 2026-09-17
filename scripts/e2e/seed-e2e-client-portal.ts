@@ -8,7 +8,7 @@ import { returningInsert, returningMutation } from "@/server/db/mysql-returning"
  *
  *   npm run e2e:seed:portal
  */
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { cases, caseTeamMembers, clients, documents, tasks, users } from "../../db/schema";
 import { getDocumentStorageRuntime } from "../../src/server/storage/runtime";
@@ -61,13 +61,14 @@ export async function seedE2eClientPortal() {
     throw new Error("E2E client/staff users missing after seedE2eUsers");
   }
 
+  const clientEmails = [E2E_USERS.client.email, ...E2E_USERS.client.previousEmails];
   const [existingClient] = await db
     .select()
     .from(clients)
     .where(
       and(
         eq(clients.firmId, firmId),
-        eq(clients.email, E2E_USERS.client.email),
+        inArray(clients.email, clientEmails),
         isNull(clients.deletedAt),
       ),
     )
@@ -81,6 +82,7 @@ export async function seedE2eClientPortal() {
         .set({
           userId: clientUser.id,
           fullName: E2E_USERS.client.name,
+          email: E2E_USERS.client.email,
           isActive: true,
           updatedAt: new Date(),
         })

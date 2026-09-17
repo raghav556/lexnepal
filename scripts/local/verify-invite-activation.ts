@@ -7,7 +7,7 @@
 import { desc, eq, like } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { authUsers, authVerifications, users } from "../../db/schema";
-import { E2E_PASSWORD, E2E_USERS } from "../e2e/fixtures";
+import { E2E_USERS } from "../e2e/fixtures";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 const INVITE_PASSWORD = "Invite-Activate-2026!";
@@ -102,7 +102,7 @@ async function main() {
   const inviteName = `Invite Activate ${stamp}`;
 
   console.log("1. Sign in as E2E admin…");
-  let jar = await signIn(E2E_USERS.admin.email, E2E_PASSWORD);
+  let jar = await signIn(E2E_USERS.admin.email, E2E_USERS.admin.password);
 
   console.log("2. Create invited associate…");
   const create = await fetchWithCookies(

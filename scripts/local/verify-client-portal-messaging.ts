@@ -14,7 +14,7 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { closeDatabase, getDatabase } from "../../src/server/db/client";
 import { notifications, users } from "../../db/schema";
-import { E2E_PASSWORD, E2E_USERS } from "../e2e/fixtures";
+import { E2E_USERS } from "../e2e/fixtures";
 import { seedE2eClientPortal } from "../e2e/seed-e2e-client-portal";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
@@ -87,7 +87,7 @@ async function main() {
   console.log(`   case ${seeded.caseId}`);
 
   console.log("1. Client sign-in → POST message…");
-  let clientJar = await signIn(E2E_USERS.client.email, E2E_PASSWORD);
+  let clientJar = await signIn(E2E_USERS.client.email, E2E_USERS.client.password);
   const mark = `verify-msg-${Date.now()}`;
   const sendClient = await fetchWithCookies(
     `${BASE}/api/v1/messages`,
@@ -134,7 +134,7 @@ async function main() {
   console.log(`   staff notif → ${staffNotif.link}`);
 
   console.log("2. Staff Messages page + Client Reply…");
-  const staffJar = await signIn(E2E_USERS.staff.email, E2E_PASSWORD);
+  const staffJar = await signIn(E2E_USERS.staff.email, E2E_USERS.staff.password);
   const pageRes = await fetchWithCookies(
     `${BASE}/staff/messages?caseId=${seeded.caseId}`,
     {
