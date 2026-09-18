@@ -468,51 +468,132 @@
 }
 
 .dashboard-theme.dashboard-client {
-  --dashboard-primary: #3157d5;
-  --dashboard-primary-hover: #294bc0;
-  --dashboard-primary-pressed: #223fa6;
-  --dashboard-primary-soft: #e9efff;
-  --dashboard-secondary: #e4f3f1;
-  --dashboard-secondary-hover: #d5eae7;
-  --dashboard-secondary-pressed: #c4deda;
-  --dashboard-secondary-foreground: #134e4a;
-  --dashboard-focus: #0f766e;
-  --dashboard-accent: #c99523;
-  --dashboard-accent-soft: #fff6dc;
-  --dashboard-accent-foreground: #6b4e08;
-  /* Executive hero: Deep Navy → Corporate Blue → Teal */
-  --dashboard-hero-start: #0f172a;
-  --dashboard-hero-mid: #172554;
-  --dashboard-hero-end: #0f766e;
-  --dashboard-hero-foreground: #f8fafc;
-  --dashboard-hero-muted: rgba(255, 255, 255, 0.8);
-  --dashboard-hero-border: rgba(255, 255, 255, 0.18);
-  --dashboard-chart-1: #3157d5;
-  --dashboard-chart-2: #0f766e;
-  --dashboard-chart-3: #9a6b00;
-  --dashboard-chart-4: #059669;
-  --dashboard-chart-5: #8b5cf6;
+  /*
+   * CUI-02 measured Client tokens. Values are sampled from the frozen
+   * reference pack (master: 01-home.jpg). Staff/Admin selectors are untouched.
+   * Evidence: doc/ui-reference/client/audit/CUI-02-MEASURED-TOKENS.md
+   */
 
-  /* Client sidebar: deep royal blue gradient */
-  --dashboard-sidebar: #1e3a6e;
-  --dashboard-sidebar-deep: #0f2040;
-  --dashboard-sidebar-foreground: #ffffff;
-  --dashboard-sidebar-muted: #93b4dc;
-  --dashboard-sidebar-heading: #7ba3d1;
-  --dashboard-sidebar-heading-bar: #5b8ec7;
-  --dashboard-sidebar-active: rgba(59, 130, 246, 0.35);
-  --dashboard-sidebar-active-border: rgba(96, 165, 250, 0.25);
-  --dashboard-sidebar-active-icon: #93c5fd;
-  --dashboard-sidebar-hover: rgba(255, 255, 255, 0.08);
-  --dashboard-sidebar-border: rgba(255, 255, 255, 0.1);
-  --dashboard-sidebar-badge: rgba(255, 255, 255, 0.15);
-  --dashboard-sidebar-badge-foreground: #bfdbfe;
-  --dashboard-sidebar-brand: #3b82f6;
-  --dashboard-sidebar-brand-glow: rgba(59, 130, 246, 0.35);
-  --dashboard-sidebar-chevron: rgba(147, 197, 253, 0.5);
-  --dashboard-sidebar-focus: rgba(96, 165, 250, 0.5);
-  /* The client shell uses a slightly wider sidebar (md:w-60). */
-  --dashboard-sidebar-width: 15rem;
+  /* Shared primitives that read generic variables, Client scope only. */
+  --background: #f7f9fc;
+  --foreground: #10182c;
+  --card: #ffffff;
+  --card-foreground: #10182c;
+  --popover: #ffffff;
+  --popover-foreground: #10182c;
+  --muted: #eef2f7;
+  --muted-foreground: #5e6672;
+  --border: #d7dde6;
+  --input: #ffffff;
+  --ring: #0b2846;
+  --primary: #0b2846;
+  --primary-foreground: #ffffff;
+
+  --dashboard-canvas: #f7f9fc;
+  --dashboard-canvas-elevated: #eef2f7;
+  --dashboard-panel: #ffffff;
+  --dashboard-panel-hover: #f5f8fb;
+  --dashboard-panel-pressed: #eef2f7;
+  --dashboard-border: #d7dde6;
+  --dashboard-primary: #0b2846;
+  --dashboard-primary-hover: #092338;
+  --dashboard-primary-pressed: #081c30;
+  --dashboard-primary-foreground: #ffffff;
+  --dashboard-primary-soft: #eef6fe;
+  --dashboard-secondary: #f4f7fb;
+  --dashboard-secondary-hover: #e8eef5;
+  --dashboard-secondary-pressed: #d9e2ec;
+  --dashboard-secondary-foreground: #0b2846;
+  --dashboard-focus: #1a4f8a;
+  --dashboard-accent: #c4a064;
+  --dashboard-accent-soft: #f7f1e4;
+  --dashboard-accent-foreground: #6b4e08;
+  /* Approved Home hero is a light canvas + photograph, not a dark gradient. */
+  --dashboard-hero-start: #ffffff;
+  --dashboard-hero-mid: #f4f8fc;
+  --dashboard-hero-end: #e8f0f8;
+  --dashboard-hero-foreground: #10182c;
+  --dashboard-hero-muted: #5e6672;
+  --dashboard-hero-border: #d7dde6;
+  --dashboard-chart-1: #0b2846;
+  --dashboard-chart-2: #1f7a54;
+  --dashboard-chart-3: #1a4f8a;
+  --dashboard-chart-4: #c4a064;
+  --dashboard-chart-5: #c81e4a;
+
+  --dashboard-success: #1f7a54;
+  --dashboard-success-soft: #e8f6ef;
+  --dashboard-success-foreground: #146046;
+  --dashboard-information: #1a4f8a;
+  --dashboard-information-soft: #eef6fe;
+  --dashboard-information-foreground: #143c6b;
+  --dashboard-warning: #b45309;
+  --dashboard-warning-soft: #fcf9f6;
+  --dashboard-warning-foreground: #92400e;
+  --dashboard-danger: #c81e4a;
+  --dashboard-danger-soft: #fdf1f5;
+  --dashboard-danger-foreground: #9f1239;
+  --dashboard-neutral: #5e6672;
+  --dashboard-neutral-soft: #f4f7fb;
+  --dashboard-neutral-foreground: #10182c;
+
+  /* Master shell: Home dark Srimar navy. Light sidebars in 02–08 are rejected. */
+  --dashboard-sidebar: #0b2846;
+  --dashboard-sidebar-deep: #081f38;
+  --dashboard-sidebar-bg-from: #0b2846;
+  --dashboard-sidebar-bg-to: #081f38;
+  --dashboard-sidebar-foreground: #f4f7fb;
+  --dashboard-sidebar-muted: #a9c4dc;
+  --dashboard-sidebar-heading: #8fafcb;
+  --dashboard-sidebar-heading-bar: #c4a064;
+  --dashboard-sidebar-active: #123a66;
+  --dashboard-sidebar-active-foreground: #ffffff;
+  --dashboard-sidebar-active-border: rgba(255, 255, 255, 0.12);
+  --dashboard-sidebar-active-icon: #ffffff;
+  --dashboard-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --dashboard-sidebar-border: rgba(255, 255, 255, 0.08);
+  --dashboard-sidebar-badge: #e53939;
+  --dashboard-sidebar-badge-foreground: #ffffff;
+  --dashboard-sidebar-brand: #c4a064;
+  --dashboard-sidebar-brand-bg: transparent;
+  --dashboard-sidebar-brand-border: rgba(196, 160, 100, 0.28);
+  --dashboard-sidebar-brand-icon: #c4a064;
+  --dashboard-sidebar-brand-glow: transparent;
+  --dashboard-sidebar-chevron: #8fafcb;
+  --dashboard-sidebar-focus: #c4a064;
+
+  /*
+   * Geometry normalized from 01-home.jpg (1400×876 JPEG of the 1536×961
+   * source). Sidebar 235/1400 → 260px at source = 16.25rem.
+   */
+  --dashboard-sidebar-width: 16.25rem;
+  --dashboard-topbar-height: 4rem;
+  --dashboard-content-gutter: 2rem;
+  --dashboard-content-gutter-compact: 1.25rem;
+  --dashboard-section-gap: 1.5rem;
+  --dashboard-grid-gap: 1rem;
+  --dashboard-panel-padding: 1.25rem;
+  --dashboard-panel-padding-compact: 1rem;
+  --dashboard-radius-card: 0.75rem;
+  --dashboard-radius-control: 0.5rem;
+  --dashboard-radius-pill: 999px;
+  --dashboard-control-height: 2.5rem;
+  --dashboard-control-height-compact: 2rem;
+  --dashboard-icon-size: 1.25rem;
+  --dashboard-icon-size-sm: 1rem;
+  --dashboard-icon-size-lg: 1.5rem;
+  --dashboard-hero-pattern-opacity: 0.04;
+  --dashboard-shadow-card: 0 1px 2px rgba(11, 40, 70, 0.06);
+  --dashboard-shadow-raised: 0 4px 12px rgba(11, 40, 70, 0.08);
+  --dashboard-font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --dashboard-font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --dashboard-font-nepali: "Mukta", "Noto Sans Devanagari", "Inter", sans-serif;
+  --dashboard-text-title-size: 2rem;
+  --dashboard-text-section-size: 1.125rem;
+  --dashboard-text-body-size: 0.875rem;
+  --dashboard-text-meta-size: 0.75rem;
+  --dashboard-duration-fast: 150ms;
+  --dashboard-duration-normal: 200ms;
 }
 
 .dark.dashboard-theme,
@@ -655,6 +736,24 @@
 
 .dark.dashboard-theme.dashboard-client,
 .dark .dashboard-theme.dashboard-client {
+  /*
+   * Preserve existing Client dark-mode accents. Restore generic text/surface
+   * variables so the light-canvas Client overrides above cannot leak onto
+   * the shared dark canvas.
+   */
+  --background: #0c1222;
+  --foreground: #f8fafc;
+  --card: #141d31;
+  --card-foreground: #f8fafc;
+  --popover: #141d31;
+  --popover-foreground: #f8fafc;
+  --muted: #202f4b;
+  --muted-foreground: #9eabc1;
+  --border: #5d6f90;
+  --input: #1b2942;
+  --ring: #60a5fa;
+  --primary: #60a5fa;
+  --primary-foreground: #0c1222;
   --dashboard-primary: #60a5fa;
   --dashboard-primary-hover: #7db6fb;
   --dashboard-primary-pressed: #3b82f6;
@@ -671,6 +770,13 @@
   --dashboard-chart-3: #e4bd5b;
   --dashboard-chart-4: #34d399;
   --dashboard-chart-5: #a78bfa;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-theme.dashboard-client {
+    --dashboard-duration-fast: 0.01ms;
+    --dashboard-duration-normal: 0.01ms;
+  }
 }
 
 .dashboard-theme {
