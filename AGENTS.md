@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+For Client Portal UI work, these files are the controlling specifications. Read them before implementation. The DOCX is authoritative. Do not override them with chat memory or generic design assumptions.
+
+- `doc/ui-reference/client/LexNepal_Client_UI_Upgrade_Source_of_Truth_v1.0.docx`
+- `doc/ui-reference/client/LexNepal_Client_UI_Upgrade_Source_of_Truth_v1.0.md`
+
