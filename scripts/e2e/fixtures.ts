@@ -30,8 +30,19 @@ export const E2E_USERS = {
   },
 } as const;
 
+/** Separate CUI-01 UI-preview Client. Not part of E2E_USERS / smoke identity. */
+export const UI_PREVIEW_CLIENT = {
+  email: "ravi.sharma.ui-preview@example.invalid",
+  previousEmails: [] as string[],
+  name: "Ravi Sharma",
+  role: "client" as const,
+  password: "E2E-UI-Preview-Only-2026!",
+} as const;
+
 export function e2ePasswordFor(email: string): string {
-  const user = Object.values(E2E_USERS).find((item) => item.email === email);
+  const user =
+    Object.values(E2E_USERS).find((item) => item.email === email) ??
+    (email === UI_PREVIEW_CLIENT.email ? UI_PREVIEW_CLIENT : undefined);
   if (!user) throw new Error(`Unknown local demo user ${email}`);
   return user.password;
 }

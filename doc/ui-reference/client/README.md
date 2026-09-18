@@ -7,3 +7,4 @@
 5. Client UI work must follow CUI-00 through CUI-22 in order.
 6. Staff/Admin UI work is out of scope until Client freeze.
 7. Reference images must not be replaced without owner approval and a version update.
+8. UI-preview fixture (CUI-01): run `npm run e2e:seed:client-ui`. It seeds a separate synthetic Client through local MySQL. It does not replace the smoke Client used by `npm run e2e:seed:portal`.
