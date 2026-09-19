@@ -1,98 +1,212 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState } from "react";
 import {
   ArrowRight,
-  CalendarClock,
+  Building2,
   CalendarDays,
-  ClipboardList,
+  CheckCircle2,
+  Clock,
   FileText,
   FolderOpen,
-  PenTool,
+  MapPin,
+  MessageSquare,
+  Scale,
   ShieldCheck,
-  Sparkles,
+  Upload,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
 import { useClientCases } from "@/client/queries/cases";
 import { useMyClient } from "@/client/queries/clients";
-import { isLifecycleClosed } from "@/shared/contracts/case-status";
 import { useDocuments } from "@/client/queries/documents";
-import { useAppointments } from "@/client/queries/crm";
 import { useHearings } from "@/client/queries/hearings";
 import { useNotifications } from "@/client/queries/communication";
+import { useMyPendingEnvelopeActions } from "@/client/queries/envelopes";
 import { useTasks } from "@/client/queries/tasks";
-import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
-import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import {
+  ClientDocumentItem,
+  ClientSoftPanel,
+  ClientStatePanel,
+  ClientTimelineItem,
+  DualDateDisplay,
   DashboardButton,
-  DashboardListRow,
   DashboardSection,
   DashboardStatusLabel,
-  EmptyState,
   MetricCard,
   PortalPageShell,
-  StatusBadge,
+  usePortalBranding,
 } from "@/components/dashboard";
-import { getDashboardStatusTone } from "@/lib/dashboard-semantics";
-import { localDateIso, relativeTime } from "@/lib/dashboard-format";
+import { dayPartGreeting, localDateIso, relativeTime } from "@/lib/dashboard-format";
 
-/** Plain-language labels for Client Case DTO lifecycle statuses. */
-const CLIENT_STATUS_LANGUAGE: Record<string, string> = {
-  inquiry: "Inquiry under review",
-  active: "Active — in progress",
-  on_hold: "On hold for now",
-  closed: "Closed",
-};
-
-function clientStatusLanguage(status: string): string {
-  if (isLifecycleClosed(status)) return CLIENT_STATUS_LANGUAGE.closed;
-  return CLIENT_STATUS_LANGUAGE[status] ?? status;
+function titleCaseGreeting(date = new Date()): string {
+  return dayPartGreeting(date).replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function daysUntil(dateIso?: string | null): number | null {
-  if (!dateIso) return null;
-  const target = Date.parse(dateIso);
-  if (Number.isNaN(target)) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.round((target - today.getTime()) / 86_400_000);
+function firstNameOf(fullName?: string | null): string | undefined {
+  const first = fullName?.trim().split(/\s+/)[0];
+  return first || undefined;
 }
 
-function relativeDaysLabel(days: number): string {
-  if (days <= 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
+function initialsOf(name?: string | null): string {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (parts.length === 0) return "—";
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function formatHearingDate(dateGregorian?: string | null): string | undefined {
+  if (!dateGregorian) return undefined;
+  const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateGregorian;
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatHearingTime(time?: string | null): string | undefined {
+  if (!time) return undefined;
+  const match = /^(\d{1,2}):(\d{2})/.exec(time);
+  if (!match) return time;
+  const minute = match[2];
+  const hour24 = Number(match[1]);
+  const suffix = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+  return `${hour12}:${minute} ${suffix}`;
+}
+
+function hearingDateParts(dateGregorian?: string | null) {
+  if (!dateGregorian) return null;
+  const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: String(date.getDate()),
+    month: date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
+    year: String(date.getFullYear()),
+  };
+}
+
+function downloadHearingIcs(input: {
+  id: string;
+  title: string;
+  court?: string | null;
+  purpose?: string | null;
+  dateGregorian?: string | null;
+  time?: string | null;
+}) {
+  const day = input.dateGregorian?.slice(0, 10).replace(/-/g, "");
+  if (!day) return;
+  const start =
+    input.time && /^\d{1,2}:\d{2}/.test(input.time)
+      ? `${day}T${input.time.split(":")[0]?.padStart(2, "0")}${input.time.split(":")[1]?.slice(0, 2)}00`
+      : day;
+  const summary = `${input.title} — ${input.court || "Court"}`.replace(/[,;]/g, " ");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Srimar Law//Client Portal//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${input.id}@srimar.law`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
+    start.includes("T") ? `DTSTART;TZID=Asia/Kathmandu:${start}` : `DTSTART;VALUE=DATE:${start}`,
+    `SUMMARY:${summary}`,
+  ];
+  if (input.purpose) lines.push(`DESCRIPTION:${String(input.purpose).replace(/[,;]/g, " ")}`);
+  if (input.court) lines.push(`LOCATION:${String(input.court).replace(/[,;]/g, " ")}`);
+  lines.push("END:VEVENT", "END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "srimar-hearing.ics";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function conciseUpdateTitle(notification: { title?: unknown; body?: unknown }): string {
+  const title = String(notification.title ?? "").trim();
+  if (title) return title;
+  const body = String(notification.body ?? "")
+    .split(/[.!\n]/)[0]
+    ?.trim();
+  return body || "Update";
+}
+
+function notificationCategory(type?: string | null): string | undefined {
+  switch (type) {
+    case "hearing_reminder":
+      return "Hearing";
+    case "message":
+      return "Message";
+    case "document_request":
+      return "Document";
+    case "system":
+      return "Update";
+    default:
+      return type || undefined;
+  }
+}
+
+function conciseUpdateDetail(notification: {
+  title?: unknown;
+  body?: unknown;
+}): string | undefined {
+  const title = String(notification.title ?? "").trim();
+  const sentence = String(notification.body ?? "")
+    .split(/[.!\n]/)[0]
+    ?.trim();
+  if (!sentence || sentence === title) return undefined;
+  return sentence.length > 88 ? `${sentence.slice(0, 85).trimEnd()}…` : sentence;
+}
+
+function fileKind(type?: string | null, mimeType?: string | null): "pdf" | "doc" | "file" {
+  const value = `${type ?? ""} ${mimeType ?? ""}`.toLowerCase();
+  if (value.includes("pdf")) return "pdf";
+  if (value.includes("doc") || value.includes("word")) return "doc";
+  return "file";
 }
 
 export default function ClientDashboard() {
-  const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
-  const hearings = useHearings({}) || [];
-  const documents = useDocuments({}) || [];
-  const tasks = useTasks() || [];
-  const appointmentsResult = useAppointments({});
-  const appointments = appointmentsResult?.data ?? [];
-  const notifications = useNotifications().data ?? [];
-  const cmsSettings = usePublicCmsSettings() as Record<string, unknown> | undefined;
+  const cases = useClientCases(clientId ? { clientId } : {});
+  const hearings = useHearings(clientRecord ? {} : "skip");
+  const documents = useDocuments(clientRecord ? {} : "skip");
+  const tasks = useTasks(clientRecord ? {} : "skip");
+  const pendingEnvelopeActions = useMyPendingEnvelopeActions();
+  const notificationsQuery = useNotifications();
+  const { heroImageUrl } = usePortalBranding();
+  const [heroMediaUsable, setHeroMediaUsable] = useState(Boolean(heroImageUrl));
+
+  const caseList = cases ?? [];
+  const hearingList = hearings ?? [];
+  const documentList = documents ?? [];
+  const taskList = tasks ?? [];
+  const notifications = notificationsQuery.data ?? [];
 
   const todayIso = localDateIso(new Date());
-
-  const caseIds = new Set(cases.map((item) => item._id));
-  const myHearings = hearings.filter(
+  const caseIds = new Set(caseList.map((item) => item._id));
+  const myHearings = hearingList.filter(
     (item) => caseIds.has(item.caseId) && item.status === "scheduled",
   );
-  const activeCases = cases.filter((item) => item.status === "active");
-  const visibleDocuments = documents.filter((item) => !item.caseId || caseIds.has(item.caseId));
-  const pendingDocs = documents.filter(
-    (item) =>
-      item.caseId &&
-      caseIds.has(item.caseId) &&
-      item.requiresSignature &&
-      item.signatureStatus === "pending",
+  const upcomingHearings = myHearings
+    .filter((item) => item.dateGregorian && item.dateGregorian >= todayIso)
+    .sort((a, b) => String(a.dateGregorian).localeCompare(String(b.dateGregorian)));
+  const nextHearing = upcomingHearings[0] ?? null;
+  const nextHearingMatter = nextHearing
+    ? caseList.find((item) => item._id === nextHearing.caseId)
+    : undefined;
+  const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian);
+
+  const activeCases = caseList.filter((item) => item.status === "active");
+  const visibleDocuments = documentList.filter((item) => !item.caseId || caseIds.has(item.caseId));
+  const pendingSignatureIds = new Set(
+    pendingEnvelopeActions
+      .map((item) => String(item.document?._id ?? item.document?.id ?? item.documentId ?? ""))
+      .filter(Boolean),
   );
-  const checklistOpen = tasks.filter(
+  const pendingDocsCount = pendingEnvelopeActions.length;
+  const checklistOpen = taskList.filter(
     (item) =>
       item.clientVisible &&
       item.caseId &&
@@ -103,161 +217,180 @@ export default function ClientDashboard() {
   );
   const kycNeedsAction =
     clientRecord?.kycStatus === "pending" || clientRecord?.kycStatus === "rejected";
-  const actionRequiredCount = pendingDocs.length + (kycNeedsAction ? 1 : 0) + checklistOpen.length;
+  const actionRequiredCount = pendingDocsCount + (kycNeedsAction ? 1 : 0) + checklistOpen.length;
 
-  // Featured Matter rule (documented): the most recently updated active matter;
-  // if none is active, the most recently updated matter of any status.
-  const featuredMatter = useMemo(() => {
-    if (cases.length === 0) return null;
-    return activeCases[0] ?? cases[0];
-  }, [cases, activeCases]);
-
-  const featuredLawyerName = featuredMatter?.advocate?.name?.trim() || null;
-  const featuredNextHearing = featuredMatter
-    ? myHearings.find((hearing) => hearing.caseId === featuredMatter._id)
+  const homeMatter =
+    (nextHearingMatter && nextHearingMatter.status === "active" ? nextHearingMatter : null) ??
+    activeCases[0] ??
+    caseList[0] ??
+    null;
+  const homeMatterHearing = homeMatter
+    ? (upcomingHearings.find((hearing) => hearing.caseId === homeMatter._id) ??
+      myHearings.find((hearing) => hearing.caseId === homeMatter._id))
     : undefined;
+  const homeMatterUpdate = notifications.find((notification) => {
+    const related = String(
+      notification.caseId ?? notification.relatedId ?? notification.entityId ?? "",
+    );
+    return homeMatter && related === homeMatter._id;
+  });
 
-  // Next appointment: nearest future, non-cancelled (server-scoped to this client).
-  const nextAppointment = useMemo(() => {
-    const upcoming = appointments
-      .filter((item) => {
-        const status = (item as { status?: string }).status;
-        const date = (item as { date?: string }).date ?? "";
-        return status !== "cancelled" && status !== "completed" && date >= todayIso;
-      })
-      .sort((a, b) =>
-        String((a as { date?: string }).date).localeCompare(String((b as { date?: string }).date)),
-      );
-    return upcoming[0] ?? null;
-  }, [appointments, todayIso]);
+  const recentDocuments = [...visibleDocuments]
+    .sort((a, b) =>
+      String(b.updatedAt ?? b.createdAt ?? "").localeCompare(
+        String(a.updatedAt ?? a.createdAt ?? ""),
+      ),
+    )
+    .slice(0, 3);
+  const recentUpdates = [...notifications]
+    .sort((a, b) => {
+      const left = Date.parse(String(b.createdAt ?? b._creationTime ?? 0));
+      const right = Date.parse(String(a.createdAt ?? a._creationTime ?? 0));
+      return left - right;
+    })
+    .slice(0, 4);
 
-  // Upcoming: client-safe hearings + own appointments, chronological.
-  const upcoming = useMemo(() => {
-    const hearingEntries = myHearings
-      .filter((item) => item.dateGregorian && item.dateGregorian >= todayIso)
-      .map((item) => {
-        const matter = cases.find((candidate) => candidate._id === item.caseId);
-        return {
-          id: `hearing-${item._id}`,
-          kind: "Hearing",
-          dateIso: item.dateGregorian,
-          dateBs: item.dateBs,
-          title: matter?.title ?? "Court hearing",
-          subtitle: item.court,
-          time: item.time ?? "",
-        };
-      });
-    const appointmentEntries = appointments
-      .filter((item) => {
-        const status = (item as { status?: string }).status;
-        const date = (item as { date?: string }).date ?? "";
-        return status !== "cancelled" && status !== "completed" && date >= todayIso;
-      })
-      .map((item) => ({
-        id: `appointment-${(item as { _id?: string })._id}`,
-        kind: "Appointment",
-        dateIso: (item as { date?: string }).date ?? "",
-        dateBs: "",
-        title: (item as { practiceArea?: string }).practiceArea || "Client meeting",
-        subtitle: (item as { clientName?: string }).clientName ?? "",
-        time: (item as { timeSlot?: string }).timeSlot ?? "",
-      }));
-    return [...hearingEntries, ...appointmentEntries]
-      .sort((a, b) => a.dateIso.localeCompare(b.dateIso))
-      .slice(0, 4);
-  }, [myHearings, appointments, cases, todayIso]);
+  const firstName = firstNameOf(clientRecord?.fullName);
+  const greeting = firstName ? `${titleCaseGreeting()}, ${firstName}` : titleCaseGreeting();
 
-  const actions: {
-    href: string;
-    label: string;
-    detail: string;
-    icon: typeof PenTool;
-    verb: string;
-  }[] = [];
-  if (pendingDocs.length > 0)
-    actions.push({
-      href: "/client/signatures",
-      label: "Review & sign a document",
-      detail: `${pendingDocs.length} awaiting your signature`,
-      icon: PenTool,
-      verb: "Review",
-    });
-  if (kycNeedsAction)
-    actions.push({
-      href: "/client/kyc",
-      label:
-        kycNeedsAction && clientRecord?.kycStatus === "rejected"
-          ? "Resubmit your KYC"
-          : "Complete your KYC",
-      detail: "Identity verification is required",
-      icon: ShieldCheck,
-      verb: "Open",
-    });
-  if (checklistOpen.length > 0)
-    actions.push({
-      href: "/client/checklist",
-      label: "Your checklist",
-      detail: `${checklistOpen.length} item${checklistOpen.length === 1 ? "" : "s"} to complete`,
-      icon: ClipboardList,
-      verb: "Open",
-    });
-
-  const contactPhone = typeof cmsSettings?.phone === "string" ? cmsSettings.phone : undefined;
-  const contactEmail = typeof cmsSettings?.email === "string" ? cmsSettings.email : undefined;
-
-  const summaryCards = [
+  const kpisReady = Boolean(
+    clientRecord &&
+    cases !== undefined &&
+    hearings !== undefined &&
+    documents !== undefined &&
+    tasks !== undefined,
+  );
+  const kpis = [
     {
-      label: "Active matters",
-      value: String(activeCases.length),
-      helper: "Across your legal areas",
+      label: "Active Matters",
+      value: kpisReady ? String(activeCases.length) : "—",
+      helper: "View Matters →",
+      href: "/client/cases",
       icon: FolderOpen,
       tone: "information" as const,
-      href: "/client/cases",
     },
     {
-      label: "Next appointment",
-      value: nextAppointment
-        ? (() => {
-            const date = new Date(String((nextAppointment as { date?: string }).date));
-            return Number.isNaN(date.getTime())
-              ? "—"
-              : date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-          })()
-        : "—",
-      helper: nextAppointment
-        ? String((nextAppointment as { timeSlot?: string }).timeSlot ?? "Scheduled")
-        : "Nothing booked yet",
+      label: "Upcoming Hearing",
+      value: kpisReady ? String(upcomingHearings.length) : "—",
+      helper: "View Calendar →",
+      href: "/client/hearings",
       icon: CalendarDays,
-      tone: "warning" as const,
-      href: "/client/booking",
+      tone: "success" as const,
     },
     {
-      label: "Documents",
-      value: String(visibleDocuments.length),
-      helper: "Uploaded and shared with you",
+      label: "Documents Pending",
+      value: kpisReady ? String(pendingDocsCount) : "—",
+      helper: "View Documents →",
+      href: pendingDocsCount > 0 ? "/client/signatures" : "/client/documents",
       icon: FileText,
-      tone: "information" as const,
-      href: "/client/documents",
+      tone: "warning" as const,
     },
     {
-      label: "Action required",
-      value: String(actionRequiredCount),
-      helper: actionRequiredCount > 0 ? "Items waiting for you" : "You're all caught up",
-      icon: ShieldCheck,
+      label: "Actions Required",
+      value: kpisReady ? String(actionRequiredCount) : "—",
+      helper: "View Tasks →",
+      href: "/client/checklist",
+      icon: CheckCircle2,
       tone: actionRequiredCount > 0 ? ("danger" as const) : ("success" as const),
-      href: undefined,
     },
   ];
 
-  if (clientRecord === undefined) {
+  const quickActions = [
+    {
+      href: "/client/documents",
+      label: "Upload a Document",
+      helper: "Share files with your legal team",
+      icon: Upload,
+      tone: "information" as const,
+    },
+    {
+      href: "/client/booking",
+      label: "Request an Appointment",
+      helper: "Schedule a consultation",
+      icon: CalendarDays,
+      tone: "warning" as const,
+    },
+    {
+      href: "/client/messages",
+      label: "Send a Message",
+      helper: "Contact your lawyer or team",
+      icon: MessageSquare,
+      tone: "success" as const,
+    },
+  ];
+
+  const homeLoading =
+    clientRecord === undefined ||
+    (clientRecord !== null &&
+      (cases === undefined ||
+        hearings === undefined ||
+        documents === undefined ||
+        tasks === undefined ||
+        notificationsQuery.isLoading));
+
+  const kpiRow = (
+    <section aria-label="Home summary" className="client-home-kpis">
+      {kpis.map((card) => (
+        <Link
+          key={card.label}
+          href={card.href}
+          aria-label={`${card.label}: ${card.value}. ${card.helper}`}
+          className="client-home-kpi-link block min-w-0 rounded-[var(--dashboard-radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+        >
+          <MetricCard
+            density="compact"
+            label={card.label}
+            value={card.value}
+            icon={card.icon}
+            tone={card.tone}
+            helperText={card.helper}
+            state={kpisReady ? "default" : "loading"}
+          />
+        </Link>
+      ))}
+    </section>
+  );
+
+  const heroPhoto =
+    heroImageUrl && heroMediaUsable ? (
+      <figure className="client-home-hero-photo" aria-hidden>
+        <img
+          src={heroImageUrl}
+          alt=""
+          onLoad={(event) => {
+            if (event.currentTarget.naturalWidth <= 1 || event.currentTarget.naturalHeight <= 1) {
+              setHeroMediaUsable(false);
+            }
+          }}
+          onError={() => setHeroMediaUsable(false)}
+        />
+      </figure>
+    ) : null;
+
+  const shellProps = {
+    portal: "client" as const,
+    decorated: true,
+    className: "client-home",
+    heroClassName: "client-home-hero",
+    eyebrow: "Client Portal",
+    icon: Scale,
+    actions: heroPhoto,
+    heroChildren: kpiRow,
+  };
+
+  if (homeLoading) {
     return (
       <PortalPageShell
-        portal="client"
-        loading
-        loadingLabel="Preparing your secure client portal…"
+        {...shellProps}
         title="Client Portal"
+        description="Here's what's happening with your legal matters."
       >
-        <div />
+        <ClientStatePanel
+          state="loading"
+          title="Preparing your portal"
+          description="Your matters and updates will appear here in a moment."
+          icon={Scale}
+        />
       </PortalPageShell>
     );
   }
@@ -265,309 +398,343 @@ export default function ClientDashboard() {
   if (clientRecord === null) {
     return (
       <PortalPageShell
-        portal="client"
-        decorated
-        showTodayDate
-        eyebrow="Client access"
-        title="Welcome to LexNepal"
+        {...shellProps}
+        title="Welcome"
         description="Your client portal account is active."
-        icon={ShieldCheck}
       >
-        <EmptyState
+        <ClientStatePanel
+          state="empty"
           title="No client profile linked"
           description="No client profile is linked to this account yet. Please contact the firm to complete setup."
           icon={ShieldCheck}
-          tone="information"
         />
       </PortalPageShell>
     );
   }
 
+  const advocateName = homeMatter?.advocate?.name || undefined;
+  const lastUpdateTitle = homeMatterUpdate ? conciseUpdateTitle(homeMatterUpdate) : undefined;
+  const lastUpdateWhen = homeMatterUpdate
+    ? relativeTime(homeMatterUpdate.createdAt ?? homeMatterUpdate._creationTime ?? null)
+    : undefined;
+
   return (
     <PortalPageShell
-      portal="client"
-      decorated
-      showTodayDate
-      heroClassName="p-5 sm:p-6 [&_h1]:text-3xl [&_h1]:xl:text-4xl"
-      eyebrow="Your legal portal"
-      title={`Welcome back${clientRecord.fullName ? `, ${clientRecord.fullName.split(" ")[0]}` : ""}`}
-      description="Here's the latest on your legal matters."
-      icon={Sparkles}
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <DashboardButton asChild size="sm">
-            <Link href="/client/messages">
-              Message your team <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </DashboardButton>
-          <DashboardButton asChild size="sm" variant="secondary">
-            <Link href="/client/booking">Book appointment</Link>
-          </DashboardButton>
-        </div>
-      }
-      heroChildren={
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge tone="success" icon={ShieldCheck}>
-            Secure client access
-          </StatusBadge>
-        </div>
-      }
+      {...shellProps}
+      title={greeting}
+      description="Here's what's happening with your legal matters."
     >
-      {featuredMatter ? (
-        <DashboardSection
-          density="default"
-          title="Featured Matter"
-          icon={FolderOpen}
-          actions={
-            <DashboardButton asChild size="sm">
-              <Link href={`/client/cases/${featuredMatter._id}`}>
-                View Matter <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          <div className="flex flex-col gap-4">
-            <div>
-              <h3 className="font-serif text-2xl font-bold tracking-tight text-foreground">
-                {featuredMatter.title}
-              </h3>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                  {featuredMatter.caseNumber}
-                </span>
-                <span aria-hidden className="text-xs text-muted-foreground">
-                  ·
-                </span>
-                <DashboardStatusLabel status={featuredMatter.status} className="text-xs" />
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Current status:{" "}
-                <span className="font-medium text-foreground">
-                  {clientStatusLanguage(featuredMatter.status)}
-                </span>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-dashboard-border pt-3 text-xs text-muted-foreground">
-              {featuredMatter.practiceArea ? (
-                <span>Practice area: {featuredMatter.practiceArea}</span>
-              ) : null}
-              {featuredLawyerName ? <span>Your lawyer: {featuredLawyerName}</span> : null}
-              {featuredNextHearing ? (
-                <span className="text-dashboard-information-foreground">
-                  Next hearing: {featuredNextHearing.dateBs || featuredNextHearing.dateGregorian}
-                  {featuredNextHearing.court ? ` · ${featuredNextHearing.court}` : ""}
-                </span>
-              ) : null}
-              <StatusBadge tone={getDashboardStatusTone(featuredMatter.status)} className="ml-auto">
-                {featuredMatter.status.replaceAll("_", " ")}
-              </StatusBadge>
-            </div>
-          </div>
-        </DashboardSection>
-      ) : (
-        <DashboardSection density="default" title="Featured Matter" icon={FolderOpen}>
-          <EmptyState
-            title="No matters yet"
-            description="When the firm opens a matter for you, its progress will appear here."
-            icon={FolderOpen}
-            tone="information"
-          />
-        </DashboardSection>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map((card) => (
-          <MetricCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            icon={card.icon}
-            tone={card.tone}
-            helperText={card.helper}
-          />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <DashboardSection
-          title="What you need to do"
-          description="Items that need your attention"
-          icon={ClipboardList}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/client/checklist">
-                View all tasks <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {actions.length === 0 ? (
-            <EmptyState
-              title="You're all caught up"
-              description="Nothing needs your attention right now."
-              icon={ClipboardList}
-              tone="success"
-            />
-          ) : (
-            <div className="space-y-3">
-              {actions.map((action) => (
-                <DashboardListRow key={`${action.href}-${action.label}`}>
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashboard-primary/25 bg-dashboard-primary-soft text-dashboard-primary">
-                    <action.icon className="size-4" aria-hidden />
+      <div className="client-home-body">
+        <div className="client-home-left">
+          <DashboardSection
+            className="client-home-matters"
+            density="compact"
+            title="Your Matters"
+            actions={
+              <DashboardButton asChild variant="ghost" size="sm">
+                <Link href="/client/cases">
+                  View All <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              </DashboardButton>
+            }
+          >
+            {homeMatter ? (
+              <article className="client-home-matter">
+                <div className="client-home-matter-top">
+                  <span className="client-home-matter-icon">
+                    <Scale className="size-4" aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{action.label}</p>
-                    <p className="truncate text-xs text-muted-foreground">{action.detail}</p>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <h3 className="client-home-matter-title">{homeMatter.title}</h3>
+                      <DashboardStatusLabel status={homeMatter.status} />
+                    </div>
+                    <p className="client-home-matter-meta">
+                      {[
+                        homeMatter.practiceArea || undefined,
+                        homeMatter.caseNumber ? `Case No. ${homeMatter.caseNumber}` : undefined,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
                   </div>
-                  <DashboardButton asChild size="sm" variant="outline">
-                    <Link href={action.href}>{action.verb}</Link>
+                </div>
+                <dl className="client-home-matter-facts">
+                  <div className="client-home-matter-fact">
+                    <span className="client-home-matter-avatar" aria-hidden>
+                      {initialsOf(advocateName)}
+                    </span>
+                    <div className="min-w-0">
+                      <dt>Lead Advocate</dt>
+                      <dd>{advocateName || "Not assigned"}</dd>
+                    </div>
+                  </div>
+                  <div className="client-home-matter-fact">
+                    <span className="client-home-matter-fact-icon" aria-hidden>
+                      <CalendarDays className="size-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <dt>Next Hearing</dt>
+                      <dd>
+                        {homeMatterHearing?.dateGregorian ? (
+                          <DualDateDisplay
+                            isoDate={`${homeMatterHearing.dateGregorian.slice(0, 10)}T00:00:00`}
+                            alwaysDual
+                          />
+                        ) : (
+                          "None scheduled"
+                        )}
+                      </dd>
+                    </div>
+                  </div>
+                  <div className="client-home-matter-fact">
+                    <span className="client-home-matter-fact-icon" aria-hidden>
+                      <FileText className="size-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <dt>Last Update</dt>
+                      <dd>
+                        {lastUpdateTitle ? (
+                          <>
+                            {lastUpdateTitle}
+                            {lastUpdateWhen ? (
+                              <span className="mt-0.5 block font-medium text-muted-foreground">
+                                {lastUpdateWhen}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : (
+                          "No recent update"
+                        )}
+                      </dd>
+                    </div>
+                  </div>
+                </dl>
+                <div className="client-home-matter-actions">
+                  <DashboardButton asChild size="sm">
+                    <Link href={`/client/cases/${homeMatter._id}`}>
+                      View Matter Details <ArrowRight className="size-3.5" aria-hidden />
+                    </Link>
                   </DashboardButton>
-                </DashboardListRow>
+                  <DashboardButton asChild size="sm" variant="secondary">
+                    <Link href="/client/messages">Message Your Legal Team</Link>
+                  </DashboardButton>
+                </div>
+              </article>
+            ) : (
+              <ClientStatePanel
+                state="empty"
+                title="No matters yet"
+                description="When the firm opens a matter for you, it will appear here."
+                icon={FolderOpen}
+              />
+            )}
+          </DashboardSection>
+
+          <div className="client-home-lower">
+            <DashboardSection
+              className="client-home-updates"
+              density="compact"
+              title="Recent Updates"
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/client/notifications">
+                    View All <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {recentUpdates.length === 0 ? (
+                <ClientStatePanel
+                  state="empty"
+                  title="No recent updates"
+                  description="Updates about your matters will appear here."
+                  icon={FileText}
+                />
+              ) : (
+                <div>
+                  {recentUpdates.map((notification, index) => (
+                    <ClientTimelineItem
+                      key={notification._id ?? notification.id ?? `update-${index}`}
+                      title={conciseUpdateTitle(notification)}
+                      date={relativeTime(
+                        notification.createdAt ?? notification._creationTime ?? null,
+                      )}
+                      category={
+                        notificationCategory(notification.type) ?? conciseUpdateDetail(notification)
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
+
+            <DashboardSection
+              className="client-home-documents"
+              density="compact"
+              title="Your Documents"
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/client/documents">
+                    View All <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {recentDocuments.length === 0 ? (
+                <ClientStatePanel
+                  state="empty"
+                  title="No documents yet"
+                  description="Documents shared with you will appear here."
+                  icon={FileText}
+                />
+              ) : (
+                <div>
+                  {recentDocuments.map((doc) => {
+                    const pendingSignature = pendingSignatureIds.has(doc._id);
+                    const kind = fileKind(doc.type, doc.mimeType);
+                    return (
+                      <ClientDocumentItem
+                        key={doc._id}
+                        data-file-kind={kind}
+                        name={doc.title}
+                        fileType={kind === "file" ? undefined : kind.toUpperCase()}
+                        date={`Added ${relativeTime(doc.updatedAt ?? doc.createdAt ?? null)}`}
+                        status={pendingSignature ? "Awaiting signature" : undefined}
+                        statusTone={pendingSignature ? "warning" : "neutral"}
+                        icon={<FileText className="size-4" aria-hidden />}
+                        action={
+                          <DashboardButton asChild size="sm" variant="ghost">
+                            <Link href="/client/documents">View</Link>
+                          </DashboardButton>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </DashboardSection>
+          </div>
+        </div>
+
+        <div className="client-home-right">
+          <DashboardSection
+            className="client-home-hearing"
+            density="compact"
+            title="Upcoming Hearing"
+            actions={
+              <DashboardButton asChild variant="ghost" size="sm">
+                <Link href="/client/hearings">
+                  View All <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              </DashboardButton>
+            }
+          >
+            {nextHearing ? (
+              <article className="client-home-hearing-card">
+                <div className="client-home-hearing-date">
+                  {nextHearingParts ? (
+                    <>
+                      <span className="client-home-hearing-day">{nextHearingParts.day}</span>
+                      <span className="client-home-hearing-month">{nextHearingParts.month}</span>
+                      <span className="client-home-hearing-year">{nextHearingParts.year}</span>
+                    </>
+                  ) : (
+                    (formatHearingDate(nextHearing.dateGregorian) ?? nextHearing.dateGregorian)
+                  )}
+                </div>
+                <div className="client-home-hearing-lines">
+                  {nextHearing.court ? (
+                    <p className="client-home-hearing-line">
+                      <Building2 aria-hidden />
+                      <span>{nextHearing.court}</span>
+                    </p>
+                  ) : null}
+                  {nextHearing.time ? (
+                    <p className="client-home-hearing-line">
+                      <Clock aria-hidden />
+                      <span>{formatHearingTime(nextHearing.time) ?? nextHearing.time}</span>
+                    </p>
+                  ) : null}
+                  {nextHearing.purpose ? (
+                    <p className="client-home-hearing-line">
+                      <MapPin aria-hidden />
+                      <span>{nextHearing.purpose}</span>
+                    </p>
+                  ) : null}
+                  {nextHearingMatter?.title ? (
+                    <p className="client-home-hearing-line">
+                      <FolderOpen aria-hidden />
+                      <span>{nextHearingMatter.title}</span>
+                    </p>
+                  ) : null}
+                  <div>
+                    <DashboardButton
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        downloadHearingIcs({
+                          id: nextHearing._id,
+                          title: nextHearingMatter?.title ?? "Hearing",
+                          court: nextHearing.court,
+                          purpose: nextHearing.purpose,
+                          dateGregorian: nextHearing.dateGregorian,
+                          time: nextHearing.time,
+                        })
+                      }
+                    >
+                      Add to Calendar
+                    </DashboardButton>
+                  </div>
+                </div>
+              </article>
+            ) : (
+              <ClientStatePanel
+                state="empty"
+                title="No upcoming hearing"
+                description="Scheduled court appearances for your matters will appear here."
+                icon={Scale}
+              />
+            )}
+          </DashboardSection>
+
+          <DashboardSection className="client-home-actions" density="compact" title="Quick Actions">
+            <div className="client-home-action-list">
+              {quickActions.map((action) => (
+                <Link key={action.href} href={action.href} className="client-home-action-row">
+                  <span className="client-home-action-icon" data-tone={action.tone}>
+                    <action.icon className="size-3.5" aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="client-home-action-label">{action.label}</span>
+                    <span className="client-home-action-helper">{action.helper}</span>
+                  </span>
+                </Link>
               ))}
             </div>
-          )}
-        </DashboardSection>
+          </DashboardSection>
 
-        <DashboardSection
-          title="Upcoming"
-          description="Your hearings and appointments"
-          icon={CalendarDays}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/client/hearings">
-                View calendar <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {upcoming.length === 0 ? (
-            <EmptyState
-              title="Nothing scheduled"
-              description="Your hearings and appointments will appear here."
-              icon={CalendarDays}
-              tone="information"
-            />
-          ) : (
-            <div className="space-y-3">
-              {upcoming.map((entry) => {
-                const days = daysUntil(entry.dateIso);
-                const date = new Date(entry.dateIso);
-                const dateParts = entry.dateBs.split(" ");
-                return (
-                  <DashboardListRow key={entry.id} className="gap-3">
-                    <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-accent/35 bg-dashboard-accent-soft text-dashboard-accent-foreground">
-                      <span className="text-xs font-bold">
-                        {entry.dateBs ? dateParts[0] : date.getDate()}
-                      </span>
-                      <span className="text-[10px]">
-                        {entry.dateBs
-                          ? dateParts[1]
-                          : date.toLocaleDateString("en-GB", { month: "short" })}
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          aria-hidden
-                          className={`size-2 shrink-0 rounded-full ${
-                            entry.kind === "Hearing"
-                              ? "bg-dashboard-danger"
-                              : "bg-dashboard-information"
-                          }`}
-                        />
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {entry.title}
-                        </p>
-                      </div>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {entry.kind}
-                        {entry.time ? ` · ${entry.time}` : ""}
-                        {entry.subtitle ? ` · ${entry.subtitle}` : ""}
-                      </p>
-                    </div>
-                    {days !== null ? (
-                      <StatusBadge tone={days <= 1 ? "warning" : "information"}>
-                        {relativeDaysLabel(days)}
-                      </StatusBadge>
-                    ) : null}
-                  </DashboardListRow>
-                );
-              })}
+          <ClientSoftPanel
+            className="client-home-help"
+            data-slot="client-home-help"
+            tone="information"
+          >
+            <div className="client-home-help-copy">
+              <h2 className="font-sans text-base font-semibold text-foreground">
+                We&apos;re Here for You
+              </h2>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Have questions about your matter? Reach out to your legal team anytime.
+              </p>
+              <DashboardButton asChild size="sm" className="mt-3">
+                <Link href="/client/messages">
+                  Send a Message <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              </DashboardButton>
             </div>
-          )}
-        </DashboardSection>
-
-        <DashboardSection
-          title="Recent Updates"
-          description="News about your matters"
-          icon={FileText}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/client/notifications">
-                View All <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
-        >
-          {notifications.length === 0 ? (
-            <EmptyState
-              title="No new updates right now"
-              description="Updates about your matters will appear here."
-              icon={FileText}
-              tone="information"
-            />
-          ) : (
-            <div className="space-y-3">
-              {notifications.slice(0, 5).map((notification, index) => {
-                const key = notification._id ?? notification.id ?? `update-${index}`;
-                const body = notification.body ?? "";
-                const created = notification._creationTime ?? notification.createdAt;
-                return (
-                  <div
-                    key={key}
-                    className="flex items-start gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
-                  >
-                    <span
-                      aria-hidden
-                      className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                        notification.isRead ? "bg-dashboard-neutral" : "bg-dashboard-primary"
-                      }`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm leading-snug text-foreground">{body}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {relativeTime(created ?? null)}
-                      </p>
-                    </div>
-                    {!notification.isRead ? (
-                      <StatusBadge tone="information" className="shrink-0">
-                        New
-                      </StatusBadge>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </DashboardSection>
-      </div>
-
-      <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashboard-border bg-dashboard-panel p-5 shadow-sm sm:flex-row sm:items-center">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-dashboard-primary/25 bg-dashboard-primary-soft text-dashboard-primary">
-          <CalendarClock className="size-5" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-serif text-base font-semibold text-foreground">Need Help?</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Our team is here to support you at every step.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {contactPhone ? <StatusBadge tone="neutral">Call us: {contactPhone}</StatusBadge> : null}
-          {contactEmail ? <StatusBadge tone="neutral">Email: {contactEmail}</StatusBadge> : null}
-          <DashboardButton asChild size="sm">
-            <Link href="/client/messages">Message your team</Link>
-          </DashboardButton>
+            <Scale className="client-home-help-mark" aria-hidden />
+          </ClientSoftPanel>
         </div>
       </div>
     </PortalPageShell>

@@ -121,11 +121,26 @@ export function PortalTopbar({
         isLight
           ? "border-dashboard-border bg-dashboard-panel/90 text-foreground shadow-sm backdrop-blur-md"
           : "border-dashboard-border bg-dashboard-canvas-elevated/90 text-foreground shadow-sm backdrop-blur-md",
+        isClient && "md:pr-5 md:pl-8",
         className,
       )}
     >
       {isClient ? (
-        <div className="min-w-0 flex-1" />
+        showCommandSearch ? (
+          <div className="hidden min-w-0 max-w-[27.8125rem] flex-1 sm:block">
+            <button
+              type="button"
+              onClick={handleSearch}
+              aria-label="Search your matters, documents or messages"
+              className="group flex h-[var(--dashboard-control-height)] w-full items-center gap-2 rounded-[var(--dashboard-radius-pill)] border border-dashboard-border/80 bg-dashboard-neutral-soft/80 px-3.5 text-xs text-muted-foreground shadow-sm transition-all hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+            >
+              <Search className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-dashboard-primary" />
+              <span className="truncate">Search your matters, documents or messages…</span>
+            </button>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1" />
+        )
       ) : (
         <div className="flex min-w-0 items-center gap-2 pr-4">
           <nav
@@ -171,27 +186,19 @@ export function PortalTopbar({
         </div>
       )}
 
-      {showCommandSearch ? (
-        <div className={cn("mx-2 hidden flex-1 sm:block", isClient ? "max-w-xl" : "max-w-md")}>
+      {isClient ? (
+        <div className="min-w-0 flex-1" aria-hidden />
+      ) : showCommandSearch ? (
+        <div className="mx-2 hidden max-w-md flex-1 sm:block">
           <button
             type="button"
             onClick={handleSearch}
-            aria-label={isClient ? "Search your matters, documents or messages" : "Open search"}
-            className={cn(
-              "group flex w-full items-center justify-between gap-3 border px-3.5 text-xs shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
-              "border-dashboard-border/80 bg-dashboard-neutral-soft/80 text-muted-foreground hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover hover:text-foreground",
-              isClient
-                ? "h-[var(--dashboard-control-height)] rounded-[var(--dashboard-radius-pill)]"
-                : "rounded-xl py-1.5",
-            )}
+            aria-label="Open search"
+            className="group flex w-full items-center justify-between gap-3 rounded-xl border border-dashboard-border/80 bg-dashboard-neutral-soft/80 px-3.5 py-1.5 text-xs text-muted-foreground shadow-sm transition-all hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
           >
             <div className="flex items-center gap-2 truncate">
               <Search className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-dashboard-primary" />
-              <span className="truncate">
-                {isClient
-                  ? "Search your matters, documents or messages…"
-                  : "Search cases, clients, documents, tasks…"}
-              </span>
+              <span className="truncate">Search cases, clients, documents, tasks…</span>
             </div>
             <kbd className="hidden items-center gap-0.5 rounded border border-dashboard-border bg-dashboard-panel px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground shadow-2xs md:inline-flex">
               <Command className="size-2.5" /> K

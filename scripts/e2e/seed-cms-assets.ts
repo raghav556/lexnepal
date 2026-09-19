@@ -1,5 +1,4 @@
-import { sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "../../src/server/db/client";
 import { cmsAssetUploadIntents, users } from "../../db/schema";
@@ -12,7 +11,25 @@ export const SEED_CMS_ASSET_PNG = Buffer.from(
   "base64",
 );
 
-export async function seedPromotedCmsAsset(firmId: string, purpose: CmsAssetPurpose) {
+export type SeedPromotedCmsAssetOptions = {
+  bytes?: Buffer;
+  mimeType?: string;
+  fileName?: string;
+  /** Stable key so reruns update the same promoted CMS asset instead of inserting duplicates. */
+  seedKey?: string;
+};
+
+function seededUuid(seed: string): string {
+  const hex = createHash("sha256").update(seed).digest("hex");
+  const variant = ((Number.parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${variant}${hex.slice(18, 20)}-${hex.slice(20, 32)}`;
+}
+
+export async function seedPromotedCmsAsset(
+  firmId: string,
+  purpose: CmsAssetPurpose,
+  options: SeedPromotedCmsAssetOptions = {},
+) {
   const db = getDatabase();
   const [actor] = await db
     .select({ id: users.id })
@@ -21,14 +38,29 @@ export async function seedPromotedCmsAsset(firmId: string, purpose: CmsAssetPurp
     .limit(1);
   if (!actor) throw new Error(`No users found for firm ${firmId}`);
 
-  const id = randomUUID();
-  const protectedKey = `protected/${firmId}/cms/${id}/seed.png`;
-  await getDocumentStorageRuntime().storage.putObject(
-    protectedKey,
-    SEED_CMS_ASSET_PNG,
-    "image/png",
-    { seed: "cms-smoke" },
-  );
+  const bytes = options.bytes ?? SEED_CMS_ASSET_PNG;
+  const mimeType = options.mimeType ?? "image/png";
+  const fileName = options.fileName ?? `${purpose}.png`;
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const quarantineKey = options.seedKey
+    ? `seed/${firmId}/cms/${purpose}/${options.seedKey}`
+    : `seed/${firmId}/cms/${randomUUID()}`;
+
+  const [existing] = options.seedKey
+    ? await db
+        .select({ id: cmsAssetUploadIntents.id, protectedKey: cmsAssetUploadIntents.protectedKey })
+        .from(cmsAssetUploadIntents)
+        .where(eq(cmsAssetUploadIntents.quarantineKey, quarantineKey))
+        .limit(1)
+    : [];
+
+  const id = existing?.id ?? (options.seedKey ? seededUuid(quarantineKey) : randomUUID());
+  const protectedKey = existing?.protectedKey ?? `protected/${firmId}/cms/${id}/${fileName}`;
+
+  await getDocumentStorageRuntime().storage.putObject(protectedKey, bytes, mimeType, {
+    seed: options.seedKey ?? "cms-smoke",
+    sha256,
+  });
 
   await db
     .insert(cmsAssetUploadIntents)
@@ -37,17 +69,30 @@ export async function seedPromotedCmsAsset(firmId: string, purpose: CmsAssetPurp
       firmId,
       createdBy: actor.id,
       purpose,
-      originalFileName: `${purpose}.png`,
-      declaredMimeType: "image/png",
-      declaredSizeBytes: SEED_CMS_ASSET_PNG.length,
-      quarantineKey: `seed/${firmId}/cms/${id}`,
+      originalFileName: fileName,
+      declaredMimeType: mimeType,
+      declaredSizeBytes: bytes.length,
+      quarantineKey,
       protectedKey,
       status: "promoted",
       expiresAt: new Date(Date.now() + 86_400_000),
       completedAt: new Date(),
-      actualSha256: "seed",
+      actualSha256: sha256,
     })
-    .onDuplicateKeyUpdate({ set: { id: sql.raw("id") } });
+    .onDuplicateKeyUpdate({
+      set: {
+        purpose,
+        originalFileName: fileName,
+        declaredMimeType: mimeType,
+        declaredSizeBytes: bytes.length,
+        protectedKey,
+        status: "promoted",
+        completedAt: new Date(),
+        actualSha256: sha256,
+        deletedAt: null,
+        updatedAt: new Date(),
+      },
+    });
 
   return publicCmsAssetUrl(id);
 }

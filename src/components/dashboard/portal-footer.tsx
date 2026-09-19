@@ -22,11 +22,11 @@ export function PortalFooter({ portal, className }: PortalFooterProps) {
     return (
       <footer
         className={cn(
-          "w-full shrink-0 border-t border-dashboard-border bg-dashboard-panel/85 px-4 py-2.5 text-xs text-muted-foreground backdrop-blur-md transition-colors select-none print:hidden md:px-6",
+          "w-full shrink-0 border-t border-dashboard-border bg-dashboard-panel/85 px-4 py-1 text-xs text-muted-foreground backdrop-blur-md transition-colors select-none print:hidden md:px-6",
           className,
         )}
       >
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-1 sm:flex-row">
           <p className="text-[11px] text-muted-foreground">
             © {year} {resolvedFirmName}. All rights reserved.
           </p>

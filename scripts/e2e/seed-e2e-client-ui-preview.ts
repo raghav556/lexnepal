@@ -8,6 +8,9 @@
  *   npm run e2e:seed:client-ui
  */
 import { createHash, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { hashPassword } from "better-auth/crypto";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { AnyMySqlColumn, MySqlTable } from "drizzle-orm/mysql-core";
@@ -24,7 +27,9 @@ import {
   cases,
   clientKycFiles,
   clients,
+  cmsSettings,
   documents,
+  firms,
   hearings,
   messageReads,
   messages,
@@ -36,6 +41,7 @@ import {
 } from "../../db/schema";
 import { E2E_USERS, UI_PREVIEW_CLIENT } from "./fixtures";
 import { seedE2eUsers } from "./seed-e2e-users";
+import { seedPromotedCmsAsset } from "./seed-cms-assets";
 import {
   UI_PREVIEW_ANCHOR_DATE,
   UI_PREVIEW_CASES,
@@ -62,7 +68,13 @@ type PreviewSummary = {
   envelopeIds: Record<string, string>;
   notificationIds: Record<string, string>;
   counts: typeof UI_PREVIEW_EXPECTED_COUNTS & { messageReads: number };
+  heroImageUrl: string;
 };
+
+const CLIENT_HOME_HERO_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../doc/ui-reference/client/assets/client-home-hero.jpg",
+);
 
 function isoDate(deltaDays: number): string {
   return addCalendarDaysIso(UI_PREVIEW_ANCHOR_DATE, deltaDays);
@@ -189,9 +201,34 @@ async function upsertByLegacy<T extends { id: string }>(
   return created!.id;
 }
 
+async function publicBrandingFirmId() {
+  const slug = process.env.PUBLIC_FIRM_SLUG?.trim() || "srimar-law";
+  const db = getDatabase();
+  const [firm] = await db.select({ id: firms.id }).from(firms).where(eq(firms.slug, slug)).limit(1);
+  if (!firm) {
+    throw new Error(`PUBLIC_FIRM_SLUG=${slug} does not identify a local firm`);
+  }
+  return firm.id;
+}
+
 export async function seedE2eClientUiPreview(): Promise<PreviewSummary> {
   const { firmId } = await seedE2eUsers();
   const db = getDatabase();
+  const brandingFirmId = await publicBrandingFirmId();
+
+  const heroBytes = readFileSync(CLIENT_HOME_HERO_PATH);
+  const heroImageUrl = await seedPromotedCmsAsset(brandingFirmId, "hero_image", {
+    bytes: heroBytes,
+    mimeType: "image/jpeg",
+    fileName: "client-home-hero.jpg",
+    seedKey: "cui-05-client-home-hero",
+  });
+  await db
+    .insert(cmsSettings)
+    .values({ firmId: brandingFirmId, key: "heroImageUrl", value: heroImageUrl })
+    .onDuplicateKeyUpdate({
+      set: { value: heroImageUrl, updatedAt: UI_PREVIEW_NOW, deletedAt: null },
+    });
 
   const [staffUser] = await db
     .select({ id: users.id })
@@ -902,6 +939,7 @@ export async function seedE2eClientUiPreview(): Promise<PreviewSummary> {
     envelopeIds: { pending: envelopePendingId, completed: envelopeCompletedId },
     notificationIds,
     counts,
+    heroImageUrl,
   };
 }
 

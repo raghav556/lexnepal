@@ -103,7 +103,7 @@ const mobileItemClassName = (active: boolean) =>
 function ClientSupportModule() {
   const { t } = useI18n();
   return (
-    <div className="border-t border-dashboard-sidebar-border px-3 py-4">
+    <div className="mt-auto min-h-[13.75rem] border-t border-dashboard-sidebar-border px-3 pb-5 pt-4">
       <div className="rounded-xl border border-dashboard-sidebar-border bg-dashboard-sidebar-hover px-3 py-3">
         <div className="flex items-start gap-2.5">
           <Headphones className="mt-0.5 size-4 shrink-0 text-dashboard-sidebar-brand" aria-hidden />
@@ -122,10 +122,10 @@ function ClientSupportModule() {
         >
           {t("client.support_action")}
         </Link>
-        <p className="mt-3 text-center text-[11px] italic text-dashboard-sidebar-brand">
-          {t("client.support_quote")}
-        </p>
       </div>
+      <p className="mt-3 text-center text-[11px] italic text-dashboard-sidebar-brand">
+        {t("client.support_quote")}
+      </p>
     </div>
   );
 }
@@ -149,7 +149,7 @@ function ClientDesktopSidebar() {
           subtitle="Client Portal"
           logoFit="cover"
           className="flex-1 gap-2.5"
-          logoClassName="size-9 max-w-12 rounded-xl"
+          logoClassName="size-10 max-w-[2.75rem] rounded-xl"
           fallbackClassName="size-9 bg-[linear-gradient(135deg,var(--dashboard-sidebar-brand),var(--dashboard-primary))]"
           fallbackIconClassName="size-[18px] text-dashboard-sidebar-foreground"
           nameClassName="text-sm tracking-wide text-dashboard-sidebar-foreground"
