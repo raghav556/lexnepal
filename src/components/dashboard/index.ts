@@ -1,4 +1,5 @@
 export * from "./dashboard-primitives";
+export * from "./client-primitives";
 export * from "./portal-page-shell";
 export * from "./dashboard-status-label";
 export * from "./portal-branding-context";

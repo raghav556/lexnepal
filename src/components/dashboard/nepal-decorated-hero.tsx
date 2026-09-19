@@ -26,6 +26,7 @@ export function NepalDecoratedHero({
       {heroImageUrl ? (
         <div
           aria-hidden
+          data-slot="dashboard-hero-photo"
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.38]"
           style={{
             backgroundImage: `linear-gradient(120deg, color-mix(in srgb, var(--nepal-navy) 88%, transparent), color-mix(in srgb, var(--nepal-crimson) 55%, transparent)), url(${heroImageUrl})`,

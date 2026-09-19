@@ -779,6 +779,325 @@
   }
 }
 
+/*
+ * CUI-04 Client primitive vocabulary.
+ * Scoped to `.dashboard-theme.dashboard-client` so Staff/Admin default
+ * primitive classes stay unchanged. Tokens come from CUI-02.
+ */
+.dashboard-theme.dashboard-client [data-slot="portal-page-shell"] {
+  font-family: var(--dashboard-font-sans);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] {
+  border-radius: var(--dashboard-radius-card);
+  border-color: var(--dashboard-hero-border);
+  background-color: var(--dashboard-panel);
+  background-image: none;
+  box-shadow: var(--dashboard-shadow-card);
+  color: var(--dashboard-hero-foreground);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero-ornament"],
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero-photo"] {
+  display: none;
+}
+
+.dashboard-theme.dashboard-client .dashboard-hero-nepal::before {
+  display: none;
+}
+
+.dashboard-theme.dashboard-client .dashboard-hero-nepal::after {
+  opacity: var(--dashboard-hero-pattern-opacity);
+  mix-blend-mode: normal;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] h1 {
+  font-family: var(--dashboard-font-display);
+  color: var(--dashboard-hero-foreground);
+  font-size: var(--dashboard-text-title-size);
+  line-height: 1.2;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] p,
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] .text-white,
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] .text-white\/80,
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] .text-white\/70,
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero"] .text-white\/60 {
+  color: var(--dashboard-hero-muted);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-hero-icon"] {
+  border-radius: var(--dashboard-radius-control);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="metric-card"] {
+  border-radius: var(--dashboard-radius-card);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-panel);
+  box-shadow: var(--dashboard-shadow-card);
+  transform: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="metric-card"]:hover,
+.dashboard-theme.dashboard-client [data-slot="metric-card"]:focus-within {
+  transform: none;
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="metric-card-icon"],
+.dashboard-theme.dashboard-client [data-slot="metric-card"]:hover [data-slot="metric-card-icon"] {
+  transform: none;
+  box-shadow: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="metric-card-value"] {
+  font-family: var(--dashboard-font-sans);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.dashboard-theme.dashboard-client [data-slot="metric-card-label"] {
+  font-family: var(--dashboard-font-sans);
+  font-size: var(--dashboard-text-meta-size);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-section"] {
+  border-radius: var(--dashboard-radius-card);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-panel);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-section"]:hover {
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-section-header"] {
+  background: transparent;
+  border-bottom-color: var(--dashboard-border);
+  border-top-left-radius: var(--dashboard-radius-card);
+  border-top-right-radius: var(--dashboard-radius-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-section-title"] {
+  font-family: var(--dashboard-font-sans);
+  font-size: var(--dashboard-text-section-size);
+  font-weight: 600;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-section-description"] {
+  font-family: var(--dashboard-font-sans);
+  font-size: 0.8125rem;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"] {
+  border-radius: var(--dashboard-radius-pill);
+  box-shadow: none;
+  font-family: var(--dashboard-font-sans);
+  font-weight: 600;
+  transform: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-size="md"],
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-size="lg"] {
+  min-height: var(--dashboard-control-height);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-size="sm"],
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-size="icon"] {
+  min-height: var(--dashboard-control-height-compact);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"]:hover,
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"]:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-variant="primary"] {
+  background: var(--dashboard-primary);
+  color: var(--dashboard-primary-foreground);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-variant="secondary"] {
+  background: var(--dashboard-panel);
+  color: var(--dashboard-secondary-foreground);
+  border-color: var(--dashboard-border);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-variant="outline"] {
+  background: var(--dashboard-panel);
+  border-color: var(--dashboard-border);
+  color: var(--dashboard-secondary-foreground);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-variant="ghost"] {
+  background: transparent;
+  color: var(--dashboard-primary);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-button"][data-variant="destructive"] {
+  background: var(--dashboard-danger);
+  color: var(--dashboard-primary-foreground);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"] {
+  box-shadow: none;
+  font-family: var(--dashboard-font-sans);
+  font-size: var(--dashboard-text-meta-size);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"][data-tone="primary"] {
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+  border-color: color-mix(in srgb, var(--dashboard-primary) 22%, var(--dashboard-border));
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"][data-tone="neutral"] {
+  background: var(--dashboard-neutral-soft);
+  color: var(--dashboard-neutral-foreground);
+  border-color: var(--dashboard-border);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"][data-tone="information"] {
+  background: var(--dashboard-information-soft);
+  color: var(--dashboard-information-foreground);
+  border-color: color-mix(in srgb, var(--dashboard-information) 22%, var(--dashboard-border));
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"][data-tone="success"] {
+  background: var(--dashboard-success-soft);
+  color: var(--dashboard-success-foreground);
+  border-color: color-mix(in srgb, var(--dashboard-success) 22%, var(--dashboard-border));
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"][data-tone="warning"] {
+  background: var(--dashboard-warning-soft);
+  color: var(--dashboard-warning-foreground);
+  border-color: color-mix(in srgb, var(--dashboard-warning) 22%, var(--dashboard-border));
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-status-badge"][data-tone="danger"] {
+  background: var(--dashboard-danger-soft);
+  color: var(--dashboard-danger-foreground);
+  border-color: color-mix(in srgb, var(--dashboard-danger) 22%, var(--dashboard-border));
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-filter-bar"],
+.dashboard-theme.dashboard-client [data-slot="client-filter-bar"] {
+  border-radius: var(--dashboard-radius-card);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-panel);
+  gap: 0.75rem;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-segmented"] {
+  border-radius: var(--dashboard-radius-control);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-neutral-soft);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-segmented-item"] {
+  min-height: var(--dashboard-control-height-compact);
+  font-family: var(--dashboard-font-sans);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-segmented-item"][data-state="selected"] {
+  background: var(--dashboard-panel);
+  color: var(--dashboard-primary);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-list-row"] {
+  border-radius: var(--dashboard-radius-card);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-panel);
+  box-shadow: var(--dashboard-shadow-card);
+  transform: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-list-row"]:hover {
+  transform: none;
+  box-shadow: var(--dashboard-shadow-card);
+  background: var(--dashboard-panel-hover);
+  border-color: color-mix(in srgb, var(--dashboard-primary) 28%, var(--dashboard-border));
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-table"] {
+  border-radius: var(--dashboard-radius-card);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-panel);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-table-head"],
+.dashboard-theme.dashboard-client [data-slot="dashboard-table-header-cell"] {
+  background: var(--dashboard-neutral-soft);
+  color: var(--dashboard-neutral-foreground);
+  font-family: var(--dashboard-font-sans);
+  font-size: var(--dashboard-text-meta-size);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-table-row"]:hover {
+  background: var(--dashboard-panel-hover);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-empty-state"] {
+  border-radius: var(--dashboard-radius-card);
+  background: var(--dashboard-panel);
+  background-image: none;
+  box-shadow: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-empty-icon"],
+.dashboard-theme.dashboard-client
+  [data-slot="dashboard-empty-state"]
+  [data-slot="dashboard-empty-icon"]:hover {
+  border-radius: var(--dashboard-radius-control);
+  box-shadow: none;
+  transform: none;
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-action-panel"] {
+  border-radius: var(--dashboard-radius-card);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="dashboard-action-panel"]:hover {
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="client-panel"],
+.dashboard-theme.dashboard-client [data-slot="client-matter-summary"],
+.dashboard-theme.dashboard-client [data-slot="client-hearing-summary"],
+.dashboard-theme.dashboard-client [data-slot="client-document-item"],
+.dashboard-theme.dashboard-client [data-slot="client-action-item"] {
+  border-radius: var(--dashboard-radius-card);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client [data-slot="client-metadata-label"],
+.dashboard-theme.dashboard-client [data-slot="client-metadata-value"],
+.dashboard-theme.dashboard-client [data-slot="metric-card-label"] {
+  font-size: max(var(--dashboard-text-meta-size), 0.75rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-theme.dashboard-client [data-slot="metric-card"],
+  .dashboard-theme.dashboard-client [data-slot="dashboard-list-row"],
+  .dashboard-theme.dashboard-client [data-slot="dashboard-button"],
+  .dashboard-theme.dashboard-client [data-slot="dashboard-empty-icon"] {
+    transition: none;
+    transform: none;
+  }
+}
+
 .dashboard-theme {
   min-height: 100%;
   background: var(--dashboard-canvas);

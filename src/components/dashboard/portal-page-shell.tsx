@@ -170,8 +170,10 @@ export function PortalPageShell({
   if (loading) {
     return (
       <div
+        data-slot="portal-page-shell"
+        data-portal={portal}
         className={cn(
-          "dashboard-theme dashboard-nepal flex min-h-[60vh] items-center justify-center p-6",
+          "dashboard-theme dashboard-nepal flex min-h-[60vh] items-center justify-center p-[var(--dashboard-content-gutter)]",
           themeClass,
           portalGradient[portal],
           className,
@@ -190,8 +192,10 @@ export function PortalPageShell({
 
   return (
     <div
+      data-slot="portal-page-shell"
+      data-portal={portal}
       className={cn(
-        "dashboard-theme dashboard-nepal min-h-full space-y-6 p-4 sm:p-6",
+        "dashboard-theme dashboard-nepal min-h-full space-y-[var(--dashboard-section-gap)] p-[var(--dashboard-content-gutter-compact)] sm:p-[var(--dashboard-content-gutter)]",
         themeClass,
         portalGradient[portal],
         language === "ne" && "dashboard-lang-ne",
@@ -234,7 +238,12 @@ export function PortalPageShell({
         </div>
       ) : null}
 
-      <div className={cn("space-y-6", contentClassName)}>{children}</div>
+      <div
+        data-slot="portal-page-content"
+        className={cn("space-y-[var(--dashboard-section-gap)]", contentClassName)}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -247,7 +256,7 @@ export interface DashboardListSkeletonProps {
 /** Pulse skeleton for list/table bodies inside DashboardSection. */
 export function DashboardListSkeleton({ rows = 5, className }: DashboardListSkeletonProps) {
   return (
-    <div className={cn("space-y-3", className)} aria-hidden>
+    <div data-slot="dashboard-list-skeleton" className={cn("space-y-3", className)} aria-hidden>
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}

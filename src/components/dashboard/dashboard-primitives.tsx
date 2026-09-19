@@ -128,21 +128,27 @@ export function DashboardHero({
     >
       <div
         aria-hidden
+        data-slot="dashboard-hero-ornament"
         className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full bg-white/10 blur-3xl"
       />
       <div
         aria-hidden
+        data-slot="dashboard-hero-ornament"
         className="pointer-events-none absolute left-1/4 -bottom-16 size-56 rounded-full bg-blue-400/15 blur-2xl"
       />
       <div
         aria-hidden
+        data-slot="dashboard-hero-ornament"
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
       />
       <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           {leading}
           {Icon ? (
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-inner backdrop-blur-md">
+            <span
+              data-slot="dashboard-hero-icon"
+              className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-inner backdrop-blur-md"
+            >
               <Icon className="size-6" aria-hidden />
             </span>
           ) : null}
@@ -238,6 +244,7 @@ export function MetricCard({
       <div className="flex items-start justify-between gap-3">
         {Icon ? (
           <span
+            data-slot="metric-card-icon"
             className={cn(
               "flex items-center justify-center transition-transform duration-200 group-hover:scale-105",
               densityClasses.icon,
@@ -270,6 +277,7 @@ export function MetricCard({
         ) : null}
       </div>
       <p
+        data-slot="metric-card-value"
         className={cn(
           "tracking-tight font-extrabold tabular-nums text-foreground",
           densityClasses.value,
@@ -277,7 +285,10 @@ export function MetricCard({
       >
         {value}
       </p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <p
+        data-slot="metric-card-label"
+        className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+      >
         {label}
       </p>
       {helperText ? (
@@ -334,6 +345,7 @@ export function DashboardSection({
     >
       {title || description || Icon || actions ? (
         <header
+          data-slot="dashboard-section-header"
           className={cn(
             "flex flex-col gap-3 border-b border-dashboard-border/70 bg-dashboard-neutral-soft/50 sm:flex-row sm:items-center sm:justify-between rounded-t-2xl",
             densityClasses.header,
@@ -342,20 +354,37 @@ export function DashboardSection({
         >
           <div className="flex min-w-0 items-center gap-3">
             {Icon ? (
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-dashboard-primary-soft text-dashboard-primary">
+              <span
+                data-slot="dashboard-section-icon"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-dashboard-primary-soft text-dashboard-primary"
+              >
                 <Icon className="size-4" aria-hidden />
               </span>
             ) : null}
             <div className="min-w-0">
               {title ? (
-                <h2 className="font-serif text-base font-bold text-foreground">{title}</h2>
+                <h2
+                  data-slot="dashboard-section-title"
+                  className="font-serif text-base font-bold text-foreground"
+                >
+                  {title}
+                </h2>
               ) : null}
               {description ? (
-                <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                <p
+                  data-slot="dashboard-section-description"
+                  className="mt-0.5 text-xs text-muted-foreground"
+                >
+                  {description}
+                </p>
               ) : null}
             </div>
           </div>
-          {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+          {actions ? (
+            <div data-slot="dashboard-section-actions" className="flex shrink-0 flex-wrap gap-2">
+              {actions}
+            </div>
+          ) : null}
         </header>
       ) : null}
       <div className={densityClasses.body}>{children}</div>
@@ -404,6 +433,7 @@ export function StatusBadge({
     <span
       data-slot="dashboard-status-badge"
       data-state={state ?? "default"}
+      data-tone={tone ?? "neutral"}
       className={cn(statusBadgeVariants({ tone, state }), className)}
       {...props}
     >
@@ -437,6 +467,7 @@ export function ActionPanel({
     <aside
       data-slot="dashboard-action-panel"
       data-state={state}
+      data-tone={tone}
       className={cn(
         "rounded-xl border p-4 shadow-sm transition-all hover:shadow-md",
         toneClasses[tone],
@@ -504,7 +535,10 @@ export function EmptyState({
       {...props}
     >
       {Icon ? (
-        <span className="mb-3.5 flex size-12 items-center justify-center rounded-2xl border border-dashboard-primary/20 bg-dashboard-primary-soft text-dashboard-primary shadow-sm transition-transform duration-300 hover:scale-110">
+        <span
+          data-slot="dashboard-empty-icon"
+          className="mb-3.5 flex size-12 items-center justify-center rounded-2xl border border-dashboard-primary/20 bg-dashboard-primary-soft text-dashboard-primary shadow-sm transition-transform duration-300 hover:scale-110"
+        >
           <Icon className="size-6 opacity-75" aria-hidden />
         </span>
       ) : null}
@@ -565,12 +599,79 @@ export function DashboardButton({
     <Component
       data-slot="dashboard-button"
       data-state={state ?? "default"}
+      data-variant={variant ?? "primary"}
+      data-size={size ?? "md"}
       aria-busy={state === "loading" || undefined}
       aria-disabled={isDisabled || undefined}
       disabled={asChild ? undefined : isDisabled}
       className={cn(dashboardButtonVariants({ variant, state, size }), className)}
       {...props}
     />
+  );
+}
+
+export interface DashboardSegmentedControlItem {
+  value: string;
+  label: React.ReactNode;
+  disabled?: boolean;
+}
+
+export interface DashboardSegmentedControlProps extends Omit<
+  React.ComponentProps<"div">,
+  "onChange"
+> {
+  items: DashboardSegmentedControlItem[];
+  value: string;
+  onChange?: (value: string) => void;
+  ariaLabel?: string;
+}
+
+/** Accessible segmented control. Default chrome is quiet; Client CSS scopes the legal treatment. */
+export function DashboardSegmentedControl({
+  items,
+  value,
+  onChange,
+  ariaLabel,
+  className,
+  ...props
+}: DashboardSegmentedControlProps) {
+  return (
+    <div
+      role="tablist"
+      data-slot="dashboard-segmented"
+      aria-label={ariaLabel}
+      className={cn(
+        "inline-flex flex-wrap items-center gap-1 rounded-lg border border-dashboard-border bg-dashboard-neutral-soft p-1",
+        className,
+      )}
+      {...props}
+    >
+      {items.map((item) => {
+        const selected = item.value === value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            disabled={item.disabled}
+            data-state={selected ? "selected" : "default"}
+            data-slot="dashboard-segmented-item"
+            className={cn(
+              "inline-flex min-h-8 items-center justify-center rounded-md px-3 text-sm font-medium outline-none transition-colors",
+              "focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas",
+              "disabled:pointer-events-none disabled:opacity-50",
+              selected
+                ? "bg-dashboard-panel text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => onChange?.(item.value)}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

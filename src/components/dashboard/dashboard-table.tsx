@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 export function DashboardTable({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
     <div
+      data-slot="dashboard-table"
       className={cn("min-w-0 overflow-x-auto rounded-lg border border-dashboard-border", className)}
       {...props}
     >
@@ -15,6 +16,7 @@ export function DashboardTable({ className, children, ...props }: React.Componen
 export function DashboardTableHead({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
+      data-slot="dashboard-table-head"
       className={cn(
         "sticky top-0 z-10 bg-slate-50/90 dark:bg-slate-900/90 border-b border-dashboard-border text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400 backdrop-blur-xs",
         className,
@@ -40,6 +42,7 @@ export function DashboardTableRow({
 }: React.ComponentProps<"tr"> & { striped?: boolean }) {
   return (
     <tr
+      data-slot="dashboard-table-row"
       className={cn(
         "transition-colors hover:bg-slate-50/90 dark:hover:bg-slate-800/60",
         striped && "even:bg-slate-50/40 dark:even:bg-slate-900/40",
@@ -53,6 +56,7 @@ export function DashboardTableRow({
 export function DashboardTableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
+      data-slot="dashboard-table-header-cell"
       className={cn(
         "px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
         className,
@@ -69,6 +73,7 @@ export function DashboardTableCell({ className, ...props }: React.ComponentProps
 export function DashboardFilterBar({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
     <div
+      data-slot="dashboard-filter-bar"
       className={cn(
         "flex flex-col gap-3 border border-dashboard-border bg-dashboard-panel sm:flex-row sm:flex-wrap sm:items-center",
         className,
@@ -83,6 +88,7 @@ export function DashboardFilterBar({ className, children, ...props }: React.Comp
 export function DashboardListRow({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
     <div
+      data-slot="dashboard-list-row"
       className={cn(
         "group flex flex-col gap-3 rounded-xl border border-dashboard-border bg-dashboard-panel p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-dashboard-primary/35 hover:bg-dashboard-panel-hover hover:shadow-md sm:flex-row sm:items-center sm:justify-between",
         className,
