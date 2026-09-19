@@ -111,6 +111,7 @@ export function PortalPageShell({
         ? "dashboard-staff"
         : "dashboard-client";
   const { cssVars, logoUrl, firmName } = usePortalBranding();
+  const brandingStyle = portal === "client" ? undefined : cssVars;
   const { language, t } = useI18n();
 
   const resolvedTitle = resolveLocalized(titleKey, title, t);
@@ -175,7 +176,7 @@ export function PortalPageShell({
           portalGradient[portal],
           className,
         )}
-        style={cssVars}
+        style={brandingStyle}
       >
         <DashboardSection state="loading" className="w-full max-w-md">
           <div className="flex items-center justify-center gap-3 text-dashboard-primary">
@@ -196,7 +197,7 @@ export function PortalPageShell({
         language === "ne" && "dashboard-lang-ne",
         className,
       )}
-      style={cssVars}
+      style={brandingStyle}
       lang={language === "ne" ? "ne" : "en"}
     >
       <HeroComponent

@@ -6,10 +6,11 @@ import { queryKeys } from "@/client/queries/query-keys";
 import { computeSHA256 } from "@/lib/document-utils.ts";
 import type { ClientCrmDto, ClientDto } from "@/shared/contracts/domains";
 
-export function useClients(): ClientDto[] | undefined {
+export function useClients(options?: { enabled?: boolean }): ClientDto[] | undefined {
   return useTanstackQuery({
     queryKey: queryKeys.clients.list,
     queryFn: ({ signal }) => apiClient.request<ClientDto[]>("/api/v1/clients", { signal }),
+    enabled: options?.enabled ?? true,
   }).data;
 }
 

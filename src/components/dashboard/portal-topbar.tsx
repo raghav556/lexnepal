@@ -13,10 +13,7 @@ import {
   CalendarPlus,
   UserPlus,
   Sparkles,
-  ShieldCheck,
   MessageSquare,
-  Upload,
-  CalendarPlus2,
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +35,7 @@ export interface PortalTopbarProps {
   onOpenSearch?: () => void;
   onOpenChat?: () => void;
   className?: string;
+  accountSlot?: React.ReactNode;
 }
 
 const SEGMENT_LABELS: Record<string, { label: string; i18nKey?: string }> = {
@@ -88,6 +86,7 @@ export function PortalTopbar({
   onOpenSearch,
   onOpenChat,
   className,
+  accountSlot,
 }: PortalTopbarProps) {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -125,63 +124,72 @@ export function PortalTopbar({
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-2 pr-4">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[13px] font-medium">
-          {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={crumb.href}>
-              {idx > 0 && (
-                <ChevronRight
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              )}
-              {crumb.isLast ? (
-                <span
-                  className="max-w-[160px] truncate font-semibold text-foreground sm:max-w-[240px]"
-                  aria-current="page"
-                >
-                  {crumb.label}
-                </span>
-              ) : (
-                <Link
-                  href={crumb.href}
-                  className="max-w-[120px] truncate text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                >
-                  {crumb.label}
-                </Link>
-              )}
-            </React.Fragment>
-          ))}
-        </nav>
+      {isClient ? (
+        <div className="min-w-0 flex-1" />
+      ) : (
+        <div className="flex min-w-0 items-center gap-2 pr-4">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-[13px] font-medium"
+          >
+            {breadcrumbs.map((crumb, idx) => (
+              <React.Fragment key={crumb.href}>
+                {idx > 0 && (
+                  <ChevronRight
+                    className="size-3.5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                )}
+                {crumb.isLast ? (
+                  <span
+                    className="max-w-[160px] truncate font-semibold text-foreground sm:max-w-[240px]"
+                    aria-current="page"
+                  >
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link
+                    href={crumb.href}
+                    className="max-w-[120px] truncate text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                  >
+                    {crumb.label}
+                  </Link>
+                )}
+              </React.Fragment>
+            ))}
+          </nav>
 
-        <div
-          className={cn(
-            "ml-3 hidden items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-md xl:inline-flex shadow-2xs",
-            isClient
-              ? "border-emerald-500/30 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
-              : "border-emerald-500/30 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300",
-          )}
-        >
-          <span className="size-1.5 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
-          <span>{isClient ? "Secure Session" : "Live Enterprise"}</span>
+          <div
+            className={cn(
+              "ml-3 hidden items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-md xl:inline-flex shadow-2xs",
+              "border-emerald-500/30 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+            )}
+          >
+            <span className="size-1.5 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
+            <span>Live Enterprise</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {showCommandSearch ? (
-        <div className="mx-2 hidden max-w-md flex-1 sm:block">
+        <div className={cn("mx-2 hidden flex-1 sm:block", isClient ? "max-w-xl" : "max-w-md")}>
           <button
             type="button"
             onClick={handleSearch}
+            aria-label={isClient ? "Search your matters, documents or messages" : "Open search"}
             className={cn(
-              "group flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-1.5 text-xs shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+              "group flex w-full items-center justify-between gap-3 border px-3.5 text-xs shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
               "border-dashboard-border/80 bg-dashboard-neutral-soft/80 text-muted-foreground hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover hover:text-foreground",
+              isClient
+                ? "h-[var(--dashboard-control-height)] rounded-[var(--dashboard-radius-pill)]"
+                : "rounded-xl py-1.5",
             )}
           >
             <div className="flex items-center gap-2 truncate">
               <Search className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-dashboard-primary" />
               <span className="truncate">
                 {isClient
-                  ? "Search your cases, documents, messages…"
+                  ? "Search your matters, documents or messages…"
                   : "Search cases, clients, documents, tasks…"}
               </span>
             </div>
@@ -208,91 +216,73 @@ export function PortalTopbar({
           </Link>
         ) : null}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-dashboard-primary px-2.5 py-1.5 text-xs font-semibold text-dashboard-primary-foreground shadow-sm transition-all hover:bg-dashboard-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
-            >
-              <Plus className="size-3.5" />
-              <span className="hidden sm:inline">{isClient ? "Quick Action" : "Create"}</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Quick Actions
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {isClient ? (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link href="/client/messages" className="flex items-center gap-2 text-xs">
-                    <MessageSquare className="size-3.5 text-dashboard-information" /> Message Legal
-                    Team
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/client/documents" className="flex items-center gap-2 text-xs">
-                    <Upload className="size-3.5 text-dashboard-primary" /> Upload Document
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/client/booking" className="flex items-center gap-2 text-xs">
-                    <CalendarPlus2 className="size-3.5 text-dashboard-success" /> Book Appointment
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            ) : isStaff ? (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link href="/staff/tasks" className="flex items-center gap-2 text-xs">
-                    <FilePlus className="size-3.5 text-dashboard-primary" /> New Task
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/staff/cases" className="flex items-center gap-2 text-xs">
-                    <FolderPlus className="size-3.5 text-dashboard-information" /> New Case Matter
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/staff/hearings" className="flex items-center gap-2 text-xs">
-                    <CalendarPlus className="size-3.5 text-dashboard-warning" /> Schedule Hearing
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/staff/clients" className="flex items-center gap-2 text-xs">
-                    <UserPlus className="size-3.5 text-dashboard-success" /> Add Client
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/users" className="flex items-center gap-2 text-xs">
-                    <UserPlus className="size-3.5 text-dashboard-success" /> Add Firm User
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/cases?create=1" className="flex items-center gap-2 text-xs">
-                    <FolderPlus className="size-3.5 text-dashboard-warning" /> New Case Matter
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/cms/homepage" className="flex items-center gap-2 text-xs">
-                    <Sparkles className="size-3.5 text-dashboard-information" /> Edit Homepage CMS
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {isClient ? null : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-dashboard-primary px-2.5 py-1.5 text-xs font-semibold text-dashboard-primary-foreground shadow-sm transition-all hover:bg-dashboard-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+              >
+                <Plus className="size-3.5" />
+                <span className="hidden sm:inline">Create</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Quick Actions
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {isStaff ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/staff/tasks" className="flex items-center gap-2 text-xs">
+                      <FilePlus className="size-3.5 text-dashboard-primary" /> New Task
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/staff/cases" className="flex items-center gap-2 text-xs">
+                      <FolderPlus className="size-3.5 text-dashboard-information" /> New Case Matter
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/staff/hearings" className="flex items-center gap-2 text-xs">
+                      <CalendarPlus className="size-3.5 text-dashboard-warning" /> Schedule Hearing
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/staff/clients" className="flex items-center gap-2 text-xs">
+                      <UserPlus className="size-3.5 text-dashboard-success" /> Add Client
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/users" className="flex items-center gap-2 text-xs">
+                      <UserPlus className="size-3.5 text-dashboard-success" /> Add Firm User
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/cases?create=1" className="flex items-center gap-2 text-xs">
+                      <FolderPlus className="size-3.5 text-dashboard-warning" /> New Case Matter
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/cms/homepage" className="flex items-center gap-2 text-xs">
+                      <Sparkles className="size-3.5 text-dashboard-information" /> Edit Homepage CMS
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
-        {/* Portal home heroes already show the dual date — avoid repeating it. */}
-        {pathname !== `/${portal}` ? (
+        {isClient || pathname === `/${portal}` ? null : (
           <div className="hidden lg:block">
             <DualDateDisplay className="rounded-lg border border-dashboard-border bg-dashboard-neutral-soft px-2.5 py-1 text-[11px] font-medium leading-tight text-muted-foreground" />
           </div>
-        ) : null}
+        )}
 
         {onOpenChat ? (
           <div className="flex items-center">
@@ -311,6 +301,7 @@ export function PortalTopbar({
         <div className="flex items-center">
           <NotificationBell triggerClassName="size-8 rounded-lg border border-dashboard-border bg-dashboard-panel text-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover" />
         </div>
+        {accountSlot}
       </div>
     </header>
   );

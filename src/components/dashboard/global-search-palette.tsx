@@ -27,13 +27,17 @@ import {
   ExternalLink,
   Sparkles,
   Command,
+  MessageSquare,
+  Bell,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCases } from "@/client/queries/cases";
+import { useCases, useClientCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
 import { isLifecycleClosed } from "@/shared/contracts/case-status";
 import { CASE_LIFECYCLE_LABELS, toLifecycleStatus } from "@/shared/contracts/case-ui";
+import { CLIENT_SEARCH_PAGES } from "@/lib/client-shell-nav";
 
 export interface GlobalSearchPaletteProps {
   isOpen: boolean;
@@ -246,6 +250,20 @@ const STATIC_PAGES: Array<{
 
 type FilterTab = "all" | "pages" | "cases" | "clients" | "actions";
 
+const CLIENT_PAGE_ICONS: Record<string, LucideIcon> = {
+  "/client": LayoutDashboard,
+  "/client/cases": Briefcase,
+  "/client/documents": FileText,
+  "/client/messages": MessageSquare,
+  "/client/booking": Calendar,
+  "/client/kyc": Shield,
+  "/client/signatures": PenTool,
+  "/client/notifications": Bell,
+  "/client/profile": UserIcon,
+  "/client/hearings": Calendar,
+  "/client/checklist": ClipboardList,
+};
+
 export function GlobalSearchPalette({
   isOpen,
   onClose,
@@ -258,9 +276,10 @@ export function GlobalSearchPalette({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
 
-  // Live queries for cases and clients
+  const isClientPortal = portal === "client";
   const casesData = useCases() || [];
-  const clientsData = useClients() || [];
+  const clientCasesData = useClientCases() || [];
+  const clientsData = useClients({ enabled: !isClientPortal }) || [];
 
   // Focus input on open
   React.useEffect(() => {
@@ -289,6 +308,87 @@ export function GlobalSearchPalette({
   // Build searchable items list
   const allItems = React.useMemo(() => {
     const items: SearchItem[] = [];
+
+    if (isClientPortal) {
+      CLIENT_SEARCH_PAGES.forEach((page, idx) => {
+        items.push({
+          id: `page-${idx}`,
+          category: "pages",
+          title: page.title,
+          subtitle: page.subtitle,
+          badge: "Page",
+          badgeTone: "slate",
+          icon: CLIENT_PAGE_ICONS[page.href] ?? LayoutDashboard,
+          href: page.href,
+          onSelect: () => {
+            router.push(page.href);
+            onClose();
+          },
+        });
+      });
+
+      clientCasesData.forEach((c) => {
+        const href = `/client/cases/${c._id}`;
+        items.push({
+          id: `case-${c._id}`,
+          category: "cases",
+          title: c.title || `Matter ${c.caseNumber}`,
+          subtitle: `[${c.caseNumber}] • ${c.practiceArea || "General Legal"}`,
+          badge: CASE_LIFECYCLE_LABELS[toLifecycleStatus(c.status)].toUpperCase(),
+          badgeTone: isLifecycleClosed(c.status) ? "slate" : "blue",
+          icon: Briefcase,
+          href,
+          onSelect: () => {
+            router.push(href);
+            onClose();
+          },
+        });
+      });
+
+      const clientActions: Array<{
+        title: string;
+        subtitle: string;
+        icon: LucideIcon;
+        href: string;
+      }> = [
+        {
+          title: "Message Legal Team",
+          subtitle: "Send a message about your matter",
+          icon: MessageSquare,
+          href: "/client/messages",
+        },
+        {
+          title: "Book Appointment",
+          subtitle: "Request a consultation with your legal team",
+          icon: Calendar,
+          href: "/client/booking",
+        },
+        {
+          title: "View Documents",
+          subtitle: "Open files shared with you",
+          icon: FileText,
+          href: "/client/documents",
+        },
+      ];
+      clientActions.forEach((action, idx) => {
+        items.push({
+          id: `action-${idx}`,
+          category: "actions",
+          title: action.title,
+          subtitle: action.subtitle,
+          badge: "Go",
+          badgeTone: "blue",
+          icon: action.icon,
+          href: action.href,
+          onSelect: () => {
+            router.push(action.href);
+            onClose();
+          },
+        });
+      });
+
+      return items;
+    }
 
     // 1. Pages & Navigation
     STATIC_PAGES.forEach((page, idx) => {
@@ -439,7 +539,7 @@ export function GlobalSearchPalette({
     });
 
     return items;
-  }, [casesData, clientsData, router, onClose, portal]);
+  }, [casesData, clientCasesData, clientsData, isClientPortal, router, onClose, portal]);
 
   // Filtered items based on query & active tab
   const filteredItems = React.useMemo(() => {
@@ -450,6 +550,11 @@ export function GlobalSearchPalette({
         return false;
       }
       if (!q) {
+        if (isClientPortal) {
+          return activeTab === "all"
+            ? item.category === "pages" || item.category === "actions"
+            : true;
+        }
         // When query is empty, show a curated high-value selection
         if (activeTab === "all") {
           return (
@@ -466,13 +571,19 @@ export function GlobalSearchPalette({
         return true;
       }
 
-      // Search match
+      const pageKeywords =
+        isClientPortal && item.href
+          ? (CLIENT_SEARCH_PAGES.find((page) => page.href === item.href)?.keywords ?? [])
+          : [];
+      const keywordMatch = pageKeywords.some(
+        (keyword) => keyword.includes(q) || q.includes(keyword),
+      );
       const titleMatch = item.title.toLowerCase().includes(q);
       const subtitleMatch = item.subtitle?.toLowerCase().includes(q);
       const badgeMatch = item.badge?.toLowerCase().includes(q);
-      return titleMatch || subtitleMatch || badgeMatch;
+      return titleMatch || subtitleMatch || badgeMatch || keywordMatch;
     });
-  }, [allItems, query, activeTab]);
+  }, [allItems, query, activeTab, isClientPortal]);
 
   // Reset selected index when filtered results change
   React.useEffect(() => {
@@ -552,7 +663,11 @@ export function GlobalSearchPalette({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a page, case, client, or action to jump..."
+            placeholder={
+              isClientPortal
+                ? "Search your matters, documents or messages…"
+                : "Type a page, case, client, or action to jump..."
+            }
             className="flex-1 bg-transparent text-sm font-medium text-white placeholder-slate-400 outline-none focus:outline-none"
             aria-label="Search query"
           />
@@ -573,14 +688,20 @@ export function GlobalSearchPalette({
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 border-b border-slate-800/80 bg-slate-950/40 px-4 py-2 overflow-x-auto text-xs">
-          {(
-            [
-              { id: "all", label: "All" },
-              { id: "pages", label: "Pages" },
-              { id: "cases", label: `Cases (${casesData.length})` },
-              { id: "clients", label: `Clients (${clientsData.length})` },
-              { id: "actions", label: "Actions" },
-            ] as const
+          {(isClientPortal
+            ? ([
+                { id: "all", label: "All" },
+                { id: "pages", label: "Pages" },
+                { id: "cases", label: `Matters (${clientCasesData.length})` },
+                { id: "actions", label: "Actions" },
+              ] as const)
+            : ([
+                { id: "all", label: "All" },
+                { id: "pages", label: "Pages" },
+                { id: "cases", label: `Cases (${casesData.length})` },
+                { id: "clients", label: `Clients (${clientsData.length})` },
+                { id: "actions", label: "Actions" },
+              ] as const)
           ).map((tab) => (
             <button
               key={tab.id}

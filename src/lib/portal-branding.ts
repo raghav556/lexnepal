@@ -11,6 +11,15 @@ export type PortalBranding = {
 
 export type PortalAppearance = "light" | "dark";
 
+export function resolvePortalPaletteCssVars(
+  primaryColor?: string | null,
+  appearance: PortalAppearance = "light",
+  applyPalette = true,
+): CSSProperties {
+  if (!applyPalette) return {};
+  return buildPortalBrandingCssVars(primaryColor, appearance);
+}
+
 export function buildPortalBrandingCssVars(
   primaryColor?: string | null,
   appearance: PortalAppearance = "light",

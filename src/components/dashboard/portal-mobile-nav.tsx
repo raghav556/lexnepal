@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,12 @@ import {
   PortalSidebarItem,
 } from "@/components/dashboard/portal-sidebar";
 
+export type PortalMobileNavControls = {
+  open: boolean;
+  openMenu: () => void;
+  closeMenu: () => void;
+};
+
 export interface PortalMobileNavProps {
   /** Brand node rendered in the sticky mobile header. */
   brand: React.ReactNode;
@@ -22,8 +28,11 @@ export interface PortalMobileNavProps {
   isActive: (href: string) => boolean;
   /** Render-prop receiving close(), for the drawer account menu. */
   accountMenu?: (close: () => void) => React.ReactNode;
-  /** Optional fixed bottom bar node (staff/client render their own). */
-  bottomBar?: React.ReactNode;
+  /**
+   * Optional fixed bottom bar. A node keeps Staff/Admin behavior identical.
+   * A render-prop is opt-in and exposes drawer controls (Client More).
+   */
+  bottomBar?: React.ReactNode | ((controls: PortalMobileNavControls) => React.ReactNode);
   /** Portal-specific class prescriptions. */
   headerClassName?: string;
   langButtonClassName?: string;
@@ -33,6 +42,7 @@ export interface PortalMobileNavProps {
   /** Full item class string; called with the item's active state. */
   itemClassName?: (active: boolean) => string;
   navAriaLabel?: string;
+  drawerId?: string;
 }
 
 /**
@@ -53,10 +63,11 @@ export function PortalMobileNav({
   headingClassName,
   itemClassName,
   navAriaLabel = "Mobile navigation",
+  drawerId = "portal-mobile-drawer",
 }: PortalMobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const { t, language, setLanguage } = useI18n();
+  const { language, setLanguage } = useI18n();
 
   // Collapse the drawer whenever the route changes, including browser back/forward.
   const [drawerPathname, setDrawerPathname] = useState(pathname);
@@ -66,6 +77,20 @@ export function PortalMobileNav({
   }
 
   const close = () => setOpen(false);
+  const openMenu = () => setOpen(true);
+  const controls: PortalMobileNavControls = { open, openMenu, closeMenu: close };
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
     <>
@@ -95,6 +120,7 @@ export function PortalMobileNav({
             className={cn("p-1 focus-visible:ring-2", menuButtonClassName)}
             aria-label="Toggle menu"
             aria-expanded={open}
+            aria-controls={drawerId}
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -103,6 +129,7 @@ export function PortalMobileNav({
 
       {open && (
         <div
+          id={drawerId}
           className={cn(
             "md:hidden fixed inset-0 z-40 flex flex-col pt-[var(--dashboard-topbar-height)]",
             drawerClassName,
@@ -137,7 +164,7 @@ export function PortalMobileNav({
         </div>
       )}
 
-      {bottomBar}
+      {typeof bottomBar === "function" ? bottomBar(controls) : bottomBar}
     </>
   );
 }

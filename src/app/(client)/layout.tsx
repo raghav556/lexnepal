@@ -1,7 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -11,9 +13,10 @@ import {
   User as UserIcon,
   ShieldCheck,
   PenTool,
-  ClipboardList,
-  CalendarDays,
   Bell,
+  Headphones,
+  MoreHorizontal,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
@@ -28,83 +31,112 @@ import {
   PortalSidebarGroup,
   PortalSidebarItem,
   PortalMobileNav,
-  splitPortalNavGroups,
-  PORTAL_SIDEBAR_ACTIVE_SHADOW,
   type PortalNavItemData,
 } from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
+import {
+  CLIENT_DESKTOP_NAV,
+  CLIENT_DESKTOP_PRIMARY,
+  CLIENT_DESKTOP_SECONDARY,
+  CLIENT_MOBILE_PRIMARY,
+  isClientDesktopNavActive,
+  resolveClientMobileNav,
+} from "@/lib/client-shell-nav";
 
-const NAV: PortalNavItemData[] = [
-  { heading: "Overview" },
-  { label: "Dashboard", i18nKey: "nav.dashboard", href: "/client", icon: LayoutDashboard },
+const GlobalSearchPalette = dynamic(
+  () =>
+    import("@/components/dashboard/global-search-palette").then(
+      (module) => module.GlobalSearchPalette,
+    ),
+  { ssr: false },
+);
 
-  { heading: "Your Matters" },
-  { label: "My Cases", i18nKey: "nav.cases", href: "/client/cases", icon: FolderOpen },
-  { label: "Hearings", i18nKey: "nav.hearings", href: "/client/hearings", icon: CalendarDays },
-  { label: "Checklist", i18nKey: "nav.checklist", href: "/client/checklist", icon: ClipboardList },
-  { label: "Documents", i18nKey: "nav.documents", href: "/client/documents", icon: FileText },
-  { label: "Messages", i18nKey: "nav.messages", href: "/client/messages", icon: MessageSquare },
+const CLIENT_NAV_ICONS: Record<string, LucideIcon> = {
+  "/client": LayoutDashboard,
+  "/client/cases": FolderOpen,
+  "/client/documents": FileText,
+  "/client/messages": MessageSquare,
+  "/client/booking": Calendar,
+  "/client/kyc": ShieldCheck,
+  "/client/signatures": PenTool,
+  "/client/notifications": Bell,
+  "/client/profile": UserIcon,
+};
 
-  { heading: "Services" },
-  { label: "Identity (KYC)", i18nKey: "nav.kyc", href: "/client/kyc", icon: ShieldCheck },
-  { label: "E-Signatures", i18nKey: "nav.signatures", href: "/client/signatures", icon: PenTool },
-  {
-    label: "Book Appointment",
-    i18nKey: "nav.book_appointment",
-    href: "/client/booking",
-    icon: Calendar,
-  },
-  {
-    label: "Notifications",
-    i18nKey: "nav.notifications",
-    href: "/client/notifications",
-    icon: Bell,
-  },
+const CLIENT_MOBILE_ICONS: Record<string, LucideIcon> = {
+  home: LayoutDashboard,
+  matters: FolderOpen,
+  documents: FileText,
+  messages: MessageSquare,
+};
 
-  { heading: "Account" },
-  {
-    label: "Profile & Settings",
-    i18nKey: "nav.profile",
-    href: "/client/profile",
-    icon: UserIcon,
-  },
-];
+const NAV: PortalNavItemData[] = CLIENT_DESKTOP_NAV.map((item) => ({
+  label: item.label,
+  i18nKey: item.i18nKey,
+  href: item.href,
+  icon: CLIENT_NAV_ICONS[item.href],
+}));
 
-function useIsActive() {
-  const pathname = usePathname();
-  return (href: string) =>
-    href === "/client"
-      ? pathname === "/client"
-      : pathname === href || pathname.startsWith(`${href}/`);
+function useClientPathname() {
+  return usePathname() ?? "/client";
 }
-
-const navGroups = splitPortalNavGroups(NAV);
 
 const desktopItemClassName = (active: boolean) =>
   cn(
-    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-[var(--dashboard-duration-normal)] focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
-      ? "text-dashboard-sidebar-foreground bg-dashboard-sidebar-active border border-dashboard-sidebar-active-border shadow-lg"
-      : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover border border-transparent focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
+      ? "border border-dashboard-sidebar-active-border bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground"
+      : "border border-transparent text-dashboard-sidebar-muted hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground",
   );
 
 const desktopIconClassName = (active: boolean) =>
-  active ? "text-dashboard-sidebar-active-icon" : undefined;
+  cn("size-5", active ? "text-dashboard-sidebar-active-icon" : undefined);
 
 const mobileItemClassName = (active: boolean) =>
   cn(
-    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium",
     active
       ? "bg-dashboard-primary-soft text-dashboard-primary"
       : "text-foreground hover:bg-dashboard-panel-hover",
   );
 
+function ClientSupportModule() {
+  const { t } = useI18n();
+  return (
+    <div className="border-t border-dashboard-sidebar-border px-3 py-4">
+      <div className="rounded-xl border border-dashboard-sidebar-border bg-dashboard-sidebar-hover px-3 py-3">
+        <div className="flex items-start gap-2.5">
+          <Headphones className="mt-0.5 size-4 shrink-0 text-dashboard-sidebar-brand" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-dashboard-sidebar-foreground">
+              {t("client.support_title")}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-dashboard-sidebar-muted">
+              {t("client.support_body")}
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/client/messages"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-dashboard-sidebar-active px-3 text-xs font-semibold text-dashboard-sidebar-active-foreground transition-colors duration-[var(--dashboard-duration-normal)] hover:bg-dashboard-sidebar-hover focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
+        >
+          {t("client.support_action")}
+        </Link>
+        <p className="mt-3 text-center text-[11px] italic text-dashboard-sidebar-brand">
+          {t("client.support_quote")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ClientDesktopSidebar() {
-  const isActive = useIsActive();
+  const pathname = useClientPathname();
+  const isActive = (href: string) => isClientDesktopNavActive(pathname, href);
 
   return (
     <PortalSidebar
-      navAriaLabel="Portal navigation"
+      navAriaLabel="Client portal navigation"
       className="md:w-[var(--dashboard-sidebar-width)] h-screen sticky top-0 shrink-0 overflow-hidden"
       style={{
         background:
@@ -118,84 +150,66 @@ function ClientDesktopSidebar() {
           logoFit="cover"
           className="flex-1 gap-2.5"
           logoClassName="size-9 max-w-12 rounded-xl"
-          fallbackClassName="size-9 bg-[linear-gradient(135deg,var(--dashboard-sidebar-brand),var(--dashboard-primary))] shadow-[0_2px_10px_var(--dashboard-sidebar-brand-glow)]"
+          fallbackClassName="size-9 bg-[linear-gradient(135deg,var(--dashboard-sidebar-brand),var(--dashboard-primary))]"
           fallbackIconClassName="size-[18px] text-dashboard-sidebar-foreground"
           nameClassName="text-sm tracking-wide text-dashboard-sidebar-foreground"
           subtitleClassName="text-[11px] font-medium uppercase tracking-wider text-dashboard-sidebar-muted"
         />
       }
-      navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-      footer={
-        <div className="border-t border-dashboard-sidebar-border px-3 py-4">
-          <PortalAccountMenu
-            profileHref="/client/profile"
-            variant="dropdown"
-            fallbackName="Client"
-            showLanguageToggle
-            darkTrigger
-            className="client-sidebar-account"
-          />
-        </div>
-      }
+      navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [scrollbar-width:thin] [-ms-overflow-style:auto]"
+      footer={<ClientSupportModule />}
     >
-      {navGroups.map((group, groupIndex) => (
-        <PortalSidebarGroup key={group.label ?? `group-${groupIndex}`} label={group.label}>
-          {group.items.map(({ href, icon: Icon, label, i18nKey }) => {
-            const active = isActive(href);
-            return (
-              <PortalSidebarItem
-                key={href}
-                href={href}
-                icon={Icon}
-                label={label}
-                i18nKey={i18nKey}
-                active={active}
-                className={desktopItemClassName(active)}
-                iconClassName={desktopIconClassName(active)}
-                style={active ? PORTAL_SIDEBAR_ACTIVE_SHADOW : undefined}
-              />
-            );
-          })}
-        </PortalSidebarGroup>
-      ))}
+      <PortalSidebarGroup>
+        {CLIENT_DESKTOP_PRIMARY.map(({ href, label, i18nKey }) => {
+          const Icon = CLIENT_NAV_ICONS[href];
+          const active = isActive(href);
+          return (
+            <PortalSidebarItem
+              key={href}
+              href={href}
+              icon={Icon}
+              label={label}
+              i18nKey={i18nKey}
+              active={active}
+              className={desktopItemClassName(active)}
+              iconClassName={desktopIconClassName(active)}
+            />
+          );
+        })}
+      </PortalSidebarGroup>
+      <div className="mx-3 my-3 border-t border-dashboard-sidebar-border" role="separator" />
+      <PortalSidebarGroup>
+        {CLIENT_DESKTOP_SECONDARY.map(({ href, label, i18nKey }) => {
+          const Icon = CLIENT_NAV_ICONS[href];
+          const active = isActive(href);
+          return (
+            <PortalSidebarItem
+              key={href}
+              href={href}
+              icon={Icon}
+              label={label}
+              i18nKey={i18nKey}
+              active={active}
+              className={desktopItemClassName(active)}
+              iconClassName={desktopIconClassName(active)}
+            />
+          );
+        })}
+      </PortalSidebarGroup>
     </PortalSidebar>
   );
 }
 
 function ClientMobileChrome() {
   const { t } = useI18n();
-  const isActive = useIsActive();
-
-  const bottomNav = [
-    { href: "/client", icon: LayoutDashboard, label: t("nav.dashboard") },
-    { href: "/client/cases", icon: FolderOpen, label: t("nav.cases") },
-    { href: "/client/messages", icon: MessageSquare, label: t("nav.messages") },
-    { href: "/client/profile", icon: UserIcon, label: "Profile" },
-  ] as const;
-
-  const bottomBar = (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-dashboard-panel/95 backdrop-blur border-t border-dashboard-border flex justify-around py-2 z-30">
-      {bottomNav.map(({ href, icon: Icon, label }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "p-2 rounded-lg focus-visible:ring-2 focus-visible:ring-dashboard-focus",
-            isActive(href)
-              ? "bg-dashboard-primary-soft text-dashboard-primary"
-              : "text-dashboard-neutral",
-          )}
-          aria-label={label}
-        >
-          <Icon className="w-5 h-5" />
-        </Link>
-      ))}
-    </nav>
-  );
+  const pathname = useClientPathname();
+  const isActive = (href: string) => isClientDesktopNavActive(pathname, href);
+  const mobileActive = resolveClientMobileNav(pathname);
 
   return (
     <PortalMobileNav
-      navAriaLabel="Mobile navigation"
+      navAriaLabel="Client mobile navigation"
+      drawerId="client-mobile-drawer"
       items={NAV}
       isActive={isActive}
       brand={
@@ -212,9 +226,9 @@ function ClientMobileChrome() {
         />
       }
       headerClassName="bg-dashboard-panel/95 border-dashboard-border"
-      langButtonClassName="focus-visible:ring-dashboard-focus"
-      menuButtonClassName="focus-visible:ring-dashboard-focus"
-      drawerClassName="bg-dashboard-canvas pb-16"
+      langButtonClassName="h-11 w-11 focus-visible:ring-dashboard-focus"
+      menuButtonClassName="min-h-11 min-w-11 p-2.5 focus-visible:ring-dashboard-focus"
+      drawerClassName="bg-dashboard-canvas pb-20"
       headingClassName="text-xs font-semibold text-muted-foreground mt-4 mb-2 px-3 uppercase tracking-wider"
       itemClassName={mobileItemClassName}
       accountMenu={(close) => (
@@ -223,18 +237,76 @@ function ClientMobileChrome() {
           variant="drawer"
           fallbackName="Client"
           showLanguageToggle
-          darkTrigger
+          darkTrigger={false}
+          profileLabel={t("nav.client_profile")}
+          identityCaption="Client"
           onAction={close}
         />
       )}
-      bottomBar={bottomBar}
+      bottomBar={({ open, openMenu }) => (
+        <nav
+          aria-label="Client primary navigation"
+          className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-dashboard-border bg-dashboard-panel/95 px-1 py-1 backdrop-blur md:hidden"
+        >
+          {CLIENT_MOBILE_PRIMARY.map(({ id, href, label, i18nKey }) => {
+            const Icon = CLIENT_MOBILE_ICONS[id];
+            const active = mobileActive === id;
+            const text = t(i18nKey) !== i18nKey ? t(i18nKey) : label;
+            return (
+              <Link
+                key={id}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-[10px] font-medium leading-tight focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+                  active
+                    ? "bg-dashboard-primary-soft text-dashboard-primary"
+                    : "text-dashboard-neutral",
+                )}
+              >
+                <Icon className="size-5 shrink-0" aria-hidden />
+                <span className="max-w-full truncate">{text}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={openMenu}
+            aria-label={t("nav.more")}
+            aria-expanded={open}
+            aria-controls="client-mobile-drawer"
+            className={cn(
+              "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-[10px] font-medium leading-tight focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+              mobileActive === "more" || open
+                ? "bg-dashboard-primary-soft text-dashboard-primary"
+                : "text-dashboard-neutral",
+            )}
+          >
+            <MoreHorizontal className="size-5 shrink-0" aria-hidden />
+            <span className="max-w-full truncate">{t("nav.more")}</span>
+          </button>
+        </nav>
+      )}
     />
   );
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <PortalBrandingProvider>
+    <PortalBrandingProvider applyPalette={false}>
       <div className="dashboard-theme dashboard-client min-h-screen bg-dashboard-canvas">
         <PortalRoleGuard
           allowed="client"
@@ -244,15 +316,34 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <IdleSessionGuard />
           <div className="flex h-screen overflow-hidden bg-dashboard-canvas">
             <ClientDesktopSidebar />
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <ClientMobileChrome />
-              <div className="flex-1 min-w-0 overflow-y-auto flex flex-col">
-                <PortalTopbar portal="client" className="hidden md:flex" />
-                <main className="flex-1 min-w-0 bg-dashboard-canvas pb-16 md:pb-0">{children}</main>
+              <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+                <PortalTopbar
+                  portal="client"
+                  className="hidden md:flex"
+                  onOpenSearch={() => setSearchOpen(true)}
+                  accountSlot={
+                    <PortalAccountMenu
+                      profileHref="/client/profile"
+                      variant="dropdown"
+                      placement="topbar"
+                      fallbackName="Client"
+                      showLanguageToggle
+                      darkTrigger={false}
+                      profileLabel="Profile"
+                      identityCaption="Client"
+                    />
+                  }
+                />
+                <main className="min-w-0 flex-1 bg-dashboard-canvas pb-20 md:pb-0">{children}</main>
                 <PortalFooter portal="client" className="hidden md:block" />
               </div>
             </div>
           </div>
+          {searchOpen ? (
+            <GlobalSearchPalette isOpen onClose={() => setSearchOpen(false)} portal="client" />
+          ) : null}
         </PortalRoleGuard>
       </div>
     </PortalBrandingProvider>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronUp, Globe, LogOut, ShieldOff, User as UserIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, Globe, LogOut, ShieldOff, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -27,6 +27,10 @@ export type PortalAccountMenuProps = {
   /** Close mobile drawer or run after navigation */
   onAction?: () => void;
   className?: string;
+  /** Compact topbar trigger; default remains the sidebar account control. */
+  placement?: "sidebar" | "topbar";
+  profileLabel?: string;
+  identityCaption?: string;
 };
 
 function AccountAvatar({
@@ -115,6 +119,9 @@ export function PortalAccountMenu({
   darkTrigger = true,
   onAction,
   className,
+  placement = "sidebar",
+  profileLabel,
+  identityCaption,
 }: PortalAccountMenuProps) {
   const { signout } = useAuth();
   const identityUser = useCurrentUser();
@@ -124,6 +131,9 @@ export function PortalAccountMenu({
   const displayName = identityUser?.name ?? fallbackName;
   const email = identityUser?.email;
   const avatarUrl = identityUser?.avatar ?? null;
+  const resolvedProfileLabel = profileLabel ?? "Profile & Settings";
+  const caption = identityCaption ?? email;
+  const isTopbar = placement === "topbar";
 
   const handleSignOut = async () => {
     onAction?.();
@@ -160,7 +170,7 @@ export function PortalAccountMenu({
       >
         <AccountIdentity
           name={displayName}
-          email={email}
+          email={caption}
           avatarUrl={avatarUrl}
           compact
           dark={darkTrigger}
@@ -182,7 +192,7 @@ export function PortalAccountMenu({
                 darkTrigger ? "text-slate-400" : "text-muted-foreground",
               )}
             />
-            Profile & Settings
+            {resolvedProfileLabel}
           </Link>
           {showLanguageToggle ? (
             <button
@@ -246,36 +256,54 @@ export function PortalAccountMenu({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
+            aria-label="Open account menu"
             className={cn(
-              "group flex w-full items-center justify-between gap-3 rounded-xl p-2 transition-all duration-200",
-              darkTrigger
+              "group flex items-center justify-between gap-3 transition-all duration-200",
+              isTopbar
+                ? "rounded-full border border-dashboard-border bg-dashboard-panel px-2 py-1 hover:bg-dashboard-panel-hover focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+                : "w-full rounded-xl p-2",
+              !isTopbar && darkTrigger
                 ? "border border-white/10 bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/20 focus-visible:ring-2 focus-visible:ring-blue-400/50"
-                : "border border-transparent hover:bg-sidebar-accent",
+                : null,
+              !isTopbar && !darkTrigger
+                ? "border border-transparent hover:bg-sidebar-accent"
+                : null,
             )}
           >
             <AccountIdentity
               name={displayName}
-              email={email}
+              email={caption}
               avatarUrl={avatarUrl}
               compact
               dark={darkTrigger}
             />
-            <ChevronUp
-              className={cn(
-                "size-4 shrink-0 transition-transform duration-200",
-                darkTrigger
-                  ? "text-slate-400 group-hover:text-white"
-                  : "text-muted-foreground group-hover:text-foreground",
-              )}
-            />
+            {isTopbar ? (
+              <ChevronDown
+                className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
+                aria-hidden
+              />
+            ) : (
+              <ChevronUp
+                className={cn(
+                  "size-4 shrink-0 transition-transform duration-200",
+                  darkTrigger
+                    ? "text-slate-400 group-hover:text-white"
+                    : "text-muted-foreground group-hover:text-foreground",
+                )}
+              />
+            )}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="top" className="w-[230px] mb-2">
+        <DropdownMenuContent
+          align={isTopbar ? "end" : "start"}
+          side={isTopbar ? "bottom" : "top"}
+          className={cn("w-[230px]", isTopbar ? "mt-2" : "mb-2")}
+        >
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href={profileHref} className="cursor-pointer">
-              <UserIcon className="mr-2 size-4" /> Profile & Settings
+              <UserIcon className="mr-2 size-4" /> {resolvedProfileLabel}
             </Link>
           </DropdownMenuItem>
           {showLanguageToggle ? (
