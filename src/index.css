@@ -2360,6 +2360,565 @@
   }
 }
 
+/*
+ * CUI-07 Matter Details body. Scoped to /client/cases/:id only.
+ * Does not alter .client-home*, .client-matters*, shell geometry, or Staff/Admin.
+ * V2: visual density calibration vs Reference 03 (body authority).
+ */
+.dashboard-theme.dashboard-client.client-matter-detail[data-slot="portal-page-shell"] {
+  --client-matter-detail-gap: 0.5rem;
+  --dashboard-section-gap: 0.55rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero {
+  padding: 0.55rem 0.75rem !important;
+  border-radius: 0.9rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero > .relative.z-10 {
+  gap: 0.55rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-hero
+  > .relative.z-10
+  > .flex.min-w-0 {
+  gap: 0.65rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-hero
+  [data-slot="dashboard-hero-icon"] {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  border-radius: 0.65rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-hero
+  [data-slot="dashboard-hero-icon"]
+  svg {
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero h1 {
+  font-size: 1.2rem !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+@media (min-width: 640px) {
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero h1 {
+    font-size: 1.35rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero h1 {
+    font-size: 1.45rem !important;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail
+    .client-matter-detail-hero
+    > .relative.z-10 {
+    align-items: center !important;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.55rem;
+  width: 100%;
+  margin-bottom: 0 !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero .mb-1\.5 {
+  margin-bottom: 0.2rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.6875rem;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--dashboard-primary-foreground) 78%, transparent);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-breadcrumb-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-breadcrumb-link:focus-visible {
+  outline: 2px solid var(--dashboard-primary-foreground);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-breadcrumb-current {
+  font-weight: 600;
+  color: var(--dashboard-primary-foreground);
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-status-wrap {
+  flex-shrink: 0;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-meta {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  opacity: 0.92;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  opacity: 0.88;
+  max-width: 42rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero p {
+  margin-top: 0.25rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-actions a,
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-actions button {
+  height: 1.85rem !important;
+  padding-inline: 0.55rem !important;
+  font-size: 0.6875rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-tabs {
+  margin-top: 0 !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-tablist {
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-card);
+  background: var(--dashboard-panel);
+  min-height: 2.15rem;
+  padding: 0.15rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+@media (min-width: 900px) {
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-facts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.65rem;
+  background: var(--dashboard-panel);
+  padding: 0.45rem 0.55rem;
+  box-shadow: var(--dashboard-shadow-card);
+  min-height: 0;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-fact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  background: var(--dashboard-information-soft);
+  color: var(--dashboard-information);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-fact[data-tone="success"]
+  .client-matter-detail-fact-icon {
+  background: var(--dashboard-success-soft);
+  color: var(--dashboard-success);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-fact[data-tone="warning"]
+  .client-matter-detail-fact-icon {
+  background: var(--dashboard-warning-soft);
+  color: var(--dashboard-warning);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-fact[data-tone="primary"]
+  .client-matter-detail-fact-icon {
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-fact-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-fact-label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-fact-value {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-overview {
+  display: grid;
+  gap: var(--client-matter-detail-gap);
+}
+
+@media (min-width: 1100px) {
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-overview {
+    grid-template-columns: minmax(0, 1.95fr) minmax(16rem, 0.95fr);
+    align-items: start;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-main,
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-rail {
+  display: grid;
+  gap: var(--client-matter-detail-gap);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-card {
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-card[data-density="compact"]
+  [data-slot="dashboard-section-header"] {
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+  gap: 0.35rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-card[data-density="compact"]
+  [data-slot="dashboard-section-title"] {
+  font-size: 0.9375rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail
+  .client-matter-detail-card[data-density="compact"]
+  > div:last-child {
+  padding: 0.5rem 0.75rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-about {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.4rem 0.85rem;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-about {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-about dt {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-about dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-about-summary {
+  margin: 0 0 0.45rem;
+  padding: 0;
+  border: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-rail-card,
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-help {
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-card);
+  background: var(--dashboard-panel);
+  box-shadow: var(--dashboard-shadow-card);
+  padding: 0.55rem 0.65rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-rail-head h2,
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-help h2 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-body {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-date {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.35rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 0.55rem;
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-day {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-month {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-year {
+  font-size: 0.625rem;
+  opacity: 0.8;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-lines {
+  display: grid;
+  gap: 0.22rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-lines li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing-ics {
+  width: 100%;
+  height: 1.85rem !important;
+  font-size: 0.6875rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-team-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-team-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-avatar,
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-avatar-image {
+  display: flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--dashboard-neutral-soft);
+  color: var(--dashboard-primary);
+  font-size: 0.625rem;
+  font-weight: 700;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-avatar-image {
+  object-fit: cover;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-help {
+  background: var(--dashboard-information-soft) !important;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-help p {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-activity {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-activity-item {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-activity-time {
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-row {
+  border-radius: var(--dashboard-radius-card);
+  padding-block: 0.35rem !important;
+}
+
+@media (max-width: 639px) {
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero {
+    padding: 0.5rem 0.65rem !important;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail
+    .client-matter-detail-hero
+    > .relative.z-10 {
+    gap: 0.45rem !important;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail
+    .client-matter-detail-hero
+    > .relative.z-10
+    > .flex.min-w-0 {
+    gap: 0.5rem !important;
+    width: 100%;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail
+    .client-matter-detail-hero
+    [data-slot="dashboard-hero-icon"] {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero h1 {
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-breadcrumb-current {
+    max-width: 11rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-summary {
+    -webkit-line-clamp: 2;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-actions {
+    width: 100%;
+    gap: 0.3rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-actions a,
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hero-actions button {
+    flex: 1 1 calc(50% - 0.3rem);
+    justify-content: center;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail
+    .client-matter-detail-hero-actions
+    a:first-child {
+    flex: 1 1 100%;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-activity-item {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-hearing {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
 .dashboard-theme {
   min-height: 100%;
   background: var(--dashboard-canvas);
