@@ -2919,6 +2919,495 @@
   }
 }
 
+/*
+ * CUI-08 Hearings & Court Diary. Scoped to /client/hearings only.
+ * Does not alter .client-home*, .client-matters*, .client-matter-detail*, or Staff/Admin.
+ * V2: denser toolbar / Next Hearing / mobile fold — visual only.
+ */
+.dashboard-theme.dashboard-client.client-hearings[data-slot="portal-page-shell"] {
+  --client-hearings-gap: 0.4rem;
+  --dashboard-section-gap: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-hero {
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.85rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-hero h1 {
+  font-size: 1.3rem !important;
+  line-height: 1.15 !important;
+}
+
+@media (min-width: 640px) {
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-hero h1 {
+    font-size: 1.45rem !important;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-msg-short {
+  display: none;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.55rem;
+  background: var(--dashboard-neutral-soft);
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-view {
+  border: 0;
+  background: transparent;
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-view-active {
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-view:focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-control select,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-search input {
+  height: 2rem;
+  min-height: 2rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.5rem;
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  padding: 0 0.6rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-control {
+  flex: 0 0 auto;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-control select {
+  width: 14rem;
+  max-width: 16rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.5rem;
+  background: var(--dashboard-panel);
+  padding: 0 0.5rem;
+  color: var(--muted-foreground);
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-search input {
+  border: 0;
+  padding-inline: 0;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-search input:focus {
+  outline: none;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-search:focus-within {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 1px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-controls {
+    flex-wrap: nowrap;
+    flex: 1 1 auto;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-control select {
+    width: 15rem;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-layout {
+  display: grid;
+  gap: var(--client-hearings-gap);
+}
+
+@media (min-width: 1100px) {
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-layout {
+    grid-template-columns: minmax(0, 1.95fr) minmax(14.5rem, 0.85fr);
+    align-items: start;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-main {
+  display: grid;
+  gap: var(--client-hearings-gap);
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-list-card,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-rail-card,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-help {
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-card);
+  background: var(--dashboard-panel);
+  box-shadow: var(--dashboard-shadow-card);
+  padding: 0.45rem 0.6rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next-head,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-list-head,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next-head h2,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-list-head h2,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-rail-head h2,
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-help h2 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem 0.65rem;
+  align-items: start;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-dateblock {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.1rem;
+  padding: 0.3rem 0.35rem;
+  border-radius: 0.45rem;
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-dateblock-sm {
+  min-width: 2.6rem;
+  padding: 0.22rem 0.28rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-dateblock-day {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-theme.dashboard-client.client-hearings
+  .client-hearings-dateblock-sm
+  .client-hearings-dateblock-day {
+  font-size: 0.875rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-dateblock-month {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-dateblock-year {
+  font-size: 0.6rem;
+  opacity: 0.8;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--foreground);
+  line-height: 1.25;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next-purpose {
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.25;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.12rem 0.65rem;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-meta li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-meta li span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.28rem 0.1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--dashboard-border) 70%, transparent);
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row-title a:hover {
+  color: var(--dashboard-primary);
+  text-decoration: underline;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-row-meta {
+  margin: 0.08rem 0 0;
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  line-height: 1.3;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-rail {
+  display: grid;
+  gap: var(--client-hearings-gap);
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-rail-empty {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  line-height: 1.35;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-action-list {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-action-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-help {
+  background: var(--dashboard-information-soft) !important;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-help p {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  line-height: 1.3;
+}
+
+.dashboard-theme.dashboard-client.client-hearings .client-hearings-list-empty {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 1023px) {
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-hero h1 {
+    font-size: 1.1rem !important;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-hero-actions {
+    width: 100%;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-hero-actions a {
+    flex: 1 1 calc(50% - 0.3rem);
+    justify-content: center;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-msg-full {
+    display: none;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-msg-short {
+    display: inline;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    flex: 0 0 auto;
+    gap: 0.35rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-control,
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-control select,
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-search {
+    width: 100%;
+    max-width: none;
+    flex: 0 0 auto;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-search {
+    height: 2rem;
+    min-height: 2rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-row-action {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-next {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-next-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.4rem 0.5rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-meta {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+    margin-top: 0.25rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-next-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings
+    .client-hearings-next-actions
+    > *:last-child:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-next-actions a,
+  .dashboard-theme.dashboard-client.client-hearings .client-hearings-next-actions button {
+    justify-content: center;
+    min-height: 2.25rem;
+  }
+}
+
 .dashboard-theme {
   min-height: 100%;
   background: var(--dashboard-canvas);
