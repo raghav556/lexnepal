@@ -20,16 +20,38 @@ const child = spawn(
 );
 
 /*
- * Next development routes are compiled lazily. The staff dashboard requests
- * several independent API route handlers on first paint, so opening it
- * immediately after a restart can otherwise spend many seconds waiting for
- * compilation even though the underlying queries complete quickly.
+ * Next development routes compile lazily. Owner preview currently focuses on
+ * the Client portal, so Phase A pre-compiles Client-critical pages/APIs before
+ * signalling readiness. Phase B then warms remaining Staff/general routes in
+ * the background without blocking Client login.
  *
- * Warm only idempotent GET routes, with modest concurrency, so `npm run dev`
- * produces a smooth owner preview without changing production behavior.
+ * Warm only idempotent GET routes. Production behavior is unchanged.
+ *
+ * LEXNEPAL_SKIP_DEV_WARMUP=1 — skip all warm-up
+ * LEXNEPAL_DEV_WARMUP=client|full|off — optional scope (default: full two-phase)
  */
-const previewWarmupTargets = [
+const clientCriticalTargets = [
   "/",
+  "/sign-in?portal=client",
+  "/client",
+  "/client/cases",
+  "/client/hearings",
+  "/client/checklist",
+  "/client/documents",
+  "/client/messages",
+  "/api/auth/get-session",
+  "/api/v1/public/cms/settings",
+  "/api/v1/users/me",
+  "/api/v1/auth/session",
+  "/api/v1/cases",
+  "/api/v1/hearings",
+  "/api/v1/tasks",
+  "/api/v1/documents",
+  "/api/v1/notifications",
+  "/api/v1/messages/unread",
+];
+
+const backgroundTargets = [
   "/sign-in/staff",
   "/staff",
   "/staff/tasks",
@@ -46,41 +68,40 @@ const previewWarmupTargets = [
   "/staff/team-chat",
   "/staff/appointments",
   "/staff/profile",
-  "/api/auth/get-session",
-  "/api/v1/public/cms/settings",
   "/api/v1/public/cms/team",
   "/api/v1/public/cms/practice-areas?isActive=true",
   "/api/v1/public/cms/testimonials?isApproved=true&showOnHome=true",
   "/api/v1/public/cms/blog-posts?status=published",
   "/api/v1/public/cms/assets/warmup",
-  "/api/v1/users/me",
-  "/api/v1/auth/session",
-  "/api/v1/cases",
   "/api/v1/clients",
-  "/api/v1/hearings",
-  "/api/v1/tasks",
   "/api/v1/tasks/workload",
   "/api/v1/appointments",
-  "/api/v1/documents",
   "/api/v1/documents/recent?limit=5",
   "/api/v1/dm/threads",
-  "/api/v1/notifications",
   "/api/v1/users/directory",
-  "/api/v1/messages/unread",
 ];
 
+function resolveWarmupMode() {
+  const mode = (process.env.LEXNEPAL_DEV_WARMUP ?? "full").trim().toLowerCase();
+  if (mode === "off" || mode === "client" || mode === "full") return mode;
+  console.warn(`[dev] Unknown LEXNEPAL_DEV_WARMUP=${mode}; using full`);
+  return "full";
+}
+
 async function waitForPreviewServer() {
-  for (let attempt = 0; attempt < 120; attempt += 1) {
+  // External HDD / first webpack compile can exceed 30s before any route responds.
+  for (let attempt = 0; attempt < 480; attempt += 1) {
     try {
-      await fetch(`${previewOrigin}/sign-in/staff`, {
-        signal: AbortSignal.timeout(2_000),
+      const response = await fetch(`${previewOrigin}/api/v1/health`, {
+        signal: AbortSignal.timeout(3_000),
       });
-      return;
+      if (response.ok || response.status < 500) return;
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      /* retry until Next accepts connections */
     }
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error("Next.js did not become reachable within 30 seconds");
+  throw new Error("Next.js did not become reachable within 120 seconds");
 }
 
 async function warmTarget(pathname) {
@@ -96,13 +117,10 @@ async function warmTarget(pathname) {
   }
 }
 
-async function warmLocalPreview() {
-  await waitForPreviewServer();
-  console.log("[dev] Warming staff preview routes...");
-  const startedAt = Date.now();
+async function warmQueue(targets, workerCount) {
   const failures = [];
-  const queue = [...previewWarmupTargets];
-  const workers = Array.from({ length: 3 }, async () => {
+  const queue = [...targets];
+  const workers = Array.from({ length: workerCount }, async () => {
     while (queue.length > 0) {
       const pathname = queue.shift();
       if (!pathname) return;
@@ -111,13 +129,51 @@ async function warmLocalPreview() {
     }
   });
   await Promise.all(workers);
-  const elapsedSeconds = ((Date.now() - startedAt) / 1_000).toFixed(1);
-  if (failures.length > 0) {
-    console.warn(`[dev] Preview warm-up finished in ${elapsedSeconds}s with warnings:`);
-    failures.forEach((failure) => console.warn(`  - ${failure}`));
+  return failures;
+}
+
+function logWarmupWarnings(label, failures, elapsedSeconds) {
+  if (failures.length === 0) return;
+  console.warn(`[dev] ${label} finished in ${elapsedSeconds}s with warnings:`);
+  failures.forEach((failure) => console.warn(`  - ${failure}`));
+}
+
+async function warmLocalPreview() {
+  const mode = resolveWarmupMode();
+  if (mode === "off") {
+    console.log("[dev] Preview warm-up disabled (LEXNEPAL_DEV_WARMUP=off or SKIP)");
     return;
   }
-  console.log(`[dev] Preview ready at ${previewOrigin} (warmed in ${elapsedSeconds}s)`);
+
+  await waitForPreviewServer();
+
+  console.log("[dev] Client owner-preview warm-up starting...");
+  const phaseAStarted = Date.now();
+  const phaseAFailures = await warmQueue(clientCriticalTargets, 2);
+  const phaseASeconds = ((Date.now() - phaseAStarted) / 1_000).toFixed(1);
+  logWarmupWarnings("Client owner-preview warm-up", phaseAFailures, phaseASeconds);
+  console.log(`[dev] Client owner preview ready at ${previewOrigin} (warmed in ${phaseASeconds}s)`);
+
+  if (mode === "client") {
+    console.log("[dev] Background warm-up skipped (LEXNEPAL_DEV_WARMUP=client)");
+    return;
+  }
+
+  // Delay Staff/general compile so owner Client login/nav is not starved immediately
+  // after the ready message (webpack compiles one graph at a time on this machine).
+  const backgroundDelayMs = 120_000;
+  console.log(
+    `[dev] Background Staff/general warm-up scheduled in ${backgroundDelayMs / 1000}s...`,
+  );
+  await new Promise((resolve) => setTimeout(resolve, backgroundDelayMs));
+  console.log("[dev] Background Staff/general warm-up proceeding...");
+  const phaseBStarted = Date.now();
+  const phaseBFailures = await warmQueue(backgroundTargets, 1);
+  const phaseBSeconds = ((Date.now() - phaseBStarted) / 1_000).toFixed(1);
+  logWarmupWarnings("Background warm-up", phaseBFailures, phaseBSeconds);
+  if (phaseBFailures.length === 0) {
+    console.log(`[dev] Background warm-up complete (${phaseBSeconds}s)`);
+  }
 }
 
 child.on("error", (error) => {
