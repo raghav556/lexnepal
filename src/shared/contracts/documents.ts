@@ -20,6 +20,31 @@ export const documentTypeSchema = z.enum([
   "other",
 ]);
 
+export type DocumentType = z.infer<typeof documentTypeSchema>;
+
+/** Human-readable labels for repository document types (display / filter). */
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  pleading: "Pleading",
+  affidavit: "Affidavit",
+  contract: "Contract",
+  poa: "Power of Attorney",
+  correspondence: "Correspondence",
+  evidence: "Evidence",
+  template: "Template",
+  court_filing: "Court Filing",
+  notice: "Notice",
+  memo: "Memo",
+  other: "Other",
+};
+
+/** Safe display label for any document type string returned from storage. */
+export function documentTypeLabel(type?: string | null): string {
+  if (!type) return "Document";
+  if (Object.prototype.hasOwnProperty.call(DOCUMENT_TYPE_LABELS, type)) {
+    return DOCUMENT_TYPE_LABELS[type as DocumentType];
+  }
+  return type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
 export const confidentialitySchema = z.enum(["public", "internal", "confidential", "privileged"]);
 
 export const documentListSchema = z.object({

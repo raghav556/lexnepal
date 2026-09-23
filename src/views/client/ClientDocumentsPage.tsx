@@ -1,43 +1,43 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FileText, Download, Upload, Loader2, Eye, Filter, Search } from "lucide-react";
+import {
+  Download,
+  Eye,
+  FileText,
+  FolderOpen,
+  Loader2,
+  MessageSquare,
+  Search,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input.tsx";
 import { useMyClient } from "@/client/queries/clients";
 import { useClientCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { useDocuments, useUploadDocument, useDownloadDocument } from "@/client/queries/documents";
 import { usePagination } from "@/hooks/use-pagination.ts";
-import { Pagination } from "@/components/ui/pagination.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select.tsx";
-import {
   DashboardButton,
-  DashboardFilterBar,
-  DashboardListRow,
   DashboardListSkeleton,
-  DashboardSection,
   DashboardStatusLabel,
-  DashboardTable,
-  DashboardTableBody,
-  DashboardTableCell,
-  DashboardTableHead,
-  DashboardTableHeaderCell,
-  DashboardTableRow,
   EmptyState,
   PortalPageShell,
 } from "@/components/dashboard";
-import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
+import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
+import type { ClientCaseDto, DocumentDto } from "@/shared/contracts/domains";
+import { documentTypeLabel, MAX_DOCUMENT_BYTES } from "@/shared/contracts/documents";
+import { relativeTime } from "@/lib/dashboard-format";
+import { cn } from "@/lib/utils";
 
-const DOC_TYPES = [
+/**
+ * Types a Client may choose when uploading.
+ * Intentionally narrower than repository `documentTypeSchema` storage values.
+ */
+const CLIENT_UPLOAD_DOC_TYPES = [
   "pleading",
   "evidence",
   "contract",
@@ -46,6 +46,39 @@ const DOC_TYPES = [
   "other",
 ] as const;
 
+type ClientUploadDocType = (typeof CLIENT_UPLOAD_DOC_TYPES)[number];
+type SourceFilter = "all" | "firm" | "mine";
+
+const MAX_DOCUMENT_MB = Math.round(MAX_DOCUMENT_BYTES / (1024 * 1024));
+const UPLOAD_ACCEPT_HINT = `PDF, Word, Excel, PowerPoint, JPG, PNG, TIFF, TXT — up to ${MAX_DOCUMENT_MB} MB. Files are scanned before they are added to your matter.`;
+
+function uploaderOf(doc: DocumentDto): string | undefined {
+  const raw = doc.uploadedBy ?? (doc as { uploaderId?: string }).uploaderId;
+  return typeof raw === "string" ? raw : undefined;
+}
+
+function matterOf(cases: ClientCaseDto[], caseId: string | undefined): ClientCaseDto | undefined {
+  if (!caseId) return undefined;
+  return cases.find((matter) => matter._id === caseId || matter.id === caseId);
+}
+
+function fileKindLabel(mimeType?: string | null, title?: string | null): string {
+  const mime = (mimeType || "").toLowerCase();
+  const name = (title || "").toLowerCase();
+  if (mime.includes("pdf") || name.endsWith(".pdf")) return "PDF";
+  if (mime.includes("word") || name.endsWith(".doc") || name.endsWith(".docx")) return "DOC";
+  if (mime.includes("sheet") || name.endsWith(".xls") || name.endsWith(".xlsx")) return "XLS";
+  if (mime.includes("presentation") || name.endsWith(".ppt") || name.endsWith(".pptx"))
+    return "PPT";
+  if (mime.startsWith("image/") || /\.(jpe?g|png|tiff?)$/i.test(name)) return "IMG";
+  if (mime.startsWith("text/") || name.endsWith(".txt")) return "TXT";
+  return "FILE";
+}
+
+function documentDate(doc: DocumentDto): string {
+  return relativeTime(doc.createdAt || doc.updatedAt || null) || "";
+}
+
 function DownloadButton({ documentId }: { documentId: string }) {
   const downloadDocument = useDownloadDocument();
   const [busy, setBusy] = useState(false);
@@ -53,8 +86,9 @@ function DownloadButton({ documentId }: { documentId: string }) {
     <DashboardButton
       variant="ghost"
       size="sm"
-      className="h-7 w-7 p-0"
+      className="client-documents-icon-btn"
       disabled={busy}
+      aria-label="Download document"
       onClick={async () => {
         setBusy(true);
         try {
@@ -66,12 +100,11 @@ function DownloadButton({ documentId }: { documentId: string }) {
           setBusy(false);
         }
       }}
-      title="Download file"
     >
       {busy ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
       ) : (
-        <Download className="w-3.5 h-3.5" />
+        <Download className="h-3.5 w-3.5" aria-hidden />
       )}
     </DashboardButton>
   );
@@ -88,42 +121,33 @@ function DocPreviewBody({
 }) {
   if (url === null) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-dashboard-neutral gap-2 min-h-[240px]">
-        <Loader2 className="w-4 h-4 animate-spin text-dashboard-primary" /> Loading preview…
+      <div className="client-documents-preview-state" role="status">
+        <Loader2 className="h-4 w-4 animate-spin text-dashboard-primary" aria-hidden />
+        Loading preview…
       </div>
     );
   }
   if (!url) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-dashboard-neutral p-6 text-center min-h-[240px]">
+      <div className="client-documents-preview-state" role="status">
         Preview unavailable for this file.
       </div>
     );
   }
   if (mimeType.startsWith("image/")) {
     return (
-      <div className="flex-1 overflow-auto p-2">
-        <img
-          src={url}
-          alt={title}
-          className="max-w-full mx-auto rounded-lg border border-dashboard-border"
-        />
+      <div className="client-documents-preview-media">
+        <img src={url} alt={title} className="client-documents-preview-image" />
       </div>
     );
   }
   if (mimeType === "application/pdf" || title.toLowerCase().endsWith(".pdf")) {
-    return (
-      <iframe
-        title={title}
-        src={url}
-        className="flex-1 w-full min-h-[360px] rounded-lg border border-dashboard-border bg-dashboard-panel"
-      />
-    );
+    return <iframe title={title} src={url} className="client-documents-preview-frame" />;
   }
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center min-h-[240px]">
-      <FileText className="w-10 h-10 text-dashboard-neutral" />
-      <p className="text-sm text-dashboard-neutral">Preview not supported for this file type.</p>
+    <div className="client-documents-preview-fallback">
+      <FileText className="h-10 w-10 text-dashboard-neutral" aria-hidden />
+      <p>Preview is not available for this file type.</p>
       <DashboardButton asChild variant="outline" size="sm">
         <a href={url} target="_blank" rel="noreferrer">
           Open file
@@ -143,18 +167,21 @@ export default function ClientDocumentsPage() {
 
   const [filterCaseId, setFilterCaseId] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
-  const [sourceFilter, setSourceFilter] = useState<"all" | "firm" | "mine">("all");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [search, setSearch] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadCaseId, setUploadCaseId] = useState<string>("");
-  const [uploadType, setUploadType] = useState<(typeof DOC_TYPES)[number]>("other");
-  const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [uploadType, setUploadType] = useState<ClientUploadDocType>("other");
+  const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "success" | "failure">(
+    "idle",
+  );
+  const [previewDoc, setPreviewDoc] = useState<DocumentDto | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const uploadDocument = useUploadDocument();
   const downloadDocument = useDownloadDocument();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (queryCaseId) setFilterCaseId(queryCaseId);
@@ -162,7 +189,7 @@ export default function ClientDocumentsPage() {
 
   useEffect(() => {
     if (!uploadCaseId && cases.length > 0) {
-      const active = cases.find((c: any) => c.status === "active") || cases[0];
+      const active = cases.find((c) => c.status === "active") || cases[0];
       if (active) setUploadCaseId(active._id);
     }
   }, [cases, uploadCaseId]);
@@ -172,29 +199,73 @@ export default function ClientDocumentsPage() {
     return {};
   }, [filterCaseId]);
 
-  const docs = useDocuments(queryArgs) || [];
+  const docs = useDocuments(clientRecord ? queryArgs : "skip");
+  const docsList = docs ?? [];
 
   const filteredDocs = useMemo(() => {
-    return docs.filter((doc: any) => {
+    return docsList.filter((doc) => {
       if (filterType !== "all" && doc.type !== filterType) return false;
-      if (sourceFilter === "mine" && doc.uploaderId !== currentUser?._id) return false;
-      if (sourceFilter === "firm" && doc.uploaderId === currentUser?._id) return false;
+      const uploader = uploaderOf(doc);
+      if (sourceFilter === "mine" && uploader !== currentUser?._id) return false;
+      if (sourceFilter === "firm" && uploader === currentUser?._id) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
-        const matchesTitle = (doc.title || "").toLowerCase().includes(q);
-        const matchesType = (doc.type || "").toLowerCase().includes(q);
-        if (!matchesTitle && !matchesType) return false;
+        const matter = matterOf(cases, doc.caseId);
+        const haystack = [doc.title, doc.type, matter?.title, matter?.caseNumber]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [docs, filterType, sourceFilter, search, currentUser?._id]);
+  }, [docsList, filterType, sourceFilter, search, currentUser?._id, cases]);
 
   const { paginatedItems, currentPage, totalPages, goToPage, nextPage, prevPage } = usePagination({
     items: filteredDocs,
     itemsPerPage: 8,
   });
 
-  const handleOpenPreview = async (doc: any) => {
+  const firmCount = docsList.filter((doc) => uploaderOf(doc) !== currentUser?._id).length;
+  const mineCount = docsList.filter((doc) => uploaderOf(doc) === currentUser?._id).length;
+
+  /** Display/filter types derived from loaded documents (may exceed Client upload set). */
+  const presentDocTypes = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const doc of docsList) {
+      const key = doc.type?.trim() || "other";
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => documentTypeLabel(a.type).localeCompare(documentTypeLabel(b.type)));
+  }, [docsList]);
+
+  const categoryCounts = presentDocTypes;
+
+  const focusUploadTrigger = () => {
+    window.setTimeout(() => {
+      document.getElementById("client-documents-upload-trigger")?.focus();
+    }, 0);
+  };
+
+  const openUploadDialog = () => {
+    setUploadPhase("idle");
+    setDragOver(false);
+    setUploadOpen(true);
+  };
+
+  const handleUploadOpenChange = (open: boolean) => {
+    if (uploadPhase === "uploading") return;
+    setUploadOpen(open);
+    if (!open) {
+      setUploadPhase("idle");
+      setDragOver(false);
+      focusUploadTrigger();
+    }
+  };
+
+  const handleOpenPreview = async (doc: DocumentDto) => {
     setPreviewDoc(doc);
     setPreviewUrl(null);
     try {
@@ -209,14 +280,17 @@ export default function ClientDocumentsPage() {
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     if (!uploadCaseId) {
-      toast.error("Please select a case for this document.");
+      toast.error("Please select a matter for this document.");
       return;
     }
-    setIsUploading(true);
+    setUploadPhase("uploading");
     let successCount = 0;
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (file.size > MAX_DOCUMENT_BYTES) {
+          throw new Error(`Each file must be ${MAX_DOCUMENT_MB} MB or smaller.`);
+        }
         await uploadDocument({
           file,
           title: file.name,
@@ -225,27 +299,42 @@ export default function ClientDocumentsPage() {
         });
         successCount++;
       }
+      setUploadPhase("success");
       toast.success(
         successCount === 1
-          ? "Document uploaded securely."
-          : `${successCount} documents uploaded securely.`,
+          ? "Document uploaded. Scanning may take a moment before it appears."
+          : `${successCount} documents uploaded. Scanning may take a moment before they appear.`,
       );
+      window.setTimeout(() => {
+        setUploadPhase("idle");
+        setUploadOpen(false);
+        focusUploadTrigger();
+      }, 900);
     } catch (err: unknown) {
+      setUploadPhase("failure");
       toast.error(err instanceof Error ? err.message : "Upload failed.");
+      window.setTimeout(() => setUploadPhase("idle"), 3500);
     } finally {
-      setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
+  const shellProps = {
+    portal: "client" as const,
+    decorated: true,
+    className: "client-documents",
+    heroClassName: cn(CASE_LIST_HERO_CLASS, "client-documents-hero"),
+    eyebrow: "Client Portal",
+    title: "Documents",
+    description:
+      "Access filings and evidence shared with your legal team, and upload documents for your matters.",
+    icon: FileText,
+    metricsClassName: "max-sm:hidden",
+  };
+
   if (currentUser === undefined || clientRecord === undefined) {
     return (
-      <PortalPageShell
-        portal="client"
-        loading
-        loadingLabel="Loading your documents…"
-        title="Documents"
-      >
+      <PortalPageShell {...shellProps} loading loadingLabel="Loading your documents…">
         <div />
       </PortalPageShell>
     );
@@ -253,111 +342,403 @@ export default function ClientDocumentsPage() {
 
   if (clientRecord === null) {
     return (
-      <PortalPageShell
-        portal="client"
-        decorated
-        showTodayDate
-        eyebrow="Vault & Filings"
-        title="Documents"
-        description="Access and upload court pleadings, evidence, and filings."
-        icon={FileText}
-      >
+      <PortalPageShell {...shellProps} showTodayDate>
         <EmptyState
           title="No client profile linked"
-          description="Your account is not linked to a client profile yet. Contact the firm to access your document vault."
+          description="Your account is not linked to a client profile yet. Contact the firm to access your documents."
           icon={FileText}
         />
       </PortalPageShell>
     );
   }
 
-  const pendingSigs = docs.filter(
-    (d: any) => d.requiresSignature && d.signatureStatus === "pending",
-  ).length;
-  const myUploads = docs.filter((d: any) => d.uploaderId === currentUser?._id).length;
+  const emptyTitle =
+    search.trim() || filterCaseId !== "all" || filterType !== "all" || sourceFilter !== "all"
+      ? "No documents match your filters"
+      : "No documents yet";
+  const emptyDescription =
+    search.trim() || filterCaseId !== "all" || filterType !== "all" || sourceFilter !== "all"
+      ? "Try adjusting search, matter, type, or source filters."
+      : "When the firm shares a file or you upload one, it will appear here.";
 
-  const metrics = [
-    {
-      label: "Total Documents",
-      value: String(docs.length),
-      icon: FileText,
-      tone: DASHBOARD_METRIC_TONES.documents,
-      helperText: "Matter files on record",
-    },
-    {
-      label: "Awaiting Signature",
-      value: String(pendingSigs),
-      tone: pendingSigs > 0 ? ("warning" as const) : ("success" as const),
-      helperText: "Digital signature queue",
-    },
-    {
-      label: "Uploaded by You",
-      value: String(myUploads),
-      tone: "information" as const,
-      helperText: "Client submissions",
-    },
-    {
-      label: "Shared by Firm",
-      value: String(docs.length - myUploads),
-      tone: "neutral" as const,
-      helperText: "Pleadings & orders",
-    },
-  ];
+  const renderDocActions = (doc: DocumentDto) => (
+    <div className="client-documents-row-actions">
+      <DashboardButton
+        variant="ghost"
+        size="sm"
+        className="client-documents-icon-btn"
+        aria-label={`Preview ${doc.title}`}
+        onClick={() => handleOpenPreview(doc)}
+      >
+        <Eye className="h-3.5 w-3.5" aria-hidden />
+      </DashboardButton>
+      <DownloadButton documentId={doc._id} />
+    </div>
+  );
+
+  const sourceTabs = (
+    <div className="client-documents-sources" role="tablist" aria-label="Document source filters">
+      {(
+        [
+          { id: "all", label: "All", count: docsList.length },
+          { id: "firm", label: "Legal Team", count: firmCount },
+          { id: "mine", label: "My Uploads", count: mineCount },
+        ] as const
+      ).map((source) => {
+        const selected = sourceFilter === source.id;
+        return (
+          <button
+            key={source.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            className={cn("client-documents-source", selected && "client-documents-source-active")}
+            onClick={() => setSourceFilter(source.id)}
+          >
+            {source.label}
+            <span className="client-documents-source-count">{source.count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <PortalPageShell
-      portal="client"
-      decorated
+      {...shellProps}
       showTodayDate
-      eyebrow="Vault & Filings"
-      title="Documents"
-      description="Access court filings, evidence, and documents shared between you and your legal team."
-      icon={FileText}
-      metrics={metrics}
+      actions={
+        <div className="client-documents-hero-actions">
+          <DashboardButton
+            id="client-documents-upload-trigger"
+            type="button"
+            size="sm"
+            onClick={openUploadDialog}
+            aria-haspopup="dialog"
+            aria-expanded={uploadOpen}
+          >
+            <Upload className="h-3.5 w-3.5" aria-hidden />
+            Upload Document
+          </DashboardButton>
+          <DashboardButton asChild size="sm" variant="outline">
+            <Link href="/client/cases">
+              <FolderOpen className="h-3.5 w-3.5" aria-hidden />
+              My Matters
+            </Link>
+          </DashboardButton>
+        </div>
+      }
     >
-      <DashboardSection
-        title="Upload Document"
-        description="Share evidence, IDs, or forms directly with your assigned lawyer"
-        icon={Upload}
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Matter</label>
-              <Select value={uploadCaseId} onValueChange={setUploadCaseId}>
-                <SelectTrigger className="w-full bg-dashboard-panel h-9 text-xs">
-                  <SelectValue placeholder="Select a matter…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cases.map((c: any) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      [{c.caseNumber}] {c.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Document Type</label>
-              <Select
-                value={uploadType}
-                onValueChange={(val) => setUploadType(val as (typeof DOC_TYPES)[number])}
+      <div className="client-documents-layout">
+        <div className="client-documents-main">
+          <div className="client-documents-toolbar" role="region" aria-label="Document filters">
+            <label className="client-documents-search">
+              <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="sr-only">Search documents</span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search documents…"
+                aria-label="Search documents"
+              />
+            </label>
+            <label className="client-documents-control">
+              <span className="sr-only">Filter by Matter</span>
+              <select
+                value={filterCaseId}
+                onChange={(e) => setFilterCaseId(e.target.value)}
+                aria-label="Filter by Matter"
               >
-                <SelectTrigger className="w-full bg-dashboard-panel h-9 text-xs capitalize">
-                  <SelectValue placeholder="Document category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOC_TYPES.map((t) => (
-                    <SelectItem key={t} value={t} className="capitalize">
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="all">All Matters</option>
+                {cases.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="client-documents-control">
+              <span className="sr-only">Filter by document type</span>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                aria-label="Filter by document type"
+              >
+                <option value="all">All Types</option>
+                {presentDocTypes.map((row) => (
+                  <option key={row.type} value={row.type}>
+                    {documentTypeLabel(row.type)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {sourceTabs}
+          </div>
+
+          <section className="client-documents-library" aria-label="Document library">
+            <div className="client-documents-library-head">
+              <h2>Document Library</h2>
+              <p>
+                {filteredDocs.length} document{filteredDocs.length === 1 ? "" : "s"}
+                {totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ""}
+              </p>
             </div>
+
+            {docs === undefined ? (
+              <DashboardListSkeleton rows={4} />
+            ) : filteredDocs.length === 0 ? (
+              <EmptyState title={emptyTitle} description={emptyDescription} icon={FileText} />
+            ) : (
+              <>
+                <div className="client-documents-table-wrap">
+                  <table className="client-documents-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Document</th>
+                        <th scope="col">Matter</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Source</th>
+                        <th scope="col" className="client-documents-actions-col">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedItems.map((doc) => {
+                        const matchedCase = matterOf(cases, doc.caseId);
+                        const isMine = uploaderOf(doc) === currentUser?._id;
+                        const when = documentDate(doc);
+                        return (
+                          <tr key={doc._id}>
+                            <td>
+                              <div className="client-documents-title-cell">
+                                <span className="client-documents-file-badge" aria-hidden>
+                                  {fileKindLabel(doc.mimeType, doc.title)}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="client-documents-title">{doc.title}</p>
+                                  <p className="client-documents-submeta">
+                                    {fileKindLabel(doc.mimeType, doc.title)}
+                                    {when ? ` · ${when}` : ""}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="client-documents-matter-cell">
+                              {matchedCase ? matchedCase.title : "General"}
+                            </td>
+                            <td>
+                              <DashboardStatusLabel
+                                status={doc.type}
+                                className="client-documents-type-label"
+                              >
+                                {documentTypeLabel(doc.type)}
+                              </DashboardStatusLabel>
+                            </td>
+                            <td>
+                              <span
+                                className={cn(
+                                  "client-documents-source-pill",
+                                  isMine
+                                    ? "client-documents-source-pill-mine"
+                                    : "client-documents-source-pill-firm",
+                                )}
+                              >
+                                {isMine ? "You" : "Legal Team"}
+                              </span>
+                            </td>
+                            <td className="client-documents-actions-col">
+                              {renderDocActions(doc)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <ul className="client-documents-card-list">
+                  {paginatedItems.map((doc) => {
+                    const matchedCase = matterOf(cases, doc.caseId);
+                    const isMine = uploaderOf(doc) === currentUser?._id;
+                    const when = documentDate(doc);
+                    return (
+                      <li key={doc._id} className="client-documents-card">
+                        <div className="client-documents-card-top">
+                          <span className="client-documents-file-badge" aria-hidden>
+                            {fileKindLabel(doc.mimeType, doc.title)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="client-documents-title">{doc.title}</p>
+                            <p className="client-documents-submeta">
+                              {matchedCase ? matchedCase.title : "General"}
+                              {when ? ` · ${when}` : ""}
+                            </p>
+                          </div>
+                          <span
+                            className={cn(
+                              "client-documents-source-pill",
+                              isMine
+                                ? "client-documents-source-pill-mine"
+                                : "client-documents-source-pill-firm",
+                            )}
+                          >
+                            {isMine ? "You" : "Legal Team"}
+                          </span>
+                        </div>
+                        <div className="client-documents-card-meta">
+                          <DashboardStatusLabel
+                            status={doc.type}
+                            className="client-documents-type-label"
+                          >
+                            {documentTypeLabel(doc.type)}
+                          </DashboardStatusLabel>
+                          {renderDocActions(doc)}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {totalPages > 1 ? (
+                  <nav className="client-documents-pagination" aria-label="Document pages">
+                    <DashboardButton
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={currentPage <= 1}
+                      onClick={prevPage}
+                    >
+                      Previous
+                    </DashboardButton>
+                    <span className="client-documents-page-status">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <DashboardButton
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={currentPage >= totalPages}
+                      onClick={nextPage}
+                    >
+                      Next
+                    </DashboardButton>
+                    <div className="client-documents-page-jumps">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          className={cn(
+                            "client-documents-page-jump",
+                            page === currentPage && "client-documents-page-jump-active",
+                          )}
+                          aria-label={`Go to page ${page}`}
+                          aria-current={page === currentPage ? "page" : undefined}
+                          onClick={() => goToPage(page)}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                  </nav>
+                ) : null}
+              </>
+            )}
+          </section>
+        </div>
+
+        <aside className="client-documents-rail" aria-label="Document support">
+          {categoryCounts.length > 0 ? (
+            <section className="client-documents-rail-card">
+              <h3>Document Categories</h3>
+              <ul className="client-documents-summary">
+                {categoryCounts.map((row) => (
+                  <li key={row.type}>
+                    <span>{documentTypeLabel(row.type)}</span>
+                    <strong>{row.count}</strong>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <section className="client-documents-rail-card">
+            <h3>Need to send a file?</h3>
+            <p>Upload evidence or forms for a selected matter.</p>
+            <DashboardButton type="button" size="sm" className="w-full" onClick={openUploadDialog}>
+              <Upload className="h-3.5 w-3.5" aria-hidden />
+              Upload Document
+            </DashboardButton>
+          </section>
+
+          <section className="client-documents-help">
+            <h3>Have questions?</h3>
+            <p>Message your legal team about a shared or uploaded document.</p>
+            <DashboardButton asChild size="sm" className="w-full">
+              <Link href="/client/messages">
+                <MessageSquare className="h-3.5 w-3.5" aria-hidden />
+                Send a Message
+              </Link>
+            </DashboardButton>
+          </section>
+        </aside>
+      </div>
+
+      <Dialog open={uploadOpen} onOpenChange={handleUploadOpenChange}>
+        <DialogContent className="client-documents-upload-dialog max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
+          <p className="client-documents-upload-dialog-lead">
+            Share a file with your legal team for a selected matter.
+          </p>
+          <div className="client-documents-upload-grid">
+            <label className="client-documents-field">
+              <span>Matter</span>
+              <select
+                value={uploadCaseId}
+                onChange={(e) => setUploadCaseId(e.target.value)}
+                aria-label="Matter for upload"
+                data-autofocus
+              >
+                {cases.length === 0 ? (
+                  <option value="">No matters available</option>
+                ) : (
+                  cases.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      [{c.caseNumber}] {c.title}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+            <label className="client-documents-field">
+              <span>Document Type</span>
+              <select
+                value={uploadType}
+                onChange={(e) => setUploadType(e.target.value as ClientUploadDocType)}
+                aria-label="Document type for upload"
+              >
+                {CLIENT_UPLOAD_DOC_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {documentTypeLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload document files"
+            aria-busy={uploadPhase === "uploading"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -366,203 +747,66 @@ export default function ClientDocumentsPage() {
             onDrop={(e) => {
               e.preventDefault();
               setDragOver(false);
-              handleFiles(e.dataTransfer.files);
+              void handleFiles(e.dataTransfer.files);
             }}
-            className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
-              dragOver
-                ? "border-dashboard-primary bg-dashboard-primary-soft"
-                : "border-dashboard-border bg-dashboard-panel hover:border-dashboard-primary/50"
-            }`}
+            className={cn(
+              "client-documents-dropzone",
+              dragOver && "client-documents-dropzone-active",
+              uploadPhase === "uploading" && "client-documents-dropzone-busy",
+              uploadPhase === "success" && "client-documents-dropzone-success",
+              uploadPhase === "failure" && "client-documents-dropzone-failure",
+            )}
             onClick={() => fileInputRef.current?.click()}
           >
             <input
               ref={fileInputRef}
               type="file"
               multiple
-              className="hidden"
-              onChange={(e) => handleFiles(e.target.files)}
+              className="sr-only"
+              aria-label="Choose files to upload"
+              onChange={(e) => void handleFiles(e.target.files)}
             />
-            <div className="flex flex-col items-center gap-2">
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-8 h-8 animate-spin text-dashboard-primary" />
-                  <p className="text-sm font-semibold text-foreground">Uploading files securely…</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-10 h-10 rounded-full bg-dashboard-primary-soft flex items-center justify-center text-dashboard-primary">
-                    <Upload className="w-5 h-5" />
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Drop files here or click to browse
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    PDF, DOCX, JPG, PNG up to 25MB (Encrypted storage)
-                  </p>
-                </>
-              )}
-            </div>
+            {uploadPhase === "uploading" ? (
+              <>
+                <Loader2 className="h-7 w-7 animate-spin text-dashboard-primary" aria-hidden />
+                <p className="client-documents-dropzone-title">Uploading and scanning…</p>
+                <p className="client-documents-dropzone-hint">
+                  Please keep this dialog open until the upload finishes.
+                </p>
+              </>
+            ) : uploadPhase === "success" ? (
+              <>
+                <Upload className="h-7 w-7 text-dashboard-success" aria-hidden />
+                <p className="client-documents-dropzone-title">Upload received</p>
+                <p className="client-documents-dropzone-hint">
+                  Your file is being scanned before it appears in the library.
+                </p>
+              </>
+            ) : uploadPhase === "failure" ? (
+              <>
+                <Upload className="h-7 w-7 text-dashboard-danger" aria-hidden />
+                <p className="client-documents-dropzone-title">Upload failed</p>
+                <p className="client-documents-dropzone-hint">
+                  Try again, or contact your legal team if the problem continues.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="client-documents-dropzone-icon" aria-hidden>
+                  <Upload className="h-5 w-5" />
+                </div>
+                <p className="client-documents-dropzone-title">
+                  Drop files here or click to browse
+                </p>
+                <p className="client-documents-dropzone-hint">{UPLOAD_ACCEPT_HINT}</p>
+              </>
+            )}
           </div>
-        </div>
-      </DashboardSection>
-
-      <DashboardSection
-        title="Document Library"
-        description={`Showing ${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"}`}
-        icon={FileText}
-      >
-        <div className="space-y-4">
-          <DashboardFilterBar className="justify-between">
-            <div className="relative w-full sm:max-w-[280px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                className="pl-9 bg-dashboard-panel h-9 text-xs"
-                placeholder="Search documents..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={filterCaseId} onValueChange={setFilterCaseId}>
-                <SelectTrigger className="w-[180px] bg-dashboard-panel h-9 text-xs">
-                  <SelectValue placeholder="All Matters" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Matters</SelectItem>
-                  {cases.map((c: any) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      {c.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[140px] bg-dashboard-panel h-9 text-xs capitalize">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {DOC_TYPES.map((t) => (
-                    <SelectItem key={t} value={t} className="capitalize">
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex bg-dashboard-neutral-soft p-1 rounded-lg border border-dashboard-border">
-                {(["all", "firm", "mine"] as const).map((source) => (
-                  <button
-                    key={source}
-                    onClick={() => setSourceFilter(source)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                      sourceFilter === source
-                        ? "bg-dashboard-panel text-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {source === "all" ? "All" : source === "firm" ? "Firm" : "My Uploads"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </DashboardFilterBar>
-
-          {docs === undefined ? (
-            <DashboardListSkeleton rows={4} />
-          ) : filteredDocs.length === 0 ? (
-            <EmptyState
-              title="No documents found"
-              description="No documents match the selected filters."
-              icon={FileText}
-            />
-          ) : (
-            <div className="space-y-4">
-              <DashboardTable>
-                <DashboardTableHead>
-                  <DashboardTableRow>
-                    <DashboardTableHeaderCell>Document Title</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell>Category</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell>Source</DashboardTableHeaderCell>
-                    <DashboardTableHeaderCell className="text-right">
-                      Actions
-                    </DashboardTableHeaderCell>
-                  </DashboardTableRow>
-                </DashboardTableHead>
-                <DashboardTableBody>
-                  {paginatedItems.map((doc: any) => {
-                    const matchedCase = cases.find((c: any) => c._id === doc.caseId);
-                    const isMine = doc.uploaderId === currentUser?._id;
-                    return (
-                      <DashboardTableRow key={doc._id} striped>
-                        <DashboardTableCell>
-                          <div className="flex items-center gap-2.5">
-                            <FileText className="w-4 h-4 text-dashboard-primary shrink-0" />
-                            <div className="min-w-0">
-                              <p className="font-semibold text-foreground text-xs truncate max-w-[240px]">
-                                {doc.title}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {doc.mimeType || "File"}
-                              </p>
-                            </div>
-                          </div>
-                        </DashboardTableCell>
-                        <DashboardTableCell className="text-xs text-muted-foreground truncate max-w-[180px]">
-                          {matchedCase ? matchedCase.title : "General"}
-                        </DashboardTableCell>
-                        <DashboardTableCell>
-                          <DashboardStatusLabel
-                            status={doc.type}
-                            className="text-[10px] uppercase"
-                          />
-                        </DashboardTableCell>
-                        <DashboardTableCell>
-                          <span
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                              isMine
-                                ? "bg-dashboard-primary-soft text-dashboard-primary"
-                                : "bg-dashboard-neutral-soft text-dashboard-neutral"
-                            }`}
-                          >
-                            {isMine ? "You" : "Legal Team"}
-                          </span>
-                        </DashboardTableCell>
-                        <DashboardTableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <DashboardButton
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => handleOpenPreview(doc)}
-                              title="Preview document"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </DashboardButton>
-                            <DownloadButton documentId={doc._id} />
-                          </div>
-                        </DashboardTableCell>
-                      </DashboardTableRow>
-                    );
-                  })}
-                </DashboardTableBody>
-              </DashboardTable>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={goToPage}
-                onNextPage={nextPage}
-                onPrevPage={prevPage}
-              />
-            </div>
-          )}
-        </div>
-      </DashboardSection>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogContent className="client-documents-preview-dialog max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="truncate pr-6 text-base font-serif">
               {previewDoc?.title || "Document preview"}

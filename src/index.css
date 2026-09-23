@@ -4314,6 +4314,724 @@
   }
 }
 
+/* ── CUI-10 Client Documents (owner visual correction) ── */
+.dashboard-theme.dashboard-client.client-documents {
+  --dashboard-section-gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-hero {
+  padding: 0.45rem 0.7rem !important;
+  border-radius: 0.85rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-hero h1 {
+  font-size: 1.28rem !important;
+  line-height: 1.15 !important;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-hero p {
+  margin-top: 0.2rem !important;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+}
+
+@media (min-width: 640px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-hero h1 {
+    font-size: 1.42rem !important;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (min-width: 1100px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-layout {
+    grid-template-columns: minmax(0, 1fr) 14.75rem;
+    gap: 0.75rem;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-main {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-library,
+.dashboard-theme.dashboard-client.client-documents .client-documents-rail-card,
+.dashboard-theme.dashboard-client.client-documents .client-documents-help,
+.dashboard-theme.dashboard-client.client-documents .client-documents-toolbar {
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.7rem;
+  background: var(--dashboard-panel);
+  box-shadow: var(--dashboard-shadow-card);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  padding: 0.5rem 0.55rem;
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-toolbar {
+    grid-template-columns:
+      minmax(0, 1.5fr)
+      minmax(0, 10.5rem)
+      minmax(0, 8.5rem)
+      auto;
+    align-items: center;
+    gap: 0.4rem 0.45rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-toolbar {
+    grid-template-columns:
+      minmax(12rem, 1.7fr)
+      minmax(0, 11rem)
+      minmax(0, 9rem)
+      auto;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-library-head h2,
+.dashboard-theme.dashboard-client.client-documents .client-documents-rail-card h3,
+.dashboard-theme.dashboard-client.client-documents .client-documents-help h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-library-head p,
+.dashboard-theme.dashboard-client.client-documents .client-documents-rail-card p,
+.dashboard-theme.dashboard-client.client-documents .client-documents-help p,
+.dashboard-theme.dashboard-client.client-documents .client-documents-upload-dialog-lead {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-upload-dialog {
+  width: min(100%, 32rem);
+  max-width: calc(100vw - 1.5rem);
+  max-height: min(90vh, 36rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--dashboard-panel, #ffffff);
+  color: var(--foreground);
+  opacity: 1;
+  isolation: isolate;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-upload-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+@media (min-width: 480px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-upload-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--foreground);
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-field select,
+.dashboard-theme.dashboard-client.client-documents .client-documents-control select,
+.dashboard-theme.dashboard-client.client-documents .client-documents-search input {
+  height: 2rem;
+  min-height: 2rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.5rem;
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  padding: 0 0.55rem;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-field select,
+.dashboard-theme.dashboard-client.client-documents .client-documents-control select {
+  text-overflow: ellipsis;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 6.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.85rem 0.7rem;
+  border: 1.5px dashed var(--dashboard-border);
+  border-radius: 0.65rem;
+  background: var(--dashboard-neutral-soft);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--dashboard-duration-fast) var(--dashboard-ease-smooth),
+    background-color var(--dashboard-duration-fast) var(--dashboard-ease-smooth);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone:focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone-active {
+  border-color: var(--dashboard-primary);
+  background: var(--dashboard-primary-soft);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone-success {
+  border-color: var(--dashboard-success);
+  background: var(--dashboard-success-soft);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone-failure {
+  border-color: var(--dashboard-danger);
+  background: var(--dashboard-danger-soft);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone-icon {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+  flex-shrink: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--foreground);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-dropzone-hint {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.55rem;
+  background: var(--dashboard-neutral-soft);
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-sources {
+    width: auto;
+    justify-self: end;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source {
+  border: 0;
+  background: transparent;
+  border-radius: 0.45rem;
+  padding: 0.28rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-source {
+    flex: 0 0 auto;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source-active {
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source:focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-control {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.5rem;
+  background: var(--dashboard-panel);
+  padding: 0 0.5rem;
+  color: var(--muted-foreground);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-search input {
+  border: 0;
+  padding-inline: 0;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-search input:focus {
+  outline: none;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-search:focus-within {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-library {
+  padding: 0.65rem 0.7rem 0.75rem;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-library-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 0.65rem;
+  margin-bottom: 0.5rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-table-wrap {
+  display: none;
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (min-width: 900px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-table-wrap {
+    display: block;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  table-layout: fixed;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-table th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  padding: 0.4rem 0.45rem;
+  border-bottom: 1px solid var(--dashboard-border);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-table td {
+  padding: 0.45rem;
+  border-bottom: 1px solid var(--dashboard-border);
+  vertical-align: middle;
+  color: var(--foreground);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-file-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  border-radius: 0.4rem;
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+  font-size: 0.62rem;
+  font-weight: 780;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-submeta,
+.dashboard-theme.dashboard-client.client-documents .client-documents-matter-cell {
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-matter-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-type-label {
+  font-size: 0.65rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source-pill-mine {
+  background: var(--dashboard-primary-soft);
+  color: var(--dashboard-primary);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-source-pill-firm {
+  background: var(--dashboard-neutral-soft);
+  color: var(--dashboard-neutral);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-actions-col {
+  text-align: right;
+  width: 5.25rem;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-icon-btn {
+  height: 2rem !important;
+  width: 2rem !important;
+  min-width: 2rem !important;
+  padding: 0 !important;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-card-list {
+    display: none;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-card {
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.6rem;
+  background: var(--dashboard-neutral-soft);
+  padding: 0.55rem 0.6rem;
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-card .client-documents-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-page-status {
+  font-size: 0.74rem;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-page-jumps {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-page-jump {
+  min-width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.4rem;
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-page-jump-active {
+  background: var(--dashboard-primary);
+  border-color: var(--dashboard-primary);
+  color: #fff;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-page-jump:focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-rail {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+@media (max-width: 1099px) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-rail {
+    display: none;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-rail-card,
+.dashboard-theme.dashboard-client.client-documents .client-documents-help {
+  padding: 0.65rem 0.7rem;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-summary {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-summary li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  color: var(--muted-foreground);
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-summary strong {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-rail-card .dashboard-button,
+.dashboard-theme.dashboard-client.client-documents .client-documents-help .dashboard-button {
+  margin-top: 0.55rem;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-help {
+  background: var(--dashboard-primary-soft);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-preview-dialog {
+  gap: 0.75rem;
+  max-width: calc(100vw - 1.5rem);
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-preview-state,
+.dashboard-theme.dashboard-client.client-documents .client-documents-preview-fallback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 15rem;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-preview-media {
+  flex: 1;
+  overflow: auto;
+  padding: 0.35rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-preview-image {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 0.55rem;
+  border: 1px solid var(--dashboard-border);
+}
+
+.dashboard-theme.dashboard-client.client-documents .client-documents-preview-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 22rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.55rem;
+  background: var(--dashboard-panel);
+}
+
+@media (max-width: 767px) {
+  .dashboard-theme.dashboard-client.client-documents [data-slot="portal-page-content"] {
+    padding-bottom: 6.75rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-documents .client-documents-page-jumps {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .dashboard-theme.dashboard-client.client-documents
+    .client-documents-hero-actions
+    .dashboard-button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-theme.dashboard-client.client-documents .client-documents-dropzone {
+    transition: none;
+  }
+}
+
 .hero-animate-in {
   animation: hero-slide-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
