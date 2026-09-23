@@ -95,6 +95,22 @@ describe("CUI-06 client my matters contract", () => {
     expect(page).toContain("/client/cases/${matterId}");
   });
 
+  it("exposes Action Checklist from the My Matters rail without primary-nav changes", () => {
+    expect(page).toContain("Action Checklist");
+    expect(page).toContain('href="/client/checklist"');
+    expect(page).toContain("View Checklist");
+    expect(page).toContain("useTasks");
+    expect(page).toContain("clientVisible");
+    expect(page).toContain("!task.archivedAt");
+    expect(page).toContain("!task.parentTaskId");
+    expect(page).toContain("isTaskOverdue");
+    expect(page).toContain("openChecklistActions");
+    expect(page).toContain("No open actions");
+    expect(page).not.toContain("useTaskCommands");
+    expect(page).not.toMatch(/type=\"checkbox\"/);
+    expect(css).toContain("client-matters-checklist");
+  });
+
   it("keeps Home and CUI-06 CSS isolated", () => {
     expect(page).toContain('className: "client-matters"');
     expect(css).toContain(".dashboard-theme.dashboard-client.client-matters");

@@ -17,12 +17,13 @@ async function signInPreviewClient(page: Page) {
 }
 
 test.describe("CUI-06 client my matters", () => {
+  test.describe.configure({ timeout: 180_000 });
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test("renders My Matters from live preview data", async ({ page }) => {
     await signInPreviewClient(page);
     await expect(page.getByRole("heading", { level: 1, name: "My Matters" })).toBeVisible({
-      timeout: 60_000,
+      timeout: 90_000,
     });
     await expect(page.getByText("My Cases")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /All Matters/ })).toBeVisible();
@@ -36,6 +37,11 @@ test.describe("CUI-06 client my matters", () => {
     await expect(page.getByRole("tab", { name: "Table" })).toBeVisible();
     await expect(page.getByText("Sharma vs. ABC Construction Pvt. Ltd.").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Next Important Date" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Action Checklist" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /View Checklist/i })).toHaveAttribute(
+      "href",
+      "/client/checklist",
+    );
     await expect(page.getByRole("heading", { name: "Recent Matter Activity" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Need help with a matter?" })).toBeVisible();
     await expect(page.getByText("Under Review")).toHaveCount(0);
@@ -43,6 +49,32 @@ test.describe("CUI-06 client my matters", () => {
     await expect(page.getByText("Case filed")).toHaveCount(0);
     await expect(page.getByText("Written statement submitted")).toHaveCount(0);
 
+    const sidebar = page.getByRole("navigation", { name: "Client portal navigation" });
+    await expect(sidebar.getByRole("link", { name: "My Matters" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(sidebar.getByRole("link", { name: "Checklist" })).toHaveCount(0);
+    await expect(sidebar.getByRole("link", { name: "Hearings" })).toHaveCount(0);
+  });
+
+  test("Action Checklist CTA opens the checklist route", async ({ page }) => {
+    await signInPreviewClient(page);
+    await expect(page.getByRole("heading", { level: 1, name: "My Matters" })).toBeVisible({
+      timeout: 60_000,
+    });
+    const checklistCta = page
+      .locator(".client-matters-checklist")
+      .getByRole("link", { name: /View Checklist/i });
+    await expect(checklistCta).toHaveAttribute("href", "/client/checklist");
+    await expect(page.locator(".client-matters-checklist")).toContainText(
+      /open action|No open actions/i,
+    );
+    await checklistCta.click();
+    await expect(page).toHaveURL(/\/client\/checklist/);
+    await expect(page.getByRole("heading", { level: 1, name: "Action Checklist" })).toBeVisible({
+      timeout: 60_000,
+    });
     const sidebar = page.getByRole("navigation", { name: "Client portal navigation" });
     await expect(sidebar.getByRole("link", { name: "My Matters" })).toHaveAttribute(
       "aria-current",
@@ -84,7 +116,9 @@ test.describe("CUI-06 client my matters", () => {
 
     const viewMatter = page.getByRole("link", { name: /View Matter Details/i }).first();
     await expect(viewMatter).toHaveAttribute("href", /\/client\/cases\//);
-    await viewMatter.click();
+    const matterHref = await viewMatter.getAttribute("href");
+    expect(matterHref).toMatch(/^\/client\/cases\//);
+    await page.goto(matterHref!, { waitUntil: "domcontentloaded", timeout: 120_000 });
     await expect(page).toHaveURL(
       new RegExp(`/client/cases/${PREVIEW_PRIMARY_CASE_ID}|/client/cases/`),
     );

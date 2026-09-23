@@ -2281,6 +2281,27 @@
   opacity: 0.35;
 }
 
+.dashboard-theme.dashboard-client.client-matters .client-matters-checklist-icon {
+  height: 1rem;
+  width: 1rem;
+  color: var(--dashboard-primary);
+  opacity: 0.7;
+}
+
+.dashboard-theme.dashboard-client.client-matters .client-matters-checklist-copy {
+  margin: 0 0 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.dashboard-theme.dashboard-client.client-matters .client-matters-checklist-overdue {
+  color: var(--dashboard-danger, #b42318);
+  font-weight: 650;
+}
+
 @media (min-width: 768px) {
   .dashboard-theme.dashboard-client.client-matters .client-matters-summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3794,6 +3815,502 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/*
+ * CUI-09 Action Checklist. Scoped to /client/checklist only.
+ * Does not alter .client-home*, .client-matters*, .client-matter-detail*, .client-hearings*, or Staff/Admin.
+ * Progress fill is solid navy/success — no gradients.
+ */
+.dashboard-theme.dashboard-client.client-checklist[data-slot="portal-page-shell"] {
+  --client-checklist-gap: 0.4rem;
+  --dashboard-section-gap: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-hero {
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.85rem !important;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-hero h1 {
+  font-size: 1.3rem !important;
+  line-height: 1.15 !important;
+}
+
+@media (min-width: 640px) {
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-hero h1 {
+    font-size: 1.45rem !important;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-msg-short {
+  display: none;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-layout {
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (min-width: 1100px) {
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-layout {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    align-items: start;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-main {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-list-card,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-rail-card,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-help {
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.1));
+  background: var(--dashboard-panel, #fff);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-muted, #64748b);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-copy {
+  margin-top: 0.15rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--foreground, #0f172a);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-stats {
+  text-align: right;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-pct {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--dashboard-primary, #1d4e89);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-open {
+  font-size: 0.72rem;
+  color: var(--dashboard-muted, #64748b);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-track {
+  height: 0.45rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--dashboard-neutral-soft, #e8eef5);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dashboard-success, #1f7a4d);
+  transition: width 0.25s ease;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.12));
+  background: var(--dashboard-panel, #fff);
+  color: var(--foreground, #0f172a);
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-view:focus-visible {
+  outline: 2px solid var(--dashboard-focus, #1d4e89);
+  outline-offset: 2px;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-view-active {
+  background: var(--dashboard-primary, #1d4e89);
+  border-color: var(--dashboard-primary, #1d4e89);
+  color: #fff;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-view-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-control select,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-search input {
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.12));
+  background: var(--dashboard-panel, #fff);
+  border-radius: 0.5rem;
+  font-size: 0.78rem;
+  height: 2rem;
+  padding: 0 0.55rem;
+  color: var(--foreground, #0f172a);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-control select {
+  min-width: 11rem;
+  max-width: 16rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.12));
+  border-radius: 0.5rem;
+  padding: 0 0.45rem;
+  background: var(--dashboard-panel, #fff);
+  min-width: 11rem;
+  flex: 1 1 12rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-search input {
+  border: 0;
+  height: 1.9rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-search input:focus {
+  outline: none;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-search:focus-within {
+  outline: 2px solid var(--dashboard-focus, #1d4e89);
+  outline-offset: 1px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-controls {
+    flex-wrap: nowrap;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-list-head h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-list-head span {
+  font-size: 0.72rem;
+  color: var(--dashboard-muted, #64748b);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-group-head {
+  margin: 0.55rem 0 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dashboard-muted, #64748b);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem 0.65rem;
+  align-items: start;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.1));
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  background: #fff;
+}
+
+@media (min-width: 720px) {
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.4rem;
+  background: var(--dashboard-neutral-soft, #e8eef5);
+  color: var(--dashboard-primary, #1d4e89);
+  pointer-events: none;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-status-icon-overdue {
+  background: color-mix(in srgb, var(--dashboard-danger, #b42318) 14%, white);
+  color: var(--dashboard-danger, #b42318);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-status-icon-soon {
+  background: color-mix(in srgb, var(--dashboard-warning, #b54708) 16%, white);
+  color: var(--dashboard-warning, #b54708);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-status-icon-upcoming {
+  background: color-mix(in srgb, var(--dashboard-primary, #1d4e89) 12%, white);
+  color: var(--dashboard-primary, #1d4e89);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-status-icon-done {
+  background: color-mix(in srgb, var(--dashboard-success, #1f7a4d) 14%, white);
+  color: var(--dashboard-success, #1f7a4d);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--foreground, #0f172a);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row-title-done {
+  text-decoration: line-through;
+  color: var(--dashboard-muted, #64748b);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row-desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--dashboard-muted, #64748b);
+  line-height: 1.35;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row-meta {
+  margin: 0.28rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--dashboard-muted, #64748b);
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-due-overdue {
+  color: var(--dashboard-danger, #b42318);
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-due-soon {
+  color: var(--dashboard-warning, #b54708);
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-bucket-tag {
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.12));
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-rail {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-rail-card h2,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-help h2 {
+  margin: 0 0 0.4rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-summary li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-summary-overdue {
+  color: var(--dashboard-danger, #b42318);
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-summary-soon {
+  color: var(--dashboard-warning, #b54708);
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-summary-upcoming {
+  color: var(--dashboard-primary, #1d4e89);
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-summary-done {
+  color: var(--dashboard-success, #1f7a4d);
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-next-title {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-next-meta,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-next-empty,
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-help p {
+  margin: 0.25rem 0 0.55rem;
+  font-size: 0.75rem;
+  color: var(--dashboard-muted, #64748b);
+  line-height: 1.4;
+}
+
+.dashboard-theme.dashboard-client.client-checklist .client-checklist-rail-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--dashboard-muted, #64748b);
+  line-height: 1.35;
+}
+
+@media (max-width: 639px) {
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-msg-full {
+    display: none;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-msg-short {
+    display: inline;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-controls {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-control,
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-control select,
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-search {
+    width: 100%;
+    max-width: none;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-search {
+    flex: 0 0 auto;
+    height: 2rem;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-theme.dashboard-client.client-checklist
+    .client-checklist-row-actions
+    .client-checklist-action {
+    flex: 1 1 calc(50% - 0.25rem);
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-theme.dashboard-client.client-checklist .client-checklist-progress-fill {
+    transition: none;
   }
 }
 

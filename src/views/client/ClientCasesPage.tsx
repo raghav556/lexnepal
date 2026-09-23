@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  CheckSquare,
   Clock,
   FolderOpen,
   MessageSquare,
@@ -19,6 +20,7 @@ import { useClientCasesQuery } from "@/client/queries/cases";
 import { caseQueryFailureKind } from "@/client/queries/case-query-error";
 import { useNotifications } from "@/client/queries/communication";
 import { useHearings } from "@/client/queries/hearings";
+import { useTasks } from "@/client/queries/tasks";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -32,7 +34,7 @@ import {
   type CaseStatusFilter,
 } from "@/shared/contracts/case-ui";
 import { CaseQueryState } from "@/components/cases/case-query-state";
-import type { ClientCaseDto, HearingDto } from "@/shared/contracts/domains";
+import type { ClientCaseDto, HearingDto, TaskDto } from "@/shared/contracts/domains";
 import {
   ClientFilterBar,
   ClientHearingSummary,
@@ -52,6 +54,7 @@ import {
   usePortalBranding,
 } from "@/components/dashboard";
 import { initialsOf, localDateIso, relativeTime } from "@/lib/dashboard-format";
+import { isTaskOverdue } from "@/lib/task-constants.ts";
 import { cn } from "@/lib/utils";
 
 type ClientNotification = {
@@ -201,6 +204,26 @@ function notificationTimestamp(notification: ClientNotification): string {
   return String(notification.createdAt ?? notification._creationTime ?? "");
 }
 
+/** Same Client-visible root-task rule as CUI-09 Action Checklist. */
+function clientVisibleChecklistTasks(
+  tasks: TaskDto[] | undefined,
+  matterIds: Set<string>,
+): TaskDto[] {
+  if (!tasks) return [];
+  return tasks.filter(
+    (task) =>
+      task.clientVisible &&
+      task.caseId &&
+      matterIds.has(task.caseId) &&
+      !task.archivedAt &&
+      !task.parentTaskId,
+  );
+}
+
+function isOpenChecklistTask(task: TaskDto): boolean {
+  return task.status !== "done" && task.status !== "cancelled";
+}
+
 export default function ClientCasesPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
@@ -208,6 +231,7 @@ export default function ClientCasesPage() {
   const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
   const cases = casesQuery.data ?? [];
   const hearings = useHearings(clientRecord ? {} : "skip") || [];
+  const tasks = useTasks(clientRecord ? {} : "skip");
   const team = useMyTeam();
   const notificationsQuery = useNotifications();
   const notifications = (notificationsQuery.data ?? []) as ClientNotification[];
@@ -270,6 +294,19 @@ export default function ClientCasesPage() {
   const nextImportantMatter = nextImportantHearing
     ? cases.find((matter) => matter._id === nextImportantHearing.caseId)
     : undefined;
+
+  const checklistTasks = useMemo(
+    () => clientVisibleChecklistTasks(tasks, matterIds),
+    [tasks, matterIds],
+  );
+  const openChecklistActions = useMemo(
+    () => checklistTasks.filter(isOpenChecklistTask),
+    [checklistTasks],
+  );
+  const overdueChecklistActions = useMemo(
+    () => openChecklistActions.filter((task) => isTaskOverdue(task)),
+    [openChecklistActions],
+  );
 
   const avatarByAdvocateId = useMemo(() => {
     const map = new Map<string, string>();
@@ -736,6 +773,36 @@ export default function ClientCasesPage() {
                 icon={CalendarDays}
               />
             )}
+          </section>
+
+          <section
+            className="client-matters-rail-card client-matters-checklist"
+            aria-labelledby="client-matters-checklist"
+          >
+            <div className="client-matters-rail-head">
+              <h2 id="client-matters-checklist">Action Checklist</h2>
+              <CheckSquare className="client-matters-checklist-icon" aria-hidden />
+            </div>
+            {openChecklistActions.length > 0 ? (
+              <p className="client-matters-checklist-copy">
+                <span>
+                  {openChecklistActions.length} open action
+                  {openChecklistActions.length === 1 ? "" : "s"}
+                </span>
+                {overdueChecklistActions.length > 0 ? (
+                  <span className="client-matters-checklist-overdue">
+                    {overdueChecklistActions.length} overdue
+                  </span>
+                ) : null}
+              </p>
+            ) : (
+              <p className="client-matters-checklist-copy">No open actions</p>
+            )}
+            <DashboardButton asChild size="sm" variant="secondary">
+              <Link href="/client/checklist">
+                View Checklist <ArrowRight className="size-3.5" aria-hidden />
+              </Link>
+            </DashboardButton>
           </section>
 
           <section className="client-matters-rail-card" aria-labelledby="client-matters-activity">
