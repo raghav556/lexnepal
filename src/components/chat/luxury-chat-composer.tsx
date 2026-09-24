@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Paperclip, Send, Lock, Globe, Sparkles, X, Loader2, FileText, Smile } from "lucide-react";
+import { Paperclip, Send, Lock, Globe, Sparkles, X, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { CANNED_LEGAL_TEMPLATES, type CannedLegalTemplate } from "./chat-types";
 
@@ -14,6 +14,8 @@ export interface LuxuryChatComposerProps {
   onAttachFile?: (file: File) => Promise<{ name: string; storageId: string }>;
   disabled?: boolean;
   className?: string;
+  appearance?: "default" | "client";
+  showTemplates?: boolean;
 }
 
 export function LuxuryChatComposer({
@@ -25,11 +27,13 @@ export function LuxuryChatComposer({
   onAttachFile,
   disabled = false,
   className,
+  appearance = "default",
+  showTemplates = true,
 }: LuxuryChatComposerProps) {
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<
     { name: string; storageId: string }[]
@@ -37,8 +41,9 @@ export function LuxuryChatComposer({
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isClient = appearance === "client";
+  const templatesEnabled = showTemplates && !isClient;
 
-  // Auto-resize textarea height
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -87,15 +92,22 @@ export function LuxuryChatComposer({
 
   const applyTemplate = (tpl: CannedLegalTemplate) => {
     setDraft((prev) => (prev ? `${prev}\n\n${tpl.text}` : tpl.text));
-    setShowTemplates(false);
+    setTemplatesOpen(false);
     textareaRef.current?.focus();
   };
 
   return (
     <div
+      data-appearance={appearance}
       className={cn(
-        "relative p-3 bg-slate-900/90 border-t border-slate-800/80 backdrop-blur-md transition-colors",
-        isDragging && "bg-blue-950/20 border-blue-500/50",
+        "relative p-3 border-t transition-colors",
+        isClient
+          ? "bg-[var(--dashboard-panel)] border-dashboard-border"
+          : "bg-slate-900/90 border-slate-800/80 backdrop-blur-md",
+        isDragging &&
+          (isClient
+            ? "bg-dashboard-primary-soft border-dashboard-primary"
+            : "bg-blue-950/20 border-blue-500/50"),
         className,
       )}
       onDragOver={(e) => {
@@ -109,17 +121,16 @@ export function LuxuryChatComposer({
         void handleFileUpload(e.dataTransfer.files);
       }}
     >
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        className="hidden"
+        className="sr-only"
+        aria-label="Attach documents or files"
         onChange={(e) => void handleFileUpload(e.target.files)}
       />
 
-      {/* Canned Templates Overlay Popover */}
-      {showTemplates && (
+      {templatesEnabled && templatesOpen && (
         <div className="absolute bottom-full left-3 right-3 mb-2 p-3 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl z-30 space-y-2">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-semibold text-slate-300">
             <span className="flex items-center gap-1.5 text-blue-400">
@@ -127,8 +138,9 @@ export function LuxuryChatComposer({
             </span>
             <button
               type="button"
-              onClick={() => setShowTemplates(false)}
+              onClick={() => setTemplatesOpen(false)}
               className="p-1 hover:text-white text-slate-400 rounded-md"
+              aria-label="Close templates"
             >
               <X className="size-3.5" />
             </button>
@@ -153,20 +165,35 @@ export function LuxuryChatComposer({
         </div>
       )}
 
-      {/* Pending Attachments Chip Tray */}
       {pendingAttachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 px-1">
           {pendingAttachments.map((att, idx) => (
             <div
               key={att.storageId || idx}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 shadow-xs animate-in fade-in zoom-in-95"
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs shadow-xs",
+                isClient
+                  ? "bg-dashboard-neutral-soft border-dashboard-border text-foreground"
+                  : "bg-slate-800 border-slate-700 text-slate-200",
+              )}
             >
-              <FileText className="size-3.5 text-blue-400 shrink-0" />
+              <FileText
+                className={cn(
+                  "size-3.5 shrink-0",
+                  isClient ? "text-dashboard-primary" : "text-blue-400",
+                )}
+              />
               <span className="max-w-[150px] truncate">{att.name}</span>
               <button
                 type="button"
                 onClick={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                className="p-0.5 hover:text-rose-400 text-slate-400 rounded-full transition-colors ml-0.5"
+                className={cn(
+                  "p-0.5 rounded-full transition-colors ml-0.5",
+                  isClient
+                    ? "text-muted-foreground hover:text-dashboard-danger"
+                    : "hover:text-rose-400 text-slate-400",
+                )}
+                aria-label={`Remove ${att.name}`}
                 title="Remove"
               >
                 <X className="size-3" />
@@ -176,97 +203,118 @@ export function LuxuryChatComposer({
         </div>
       )}
 
-      {/* Channel indicator & Stream toggle */}
-      <div className="flex items-center justify-between gap-2 mb-2 px-1 text-[11px]">
-        {canToggleInternal ? (
-          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-800/90 border border-slate-700/70">
-            <button
-              type="button"
-              onClick={() => onToggleInternal?.(false)}
-              className={cn(
-                "flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition-all",
-                !isInternal
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-slate-400 hover:text-slate-200",
+      {!isClient && (
+        <div className="flex items-center justify-between gap-2 mb-2 px-1 text-[11px]">
+          {canToggleInternal ? (
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-800/90 border border-slate-700/70">
+              <button
+                type="button"
+                onClick={() => onToggleInternal?.(false)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition-all",
+                  !isInternal
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-400 hover:text-slate-200",
+                )}
+              >
+                <Globe className="size-3" /> Client Visible
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleInternal?.(true)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition-all",
+                  isInternal
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "text-slate-400 hover:text-slate-200",
+                )}
+              >
+                <Lock className="size-3" /> Case Team Only
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-slate-400">
+              {isInternal ? (
+                <span className="inline-flex items-center gap-1 text-amber-400 font-medium">
+                  <Lock className="size-3" /> Confidential Case Team Stream
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-blue-400 font-medium">
+                  <Globe className="size-3" /> Client-Visible Stream
+                </span>
               )}
-            >
-              <Globe className="size-3" /> Client Visible
-            </button>
-            <button
-              type="button"
-              onClick={() => onToggleInternal?.(true)}
-              className={cn(
-                "flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition-all",
-                isInternal
-                  ? "bg-amber-600 text-white shadow-xs"
-                  : "text-slate-400 hover:text-slate-200",
-              )}
-            >
-              <Lock className="size-3" /> Case Team Only
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 text-slate-400">
-            {isInternal ? (
-              <span className="inline-flex items-center gap-1 text-amber-400 font-medium">
-                <Lock className="size-3" /> Confidential Case Team Stream
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-blue-400 font-medium">
-                <Globe className="size-3" /> Client-Visible Stream
-              </span>
-            )}
-          </div>
+            </div>
+          )}
+
+          <span className="hidden sm:inline-block text-[10px] text-slate-500 tracking-wider">
+            <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">
+              ↵
+            </kbd>{" "}
+            Send &nbsp;
+            <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">
+              ⇧↵
+            </kbd>{" "}
+            Newline
+          </span>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "flex items-end gap-2 border rounded-2xl p-2 transition-all",
+          isClient
+            ? "bg-dashboard-neutral-soft border-dashboard-border focus-within:border-dashboard-primary focus-within:ring-1 focus-within:ring-dashboard-focus"
+            : "bg-slate-950/70 border-slate-800 focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/30 shadow-inner",
         )}
-
-        {/* Quick Keyboard hint */}
-        <span className="hidden sm:inline-block text-[10px] text-slate-500 tracking-wider">
-          <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">
-            ↵
-          </kbd>{" "}
-          Send &nbsp;
-          <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">
-            ⇧↵
-          </kbd>{" "}
-          Newline
-        </span>
-      </div>
-
-      {/* Main Composer Box */}
-      <div className="flex items-end gap-2 bg-slate-950/70 border border-slate-800 focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/30 rounded-2xl p-2 transition-all shadow-inner">
-        {/* Attachment Button */}
+      >
         {onAttachFile && (
           <button
             type="button"
             disabled={isUploading || disabled}
             onClick={() => fileInputRef.current?.click()}
-            className="size-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-slate-800/80 transition-colors shrink-0 disabled:opacity-50"
+            className={cn(
+              "size-8 rounded-xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-50",
+              isClient
+                ? "text-muted-foreground hover:text-dashboard-primary hover:bg-[var(--dashboard-panel)]"
+                : "text-slate-400 hover:text-blue-400 hover:bg-slate-800/80",
+            )}
+            aria-label="Attach documents or files"
             title="Attach documents or files"
           >
             {isUploading ? (
-              <Loader2 className="size-4 animate-spin text-blue-400" />
+              <Loader2
+                className={cn(
+                  "size-4 animate-spin",
+                  isClient ? "text-dashboard-primary" : "text-blue-400",
+                )}
+              />
             ) : (
               <Paperclip className="size-4" />
             )}
           </button>
         )}
 
-        {/* Quick Legal Templates Button */}
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setShowTemplates((prev) => !prev)}
-          className={cn(
-            "size-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-400 hover:bg-slate-800/80 transition-colors shrink-0",
-            showTemplates && "text-amber-400 bg-slate-800",
-          )}
-          title="Legal response templates"
-        >
-          <Sparkles className="size-4" />
-        </button>
+        {templatesEnabled && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setTemplatesOpen((prev) => !prev)}
+            className={cn(
+              "size-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-400 hover:bg-slate-800/80 transition-colors shrink-0",
+              templatesOpen && "text-amber-400 bg-slate-800",
+            )}
+            title="Legal response templates"
+            aria-label="Legal response templates"
+          >
+            <Sparkles className="size-4" />
+          </button>
+        )}
 
-        {/* Auto-expanding Textarea */}
+        <label className="sr-only" htmlFor="luxury-chat-composer-input">
+          Message
+        </label>
         <textarea
+          id="luxury-chat-composer-input"
           ref={textareaRef}
           rows={1}
           value={draft}
@@ -276,10 +324,15 @@ export function LuxuryChatComposer({
           placeholder={
             isInternal ? "Share a confidential case note with team members…" : placeholder
           }
-          className="flex-1 bg-transparent text-[13px] text-slate-100 placeholder-slate-500 focus:outline-none resize-none max-h-[140px] py-1 px-1 leading-relaxed"
+          aria-label="Message"
+          className={cn(
+            "flex-1 bg-transparent text-[13px] focus:outline-none resize-none max-h-[140px] py-1 px-1 leading-relaxed min-w-0",
+            isClient
+              ? "text-foreground placeholder:text-muted-foreground"
+              : "text-slate-100 placeholder-slate-500",
+          )}
         />
 
-        {/* Send Button */}
         <button
           type="button"
           disabled={
@@ -292,11 +345,16 @@ export function LuxuryChatComposer({
           className={cn(
             "size-8 rounded-xl flex items-center justify-center transition-all shrink-0 font-semibold shadow-md",
             (!draft.trim() && pendingAttachments.length === 0) || isSending || disabled
-              ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+              ? isClient
+                ? "bg-dashboard-neutral-soft text-muted-foreground cursor-not-allowed"
+                : "bg-slate-800 text-slate-500 cursor-not-allowed"
               : isInternal
                 ? "bg-gradient-to-br from-amber-500 to-amber-600 text-white hover:brightness-110 shadow-amber-600/20 active:scale-95"
-                : "bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:brightness-110 shadow-blue-600/25 active:scale-95",
+                : isClient
+                  ? "bg-dashboard-primary text-dashboard-primary-foreground hover:bg-dashboard-primary-hover active:scale-95"
+                  : "bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:brightness-110 shadow-blue-600/25 active:scale-95",
           )}
+          aria-label="Send message"
           title="Send message (Enter)"
         >
           {isSending ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { MessageSquare, ShieldCheck, Lock, Globe } from "lucide-react";
+import { MessageSquare, Lock, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useMessages, useMessageCommands } from "@/client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
@@ -37,6 +37,10 @@ export type MatterChatPanelProps = {
   onBack?: () => void;
   onClose?: () => void;
   bordered?: boolean;
+  /** Client portal light presentation. Default preserves Staff dark appearance. */
+  appearance?: "default" | "client";
+  externalLink?: string;
+  externalLinkLabel?: string;
 };
 
 async function uploadAttachmentStorageId(file: File, caseId: string): Promise<string> {
@@ -98,8 +102,12 @@ export function MatterChatPanel({
   onBack,
   onClose,
   bordered = true,
+  appearance = "default",
+  externalLink,
+  externalLinkLabel,
 }: MatterChatPanelProps) {
   const currentUser = useCurrentUser();
+  const isClientAppearance = appearance === "client";
   const listFilter =
     mode === "client" ? false : stream === "team" ? true : stream === "client" ? false : undefined;
 
@@ -122,7 +130,12 @@ export function MatterChatPanel({
   }, [caseId, messages.length]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    messagesEndRef.current?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
   }, [messages]);
 
   const uid = currentUser?._id || currentUser?.id;
@@ -158,26 +171,41 @@ export function MatterChatPanel({
 
   return (
     <div
+      data-appearance={appearance}
       className={cn(
-        "flex flex-col h-full min-h-[360px] bg-slate-950 text-slate-100 overflow-hidden",
-        bordered && "border border-slate-800 rounded-2xl shadow-xl",
+        "flex flex-col h-full min-h-[360px] overflow-hidden",
+        isClientAppearance
+          ? "matter-chat-appearance-client bg-[var(--dashboard-panel)] text-foreground"
+          : "bg-slate-950 text-slate-100",
+        bordered &&
+          (isClientAppearance
+            ? "border border-dashboard-border rounded-xl shadow-sm"
+            : "border border-slate-800 rounded-2xl shadow-xl"),
         className,
       )}
     >
-      {/* Executive Chat Header */}
       <LuxuryChatHeader
         type="matter"
+        appearance={appearance}
         title={title}
-        subtitle={subtitle || (caseNumber ? `Matter ${caseNumber}` : "Client & Team Messaging")}
+        subtitle={
+          subtitle ||
+          (caseNumber
+            ? `Matter ${caseNumber}`
+            : isClientAppearance
+              ? "Legal team conversation"
+              : "Client & Team Messaging")
+        }
         badge={caseNumber}
         stream={stream}
         onStreamChange={onStreamChange}
         showBack={showBack}
         onBack={onBack}
         onClose={onClose}
+        externalLink={externalLink}
+        externalLinkLabel={externalLinkLabel}
       />
 
-      {/* Stream Notice Bar */}
       {stream === "team" && (
         <div className="px-4 py-1.5 bg-amber-950/40 border-b border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-1.5 font-medium shrink-0">
           <Lock className="size-3 text-amber-400 shrink-0" />
@@ -191,15 +219,45 @@ export function MatterChatPanel({
         </div>
       )}
 
-      {/* Message Stream Area */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-2 bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950">
+      <div
+        className={cn(
+          "flex-1 p-4 overflow-y-auto space-y-2 min-h-0",
+          isClientAppearance
+            ? "bg-[var(--dashboard-neutral-soft)]"
+            : "bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950",
+        )}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-busy={isLoading || undefined}
+        aria-label={title ? `${title} messages` : "Matter messages"}
+      >
         {messages.length === 0 ? (
-          <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6 text-slate-400 gap-3">
-            <div className="size-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
+          <div
+            className={cn(
+              "h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6 gap-3",
+              isClientAppearance ? "text-muted-foreground" : "text-slate-400",
+            )}
+          >
+            <div
+              className={cn(
+                "size-12 rounded-2xl border flex items-center justify-center shadow-inner",
+                isClientAppearance
+                  ? "bg-[var(--dashboard-panel)] border-dashboard-border text-dashboard-neutral"
+                  : "bg-slate-900 border-slate-800 text-slate-500",
+              )}
+            >
               <MessageSquare className="size-6" />
             </div>
-            <p className="text-xs font-medium max-w-sm leading-relaxed text-slate-400">
-              {emptyCopy}
+            <p
+              className={cn(
+                "text-xs font-medium max-w-sm leading-relaxed",
+                isClientAppearance ? "text-muted-foreground" : "text-slate-400",
+              )}
+            >
+              {isClientAppearance
+                ? "No messages yet. Send a note or document to begin this conversation."
+                : emptyCopy}
             </p>
           </div>
         ) : (
@@ -231,21 +289,37 @@ export function MatterChatPanel({
                 isInternal: Boolean(msg.isInternal),
                 isMe,
                 attachments,
-                status: "read",
+                // Decorative only — hide unsupported read receipts in Client appearance.
+                status: isClientAppearance ? undefined : "read",
               };
 
               return (
                 <React.Fragment key={unifiedMsg.id}>
                   {showDateSep && (
-                    <div className="flex items-center my-3 select-none">
-                      <div className="h-px bg-slate-800 flex-1" />
-                      <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center my-3 select-none" role="separator">
+                      <div
+                        className={cn(
+                          "h-px flex-1",
+                          isClientAppearance ? "bg-dashboard-border" : "bg-slate-800",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "px-3 text-[10px] font-bold uppercase tracking-widest",
+                          isClientAppearance ? "text-muted-foreground" : "text-slate-400",
+                        )}
+                      >
                         {dateStr}
                       </span>
-                      <div className="h-px bg-slate-800 flex-1" />
+                      <div
+                        className={cn(
+                          "h-px flex-1",
+                          isClientAppearance ? "bg-dashboard-border" : "bg-slate-800",
+                        )}
+                      />
                     </div>
                   )}
-                  <LuxuryChatBubble message={unifiedMsg} />
+                  <LuxuryChatBubble message={unifiedMsg} appearance={appearance} />
                 </React.Fragment>
               );
             });
@@ -254,19 +328,20 @@ export function MatterChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Luxury Chat Composer */}
       <LuxuryChatComposer
+        appearance={appearance}
         isInternal={sendAsInternal}
         canToggleInternal={mode === "staff" && stream === "all"}
         onToggleInternal={setIsInternal}
         onSendMessage={handleSendMessage}
         onAttachFile={handleAttachFile}
+        showTemplates={!isClientAppearance}
         placeholder={
           sendAsInternal
             ? "Share internal strategy or confidential case notes…"
             : mode === "staff"
               ? "Reply to client with legal advice, updates, or instructions…"
-              : "Message your advocate or legal counsel…"
+              : "Type your message…"
         }
       />
     </div>

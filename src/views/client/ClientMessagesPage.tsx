@@ -1,24 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Calendar, MessageCircle, MessageSquare, UserRound, ArrowLeft } from "lucide-react";
+import { FolderOpen, MessageCircle, MessageSquare } from "lucide-react";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { useUnreadMessageCounts } from "@/client/queries/communication";
 import { useMyClient, useMyTeam } from "@/client/queries/clients";
 import { useClientCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
-import {
-  DashboardButton,
-  DashboardListRow,
-  DashboardListSkeleton,
-  DashboardSection,
-  EmptyState,
-  PortalPageShell,
-} from "@/components/dashboard";
-import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
+import { DashboardButton, EmptyState, PortalPageShell } from "@/components/dashboard";
+import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
+import type { ClientCaseDto } from "@/shared/contracts/domains";
 
 export default function ClientMessagesPage() {
   const currentUser = useCurrentUser();
@@ -31,34 +25,92 @@ export default function ClientMessagesPage() {
 
   const [selected, setSelected] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  /** User clicked a conversation — do not overwrite with auto-default. */
+  const userPickedRef = useRef(false);
+  /** Default (or deep-link) selection already applied for the current no-caseId / caseId mode. */
+  const autoSelectDoneRef = useRef(false);
+  const lastQueryCaseIdRef = useRef<string | null>(queryCaseId);
 
-  const caseIds = cases.map((c: { _id: string }) => c._id);
-  const { data: unreadByCase = {} } = useUnreadMessageCounts(caseIds);
+  const caseIds = useMemo(() => cases.map((c: ClientCaseDto) => c._id), [cases]);
+  const { data: unreadByCase = {}, isFetched: unreadFetched } = useUnreadMessageCounts(caseIds);
+  const unreadReady = caseIds.length === 0 || unreadFetched;
 
   const totalUnread = Object.values(unreadByCase).reduce(
-    (sum: number, count: any) => sum + (Number(count) || 0),
+    (sum: number, count) => sum + (Number(count) || 0),
     0,
   );
 
+  const selectedMatter = useMemo(
+    () => cases.find((c: ClientCaseDto) => c._id === selected) || null,
+    [cases, selected],
+  );
+
   useEffect(() => {
-    if (queryCaseId) {
-      setSelected(queryCaseId);
-      setMobileShowChat(true);
+    if (lastQueryCaseIdRef.current !== queryCaseId) {
+      lastQueryCaseIdRef.current = queryCaseId;
+      autoSelectDoneRef.current = false;
+      userPickedRef.current = false;
+    }
+
+    if (!cases.length) {
+      setSelected(null);
+      setMobileShowChat(false);
+      autoSelectDoneRef.current = false;
+      userPickedRef.current = false;
       return;
     }
-    if (cases.length > 0 && !selected) {
-      setSelected(cases[0]._id);
+
+    if (queryCaseId) {
+      const allowed = cases.some((c: ClientCaseDto) => c._id === queryCaseId);
+      if (allowed) {
+        setSelected(queryCaseId);
+        setMobileShowChat(true);
+      } else {
+        // Invalid / unauthorized deep-link must not open another matter.
+        setSelected(null);
+        setMobileShowChat(false);
+      }
+      autoSelectDoneRef.current = true;
+      return;
     }
-  }, [cases, selected, queryCaseId]);
+
+    const selectionStillValid = (id: string | null) =>
+      Boolean(id && cases.some((c: ClientCaseDto) => c._id === id));
+
+    if (userPickedRef.current) {
+      if (selectionStillValid(selected)) return;
+      userPickedRef.current = false;
+      autoSelectDoneRef.current = false;
+    }
+
+    if (autoSelectDoneRef.current && selectionStillValid(selected)) {
+      return;
+    }
+
+    // Wait for unread counts so we do not lock onto cases[0] with an empty map.
+    if (!unreadReady) return;
+
+    const withUnread = cases.find((c: ClientCaseDto) => Number(unreadByCase[c._id] || 0) > 0);
+    setSelected(withUnread?._id || cases[0]._id);
+    // Do not set mobileShowChat — mobile stays on Conversations until user/caseId opens chat.
+    autoSelectDoneRef.current = true;
+  }, [cases, queryCaseId, unreadByCase, unreadReady, selected]);
+
+  const shellProps = {
+    portal: "client" as const,
+    decorated: true,
+    className: "client-messages",
+    heroClassName: cn(CASE_LIST_HERO_CLASS, "client-messages-hero"),
+    eyebrow: "Client Portal",
+    title: "Messages",
+    description: "Message your legal team about your matters.",
+    icon: MessageCircle,
+    metricsClassName: "max-sm:hidden",
+  };
 
   if (currentUser === undefined || clientRecord === undefined) {
     return (
-      <PortalPageShell
-        portal="client"
-        loading
-        loadingLabel="Loading your messages…"
-        title="Messages"
-      >
+      <PortalPageShell {...shellProps} loading loadingLabel="Loading your messages…">
         <div />
       </PortalPageShell>
     );
@@ -66,15 +118,7 @@ export default function ClientMessagesPage() {
 
   if (clientRecord === null) {
     return (
-      <PortalPageShell
-        portal="client"
-        decorated
-        showTodayDate
-        eyebrow="Direct Advocate Communications"
-        title="Messages"
-        description="Secure communication channels tied to each legal matter."
-        icon={MessageCircle}
-      >
+      <PortalPageShell {...shellProps} showTodayDate>
         <EmptyState
           title="No client profile linked"
           description="Ask the firm to grant portal access before messaging your legal team."
@@ -84,140 +128,138 @@ export default function ClientMessagesPage() {
     );
   }
 
-  const metrics = [
-    {
-      label: "Active Discussions",
-      value: String(cases.length),
-      icon: MessageSquare,
-      tone: DASHBOARD_METRIC_TONES.messages,
-      helperText: "Matter channels",
-    },
-    {
-      label: "Unread Messages",
-      value: String(totalUnread),
-      icon: MessageCircle,
-      tone: totalUnread > 0 ? ("warning" as const) : ("success" as const),
-      helperText: "Awaiting your review",
-    },
-    {
-      label: "Legal Advocates",
-      value: String(users.length),
-      icon: UserRound,
-      tone: "information" as const,
-      helperText: "Assigned team members",
-    },
-  ];
+  const openMatter = (caseId: string) => {
+    userPickedRef.current = true;
+    autoSelectDoneRef.current = true;
+    setSelected(caseId);
+    setMobileShowChat(true);
+  };
 
   return (
     <PortalPageShell
-      portal="client"
-      decorated
+      {...shellProps}
       showTodayDate
-      eyebrow="Direct Advocate Communications"
-      title="Messages"
-      description="Message your legal team about an open matter. Conversations are securely encrypted and tied to each case."
-      icon={MessageCircle}
-      metrics={metrics}
       actions={
-        <DashboardButton asChild size="sm" variant="secondary">
-          <Link href="/client/booking">
-            <Calendar className="w-4 h-4 mr-1.5" /> Book Consultation
-          </Link>
-        </DashboardButton>
+        <div className="client-messages-hero-actions">
+          <DashboardButton asChild size="sm" variant="outline">
+            <Link href="/client/cases">
+              <FolderOpen className="h-3.5 w-3.5" aria-hidden />
+              My Matters
+            </Link>
+          </DashboardButton>
+        </div>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:min-h-[560px]">
-        <DashboardSection
-          title="Matter Channels"
-          description="Select a case to view discussion"
-          icon={MessageSquare}
-          className={cn("h-full", mobileShowChat ? "hidden md:block" : "block")}
+      <div className="client-messages-layout">
+        <section
+          className={cn(
+            "client-messages-sidebar",
+            mobileShowChat ? "client-messages-sidebar-hidden" : undefined,
+          )}
+          aria-label="Matter conversations"
         >
-          {cases === undefined ? (
-            <DashboardListSkeleton rows={4} />
-          ) : cases.length === 0 ? (
+          <div className="client-messages-sidebar-head">
+            <h2>Conversations</h2>
+            <p>
+              {cases.length} matter{cases.length === 1 ? "" : "s"}
+              {totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
+            </p>
+          </div>
+
+          {cases.length === 0 ? (
             <EmptyState
               title="No matters yet"
-              description="Conversations appear once the firm opens a case for you. Need help sooner? Book a consultation or contact the firm."
+              description="Conversations appear once the firm opens a case for you."
               icon={MessageCircle}
               action={
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <DashboardButton asChild size="sm">
-                    <Link href="/client/booking">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      Book Appointment
-                    </Link>
-                  </DashboardButton>
-                  <DashboardButton asChild size="sm" variant="outline">
-                    <Link href="/contact">Contact the firm</Link>
-                  </DashboardButton>
-                </div>
+                <DashboardButton asChild size="sm" variant="outline">
+                  <Link href="/client/cases">My Matters</Link>
+                </DashboardButton>
               }
             />
           ) : (
-            <div className="space-y-2">
-              {cases.map((c: any) => {
-                const active = selected === c._id;
-                const unread = unreadByCase[c._id] || 0;
+            <ul className="client-messages-channel-list" role="listbox" aria-label="Matter list">
+              {cases.map((matter: ClientCaseDto) => {
+                const active = selected === matter._id;
+                const unread = Number(unreadByCase[matter._id] || 0);
                 return (
-                  <DashboardListRow
-                    key={c._id}
-                    className={cn(
-                      "cursor-pointer transition-all p-3",
-                      active &&
-                        "border-dashboard-primary/40 bg-dashboard-primary-soft/50 shadow-xs",
-                    )}
-                    onClick={() => {
-                      setSelected(c._id);
-                      setMobileShowChat(true);
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2 min-w-0 flex-1">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-foreground line-clamp-1">
-                          [{c.caseNumber}] {c.title}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{c.practiceArea}</p>
-                      </div>
+                  <li key={matter._id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      className={cn(
+                        "client-messages-channel",
+                        active && "client-messages-channel-active",
+                        unread > 0 && "client-messages-channel-unread",
+                      )}
+                      onClick={() => openMatter(matter._id)}
+                    >
+                      <span className="client-messages-channel-avatar" aria-hidden>
+                        <MessageSquare className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="client-messages-channel-copy min-w-0">
+                        <span className="client-messages-channel-title">{matter.title}</span>
+                        <span className="client-messages-channel-meta">
+                          {matter.caseNumber}
+                          {matter.practiceArea ? ` · ${matter.practiceArea}` : ""}
+                        </span>
+                      </span>
                       {unread > 0 ? (
-                        <span className="shrink-0 text-[10px] font-bold bg-dashboard-primary text-dashboard-primary-foreground rounded-full px-2 py-0.5">
+                        <span
+                          className="client-messages-unread"
+                          aria-label={`${unread} unread message${unread === 1 ? "" : "s"}`}
+                        >
                           {unread}
                         </span>
                       ) : null}
-                    </div>
-                  </DashboardListRow>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
-        </DashboardSection>
+        </section>
 
-        <div className={cn("md:col-span-2 h-full", mobileShowChat ? "block" : "hidden md:block")}>
-          {selected ? (
-            <div className="h-[560px] flex flex-col">
-              <MatterChatPanel
-                caseId={selected}
-                mode="client"
-                title={cases.find((c: any) => c._id === selected)?.title || "Chat Channel"}
-                users={users}
-                showBack
-                onBack={() => setMobileShowChat(false)}
-                className="h-full rounded-xl border border-dashboard-border shadow-xs overflow-hidden"
-              />
-            </div>
-          ) : (
-            <DashboardSection className="h-full flex flex-col items-center justify-center min-h-[300px]">
-              <div className="flex flex-col items-center text-center p-8 text-muted-foreground gap-3">
-                <MessageCircle className="w-12 h-12 text-dashboard-neutral opacity-40" />
-                <p className="text-sm font-semibold text-foreground">No case selected</p>
-                <p className="text-xs text-muted-foreground max-w-xs">
-                  Choose a matter from the list on the left to start communicating with your legal
-                  team.
-                </p>
-              </div>
-            </DashboardSection>
+        <section
+          className={cn(
+            "client-messages-conversation",
+            mobileShowChat ? "client-messages-conversation-visible" : undefined,
           )}
-        </div>
+          aria-label="Selected matter conversation"
+        >
+          {queryCaseId && !selectedMatter ? (
+            <EmptyState
+              title="Matter unavailable"
+              description="That conversation link is not available for your account. Choose a matter from your list."
+              icon={MessageCircle}
+            />
+          ) : selectedMatter && selected ? (
+            <MatterChatPanel
+              caseId={selected}
+              mode="client"
+              appearance="client"
+              title={selectedMatter.title}
+              caseNumber={selectedMatter.caseNumber}
+              subtitle={`Legal team${selectedMatter.practiceArea ? ` · ${selectedMatter.practiceArea}` : ""}`}
+              users={users}
+              showBack
+              onBack={() => setMobileShowChat(false)}
+              externalLink={`/client/cases/${selected}`}
+              externalLinkLabel="View Matter"
+              bordered={false}
+              className="client-messages-chat-panel h-full"
+            />
+          ) : (
+            <div className="client-messages-empty-pane">
+              <MessageCircle className="h-10 w-10 text-dashboard-neutral opacity-50" aria-hidden />
+              <p className="client-messages-empty-title">Select a matter</p>
+              <p className="client-messages-empty-copy">
+                Choose a conversation to message your legal team.
+              </p>
+            </div>
+          )}
+        </section>
       </div>
     </PortalPageShell>
   );

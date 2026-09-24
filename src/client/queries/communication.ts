@@ -37,7 +37,11 @@ export function useUnreadMessageCounts(caseIds: string[]) {
     enabled: caseIds.length > 0,
     refetchInterval: 10_000,
   });
-  return { data: next.data ?? {}, isLoading: next.isLoading };
+  return {
+    data: next.data ?? {},
+    isLoading: next.isLoading,
+    isFetched: next.isFetched,
+  };
 }
 
 export function useMessageCommands() {
