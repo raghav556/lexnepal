@@ -1,22 +1,19 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
 import {
-  Upload,
-  ShieldCheck,
   CheckCircle2,
-  XCircle,
-  Clock,
+  ChevronRight,
+  Clock3,
   FileText,
-  ArrowLeft,
-  ArrowRight,
-  Shield,
-  UserCheck,
+  ShieldCheck,
+  Upload,
+  XCircle,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useClientCommands, useKycFiles, useMyClient } from "@/client/queries/clients";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils.ts";
+import { toast } from "sonner";
 import {
   DashboardButton,
   DashboardListRow,
@@ -26,83 +23,213 @@ import {
   EmptyState,
   PortalPageShell,
 } from "@/components/dashboard";
-import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 type DocType = "government_id" | "proof_of_address";
+type UploadedFile = { name: string; storageId: string; docType: DocType; mimeType?: string };
+type KycStatus = "pending" | "submitted" | "verified" | "rejected";
 
-type UploadedFile = {
-  name: string;
-  storageId: string;
-  docType: DocType;
-  mimeType?: string;
-};
+const MAX_KYC_FILE_BYTES = 25 * 1024 * 1024;
+const KYC_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+const SUPPORTED_KYC_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const requirements: Array<{ type: DocType; title: string; description: string }> = [
+  {
+    type: "government_id",
+    title: "Government-issued ID",
+    description: "Upload a clear copy of your identification document.",
+  },
+  {
+    type: "proof_of_address",
+    title: "Proof of address",
+    description: "Upload a document that shows your current address.",
+  },
+];
 
-function StatusTimeline({ status }: { status: string }) {
-  const stages = [
-    { key: "pending", label: "Pending" },
-    { key: "submitted", label: "Submitted" },
-    { key: "verified", label: "Verified" },
-  ] as const;
+function documentTypeLabel(type: string | null | undefined) {
+  if (type === "government_id") return "Government-issued ID";
+  if (type === "proof_of_address") return "Proof of address";
+  return "Submitted document";
+}
 
+function maskId(value: string) {
+  return value.length > 4 ? `••••${value.slice(-4)}` : "••••";
+}
+
+type WorkflowStageState = "complete" | "current" | "attention" | "upcoming";
+
+export function getVerificationWorkflowStages(status: KycStatus): Array<{
+  label: string;
+  state: WorkflowStageState;
+}> {
+  const labels = ["Documents", "Details", "Submitted", "Firm review"];
+  if (status === "pending") {
+    return labels.map((label, index) => ({
+      label,
+      state: index === 0 ? "current" : "upcoming",
+    }));
+  }
+  if (status === "submitted") {
+    return labels.map((label, index) => ({
+      label,
+      state: index < 3 ? "complete" : "current",
+    }));
+  }
+  if (status === "rejected") {
+    return labels.map((label, index) => ({
+      label,
+      state: index < 3 ? "complete" : "attention",
+    }));
+  }
+  return labels.map((label) => ({ label, state: "complete" }));
+}
+
+function VerificationSteps({ status }: { status: KycStatus }) {
+  const stages = getVerificationWorkflowStages(status);
   return (
-    <div className="flex items-center gap-1 sm:gap-3 w-full min-w-0">
-      {stages.map((s, i) => {
-        const done =
-          status === "verified" ||
-          (status === "submitted" && i <= 1) ||
-          (status === "pending" && i === 0) ||
-          (status === "rejected" && i <= 1);
-        const current =
-          (status === "pending" && s.key === "pending") ||
-          ((status === "submitted" || status === "rejected") && s.key === "submitted") ||
-          (status === "verified" && s.key === "verified");
+    <ol
+      aria-label="Verification progress"
+      className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-4"
+    >
+      {stages.map(({ label, state }, index) => {
+        const complete = state === "complete";
+        const active = state === "current";
+        const attention = state === "attention";
         return (
-          <React.Fragment key={s.key}>
-            {i > 0 && (
-              <div
-                className={cn(
-                  "h-0.5 flex-1 min-w-[0.75rem]",
-                  done ? "bg-dashboard-primary" : "bg-dashboard-border",
-                )}
-              />
-            )}
-            <div
+          <li
+            key={label}
+            aria-current={active ? "step" : undefined}
+            className="flex items-center gap-2 min-w-0"
+          >
+            <span
+              aria-label={attention ? "Firm review resulted in correction required" : undefined}
               className={cn(
-                "flex flex-col items-center gap-1 shrink-0",
-                current || done ? "text-dashboard-primary" : "text-dashboard-neutral",
+                "flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+                complete
+                  ? "border-dashboard-success bg-dashboard-success text-dashboard-success-foreground"
+                  : active
+                    ? "border-dashboard-primary bg-dashboard-primary text-dashboard-primary-foreground"
+                    : attention
+                      ? "border-dashboard-danger bg-dashboard-danger text-dashboard-danger-foreground"
+                      : "border-dashboard-border bg-dashboard-canvas text-dashboard-neutral",
               )}
             >
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                  current || done
-                    ? "bg-dashboard-primary text-dashboard-primary-foreground shadow-xs"
-                    : "bg-dashboard-panel border border-dashboard-border text-dashboard-neutral",
-                )}
-              >
-                {i + 1}
-              </div>
-              <span className="text-[10px] sm:text-xs font-medium">{s.label}</span>
-            </div>
-          </React.Fragment>
+              {complete ? (
+                <CheckCircle2 className="size-4" />
+              ) : attention ? (
+                <XCircle className="size-4" />
+              ) : (
+                index + 1
+              )}
+            </span>
+            <span
+              className={cn(
+                "text-xs font-medium",
+                active || complete || attention ? "text-foreground" : "text-dashboard-neutral",
+              )}
+            >
+              {label}
+            </span>
+          </li>
         );
       })}
-      {status === "rejected" && (
-        <div className="ml-2 shrink-0">
-          <DashboardStatusLabel status="rejected" className="text-xs" />
+    </ol>
+  );
+}
+
+function StatusSummary({
+  status,
+  reason,
+  canStart,
+  onStart,
+}: {
+  status: KycStatus;
+  reason?: string | null;
+  canStart: boolean;
+  onStart: () => void;
+}) {
+  const content = {
+    pending: {
+      title: "Ready to begin",
+      description: "Complete the required documents and details when you are ready.",
+      icon: ShieldCheck,
+    },
+    submitted: {
+      title: "Documents submitted",
+      description: "Your documents are awaiting firm review.",
+      icon: Clock3,
+    },
+    verified: {
+      title: "Identity verified",
+      description: "No further action is required at this time.",
+      icon: CheckCircle2,
+    },
+    rejected: {
+      title: "Update required",
+      description: "Review the firm’s note and submit updated documents.",
+      icon: XCircle,
+    },
+  }[status];
+  const Icon = content.icon;
+  const label = {
+    pending: "Ready to submit",
+    submitted: "Under review",
+    verified: "Verified",
+    rejected: "Action required",
+  }[status];
+  const tone =
+    status === "verified"
+      ? "bg-dashboard-success/10 text-dashboard-success"
+      : status === "rejected"
+        ? "bg-dashboard-danger/10 text-dashboard-danger"
+        : "bg-dashboard-primary-soft text-dashboard-primary";
+  return (
+    <DashboardSection
+      title="Verification status"
+      description="Your current identity verification progress."
+    >
+      <div className="space-y-5 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 border-b border-dashboard-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", tone)}
+            >
+              <Icon className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">{content.title}</p>
+              <p className="text-xs text-dashboard-neutral">{content.description}</p>
+            </div>
+          </div>
+          <DashboardStatusLabel status={status} aria-label={`Verification status: ${label}`} />
         </div>
-      )}
-    </div>
+        <VerificationSteps status={status} />
+        {status === "rejected" && reason ? (
+          <div
+            className="border-l-2 border-dashboard-danger bg-dashboard-danger/5 px-3 py-3 text-sm text-foreground"
+            role="status"
+          >
+            <span className="font-semibold">Firm note: </span>
+            {reason}
+          </div>
+        ) : null}
+        {canStart ? (
+          <DashboardButton
+            onClick={onStart}
+            className="bg-dashboard-primary text-dashboard-primary-foreground hover:bg-dashboard-primary-hover"
+          >
+            {status === "rejected" ? "Update and resubmit" : "Start verification"}
+            <ChevronRight className="ml-1.5 size-4" />
+          </DashboardButton>
+        ) : null}
+      </div>
+    </DashboardSection>
   );
 }
 
 export default function ClientKYCOnboarding() {
-  const clientRecord = useMyClient();
-  const clientCommands = useClientCommands();
-  const submitKyc = clientCommands.submitKyc;
-
+  const client = useMyClient();
+  const commands = useClientCommands();
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -112,417 +239,390 @@ export default function ClientKYCOnboarding() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const status = clientRecord?.kycStatus;
-  const kycFiles = useKycFiles(clientRecord?._id || null);
-
-  const uploadFile = async (file: File, docType: DocType): Promise<UploadedFile> => {
-    return clientCommands.uploadKycFile(file, docType);
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    setIsUploading(true);
-    try {
-      const uploaded: UploadedFile[] = [];
-      for (const file of files) {
-        uploaded.push(await uploadFile(file, activeDocType));
-      }
-      setUploadedFiles((prev) => [...prev.filter((f) => f.docType !== activeDocType), ...uploaded]);
-      toast.success(
-        activeDocType === "government_id"
-          ? "Government ID uploaded."
-          : "Proof of address uploaded.",
-      );
-    } catch (err: any) {
-      toast.error(err?.message || "Upload failed.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const browseFor = (docType: DocType) => {
-    setActiveDocType(docType);
-    requestAnimationFrame(() => fileInputRef.current?.click());
-  };
-
-  const hasId = uploadedFiles.some((f) => f.docType === "government_id");
-  const hasAddressProof = uploadedFiles.some((f) => f.docType === "proof_of_address");
+  const files = useKycFiles(client?._id || null);
+  const status = (justSubmitted ? "submitted" : client?.kycStatus || "pending") as KycStatus;
+  const hasId = uploadedFiles.some((file) => file.docType === "government_id");
+  const hasAddressProof = uploadedFiles.some((file) => file.docType === "proof_of_address");
+  const canStart = status === "pending" || status === "rejected";
 
   const openWizard = () => {
     setUploadedFiles([]);
-    setAddress(clientRecord?.address || "");
-    setIdNumber((clientRecord as any)?.kycIdNumber || "");
+    setAddress(client?.address || "");
+    setIdNumber((client as { kycIdNumber?: string })?.kycIdNumber || "");
     setConsentAccepted(false);
     setStep(1);
     setJustSubmitted(false);
     setWizardOpen(true);
   };
-
+  const browseFor = (type: DocType) => {
+    setActiveDocType(type);
+    requestAnimationFrame(() => fileInputRef.current?.click());
+  };
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(event.target.files || [])[0];
+    if (!file) return;
+    if (!SUPPORTED_KYC_TYPES.has(file.type)) {
+      toast.error("Choose a PDF, JPG/JPEG, or PNG file.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > MAX_KYC_FILE_BYTES) {
+      toast.error("Each file must be 25 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const uploaded = await commands.uploadKycFile(file, activeDocType);
+      setUploadedFiles((current) => [
+        ...current.filter((entry) => entry.docType !== activeDocType),
+        uploaded,
+      ]);
+      toast.success(`${documentTypeLabel(activeDocType)} is ready to submit.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
   const handleSubmit = async () => {
-    if (!hasId || !hasAddressProof) {
-      toast.error("Both a government ID and proof of address are required.");
+    if (!hasId || !hasAddressProof || !address.trim() || !idNumber.trim() || !consentAccepted)
       return;
-    }
-    if (!address.trim() || !idNumber.trim()) {
-      toast.error("Complete your address and ID number.");
-      return;
-    }
-    if (!consentAccepted) {
-      toast.error("You must accept the consent statement.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      await submitKyc({
+      await commands.submitKyc({
         address: address.trim(),
         idNumber: idNumber.trim(),
         consentAccepted,
-        files: uploadedFiles.map((f) => ({
-          storageId: f.storageId,
-        })),
+        files: uploadedFiles.map((file) => ({ storageId: file.storageId })),
       });
-      toast.success("KYC submitted for law firm review.");
       setJustSubmitted(true);
       setWizardOpen(false);
-    } catch (err: any) {
-      toast.error(err?.message || "KYC submission failed.");
+      toast.success("Documents submitted for firm review.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "KYC submission failed.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (clientRecord === undefined) {
+  if (client === undefined)
     return (
       <PortalPageShell
         portal="client"
         loading
-        loadingLabel="Loading your verification profile…"
+        loadingLabel="Loading identity verification…"
         title="Identity Verification"
       >
         <div />
       </PortalPageShell>
     );
-  }
-
-  if (clientRecord === null) {
+  if (client === null)
     return (
       <PortalPageShell
         portal="client"
         decorated
         showTodayDate
-        eyebrow="Compliance & Security"
-        title="Identity Verification (KYC)"
-        description="Provide identity documents for compliance and secure record keeping."
+        eyebrow="Client portal"
+        title="Identity Verification"
+        description="Your account needs a linked Client profile before identity documents can be submitted."
         icon={ShieldCheck}
       >
         <EmptyState
-          title="No client profile linked"
-          description="Your portal account is not linked to a client profile yet. Contact the firm to begin KYC."
+          title="No Client profile linked"
+          description="Contact the firm for help with your Client profile."
           icon={ShieldCheck}
         />
       </PortalPageShell>
     );
-  }
-
-  const showStatusCard =
-    !wizardOpen &&
-    (status === "verified" ||
-      status === "submitted" ||
-      status === "rejected" ||
-      status === "pending" ||
-      justSubmitted);
-
-  const metrics = [
-    {
-      label: "Verification Status",
-      value:
-        status === "verified"
-          ? "Verified"
-          : status === "submitted" || justSubmitted
-            ? "Under Review"
-            : status === "rejected"
-              ? "Correction Needed"
-              : "Not Started",
-      icon: ShieldCheck,
-      tone:
-        status === "verified"
-          ? ("success" as const)
-          : status === "submitted" || justSubmitted
-            ? ("warning" as const)
-            : status === "rejected"
-              ? ("danger" as const)
-              : ("neutral" as const),
-      helperText: "Nepal AML / Bar compliance",
-    },
-    {
-      label: "Submitted Documents",
-      value: String(kycFiles?.length || 0),
-      icon: FileText,
-      tone: DASHBOARD_METRIC_TONES.documents,
-      helperText: "Encrypted vault copies",
-    },
-    {
-      label: "Client Record",
-      value: clientRecord.fullName,
-      icon: UserCheck,
-      tone: "primary" as const,
-      helperText: clientRecord.email,
-    },
-  ];
 
   return (
     <PortalPageShell
       portal="client"
       decorated
       showTodayDate
-      eyebrow="Compliance & Security"
-      title="Identity Verification (KYC)"
-      description="Provide authentic identity documents for Bar Council compliance and secure record keeping. Files are stored securely for law firm review."
+      eyebrow="Client portal"
+      title="Identity Verification"
+      description="Submit the identity documents required by the firm for review."
       icon={ShieldCheck}
-      metrics={metrics}
     >
-      {showStatusCard && (
-        <DashboardSection title="Verification Status">
-          <div className="p-2 sm:p-4 space-y-6">
-            <StatusTimeline status={justSubmitted ? "submitted" : status || "pending"} />
-            <div className="text-center space-y-3 py-2">
-              {status === "verified" && (
-                <div className="space-y-2">
-                  <CheckCircle2 className="w-12 h-12 text-dashboard-success mx-auto" />
-                  <p className="font-semibold text-foreground text-base">KYC Verified & Accepted</p>
-                  <p className="text-sm text-dashboard-neutral max-w-md mx-auto">
-                    Your identity documents are verified and on file with Srimar Law.
-                  </p>
-                </div>
-              )}
-              {(status === "submitted" || justSubmitted) && status !== "verified" && (
-                <div className="space-y-2">
-                  <Clock className="w-12 h-12 text-dashboard-warning mx-auto" />
-                  <p className="font-semibold text-foreground text-base">Under Firm Review</p>
-                  <p className="text-sm text-dashboard-neutral max-w-md mx-auto">
-                    Your documents were submitted
-                    {(clientRecord as any).kycSubmittedAt
-                      ? ` on ${new Date((clientRecord as any).kycSubmittedAt).toLocaleDateString()}`
-                      : ""}
-                    . You will be notified once our compliance team approves your file.
-                  </p>
-                </div>
-              )}
-              {status === "rejected" && !justSubmitted && (
-                <div className="space-y-2">
-                  <XCircle className="w-12 h-12 text-dashboard-danger mx-auto" />
-                  <p className="font-semibold text-dashboard-danger text-base">
-                    KYC Needs Correction
-                  </p>
-                  <p className="text-sm text-dashboard-neutral break-words max-w-md mx-auto">
-                    {(clientRecord as any).kycRejectionReason ||
-                      "Please review and resubmit clear documents."}
-                  </p>
-                  <DashboardButton
-                    onClick={openWizard}
-                    className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground mt-2"
-                  >
-                    Resubmit Documents
-                  </DashboardButton>
-                </div>
-              )}
-              {status === "pending" && !justSubmitted && (
-                <div className="space-y-2">
-                  <ShieldCheck className="w-12 h-12 text-dashboard-neutral mx-auto" />
-                  <p className="font-semibold text-foreground text-base">KYC Not Started</p>
-                  <p className="text-sm text-dashboard-neutral max-w-md mx-auto">
-                    Upload your government ID (Citizenship/Passport) and proof of address to begin
-                    verification.
-                  </p>
-                  <DashboardButton
-                    onClick={openWizard}
-                    className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground mt-2"
-                  >
-                    Start Verification
-                  </DashboardButton>
-                </div>
-              )}
-            </div>
-
-            {kycFiles === undefined ? (
-              <DashboardListSkeleton rows={2} />
-            ) : kycFiles && kycFiles.length > 0 && status !== "pending" ? (
-              <div className="border-t border-dashboard-border pt-4 text-left max-w-md mx-auto space-y-2">
-                <p className="text-xs font-semibold text-dashboard-neutral uppercase tracking-wide">
-                  Submitted Files
-                </p>
-                <div className="space-y-2">
-                  {kycFiles.map((file: any) => (
-                    <DashboardListRow
-                      key={file._id || file.id || file.storageId}
-                      className="flex items-center gap-2 p-2.5"
-                    >
-                      <FileText className="w-4 h-4 text-dashboard-primary shrink-0" />
-                      <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-foreground truncate">
-                          {file.fileName ||
-                            file.name ||
-                            file.originalFileName ||
-                            "Uploaded document"}
-                        </span>
-                        <DashboardStatusLabel
-                          status={file.docType || file.documentType || "document"}
-                          className="text-[10px]"
-                        />
-                      </div>
-                    </DashboardListRow>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </DashboardSection>
-      )}
-
-      {wizardOpen && (
-        <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.pdf,application/pdf"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-
+      <div className="space-y-5 pb-4" data-testid="client-identity-workspace">
+        <StatusSummary
+          status={status}
+          reason={client.kycRejectionReason}
+          canStart={canStart}
+          onStart={openWizard}
+        />
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.75fr)]">
           <DashboardSection
-            title="KYC Onboarding Wizard"
-            description="Upload clear images or PDFs. Files are encrypted and restricted to compliance staff."
+            title="Submitted documents"
+            description="Documents already submitted for this verification."
           >
-            <div className="space-y-6 pt-2">
-              <div className="grid grid-cols-3 gap-2 pb-2 border-b border-dashboard-border">
-                {["1. Upload", "2. Details", "3. Review"].map((label, i) => {
-                  const n = i + 1;
-                  return (
-                    <div
-                      key={label}
+            <div className="divide-y divide-dashboard-border">
+              {files === undefined ? (
+                <div className="p-4">
+                  <DashboardListSkeleton rows={2} />
+                </div>
+              ) : null}
+              {files?.map(
+                (file: {
+                  _id?: string;
+                  id?: string;
+                  storageId?: string;
+                  fileName?: string;
+                  name?: string;
+                  originalFileName?: string;
+                  docType?: string;
+                  documentType?: string;
+                  mimeType?: string;
+                  url?: string;
+                }) => (
+                  <DashboardListRow
+                    key={file._id || file.id || file.storageId}
+                    className="flex items-center gap-3 px-4 py-3"
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-dashboard-primary-soft text-dashboard-primary">
+                      <FileText className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {file.fileName ||
+                          file.name ||
+                          file.originalFileName ||
+                          "Submitted document"}
+                      </p>
+                      <p className="text-xs text-dashboard-neutral">
+                        {documentTypeLabel(file.docType || file.documentType)}
+                        {file.mimeType ? ` · ${file.mimeType}` : ""}
+                      </p>
+                    </div>
+                    {file.url ? (
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-dashboard-primary underline-offset-2 hover:underline"
+                        aria-label={`Open ${file.fileName || "submitted document"}`}
+                      >
+                        Open
+                      </a>
+                    ) : null}
+                  </DashboardListRow>
+                ),
+              )}
+              {files && files.length === 0 ? (
+                <div className="p-5 text-sm text-dashboard-neutral">
+                  No documents have been submitted yet.
+                </div>
+              ) : null}
+            </div>
+          </DashboardSection>
+          <DashboardSection
+            title="What you need"
+            description="These items are required before submission."
+          >
+            <ul
+              className="divide-y divide-dashboard-border"
+              aria-label="Identity verification requirements"
+            >
+              {requirements.map((requirement) => (
+                <li key={requirement.type} className="flex gap-3 px-4 py-3">
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-dashboard-border text-[10px] text-dashboard-primary"
+                  >
+                    {status === "submitted" || status === "verified" ? (
+                      <CheckCircle2 className="size-3.5" />
+                    ) : (
+                      "•"
+                    )}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{requirement.title}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-dashboard-neutral">
+                      {requirement.description}
+                    </p>
+                  </div>
+                </li>
+              ))}
+              <li className="flex gap-3 px-4 py-3">
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-dashboard-border text-[10px] text-dashboard-primary"
+                >
+                  •
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Identity details</p>
+                  <p className="mt-0.5 text-xs leading-5 text-dashboard-neutral">
+                    Provide your address and ID number before submitting.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </DashboardSection>
+        </div>
+        {wizardOpen ? (
+          <DashboardSection
+            title="Complete identity verification"
+            description="Upload documents, add the required details, then review your submission."
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={KYC_ACCEPT}
+              className="sr-only"
+              onChange={handleFileChange}
+              aria-label={`Choose ${documentTypeLabel(activeDocType)}`}
+            />
+            <div className="space-y-5 p-4 sm:p-5">
+              <ol
+                className="flex items-center gap-2 border-b border-dashboard-border pb-4"
+                aria-label="Submission steps"
+              >
+                {["Upload", "Details", "Review"].map((label, index) => (
+                  <li
+                    key={label}
+                    aria-current={step === index + 1 ? "step" : undefined}
+                    className={cn(
+                      "flex min-w-0 items-center gap-1.5 text-xs font-medium",
+                      step === index + 1 ? "text-dashboard-primary" : "text-dashboard-neutral",
+                    )}
+                  >
+                    <span
                       className={cn(
-                        "flex flex-col items-center gap-1",
-                        step >= n ? "text-dashboard-primary" : "text-dashboard-neutral",
+                        "flex size-6 shrink-0 items-center justify-center rounded-full border",
+                        step >= index + 1
+                          ? "border-dashboard-primary bg-dashboard-primary text-dashboard-primary-foreground"
+                          : "border-dashboard-border",
                       )}
                     >
-                      <div
-                        className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all",
-                          step >= n
-                            ? "bg-dashboard-primary text-dashboard-primary-foreground"
-                            : "bg-dashboard-panel border border-dashboard-border text-dashboard-neutral",
-                        )}
-                      >
-                        {n}
-                      </div>
-                      <span className="text-[10px] sm:text-xs font-medium">{label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {step === 1 && (
+                      {index + 1}
+                    </span>
+                    <span className="hidden sm:inline">{label}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="sr-only" aria-live="polite">
+                {isUploading
+                  ? "Uploading and checking file."
+                  : isSubmitting
+                    ? "Submitting verification."
+                    : ""}
+              </p>
+              {step === 1 ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {(
-                      [
-                        {
-                          type: "government_id" as DocType,
-                          title: "Government ID",
-                          hint: "Citizenship, passport, or driver's license",
-                        },
-                        {
-                          type: "proof_of_address" as DocType,
-                          title: "Proof of Address",
-                          hint: "Utility bill or bank statement (last 3 months)",
-                        },
-                      ] as const
-                    ).map((zone) => {
-                      const file = uploadedFiles.find((f) => f.docType === zone.type);
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {requirements.map((requirement) => {
+                      const file = uploadedFiles.find(
+                        (entry) => entry.docType === requirement.type,
+                      );
                       return (
-                        <button
-                          key={zone.type}
-                          type="button"
-                          onClick={() => browseFor(zone.type)}
-                          disabled={isUploading}
-                          className={cn(
-                            "border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer min-w-0",
-                            file
-                              ? "border-dashboard-primary bg-dashboard-primary-soft"
-                              : "border-dashboard-border bg-dashboard-panel/50 hover:bg-dashboard-panel-hover",
-                          )}
+                        <div
+                          key={requirement.type}
+                          className="border border-dashboard-border bg-dashboard-canvas p-4"
                         >
-                          {file ? (
-                            <CheckCircle2 className="w-8 h-8 text-dashboard-success mb-2" />
-                          ) : (
-                            <Upload className="w-8 h-8 text-dashboard-neutral mb-2" />
-                          )}
-                          <h4 className="font-semibold mb-1 text-sm sm:text-base text-foreground">
-                            {zone.title}
-                          </h4>
-                          <p className="text-xs text-dashboard-neutral mb-2 break-words">
-                            {file ? file.name : zone.hint}
-                          </p>
-                          <span className="text-xs font-semibold text-dashboard-primary">
-                            {isUploading && activeDocType === zone.type
-                              ? "Uploading..."
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">
+                                {requirement.title}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-dashboard-neutral">
+                                {file ? file.name : requirement.description}
+                              </p>
+                            </div>
+                            {file ? (
+                              <CheckCircle2
+                                className="size-5 shrink-0 text-dashboard-success"
+                                aria-label={`${requirement.title} ready`}
+                              />
+                            ) : (
+                              <Upload
+                                className="size-5 shrink-0 text-dashboard-neutral"
+                                aria-hidden="true"
+                              />
+                            )}
+                          </div>
+                          <DashboardButton
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => browseFor(requirement.type)}
+                            disabled={isUploading}
+                            className="mt-4 w-full"
+                          >
+                            {isUploading && activeDocType === requirement.type
+                              ? "Uploading and checking…"
                               : file
                                 ? "Replace file"
-                                : "Browse files"}
-                          </span>
-                        </button>
+                                : "Choose file"}
+                          </DashboardButton>
+                        </div>
                       );
                     })}
                   </div>
-                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
+                  <p className="text-xs text-dashboard-neutral">
+                    Accepted: PDF, JPG/JPEG, or PNG. Maximum 25 MB per file. Files are checked
+                    before submission.
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <DashboardButton variant="outline" onClick={() => setWizardOpen(false)}>
                       Cancel
                     </DashboardButton>
                     <DashboardButton
-                      disabled={!hasId || !hasAddressProof || isUploading}
                       onClick={() => setStep(2)}
-                      className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
+                      disabled={!hasId || !hasAddressProof || isUploading}
+                      className="bg-dashboard-primary text-dashboard-primary-foreground hover:bg-dashboard-primary-hover"
                     >
-                      Continue <ArrowRight className="w-4 h-4 ml-1.5" />
+                      Continue
+                      <ChevronRight className="ml-1.5 size-4" />
                     </DashboardButton>
                   </div>
                 </div>
-              )}
-
-              {step === 2 && (
-                <div className="space-y-4 max-w-lg">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">
-                      Residential Address in Nepal
+              ) : null}
+              {step === 2 ? (
+                <div className="mx-auto max-w-xl space-y-4">
+                  <div>
+                    <label
+                      htmlFor="kyc-address"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
+                    >
+                      Address
                     </label>
                     <Input
+                      id="kyc-address"
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="e.g. Ward 4, Baluwatar, Kathmandu"
-                      className="border-dashboard-border bg-dashboard-panel"
+                      onChange={(event) => setAddress(event.target.value)}
+                      className="border-dashboard-border bg-dashboard-canvas"
+                      required
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">
-                      Citizenship / Passport / ID Number
+                  <div>
+                    <label
+                      htmlFor="kyc-id-number"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
+                    >
+                      ID number
                     </label>
                     <Input
+                      id="kyc-id-number"
                       value={idNumber}
-                      onChange={(e) => setIdNumber(e.target.value)}
-                      placeholder="e.g. 27-01-78-12345"
-                      className="border-dashboard-border bg-dashboard-panel"
+                      onChange={(event) => setIdNumber(event.target.value)}
+                      className="border-dashboard-border bg-dashboard-canvas"
+                      required
                     />
                   </div>
-                  <label className="flex items-start gap-3 text-sm cursor-pointer pt-2">
+                  <label
+                    htmlFor="kyc-consent"
+                    className="flex cursor-pointer items-start gap-3 pt-1 text-sm"
+                  >
                     <input
+                      id="kyc-consent"
                       type="checkbox"
-                      className="mt-1 shrink-0 rounded border-dashboard-border"
+                      className="mt-0.5 size-4 shrink-0 rounded border-dashboard-border"
                       checked={consentAccepted}
-                      onChange={(e) => setConsentAccepted(e.target.checked)}
+                      onChange={(event) => setConsentAccepted(event.target.checked)}
                     />
                     <span className="text-dashboard-neutral text-xs leading-relaxed">
                       I confirm these documents are authentic and belong to me (or I am legally
@@ -530,75 +630,70 @@ export default function ClientKYCOnboarding() {
                       identity verification and AML compliance (consent version kyc-consent-v1).
                     </span>
                   </label>
-                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-3">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <DashboardButton variant="outline" onClick={() => setStep(1)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                      Back
                     </DashboardButton>
                     <DashboardButton
-                      className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
-                      disabled={!address.trim() || !idNumber.trim() || !consentAccepted}
                       onClick={() => setStep(3)}
+                      disabled={!address.trim() || !idNumber.trim() || !consentAccepted}
+                      className="bg-dashboard-primary text-dashboard-primary-foreground hover:bg-dashboard-primary-hover"
                     >
-                      Review & Submit <ArrowRight className="w-4 h-4 ml-1.5" />
+                      Review submission
+                      <ChevronRight className="ml-1.5 size-4" />
                     </DashboardButton>
                   </div>
                 </div>
-              )}
-
-              {step === 3 && (
-                <div className="space-y-5">
-                  <div className="bg-dashboard-panel border border-dashboard-border p-4 rounded-xl space-y-3 min-w-0">
-                    <h4 className="font-semibold text-sm text-foreground">
-                      Review Information Before Submission
-                    </h4>
-                    <div className="space-y-2">
+              ) : null}
+              {step === 3 ? (
+                <div className="mx-auto max-w-xl space-y-4">
+                  <div className="border border-dashboard-border bg-dashboard-canvas p-4">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Review before submission
+                    </h3>
+                    <ul className="mt-3 space-y-2">
                       {uploadedFiles.map((file) => (
-                        <div
+                        <li
                           key={file.storageId}
-                          className="flex items-center justify-between gap-2 text-sm p-2 rounded-lg bg-dashboard-canvas"
+                          className="flex items-center gap-2 text-sm text-dashboard-neutral"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FileText className="w-4 h-4 text-dashboard-primary shrink-0" />
-                            <span className="truncate text-xs font-medium text-foreground">
-                              {file.name}
-                            </span>
-                          </div>
-                          <DashboardStatusLabel status={file.docType} className="text-[10px]" />
-                        </div>
+                          <FileText className="size-4 shrink-0 text-dashboard-primary" />
+                          <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                          <span className="text-xs">{documentTypeLabel(file.docType)}</span>
+                        </li>
                       ))}
-                    </div>
-                    <div className="pt-3 border-t border-dashboard-border text-sm space-y-1 text-dashboard-neutral">
-                      <p>
-                        <span className="font-medium text-foreground">Residential Address:</span>{" "}
-                        <span className="break-words">{address}</span>
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">Government ID Number:</span>{" "}
-                        <span className="break-words font-mono">{idNumber}</span>
-                      </p>
-                      <p className="text-xs text-dashboard-success pt-1">
-                        ✓ Consent statement (kyc-consent-v1) accepted
-                      </p>
-                    </div>
+                    </ul>
+                    <dl className="mt-4 border-t border-dashboard-border pt-3 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-dashboard-neutral">Address</dt>
+                        <dd className="max-w-[65%] break-words text-right text-foreground">
+                          {address}
+                        </dd>
+                      </div>
+                      <div className="mt-2 flex justify-between gap-4">
+                        <dt className="text-dashboard-neutral">ID number</dt>
+                        <dd className="text-foreground">{maskId(idNumber)}</dd>
+                      </div>
+                    </dl>
                   </div>
-                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <DashboardButton variant="outline" onClick={() => setStep(2)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                      Back
                     </DashboardButton>
                     <DashboardButton
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
+                      className="bg-dashboard-primary text-dashboard-primary-foreground hover:bg-dashboard-primary-hover"
                     >
-                      {isSubmitting ? "Submitting to Firm..." : "Submit for Verification"}
+                      {isSubmitting ? "Submitting…" : "Submit for review"}
                     </DashboardButton>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </DashboardSection>
-        </>
-      )}
+        ) : null}
+      </div>
     </PortalPageShell>
   );
 }
