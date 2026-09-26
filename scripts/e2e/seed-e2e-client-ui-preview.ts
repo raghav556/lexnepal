@@ -642,6 +642,21 @@ export async function seedE2eClientUiPreview(): Promise<PreviewSummary> {
     }
   }
 
+  // Targeted cleanup for CUI-12's own mutating browser evidence. This keeps
+  // reruns deterministic without touching non-fixture appointments.
+  await db
+    .delete(appointments)
+    .where(
+      and(
+        eq(appointments.firmId, firmId),
+        eq(appointments.clientId, clientId),
+        inArray(appointments.notes, [
+          "CUI-12 E2E booking test.",
+          "CUI-12 visual evidence request.",
+        ]),
+      ),
+    );
+
   const appointmentSpecs = [
     {
       key: "upcomingVirtual",
