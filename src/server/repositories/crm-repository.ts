@@ -300,7 +300,12 @@ export class CrmRepository {
 
   async getClientLinkForUser(firmId: string, userId: string) {
     const [row] = await database
-      .select({ id: clients.id, email: clients.email })
+      .select({
+        id: clients.id,
+        fullName: clients.fullName,
+        email: clients.email,
+        phone: clients.phone,
+      })
       .from(clients)
       .where(and(eq(clients.firmId, firmId), eq(clients.userId, userId), isNull(clients.deletedAt)))
       .limit(1);

@@ -274,7 +274,29 @@ export class CrmService {
   ) {
     const { firmId } = requireFirmContext(principal);
     assertCanonTimeSlot(input.timeSlot);
-    const created = await repository.bookConsultation(firmId, input, audit);
+    let bookingInput = input;
+
+    if (principal.user.role === "client") {
+      const linked = await repository.getClientLinkForUser(firmId, principal.user.id);
+      if (!linked) {
+        throw new AppError("FORBIDDEN", "A linked client profile is required to book", 403);
+      }
+      if (input.clientId && input.clientId !== linked.id) {
+        throw new AppError("FORBIDDEN", "You are not authorized to book for this client", 403);
+      }
+
+      bookingInput = {
+        ...input,
+        clientId: linked.id,
+        clientName: linked.fullName,
+        clientEmail: linked.email,
+        clientPhone: linked.phone || "N/A",
+        // Lawyer assignment is a Staff CRM workflow; Client requests remain unassigned.
+        assignedLawyerId: null,
+      };
+    }
+
+    const created = await repository.bookConsultation(firmId, bookingInput, audit);
     if (principal.user.role === "client") {
       await notifyAppointmentBooked({
         firmId,
