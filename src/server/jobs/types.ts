@@ -8,6 +8,7 @@ export const JOB_TYPES = [
   "identity.avatar_scan",
   "cms.asset_scan",
   "kyc.malware_scan",
+  "signature_artifact.malware_scan",
   "communication.email",
   "communication.sms",
   "reminder.task",

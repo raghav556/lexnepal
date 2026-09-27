@@ -1,17 +1,19 @@
 import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { createHash, randomInt } from "node:crypto";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDatabase } from "../db/client";
 import {
   documents,
   signatureEnvelopes,
   signatureRecipients,
+  signatureArtifactUploadIntents,
   signingChallenges,
   users,
 } from "../db/schema";
 import { AppError } from "@/shared/errors/api-error";
 import { CommunicationRepository } from "./communication-repository";
+import { getJobRepository } from "@/server/jobs/runtime";
 
 const notifications = new CommunicationRepository();
 const SIGN_CONSENT_VERSION = "esign-consent-v1";
@@ -279,6 +281,103 @@ export class EnvelopeRepository {
     return actions;
   }
 
+  /** Safe client-facing signing contract; unlike generic document DTOs it is signer scoped. */
+  static async listSigningInbox(firmId: string, userId: string) {
+    const db = getDatabase();
+    const envelopeActions = await this.listMyPendingActions(firmId, userId);
+    const pendingEnvelopes = envelopeActions
+      .filter((action) => action.document)
+      .map((action) => ({
+        kind: "envelope" as const,
+        recipientId: action.recipientId,
+        envelopeId: action.envelopeId,
+        envelopeTitle: action.envelopeTitle,
+        routing: action.routing,
+        expiresAt: action.expiresAt,
+        order: action.order,
+        document: action.document && {
+          _id: action.document.id,
+          id: action.document.id,
+          title: action.document.title,
+          mimeType: action.document.mimeType,
+          sizeBytes: action.document.sizeBytes,
+        },
+      }));
+    const envelopeDocumentIds = pendingEnvelopes.map((action) => action.document!.id);
+    const directRows = await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.firmId, firmId),
+          eq(documents.requiresSignature, true),
+          eq(documents.signatureStatus, "pending"),
+          eq(documents.intendedSignerUserId, userId),
+        ),
+      );
+    const pendingDirect = directRows
+      .filter((doc) => !envelopeDocumentIds.includes(doc.id))
+      .map((doc) => ({
+        kind: "direct" as const,
+        document: {
+          _id: doc.id,
+          id: doc.id,
+          title: doc.title,
+          mimeType: doc.mimeType,
+          sizeBytes: doc.sizeBytes,
+        },
+      }));
+    const directSigned = await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.firmId, firmId),
+          eq(documents.signedByUserId, userId),
+          eq(documents.signatureStatus, "signed"),
+        ),
+      );
+    const recipientSigned = await db
+      .select({ recipient: signatureRecipients, envelope: signatureEnvelopes, document: documents })
+      .from(signatureRecipients)
+      .innerJoin(signatureEnvelopes, eq(signatureEnvelopes.id, signatureRecipients.envelopeId))
+      .innerJoin(documents, eq(documents.id, signatureEnvelopes.documentId))
+      .where(
+        and(
+          eq(signatureRecipients.firmId, firmId),
+          eq(signatureRecipients.userId, userId),
+          eq(signatureRecipients.status, "signed"),
+        ),
+      );
+    const recentlySigned = [
+      ...directSigned.map((doc) => ({
+        kind: "direct" as const,
+        document: {
+          _id: doc.id,
+          id: doc.id,
+          title: doc.title,
+          mimeType: doc.mimeType,
+          signedAt: doc.signedAt?.toISOString() ?? null,
+          signatureMethod: doc.signatureMethod,
+          typedSignatureText: doc.typedSignatureText,
+          signConsentVersion: doc.signConsentVersion,
+        },
+      })),
+      ...recipientSigned.map(({ recipient, envelope, document }) => ({
+        kind: "envelope" as const,
+        envelopeId: envelope.id,
+        document: {
+          _id: document.id,
+          id: document.id,
+          title: document.title,
+          mimeType: document.mimeType,
+          signedAt: recipient.signedAt?.toISOString() ?? null,
+        },
+      })),
+    ];
+    return { pendingEnvelopes, pendingDirect, recentlySigned };
+  }
+
   static async sendEnvelope(firmId: string, id: string) {
     const db = getDatabase();
     let env = await this.resolveEnvelope(firmId, id);
@@ -459,25 +558,28 @@ export class EnvelopeRepository {
     return { success: true as const, reminded: pending.length };
   }
 
-  static async issueOtp(
+  /** Enforces the signer, envelope and routing context before any signing side effect. */
+  static async assertSigningContext(
     firmId: string,
     userId: string,
-    input: { documentId: string; envelopeId?: string },
+    documentId: string,
+    envelopeId?: string,
   ) {
     const db = getDatabase();
-    const doc = await this.resolveDocument(firmId, input.documentId);
+    const doc = await this.resolveDocument(firmId, documentId);
     if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
-
-    if (input.envelopeId) {
-      let envelope = await this.resolveEnvelope(firmId, input.envelopeId);
-      if (!envelope || envelope.status !== "sent") {
-        throw new AppError("CONFLICT", "Envelope is not available for signing", 409);
-      }
+    if (!doc.requiresSignature)
+      throw new AppError("CONFLICT", "Document does not require signature", 409);
+    if (envelopeId) {
+      let envelope = await this.resolveEnvelope(firmId, envelopeId);
+      if (!envelope || envelope.documentId !== doc.id)
+        throw new AppError("NOT_FOUND", "Envelope is not available for signing", 404);
       envelope = await this.expireIfNeeded(envelope);
-      if (envelope.status === "expired") {
+      if (envelope.status === "expired")
         throw new AppError("CONFLICT", "This envelope has expired", 410);
-      }
-      const [mine] = await db
+      if (envelope.status !== "sent")
+        throw new AppError("CONFLICT", "Envelope is not open for signing", 409);
+      const [recipient] = await db
         .select()
         .from(signatureRecipients)
         .where(
@@ -488,10 +590,24 @@ export class EnvelopeRepository {
           ),
         )
         .limit(1);
-      if (!mine) {
+      if (!recipient)
         throw new AppError("FORBIDDEN", "You are not the active signer for this envelope", 403);
-      }
+    } else {
+      if (doc.signatureStatus === "signed")
+        throw new AppError("CONFLICT", "Document already signed", 409);
+      if (!doc.intendedSignerUserId || doc.intendedSignerUserId !== userId)
+        throw new AppError("FORBIDDEN", "You are not the intended signer", 403);
     }
+    return doc;
+  }
+
+  static async issueOtp(
+    firmId: string,
+    userId: string,
+    input: { documentId: string; envelopeId?: string },
+  ) {
+    const db = getDatabase();
+    const doc = await this.assertSigningContext(firmId, userId, input.documentId, input.envelopeId);
 
     const code = generateOtpCode();
     const codeHash = hashOtp(code);
@@ -523,18 +639,30 @@ export class EnvelopeRepository {
       (id) => db.select().from(signingChallenges).where(eq(signingChallenges.id, id)).limit(1),
     );
 
-    await notifications.createNotification(firmId, {
-      userId,
-      type: "system",
-      title: "Your signing verification code",
-      body: `Your e-sign code is ${code}. It expires in 10 minutes.`,
-      relatedId: challenge!.id,
+    const [recipient] = await db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.firmId, firmId), eq(users.isActive, true)))
+      .limit(1);
+    if (!recipient?.email)
+      throw new AppError("SERVICE_UNAVAILABLE", "Verification delivery is unavailable", 503);
+    await getJobRepository().enqueue({
+      firmId,
+      actorUserId: userId,
+      type: "communication.email",
+      idempotencyKey: `esign-otp:${challenge!.id}`,
+      payload: {
+        to: recipient.email,
+        subject: "Your signing verification code",
+        text: `${recipient.name || "Client"},\n\nYour signing verification code is ${code}. It expires in 10 minutes.\n\nIf you did not request this code, contact the firm.`,
+      },
+      maxAttempts: 5,
+      timeoutSeconds: 60,
     });
 
     return {
       challengeId: challenge!.id,
       expiresAt: expiresAt.getTime(),
-      demoCode: code,
     };
   }
 
@@ -583,6 +711,7 @@ export class EnvelopeRepository {
     userId: string,
     documentId: string,
     challengeId: string,
+    envelopeId?: string,
   ) {
     const db = getDatabase();
     const [challenge] = await db
@@ -599,6 +728,9 @@ export class EnvelopeRepository {
     if (!challenge) throw new AppError("FORBIDDEN", "OTP verification required", 403);
     if (challenge.documentId !== documentId) {
       throw new AppError("FORBIDDEN", "OTP challenge does not match this document", 403);
+    }
+    if ((challenge.envelopeId ?? null) !== (envelopeId ?? null)) {
+      throw new AppError("FORBIDDEN", "OTP challenge does not match this signing request", 403);
     }
     if (!challenge.verifiedAt) {
       throw new AppError("FORBIDDEN", "Verify your OTP code before signing", 403);
@@ -682,69 +814,60 @@ export class EnvelopeRepository {
     input: {
       documentId: string;
       signatureMethod: "draw" | "type" | "upload";
-      signatureArtifactStorageId?: string;
+      signatureArtifactIntentId?: string;
       typedSignatureText?: string;
       consentAccepted: boolean;
-      documentSha256: string;
       userAgent?: string;
       otpChallengeId: string;
       envelopeId?: string;
     },
   ) {
     const db = getDatabase();
-    const doc = await this.resolveDocument(firmId, input.documentId);
-    if (!doc) throw new AppError("NOT_FOUND", "Document not found", 404);
-    if (!doc.requiresSignature) {
-      throw new AppError("CONFLICT", "Document does not require signature", 409);
-    }
-    if (!input.envelopeId && doc.signatureStatus === "signed") {
-      throw new AppError("CONFLICT", "Document already signed", 409);
-    }
+    const doc = await this.assertSigningContext(firmId, userId, input.documentId, input.envelopeId);
     if (!input.consentAccepted) {
       throw new AppError("VALIDATION_FAILED", "Consent is required to sign", 422);
     }
     if (!doc.viewedAt) {
       throw new AppError("CONFLICT", "Preview the document before signing", 409);
     }
+    if (!doc.sha256 || !/^[0-9a-f]{64}$/i.test(doc.sha256)) {
+      throw new AppError("CONFLICT", "Document integrity data is unavailable", 409);
+    }
     if (input.signatureMethod === "type") {
       if (!input.typedSignatureText?.trim()) {
         throw new AppError("VALIDATION_FAILED", "Typed signature text is required", 422);
       }
-    } else if (!input.signatureArtifactStorageId) {
+    } else if (!input.signatureArtifactIntentId) {
       throw new AppError("VALIDATION_FAILED", "Signature image artifact is required", 422);
     }
 
-    if (input.envelopeId) {
-      let envelope = await this.resolveEnvelope(firmId, input.envelopeId);
-      if (!envelope || envelope.documentId !== doc.id) {
-        throw new AppError("NOT_FOUND", "Envelope does not match this document", 404);
-      }
-      envelope = await this.expireIfNeeded(envelope);
-      if (envelope.status === "expired") {
-        throw new AppError("CONFLICT", "This envelope has expired", 410);
-      }
-      if (envelope.status !== "sent") {
-        throw new AppError("CONFLICT", "Envelope is not open for signing", 409);
-      }
-      const [mine] = await db
+    await this.assertOtpVerified(firmId, userId, doc.id, input.otpChallengeId, input.envelopeId);
+    let artifactStorageId: string | null = null;
+    if (input.signatureMethod !== "type") {
+      const [artifact] = await db
         .select()
-        .from(signatureRecipients)
+        .from(signatureArtifactUploadIntents)
         .where(
           and(
-            eq(signatureRecipients.envelopeId, envelope.id),
-            eq(signatureRecipients.userId, userId),
-            eq(signatureRecipients.status, "pending"),
+            eq(signatureArtifactUploadIntents.id, input.signatureArtifactIntentId!),
+            eq(signatureArtifactUploadIntents.firmId, firmId),
+            eq(signatureArtifactUploadIntents.userId, userId),
+            eq(signatureArtifactUploadIntents.documentId, doc.id),
+            input.envelopeId
+              ? eq(signatureArtifactUploadIntents.envelopeId, input.envelopeId)
+              : isNull(signatureArtifactUploadIntents.envelopeId),
+            eq(signatureArtifactUploadIntents.status, "promoted"),
           ),
         )
         .limit(1);
-      if (!mine) {
-        throw new AppError("FORBIDDEN", "You are not the active signer on this envelope", 403);
-      }
-    } else if (doc.intendedSignerUserId && doc.intendedSignerUserId !== userId) {
-      throw new AppError("FORBIDDEN", "You are not the intended signer", 403);
+      if (!artifact?.protectedKey)
+        throw new AppError(
+          "FORBIDDEN",
+          "Signature artifact is not available for this request",
+          403,
+        );
+      artifactStorageId = artifact.protectedKey;
     }
-
-    await this.assertOtpVerified(firmId, userId, doc.id, input.otpChallengeId);
 
     const signedAt = new Date();
     if (input.envelopeId) {
@@ -752,12 +875,11 @@ export class EnvelopeRepository {
         .update(documents)
         .set({
           signatureMethod: input.signatureMethod,
-          signatureArtifactStorageId: input.signatureArtifactStorageId ?? null,
+          signatureArtifactStorageId: artifactStorageId,
           typedSignatureText: input.typedSignatureText ?? null,
           signConsentVersion: SIGN_CONSENT_VERSION,
           signConsentAt: signedAt,
           signerUserAgent: input.userAgent ?? null,
-          sha256: input.documentSha256.toLowerCase(),
           updatedAt: signedAt,
         })
         .where(eq(documents.id, doc.id));
@@ -770,12 +892,11 @@ export class EnvelopeRepository {
           signedAt,
           signedByUserId: userId,
           signatureMethod: input.signatureMethod,
-          signatureArtifactStorageId: input.signatureArtifactStorageId ?? null,
+          signatureArtifactStorageId: artifactStorageId,
           typedSignatureText: input.typedSignatureText ?? null,
           signConsentVersion: SIGN_CONSENT_VERSION,
           signConsentAt: signedAt,
           signerUserAgent: input.userAgent ?? null,
-          sha256: input.documentSha256.toLowerCase(),
           updatedAt: signedAt,
         })
         .where(eq(documents.id, doc.id));

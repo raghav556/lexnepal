@@ -33,6 +33,14 @@ export function useMyPendingEnvelopeActions() {
   );
 }
 
+export function useSigningInbox() {
+  return useTanstackQuery({
+    queryKey: [...queryKeys.envelopes.all, "signing-inbox"],
+    queryFn: ({ signal }) => apiClient.request<any>("/api/v1/envelopes/signing-inbox", { signal }),
+    refetchInterval: 10_000,
+  });
+}
+
 export function useCreateEnvelope() {
   const queryClient = useQueryClient();
   return useCallback(

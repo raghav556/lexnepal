@@ -6,12 +6,12 @@ import {
   envelopeOtpIssueSchema,
   envelopeOtpVerifySchema,
   envelopeVoidSchema,
+  signatureArtifactIntentSchema,
 } from "../../src/shared/contracts/envelopes";
 
 const documentId = "123e4567-e89b-12d3-a456-426614174000";
 const recipientId = "123e4567-e89b-12d3-a456-426614174001";
 const challengeId = "123e4567-e89b-12d3-a456-426614174002";
-const sha256 = "b".repeat(64);
 
 describe("Envelopes input contracts", () => {
   it("validates envelope create routing and recipients", () => {
@@ -70,13 +70,12 @@ describe("Envelopes input contracts", () => {
     expect(envelopeDeclineSchema.safeParse({ reason: "" }).success).toBe(false);
   });
 
-  it("validates document sign consent, method, and sha256", () => {
+  it("does not accept browser document hashes or storage keys as signing authority", () => {
     const valid = {
       documentId,
       signatureMethod: "type" as const,
       typedSignatureText: "Ada Lovelace",
       consentAccepted: true,
-      documentSha256: sha256,
       otpChallengeId: challengeId,
     };
     expect(documentSignSchema.safeParse(valid).success).toBe(true);
@@ -87,8 +86,28 @@ describe("Envelopes input contracts", () => {
     expect(documentSignSchema.safeParse({ ...valid, signatureMethod: "stamp" }).success).toBe(
       false,
     );
-    expect(documentSignSchema.safeParse({ ...valid, documentSha256: "deadbeef" }).success).toBe(
-      false,
-    );
+    const parsed = documentSignSchema.parse({
+      ...valid,
+      documentSha256: "b".repeat(64),
+      signatureArtifactStorageId: "foreign-key",
+    });
+    expect(parsed).not.toHaveProperty("documentSha256");
+    expect(parsed).not.toHaveProperty("signatureArtifactStorageId");
+    expect(
+      signatureArtifactIntentSchema.safeParse({
+        documentId,
+        fileName: "signature.png",
+        mimeType: "image/png",
+        sizeBytes: 1024,
+      }).success,
+    ).toBe(true);
+    expect(
+      signatureArtifactIntentSchema.safeParse({
+        documentId,
+        fileName: "signature.gif",
+        mimeType: "image/gif",
+        sizeBytes: 1024,
+      }).success,
+    ).toBe(false);
   });
 });

@@ -50,6 +50,13 @@
       "when": 1789680000000,
       "tag": "0006_cases_legacy_status_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1790553600000,
+      "tag": "0007_signature_artifact_upload_intents",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,7 @@ import { getServerEnvironment, isSmtpConfigured } from "@/server/env";
 import { getAvatarService } from "@/server/services/avatar-service";
 import { getCmsAssetService } from "@/server/services/cms-asset-service";
 import { getKycService } from "@/server/services/kyc-service";
+import { getSignatureArtifactService } from "@/server/services/signature-artifact-service";
 
 const database = getDatabase();
 type Transaction = Parameters<Parameters<typeof database.transaction>[0]>[0];
@@ -39,6 +40,7 @@ export function createJobHandlers(): ReadonlyMap<JobType, JobHandler> {
     ["identity.avatar_scan", handleAvatarScan],
     ["cms.asset_scan", handleCmsAssetScan],
     ["kyc.malware_scan", handleKycScan],
+    ["signature_artifact.malware_scan", handleSignatureArtifactScan],
     ["reminder.task", handleTaskReminders],
     ["reminder.hearing", handleHearingReminders],
     ["reminder.signature", handleSignatureReminders],
@@ -54,6 +56,12 @@ export function createJobHandlers(): ReadonlyMap<JobType, JobHandler> {
     ],
     ["archive.zip", blocked("ZIP artifact service is not configured")],
   ]);
+}
+
+async function handleSignatureArtifactScan({ job }: JobExecutionContext) {
+  const parsed = z.object({ intentId: z.string().uuid() }).safeParse(job.payload);
+  if (!parsed.success) throw new PermanentJobError("Invalid signature artifact scan payload");
+  return getSignatureArtifactService().process(parsed.data.intentId, job.firmId);
 }
 
 async function handleMalwareScan({ job }: JobExecutionContext) {

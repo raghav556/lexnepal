@@ -7,6 +7,9 @@ import {
 } from "@/server/policies/authorization";
 import { EnvelopeRepository } from "@/server/repositories/envelope-repository";
 import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
+import { isSmtpConfigured } from "@/server/env";
+import { getSignatureArtifactService } from "@/server/services/signature-artifact-service";
+import { AppError } from "@/shared/errors/api-error";
 import type {
   DocumentMarkViewedInput,
   DocumentRequestSignatureInput,
@@ -16,6 +19,7 @@ import type {
   EnvelopeOtpIssueInput,
   EnvelopeOtpVerifyInput,
   EnvelopeVoidInput,
+  SignatureArtifactIntentInput,
 } from "@/shared/contracts/envelopes";
 
 const security = new MySqlSecurityRepository();
@@ -36,6 +40,35 @@ export class EnvelopeService {
   async listMyPending(principal: AuthPrincipal) {
     const { firmId, actorId } = requireFirmContext(principal);
     return EnvelopeRepository.listMyPendingActions(firmId, actorId);
+  }
+
+  async listSigningInbox(principal: AuthPrincipal) {
+    requireCapability(principal, "documents.read");
+    const { firmId, actorId } = requireFirmContext(principal);
+    const inbox = await EnvelopeRepository.listSigningInbox(firmId, actorId);
+    const documentIds = new Set([
+      ...inbox.pendingEnvelopes.map((action) => action.document?.id),
+      ...inbox.pendingDirect.map((action) => action.document.id),
+      ...inbox.recentlySigned.map((action) => action.document.id),
+    ]);
+    const authorized = new Set<string>();
+    for (const documentId of documentIds) {
+      if (!documentId) continue;
+      try {
+        await requireDocumentAccess(principal, documentId, security);
+        authorized.add(documentId);
+      } catch (error) {
+        if (!(error instanceof AppError) || !["FORBIDDEN", "NOT_FOUND"].includes(error.code))
+          throw error;
+      }
+    }
+    return {
+      pendingEnvelopes: inbox.pendingEnvelopes.filter(
+        (action) => action.document && authorized.has(action.document.id),
+      ),
+      pendingDirect: inbox.pendingDirect.filter((action) => authorized.has(action.document.id)),
+      recentlySigned: inbox.recentlySigned.filter((action) => authorized.has(action.document.id)),
+    };
   }
 
   async create(principal: AuthPrincipal, input: EnvelopeCreateInput) {
@@ -75,9 +108,27 @@ export class EnvelopeService {
   }
 
   async issueOtp(principal: AuthPrincipal, input: EnvelopeOtpIssueInput) {
+    if (!isSmtpConfigured())
+      throw new AppError("SERVICE_UNAVAILABLE", "Verification delivery is unavailable", 503);
     const { firmId, actorId } = requireFirmContext(principal);
     await requireDocumentAccess(principal, input.documentId, security);
     return EnvelopeRepository.issueOtp(firmId, actorId, input);
+  }
+
+  async createSignatureArtifactIntent(
+    principal: AuthPrincipal,
+    input: SignatureArtifactIntentInput,
+  ) {
+    await requireDocumentAccess(principal, input.documentId, security);
+    return getSignatureArtifactService().createIntent(principal, input);
+  }
+
+  async completeSignatureArtifactIntent(principal: AuthPrincipal, intentId: string) {
+    return getSignatureArtifactService().completeIntent(principal, intentId);
+  }
+
+  async getSignatureArtifactIntent(principal: AuthPrincipal, intentId: string) {
+    return getSignatureArtifactService().getIntentStatus(principal, intentId);
   }
 
   async verifyOtp(principal: AuthPrincipal, input: EnvelopeOtpVerifyInput) {

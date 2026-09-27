@@ -34,14 +34,31 @@ export const envelopeOtpVerifySchema = z.object({
 export const documentSignSchema = z.object({
   documentId: uuidSchema,
   signatureMethod: signatureMethodSchema,
-  signatureArtifactStorageId: z.string().trim().min(1).max(500).optional(),
+  // Storage keys are never client authority. Drawn/uploaded signatures are
+  // referenced by a signer- and document-bound upload intent instead.
+  signatureArtifactIntentId: uuidSchema.optional(),
   typedSignatureText: z.string().trim().min(1).max(500).optional(),
   consentAccepted: z.boolean(),
-  documentSha256: z.string().regex(/^[0-9a-f]{64}$/i),
   userAgent: z.string().trim().max(1000).optional(),
   signatureNote: z.string().trim().max(2000).optional(),
   otpChallengeId: uuidSchema,
   envelopeId: uuidSchema.optional(),
+});
+
+export const signatureArtifactIntentSchema = z.object({
+  documentId: uuidSchema,
+  envelopeId: uuidSchema.optional(),
+  fileName: z.string().trim().min(1).max(180),
+  mimeType: z.enum(["image/png", "image/jpeg"]),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(5 * 1024 * 1024),
+  sha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i)
+    .optional(),
 });
 
 export const documentMarkViewedSchema = z.object({
@@ -59,5 +76,6 @@ export type EnvelopeDeclineInput = z.infer<typeof envelopeDeclineSchema>;
 export type EnvelopeOtpIssueInput = z.infer<typeof envelopeOtpIssueSchema>;
 export type EnvelopeOtpVerifyInput = z.infer<typeof envelopeOtpVerifySchema>;
 export type DocumentSignInput = z.infer<typeof documentSignSchema>;
+export type SignatureArtifactIntentInput = z.infer<typeof signatureArtifactIntentSchema>;
 export type DocumentMarkViewedInput = z.infer<typeof documentMarkViewedSchema>;
 export type DocumentRequestSignatureInput = z.infer<typeof documentRequestSignatureSchema>;

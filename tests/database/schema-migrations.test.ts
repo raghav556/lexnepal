@@ -82,7 +82,7 @@ describe("MySQL schema migrations", () => {
     const actual = await rows<{ tableName: string; tableCollation: string } & RowDataPacket>(
       `SELECT table_name AS tableName, table_collation AS tableCollation FROM information_schema.tables WHERE table_schema = '${testDatabaseName}' AND table_type = 'BASE TABLE'`,
     );
-    expect(actual).toHaveLength(76);
+    expect(actual).toHaveLength(77);
     const names = new Set(actual.map((row) => row.tableName));
     for (const target of expectedTargets) expect(names.has(target), target).toBe(true);
     expect(actual.every((row) => row.tableCollation.startsWith("utf8mb4_"))).toBe(true);

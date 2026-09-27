@@ -116,6 +116,8 @@
     "migration:envelopes": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-envelopes-export.ts",
     "migration:hr": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/migration/migrate-hr-export.ts",
     "envelopes:verify-local": "npm run auth:verify-boundary && npm run migration:identity -- tests/fixtures/convex-identity-export tests/fixtures/convex-identity-firm-map.json && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/envelopes/verify-local.ts",
+    "signatures:verify-client-security": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/signatures/verify-client-signing-security.ts",
+    "signatures:verify-artifact-migration": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/signatures/verify-signature-artifact-migration.ts",
     "analytics:verify-local": "npm run auth:verify-boundary && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/analytics/verify-local.ts",
     "hr:verify-local": "npm run auth:verify-boundary && npm run migration:identity -- tests/fixtures/convex-identity-export tests/fixtures/convex-identity-firm-map.json && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/hr/verify-local.ts",
     "test:migration-characterization": "node --conditions=react-server --import tsx --test tests/characterization/*.test.mjs"

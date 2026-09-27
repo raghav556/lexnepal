@@ -33,6 +33,7 @@ export interface AuthorizationDataSource {
   getClient(clientId: string): Promise<ClientAccessRecord | null>;
   getClientByUser(userId: string): Promise<ClientAccessRecord | null>;
   getDocument(documentId: string): Promise<DocumentAccessRecord | null>;
+  hasEnvelopeSignerAccess?(documentId: string, userId: string, firmId: string): Promise<boolean>;
 }
 
 export function requireFirmContext(principal: AuthPrincipal): { firmId: string; actorId: string } {
@@ -132,6 +133,12 @@ export async function requireDocumentAccess(
   if (
     document.uploadedBy === principal.user.id ||
     document.intendedSignerUserId === principal.user.id
+  ) {
+    return document;
+  }
+  if (
+    source.hasEnvelopeSignerAccess &&
+    (await source.hasEnvelopeSignerAccess(document.id, principal.user.id, principal.firmId))
   ) {
     return document;
   }

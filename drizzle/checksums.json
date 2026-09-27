@@ -23,11 +23,15 @@
     },
     {
       "file": "drizzle/0005_cases_domain_foundations.sql",
-      "sha256": "3f25007089649c702e9e0aeae17986602f25381b3ba8065d089e2e707244ffa7"
+      "sha256": "584efea22b97b9c5e539960ab1e1492b4ae86f1983f00a82424ff39ea87397b6"
     },
     {
       "file": "drizzle/0006_cases_legacy_status_cleanup.sql",
-      "sha256": "be2e3bd7ccc9065876c1e21f5f538cbf72058b83254a381580c4abae84827c81"
+      "sha256": "f196c19cccc453238fdb9251bee93be5298d0551b9f8158e22afa87f727224e1"
+    },
+    {
+      "file": "drizzle/0007_signature_artifact_upload_intents.sql",
+      "sha256": "751a45e8ab25253774a2986aaa078a854cc3db74d1e02c1d47deef0f3851754f"
     }
   ]
 }

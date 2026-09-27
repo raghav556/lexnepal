@@ -9,6 +9,8 @@ import {
   documents,
   firmSettings,
   sessions,
+  signatureEnvelopes,
+  signatureRecipients,
   users,
 } from "@/server/db/schema";
 import type { AuthUser, NewSession, SessionRepository, StoredSession } from "@/server/auth/types";
@@ -200,6 +202,36 @@ export class MySqlSecurityRepository implements SessionRepository, Authorization
       .where(eq(documents.id, documentId))
       .limit(1);
     return document ?? null;
+  }
+
+  async hasEnvelopeSignerAccess(
+    documentId: string,
+    userId: string,
+    firmId: string,
+  ): Promise<boolean> {
+    const [recipient] = await this.database
+      .select({ id: signatureRecipients.id })
+      .from(signatureRecipients)
+      .innerJoin(
+        signatureEnvelopes,
+        and(
+          eq(signatureEnvelopes.id, signatureRecipients.envelopeId),
+          eq(signatureEnvelopes.firmId, signatureRecipients.firmId),
+        ),
+      )
+      .where(
+        and(
+          eq(signatureEnvelopes.documentId, documentId),
+          eq(signatureEnvelopes.firmId, firmId),
+          eq(signatureRecipients.userId, userId),
+          inArray(signatureRecipients.status, ["pending", "signed"]),
+          inArray(signatureEnvelopes.status, ["sent", "completed"]),
+          isNull(signatureEnvelopes.deletedAt),
+          isNull(signatureRecipients.deletedAt),
+        ),
+      )
+      .limit(1);
+    return Boolean(recipient);
   }
 }
 

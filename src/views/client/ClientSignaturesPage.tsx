@@ -2,13 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMyClient } from "@/client/queries/clients";
-import { useClientCases } from "@/client/queries/cases";
-import { useDocuments, useDownloadDocument } from "@/client/queries/documents";
+import { useDownloadDocument } from "@/client/queries/documents";
 import {
   useDeclineEnvelope,
   useIssueOtp,
   useMarkDocumentViewed,
-  useMyPendingEnvelopeActions,
+  useSigningInbox,
   useSignDocument,
   useVerifyOtp,
 } from "@/client/queries/envelopes";
@@ -35,7 +34,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils.ts";
 import { generateSignatureCertificatePDF } from "@/lib/pdf-generator.ts";
-import { sha256HexOfBytes } from "@/lib/document-utils.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import {
   DashboardButton,
@@ -49,10 +47,6 @@ import {
 import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
 
 type SignMethod = "draw" | "type" | "upload";
-
-async function sha256HexFromBuffer(buffer: BufferSource) {
-  return sha256HexOfBytes(buffer);
-}
 
 function dataUrlToBlob(dataUrl: string) {
   const [header, data] = dataUrl.split(",");
@@ -230,20 +224,11 @@ function SignedDownload({ documentId }: { documentId: string }) {
 export default function ClientSignaturesPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
-  const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
-  const documents = useDocuments({}) || [];
-
-  const caseIds = new Set(cases.map((c) => c._id));
-  const myDocs = documents.filter((d: any) => d.caseId && caseIds.has(d.caseId));
-  const pendingDocs = myDocs.filter(
-    (d: any) => d.requiresSignature && d.signatureStatus === "pending",
-  );
-  const signedDocs = myDocs.filter(
-    (d: any) => d.requiresSignature && d.signatureStatus === "signed",
-  );
-
-  const envelopeActions = useMyPendingEnvelopeActions();
+  const signingInbox = useSigningInbox();
+  const inbox = signingInbox.data;
+  const envelopeActions = inbox?.pendingEnvelopes ?? [];
+  const pendingDocs = (inbox?.pendingDirect ?? []).map((action: any) => action.document);
+  const signedDocs = (inbox?.recentlySigned ?? []).map((action: any) => action.document);
   const signDocument = useSignDocument();
   const declineEnvelope = useDeclineEnvelope();
   const issueOtp = useIssueOtp();
@@ -265,7 +250,6 @@ export default function ClientSignaturesPage() {
   const [otpChallengeId, setOtpChallengeId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
-  const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [viewed, setViewed] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
 
@@ -281,7 +265,6 @@ export default function ClientSignaturesPage() {
     setOtpChallengeId(null);
     setOtpCode("");
     setOtpVerified(false);
-    setDemoOtp(null);
     setViewed(false);
     setIsSigning(false);
   }, [currentUser?.name, clientRecord?.fullName]);
@@ -314,48 +297,48 @@ export default function ClientSignaturesPage() {
     blob: Blob,
     fileName: string,
     documentId: string,
-    caseId?: string,
+    envelopeId?: string,
   ): Promise<string> => {
-    const res = await fetch("/api/v1/documents/upload-intent", {
+    const bytes = await blob.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const sha256 = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    const res = await fetch("/api/v1/envelopes/signature-artifact-intents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fileName,
-        contentType: blob.type || "image/png",
+        mimeType: blob.type || "image/png",
         sizeBytes: blob.size,
         documentId,
-        caseId,
+        envelopeId: envelopeId || undefined,
+        sha256,
       }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new Error(`Upload intent failed (${res.status}): ${text || res.statusText}`);
     }
-    const { uploadUrl, storageId } = await res.json();
-    const put = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": blob.type || "image/png" },
-      body: blob,
-    });
+    const { data } = await res.json();
+    const form = new FormData();
+    Object.entries(data.upload.fields || {}).forEach(([key, value]) =>
+      form.append(key, String(value)),
+    );
+    form.append("file", blob, fileName);
+    const put = await fetch(data.upload.url, { method: "POST", body: form });
     if (!put.ok) {
       throw new Error(`Binary upload failed (${put.status})`);
     }
-    return storageId;
-  };
-
-  const computeDocHash = async (doc: any, fileUrl: string | null): Promise<string> => {
-    if (doc.sha256 && typeof doc.sha256 === "string" && doc.sha256.length === 64) {
-      return doc.sha256;
-    }
-    if (!fileUrl) return "0".repeat(64);
-    try {
-      const res = await fetch(fileUrl);
-      if (!res.ok) return "0".repeat(64);
-      const buf = await res.arrayBuffer();
-      return await sha256HexFromBuffer(buf);
-    } catch {
-      return "0".repeat(64);
-    }
+    const complete = await fetch(
+      `/api/v1/envelopes/signature-artifact-intents/${data.intentId}/complete`,
+      { method: "POST" },
+    );
+    if (!complete.ok) throw new Error("Signature image could not be secured for signing.");
+    const completed = await complete.json();
+    if (completed.data?.status !== "promoted")
+      throw new Error("Signature image did not pass security review.");
+    return data.intentId;
   };
 
   const handleSendOtp = async () => {
@@ -366,8 +349,7 @@ export default function ClientSignaturesPage() {
         envelopeId: selectedEnvelopeId ?? undefined,
       });
       setOtpChallengeId(res.challengeId);
-      if (res.demoCode) setDemoOtp(res.demoCode);
-      toast.success("Verification code sent to your email.");
+      toast.success("A verification code has been requested for your account email.");
     } catch (err: any) {
       toast.error(err?.message || "Failed to send OTP.");
     }
@@ -436,7 +418,7 @@ export default function ClientSignaturesPage() {
           dataUrlToBlob(drawnDataUrl),
           "signature.png",
           selectedDoc._id,
-          selectedDoc.caseId,
+          selectedEnvelopeId ?? undefined,
         );
       } else if (method === "upload") {
         if (!uploadFile) throw new Error("Upload a signature image.");
@@ -444,20 +426,18 @@ export default function ClientSignaturesPage() {
           uploadFile,
           uploadFile.name,
           selectedDoc._id,
-          selectedDoc.caseId,
+          selectedEnvelopeId ?? undefined,
         );
       } else if (!typedName.trim()) {
         throw new Error("Type your full legal name.");
       }
 
-      const documentSha256 = await computeDocHash(selectedDoc, selectedFileUrl);
       await signDocument({
         documentId: selectedDoc._id,
         signatureMethod: method,
-        signatureArtifactStorageId: artifactId,
+        signatureArtifactIntentId: artifactId,
         typedSignatureText: method === "type" ? typedName.trim() : undefined,
         consentAccepted: true,
-        documentSha256,
         userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
         signatureNote: `Signed via ${method} in client portal`,
         otpChallengeId: otpChallengeId as any,
@@ -530,7 +510,7 @@ export default function ClientSignaturesPage() {
     },
     {
       label: "Total Documents",
-      value: String(myDocs.length),
+      value: String(pendingDocs.length + signedDocs.length),
       icon: FileText,
       tone: DASHBOARD_METRIC_TONES.documents,
       helperText: "In signature vault",
@@ -595,7 +575,7 @@ export default function ClientSignaturesPage() {
           description="Documents requiring your signature"
           icon={PenTool}
         >
-          {documents === undefined ? (
+          {signingInbox.isLoading ? (
             <DashboardListSkeleton rows={3} />
           ) : pendingDocs.length === 0 ? (
             <EmptyState
@@ -692,14 +672,6 @@ export default function ClientSignaturesPage() {
                               Verify OTP
                             </DashboardButton>
                           </div>
-                          {demoOtp && process.env.NODE_ENV === "development" && (
-                            <p className="text-[11px] text-dashboard-neutral">
-                              Dev OTP:{" "}
-                              <span className="font-mono font-semibold text-dashboard-primary">
-                                {demoOtp}
-                              </span>
-                            </p>
-                          )}
                           {otpVerified && (
                             <p className="text-[11px] text-dashboard-success font-medium flex items-center gap-1">
                               ✓ OTP verified successfully
@@ -739,7 +711,7 @@ export default function ClientSignaturesPage() {
                             <input
                               ref={fileInputRef}
                               type="file"
-                              accept="image/*"
+                              accept="image/png,image/jpeg"
                               className="hidden"
                               onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                             />
@@ -830,7 +802,7 @@ export default function ClientSignaturesPage() {
           description="Signed documents and verification certificates"
           icon={CheckCircle2}
         >
-          {documents === undefined ? (
+          {signingInbox.isLoading ? (
             <DashboardListSkeleton rows={3} />
           ) : signedDocs.length === 0 ? (
             <EmptyState

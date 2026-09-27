@@ -1154,6 +1154,41 @@ export const signatureEnvelopes = mysqlTable(
     index("signature_envelopes_firm_case_idx").on(table.firmId, table.caseId),
   ],
 );
+export const signatureArtifactUploadIntents = mysqlTable(
+  "signature_artifact_upload_intents",
+  {
+    ...identityColumns(),
+    firmId: tenantColumn(),
+    userId: uuidColumn("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    documentId: uuidColumn("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    envelopeId: uuidColumn("envelope_id").references(() => signatureEnvelopes.id, {
+      onDelete: "cascade",
+    }),
+    originalFileName: stringColumn("original_file_name").notNull(),
+    declaredMimeType: stringColumn("declared_mime_type").notNull(),
+    declaredSizeBytes: bigint("declared_size_bytes", { mode: "number" }).notNull(),
+    expectedSha256: stringColumn("expected_sha256"),
+    actualSha256: stringColumn("actual_sha256"),
+    quarantineKey: stringColumn("quarantine_key").notNull(),
+    protectedKey: stringColumn("protected_key"),
+    status: uploadIntentStatusEnum("status").default("pending").notNull(),
+    expiresAt: utcDateTime("expires_at", { withTimezone: true }).notNull(),
+    uploadedAt: utcDateTime("uploaded_at", { withTimezone: true }).default(sql`NULL`),
+    completedAt: utcDateTime("completed_at", { withTimezone: true }).default(sql`NULL`),
+    failureCode: stringColumn("failure_code"),
+    failureDetails: longtext("failure_details"),
+    ...lifecycleColumns(),
+  },
+  (table) => [
+    uniqueIndex("signature_artifact_intents_quarantine_unique").on(table.quarantineKey),
+    index("signature_artifact_intents_owner_idx").on(table.firmId, table.userId, table.documentId),
+    index("signature_artifact_intents_status_idx").on(table.firmId, table.status, table.expiresAt),
+  ],
+);
 export const signatureRecipients = mysqlTable(
   "signature_recipients",
   {
