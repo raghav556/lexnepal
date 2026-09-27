@@ -5288,6 +5288,13 @@
   }
 }
 
+/* Keep the signing surface opaque from its first frame. The shared Dialog overlay
+   fades its own opacity, which would otherwise fade every child over page/nav text. */
+.dashboard-theme.dashboard-client.client-signatures :has(> [data-client-signing-dialog]) {
+  animation: none;
+  opacity: 1;
+}
+
 .hero-animate-in {
   animation: hero-slide-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

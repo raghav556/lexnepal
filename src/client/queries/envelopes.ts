@@ -129,7 +129,6 @@ export function useIssueOtp() {
       return await apiClient.request<{
         challengeId: string;
         expiresAt: number;
-        demoCode?: string;
       }>("/api/v1/envelopes/otp/issue", { method: "POST", body: input });
     } catch (error) {
       throw normalizeApiError(error);

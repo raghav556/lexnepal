@@ -97,6 +97,34 @@ function fixtureBytes(label: string, kind: "pdf" | "docx"): Buffer {
   return Buffer.from(`PK\u0003\u0004LexNepal CUI-01 DOCX fixture ${label}\n`);
 }
 
+/** Renderable, deterministic PDF only for the two CUI-14 signing documents. */
+function signingPreviewPdfBytes(title: string): Buffer {
+  const safeTitle = title.replace(/[\\()]/g, "\\$&");
+  const contents =
+    `BT /F1 18 Tf 72 710 Td (${safeTitle}) Tj ET\n` +
+    "BT /F1 11 Tf 72 682 Td (Synthetic Client signing preview - local QA only) Tj ET\n";
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${Buffer.byteLength(contents, "ascii")} >>\nstream\n${contents}endstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf, "ascii"));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(pdf, "ascii");
+  pdf += `xref\n0 ${offsets.length}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, "ascii");
+}
+
 async function provisionPreviewUser(firmId: string) {
   const db = getDatabase();
   const fixture = UI_PREVIEW_CLIENT;
@@ -512,7 +540,10 @@ export async function seedE2eClientUiPreview(): Promise<PreviewSummary> {
 
   for (const [key, spec] of Object.entries(UI_PREVIEW_DOCUMENTS)) {
     const kind = spec.mimeType.includes("wordprocessingml") ? "docx" : "pdf";
-    const bytes = fixtureBytes(spec.documentNumber, kind);
+    const bytes =
+      key === "pendingSignPdf" || key === "signedPdf"
+        ? signingPreviewPdfBytes(spec.title)
+        : fixtureBytes(spec.documentNumber, kind);
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     const storageId = `protected/${firmId}/cui1/${spec.documentNumber.toLowerCase()}`;
     await storage.putObject(storageId, bytes, spec.mimeType, { sha256 });

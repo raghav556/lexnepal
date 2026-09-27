@@ -1,57 +1,43 @@
 import jsPDF from "jspdf";
 
-/** Certificate of completion for an e-signed document (client-downloadable evidence pack). */
-export function generateSignatureCertificatePDF(input: {
+/** Browser-generated summary of the current signer's displayed history event. */
+export function generateSignatureEventSummaryPDF(input: {
   title: string;
-  documentId: string;
   signedAt?: string | null;
-  signatureMethod?: string | null;
-  documentSha256?: string | null;
-  typedSignatureText?: string | null;
   signerName?: string | null;
-  consentVersion?: string;
+  signatureMethod?: string | null;
+  consentVersion?: string | null;
 }) {
-  const doc = new jsPDF();
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Certificate of Completion", 14, 24);
+  const pdf = new jsPDF();
+  pdf.setFontSize(18);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(11, 40, 70);
+  pdf.text("Signature Event Summary", 14, 24);
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(80, 80, 80);
-  doc.text("Srimar Law — Electronic Signature Evidence", 14, 32);
+  const rows: [string, string][] = [["Document", input.title]];
+  if (input.signedAt) rows.push(["Signed at", new Date(input.signedAt).toLocaleString()]);
+  if (input.signerName) rows.push(["Signer", input.signerName]);
+  if (input.signatureMethod) rows.push(["Method", input.signatureMethod]);
+  if (input.consentVersion) rows.push(["Consent version", input.consentVersion]);
 
-  doc.setTextColor(0, 0, 0);
-  const rows: [string, string][] = [
-    ["Document", input.title],
-    ["Document ID", input.documentId],
-    ["Signed at", input.signedAt ? new Date(input.signedAt).toLocaleString() : "—"],
-    ["Signer", input.signerName || "Portal client"],
-    ["Method", input.signatureMethod || "—"],
-    ["Consent version", input.consentVersion || "esign-consent-v1"],
-    ["Document SHA-256", input.documentSha256 || "Recorded at signature time"],
-  ];
-  if (input.typedSignatureText) {
-    rows.push(["Typed signature", input.typedSignatureText]);
-  }
-
-  let y = 48;
+  let y = 42;
+  pdf.setFontSize(10);
+  pdf.setTextColor(24, 35, 48);
   for (const [label, value] of rows) {
-    doc.setFont("helvetica", "bold");
-    doc.text(`${label}:`, 14, y);
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(String(value), 120);
-    doc.text(lines, 55, y);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`${label}:`, 14, y);
+    pdf.setFont("helvetica", "normal");
+    const lines = pdf.splitTextToSize(value, 125);
+    pdf.text(lines, 52, y);
     y += Math.max(8, lines.length * 5 + 3);
   }
 
-  doc.setFontSize(8);
-  doc.setTextColor(120, 120, 120);
-  doc.text(
-    "This certificate summarizes the signature event recorded by the Srimar Law client portal.",
+  pdf.setFontSize(8);
+  pdf.setTextColor(90, 98, 108);
+  pdf.text(
+    "Browser-generated summary of the displayed signing event. This is not a certified document.",
     14,
     Math.min(y + 12, 280),
   );
-  doc.save(`certificate-${input.documentId.slice(0, 8)}.pdf`);
+  pdf.save("signature-event-summary.pdf");
 }

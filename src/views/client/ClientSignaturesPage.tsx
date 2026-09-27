@@ -1,6 +1,19 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { format } from "date-fns";
+import {
+  CheckCircle2,
+  Download,
+  FileCheck2,
+  FileText,
+  Loader2,
+  Mail,
+  PenLine,
+  ShieldCheck,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useMyClient } from "@/client/queries/clients";
 import { useDownloadDocument } from "@/client/queries/documents";
 import {
@@ -12,30 +25,6 @@ import {
   useVerifyOtp,
 } from "@/client/queries/envelopes";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  PenTool,
-  CheckCircle2,
-  FileText,
-  Download,
-  Loader2,
-  ShieldCheck,
-  Mail,
-  Clock,
-  AlertTriangle,
-} from "lucide-react";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils.ts";
-import { generateSignatureCertificatePDF } from "@/lib/pdf-generator.ts";
-import { useCurrentUser } from "@/hooks/use-current-user.ts";
-import {
   DashboardButton,
   DashboardListRow,
   DashboardListSkeleton,
@@ -44,179 +33,293 @@ import {
   EmptyState,
   PortalPageShell,
 } from "@/components/dashboard";
-import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { generateSignatureEventSummaryPDF } from "@/lib/pdf-generator";
+import { cn } from "@/lib/utils";
+import {
+  pendingSigningActions,
+  signedActionKey,
+  visibleSignedActions,
+  type PendingSigningAction,
+  type SigningInbox,
+} from "./signing-presentation";
+import type { PDFDocumentLoadingTask, RenderTask } from "pdfjs-dist";
 
 type SignMethod = "draw" | "type" | "upload";
+const SIGNATURE_IMAGE_MIMES = ["image/png", "image/jpeg"] as const;
+const MAX_SIGNATURE_IMAGE_BYTES = 5 * 1024 * 1024;
 
-function dataUrlToBlob(dataUrl: string) {
-  const [header, data] = dataUrl.split(",");
-  const mime = header.match(/:(.*?);/)?.[1] || "image/png";
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [, data] = dataUrl.split(",");
   const binary = atob(data);
-  const arr = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-  return new Blob([arr], { type: mime });
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: "image/png" });
 }
 
 function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
-
-  const getPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const position = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: (event.clientX - rect.left) * (canvas.width / rect.width),
+      y: (event.clientY - rect.top) * (canvas.height / rect.height),
     };
   };
-
-  const emit = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    onChange(canvas.toDataURL("image/png"));
-  };
-
   const clear = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     onChange(null);
   };
-
   return (
     <div className="space-y-2">
+      <p id="signature-drawing-instructions" className="text-xs text-dashboard-neutral">
+        Draw within the box using a pointer or touch. Type or upload your signature instead if
+        drawing is not convenient.
+      </p>
       <canvas
         ref={canvasRef}
         width={600}
         height={180}
-        className="w-full h-36 sm:h-40 border border-dashboard-border rounded-xl bg-dashboard-panel touch-none cursor-crosshair"
-        onPointerDown={(e) => {
+        role="img"
+        aria-label="Draw your signature"
+        aria-describedby="signature-drawing-instructions"
+        className="h-36 w-full touch-none rounded-lg border border-dashboard-border bg-dashboard-panel sm:h-40"
+        onPointerDown={(event) => {
+          const canvas = canvasRef.current;
+          const context = canvas?.getContext("2d");
+          if (!canvas || !context) return;
           drawing.current = true;
-          const ctx = canvasRef.current?.getContext("2d");
-          if (!ctx) return;
-          const p = getPos(e);
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+          const point = position(event);
+          context.beginPath();
+          context.moveTo(point.x, point.y);
+          canvas.setPointerCapture(event.pointerId);
         }}
-        onPointerMove={(e) => {
+        onPointerMove={(event) => {
           if (!drawing.current) return;
-          const ctx = canvasRef.current?.getContext("2d");
-          if (!ctx) return;
-          const p = getPos(e);
-          ctx.lineWidth = 2.5;
-          ctx.lineCap = "round";
-          ctx.strokeStyle = "#1a1a2e";
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
+          const context = canvasRef.current?.getContext("2d");
+          if (!context) return;
+          const point = position(event);
+          context.lineWidth = 2.5;
+          context.lineCap = "round";
+          context.strokeStyle = "#1a1a2e";
+          context.lineTo(point.x, point.y);
+          context.stroke();
         }}
         onPointerUp={() => {
+          if (!drawing.current) return;
           drawing.current = false;
-          emit();
+          const canvas = canvasRef.current;
+          if (canvas) onChange(canvas.toDataURL("image/png"));
+        }}
+        onPointerCancel={() => {
+          drawing.current = false;
         }}
       />
-      <DashboardButton
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={clear}
-        className="border-dashboard-border text-xs"
-      >
+      <DashboardButton type="button" variant="outline" size="sm" onClick={clear}>
         Clear signature drawing
       </DashboardButton>
     </div>
   );
 }
 
-function DocPreview({
+function PdfDocumentPreview({
+  bytes,
+  title,
+  documentId,
+  requestId,
+  onReady,
+  onFailure,
+}: {
+  bytes: Uint8Array;
+  title: string;
+  documentId: string;
+  requestId: number;
+  onReady: (documentId: string, requestId: number) => void;
+  onFailure: (requestId: number) => void;
+}) {
+  const pagesRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState("Preparing PDF preview…");
+
+  useEffect(() => {
+    let cancelled = false;
+    let loadingTask: PDFDocumentLoadingTask | null = null;
+    let renderTask: RenderTask | null = null;
+    const pages = pagesRef.current;
+
+    const renderPdf = async () => {
+      try {
+        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+          import.meta.url,
+        ).toString();
+        if (cancelled || !pages) return;
+        loadingTask = pdfjs.getDocument({ data: bytes.slice() });
+        const pdf = await loadingTask.promise;
+        if (cancelled) return;
+
+        for (let index = 1; index <= pdf.numPages; index += 1) {
+          if (cancelled) return;
+          setProgress(`Rendering page ${index} of ${pdf.numPages}…`);
+          const page = await pdf.getPage(index);
+          const original = page.getViewport({ scale: 1 });
+          const scale = Math.max(0.1, (pages.clientWidth - 16) / original.width);
+          const viewport = page.getViewport({ scale });
+          const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(viewport.width * pixelRatio);
+          canvas.height = Math.ceil(viewport.height * pixelRatio);
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
+          canvas.className = "mx-auto block max-w-full bg-white";
+          canvas.setAttribute("role", "img");
+          canvas.setAttribute("aria-label", `Page ${index} of ${pdf.numPages}: ${title}`);
+          pages.appendChild(canvas);
+          renderTask = page.render({
+            canvas,
+            viewport,
+            transform: [pixelRatio, 0, 0, pixelRatio, 0, 0],
+          });
+          await renderTask.promise;
+          renderTask = null;
+          page.cleanup();
+        }
+        if (cancelled) return;
+        setProgress("");
+        onReady(documentId, requestId);
+      } catch {
+        if (cancelled) return;
+        pages?.replaceChildren();
+        setProgress("PDF preview could not be rendered.");
+        onFailure(requestId);
+      }
+    };
+
+    void renderPdf();
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+      void loadingTask?.destroy();
+      pages?.replaceChildren();
+    };
+  }, [bytes, documentId, onFailure, onReady, requestId, title]);
+
+  return (
+    <div
+      aria-label={`Document preview: ${title}`}
+      data-testid="signing-pdf-preview"
+      className="h-full overflow-y-auto overscroll-contain bg-white p-2"
+    >
+      {progress && (
+        <p role="status" className="py-2 text-center text-xs text-dashboard-neutral">
+          {progress}
+        </p>
+      )}
+      <div ref={pagesRef} className="space-y-3" />
+    </div>
+  );
+}
+
+function DocumentPreview({
   url,
   mimeType,
   title,
+  pdfBytes,
+  documentId,
+  requestId,
+  onPdfReady,
+  onPdfFailure,
 }: {
   url: string | null;
   mimeType: string;
   title: string;
+  pdfBytes: Uint8Array | null;
+  documentId: string;
+  requestId: number;
+  onPdfReady: (documentId: string, requestId: number) => void;
+  onPdfFailure: (requestId: number) => void;
 }) {
-  if (url === null) {
+  if (url === "")
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-dashboard-neutral gap-2">
-        <Loader2 className="w-4 h-4 animate-spin text-dashboard-primary" /> Loading preview…
-      </div>
-    );
-  }
-  if (!url) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-sm text-dashboard-neutral p-6 text-center">
+      <p className="flex h-full items-center justify-center p-4 text-center text-sm text-dashboard-neutral">
         Preview unavailable for this document.
-      </div>
+      </p>
     );
-  }
-  if (mimeType.startsWith("image/")) {
-    return (
-      <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-        <img
-          src={url}
-          alt={title}
-          className="max-w-full max-h-full object-contain rounded border border-dashboard-border shadow-xs"
-        />
-      </div>
-    );
-  }
   if (mimeType === "application/pdf" || title.toLowerCase().endsWith(".pdf")) {
-    return (
-      <iframe
-        title={title}
-        src={url}
-        className="flex-1 w-full h-full min-h-[300px] border-0 bg-dashboard-panel"
-      />
-    );
+    if (pdfBytes)
+      return (
+        <PdfDocumentPreview
+          bytes={pdfBytes}
+          title={title}
+          documentId={documentId}
+          requestId={requestId}
+          onReady={onPdfReady}
+          onFailure={onPdfFailure}
+        />
+      );
   }
+  if (url === null)
+    return (
+      <div className="flex h-full items-center justify-center gap-2 text-sm text-dashboard-neutral">
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+        Loading document preview…
+      </div>
+    );
+  if (mimeType.startsWith("image/"))
+    return (
+      <div className="flex h-full items-center justify-center overflow-auto p-3">
+        {/* The image URL comes from the authorized document download service. */}
+        <img src={url} alt={title} className="max-h-full max-w-full object-contain" />
+      </div>
+    );
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-      <FileText className="w-12 h-12 text-dashboard-neutral" />
+    <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+      <FileText className="size-8 text-dashboard-neutral" aria-hidden />
       <p className="text-sm text-dashboard-neutral">
-        Inline preview unavailable for {mimeType || "this file"}.
+        Inline preview unavailable for this file type.
       </p>
       <DashboardButton asChild variant="outline" size="sm">
         <a href={url} target="_blank" rel="noreferrer">
-          Open in new tab
+          Open document in a new tab
         </a>
       </DashboardButton>
     </div>
   );
 }
 
-function SignedDownload({ documentId }: { documentId: string }) {
+function OriginalDocumentAction({ documentId, title }: { documentId: string; title: string }) {
   const downloadDocument = useDownloadDocument();
   const [busy, setBusy] = useState(false);
   return (
     <DashboardButton
       variant="outline"
       size="sm"
-      className="text-xs border-dashboard-border"
       disabled={busy}
+      aria-label={`Open document: ${title}`}
       onClick={async () => {
         setBusy(true);
         try {
           const url = await downloadDocument(documentId);
-          if (url) window.open(String(url), "_blank");
-        } catch (err: any) {
-          toast.error(err?.message || "Download failed");
+          if (url) window.open(String(url), "_blank", "noopener,noreferrer");
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Document unavailable.");
         } finally {
           setBusy(false);
         }
       }}
     >
       {busy ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+        <Loader2 className="mr-1 size-4 animate-spin" aria-hidden />
       ) : (
-        <Download className="w-3.5 h-3.5 mr-1" />
+        <Download className="mr-1 size-4" aria-hidden />
       )}
-      File
+      Document
     </DashboardButton>
   );
 }
@@ -225,639 +328,835 @@ export default function ClientSignaturesPage() {
   const currentUser = useCurrentUser();
   const clientRecord = useMyClient();
   const signingInbox = useSigningInbox();
-  const inbox = signingInbox.data;
-  const envelopeActions = inbox?.pendingEnvelopes ?? [];
-  const pendingDocs = (inbox?.pendingDirect ?? []).map((action: any) => action.document);
-  const signedDocs = (inbox?.recentlySigned ?? []).map((action: any) => action.document);
-  const signDocument = useSignDocument();
-  const declineEnvelope = useDeclineEnvelope();
+  const inbox = signingInbox.data as SigningInbox | undefined;
+  const pending = pendingSigningActions(inbox);
+  const history = visibleSignedActions(inbox);
+  const downloadDocument = useDownloadDocument();
+  const markDocumentViewed = useMarkDocumentViewed();
   const issueOtp = useIssueOtp();
   const verifyOtp = useVerifyOtp();
-  const markDocumentViewed = useMarkDocumentViewed();
-  const downloadDocument = useDownloadDocument();
+  const signDocument = useSignDocument();
+  const declineEnvelope = useDeclineEnvelope();
 
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
-  const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
-  const [selectedEnvelopeId, setSelectedEnvelopeId] = useState<string | null>(null);
-
-  const [method, setMethod] = useState<SignMethod>("draw");
+  const [selectedAction, setSelectedAction] = useState<PendingSigningAction | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPdf, setPreviewPdf] = useState<{ bytes: Uint8Array; requestId: number } | null>(
+    null,
+  );
+  const [previewError, setPreviewError] = useState("");
+  const [viewed, setViewed] = useState(false);
+  const [method, setMethod] = useState<SignMethod>("type");
   const [drawnDataUrl, setDrawnDataUrl] = useState<string | null>(null);
   const [typedName, setTypedName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
-  const [declineReason, setDeclineReason] = useState("");
-
   const [otpChallengeId, setOtpChallengeId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
-  const [viewed, setViewed] = useState(false);
+  const [otpRequesting, setOtpRequesting] = useState(false);
+  const [otpChecking, setOtpChecking] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [declining, setDeclining] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
-
+  const [uploadProgress, setUploadProgress] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const openRequestId = useRef(0);
+  const previewObjectUrl = useRef<string | null>(null);
 
-  const resetSignState = useCallback(() => {
-    setMethod("draw");
+  useEffect(
+    () => () => {
+      if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+    },
+    [],
+  );
+
+  const resetSigningState = useCallback(() => {
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+    previewObjectUrl.current = null;
+    setPreviewUrl(null);
+    setPreviewPdf(null);
+    setPreviewError("");
+    setViewed(false);
+    setMethod("type");
     setDrawnDataUrl(null);
     setTypedName(currentUser?.name || clientRecord?.fullName || "");
     setUploadFile(null);
     setConsent(false);
-    setDeclineReason("");
     setOtpChallengeId(null);
     setOtpCode("");
     setOtpVerified(false);
-    setViewed(false);
+    setOtpRequesting(false);
+    setOtpChecking(false);
+    setDeclineReason("");
+    setDeclining(false);
     setIsSigning(false);
-  }, [currentUser?.name, clientRecord?.fullName]);
+    setUploadProgress("");
+  }, [clientRecord?.fullName, currentUser?.name]);
 
-  const openSign = async (doc: any, envelopeId?: string) => {
-    setSelectedDoc(doc);
-    setSelectedEnvelopeId(envelopeId || null);
-    setSelectedFileUrl(null);
-    resetSignState();
+  const closeDialog = useCallback(() => {
+    openRequestId.current += 1;
+    setSelectedAction(null);
+    resetSigningState();
+  }, [resetSigningState]);
+
+  const handleDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) closeDialog();
+    },
+    [closeDialog],
+  );
+
+  const markRenderedPdfViewed = useCallback(
+    async (documentId: string, requestId: number) => {
+      if (requestId !== openRequestId.current) return;
+      try {
+        await markDocumentViewed({ documentId });
+        if (requestId === openRequestId.current) setViewed(true);
+      } catch {
+        if (requestId === openRequestId.current) {
+          setPreviewError(
+            "We could not record that you viewed this document. Please close and try again.",
+          );
+          setViewed(false);
+        }
+      }
+    },
+    [markDocumentViewed],
+  );
+
+  const handlePdfPreviewFailure = useCallback((requestId: number) => {
+    if (requestId !== openRequestId.current) return;
+    setPreviewPdf(null);
+    setPreviewUrl("");
+    setPreviewError("This document could not be opened. Please close and try again.");
+    setViewed(false);
+  }, []);
+
+  const openSign = async (action: PendingSigningAction) => {
+    const requestId = ++openRequestId.current;
+    resetSigningState();
+    setSelectedAction(action);
     try {
-      const url = await downloadDocument(doc._id);
-      setSelectedFileUrl(url ? String(url) : "");
-      if (url) {
-        try {
-          await markDocumentViewed({
-            documentId: doc._id,
-          });
-          setViewed(true);
-        } catch {
-          setViewed(true);
+      const url = await downloadDocument(action.document.id);
+      if (!url) throw new Error("Document preview is unavailable.");
+      if (requestId !== openRequestId.current) return;
+      let displayUrl = String(url);
+      const mimeType = action.document.mimeType;
+      const isPdf =
+        mimeType === "application/pdf" || action.document.title.toLowerCase().endsWith(".pdf");
+      const isInlinePreview = isPdf || mimeType.startsWith("image/");
+      if (
+        isInlinePreview &&
+        new URL(displayUrl, window.location.href).origin === window.location.origin
+      ) {
+        const response = await fetch(displayUrl);
+        if (!response.ok) throw new Error("Document preview is unavailable.");
+        if (
+          isPdf &&
+          response.headers.get("content-type")?.split(";")[0].trim() !== "application/pdf"
+        ) {
+          throw new Error("Document preview is not a PDF.");
+        }
+        const bytes = await response.arrayBuffer();
+        if (requestId !== openRequestId.current) return;
+        if (isPdf) {
+          setPreviewPdf({ bytes: new Uint8Array(bytes), requestId });
+          return;
+        }
+        displayUrl = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+        previewObjectUrl.current = displayUrl;
+      } else if (isPdf) {
+        throw new Error("Document preview must be loaded from this site.");
+      }
+      setPreviewUrl(displayUrl);
+      try {
+        await markDocumentViewed({ documentId: action.document.id });
+        if (requestId === openRequestId.current) setViewed(true);
+      } catch {
+        if (requestId === openRequestId.current) {
+          setPreviewError(
+            "We could not record that you viewed this document. Please close and try again.",
+          );
+          setViewed(false);
         }
       }
     } catch {
-      toast.error("Failed to load file preview.");
-      setSelectedFileUrl("");
+      if (requestId !== openRequestId.current) return;
+      setPreviewUrl("");
+      setPreviewError("This document could not be opened. Please close and try again.");
     }
   };
 
-  const uploadBlob = async (
+  const uploadSignatureImage = async (
     blob: Blob,
     fileName: string,
     documentId: string,
     envelopeId?: string,
   ): Promise<string> => {
-    const bytes = await blob.arrayBuffer();
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    if (
+      !SIGNATURE_IMAGE_MIMES.some((mime) => mime === blob.type) ||
+      blob.size > MAX_SIGNATURE_IMAGE_BYTES
+    )
+      throw new Error("Choose a PNG or JPEG signature image smaller than 5 MB.");
+    const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
     const sha256 = Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, "0"))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
       .join("");
-    const res = await fetch("/api/v1/envelopes/signature-artifact-intents", {
+    setUploadProgress("Securing signature image…");
+    const response = await fetch("/api/v1/envelopes/signature-artifact-intents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fileName,
-        mimeType: blob.type || "image/png",
+        mimeType: blob.type,
         sizeBytes: blob.size,
         documentId,
-        envelopeId: envelopeId || undefined,
+        envelopeId,
         sha256,
       }),
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Upload intent failed (${res.status}): ${text || res.statusText}`);
-    }
-    const { data } = await res.json();
+    if (!response.ok) throw new Error("Signature image upload could not start.");
+    const { data } = await response.json();
     const form = new FormData();
     Object.entries(data.upload.fields || {}).forEach(([key, value]) =>
       form.append(key, String(value)),
     );
     form.append("file", blob, fileName);
-    const put = await fetch(data.upload.url, { method: "POST", body: form });
-    if (!put.ok) {
-      throw new Error(`Binary upload failed (${put.status})`);
-    }
-    const complete = await fetch(
+    const uploaded = await fetch(data.upload.url, { method: "POST", body: form });
+    if (!uploaded.ok) throw new Error("Signature image upload failed.");
+    setUploadProgress("Checking signature image…");
+    const completed = await fetch(
       `/api/v1/envelopes/signature-artifact-intents/${data.intentId}/complete`,
       { method: "POST" },
     );
-    if (!complete.ok) throw new Error("Signature image could not be secured for signing.");
-    const completed = await complete.json();
-    if (completed.data?.status !== "promoted")
-      throw new Error("Signature image did not pass security review.");
+    if (!completed.ok) throw new Error("Signature image could not be secured for signing.");
+    const result = await completed.json();
+    if (result.data?.status !== "promoted")
+      throw new Error("Signature image did not pass the required checks.");
+    setUploadProgress("");
     return data.intentId;
   };
 
   const handleSendOtp = async () => {
-    if (!selectedDoc) return;
+    if (!selectedAction) return;
+    setOtpRequesting(true);
+    setOtpVerified(false);
     try {
-      const res = await issueOtp({
-        documentId: selectedDoc._id,
-        envelopeId: selectedEnvelopeId ?? undefined,
+      const response = await issueOtp({
+        documentId: selectedAction.document.id,
+        envelopeId: selectedAction.kind === "envelope" ? selectedAction.envelopeId : undefined,
       });
-      setOtpChallengeId(res.challengeId);
-      toast.success("A verification code has been requested for your account email.");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to send OTP.");
+      setOtpChallengeId(response.challengeId);
+      setOtpCode("");
+      toast.success("Verification code requested for your account email.");
+    } catch (error) {
+      setOtpChallengeId(null);
+      toast.error(
+        error instanceof Error ? error.message : "Could not request a verification code.",
+      );
+    } finally {
+      setOtpRequesting(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otpChallengeId || !otpCode.trim()) {
-      toast.error("Enter the verification code.");
-      return;
-    }
+    if (!otpChallengeId || !otpCode.trim()) return;
+    setOtpChecking(true);
     try {
-      const res = await verifyOtp({
-        challengeId: otpChallengeId as any,
-        code: otpCode.trim(),
-      });
-      if (res.verified) {
-        setOtpVerified(true);
-        toast.success("Security verification completed.");
-      } else {
-        toast.error("Incorrect code. Please try again.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Invalid code.");
+      const result = await verifyOtp({ challengeId: otpChallengeId, code: otpCode.trim() });
+      if (!result.verified) throw new Error("Incorrect code. Please try again.");
+      setOtpVerified(true);
+      toast.success("Verification complete.");
+    } catch (error) {
+      setOtpVerified(false);
+      toast.error(error instanceof Error ? error.message : "Could not verify the code.");
+    } finally {
+      setOtpChecking(false);
     }
   };
 
   const handleDecline = async () => {
-    if (!selectedEnvelopeId) return;
+    if (selectedAction?.kind !== "envelope") return;
     if (!declineReason.trim()) {
-      toast.error("Enter a decline reason.");
+      toast.error("Enter a reason for declining.");
       return;
     }
+    setDeclining(true);
     try {
       await declineEnvelope({
-        envelopeId: selectedEnvelopeId as any,
+        envelopeId: selectedAction.envelopeId,
         reason: declineReason.trim(),
       });
-      toast.success("Envelope declined.");
-      setSelectedDoc(null);
-      setSelectedEnvelopeId(null);
-    } catch (err: any) {
-      toast.error(err?.message || "Could not decline.");
+      toast.success("You declined to sign this document.");
+      closeDialog();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not decline this request.");
+    } finally {
+      setDeclining(false);
     }
   };
 
   const handleSign = async () => {
-    if (!selectedDoc) return;
-    if (!viewed) {
-      toast.error("Please wait for the document preview to load.");
-      return;
-    }
-    if (!otpVerified || !otpChallengeId) {
-      toast.error("Verify the OTP code before signing.");
-      return;
-    }
-    if (!consent) {
-      toast.error("Accept the consent statement to continue.");
-      return;
-    }
+    if (!selectedAction) return;
+    if (!viewed || !otpVerified || !otpChallengeId || !consent) return;
     setIsSigning(true);
     try {
-      let artifactId: string | undefined;
+      let signatureArtifactIntentId: string | undefined;
+      const envelopeId = selectedAction.kind === "envelope" ? selectedAction.envelopeId : undefined;
       if (method === "draw") {
         if (!drawnDataUrl) throw new Error("Draw your signature first.");
-        artifactId = await uploadBlob(
+        signatureArtifactIntentId = await uploadSignatureImage(
           dataUrlToBlob(drawnDataUrl),
           "signature.png",
-          selectedDoc._id,
-          selectedEnvelopeId ?? undefined,
+          selectedAction.document.id,
+          envelopeId,
         );
       } else if (method === "upload") {
-        if (!uploadFile) throw new Error("Upload a signature image.");
-        artifactId = await uploadBlob(
+        if (!uploadFile) throw new Error("Choose a signature image first.");
+        signatureArtifactIntentId = await uploadSignatureImage(
           uploadFile,
           uploadFile.name,
-          selectedDoc._id,
-          selectedEnvelopeId ?? undefined,
+          selectedAction.document.id,
+          envelopeId,
         );
       } else if (!typedName.trim()) {
-        throw new Error("Type your full legal name.");
+        throw new Error("Type your full name first.");
       }
-
       await signDocument({
-        documentId: selectedDoc._id,
+        documentId: selectedAction.document.id,
         signatureMethod: method,
-        signatureArtifactIntentId: artifactId,
+        signatureArtifactIntentId,
         typedSignatureText: method === "type" ? typedName.trim() : undefined,
         consentAccepted: true,
-        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+        userAgent: typeof navigator === "undefined" ? undefined : navigator.userAgent,
         signatureNote: `Signed via ${method} in client portal`,
-        otpChallengeId: otpChallengeId as any,
-        envelopeId: selectedEnvelopeId as any,
+        otpChallengeId,
+        envelopeId,
       });
-      toast.success(`Signed ${selectedDoc.title}`);
-      setSelectedDoc(null);
-      setSelectedEnvelopeId(null);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to sign document.");
+      toast.success(`Signature recorded for ${selectedAction.document.title}.`);
+      closeDialog();
+    } catch (error) {
+      setUploadProgress("");
+      toast.error(error instanceof Error ? error.message : "Could not sign this document.");
     } finally {
       setIsSigning(false);
     }
   };
 
-  if (currentUser === undefined || clientRecord === undefined) {
+  if (currentUser === undefined || clientRecord === undefined)
     return (
       <PortalPageShell
         portal="client"
         loading
-        loadingLabel="Loading your digital signatures…"
-        title="Signatures"
+        loadingLabel="Loading signing requests…"
+        title="Sign Documents"
       >
         <div />
       </PortalPageShell>
     );
-  }
 
-  if (clientRecord === null) {
+  if (clientRecord === null)
     return (
       <PortalPageShell
         portal="client"
         decorated
-        showTodayDate
-        eyebrow="E-Signature Security"
-        title="Digital E-Signatures"
-        description="Preview legal documents, complete secure step-up verification (OTP), and sign records."
-        icon={PenTool}
+        eyebrow="Client Portal"
+        title="Sign Documents"
+        description="Review documents shared for your signature."
+        icon={PenLine}
       >
         <EmptyState
           title="No client profile linked"
-          description="Your portal account is not linked to a client record. Contact the firm to access digital signatures."
-          icon={PenTool}
+          description="Your account is not linked to a client record. Contact the firm for help with signing requests."
+          icon={FileText}
         />
       </PortalPageShell>
     );
-  }
 
-  const metrics = [
-    {
-      label: "Awaiting Signature",
-      value: String(pendingDocs.length),
-      icon: PenTool,
-      tone: pendingDocs.length > 0 ? ("warning" as const) : ("success" as const),
-      helperText: "Action required",
-    },
-    {
-      label: "Pending Envelopes",
-      value: String(envelopeActions.length),
-      icon: Clock,
-      tone: envelopeActions.length > 0 ? ("danger" as const) : ("neutral" as const),
-      helperText: "Sequential sign orders",
-    },
-    {
-      label: "Completed Signatures",
-      value: String(signedDocs.length),
-      icon: CheckCircle2,
-      tone: "success" as const,
-      helperText: "Verified certificates",
-    },
-    {
-      label: "Total Documents",
-      value: String(pendingDocs.length + signedDocs.length),
-      icon: FileText,
-      tone: DASHBOARD_METRIC_TONES.documents,
-      helperText: "In signature vault",
-    },
-  ];
+  const selectedDocument = selectedAction?.document;
+  const canSign =
+    viewed &&
+    otpVerified &&
+    consent &&
+    !isSigning &&
+    !declining &&
+    (method === "type"
+      ? typedName.trim().length > 0
+      : method === "draw"
+        ? Boolean(drawnDataUrl)
+        : Boolean(uploadFile));
 
   return (
     <PortalPageShell
       portal="client"
       decorated
       showTodayDate
-      eyebrow="E-Signature Security"
-      title="Digital E-Signatures"
-      description="Preview legal documents, complete secure step-up verification (OTP), capture electronic signatures, and download verified completion certificates."
-      icon={PenTool}
-      metrics={metrics}
+      eyebrow="Client Portal"
+      title="Sign Documents"
+      description="Review documents shared for your signature and find your completed signing activity."
+      icon={PenLine}
+      className="client-signatures"
     >
-      {envelopeActions.length > 0 && (
-        <DashboardSection
-          title={`Action Required: Envelopes (${envelopeActions.length})`}
-          description="Documents requiring sequential routing signatures"
-          icon={AlertTriangle}
-          className="border-dashboard-primary/40 bg-dashboard-primary-soft/30"
-        >
-          <div className="space-y-3">
-            {envelopeActions.map((a: any) => (
-              <DashboardListRow
-                key={a.envelopeId}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-dashboard-panel"
+      <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
+        <div className="min-w-0 space-y-4">
+          <DashboardSection
+            title="Documents awaiting your signature"
+            description={`${pending.length} ${pending.length === 1 ? "request" : "requests"} requiring your action.`}
+            icon={PenLine}
+            density="compact"
+          >
+            {signingInbox.isLoading ? (
+              <DashboardListSkeleton rows={2} />
+            ) : signingInbox.isError ? (
+              <EmptyState
+                title="Signing requests unavailable"
+                description="Please try again later or message the legal team."
+                icon={FileText}
+              />
+            ) : pending.length === 0 ? (
+              <EmptyState
+                title="No documents awaiting your signature"
+                description="New signing requests will appear here when the firm shares them with you."
+                icon={CheckCircle2}
+              />
+            ) : (
+              <div
+                className="divide-y divide-dashboard-border"
+                aria-label="Pending signing requests"
               >
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground break-words">
-                      {a.envelopeTitle}
-                    </p>
-                    <DashboardStatusLabel status={a.routing || "sequential"} className="text-xs" />
-                  </div>
-                  <p className="text-xs text-dashboard-neutral">
-                    Order {a.order + 1}
-                    {a.expiresAt
-                      ? ` · Expires ${format(new Date(a.expiresAt), "MMM d, yyyy")}`
-                      : ""}
-                  </p>
-                </div>
-                <DashboardButton
-                  size="sm"
-                  className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground shrink-0"
-                  disabled={!a.document}
-                  onClick={() => openSign(a.document, a.envelopeId)}
-                >
-                  Review & Sign
-                </DashboardButton>
-              </DashboardListRow>
-            ))}
-          </div>
-        </DashboardSection>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardSection
-          title={`Pending Signatures (${pendingDocs.length})`}
-          description="Documents requiring your signature"
-          icon={PenTool}
-        >
-          {signingInbox.isLoading ? (
-            <DashboardListSkeleton rows={3} />
-          ) : pendingDocs.length === 0 ? (
-            <EmptyState
-              title="All Caught Up!"
-              description="No documents are currently awaiting your signature."
-              icon={CheckCircle2}
-            />
-          ) : (
-            <div className="space-y-3">
-              {pendingDocs.map((doc: any) => (
-                <DashboardListRow
-                  key={doc._id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3"
-                >
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <FileText className="w-6 h-6 text-dashboard-warning mt-0.5 shrink-0" />
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="text-sm font-semibold text-foreground break-words">
-                        {doc.title}
-                      </p>
-                      <DashboardStatusLabel
-                        status="pending"
-                        label="Signature Required"
-                        className="text-[10px]"
-                      />
-                    </div>
-                  </div>
-                  <Dialog
-                    open={selectedDoc?._id === doc._id}
-                    onOpenChange={(open) => {
-                      if (!open) {
-                        setSelectedDoc(null);
-                        setSelectedEnvelopeId(null);
-                      }
-                    }}
+                {pending.map((action) => (
+                  <DashboardListRow
+                    key={
+                      action.kind === "envelope"
+                        ? `envelope:${action.envelopeId}`
+                        : `direct:${action.document.id}`
+                    }
+                    className="flex min-w-0 flex-col gap-3 border-0 px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <DialogTrigger asChild>
-                      <DashboardButton
-                        size="sm"
-                        className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground shrink-0"
-                        onClick={() => openSign(doc)}
-                      >
-                        Review & Sign
-                      </DashboardButton>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] h-[min(92dvh,900px)] flex flex-col p-3 sm:p-6 gap-4 bg-dashboard-panel border-dashboard-border">
-                      <DialogHeader>
-                        <DialogTitle className="text-base sm:text-lg break-words pr-6 text-foreground">
-                          Sign Document: {doc.title}
-                          {selectedEnvelopeId ? " (Envelope Mode)" : ""}
-                        </DialogTitle>
-                      </DialogHeader>
-
-                      <div className="flex-1 min-h-0 flex flex-col border border-dashboard-border rounded-xl overflow-hidden bg-dashboard-canvas">
-                        <DocPreview
-                          url={selectedFileUrl}
-                          mimeType={doc.mimeType || ""}
-                          title={doc.title}
-                        />
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-primary-soft text-dashboard-primary">
+                        <FileText className="size-5" aria-hidden />
                       </div>
-
-                      <div className="space-y-3 shrink-0 overflow-y-auto max-h-[44%] pr-1">
-                        <div className="rounded-xl border border-dashboard-border p-3 space-y-2 bg-dashboard-panel/50">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-dashboard-primary" />
-                            <p className="text-xs font-semibold text-foreground">
-                              Step-Up Verification (OTP Security)
-                            </p>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <DashboardButton
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleSendOtp}
-                              className="border-dashboard-border text-xs"
-                            >
-                              Send verification code
-                            </DashboardButton>
-                            <Input
-                              value={otpCode}
-                              onChange={(e) => setOtpCode(e.target.value)}
-                              placeholder="6-digit code"
-                              className="h-9 sm:max-w-[160px] border-dashboard-border bg-dashboard-panel"
-                              inputMode="numeric"
-                            />
-                            <DashboardButton
-                              type="button"
-                              size="sm"
-                              onClick={handleVerifyOtp}
-                              disabled={!otpChallengeId}
-                              className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground"
-                            >
-                              Verify OTP
-                            </DashboardButton>
-                          </div>
-                          {otpVerified && (
-                            <p className="text-[11px] text-dashboard-success font-medium flex items-center gap-1">
-                              ✓ OTP verified successfully
-                            </p>
+                      <div className="min-w-0 space-y-1">
+                        <p className="break-words text-sm font-semibold text-foreground">
+                          {action.document.title}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
+                          <DashboardStatusLabel status="pending" label="Signature requested" />
+                          {action.kind === "envelope" &&
+                            action.envelopeTitle !== action.document.title && (
+                              <span className="break-words">{action.envelopeTitle}</span>
+                            )}
+                          {action.kind === "envelope" && action.expiresAt && (
+                            <span>Expires {format(new Date(action.expiresAt), "d MMM yyyy")}</span>
                           )}
                         </div>
+                      </div>
+                    </div>
+                    <DashboardButton
+                      size="sm"
+                      className="w-full shrink-0 sm:w-auto"
+                      onClick={() => void openSign(action)}
+                    >
+                      Review &amp; Sign
+                    </DashboardButton>
+                  </DashboardListRow>
+                ))}
+              </div>
+            )}
+          </DashboardSection>
 
-                        <div className="flex flex-wrap gap-2">
-                          {(["draw", "type", "upload"] as SignMethod[]).map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              onClick={() => setMethod(m)}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-medium capitalize border transition-all cursor-pointer",
-                                method === m
-                                  ? "bg-dashboard-primary text-dashboard-primary-foreground border-dashboard-primary"
-                                  : "bg-dashboard-panel border-dashboard-border text-dashboard-neutral hover:text-foreground",
-                              )}
-                            >
-                              {m} signature
-                            </button>
-                          ))}
-                        </div>
-
-                        {method === "draw" && <SignaturePad onChange={setDrawnDataUrl} />}
-                        {method === "type" && (
-                          <Input
-                            value={typedName}
-                            onChange={(e) => setTypedName(e.target.value)}
-                            placeholder="Type your full legal name"
-                            className="font-serif text-lg border-dashboard-border bg-dashboard-panel"
-                          />
-                        )}
-                        {method === "upload" && (
-                          <div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/png,image/jpeg"
-                              className="hidden"
-                              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                            />
-                            <DashboardButton
-                              type="button"
-                              variant="outline"
-                              className="w-full border-dashboard-border"
-                              onClick={() => fileInputRef.current?.click()}
-                            >
-                              {uploadFile ? uploadFile.name : "Upload signature image"}
-                            </DashboardButton>
-                          </div>
-                        )}
-
-                        <label className="flex items-start gap-2 text-xs text-dashboard-neutral cursor-pointer pt-1">
-                          <input
-                            type="checkbox"
-                            className="mt-0.5 shrink-0 rounded border-dashboard-border"
-                            checked={consent}
-                            onChange={(e) => setConsent(e.target.checked)}
-                          />
-                          <span>
-                            I have reviewed this document and consent to record my legally binding
-                            electronic acknowledgment (consent version esign-consent-v1). A
-                            cryptographic SHA-256 integrity fingerprint will be stored with this
-                            record.
-                          </span>
-                        </label>
-
-                        {selectedEnvelopeId && (
-                          <div className="rounded-xl border border-dashboard-danger/40 p-3 space-y-2 bg-dashboard-danger-soft">
-                            <p className="text-xs font-semibold text-dashboard-danger-foreground">
-                              Decline Envelope
-                            </p>
-                            <Input
-                              value={declineReason}
-                              onChange={(e) => setDeclineReason(e.target.value)}
-                              placeholder="Reason for declining..."
-                              className="h-9 border-dashboard-border bg-dashboard-panel"
-                            />
-                            <DashboardButton
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="border-dashboard-danger text-dashboard-danger hover:bg-dashboard-danger/10"
-                              onClick={handleDecline}
-                            >
-                              Decline to sign
-                            </DashboardButton>
-                          </div>
-                        )}
-
-                        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2 border-t border-dashboard-border">
-                          <DashboardButton
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedDoc(null);
-                              setSelectedEnvelopeId(null);
-                            }}
-                          >
-                            Cancel
-                          </DashboardButton>
-                          <DashboardButton
-                            onClick={handleSign}
-                            disabled={isSigning || !consent || !viewed || !otpVerified}
-                            className="bg-dashboard-primary hover:bg-dashboard-primary-hover text-dashboard-primary-foreground min-w-[150px]"
-                          >
-                            {isSigning ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Recording…
-                              </>
-                            ) : (
-                              "Acknowledge & Sign"
-                            )}
-                          </DashboardButton>
+          <DashboardSection
+            title="Recently signed"
+            description="Documents for which your signing activity was recorded."
+            icon={FileCheck2}
+            density="compact"
+          >
+            {signingInbox.isLoading ? (
+              <DashboardListSkeleton rows={2} />
+            ) : signingInbox.isError ? (
+              <p className="text-sm text-dashboard-neutral">
+                Signing history is unavailable right now.
+              </p>
+            ) : history.length === 0 ? (
+              <EmptyState
+                title="No signing history yet"
+                description="Documents you sign will appear here."
+                icon={FileText}
+              />
+            ) : (
+              <div
+                className="divide-y divide-dashboard-border"
+                aria-label="Recently signed documents"
+              >
+                {history.map((action) => (
+                  <DashboardListRow
+                    key={signedActionKey(action)}
+                    className="flex min-w-0 flex-col gap-3 border-0 px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-success-soft text-dashboard-success">
+                        <FileCheck2 className="size-5" aria-hidden />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <p className="break-words text-sm font-semibold text-foreground">
+                          {action.document.title}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
+                          <DashboardStatusLabel status="signed" label="Signed" />
+                          {action.document.signedAt && (
+                            <span>
+                              Signed {format(new Date(action.document.signedAt), "d MMM yyyy")}
+                            </span>
+                          )}
+                          {action.kind === "direct" && action.document.signatureMethod && (
+                            <span>By {action.document.signatureMethod}</span>
+                          )}
                         </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </DashboardListRow>
-              ))}
-            </div>
-          )}
-        </DashboardSection>
-
-        <DashboardSection
-          title={`Completed Signatures (${signedDocs.length})`}
-          description="Signed documents and verification certificates"
-          icon={CheckCircle2}
-        >
-          {signingInbox.isLoading ? (
-            <DashboardListSkeleton rows={3} />
-          ) : signedDocs.length === 0 ? (
-            <EmptyState
-              title="No Completed Signatures"
-              description="Signed documents and completion certificates will appear here."
-              icon={FileText}
-            />
-          ) : (
-            <div className="space-y-3">
-              {signedDocs.map((doc: any) => (
-                <DashboardListRow
-                  key={doc._id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3"
-                >
-                  <div className="flex flex-col min-w-0 flex-1 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground break-words">
-                        {doc.title}
-                      </p>
-                      <DashboardStatusLabel status="signed" className="text-[10px]" />
                     </div>
-                    <p className="text-xs text-dashboard-neutral">
-                      Signed on{" "}
-                      {doc.signedAt ? format(new Date(doc.signedAt), "MMM d, yyyy") : "Recently"}
-                      {doc.signatureMethod ? ` via ${doc.signatureMethod}` : ""}
-                    </p>
+                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+                      <DashboardButton
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          generateSignatureEventSummaryPDF({
+                            title: action.document.title,
+                            signedAt: action.document.signedAt,
+                            signerName: currentUser?.name || clientRecord.fullName,
+                            signatureMethod:
+                              action.kind === "direct"
+                                ? action.document.signatureMethod
+                                : undefined,
+                            consentVersion:
+                              action.kind === "direct"
+                                ? action.document.signConsentVersion
+                                : undefined,
+                          })
+                        }
+                      >
+                        Signature event summary
+                      </DashboardButton>
+                      <OriginalDocumentAction
+                        documentId={action.document.id}
+                        title={action.document.title}
+                      />
+                    </div>
+                  </DashboardListRow>
+                ))}
+              </div>
+            )}
+          </DashboardSection>
+        </div>
+
+        <aside className="min-w-0 space-y-4" aria-label="Signing guidance">
+          <DashboardSection title="Review before signing" icon={FileText} density="compact">
+            <div className="rounded-lg border border-dashboard-border bg-dashboard-canvas p-4 text-sm text-dashboard-neutral">
+              <FileText className="mb-2 size-7 text-dashboard-primary" aria-hidden />
+              <p>Choose a request to open its document preview and complete the signing steps.</p>
+            </div>
+          </DashboardSection>
+          <DashboardSection title="How signing works" icon={ShieldCheck} density="compact">
+            <ol className="space-y-3">
+              {[
+                ["Review your document", "Open and read the document shared by the firm."],
+                ["Verify your account email", "Request a code and enter it to continue."],
+                ["Choose how to sign", "Draw, type, or upload a signature image, then confirm."],
+                ["Find your record", "Your completed activity appears in Recently signed."],
+              ].map(([title, description], index) => (
+                <li key={title} className="flex gap-3 text-sm">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-dashboard-primary-soft text-xs font-semibold text-dashboard-primary">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-foreground">{title}</p>
+                    <p className="text-xs text-dashboard-neutral">{description}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                </li>
+              ))}
+            </ol>
+          </DashboardSection>
+          <DashboardSection title="Questions about a document?" icon={Mail} density="compact">
+            <p className="mb-3 text-sm text-dashboard-neutral">
+              Ask your legal team if you need clarification before signing.
+            </p>
+            <DashboardButton asChild size="sm" variant="outline">
+              <Link href="/client/messages">Message Legal Team</Link>
+            </DashboardButton>
+          </DashboardSection>
+        </aside>
+      </div>
+
+      <Dialog open={Boolean(selectedAction)} onOpenChange={handleDialogOpenChange}>
+        <DialogContent
+          data-client-signing-dialog
+          aria-labelledby="client-signing-dialog-title"
+          className="relative z-10 flex w-[calc(100vw-1rem)] flex-col gap-2 border-dashboard-border bg-dashboard-panel"
+          style={{
+            maxWidth: "min(56rem, calc(100vw - 1rem))",
+            height: "min(92dvh, 780px)",
+            maxHeight: "calc(100dvh - 1rem)",
+            overflow: "hidden",
+            padding: "clamp(0.75rem, 2vw, 1rem)",
+            backgroundColor: "var(--dashboard-panel)",
+            opacity: 1,
+            animation: "none",
+            transform: "none",
+          }}
+        >
+          {selectedDocument && (
+            <>
+              <DialogHeader className="shrink-0" style={{ marginTop: 0 }}>
+                <DialogTitle
+                  id="client-signing-dialog-title"
+                  className="break-words pr-9 text-base text-foreground sm:text-lg"
+                >
+                  Review &amp; Sign: {selectedDocument.title}
+                </DialogTitle>
+                <p className="text-xs text-dashboard-neutral">
+                  Review the document, verify your account email, then choose how to sign.
+                </p>
+              </DialogHeader>
+              <div
+                data-testid="signing-dialog-preview"
+                className="h-36 shrink-0 overflow-hidden rounded-lg border border-dashboard-border bg-dashboard-canvas sm:h-44 lg:h-52"
+                style={{ marginTop: 0 }}
+              >
+                <DocumentPreview
+                  url={previewUrl}
+                  mimeType={selectedDocument.mimeType}
+                  title={selectedDocument.title}
+                  pdfBytes={previewPdf?.bytes ?? null}
+                  documentId={selectedDocument.id}
+                  requestId={previewPdf?.requestId ?? 0}
+                  onPdfReady={markRenderedPdfViewed}
+                  onPdfFailure={handlePdfPreviewFailure}
+                />
+              </div>
+              <div
+                data-testid="signing-dialog-scroll"
+                role="region"
+                aria-label="Signing details"
+                className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain border-t border-dashboard-border pt-2 sm:pt-3"
+                style={{ marginTop: 0 }}
+              >
+                <p
+                  className={cn(
+                    "text-xs",
+                    viewed ? "text-dashboard-success" : "text-dashboard-neutral",
+                  )}
+                  role="status"
+                >
+                  {viewed
+                    ? "Document preview recorded as viewed."
+                    : previewError || "Open the document preview before signing."}
+                </p>
+                <div className="space-y-2 rounded-lg border border-dashboard-border p-3">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Verify using your account email
+                  </h3>
+                  <p className="text-xs text-dashboard-neutral">
+                    Request a code, then enter the code sent to your account email.
+                  </p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                     <DashboardButton
+                      type="button"
                       variant="outline"
                       size="sm"
-                      className="text-xs border-dashboard-border"
-                      onClick={() =>
-                        generateSignatureCertificatePDF({
-                          title: doc.title,
-                          documentId: doc._id,
-                          signedAt: doc.signedAt,
-                          signatureMethod: doc.signatureMethod,
-                          documentSha256: doc.sha256,
-                          typedSignatureText: doc.typedSignatureText,
-                          signerName: currentUser?.name || clientRecord?.fullName,
-                          consentVersion: doc.signConsentVersion || "esign-consent-v1",
-                        })
-                      }
+                      disabled={otpRequesting || !viewed}
+                      onClick={() => void handleSendOtp()}
                     >
-                      Certificate
+                      {otpRequesting ? "Requesting…" : "Request verification code"}
                     </DashboardButton>
-                    <SignedDownload documentId={doc._id} />
+                    <div className="min-w-0 sm:w-40">
+                      <label
+                        htmlFor="signing-otp-code"
+                        className="mb-1 block text-xs font-medium text-foreground"
+                      >
+                        Verification code
+                      </label>
+                      <Input
+                        id="signing-otp-code"
+                        value={otpCode}
+                        onChange={(event) =>
+                          setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        disabled={!otpChallengeId || otpVerified}
+                        className="h-9 border-dashboard-border bg-dashboard-panel"
+                      />
+                    </div>
+                    <DashboardButton
+                      type="button"
+                      size="sm"
+                      disabled={
+                        !otpChallengeId || otpCode.length !== 6 || otpChecking || otpVerified
+                      }
+                      onClick={() => void handleVerifyOtp()}
+                    >
+                      {otpChecking ? "Verifying…" : "Verify"}
+                    </DashboardButton>
                   </div>
-                </DashboardListRow>
-              ))}
-            </div>
+                  {otpVerified && (
+                    <p
+                      role="status"
+                      className="flex items-center gap-1 text-xs font-medium text-dashboard-success"
+                    >
+                      <CheckCircle2 className="size-4" aria-hidden /> Verified
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">Choose how to sign</h3>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Signature method">
+                    {(["draw", "type", "upload"] as SignMethod[]).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={method === option}
+                        onClick={() => setMethod(option)}
+                        className={cn(
+                          "min-h-10 rounded-lg border px-3 py-2 text-sm font-medium capitalize focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dashboard-primary",
+                          method === option
+                            ? "border-dashboard-primary bg-dashboard-primary text-dashboard-primary-foreground"
+                            : "border-dashboard-border bg-dashboard-panel text-foreground",
+                        )}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                  {method === "draw" && <SignaturePad onChange={setDrawnDataUrl} />}
+                  {method === "type" && (
+                    <div>
+                      <label
+                        htmlFor="typed-signature-name"
+                        className="mb-1 block text-xs font-medium text-foreground"
+                      >
+                        Full name for typed signature
+                      </label>
+                      <Input
+                        id="typed-signature-name"
+                        value={typedName}
+                        onChange={(event) => setTypedName(event.target.value)}
+                        autoComplete="name"
+                        className="border-dashboard-border bg-dashboard-panel"
+                      />
+                    </div>
+                  )}
+                  {method === "upload" && (
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="signature-image-upload"
+                        className="block text-xs font-medium text-foreground"
+                      >
+                        Signature image (PNG or JPEG, up to 5 MB)
+                      </label>
+                      <input
+                        id="signature-image-upload"
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        className="sr-only"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] || null;
+                          if (
+                            file &&
+                            (!SIGNATURE_IMAGE_MIMES.some((mime) => mime === file.type) ||
+                              file.size > MAX_SIGNATURE_IMAGE_BYTES)
+                          ) {
+                            setUploadFile(null);
+                            event.target.value = "";
+                            toast.error("Choose a PNG or JPEG signature image smaller than 5 MB.");
+                            return;
+                          }
+                          setUploadFile(file);
+                        }}
+                      />
+                      <DashboardButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploadFile ? uploadFile.name : "Choose signature image"}
+                      </DashboardButton>
+                    </div>
+                  )}
+                </div>
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-dashboard-neutral">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(event) => setConsent(event.target.checked)}
+                    className="mt-0.5 shrink-0"
+                  />
+                  <span>
+                    I have reviewed this document and consent to record my legally binding
+                    electronic acknowledgment (consent version esign-consent-v1). A cryptographic
+                    SHA-256 integrity fingerprint will be stored with this record.
+                  </span>
+                </label>
+                {selectedAction?.kind === "envelope" && (
+                  <div className="space-y-2 border-t border-dashboard-border pt-3">
+                    <label
+                      htmlFor="decline-signing-reason"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      Reason for declining to sign
+                    </label>
+                    <textarea
+                      id="decline-signing-reason"
+                      value={declineReason}
+                      onChange={(event) => setDeclineReason(event.target.value)}
+                      rows={2}
+                      className="w-full resize-y rounded-lg border border-dashboard-border bg-dashboard-panel p-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-dashboard-primary"
+                    />
+                    <DashboardButton
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={declining || isSigning || !declineReason.trim()}
+                      onClick={() => void handleDecline()}
+                    >
+                      {declining ? "Declining…" : "Decline to sign"}
+                    </DashboardButton>
+                  </div>
+                )}
+                {uploadProgress && (
+                  <p role="status" className="text-xs text-dashboard-neutral">
+                    {uploadProgress}
+                  </p>
+                )}
+              </div>
+              <div
+                data-testid="signing-dialog-footer"
+                className="flex shrink-0 gap-2 border-t border-dashboard-border bg-dashboard-panel pt-2 sm:justify-end"
+                style={{ marginTop: 0 }}
+              >
+                <DashboardButton
+                  type="button"
+                  variant="outline"
+                  onClick={closeDialog}
+                  className="min-w-0 flex-1 sm:flex-none"
+                >
+                  Cancel
+                </DashboardButton>
+                <DashboardButton
+                  type="button"
+                  disabled={!canSign}
+                  onClick={() => void handleSign()}
+                  className="min-w-0 flex-1 sm:min-w-36 sm:flex-none"
+                >
+                  {isSigning ? "Recording signature…" : "Sign document"}
+                </DashboardButton>
+              </div>
+            </>
           )}
-        </DashboardSection>
-      </div>
+        </DialogContent>
+      </Dialog>
     </PortalPageShell>
   );
 }
