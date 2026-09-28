@@ -5295,6 +5295,75 @@
   opacity: 1;
 }
 
+/* CUI-16 Profile hero only: use the existing Client dhaka motif when no
+   approved scenic CMS image is available. Never affects the shared shell. */
+.dashboard-theme.dashboard-client .client-profile-hero[data-slot="dashboard-hero"] {
+  min-height: 0;
+  padding: 1rem 1.25rem;
+  background-color: var(--dashboard-panel);
+  background-image: linear-gradient(100deg, var(--dashboard-panel) 42%, #e4edf6 100%);
+}
+
+.dashboard-theme.dashboard-client .client-profile-hero.dashboard-hero-nepal::before {
+  display: block;
+  width: 3px;
+  background: var(--dashboard-accent);
+}
+
+.dashboard-theme.dashboard-client .client-profile-hero.dashboard-hero-nepal::after {
+  inset: 0 0 0 auto;
+  width: 48%;
+  opacity: 0.85;
+  mask-image: linear-gradient(to right, transparent, black 42%);
+}
+
+.dashboard-theme.dashboard-client
+  .client-profile-hero[data-slot="dashboard-hero"]
+  > .relative.z-10.mt-5 {
+  display: none;
+}
+
+.dashboard-theme.dashboard-client
+  .client-profile-hero[data-slot="dashboard-hero"]
+  > .relative.z-10 {
+  align-items: center;
+  gap: 1rem;
+}
+
+.dashboard-theme.dashboard-client .client-profile-hero[data-slot="dashboard-hero"] h1 {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.dashboard-theme.dashboard-client .client-profile-hero[data-slot="dashboard-hero"] p {
+  max-width: 34rem;
+}
+
+@media (max-width: 639px) {
+  .dashboard-theme.dashboard-client .client-profile-hero[data-slot="dashboard-hero"] {
+    padding: 0.875rem 1rem;
+  }
+
+  .dashboard-theme.dashboard-client
+    .client-profile-hero[data-slot="dashboard-hero"]
+    > .relative.z-10 {
+    display: block;
+  }
+
+  .dashboard-theme.dashboard-client
+    .client-profile-hero[data-slot="dashboard-hero"]
+    > .relative.z-10
+    > .flex.shrink-0 {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .dashboard-theme.dashboard-client .client-profile-hero[data-slot="dashboard-hero"] h1 {
+    font-size: 1.875rem;
+  }
+}
+
 .hero-animate-in {
   animation: hero-slide-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

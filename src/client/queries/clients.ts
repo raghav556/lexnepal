@@ -14,14 +14,18 @@ export function useClients(options?: { enabled?: boolean }): ClientDto[] | undef
   }).data;
 }
 
-export function useMyClient(): ClientCrmDto | null | undefined {
-  const { data, isPending, isError } = useTanstackQuery({
+export function useMyClientQuery() {
+  return useTanstackQuery({
     queryKey: queryKeys.clients.mine,
     queryFn: ({ signal }) =>
       apiClient.request<ClientCrmDto | null>("/api/v1/clients/me", { signal }),
     retry: 1,
     staleTime: 30_000,
   });
+}
+
+export function useMyClient(): ClientCrmDto | null | undefined {
+  const { data, isPending, isError } = useMyClientQuery();
   if (isPending) return undefined;
   if (isError) return null;
   return data ?? null;
@@ -71,6 +75,14 @@ export function useClientCommands() {
     await queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
   }, [queryClient]);
   return {
+    async updateMine(input: { phone?: string | null; address?: string | null }) {
+      const result = await apiClient.request<ClientCrmDto>("/api/v1/clients/me", {
+        method: "PATCH",
+        body: input,
+      });
+      await invalidate();
+      return result;
+    },
     async create(input: Record<string, unknown>) {
       const result = await apiClient.request("/api/v1/clients", { method: "POST", body: input });
       await invalidate();

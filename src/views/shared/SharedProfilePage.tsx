@@ -24,12 +24,13 @@ import {
   ShieldAlert,
   Download,
   ActivitySquare,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
 import { ProfileLoadingSkeleton } from "@/components/auth/AuthLoadingSkeleton";
 import { ProfileHero } from "@/views/shared/profile/ProfileHero";
-import { ClientProfileExtras } from "@/views/shared/profile/ClientProfileExtras";
+import { ClientProfileOverview } from "@/views/shared/profile/ClientProfileOverview";
 import { StaffProfileExtras } from "@/views/shared/profile/StaffProfileExtras";
 import { AdminProfileExtras } from "@/views/shared/profile/AdminProfileExtras";
 import type { ProfileVariant } from "@/views/shared/profile/profile-types";
@@ -37,7 +38,8 @@ import { PasswordConfirmDialog } from "@/components/auth/PasswordConfirmDialog";
 import { TotpEnrollmentPanel } from "@/components/auth/TotpEnrollmentPanel";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { SessionListPanel } from "@/components/auth/SessionListPanel";
-import { DashboardButton, DashboardSection, DashboardStatusLabel } from "@/components/dashboard";
+import { DashboardButton, DashboardSection } from "@/components/dashboard";
+import { NepalDecoratedHero } from "@/components/dashboard/nepal-decorated-hero";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import type { TotpEnrollmentPayload } from "@/shared/auth/totp";
@@ -76,6 +78,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const [totpEnrollment, setTotpEnrollment] = useState<TotpEnrollmentPayload | null>(null);
   const [totpBusy, setTotpBusy] = useState(false);
   const [sessionsBusy, setSessionsBusy] = useState(false);
+  const [clientTab, setClientTab] = useState("security");
 
   const {
     paginatedItems: paginatedAuditLogs,
@@ -241,137 +244,182 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const isLawyer = ["partner", "senior_associate", "associate", "paralegal"].includes(user.role);
 
   const portalExtras =
-    variant === "client" ? (
-      <ClientProfileExtras />
-    ) : variant === "staff" ? (
+    variant === "staff" ? (
       <StaffProfileExtras user={user} />
-    ) : (
+    ) : variant === "admin" ? (
       <AdminProfileExtras user={user} />
-    );
+    ) : null;
+  const tabTriggerClass =
+    variant === "client"
+      ? "w-auto justify-start gap-2.5 rounded-lg border border-transparent px-4 py-2.5 text-xs font-semibold text-dashboard-neutral transition-all data-[state=active]:border-dashboard-primary/30 data-[state=active]:bg-dashboard-primary-soft data-[state=active]:text-dashboard-primary hover:text-foreground hover:bg-dashboard-panel-hover"
+      : "md:w-full justify-start gap-2.5 rounded-xl border border-transparent px-4 py-2.5 text-xs font-semibold text-dashboard-neutral transition-all data-[state=active]:border-dashboard-primary/30 data-[state=active]:bg-dashboard-primary-soft data-[state=active]:text-dashboard-primary hover:text-foreground hover:bg-dashboard-panel-hover";
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <ProfileHero user={user} variant={variant} onSignOut={signout} />
-      {portalExtras}
+    <div
+      className={
+        variant === "client"
+          ? "mx-auto w-full max-w-7xl space-y-5 p-4 pb-24 sm:p-6 lg:p-8"
+          : "p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6"
+      }
+    >
+      {variant === "client" ? (
+        <>
+          <NepalDecoratedHero
+            eyebrow="Client Portal"
+            title="Profile"
+            description="Manage your personal information and account security."
+            className="client-profile-hero"
+            actions={
+              <DashboardButton variant="outline" size="sm" onClick={() => void signout()}>
+                <LogOut className="mr-2 size-4" aria-hidden /> Sign out
+              </DashboardButton>
+            }
+          />
+          <ClientProfileOverview
+            user={user}
+            updateProfile={updateProfile}
+            onAvatarUpload={handleAvatarUpload}
+            onRemoveAvatar={handleRemoveAvatar}
+            onSelectTab={(tab) => {
+              setClientTab(tab);
+              document.getElementById("client-profile-account-controls")?.scrollIntoView({
+                behavior: "auto",
+                block: "start",
+              });
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <ProfileHero user={user} variant={variant} onSignOut={signout} />
+          {portalExtras}
+        </>
+      )}
 
-      <Tabs defaultValue="general" className="w-full flex flex-col md:flex-row gap-6">
-        <TabsList className="flex md:flex-col h-auto bg-transparent p-0 space-y-1 w-full md:w-56 overflow-x-auto justify-start border-b md:border-b-0 border-dashboard-border pb-2 md:pb-0 shrink-0">
-          <TabsTrigger
-            value="general"
-            className="md:w-full justify-start gap-2.5 rounded-xl border border-transparent px-4 py-2.5 text-xs font-semibold text-dashboard-neutral transition-all data-[state=active]:border-dashboard-primary/30 data-[state=active]:bg-dashboard-primary-soft data-[state=active]:text-dashboard-primary hover:text-foreground hover:bg-dashboard-panel-hover"
-          >
-            <User className="w-4 h-4" /> General
-          </TabsTrigger>
-          <TabsTrigger
-            value="security"
-            className="md:w-full justify-start gap-2.5 rounded-xl border border-transparent px-4 py-2.5 text-xs font-semibold text-dashboard-neutral transition-all data-[state=active]:border-dashboard-primary/30 data-[state=active]:bg-dashboard-primary-soft data-[state=active]:text-dashboard-primary hover:text-foreground hover:bg-dashboard-panel-hover"
-          >
+      <Tabs
+        id={variant === "client" ? "client-profile-account-controls" : undefined}
+        defaultValue={variant === "client" ? undefined : "general"}
+        value={variant === "client" ? clientTab : undefined}
+        onValueChange={variant === "client" ? setClientTab : undefined}
+        className={
+          variant === "client"
+            ? "w-full min-w-0 space-y-4"
+            : "w-full flex flex-col md:flex-row gap-6"
+        }
+      >
+        <TabsList
+          className={
+            variant === "client"
+              ? "flex h-auto w-full min-w-0 justify-start gap-2 overflow-x-auto rounded-none border-b border-dashboard-border bg-transparent p-0 pb-2 [scrollbar-width:thin] [&_[data-slot=tabs-trigger]]:shrink-0"
+              : "flex md:flex-col h-auto bg-transparent p-0 space-y-1 w-full md:w-56 overflow-x-auto justify-start border-b md:border-b-0 border-dashboard-border pb-2 md:pb-0 shrink-0"
+          }
+        >
+          {variant !== "client" ? (
+            <TabsTrigger value="general" className={tabTriggerClass}>
+              <User className="w-4 h-4" /> General
+            </TabsTrigger>
+          ) : null}
+          <TabsTrigger value="security" className={tabTriggerClass}>
             <Shield className="w-4 h-4" /> Security
           </TabsTrigger>
-          <TabsTrigger
-            value="sessions"
-            className="md:w-full justify-start gap-2.5 rounded-xl border border-transparent px-4 py-2.5 text-xs font-semibold text-dashboard-neutral transition-all data-[state=active]:border-dashboard-primary/30 data-[state=active]:bg-dashboard-primary-soft data-[state=active]:text-dashboard-primary hover:text-foreground hover:bg-dashboard-panel-hover"
-          >
+          <TabsTrigger value="sessions" className={tabTriggerClass}>
             <MonitorSmartphone className="w-4 h-4" /> Active Sessions
           </TabsTrigger>
-          <TabsTrigger
-            value="data"
-            className="md:w-full justify-start gap-2.5 rounded-xl border border-transparent px-4 py-2.5 text-xs font-semibold text-dashboard-neutral transition-all data-[state=active]:border-dashboard-primary/30 data-[state=active]:bg-dashboard-primary-soft data-[state=active]:text-dashboard-primary hover:text-foreground hover:bg-dashboard-panel-hover"
-          >
+          <TabsTrigger value="data" className={tabTriggerClass}>
             <Database className="w-4 h-4" /> Data & Privacy
           </TabsTrigger>
         </TabsList>
 
         <div className="flex-1 min-w-0">
-          <TabsContent
-            value="general"
-            className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2"
-          >
-            <DashboardSection
-              title="Avatar"
-              description="This will be displayed on your profile and across the system."
+          {variant !== "client" ? (
+            <TabsContent
+              value="general"
+              className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2"
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <div className="w-24 h-24 rounded-2xl bg-dashboard-neutral-soft flex flex-col items-center justify-center border-2 border-dashed border-dashboard-border overflow-hidden relative group shrink-0">
-                  {user.avatar ? (
-                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-10 h-10 text-dashboard-neutral" />
-                  )}
-                  <div
-                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                />
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <DashboardButton
-                      variant="outline"
-                      size="sm"
+              <DashboardSection
+                title="Avatar"
+                description="This will be displayed on your profile and across the system."
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <div className="w-24 h-24 rounded-2xl bg-dashboard-neutral-soft flex flex-col items-center justify-center border-2 border-dashed border-dashboard-border overflow-hidden relative group shrink-0">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-10 h-10 text-dashboard-neutral" />
+                    )}
+                    <div
+                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <Upload className="w-4 h-4 mr-1.5" /> Upload new
-                    </DashboardButton>
-                    <DashboardButton
-                      variant="ghost"
-                      size="sm"
-                      className="text-dashboard-danger hover:bg-dashboard-danger-soft"
-                      onClick={handleRemoveAvatar}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1.5" /> Remove
-                    </DashboardButton>
+                      <Upload className="w-5 h-5 text-white" />
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Recommended: Square JPG, PNG, or GIF, at least 400x400px.
-                  </p>
-                </div>
-              </div>
-            </DashboardSection>
-
-            <DashboardSection
-              title="Personal Information"
-              description="Update your basic contact details."
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">Full Name</Label>
-                    <Input
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                      className="border-dashboard-border bg-dashboard-panel"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">Phone Number</Label>
-                    <Input
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      placeholder="+977..."
-                      className="border-dashboard-border bg-dashboard-panel"
-                    />
-                  </div>
-                  <div className="space-y-1.5 md:col-span-2">
-                    <Label className="text-xs font-semibold text-foreground">Email Address</Label>
-                    <Input
-                      value={user.email ?? ""}
-                      disabled
-                      className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      Contact an administrator to change your email address.
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <DashboardButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-1.5" /> Upload new
+                      </DashboardButton>
+                      <DashboardButton
+                        variant="ghost"
+                        size="sm"
+                        className="text-dashboard-danger hover:bg-dashboard-danger-soft"
+                        onClick={handleRemoveAvatar}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1.5" /> Remove
+                      </DashboardButton>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Recommended: Square JPG, PNG, or GIF, at least 400x400px.
                     </p>
                   </div>
-                  {variant !== "client" ? (
+                </div>
+              </DashboardSection>
+
+              <DashboardSection
+                title="Personal Information"
+                description="Update your basic contact details."
+              >
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Full Name</Label>
+                      <Input
+                        value={profileForm.name}
+                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                        className="border-dashboard-border bg-dashboard-panel"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Phone Number</Label>
+                      <Input
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                        placeholder="+977..."
+                        className="border-dashboard-border bg-dashboard-panel"
+                      />
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label className="text-xs font-semibold text-foreground">Email Address</Label>
+                      <Input
+                        value={user.email ?? ""}
+                        disabled
+                        className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Contact an administrator to change your email address.
+                      </p>
+                    </div>
                     <div className="space-y-1.5 md:col-span-2">
                       <Label className="text-xs font-semibold text-foreground">System Role</Label>
                       <Input
@@ -380,33 +428,33 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                         className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
                       />
                     </div>
-                  ) : null}
-                </div>
-
-                {isLawyer && variant === "staff" && (
-                  <div className="space-y-1.5 pt-4 border-t border-dashboard-border mt-4">
-                    <Label className="text-xs font-semibold text-foreground">
-                      Professional Biography
-                    </Label>
-                    <Textarea
-                      rows={4}
-                      placeholder="Enter a professional bio..."
-                      value={profileForm.bio}
-                      onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                      className="border-dashboard-border bg-dashboard-panel"
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      This biography may be visible on the firm&apos;s public-facing website.
-                    </p>
                   </div>
-                )}
 
-                <div className="flex justify-end pt-2">
-                  <DashboardButton onClick={handleSaveProfile}>Save Changes</DashboardButton>
+                  {isLawyer && variant === "staff" && (
+                    <div className="space-y-1.5 pt-4 border-t border-dashboard-border mt-4">
+                      <Label className="text-xs font-semibold text-foreground">
+                        Professional Biography
+                      </Label>
+                      <Textarea
+                        rows={4}
+                        placeholder="Enter a professional bio..."
+                        value={profileForm.bio}
+                        onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                        className="border-dashboard-border bg-dashboard-panel"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        This biography may be visible on the firm&apos;s public-facing website.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <DashboardButton onClick={handleSaveProfile}>Save Changes</DashboardButton>
+                  </div>
                 </div>
-              </div>
-            </DashboardSection>
-          </TabsContent>
+              </DashboardSection>
+            </TabsContent>
+          ) : null}
 
           <TabsContent
             value="security"
@@ -416,12 +464,25 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               title="Change Password"
               description="Ensure your account is using a long, random password to stay secure."
               icon={KeyRound}
+              className={variant === "client" ? "mx-auto max-w-4xl" : undefined}
             >
-              <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+              <form
+                onSubmit={handlePasswordChange}
+                className={
+                  variant === "client" ? "grid gap-4 md:grid-cols-2" : "space-y-4 max-w-md"
+                }
+              >
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">Current Password</Label>
+                  <Label
+                    htmlFor="profile-current-password"
+                    className="text-xs font-semibold text-foreground"
+                  >
+                    Current Password
+                  </Label>
                   <Input
+                    id="profile-current-password"
                     type="password"
+                    autoComplete="current-password"
                     value={passwordForm.current}
                     onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
                     required
@@ -429,9 +490,16 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">New Password</Label>
+                  <Label
+                    htmlFor="profile-new-password"
+                    className="text-xs font-semibold text-foreground"
+                  >
+                    New Password
+                  </Label>
                   <Input
+                    id="profile-new-password"
                     type="password"
+                    autoComplete="new-password"
                     value={passwordForm.newPass}
                     onChange={(e) => setPasswordForm({ ...passwordForm, newPass: e.target.value })}
                     required
@@ -440,18 +508,28 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                   <PasswordStrengthIndicator password={passwordForm.newPass} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
+                  <Label
+                    htmlFor="profile-confirm-password"
+                    className="text-xs font-semibold text-foreground"
+                  >
                     Confirm New Password
                   </Label>
                   <Input
+                    id="profile-confirm-password"
                     type="password"
+                    autoComplete="new-password"
                     value={passwordForm.confirm}
                     onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
                     required
                     className="border-dashboard-border bg-dashboard-panel"
                   />
                 </div>
-                <DashboardButton type="submit">Update Password</DashboardButton>
+                <DashboardButton
+                  type="submit"
+                  className={variant === "client" ? "md:self-end md:justify-self-start" : undefined}
+                >
+                  Update Password
+                </DashboardButton>
               </form>
             </DashboardSection>
 
@@ -459,6 +537,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               title="Two-Factor Authentication"
               description="Add an extra layer of security to your account using an authenticator app."
               icon={ShieldAlert}
+              className={variant === "client" ? "mx-auto max-w-4xl" : undefined}
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 bg-dashboard-neutral-soft/50 rounded-xl border border-dashboard-border">
                 <div>
@@ -544,9 +623,9 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-foreground truncate">
                                 {log.action}
-                                {log.details ? `: ${log.details}` : ""}
+                                {variant !== "client" && log.details ? `: ${log.details}` : ""}
                               </p>
-                              {log.ipAddress ? (
+                              {variant !== "client" && log.ipAddress ? (
                                 <p className="text-[11px] text-muted-foreground mt-0.5">
                                   IP: {log.ipAddress}
                                 </p>
@@ -574,8 +653,12 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
             </DashboardSection>
 
             <DashboardSection
-              title="Export Data"
-              description="Download a copy of your personal data for your own records or GDPR compliance."
+              title={variant === "client" ? "Download Profile Information" : "Export Data"}
+              description={
+                variant === "client"
+                  ? "Download a small JSON copy of your account profile fields."
+                  : "Download a copy of your personal data for your own records or GDPR compliance."
+              }
               icon={Download}
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-dashboard-neutral-soft/50 rounded-xl border border-dashboard-border">
