@@ -153,3 +153,13 @@ export interface AuditEventDto {
   actorName: string | null;
   actorRole: string;
 }
+
+/** Client self-audit view: no raw audit metadata or infrastructure identifiers. */
+export interface ClientOwnAuditEventDto {
+  id: string;
+  action: string;
+  createdAt: string;
+  /** Optional only so the shared Profile renderer can also accept privileged audit rows. */
+  details?: null;
+  ipAddress?: null;
+}

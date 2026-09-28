@@ -17,6 +17,7 @@ import type {
 } from "@/shared/contracts/identity";
 import { rolePermissionMatrixSchema, type RolePermissionMatrix } from "@/shared/contracts/identity";
 import { AppError } from "@/shared/errors/api-error";
+import { projectClientOwnAuditEvent } from "@/server/services/client-audit-projection";
 import {
   provisionLocalIdentity,
   requestLocalPasswordResetForLexUser,
@@ -272,11 +273,12 @@ export class IdentityService {
     )
       throw new AppError("NOT_FOUND", "Session was not found", 404);
   }
-  listOwnAudit(principal: AuthPrincipal, limit = 30) {
-    return this.repository.listAudit(requireFirmContext(principal).firmId, {
+  async listOwnAudit(principal: AuthPrincipal, limit = 30) {
+    const rows = await this.repository.listAudit(requireFirmContext(principal).firmId, {
       userId: principal.user.id,
       limit,
     });
+    return principal.user.role === "client" ? rows.map(projectClientOwnAuditEvent) : rows;
   }
   listAudit(
     principal: AuthPrincipal,

@@ -5,6 +5,7 @@ import { useAdminTeam } from "@/client/queries/cms";
 import { queryKeys } from "@/client/queries/query-keys";
 import type {
   AuditEventDto,
+  ClientOwnAuditEventDto,
   CreateUserInput,
   FirmDto,
   RolePermissionMatrix,
@@ -91,11 +92,14 @@ export function useAuditEvents(
   }).data;
 }
 
-export function useOwnAuditEvents(): AuditEventDto[] | undefined {
+export function useOwnAuditEvents(): Array<AuditEventDto | ClientOwnAuditEventDto> | undefined {
   return useQuery({
     queryKey: [...queryKeys.identity.all, "my-audit"],
     queryFn: ({ signal }) =>
-      apiClient.request<AuditEventDto[]>("/api/v1/users/me/audit-events", { signal }),
+      apiClient.request<Array<AuditEventDto | ClientOwnAuditEventDto>>(
+        "/api/v1/users/me/audit-events",
+        { signal },
+      ),
   }).data;
 }
 
