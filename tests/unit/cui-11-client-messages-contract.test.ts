@@ -76,6 +76,17 @@ describe("CUI-11 client messages contract", () => {
     expect(queries).toContain("isFetched: next.isFetched");
   });
 
+  it("uses native list and button semantics for Matter conversations", () => {
+    expect(page).toContain(
+      '<ul className="client-messages-channel-list" aria-label="Matter conversations">',
+    );
+    expect(page).toContain("<li key={matter._id}>");
+    expect(page).toContain('aria-current={active ? "true" : undefined}');
+    expect(page).not.toContain('role="listbox"');
+    expect(page).not.toContain('role="option"');
+    expect(page).not.toContain("aria-selected");
+  });
+
   it("keeps deep-link safety and freezes prior Client phases", () => {
     expect(page).toContain('searchParams.get("caseId")');
     expect(page).toContain("const allowed = cases.some");

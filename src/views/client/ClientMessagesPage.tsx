@@ -178,7 +178,7 @@ export default function ClientMessagesPage() {
               }
             />
           ) : (
-            <ul className="client-messages-channel-list" role="listbox" aria-label="Matter list">
+            <ul className="client-messages-channel-list" aria-label="Matter conversations">
               {cases.map((matter: ClientCaseDto) => {
                 const active = selected === matter._id;
                 const unread = Number(unreadByCase[matter._id] || 0);
@@ -186,8 +186,7 @@ export default function ClientMessagesPage() {
                   <li key={matter._id}>
                     <button
                       type="button"
-                      role="option"
-                      aria-selected={active}
+                      aria-current={active ? "true" : undefined}
                       className={cn(
                         "client-messages-channel",
                         active && "client-messages-channel-active",

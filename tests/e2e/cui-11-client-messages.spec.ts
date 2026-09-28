@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { e2ePasswordFor, UI_PREVIEW_CLIENT } from "../../scripts/e2e/fixtures";
 import { UI_PREVIEW_CASES } from "../../scripts/e2e/client-ui-preview-contract";
@@ -52,20 +53,77 @@ async function assertNoHorizontalOverflow(page: Page) {
   ).toBeLessThanOrEqual(measure.clientWidth);
 }
 
-function primaryOption(page: Page) {
-  return page.getByRole("option", {
+function primaryConversation(page: Page) {
+  return page.getByRole("list", { name: "Matter conversations" }).getByRole("button", {
     name: new RegExp(UI_PREVIEW_CASES.primary.title.slice(0, 18), "i"),
   });
 }
 
-function propertyOption(page: Page) {
-  return page.getByRole("option", {
+function propertyConversation(page: Page) {
+  return page.getByRole("list", { name: "Matter conversations" }).getByRole("button", {
     name: new RegExp(UI_PREVIEW_CASES.property.title.slice(0, 18), "i"),
   });
 }
 
 test.describe("CUI-11 client messages", () => {
   test.describe.configure({ timeout: 180_000 });
+
+  test("exposes native conversation buttons without invalid listbox ARIA", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await signInPreviewClient(page);
+    await page.route("**/api/v1/messages/read", (route) => route.abort());
+    await openMessages(page);
+
+    const list = page.getByRole("list", { name: "Matter conversations" });
+    await expect(list).toBeVisible();
+    const structure = await list.evaluate((element) => ({
+      tag: element.tagName,
+      items: Array.from(element.children).map((item) => ({
+        tag: item.tagName,
+        controls: Array.from(item.children).map((control) => control.tagName),
+      })),
+    }));
+    expect(structure.tag).toBe("UL");
+    expect(structure.items.length).toBeGreaterThan(0);
+    expect(structure.items.every((item) => item.tag === "LI")).toBe(true);
+    expect(structure.items.every((item) => item.controls.join() === "BUTTON")).toBe(true);
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(list.locator('[role="option"], [aria-selected]')).toHaveCount(0);
+
+    const primary = primaryConversation(page);
+    const property = propertyConversation(page);
+    await expect(primary).toHaveAttribute("aria-current", "true");
+    await expect(primary.getByLabel(/unread message/i)).toBeVisible();
+
+    const accessibility = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(
+      accessibility.violations
+        .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
+        .map((violation) => violation.id),
+    ).toEqual([]);
+
+    await property.focus();
+    await expect(property).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(property).toHaveAttribute("aria-current", "true");
+    await expect(primary).not.toHaveAttribute("aria-current");
+    await primary.focus();
+    await expect(primary).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(primary).toHaveAttribute("aria-current", "true");
+
+    for (const [width, height] of [
+      [1440, 900],
+      [1024, 768],
+      [390, 844],
+      [360, 800],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await assertNoHorizontalOverflow(page);
+    }
+  });
 
   test("defaults to unread matter after unread counts resolve", async ({ page }) => {
     await page.setViewportSize({ width: 1400, height: 900 });
@@ -75,10 +133,10 @@ test.describe("CUI-11 client messages", () => {
     await page.route("**/api/v1/messages/read", (route) => route.abort());
     await openMessages(page);
 
-    const primary = primaryOption(page);
+    const primary = primaryConversation(page);
     await expect(primary).toBeVisible({ timeout: 60_000 });
     await expect(primary.getByLabel(/unread message/i)).toBeVisible({ timeout: 60_000 });
-    await expect(primary).toHaveAttribute("aria-selected", "true", { timeout: 60_000 });
+    await expect(primary).toHaveAttribute("aria-current", "true", { timeout: 60_000 });
     await expect(page.getByText(/draft reply has been filed/i).first()).toBeVisible({
       timeout: 60_000,
     });
@@ -95,14 +153,14 @@ test.describe("CUI-11 client messages", () => {
     await expect(page.getByRole("heading", { name: "Conversations" })).toBeVisible({
       timeout: 60_000,
     });
-    await expect(primaryOption(page)).toHaveAttribute("aria-selected", "true", {
+    await expect(primaryConversation(page)).toHaveAttribute("aria-current", "true", {
       timeout: 60_000,
     });
     await expect(page.getByText(/draft reply has been filed/i).first()).toBeVisible({
       timeout: 60_000,
     });
     // Mark-read updates unread after the conversation is open.
-    await expect(primaryOption(page).getByLabel(/unread message/i)).toHaveCount(0, {
+    await expect(primaryConversation(page).getByLabel(/unread message/i)).toHaveCount(0, {
       timeout: 30_000,
     });
   });
@@ -112,22 +170,22 @@ test.describe("CUI-11 client messages", () => {
     await signInPreviewClient(page);
     await openMessages(page);
 
-    const primary = primaryOption(page);
-    const property = propertyOption(page);
+    const primary = primaryConversation(page);
+    const property = propertyConversation(page);
     await expect(primary).toBeVisible({ timeout: 60_000 });
     await expect(property).toBeVisible();
 
     await property.click();
-    await expect(property).toHaveAttribute("aria-selected", "true");
-    await expect(primary).toHaveAttribute("aria-selected", "false");
+    await expect(property).toHaveAttribute("aria-current", "true");
+    await expect(primary).not.toHaveAttribute("aria-current");
     await page.waitForTimeout(1500);
-    await expect(property).toHaveAttribute("aria-selected", "true");
+    await expect(property).toHaveAttribute("aria-current", "true");
 
     const matterHref = await page.getByLabel("View Matter").getAttribute("href");
     expect(matterHref).toMatch(/\/client\/cases\//);
     // Switch to primary via deep-link (override user selection with explicit caseId).
     await primary.click();
-    await expect(primary).toHaveAttribute("aria-selected", "true");
+    await expect(primary).toHaveAttribute("aria-current", "true");
     const primaryHref = await page.getByLabel("View Matter").getAttribute("href");
     const matterId = String(primaryHref).split("/").pop();
     expect(matterId).toBeTruthy();
@@ -139,7 +197,7 @@ test.describe("CUI-11 client messages", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Messages" })).toBeVisible({
       timeout: 60_000,
     });
-    await expect(primaryOption(page)).toHaveAttribute("aria-selected", "true", {
+    await expect(primaryConversation(page)).toHaveAttribute("aria-current", "true", {
       timeout: 60_000,
     });
     await expect(page.getByText(/draft reply has been filed/i).first()).toBeVisible({
@@ -173,7 +231,7 @@ test.describe("CUI-11 client messages", () => {
     await expect(page.getByRole("textbox", { name: "Message" })).toBeHidden();
     await assertNoHorizontalOverflow(page);
 
-    const primary = primaryOption(page);
+    const primary = primaryConversation(page);
     await expect(primary).toBeVisible({ timeout: 60_000 });
     // Default selection may prefer unread, but mobile must stay on the list until tap.
     await page.waitForTimeout(1200);
@@ -201,7 +259,7 @@ test.describe("CUI-11 client messages", () => {
     });
     await expect(page.getByLabel("Back to conversations")).toBeHidden();
     await assertNoHorizontalOverflow(page);
-    await primaryOption(page).click();
+    await primaryConversation(page).click();
     await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible({ timeout: 30_000 });
     await assertNoHorizontalOverflow(page);
   });
