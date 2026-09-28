@@ -102,7 +102,13 @@ export function useNotifications() {
     enabled: !!currentUser?.id,
     refetchInterval: 10_000,
   });
-  return { data: next.data ?? [], isLoading: next.isLoading };
+  return {
+    data: next.data ?? [],
+    isLoading: next.isLoading,
+    isError: next.isError,
+    error: next.error,
+    refetch: next.refetch,
+  };
 }
 
 export function useNotificationCommands() {

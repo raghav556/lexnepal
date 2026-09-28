@@ -30,15 +30,18 @@ function normalizeHearingUpdateInput(input: Record<string, unknown>) {
   return next;
 }
 
-export function useHearings(filters: ListHearingsInput | "skip" = {}): HearingDto[] | undefined {
+export function useHearingsQuery(filters: ListHearingsInput | "skip" = {}) {
   const activeFilters = filters === "skip" ? {} : filters;
-  const next = useTanstackQuery({
+  return useTanstackQuery({
     queryKey: queryKeys.hearings.list(activeFilters),
     queryFn: ({ signal }) =>
       apiClient.request<HearingDto[]>("/api/v1/hearings", { query: { ...activeFilters }, signal }),
     enabled: filters !== "skip",
   });
-  return next.data;
+}
+
+export function useHearings(filters: ListHearingsInput | "skip" = {}): HearingDto[] | undefined {
+  return useHearingsQuery(filters).data;
 }
 
 export function useHearing(hearingId: string | null): HearingDto | undefined {
