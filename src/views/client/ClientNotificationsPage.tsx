@@ -14,6 +14,7 @@ import {
   PortalPageShell,
 } from "@/components/dashboard";
 import { DASHBOARD_METRIC_TONES } from "@/lib/dashboard-semantics";
+import { safeNotificationPath } from "@/shared/notification-links";
 
 export default function ClientNotificationsPage() {
   const currentUser = useCurrentUser();
@@ -123,7 +124,8 @@ export default function ClientNotificationsPage() {
                       /* ignore */
                     }
                   }
-                  if (notif.link) window.location.href = notif.link;
+                  const destination = safeNotificationPath(notif.link, currentUser.role);
+                  if (destination) window.location.href = destination;
                 }}
               >
                 <div className="flex items-start gap-3 min-w-0 flex-1">

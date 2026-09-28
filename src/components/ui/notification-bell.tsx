@@ -14,6 +14,7 @@ import {
 } from "./dropdown-menu.tsx";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { safeNotificationPath } from "@/shared/notification-links";
 
 interface NotificationBellProps {
   triggerClassName?: string;
@@ -44,9 +45,8 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
         console.error(e);
       }
     }
-    if (notification.link) {
-      window.location.href = notification.link;
-    }
+    const destination = safeNotificationPath(notification.link, currentUser?.role);
+    if (destination) window.location.href = destination;
   };
 
   const handleMarkAllRead = async () => {

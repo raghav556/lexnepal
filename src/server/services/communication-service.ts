@@ -16,6 +16,7 @@ import type {
   MessageUnreadInput,
 } from "@/shared/contracts/communication";
 import { AppError } from "@/shared/errors/api-error";
+import { safeNotificationPath } from "@/shared/notification-links";
 
 const repository = new CommunicationRepository();
 const security = new MySqlSecurityRepository();
@@ -74,12 +75,20 @@ export class CommunicationService {
 
   async listNotifications(principal: AuthPrincipal) {
     const { firmId } = requireFirmContext(principal);
-    return repository.listNotifications(firmId, principal.user.id);
+    const rows = await repository.listNotifications(firmId, principal.user.id);
+    return rows.map((row) => ({
+      ...row,
+      link: safeNotificationPath(row.link, principal.user.role),
+    }));
   }
 
   async markNotificationRead(principal: AuthPrincipal, notificationId: string) {
     const { firmId } = requireFirmContext(principal);
-    return repository.markNotificationRead(firmId, notificationId, principal.user.id);
+    const row = await repository.markNotificationRead(firmId, notificationId, principal.user.id);
+    return {
+      ...row,
+      link: safeNotificationPath("link" in row ? row.link : null, principal.user.role),
+    };
   }
 
   async markAllNotificationsRead(principal: AuthPrincipal) {

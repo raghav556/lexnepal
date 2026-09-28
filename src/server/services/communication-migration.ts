@@ -8,6 +8,7 @@ import path from "node:path";
 import JSZip from "jszip";
 import { inArray } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
+import { safeNotificationPath } from "@/shared/notification-links";
 import { cases, firms, messageReads, messages, notifications, users } from "@/server/db/schema";
 
 type Value = Record<string, unknown>;
@@ -43,7 +44,12 @@ export async function migrateCommunicationExport(input: {
   }
 
   const userRows = await database
-    .select({ id: users.id, firmId: users.firmId, legacyId: users.legacyConvexId })
+    .select({
+      id: users.id,
+      firmId: users.firmId,
+      role: users.role,
+      legacyId: users.legacyConvexId,
+    })
     .from(users);
   const userMap = new Map(
     userRows.filter((row) => row.legacyId).map((row) => [row.legacyId!, row]),
@@ -137,7 +143,7 @@ export async function migrateCommunicationExport(input: {
           "system",
         );
         const relatedId = asString(record.relatedId);
-        const link = asString(record.link);
+        const link = safeNotificationPath(asString(record.link), owner.role);
         const isRead = asBoolean(record.isRead, false);
         const createdAt = toDate(record._creationTime) ?? new Date();
 
