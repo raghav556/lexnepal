@@ -12,9 +12,9 @@ import {
   MessageSquare,
   Search,
 } from "lucide-react";
-import { useMyClient } from "@/client/queries/clients";
-import { useClientCases } from "@/client/queries/cases";
-import { useTasks } from "@/client/queries/tasks";
+import { useMyClientQuery } from "@/client/queries/clients";
+import { useClientCasesQuery } from "@/client/queries/cases";
+import { useTasksQuery } from "@/client/queries/tasks";
 import type { ClientCaseDto, TaskDto } from "@/shared/contracts/domains";
 import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
 import {
@@ -22,6 +22,7 @@ import {
   DashboardListSkeleton,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 import { localDateIso } from "@/lib/dashboard-format";
@@ -116,10 +117,13 @@ function compareOpenTasks(left: TaskDto, right: TaskDto, today: string): number 
  * Clients cannot mutate tasks — read-only progress view.
  */
 export default function ClientChecklistPage() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
-  const tasks = useTasks(clientRecord ? {} : "skip");
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const cases = casesQuery.data ?? [];
+  const tasksQuery = useTasksQuery(clientRecord ? {} : "skip");
+  const tasks = tasksQuery.data;
 
   const [filter, setFilter] = useState<FilterTab>("all");
   const [matterFilter, setMatterFilter] = useState<string>("all");
@@ -225,6 +229,20 @@ export default function ClientChecklistPage() {
     );
   }
 
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
   if (clientRecord === null) {
     return (
       <PortalPageShell {...shellProps} showTodayDate>
@@ -232,6 +250,21 @@ export default function ClientChecklistPage() {
           title="No client profile linked"
           description="Your portal account is not linked to a client profile yet. Contact the firm to view shared action checklists."
           icon={ClipboardList}
+        />
+      </PortalPageShell>
+    );
+  }
+
+  if (casesQuery.isError || tasksQuery.isError) {
+    const failed = casesQuery.isError ? casesQuery : tasksQuery;
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title={casesQuery.isError ? "Unable to load your matters" : "Unable to load action items"}
+          onRetry={() => {
+            void failed.refetch();
+          }}
+          retrying={failed.isFetching}
         />
       </PortalPageShell>
     );

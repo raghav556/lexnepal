@@ -22,6 +22,10 @@ function normalizeTaskWriteInput(input: Record<string, unknown>) {
 }
 
 export function useTasks(filters: ListTasksInput | "skip" = {}): TaskDto[] | undefined {
+  return useTasksQuery(filters).data;
+}
+
+export function useTasksQuery(filters: ListTasksInput | "skip" = {}) {
   const activeFilters = filters === "skip" ? {} : filters;
   return useTanstackQuery({
     queryKey: queryKeys.tasks.list(activeFilters),
@@ -37,7 +41,7 @@ export function useTasks(filters: ListTasksInput | "skip" = {}): TaskDto[] | und
         signal,
       }),
     enabled: filters !== "skip",
-  }).data;
+  });
 }
 
 export function useTask(taskId: string | null): TaskDto | undefined {

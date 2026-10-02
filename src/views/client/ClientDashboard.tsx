@@ -16,15 +16,16 @@ import {
   Upload,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
-import { useClientCases } from "@/client/queries/cases";
-import { useMyClient } from "@/client/queries/clients";
-import { useDocuments } from "@/client/queries/documents";
-import { useHearings } from "@/client/queries/hearings";
+import { useClientCasesQuery } from "@/client/queries/cases";
+import { useMyClientQuery } from "@/client/queries/clients";
+import { useDocumentsQuery } from "@/client/queries/documents";
+import { useHearingsQuery } from "@/client/queries/hearings";
 import { useNotifications } from "@/client/queries/communication";
-import { useMyPendingEnvelopeActions } from "@/client/queries/envelopes";
-import { useTasks } from "@/client/queries/tasks";
+import { useMyPendingEnvelopeActionsQuery } from "@/client/queries/envelopes";
+import { useTasksQuery } from "@/client/queries/tasks";
 import {
   ClientDocumentItem,
+  ClientQueryError,
   ClientSoftPanel,
   ClientStatePanel,
   ClientTimelineItem,
@@ -167,13 +168,19 @@ function fileKind(type?: string | null, mimeType?: string | null): "pdf" | "doc"
 }
 
 export default function ClientDashboard() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {});
-  const hearings = useHearings(clientRecord ? {} : "skip");
-  const documents = useDocuments(clientRecord ? {} : "skip");
-  const tasks = useTasks(clientRecord ? {} : "skip");
-  const pendingEnvelopeActions = useMyPendingEnvelopeActions();
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const hearingsQuery = useHearingsQuery(clientRecord ? {} : "skip");
+  const documentsQuery = useDocumentsQuery(clientRecord ? {} : "skip");
+  const tasksQuery = useTasksQuery(clientRecord ? {} : "skip");
+  const cases = casesQuery.data;
+  const hearings = hearingsQuery.data;
+  const documents = documentsQuery.data;
+  const tasks = tasksQuery.data;
+  const envelopesQuery = useMyPendingEnvelopeActionsQuery();
+  const pendingEnvelopeActions = envelopesQuery.data ?? [];
   const notificationsQuery = useNotifications();
   const { heroImageUrl } = usePortalBranding();
   const [heroMediaUsable, setHeroMediaUsable] = useState(Boolean(heroImageUrl));
@@ -253,17 +260,11 @@ export default function ClientDashboard() {
   const firstName = firstNameOf(clientRecord?.fullName);
   const greeting = firstName ? `${titleCaseGreeting()}, ${firstName}` : titleCaseGreeting();
 
-  const kpisReady = Boolean(
-    clientRecord &&
-    cases !== undefined &&
-    hearings !== undefined &&
-    documents !== undefined &&
-    tasks !== undefined,
-  );
   const kpis = [
     {
       label: "Active Matters",
-      value: kpisReady ? String(activeCases.length) : "—",
+      value: casesQuery.isSuccess ? String(activeCases.length) : "—",
+      ready: casesQuery.isSuccess,
       helper: "View Matters →",
       href: "/client/cases",
       icon: FolderOpen,
@@ -271,7 +272,9 @@ export default function ClientDashboard() {
     },
     {
       label: "Upcoming Hearing",
-      value: kpisReady ? String(upcomingHearings.length) : "—",
+      value:
+        casesQuery.isSuccess && hearingsQuery.isSuccess ? String(upcomingHearings.length) : "—",
+      ready: casesQuery.isSuccess && hearingsQuery.isSuccess,
       helper: "View Calendar →",
       href: "/client/hearings",
       icon: CalendarDays,
@@ -279,7 +282,8 @@ export default function ClientDashboard() {
     },
     {
       label: "Documents Pending",
-      value: kpisReady ? String(pendingDocsCount) : "—",
+      value: envelopesQuery.isSuccess ? String(pendingDocsCount) : "—",
+      ready: envelopesQuery.isSuccess,
       helper: "View Documents →",
       href: pendingDocsCount > 0 ? "/client/signatures" : "/client/documents",
       icon: FileText,
@@ -287,7 +291,11 @@ export default function ClientDashboard() {
     },
     {
       label: "Actions Required",
-      value: kpisReady ? String(actionRequiredCount) : "—",
+      value:
+        casesQuery.isSuccess && tasksQuery.isSuccess && envelopesQuery.isSuccess
+          ? String(actionRequiredCount)
+          : "—",
+      ready: casesQuery.isSuccess && tasksQuery.isSuccess && envelopesQuery.isSuccess,
       helper: "View Tasks →",
       href: "/client/checklist",
       icon: CheckCircle2,
@@ -320,12 +328,12 @@ export default function ClientDashboard() {
   ];
 
   const homeLoading =
-    clientRecord === undefined ||
+    clientQuery.isPending ||
     (clientRecord !== null &&
-      (cases === undefined ||
-        hearings === undefined ||
-        documents === undefined ||
-        tasks === undefined ||
+      (casesQuery.isPending ||
+        hearingsQuery.isPending ||
+        documentsQuery.isPending ||
+        tasksQuery.isPending ||
         notificationsQuery.isLoading));
 
   const kpiRow = (
@@ -344,7 +352,7 @@ export default function ClientDashboard() {
             icon={card.icon}
             tone={card.tone}
             helperText={card.helper}
-            state={kpisReady ? "default" : "loading"}
+            state={card.ready || !homeLoading ? "default" : "loading"}
           />
         </Link>
       ))}
@@ -395,6 +403,24 @@ export default function ClientDashboard() {
     );
   }
 
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell
+        {...shellProps}
+        title="Client Portal"
+        description="Here's what's happening with your legal matters."
+      >
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
   if (clientRecord === null) {
     return (
       <PortalPageShell
@@ -425,6 +451,24 @@ export default function ClientDashboard() {
       description="Here's what's happening with your legal matters."
     >
       <div className="client-home-body">
+        {tasksQuery.isError ? (
+          <ClientQueryError
+            title="Unable to load action items"
+            onRetry={() => {
+              void tasksQuery.refetch();
+            }}
+            retrying={tasksQuery.isFetching}
+          />
+        ) : null}
+        {envelopesQuery.isError ? (
+          <ClientQueryError
+            title="Unable to load signing requests"
+            onRetry={() => {
+              void envelopesQuery.refetch();
+            }}
+            retrying={envelopesQuery.isFetching}
+          />
+        ) : null}
         <div className="client-home-left">
           <DashboardSection
             className="client-home-matters"
@@ -438,7 +482,15 @@ export default function ClientDashboard() {
               </DashboardButton>
             }
           >
-            {homeMatter ? (
+            {casesQuery.isError ? (
+              <ClientQueryError
+                title="Unable to load your matters"
+                onRetry={() => {
+                  void casesQuery.refetch();
+                }}
+                retrying={casesQuery.isFetching}
+              />
+            ) : homeMatter ? (
               <article className="client-home-matter">
                 <div className="client-home-matter-top">
                   <span className="client-home-matter-icon">
@@ -481,6 +533,8 @@ export default function ClientDashboard() {
                             isoDate={`${homeMatterHearing.dateGregorian.slice(0, 10)}T00:00:00`}
                             alwaysDual
                           />
+                        ) : hearingsQuery.isError ? (
+                          "Hearing information unavailable"
                         ) : (
                           "None scheduled"
                         )}
@@ -503,6 +557,8 @@ export default function ClientDashboard() {
                               </span>
                             ) : null}
                           </>
+                        ) : notificationsQuery.isError ? (
+                          "Updates unavailable"
                         ) : (
                           "No recent update"
                         )}
@@ -544,7 +600,14 @@ export default function ClientDashboard() {
                 </DashboardButton>
               }
             >
-              {recentUpdates.length === 0 ? (
+              {notificationsQuery.isError ? (
+                <ClientQueryError
+                  title="Unable to load recent updates"
+                  onRetry={() => {
+                    void notificationsQuery.refetch();
+                  }}
+                />
+              ) : recentUpdates.length === 0 ? (
                 <ClientStatePanel
                   state="empty"
                   title="No recent updates"
@@ -581,7 +644,15 @@ export default function ClientDashboard() {
                 </DashboardButton>
               }
             >
-              {recentDocuments.length === 0 ? (
+              {documentsQuery.isError ? (
+                <ClientQueryError
+                  title="Unable to load documents"
+                  onRetry={() => {
+                    void documentsQuery.refetch();
+                  }}
+                  retrying={documentsQuery.isFetching}
+                />
+              ) : recentDocuments.length === 0 ? (
                 <ClientStatePanel
                   state="empty"
                   title="No documents yet"
@@ -630,7 +701,16 @@ export default function ClientDashboard() {
               </DashboardButton>
             }
           >
-            {nextHearing ? (
+            {hearingsQuery.isError || casesQuery.isError ? (
+              <ClientQueryError
+                title="Unable to load upcoming hearings"
+                onRetry={() => {
+                  if (hearingsQuery.isError) void hearingsQuery.refetch();
+                  if (casesQuery.isError) void casesQuery.refetch();
+                }}
+                retrying={hearingsQuery.isFetching || casesQuery.isFetching}
+              />
+            ) : nextHearing ? (
               <article className="client-home-hearing-card">
                 <div className="client-home-hearing-date">
                   {nextHearingParts ? (

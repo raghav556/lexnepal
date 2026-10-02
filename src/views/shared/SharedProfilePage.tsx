@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   useCurrentIdentityUser,
-  useOwnAuditEvents,
+  useOwnAuditEventsQuery,
   useProfileCommands,
-  useSessions,
+  useSessionsQuery,
 } from "@/client/queries/identity";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input.tsx";
@@ -38,7 +38,7 @@ import { PasswordConfirmDialog } from "@/components/auth/PasswordConfirmDialog";
 import { TotpEnrollmentPanel } from "@/components/auth/TotpEnrollmentPanel";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { SessionListPanel } from "@/components/auth/SessionListPanel";
-import { DashboardButton, DashboardSection } from "@/components/dashboard";
+import { ClientQueryError, DashboardButton, DashboardSection } from "@/components/dashboard";
 import { NepalDecoratedHero } from "@/components/dashboard/nepal-decorated-hero";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -53,8 +53,10 @@ type MfaPasswordMode = "enable" | "disable" | null;
 export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const user = useCurrentIdentityUser();
   const { signout } = useAuth();
-  const sessions = useSessions(user?.id);
-  const auditLog = useOwnAuditEvents();
+  const sessionsQuery = useSessionsQuery(user?.id);
+  const auditQuery = useOwnAuditEventsQuery();
+  const sessions = sessionsQuery.data;
+  const auditLog = auditQuery.data;
   const {
     revokeSession,
     revokeAllOtherSessions,
@@ -576,12 +578,26 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               description="These are the devices that have logged into your account. Revoke any sessions that you do not recognize."
               icon={MonitorSmartphone}
             >
-              <SessionListPanel
-                sessions={sessions}
-                busy={sessionsBusy}
-                onRevokeSession={handleRevokeSession}
-                onRevokeAllOther={handleRevokeAllOtherSessions}
-              />
+              {variant === "client" && sessionsQuery.isError ? (
+                <ClientQueryError
+                  title="Sessions unavailable"
+                  onRetry={() => {
+                    void sessionsQuery.refetch();
+                  }}
+                  retrying={sessionsQuery.isFetching}
+                />
+              ) : variant === "client" && sessionsQuery.isPending ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  Loading sessions…
+                </p>
+              ) : (
+                <SessionListPanel
+                  sessions={sessions}
+                  busy={sessionsBusy}
+                  onRevokeSession={handleRevokeSession}
+                  onRevokeAllOther={handleRevokeAllOtherSessions}
+                />
+              )}
             </DashboardSection>
           </TabsContent>
 
@@ -602,7 +618,15 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               }
             >
               <div className="space-y-4">
-                {auditLog === undefined ? (
+                {variant === "client" && auditQuery.isError ? (
+                  <ClientQueryError
+                    title="Activity unavailable"
+                    onRetry={() => {
+                      void auditQuery.refetch();
+                    }}
+                    retrying={auditQuery.isFetching}
+                  />
+                ) : auditLog === undefined ? (
                   <p className="text-xs text-muted-foreground">Loading...</p>
                 ) : auditLog.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">

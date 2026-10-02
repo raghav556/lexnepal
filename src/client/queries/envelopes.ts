@@ -24,13 +24,15 @@ export function useEnvelopes() {
 }
 
 export function useMyPendingEnvelopeActions() {
-  return (
-    useTanstackQuery({
-      queryKey: [...queryKeys.envelopes.all, "pending"],
-      queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/envelopes/pending", { signal }),
-      refetchInterval: 10_000,
-    }).data ?? []
-  );
+  return useMyPendingEnvelopeActionsQuery().data ?? [];
+}
+
+export function useMyPendingEnvelopeActionsQuery() {
+  return useTanstackQuery({
+    queryKey: [...queryKeys.envelopes.all, "pending"],
+    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/envelopes/pending", { signal }),
+    refetchInterval: 10_000,
+  });
 }
 
 export function useSigningInbox() {

@@ -16,7 +16,7 @@ import {
   Video,
 } from "lucide-react";
 import { useAvailableSlots, useAppointmentCommands, useAppointments } from "@/client/queries/crm";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import {
   addCalendarDaysIso,
   formatAppointmentDate,
@@ -28,6 +28,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 
@@ -120,7 +121,8 @@ function AppointmentRow({ appointment }: { appointment: ClientAppointment }) {
 }
 
 export default function ClientBookingPage() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const today = todayIsoInFirmTz();
   const [selectedDateIso, setSelectedDateIso] = useState(today);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -193,6 +195,25 @@ export default function ClientBookingPage() {
         className="client-appointments"
       >
         <div />
+      </PortalPageShell>
+    );
+  }
+
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell
+        portal="client"
+        decorated
+        title="Appointments"
+        className="client-appointments"
+      >
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
       </PortalPageShell>
     );
   }
@@ -440,6 +461,14 @@ export default function ClientBookingPage() {
                 <div className="mt-3" aria-live="polite">
                   {slotsQuery.isLoading ? (
                     <DashboardListSkeleton rows={2} />
+                  ) : slotsQuery.isError ? (
+                    <ClientQueryError
+                      title="Availability could not be loaded"
+                      onRetry={() => {
+                        void slotsQuery.refetch();
+                      }}
+                      retrying={slotsQuery.isFetching}
+                    />
                   ) : slotsQuery.data.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-dashboard-border bg-dashboard-neutral-soft px-4 py-5 text-center">
                       <p className="text-xs font-medium text-foreground">
@@ -513,7 +542,7 @@ export default function ClientBookingPage() {
               <DashboardButton
                 type="submit"
                 className="w-full"
-                disabled={!selectedTime || bookConsultation.isPending}
+                disabled={!selectedTime || slotsQuery.isError || bookConsultation.isPending}
               >
                 {bookConsultation.isPending ? (
                   <>

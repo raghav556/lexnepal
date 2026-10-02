@@ -14,10 +14,14 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import { useClientCases } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
-import { useDocuments, useUploadDocument, useDownloadDocument } from "@/client/queries/documents";
+import {
+  useDocumentsQuery,
+  useUploadDocument,
+  useDownloadDocument,
+} from "@/client/queries/documents";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import {
@@ -25,6 +29,7 @@ import {
   DashboardListSkeleton,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
@@ -159,7 +164,8 @@ function DocPreviewBody({
 
 export default function ClientDocumentsPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
   const cases = useClientCases(clientId ? { clientId } : {}) || [];
   const searchParams = useSearchParams();
@@ -199,7 +205,8 @@ export default function ClientDocumentsPage() {
     return {};
   }, [filterCaseId]);
 
-  const docs = useDocuments(clientRecord ? queryArgs : "skip");
+  const docsQuery = useDocumentsQuery(clientRecord ? queryArgs : "skip");
+  const docs = docsQuery.data;
   const docsList = docs ?? [];
 
   const filteredDocs = useMemo(() => {
@@ -340,6 +347,20 @@ export default function ClientDocumentsPage() {
     );
   }
 
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
   if (clientRecord === null) {
     return (
       <PortalPageShell {...shellProps} showTodayDate>
@@ -396,7 +417,9 @@ export default function ClientDocumentsPage() {
             onClick={() => setSourceFilter(source.id)}
           >
             {source.label}
-            <span className="client-documents-source-count">{source.count}</span>
+            <span className="client-documents-source-count">
+              {docsQuery.isError ? "—" : source.count}
+            </span>
           </button>
         );
       })}
@@ -479,12 +502,26 @@ export default function ClientDocumentsPage() {
             <div className="client-documents-library-head">
               <h2>Document Library</h2>
               <p>
-                {filteredDocs.length} document{filteredDocs.length === 1 ? "" : "s"}
-                {totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ""}
+                {docsQuery.isError ? (
+                  "Documents unavailable"
+                ) : (
+                  <>
+                    {filteredDocs.length} document{filteredDocs.length === 1 ? "" : "s"}
+                    {totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ""}
+                  </>
+                )}
               </p>
             </div>
 
-            {docs === undefined ? (
+            {docsQuery.isError ? (
+              <ClientQueryError
+                title="Unable to load documents"
+                onRetry={() => {
+                  void docsQuery.refetch();
+                }}
+                retrying={docsQuery.isFetching}
+              />
+            ) : docs === undefined ? (
               <DashboardListSkeleton rows={4} />
             ) : filteredDocs.length === 0 ? (
               <EmptyState title={emptyTitle} description={emptyDescription} icon={FileText} />

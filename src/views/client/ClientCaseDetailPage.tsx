@@ -32,7 +32,7 @@ import {
 } from "@/shared/contracts/case-ui";
 import { CaseQueryState } from "@/components/cases/case-query-state";
 import { useHearings } from "@/client/queries/hearings";
-import { useDocuments, useDownloadDocument } from "@/client/queries/documents";
+import { useDocumentsQuery, useDownloadDocument } from "@/client/queries/documents";
 import { useTasks } from "@/client/queries/tasks";
 import { useMessages, useNotifications } from "@/client/queries/communication";
 import { formatTaskDue, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
@@ -46,6 +46,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 
@@ -194,8 +195,8 @@ export default function ClientCaseDetailPage() {
   const team = useMyTeam();
   const hearingsQuery = useHearings(caseId ? { caseId } : "skip");
   const hearings = hearingsQuery === undefined ? undefined : hearingsQuery || [];
-  const documentsQuery = useDocuments(caseId ? { caseId } : {});
-  const documents = documentsQuery === undefined ? undefined : documentsQuery || [];
+  const documentsQuery = useDocumentsQuery(caseId ? { caseId } : "skip");
+  const documents = documentsQuery.data;
   const tasksQuery = useTasks(caseId ? { caseId } : "skip");
   const tasks = tasksQuery === undefined ? undefined : tasksQuery || [];
   const { data: messagesResponse } = useMessages(caseId || "", false);
@@ -542,7 +543,15 @@ export default function ClientCaseDetailPage() {
                   </DashboardButton>
                 }
               >
-                {documents === undefined ? (
+                {documentsQuery.isError ? (
+                  <ClientQueryError
+                    title="Unable to load documents"
+                    onRetry={() => {
+                      void documentsQuery.refetch();
+                    }}
+                    retrying={documentsQuery.isFetching}
+                  />
+                ) : documents === undefined ? (
                   <DashboardListSkeleton rows={2} />
                 ) : documents.length === 0 ? (
                   <EmptyState
@@ -927,7 +936,15 @@ export default function ClientCaseDetailPage() {
               </div>
             }
           >
-            {documents === undefined ? (
+            {documentsQuery.isError ? (
+              <ClientQueryError
+                title="Unable to load documents"
+                onRetry={() => {
+                  void documentsQuery.refetch();
+                }}
+                retrying={documentsQuery.isFetching}
+              />
+            ) : documents === undefined ? (
               <DashboardListSkeleton rows={3} />
             ) : documents.length === 0 ? (
               <EmptyState

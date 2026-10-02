@@ -18,12 +18,13 @@ import { toast } from "sonner";
 import { useNotifications, useNotificationCommands } from "@/client/queries/communication";
 import { useAppointments } from "@/client/queries/crm";
 import { useHearingsQuery } from "@/client/queries/hearings";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatAppointmentDate } from "@/shared/crm/appointment-dates";
 import { safeNotificationPath } from "@/shared/notification-links";
 import {
   ClientPanel,
+  ClientQueryError,
   DashboardButton,
   DashboardListSkeleton,
   PortalPageShell,
@@ -92,7 +93,8 @@ function formatHearingTime(value?: string | null): string | null {
 
 export default function ClientNotificationsPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const notificationQuery = useNotifications();
   const hearingsQuery = useHearingsQuery(clientRecord ? {} : "skip");
   const appointmentsQuery = useAppointments({});
@@ -112,7 +114,7 @@ export default function ClientNotificationsPage() {
   );
   const datesLoading =
     clientRecord === undefined || hearingsQuery.isLoading || appointmentsQuery.isLoading;
-  const datesError = hearingsQuery.isError || appointmentsQuery.isError;
+  const datesError = clientQuery.isError || hearingsQuery.isError || appointmentsQuery.isError;
   const shellProps = {
     portal: "client" as const,
     decorated: true,
@@ -343,9 +345,21 @@ export default function ClientNotificationsPage() {
               Important Dates
             </h2>
             {datesError ? (
-              <p className="mt-4 text-sm text-muted-foreground" role="status">
-                Important dates are unavailable right now.
-              </p>
+              <ClientQueryError
+                title={
+                  clientQuery.isError
+                    ? "Unable to load your client profile"
+                    : "Unable to load important dates"
+                }
+                onRetry={() => {
+                  if (clientQuery.isError) void clientQuery.refetch();
+                  if (hearingsQuery.isError) void hearingsQuery.refetch();
+                  if (appointmentsQuery.isError) void appointmentsQuery.refetch();
+                }}
+                retrying={
+                  clientQuery.isFetching || hearingsQuery.isFetching || appointmentsQuery.isFetching
+                }
+              />
             ) : datesLoading ? (
               <p className="mt-4 text-sm text-muted-foreground" role="status">
                 Loading important dates…

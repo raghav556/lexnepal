@@ -93,6 +93,10 @@ export function useAuditEvents(
 }
 
 export function useOwnAuditEvents(): Array<AuditEventDto | ClientOwnAuditEventDto> | undefined {
+  return useOwnAuditEventsQuery().data;
+}
+
+export function useOwnAuditEventsQuery() {
   return useQuery({
     queryKey: [...queryKeys.identity.all, "my-audit"],
     queryFn: ({ signal }) =>
@@ -100,16 +104,20 @@ export function useOwnAuditEvents(): Array<AuditEventDto | ClientOwnAuditEventDt
         "/api/v1/users/me/audit-events",
         { signal },
       ),
-  }).data;
+  });
 }
 
 export function useSessions(userId?: string): SessionDto[] | undefined {
+  return useSessionsQuery(userId).data;
+}
+
+export function useSessionsQuery(userId?: string) {
   return useQuery({
     queryKey: queryKeys.identity.sessions(userId ?? ""),
     queryFn: ({ signal }) =>
       apiClient.request<SessionDto[]>(`/api/v1/users/${userId!}/sessions`, { signal }),
     enabled: Boolean(userId),
-  }).data;
+  });
 }
 
 export function useIdentityCommands() {

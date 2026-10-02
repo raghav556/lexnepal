@@ -14,7 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import { useDownloadDocument } from "@/client/queries/documents";
 import {
   useDeclineEnvelope,
@@ -31,6 +31,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -326,7 +327,8 @@ function OriginalDocumentAction({ documentId, title }: { documentId: string; tit
 
 export default function ClientSignaturesPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const signingInbox = useSigningInbox();
   const inbox = signingInbox.data as SigningInbox | undefined;
   const pending = pendingSigningActions(inbox);
@@ -652,6 +654,19 @@ export default function ClientSignaturesPage() {
         title="Sign Documents"
       >
         <div />
+      </PortalPageShell>
+    );
+
+  if (clientQuery.isError)
+    return (
+      <PortalPageShell portal="client" decorated title="Sign Documents" icon={PenLine}>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
       </PortalPageShell>
     );
 

@@ -6,19 +6,26 @@ import { useSearchParams } from "next/navigation";
 import { FolderOpen, MessageCircle, MessageSquare } from "lucide-react";
 import { MatterChatPanel } from "@/components/messages/MatterChatPanel";
 import { useUnreadMessageCounts } from "@/client/queries/communication";
-import { useMyClient, useMyTeam } from "@/client/queries/clients";
-import { useClientCases } from "@/client/queries/cases";
+import { useMyClientQuery, useMyTeam } from "@/client/queries/clients";
+import { useClientCasesQuery } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
-import { DashboardButton, EmptyState, PortalPageShell } from "@/components/dashboard";
+import {
+  ClientQueryError,
+  DashboardButton,
+  EmptyState,
+  PortalPageShell,
+} from "@/components/dashboard";
 import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
 import type { ClientCaseDto } from "@/shared/contracts/domains";
 
 export default function ClientMessagesPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const cases = casesQuery.data ?? [];
   const users = useMyTeam() || [];
   const searchParams = useSearchParams();
   const queryCaseId = searchParams.get("caseId");
@@ -116,6 +123,20 @@ export default function ClientMessagesPage() {
     );
   }
 
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
   if (clientRecord === null) {
     return (
       <PortalPageShell {...shellProps} showTodayDate>
@@ -161,12 +182,30 @@ export default function ClientMessagesPage() {
           <div className="client-messages-sidebar-head">
             <h2>Conversations</h2>
             <p>
-              {cases.length} matter{cases.length === 1 ? "" : "s"}
-              {totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
+              {casesQuery.isError ? (
+                "Conversation list unavailable"
+              ) : (
+                <>
+                  {cases.length} matter{cases.length === 1 ? "" : "s"}
+                  {totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
+                </>
+              )}
             </p>
           </div>
 
-          {cases.length === 0 ? (
+          {casesQuery.isError ? (
+            <ClientQueryError
+              title="Unable to load conversations"
+              onRetry={() => {
+                void casesQuery.refetch();
+              }}
+              retrying={casesQuery.isFetching}
+            />
+          ) : casesQuery.isPending ? (
+            <p className="p-4 text-sm text-muted-foreground" role="status">
+              Loading conversations…
+            </p>
+          ) : cases.length === 0 ? (
             <EmptyState
               title="No matters yet"
               description="Conversations appear once the firm opens a case for you."
@@ -227,7 +266,11 @@ export default function ClientMessagesPage() {
           )}
           aria-label="Selected matter conversation"
         >
-          {queryCaseId && !selectedMatter ? (
+          {casesQuery.isError ? (
+            <div className="client-messages-empty-pane" role="status">
+              Conversations are temporarily unavailable.
+            </div>
+          ) : queryCaseId && !selectedMatter ? (
             <EmptyState
               title="Matter unavailable"
               description="That conversation link is not available for your account. Choose a matter from your list."

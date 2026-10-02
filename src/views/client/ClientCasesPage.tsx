@@ -15,7 +15,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
-import { useMyClient, useMyTeam } from "@/client/queries/clients";
+import { useMyClientQuery, useMyTeam } from "@/client/queries/clients";
 import { useClientCasesQuery } from "@/client/queries/cases";
 import { caseQueryFailureKind } from "@/client/queries/case-query-error";
 import { useNotifications } from "@/client/queries/communication";
@@ -40,6 +40,7 @@ import {
   ClientHearingSummary,
   ClientSoftPanel,
   ClientStatePanel,
+  ClientQueryError,
   ClientTimelineItem,
   DashboardButton,
   DashboardStatusLabel,
@@ -226,7 +227,8 @@ function isOpenChecklistTask(task: TaskDto): boolean {
 
 export default function ClientCasesPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
   const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
   const cases = casesQuery.data ?? [];
@@ -389,6 +391,20 @@ export default function ClientCasesPage() {
         loadingLabel="Loading your legal matters…"
       >
         <div />
+      </PortalPageShell>
+    );
+  }
+
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell portal="client" {...shellProps}>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
       </PortalPageShell>
     );
   }

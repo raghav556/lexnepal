@@ -91,8 +91,12 @@ async function uploadViaIntent(input: {
 }
 
 export function useDocuments(filters: ListDocumentsInput | "skip" = {}): DocumentDto[] | undefined {
+  return useDocumentsQuery(filters).data;
+}
+
+export function useDocumentsQuery(filters: ListDocumentsInput | "skip" = {}) {
   const activeFilters = filters === "skip" ? {} : filters;
-  const next = useTanstackQuery({
+  return useTanstackQuery({
     queryKey: queryKeys.documents.list(activeFilters),
     queryFn: ({ signal }) =>
       apiClient.request<DocumentDto[]>("/api/v1/documents", {
@@ -106,7 +110,6 @@ export function useDocuments(filters: ListDocumentsInput | "skip" = {}): Documen
       }),
     enabled: filters !== "skip",
   });
-  return next.data;
 }
 
 const SCANNING_INTENT_STATUSES = new Set(["pending", "uploaded", "scanning"]);

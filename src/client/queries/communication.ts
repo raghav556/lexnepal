@@ -22,7 +22,14 @@ export function useMessages(caseId: string, isInternal?: boolean) {
     enabled: !!caseId,
     refetchInterval: 5000,
   });
-  return { data: next.data, isLoading: next.isLoading };
+  return {
+    data: next.data,
+    isLoading: next.isLoading,
+    isError: next.isError,
+    error: next.error,
+    isFetching: next.isFetching,
+    refetch: next.refetch,
+  };
 }
 
 export function useUnreadMessageCounts(caseIds: string[]) {

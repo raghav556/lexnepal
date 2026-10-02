@@ -13,9 +13,9 @@ import {
   Scale,
   Search,
 } from "lucide-react";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import { useClientCases } from "@/client/queries/cases";
-import { useHearings } from "@/client/queries/hearings";
+import { useHearingsQuery } from "@/client/queries/hearings";
 import { useTasks } from "@/client/queries/tasks";
 import type { ClientCaseDto, HearingDto, TaskDto } from "@/shared/contracts/domains";
 import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
@@ -24,6 +24,7 @@ import {
   DashboardListSkeleton,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 import { localDateIso } from "@/lib/dashboard-format";
@@ -152,11 +153,12 @@ function openClientActions(tasks: TaskDto[] | undefined, caseId?: string): TaskD
 }
 
 export default function ClientHearingsPage() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
   const cases = useClientCases(clientId ? { clientId } : {}) || [];
-  const hearingsQuery = useHearings(clientRecord ? {} : "skip");
-  const hearings = hearingsQuery ?? [];
+  const hearingsQuery = useHearingsQuery(clientRecord ? {} : "skip");
+  const hearings = hearingsQuery.data ?? [];
   const tasks = useTasks(clientRecord ? {} : "skip");
 
   const [viewFilter, setViewFilter] = useState<ViewFilter>("upcoming");
@@ -217,6 +219,20 @@ export default function ClientHearingsPage() {
     );
   }
 
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
   if (clientRecord === null) {
     return (
       <PortalPageShell {...shellProps} showTodayDate>
@@ -224,6 +240,20 @@ export default function ClientHearingsPage() {
           title="No client profile linked"
           description="Your account is not linked to a client record. Contact the firm to access court schedules."
           icon={CalendarDays}
+        />
+      </PortalPageShell>
+    );
+  }
+
+  if (hearingsQuery.isError) {
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title="Unable to load hearings"
+          onRetry={() => {
+            void hearingsQuery.refetch();
+          }}
+          retrying={hearingsQuery.isFetching}
         />
       </PortalPageShell>
     );
@@ -480,7 +510,7 @@ export default function ClientHearingsPage() {
               </h2>
             </div>
 
-            {hearingsQuery === undefined ? (
+            {hearingsQuery.isPending ? (
               <DashboardListSkeleton rows={4} />
             ) : displayed.length === 0 ? (
               <EmptyState title={emptyTitle} description={emptyDescription} icon={CalendarDays} />
@@ -489,7 +519,7 @@ export default function ClientHearingsPage() {
             )}
           </section>
 
-          {showPastBelowUpcoming && hearingsQuery !== undefined ? (
+          {showPastBelowUpcoming && hearingsQuery.isSuccess ? (
             <section
               className="client-hearings-list-card client-hearings-past-fold"
               aria-label="Past hearings"

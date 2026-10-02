@@ -11,7 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useClientCommands, useKycFiles, useMyClient } from "@/client/queries/clients";
+import { useClientCommands, useKycFilesQuery, useMyClientQuery } from "@/client/queries/clients";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
 import {
@@ -21,6 +21,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 
@@ -226,7 +227,8 @@ function StatusSummary({
 }
 
 export default function ClientKYCOnboarding() {
-  const client = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const client = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const commands = useClientCommands();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -239,7 +241,8 @@ export default function ClientKYCOnboarding() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const files = useKycFiles(client?._id || null);
+  const filesQuery = useKycFilesQuery(client?._id || null);
+  const files = filesQuery.data;
   const status = (justSubmitted ? "submitted" : client?.kycStatus || "pending") as KycStatus;
   const hasId = uploadedFiles.some((file) => file.docType === "government_id");
   const hasAddressProof = uploadedFiles.some((file) => file.docType === "proof_of_address");
@@ -318,6 +321,18 @@ export default function ClientKYCOnboarding() {
         <div />
       </PortalPageShell>
     );
+  if (clientQuery.isError)
+    return (
+      <PortalPageShell portal="client" decorated title="Identity Verification" icon={ShieldCheck}>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
   if (client === null)
     return (
       <PortalPageShell
@@ -360,7 +375,15 @@ export default function ClientKYCOnboarding() {
             description="Documents already submitted for this verification."
           >
             <div className="divide-y divide-dashboard-border">
-              {files === undefined ? (
+              {filesQuery.isError ? (
+                <ClientQueryError
+                  title="Unable to load submitted documents"
+                  onRetry={() => {
+                    void filesQuery.refetch();
+                  }}
+                  retrying={filesQuery.isFetching}
+                />
+              ) : files === undefined ? (
                 <div className="p-4">
                   <DashboardListSkeleton rows={2} />
                 </div>

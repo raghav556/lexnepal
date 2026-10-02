@@ -61,12 +61,16 @@ export function useMyTeam():
 }
 
 export function useKycFiles(clientId: string | null) {
+  return useKycFilesQuery(clientId).data;
+}
+
+export function useKycFilesQuery(clientId: string | null) {
   return useTanstackQuery({
     queryKey: queryKeys.clients.kycFiles(clientId ?? "none"),
     queryFn: ({ signal }) =>
       apiClient.request<any[]>(`/api/v1/clients/${clientId}/kyc-files`, { signal }),
     enabled: Boolean(clientId),
-  }).data;
+  });
 }
 
 export function useClientCommands() {
