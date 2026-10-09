@@ -49,7 +49,7 @@ vi.mock("@/client/queries/documents", () => ({
 vi.mock("@/client/queries/communication", () => ({
   useNotifications: () => state.queries.notifications,
   useUnreadMessageCounts: () => state.queries.unread,
-  useMessages: () => ({ data: { page: [] } }),
+  useMessages: () => state.queries.messages,
   useNotificationCommands: () => ({
     markRead: { mutateAsync: vi.fn() },
     markAllRead: { isPending: false, mutateAsync: vi.fn() },
@@ -281,6 +281,7 @@ beforeEach(() => {
     documents: query([doc]),
     tasks: query([task]),
     notifications: query([notification]),
+    messages: query({ page: [] }),
     envelopes: query([]),
     unread: query({ "matter-1": 3 }),
     appointments: query([appointment]),
@@ -710,4 +711,170 @@ describe("Client-only query boundary", () => {
     expect(html).toContain("Try again");
     expect(html).not.toContain("Loading");
   });
+});
+
+describe("B2 cached-data presentation guards", () => {
+  const states = [
+    ["successful data", "success", 200, "data"],
+    ["initial loading", "pending", 200, "loading"],
+    ["recoverable cached refresh failure", "error", 500, "data"],
+    ["HTTP 401 with cached data", "error", 401, "denied"],
+    ["HTTP 403 with cached data", "error", 403, "denied"],
+    ["HTTP 404 with cached data", "error", 404, "denied"],
+    ["successful empty data", "success", 200, "empty"],
+  ] as const;
+
+  it.each(states)("Home Last Update: %s", (_label, status, httpStatus, expected) => {
+    const sensitive = "B2_SENSITIVE_NOTIFICATION";
+    state.queries.notifications = query(
+      expected === "loading"
+        ? undefined
+        : expected === "empty"
+          ? []
+          : [{ ...notification, title: sensitive, message: sensitive }],
+      status,
+      httpStatus,
+    );
+    const html = render(Home);
+    const fact = html.match(/<dt>Last Update<\/dt>\s*<dd>([\s\S]*?)<\/dd>/)?.[1];
+    expect(fact).toBeDefined();
+    if (expected === "data") {
+      expect(fact).toContain(sensitive);
+    } else {
+      expect(html).not.toContain(sensitive);
+      expect(fact).toContain(
+        expected === "loading"
+          ? "Loading updates"
+          : expected === "empty"
+            ? "No recent update"
+            : "Updates unavailable",
+      );
+    }
+    if (status === "error") expect(html).toContain("Try again");
+    expect(html).toContain("Healthy matter");
+    expect(html).not.toContain("PRIVATE SERVER DETAIL");
+  });
+
+  it.each(states)("Documents auxiliary controls: %s", (_label, status, httpStatus, expected) => {
+    const sensitive = "B2_SENSITIVE_DOCUMENT";
+    state.queries.documents = query(
+      expected === "loading"
+        ? undefined
+        : expected === "empty"
+          ? []
+          : [{ ...doc, title: sensitive, type: "court_filing" }],
+      status,
+      httpStatus,
+    );
+    const html = render(Documents);
+    const options = html.match(
+      /<select[^>]*aria-label="Filter by document type"[^>]*>([\s\S]*?)<\/select>/,
+    )?.[1];
+    expect(options).toBeDefined();
+    expect(options).toContain("All Types");
+    if (expected === "data") {
+      expect(html).toContain(sensitive);
+      expect(options).toContain('value="court_filing"');
+      expect(html).toContain("Document Categories");
+      expect(html).toMatch(/<span>Court Filing<\/span><strong>1<\/strong>/);
+    } else {
+      expect(html).not.toContain(sensitive);
+      expect(options).not.toContain('value="court_filing"');
+      expect(html).not.toContain("Document Categories");
+      expect(html).not.toContain("Court Filing");
+      expect(html).toContain(
+        expected === "loading"
+          ? "Loading documents"
+          : expected === "empty"
+            ? "No documents yet"
+            : "Documents unavailable",
+      );
+    }
+    if (status === "error") expect(html).toContain("Try again");
+    expect(html).toContain("Upload Document");
+    expect(html).not.toContain("PRIVATE SERVER DETAIL");
+  });
+
+  it.each(states)("Matter Recent Discussion: %s", (_label, status, httpStatus, expected) => {
+    const sensitive = "B2_SENSITIVE_MESSAGE";
+    state.queries.messages = query(
+      expected === "loading"
+        ? undefined
+        : { page: expected === "empty" ? [] : [{ _id: "b2-message", content: sensitive }] },
+      status,
+      httpStatus,
+    );
+    const html = render(Detail);
+    if (expected === "data") {
+      expect(html).toContain("Recent Discussion");
+      expect(html).toContain(sensitive);
+      expect(html).toContain("Open full chat");
+    } else {
+      expect(html).not.toContain(sensitive);
+      if (expected === "empty") {
+        expect(html).not.toContain("Recent Discussion");
+        expect(html).not.toContain("Unable to load recent discussion");
+      } else {
+        expect(html).toContain("Recent Discussion");
+        expect(html).toContain(
+          expected === "loading" ? "Loading recent discussion" : "Unable to load recent discussion",
+        );
+      }
+    }
+    if (status === "error") expect(html).toContain("Try again");
+    expect(html).toContain("Healthy matter");
+    expect(html).not.toContain("PRIVATE SERVER DETAIL");
+  });
+
+  it("Matter Recent Discussion reports an uncached fetch failure without an empty success", () => {
+    state.queries.messages = query(undefined, "error");
+    const html = render(Detail);
+    expect(html).toContain("Unable to load recent discussion");
+    expect(html).toContain("Try again");
+    expect(html).toContain("Healthy matter");
+    expect(html).not.toContain("PRIVATE SERVER DETAIL");
+  });
+
+  it.each([500, 401, 403, 404])(
+    "existing boundary handles an actual cached TanStack HTTP %s refresh failure",
+    async (status) => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const key = ["b2-cached-boundary", status];
+      const sensitive = "B2_SENSITIVE_BOUNDARY_CONTENT";
+      client.setQueryData(key, [sensitive]);
+      const observer = new QueryObserver<string[]>(client, {
+        queryKey: key,
+        enabled: false,
+        queryFn: vi.fn().mockRejectedValue({ status, message: "PRIVATE SERVER DETAIL" }),
+      });
+      const unsubscribe = observer.subscribe(() => {});
+      const markup = () =>
+        renderToStaticMarkup(
+          React.createElement(
+            ClientQueryBoundary,
+            {
+              query: observer.getCurrentResult(),
+              title: "Refresh unavailable",
+              loadingLabel: "Loading discussion",
+            },
+            observer.getCurrentResult().data?.join(" "),
+          ),
+        );
+      try {
+        expect(markup()).toContain(sensitive);
+        await observer.refetch();
+        expect(observer.getCurrentResult().isError).toBe(true);
+        expect(observer.getCurrentResult().data).toEqual([sensitive]);
+        const html = markup();
+        expect(html).toContain("Refresh unavailable");
+        expect(html).toContain("Try again");
+        expect(html).not.toContain("PRIVATE SERVER DETAIL");
+        if (status === 500) expect(html).toContain(sensitive);
+        else expect(html).not.toContain(sensitive);
+      } finally {
+        unsubscribe();
+        client.clear();
+      }
+    },
+  );
 });

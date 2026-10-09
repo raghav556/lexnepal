@@ -213,7 +213,7 @@ export default function ClientDocumentsPage() {
   }, [filterCaseId]);
 
   const docsQuery = useDocumentsQuery(clientRecord ? queryArgs : "skip");
-  const docs = docsQuery.data;
+  const docs = clientQueryHasData(docsQuery) ? docsQuery.data : undefined;
   const docsList = docs ?? [];
 
   const filteredDocs = useMemo(() => {

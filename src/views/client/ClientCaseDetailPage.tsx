@@ -204,8 +204,8 @@ export default function ClientCaseDetailPage() {
   const documents = documentsQuery.data;
   const tasksQuery = useTasksQuery(caseId ? { caseId } : "skip");
   const tasks = clientQueryHasData(tasksQuery) ? tasksQuery.data : undefined;
-  const { data: messagesResponse } = useMessages(caseId || "", false);
-  const messages = messagesResponse?.page || [];
+  const messagesQuery = useMessages(caseId || "", false);
+  const messages = clientQueryHasData(messagesQuery) ? (messagesQuery.data?.page ?? []) : [];
   const notificationsQuery = useNotifications();
   const notifications = (notificationsQuery.data ?? []) as ClientNotification[];
 
@@ -1099,7 +1099,7 @@ export default function ClientCaseDetailPage() {
             </ClientQueryBoundary>
           </DashboardSection>
 
-          {messages.length > 0 ? (
+          {messages.length > 0 || !clientQueryHasData(messagesQuery) ? (
             <DashboardSection
               title="Recent Discussion"
               description="Secure messages on this matter"
@@ -1110,42 +1110,48 @@ export default function ClientCaseDetailPage() {
                 </DashboardButton>
               }
             >
-              <div className="space-y-2">
-                {messages
-                  .slice(-6)
-                  .map(
-                    (msg: {
-                      _id: string;
-                      senderId?: string;
-                      content?: string;
-                      _creationTime?: number;
-                    }) => {
-                      const sender = teamMembers.find(
-                        (u) => u._id === msg.senderId || u.id === msg.senderId,
-                      );
-                      return (
-                        <DashboardListRow
-                          key={msg._id}
-                          className="client-matter-detail-row space-y-1"
-                        >
-                          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                            <span className="font-semibold text-foreground">
-                              {sender?.name || "Legal Team"}
-                            </span>
-                            <span>
-                              {msg._creationTime
-                                ? new Date(msg._creationTime).toLocaleString()
-                                : ""}
-                            </span>
-                          </div>
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                            {msg.content}
-                          </p>
-                        </DashboardListRow>
-                      );
-                    },
-                  )}
-              </div>
+              <ClientQueryBoundary
+                query={messagesQuery}
+                title="Unable to load recent discussion"
+                loadingLabel="Loading recent discussion…"
+              >
+                <div className="space-y-2">
+                  {messages
+                    .slice(-6)
+                    .map(
+                      (msg: {
+                        _id: string;
+                        senderId?: string;
+                        content?: string;
+                        _creationTime?: number;
+                      }) => {
+                        const sender = teamMembers.find(
+                          (u) => u._id === msg.senderId || u.id === msg.senderId,
+                        );
+                        return (
+                          <DashboardListRow
+                            key={msg._id}
+                            className="client-matter-detail-row space-y-1"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                              <span className="font-semibold text-foreground">
+                                {sender?.name || "Legal Team"}
+                              </span>
+                              <span>
+                                {msg._creationTime
+                                  ? new Date(msg._creationTime).toLocaleString()
+                                  : ""}
+                              </span>
+                            </div>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {msg.content}
+                            </p>
+                          </DashboardListRow>
+                        );
+                      },
+                    )}
+                </div>
+              </ClientQueryBoundary>
             </DashboardSection>
           ) : null}
         </TabsContent>

@@ -197,7 +197,9 @@ export default function ClientDashboard() {
   const hearingList = clientQueryHasData(hearingsQuery) ? (hearings ?? []) : [];
   const documentList = clientQueryHasData(documentsQuery) ? (documents ?? []) : [];
   const taskList = clientQueryHasData(tasksQuery) ? (tasks ?? []) : [];
-  const notifications = notificationsQuery.data ?? [];
+  const notifications = clientQueryHasData(notificationsQuery)
+    ? (notificationsQuery.data ?? [])
+    : [];
 
   const todayIso = localDateIso(new Date());
   const caseIds = new Set(caseList.map((item) => item._id));
