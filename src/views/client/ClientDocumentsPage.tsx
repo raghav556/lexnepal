@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+  clientQuerySummary,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMyClientQuery } from "@/client/queries/clients";
-import { useClientCases } from "@/client/queries/cases";
+import { useClientCasesQuery } from "@/client/queries/cases";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import {
   useDocumentsQuery,
@@ -167,7 +173,8 @@ export default function ClientDocumentsPage() {
   const clientQuery = useMyClientQuery();
   const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const cases = clientQueryHasData(casesQuery) ? (casesQuery.data ?? []) : [];
   const searchParams = useSearchParams();
   const queryCaseId = searchParams.get("caseId") || "";
 
@@ -286,7 +293,11 @@ export default function ClientDocumentsPage() {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    if (!uploadCaseId) {
+    if (
+      !clientQueryHasData(casesQuery) ||
+      !uploadCaseId ||
+      !cases.some((matter) => matter._id === uploadCaseId)
+    ) {
       toast.error("Please select a matter for this document.");
       return;
     }
@@ -418,7 +429,7 @@ export default function ClientDocumentsPage() {
           >
             {source.label}
             <span className="client-documents-source-count">
-              {docsQuery.isError ? "—" : source.count}
+              {clientQueryHasData(docsQuery) ? source.count : "—"}
             </span>
           </button>
         );
@@ -498,12 +509,23 @@ export default function ClientDocumentsPage() {
             {sourceTabs}
           </div>
 
+          <ClientQueryBoundary
+            query={casesQuery}
+            title="Unable to load matter information"
+            loadingLabel="Loading matter information…"
+          >
+            {null}
+          </ClientQueryBoundary>
           <section className="client-documents-library" aria-label="Document library">
             <div className="client-documents-library-head">
               <h2>Document Library</h2>
               <p>
-                {docsQuery.isError ? (
-                  "Documents unavailable"
+                {!clientQueryHasData(docsQuery) ? (
+                  docsQuery.isError ? (
+                    "Documents unavailable"
+                  ) : (
+                    "Loading documents..."
+                  )
                 ) : (
                   <>
                     {filteredDocs.length} document{filteredDocs.length === 1 ? "" : "s"}
@@ -513,174 +535,190 @@ export default function ClientDocumentsPage() {
               </p>
             </div>
 
-            {docsQuery.isError ? (
-              <ClientQueryError
-                title="Unable to load documents"
-                onRetry={() => {
-                  void docsQuery.refetch();
-                }}
-                retrying={docsQuery.isFetching}
-              />
-            ) : docs === undefined ? (
-              <DashboardListSkeleton rows={4} />
-            ) : filteredDocs.length === 0 ? (
-              <EmptyState title={emptyTitle} description={emptyDescription} icon={FileText} />
-            ) : (
-              <>
-                <div className="client-documents-table-wrap">
-                  <table className="client-documents-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Document</th>
-                        <th scope="col">Matter</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Source</th>
-                        <th scope="col" className="client-documents-actions-col">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedItems.map((doc) => {
-                        const matchedCase = matterOf(cases, doc.caseId);
-                        const isMine = uploaderOf(doc) === currentUser?._id;
-                        const when = documentDate(doc);
-                        return (
-                          <tr key={doc._id}>
-                            <td>
-                              <div className="client-documents-title-cell">
-                                <span className="client-documents-file-badge" aria-hidden>
-                                  {fileKindLabel(doc.mimeType, doc.title)}
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="client-documents-title">{doc.title}</p>
-                                  <p className="client-documents-submeta">
+            <ClientQueryBoundary
+              query={docsQuery}
+              title="Unable to load documents"
+              loadingLabel="Loading documents…"
+            >
+              {docs === undefined ? (
+                <DashboardListSkeleton rows={4} />
+              ) : filteredDocs.length === 0 ? (
+                <EmptyState title={emptyTitle} description={emptyDescription} icon={FileText} />
+              ) : (
+                <>
+                  <div className="client-documents-table-wrap">
+                    <table className="client-documents-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Document</th>
+                          <th scope="col">Matter</th>
+                          <th scope="col">Type</th>
+                          <th scope="col">Source</th>
+                          <th scope="col" className="client-documents-actions-col">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedItems.map((doc) => {
+                          const matchedCase = matterOf(cases, doc.caseId);
+                          const isMine = uploaderOf(doc) === currentUser?._id;
+                          const when = documentDate(doc);
+                          return (
+                            <tr key={doc._id}>
+                              <td>
+                                <div className="client-documents-title-cell">
+                                  <span className="client-documents-file-badge" aria-hidden>
                                     {fileKindLabel(doc.mimeType, doc.title)}
-                                    {when ? ` · ${when}` : ""}
-                                  </p>
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="client-documents-title">{doc.title}</p>
+                                    <p className="client-documents-submeta">
+                                      {fileKindLabel(doc.mimeType, doc.title)}
+                                      {when ? ` · ${when}` : ""}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="client-documents-matter-cell">
-                              {matchedCase ? matchedCase.title : "General"}
-                            </td>
-                            <td>
-                              <DashboardStatusLabel
-                                status={doc.type}
-                                className="client-documents-type-label"
-                              >
-                                {documentTypeLabel(doc.type)}
-                              </DashboardStatusLabel>
-                            </td>
-                            <td>
-                              <span
-                                className={cn(
-                                  "client-documents-source-pill",
-                                  isMine
-                                    ? "client-documents-source-pill-mine"
-                                    : "client-documents-source-pill-firm",
-                                )}
-                              >
-                                {isMine ? "You" : "Legal Team"}
-                              </span>
-                            </td>
-                            <td className="client-documents-actions-col">
-                              {renderDocActions(doc)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              </td>
+                              <td className="client-documents-matter-cell">
+                                {matchedCase
+                                  ? matchedCase.title
+                                  : !doc.caseId
+                                    ? "General"
+                                    : clientQuerySummary(
+                                        casesQuery,
+                                        "Matter unavailable",
+                                        "Loading matter…",
+                                        "Matter information unavailable",
+                                      )}
+                              </td>
+                              <td>
+                                <DashboardStatusLabel
+                                  status={doc.type}
+                                  className="client-documents-type-label"
+                                >
+                                  {documentTypeLabel(doc.type)}
+                                </DashboardStatusLabel>
+                              </td>
+                              <td>
+                                <span
+                                  className={cn(
+                                    "client-documents-source-pill",
+                                    isMine
+                                      ? "client-documents-source-pill-mine"
+                                      : "client-documents-source-pill-firm",
+                                  )}
+                                >
+                                  {isMine ? "You" : "Legal Team"}
+                                </span>
+                              </td>
+                              <td className="client-documents-actions-col">
+                                {renderDocActions(doc)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
 
-                <ul className="client-documents-card-list">
-                  {paginatedItems.map((doc) => {
-                    const matchedCase = matterOf(cases, doc.caseId);
-                    const isMine = uploaderOf(doc) === currentUser?._id;
-                    const when = documentDate(doc);
-                    return (
-                      <li key={doc._id} className="client-documents-card">
-                        <div className="client-documents-card-top">
-                          <span className="client-documents-file-badge" aria-hidden>
-                            {fileKindLabel(doc.mimeType, doc.title)}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="client-documents-title">{doc.title}</p>
-                            <p className="client-documents-submeta">
-                              {matchedCase ? matchedCase.title : "General"}
-                              {when ? ` · ${when}` : ""}
-                            </p>
+                  <ul className="client-documents-card-list">
+                    {paginatedItems.map((doc) => {
+                      const matchedCase = matterOf(cases, doc.caseId);
+                      const isMine = uploaderOf(doc) === currentUser?._id;
+                      const when = documentDate(doc);
+                      return (
+                        <li key={doc._id} className="client-documents-card">
+                          <div className="client-documents-card-top">
+                            <span className="client-documents-file-badge" aria-hidden>
+                              {fileKindLabel(doc.mimeType, doc.title)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="client-documents-title">{doc.title}</p>
+                              <p className="client-documents-submeta">
+                                {matchedCase
+                                  ? matchedCase.title
+                                  : !doc.caseId
+                                    ? "General"
+                                    : clientQuerySummary(
+                                        casesQuery,
+                                        "Matter unavailable",
+                                        "Loading matter…",
+                                        "Matter information unavailable",
+                                      )}
+                                {when ? ` · ${when}` : ""}
+                              </p>
+                            </div>
+                            <span
+                              className={cn(
+                                "client-documents-source-pill",
+                                isMine
+                                  ? "client-documents-source-pill-mine"
+                                  : "client-documents-source-pill-firm",
+                              )}
+                            >
+                              {isMine ? "You" : "Legal Team"}
+                            </span>
                           </div>
-                          <span
-                            className={cn(
-                              "client-documents-source-pill",
-                              isMine
-                                ? "client-documents-source-pill-mine"
-                                : "client-documents-source-pill-firm",
-                            )}
-                          >
-                            {isMine ? "You" : "Legal Team"}
-                          </span>
-                        </div>
-                        <div className="client-documents-card-meta">
-                          <DashboardStatusLabel
-                            status={doc.type}
-                            className="client-documents-type-label"
-                          >
-                            {documentTypeLabel(doc.type)}
-                          </DashboardStatusLabel>
-                          {renderDocActions(doc)}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          <div className="client-documents-card-meta">
+                            <DashboardStatusLabel
+                              status={doc.type}
+                              className="client-documents-type-label"
+                            >
+                              {documentTypeLabel(doc.type)}
+                            </DashboardStatusLabel>
+                            {renderDocActions(doc)}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
 
-                {totalPages > 1 ? (
-                  <nav className="client-documents-pagination" aria-label="Document pages">
-                    <DashboardButton
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={currentPage <= 1}
-                      onClick={prevPage}
-                    >
-                      Previous
-                    </DashboardButton>
-                    <span className="client-documents-page-status">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <DashboardButton
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={currentPage >= totalPages}
-                      onClick={nextPage}
-                    >
-                      Next
-                    </DashboardButton>
-                    <div className="client-documents-page-jumps">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          type="button"
-                          className={cn(
-                            "client-documents-page-jump",
-                            page === currentPage && "client-documents-page-jump-active",
-                          )}
-                          aria-label={`Go to page ${page}`}
-                          aria-current={page === currentPage ? "page" : undefined}
-                          onClick={() => goToPage(page)}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-                  </nav>
-                ) : null}
-              </>
-            )}
+                  {totalPages > 1 ? (
+                    <nav className="client-documents-pagination" aria-label="Document pages">
+                      <DashboardButton
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={currentPage <= 1}
+                        onClick={prevPage}
+                      >
+                        Previous
+                      </DashboardButton>
+                      <span className="client-documents-page-status">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <DashboardButton
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={currentPage >= totalPages}
+                        onClick={nextPage}
+                      >
+                        Next
+                      </DashboardButton>
+                      <div className="client-documents-page-jumps">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <button
+                            key={page}
+                            type="button"
+                            className={cn(
+                              "client-documents-page-jump",
+                              page === currentPage && "client-documents-page-jump-active",
+                            )}
+                            aria-label={`Go to page ${page}`}
+                            aria-current={page === currentPage ? "page" : undefined}
+                            onClick={() => goToPage(page)}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      </div>
+                    </nav>
+                  ) : null}
+                </>
+              )}
+            </ClientQueryBoundary>
           </section>
         </div>
 
@@ -735,11 +773,19 @@ export default function ClientDocumentsPage() {
               <select
                 value={uploadCaseId}
                 onChange={(e) => setUploadCaseId(e.target.value)}
+                disabled={!clientQueryHasData(casesQuery)}
                 aria-label="Matter for upload"
                 data-autofocus
               >
                 {cases.length === 0 ? (
-                  <option value="">No matters available</option>
+                  <option value="">
+                    {clientQuerySummary(
+                      casesQuery,
+                      "No matters available",
+                      "Loading matters…",
+                      "Matters unavailable",
+                    )}
+                  </option>
                 ) : (
                   cases.map((c) => (
                     <option key={c._id} value={c._id}>
@@ -800,6 +846,7 @@ export default function ClientDocumentsPage() {
               type="file"
               multiple
               className="sr-only"
+              disabled={!clientQueryHasData(casesQuery) || !uploadCaseId}
               aria-label="Choose files to upload"
               onChange={(e) => void handleFiles(e.target.files)}
             />

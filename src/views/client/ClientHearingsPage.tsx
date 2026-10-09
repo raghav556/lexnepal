@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+  clientQuerySummary,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -14,9 +20,9 @@ import {
   Search,
 } from "lucide-react";
 import { useMyClientQuery } from "@/client/queries/clients";
-import { useClientCases } from "@/client/queries/cases";
+import { useClientCasesQuery } from "@/client/queries/cases";
 import { useHearingsQuery } from "@/client/queries/hearings";
-import { useTasks } from "@/client/queries/tasks";
+import { useTasksQuery } from "@/client/queries/tasks";
 import type { ClientCaseDto, HearingDto, TaskDto } from "@/shared/contracts/domains";
 import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
 import {
@@ -156,10 +162,12 @@ export default function ClientHearingsPage() {
   const clientQuery = useMyClientQuery();
   const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const cases = clientQueryHasData(casesQuery) ? (casesQuery.data ?? []) : [];
   const hearingsQuery = useHearingsQuery(clientRecord ? {} : "skip");
   const hearings = hearingsQuery.data ?? [];
-  const tasks = useTasks(clientRecord ? {} : "skip");
+  const tasksQuery = useTasksQuery(clientRecord ? {} : "skip");
+  const tasks = clientQueryHasData(tasksQuery) ? tasksQuery.data : undefined;
 
   const [viewFilter, setViewFilter] = useState<ViewFilter>("upcoming");
   const [matterFilter, setMatterFilter] = useState<string>("all");
@@ -245,7 +253,7 @@ export default function ClientHearingsPage() {
     );
   }
 
-  if (hearingsQuery.isError) {
+  if (hearingsQuery.isError && !clientQueryHasData(hearingsQuery)) {
     return (
       <PortalPageShell {...shellProps} showTodayDate>
         <ClientQueryError
@@ -301,7 +309,12 @@ export default function ClientHearingsPage() {
                     {matter ? (
                       <Link href={`/client/cases/${matter._id}`}>{matter.title}</Link>
                     ) : (
-                      "Hearing"
+                      clientQuerySummary(
+                        casesQuery,
+                        "Matter unavailable",
+                        "Loading matter…",
+                        "Matter information unavailable",
+                      )
                     )}
                   </p>
                   <DashboardStatusLabel status={hearing.status} className="text-[10px]" />
@@ -357,6 +370,22 @@ export default function ClientHearingsPage() {
         </div>
       }
     >
+      <ClientQueryBoundary
+        query={casesQuery}
+        title="Unable to load matter information"
+        loadingLabel="Loading matter information…"
+      >
+        {null}
+      </ClientQueryBoundary>
+      {hearingsQuery.isError ? (
+        <ClientQueryBoundary
+          query={hearingsQuery}
+          title="Unable to refresh hearings"
+          loadingLabel="Loading hearings…"
+        >
+          {null}
+        </ClientQueryBoundary>
+      ) : null}
       <div className="client-hearings-toolbar" role="region" aria-label="Hearing filters">
         <div className="client-hearings-views" role="tablist" aria-label="Hearing schedule views">
           {(
@@ -377,7 +406,7 @@ export default function ClientHearingsPage() {
               )}
               onClick={() => setViewFilter(value)}
             >
-              {label} ({count})
+              {label} ({clientQueryHasData(hearingsQuery) ? count : "—"})
             </button>
           ))}
         </div>
@@ -415,89 +444,98 @@ export default function ClientHearingsPage() {
 
       <div className="client-hearings-layout">
         <div className="client-hearings-main">
-          {nextHearing && viewFilter !== "past" ? (
-            <section className="client-hearings-next" aria-labelledby="client-hearings-next-title">
-              <div className="client-hearings-next-head">
-                <h2 id="client-hearings-next-title">Next Hearing</h2>
-                <DashboardStatusLabel status={nextHearing.status} className="text-xs" />
-              </div>
-              <div className="client-hearings-next-body">
-                {nextParts ? (
-                  <div className="client-hearings-dateblock" aria-hidden>
-                    <span className="client-hearings-dateblock-day">{nextParts.day}</span>
-                    <span className="client-hearings-dateblock-month">{nextParts.month}</span>
-                    <span className="client-hearings-dateblock-year">{nextParts.year}</span>
-                  </div>
-                ) : null}
-                <div className="client-hearings-next-copy">
-                  <p className="client-hearings-next-title">{nextMatter?.title || "Hearing"}</p>
-                  {nextHearing.purpose ? (
-                    <p className="client-hearings-next-purpose">{nextHearing.purpose}</p>
+          <ClientQueryBoundary
+            query={hearingsQuery}
+            title="Unable to load hearings"
+            loadingLabel="Loading upcoming hearings…"
+          >
+            {nextHearing && viewFilter !== "past" ? (
+              <section
+                className="client-hearings-next"
+                aria-labelledby="client-hearings-next-title"
+              >
+                <div className="client-hearings-next-head">
+                  <h2 id="client-hearings-next-title">Next Hearing</h2>
+                  <DashboardStatusLabel status={nextHearing.status} className="text-xs" />
+                </div>
+                <div className="client-hearings-next-body">
+                  {nextParts ? (
+                    <div className="client-hearings-dateblock" aria-hidden>
+                      <span className="client-hearings-dateblock-day">{nextParts.day}</span>
+                      <span className="client-hearings-dateblock-month">{nextParts.month}</span>
+                      <span className="client-hearings-dateblock-year">{nextParts.year}</span>
+                    </div>
                   ) : null}
-                  <ul className="client-hearings-meta">
-                    {nextHearing.time ? (
+                  <div className="client-hearings-next-copy">
+                    <p className="client-hearings-next-title">{nextMatter?.title || "Hearing"}</p>
+                    {nextHearing.purpose ? (
+                      <p className="client-hearings-next-purpose">{nextHearing.purpose}</p>
+                    ) : null}
+                    <ul className="client-hearings-meta">
+                      {nextHearing.time ? (
+                        <li>
+                          <Clock className="size-3.5 shrink-0" aria-hidden />
+                          <span>{formatHearingTime(nextHearing.time)}</span>
+                        </li>
+                      ) : null}
                       <li>
-                        <Clock className="size-3.5 shrink-0" aria-hidden />
-                        <span>{formatHearingTime(nextHearing.time)}</span>
+                        <MapPin className="size-3.5 shrink-0" aria-hidden />
+                        <span>{nextHearing.court?.trim() || "Court not specified"}</span>
                       </li>
-                    ) : null}
-                    <li>
-                      <MapPin className="size-3.5 shrink-0" aria-hidden />
-                      <span>{nextHearing.court?.trim() || "Court not specified"}</span>
-                    </li>
-                    {nextHearing.dateBs ? (
-                      <li>
-                        <CalendarDays className="size-3.5 shrink-0" aria-hidden />
-                        <span>{nextHearing.dateBs} (BS)</span>
-                      </li>
-                    ) : null}
-                    {nextMatter?.caseNumber ? (
-                      <li>
-                        <Scale className="size-3.5 shrink-0" aria-hidden />
-                        <span>Matter No. {nextMatter.caseNumber}</span>
-                      </li>
-                    ) : null}
-                  </ul>
-                  <div className="client-hearings-next-actions">
-                    <DashboardButton
-                      size="sm"
-                      onClick={() =>
-                        downloadHearingIcs({
-                          id: String(nextHearing._id),
-                          title: nextMatter?.title || "Hearing",
-                          court: nextHearing.court,
-                          purpose: nextHearing.purpose,
-                          dateGregorian: nextHearing.dateGregorian,
-                          time: nextHearing.time,
-                        })
-                      }
-                    >
-                      <CalendarDays className="size-3.5 mr-1" /> Add to Calendar
-                    </DashboardButton>
-                    {nextMatter ? (
-                      <>
-                        <DashboardButton asChild size="sm" variant="outline">
-                          <Link href={`/client/cases/${nextMatter._id}`}>
-                            <FolderOpen className="size-3.5 mr-1" /> View Matter
-                          </Link>
-                        </DashboardButton>
-                        <DashboardButton asChild size="sm" variant="ghost">
-                          <Link
-                            href={`/client/messages?caseId=${nextMatter._id}`}
-                            aria-label="Message Legal Team"
-                          >
-                            <MessageSquare className="size-3.5 mr-1" />
-                            <span className="client-hearings-msg-full">Message Legal Team</span>
-                            <span className="client-hearings-msg-short">Message Team</span>
-                          </Link>
-                        </DashboardButton>
-                      </>
-                    ) : null}
+                      {nextHearing.dateBs ? (
+                        <li>
+                          <CalendarDays className="size-3.5 shrink-0" aria-hidden />
+                          <span>{nextHearing.dateBs} (BS)</span>
+                        </li>
+                      ) : null}
+                      {nextMatter?.caseNumber ? (
+                        <li>
+                          <Scale className="size-3.5 shrink-0" aria-hidden />
+                          <span>Matter No. {nextMatter.caseNumber}</span>
+                        </li>
+                      ) : null}
+                    </ul>
+                    <div className="client-hearings-next-actions">
+                      <DashboardButton
+                        size="sm"
+                        onClick={() =>
+                          downloadHearingIcs({
+                            id: String(nextHearing._id),
+                            title: nextMatter?.title || "Hearing",
+                            court: nextHearing.court,
+                            purpose: nextHearing.purpose,
+                            dateGregorian: nextHearing.dateGregorian,
+                            time: nextHearing.time,
+                          })
+                        }
+                      >
+                        <CalendarDays className="size-3.5 mr-1" /> Add to Calendar
+                      </DashboardButton>
+                      {nextMatter ? (
+                        <>
+                          <DashboardButton asChild size="sm" variant="outline">
+                            <Link href={`/client/cases/${nextMatter._id}`}>
+                              <FolderOpen className="size-3.5 mr-1" /> View Matter
+                            </Link>
+                          </DashboardButton>
+                          <DashboardButton asChild size="sm" variant="ghost">
+                            <Link
+                              href={`/client/messages?caseId=${nextMatter._id}`}
+                              aria-label="Message Legal Team"
+                            >
+                              <MessageSquare className="size-3.5 mr-1" />
+                              <span className="client-hearings-msg-full">Message Legal Team</span>
+                              <span className="client-hearings-msg-short">Message Team</span>
+                            </Link>
+                          </DashboardButton>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
-          ) : null}
+              </section>
+            ) : null}
+          </ClientQueryBoundary>
 
           <section className="client-hearings-list-card" aria-label="Hearing list">
             <div className="client-hearings-list-head">
@@ -510,16 +548,22 @@ export default function ClientHearingsPage() {
               </h2>
             </div>
 
-            {hearingsQuery.isPending ? (
-              <DashboardListSkeleton rows={4} />
-            ) : displayed.length === 0 ? (
-              <EmptyState title={emptyTitle} description={emptyDescription} icon={CalendarDays} />
-            ) : (
-              renderHearingRows(displayed)
-            )}
+            <ClientQueryBoundary
+              query={hearingsQuery}
+              title="Unable to load hearings"
+              loadingLabel="Loading hearings…"
+            >
+              {hearingsQuery.isPending ? (
+                <DashboardListSkeleton rows={4} />
+              ) : displayed.length === 0 ? (
+                <EmptyState title={emptyTitle} description={emptyDescription} icon={CalendarDays} />
+              ) : (
+                renderHearingRows(displayed)
+              )}
+            </ClientQueryBoundary>
           </section>
 
-          {showPastBelowUpcoming && hearingsQuery.isSuccess ? (
+          {showPastBelowUpcoming && clientQueryHasData(hearingsQuery) ? (
             <section
               className="client-hearings-list-card client-hearings-past-fold"
               aria-label="Past hearings"
@@ -544,21 +588,30 @@ export default function ClientHearingsPage() {
                 <Link href="/client/checklist">View Checklist →</Link>
               </DashboardButton>
             </div>
-            {preparationActions.length === 0 ? (
-              <p className="client-hearings-rail-empty">
-                No open client actions for{" "}
-                {nextMatter ? "this next hearing’s matter" : "your matters"} right now.
-              </p>
-            ) : (
-              <ul className="client-hearings-action-list">
-                {preparationActions.map((task) => (
-                  <li key={task._id}>
-                    <CheckSquare className="size-3.5 shrink-0 text-dashboard-primary" aria-hidden />
-                    <span>{task.title}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ClientQueryBoundary
+              query={tasksQuery}
+              title="Unable to load preparation actions"
+              loadingLabel="Loading preparation actions…"
+            >
+              {preparationActions.length === 0 ? (
+                <p className="client-hearings-rail-empty">
+                  No open client actions for{" "}
+                  {nextMatter ? "this next hearing’s matter" : "your matters"} right now.
+                </p>
+              ) : (
+                <ul className="client-hearings-action-list">
+                  {preparationActions.map((task) => (
+                    <li key={task._id}>
+                      <CheckSquare
+                        className="size-3.5 shrink-0 text-dashboard-primary"
+                        aria-hidden
+                      />
+                      <span>{task.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ClientQueryBoundary>
           </section>
 
           <section className="client-hearings-help">

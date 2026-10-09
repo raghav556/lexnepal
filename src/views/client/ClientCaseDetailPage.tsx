@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+  clientQuerySummary,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -31,9 +37,9 @@ import {
   toLifecycleStatus,
 } from "@/shared/contracts/case-ui";
 import { CaseQueryState } from "@/components/cases/case-query-state";
-import { useHearings } from "@/client/queries/hearings";
+import { useHearingsQuery } from "@/client/queries/hearings";
 import { useDocumentsQuery, useDownloadDocument } from "@/client/queries/documents";
-import { useTasks } from "@/client/queries/tasks";
+import { useTasksQuery } from "@/client/queries/tasks";
 import { useMessages, useNotifications } from "@/client/queries/communication";
 import { formatTaskDue, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/task-constants.ts";
 import { initialsOf, localDateIso, relativeTime } from "@/lib/dashboard-format";
@@ -46,7 +52,6 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
-  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 
@@ -193,12 +198,12 @@ export default function ClientCaseDetailPage() {
   const caseQuery = useClientCaseQuery(caseId || null);
   const caseData = caseQuery.data;
   const team = useMyTeam();
-  const hearingsQuery = useHearings(caseId ? { caseId } : "skip");
-  const hearings = hearingsQuery === undefined ? undefined : hearingsQuery || [];
+  const hearingsQuery = useHearingsQuery(caseId ? { caseId } : "skip");
+  const hearings = clientQueryHasData(hearingsQuery) ? hearingsQuery.data : undefined;
   const documentsQuery = useDocumentsQuery(caseId ? { caseId } : "skip");
   const documents = documentsQuery.data;
-  const tasksQuery = useTasks(caseId ? { caseId } : "skip");
-  const tasks = tasksQuery === undefined ? undefined : tasksQuery || [];
+  const tasksQuery = useTasksQuery(caseId ? { caseId } : "skip");
+  const tasks = clientQueryHasData(tasksQuery) ? tasksQuery.data : undefined;
   const { data: messagesResponse } = useMessages(caseId || "", false);
   const messages = messagesResponse?.page || [];
   const notificationsQuery = useNotifications();
@@ -256,7 +261,7 @@ export default function ClientCaseDetailPage() {
     return map;
   }, [teamMembers]);
 
-  if (!caseId || caseQuery.isError) {
+  if (!caseId || (caseQuery.isError && !clientQueryHasData(caseQuery))) {
     const kind = !caseId ? "not_found" : caseQueryFailureKind(caseQuery.error);
     return (
       <CaseQueryState
@@ -305,7 +310,12 @@ export default function ClientCaseDetailPage() {
   const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian);
   const hearingLabel = nextHearing
     ? String(nextHearing.dateBs || nextHearing.dateGregorian || "Scheduled")
-    : "None scheduled";
+    : clientQuerySummary(
+        hearingsQuery,
+        "None scheduled",
+        "Loading hearing information…",
+        "Hearing information unavailable",
+      );
   const metaParts = [
     caseData.practiceArea,
     `Matter No. ${caseData.caseNumber}`,
@@ -381,6 +391,15 @@ export default function ClientCaseDetailPage() {
         </div>
       }
     >
+      {caseQuery.isError ? (
+        <ClientQueryBoundary
+          query={caseQuery}
+          title="Unable to refresh your matter information"
+          loadingLabel="Loading matters…"
+        >
+          {null}
+        </ClientQueryBoundary>
+      ) : null}
       <Tabs defaultValue="overview" className="client-matter-detail-tabs w-full space-y-2">
         <TabsList
           aria-label="Matter sections"
@@ -395,7 +414,7 @@ export default function ClientCaseDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-2 space-y-2">
-          {pendingSignatures > 0 ? (
+          {clientQueryHasData(documentsQuery) && pendingSignatures > 0 ? (
             <DashboardSection
               density="compact"
               className="client-matter-detail-alert border-dashboard-warning/40 bg-dashboard-warning-soft"
@@ -457,7 +476,9 @@ export default function ClientCaseDetailPage() {
               </span>
               <div className="client-matter-detail-fact-copy">
                 <span className="client-matter-detail-fact-label">Open Actions</span>
-                <span className="client-matter-detail-fact-value">{openActions.length}</span>
+                <span className="client-matter-detail-fact-value">
+                  {clientQueryHasData(tasksQuery) ? openActions.length : "—"}
+                </span>
               </div>
             </div>
           </div>
@@ -499,38 +520,44 @@ export default function ClientCaseDetailPage() {
                 density="compact"
                 className="client-matter-detail-card"
               >
-                {matterUpdates.length === 0 ? (
-                  <EmptyState
-                    title="No recent matter activity"
-                    description="Updates related to this matter will appear here when your legal team shares them."
-                    icon={FolderOpen}
-                  />
-                ) : (
-                  <ul className="client-matter-detail-activity">
-                    {matterUpdates.slice(0, 4).map((notification) => (
-                      <li
-                        key={String(notification._id ?? notification.id)}
-                        className="client-matter-detail-activity-item"
-                      >
-                        <span className="client-matter-detail-activity-time">
-                          {relativeTime(
-                            String(notification.createdAt ?? notification._creationTime ?? ""),
-                          )}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">
-                            {notificationTitle(notification)}
-                          </p>
-                          {notificationCategory(notification.type) ? (
-                            <p className="text-xs text-muted-foreground">
-                              {notificationCategory(notification.type)}
+                <ClientQueryBoundary
+                  query={notificationsQuery}
+                  title="Unable to load matter updates"
+                  loadingLabel="Loading matter updates…"
+                >
+                  {matterUpdates.length === 0 ? (
+                    <EmptyState
+                      title="No recent matter activity"
+                      description="Updates related to this matter will appear here when your legal team shares them."
+                      icon={FolderOpen}
+                    />
+                  ) : (
+                    <ul className="client-matter-detail-activity">
+                      {matterUpdates.slice(0, 4).map((notification) => (
+                        <li
+                          key={String(notification._id ?? notification.id)}
+                          className="client-matter-detail-activity-item"
+                        >
+                          <span className="client-matter-detail-activity-time">
+                            {relativeTime(
+                              String(notification.createdAt ?? notification._creationTime ?? ""),
+                            )}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              {notificationTitle(notification)}
                             </p>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                            {notificationCategory(notification.type) ? (
+                              <p className="text-xs text-muted-foreground">
+                                {notificationCategory(notification.type)}
+                              </p>
+                            ) : null}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </ClientQueryBoundary>
               </DashboardSection>
 
               <DashboardSection
@@ -543,38 +570,36 @@ export default function ClientCaseDetailPage() {
                   </DashboardButton>
                 }
               >
-                {documentsQuery.isError ? (
-                  <ClientQueryError
-                    title="Unable to load documents"
-                    onRetry={() => {
-                      void documentsQuery.refetch();
-                    }}
-                    retrying={documentsQuery.isFetching}
-                  />
-                ) : documents === undefined ? (
-                  <DashboardListSkeleton rows={2} />
-                ) : documents.length === 0 ? (
-                  <EmptyState
-                    title="No documents shared yet"
-                    description="Documents filed or shared by your legal team will appear here."
-                    icon={FileText}
-                  />
-                ) : (
-                  <div className="space-y-1.5">
-                    {documents
-                      .slice(0, 3)
-                      .map((doc: { _id: string; title?: string; type?: string }) => (
-                        <DashboardListRow key={doc._id} className="client-matter-detail-row">
-                          <div className="flex min-w-0 flex-1 items-center gap-2">
-                            <FileText className="size-4 shrink-0 text-dashboard-primary" />
-                            <span className="truncate text-sm font-semibold">{doc.title}</span>
-                            <DashboardStatusLabel status={doc.type} className="text-[10px]" />
-                          </div>
-                          <DocDownload documentId={doc._id} />
-                        </DashboardListRow>
-                      ))}
-                  </div>
-                )}
+                <ClientQueryBoundary
+                  query={documentsQuery}
+                  title="Unable to load documents"
+                  loadingLabel="Loading documents…"
+                >
+                  {documents === undefined ? (
+                    <DashboardListSkeleton rows={2} />
+                  ) : documents.length === 0 ? (
+                    <EmptyState
+                      title="No documents shared yet"
+                      description="Documents filed or shared by your legal team will appear here."
+                      icon={FileText}
+                    />
+                  ) : (
+                    <div className="space-y-1.5">
+                      {documents
+                        .slice(0, 3)
+                        .map((doc: { _id: string; title?: string; type?: string }) => (
+                          <DashboardListRow key={doc._id} className="client-matter-detail-row">
+                            <div className="flex min-w-0 flex-1 items-center gap-2">
+                              <FileText className="size-4 shrink-0 text-dashboard-primary" />
+                              <span className="truncate text-sm font-semibold">{doc.title}</span>
+                              <DashboardStatusLabel status={doc.type} className="text-[10px]" />
+                            </div>
+                            <DocDownload documentId={doc._id} />
+                          </DashboardListRow>
+                        ))}
+                    </div>
+                  )}
+                </ClientQueryBoundary>
               </DashboardSection>
             </div>
 
@@ -586,72 +611,78 @@ export default function ClientCaseDetailPage() {
                     <Link href="/client/hearings">View All →</Link>
                   </DashboardButton>
                 </div>
-                {nextHearing ? (
-                  <div className="client-matter-detail-hearing">
-                    {nextHearingParts ? (
-                      <div className="client-matter-detail-hearing-date" aria-hidden>
-                        <span className="client-matter-detail-hearing-day">
-                          {nextHearingParts.day}
-                        </span>
-                        <span className="client-matter-detail-hearing-month">
-                          {nextHearingParts.month}
-                        </span>
-                        <span className="client-matter-detail-hearing-year">
-                          {nextHearingParts.year}
-                        </span>
+                <ClientQueryBoundary
+                  query={hearingsQuery}
+                  title="Unable to load hearings"
+                  loadingLabel="Loading hearing information…"
+                >
+                  {nextHearing ? (
+                    <div className="client-matter-detail-hearing">
+                      {nextHearingParts ? (
+                        <div className="client-matter-detail-hearing-date" aria-hidden>
+                          <span className="client-matter-detail-hearing-day">
+                            {nextHearingParts.day}
+                          </span>
+                          <span className="client-matter-detail-hearing-month">
+                            {nextHearingParts.month}
+                          </span>
+                          <span className="client-matter-detail-hearing-year">
+                            {nextHearingParts.year}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="client-matter-detail-hearing-body">
+                        <ul className="client-matter-detail-hearing-lines">
+                          <li>
+                            <MapPin className="size-3.5" aria-hidden />
+                            <span>{nextHearing.court || "Court TBD"}</span>
+                          </li>
+                          {nextHearing.time ? (
+                            <li>
+                              <Clock className="size-3.5" aria-hidden />
+                              <span>{nextHearing.time}</span>
+                            </li>
+                          ) : null}
+                          {nextHearing.purpose ? (
+                            <li>
+                              <Scale className="size-3.5" aria-hidden />
+                              <span>{nextHearing.purpose}</span>
+                            </li>
+                          ) : null}
+                          {nextHearing.dateBs ? (
+                            <li>
+                              <CalendarDays className="size-3.5" aria-hidden />
+                              <span>{nextHearing.dateBs} (BS)</span>
+                            </li>
+                          ) : null}
+                        </ul>
+                        <DashboardButton
+                          size="sm"
+                          variant="outline"
+                          className="client-matter-detail-hearing-ics"
+                          onClick={() =>
+                            downloadHearingIcs({
+                              id: String(nextHearing._id),
+                              title: caseData.title,
+                              court: nextHearing.court,
+                              purpose: nextHearing.purpose,
+                              dateGregorian: nextHearing.dateGregorian,
+                              time: nextHearing.time,
+                            })
+                          }
+                        >
+                          Add to Calendar
+                        </DashboardButton>
                       </div>
-                    ) : null}
-                    <div className="client-matter-detail-hearing-body">
-                      <ul className="client-matter-detail-hearing-lines">
-                        <li>
-                          <MapPin className="size-3.5" aria-hidden />
-                          <span>{nextHearing.court || "Court TBD"}</span>
-                        </li>
-                        {nextHearing.time ? (
-                          <li>
-                            <Clock className="size-3.5" aria-hidden />
-                            <span>{nextHearing.time}</span>
-                          </li>
-                        ) : null}
-                        {nextHearing.purpose ? (
-                          <li>
-                            <Scale className="size-3.5" aria-hidden />
-                            <span>{nextHearing.purpose}</span>
-                          </li>
-                        ) : null}
-                        {nextHearing.dateBs ? (
-                          <li>
-                            <CalendarDays className="size-3.5" aria-hidden />
-                            <span>{nextHearing.dateBs} (BS)</span>
-                          </li>
-                        ) : null}
-                      </ul>
-                      <DashboardButton
-                        size="sm"
-                        variant="outline"
-                        className="client-matter-detail-hearing-ics"
-                        onClick={() =>
-                          downloadHearingIcs({
-                            id: String(nextHearing._id),
-                            title: caseData.title,
-                            court: nextHearing.court,
-                            purpose: nextHearing.purpose,
-                            dateGregorian: nextHearing.dateGregorian,
-                            time: nextHearing.time,
-                          })
-                        }
-                      >
-                        Add to Calendar
-                      </DashboardButton>
                     </div>
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No upcoming hearing"
-                    description="Scheduled appearances for this matter will show here."
-                    icon={CalendarDays}
-                  />
-                )}
+                  ) : (
+                    <EmptyState
+                      title="No upcoming hearing"
+                      description="Scheduled appearances for this matter will show here."
+                      icon={CalendarDays}
+                    />
+                  )}
+                </ClientQueryBoundary>
               </section>
 
               <section className="client-matter-detail-rail-card">
@@ -714,18 +745,26 @@ export default function ClientCaseDetailPage() {
                     <Link href="/client/checklist">View Checklist →</Link>
                   </DashboardButton>
                 </div>
-                {openActions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No open client actions right now.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {openActions.slice(0, 3).map((task: { _id: string; title?: string }) => (
-                      <li key={task._id} className="flex items-start gap-2 text-sm">
-                        <Circle className="mt-0.5 size-4 shrink-0 text-dashboard-neutral" />
-                        <span className="font-medium">{task.title}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <ClientQueryBoundary
+                  query={tasksQuery}
+                  title="Unable to load action items"
+                  loadingLabel="Loading action items…"
+                >
+                  {openActions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No open client actions right now.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {openActions.slice(0, 3).map((task: { _id: string; title?: string }) => (
+                        <li key={task._id} className="flex items-start gap-2 text-sm">
+                          <Circle className="mt-0.5 size-4 shrink-0 text-dashboard-neutral" />
+                          <span className="font-medium">{task.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </ClientQueryBoundary>
               </section>
 
               <section className="client-matter-detail-help">
@@ -747,48 +786,54 @@ export default function ClientCaseDetailPage() {
             description="Scheduled dates and appearance records"
             className="client-matter-detail-card"
           >
-            {hearings === undefined ? (
-              <DashboardListSkeleton rows={3} />
-            ) : hearings.length === 0 ? (
-              <EmptyState
-                title="No hearings on this matter"
-                description="Hearings scheduled for this court matter will appear here automatically."
-                icon={CalendarDays}
-              />
-            ) : (
-              <div className="space-y-2">
-                {hearings.map(
-                  (h: {
-                    _id: string;
-                    dateBs?: string;
-                    dateGregorian?: string;
-                    time?: string | null;
-                    status?: string;
-                    court?: string;
-                    purpose?: string | null;
-                  }) => (
-                    <DashboardListRow key={h._id} className="client-matter-detail-row">
-                      <div className="flex min-w-0 flex-1 items-start gap-3">
-                        <CalendarDays className="mt-0.5 size-5 shrink-0 text-dashboard-accent" />
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold">
-                              {h.dateBs || h.dateGregorian}
-                              {h.time ? ` · ${h.time}` : ""}
+            <ClientQueryBoundary
+              query={hearingsQuery}
+              title="Unable to load hearings"
+              loadingLabel="Loading hearings…"
+            >
+              {hearings === undefined ? (
+                <DashboardListSkeleton rows={3} />
+              ) : hearings.length === 0 ? (
+                <EmptyState
+                  title="No hearings on this matter"
+                  description="Hearings scheduled for this court matter will appear here automatically."
+                  icon={CalendarDays}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {hearings.map(
+                    (h: {
+                      _id: string;
+                      dateBs?: string;
+                      dateGregorian?: string;
+                      time?: string | null;
+                      status?: string;
+                      court?: string;
+                      purpose?: string | null;
+                    }) => (
+                      <DashboardListRow key={h._id} className="client-matter-detail-row">
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                          <CalendarDays className="mt-0.5 size-5 shrink-0 text-dashboard-accent" />
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold">
+                                {h.dateBs || h.dateGregorian}
+                                {h.time ? ` · ${h.time}` : ""}
+                              </p>
+                              <DashboardStatusLabel status={h.status} className="text-xs" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {h.court || "Court TBD"}
+                              {h.purpose ? ` · ${h.purpose}` : ""}
                             </p>
-                            <DashboardStatusLabel status={h.status} className="text-xs" />
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {h.court || "Court TBD"}
-                            {h.purpose ? ` · ${h.purpose}` : ""}
-                          </p>
                         </div>
-                      </div>
-                    </DashboardListRow>
-                  ),
-                )}
-              </div>
-            )}
+                      </DashboardListRow>
+                    ),
+                  )}
+                </div>
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
         </TabsContent>
 
@@ -842,7 +887,13 @@ export default function ClientCaseDetailPage() {
         <TabsContent value="actions" className="mt-3 space-y-3">
           <DashboardSection
             title="Client Action Checklist"
-            description={`${checklistDone}/${checklist.length} completed`}
+            description={
+              clientQueryHasData(tasksQuery)
+                ? `${checklistDone}/${checklist.length} completed`
+                : tasksQuery.isError
+                  ? "Action items unavailable"
+                  : "Loading action items…"
+            }
             className="client-matter-detail-card"
             actions={
               <DashboardButton asChild size="sm" variant="outline">
@@ -850,71 +901,82 @@ export default function ClientCaseDetailPage() {
               </DashboardButton>
             }
           >
-            {tasks === undefined ? (
-              <DashboardListSkeleton rows={3} />
-            ) : checklist.length === 0 ? (
-              <EmptyState
-                title="No client-visible actions"
-                description="Any pending client action items will appear here."
-                icon={CheckSquare}
-              />
-            ) : (
-              <div className="space-y-2">
-                {checklist.map(
-                  (task: {
-                    _id: string;
-                    title?: string;
-                    description?: string | null;
-                    status?: string;
-                    priority?: string;
-                  }) => {
-                    const isDone = task.status === "done";
-                    const due = formatTaskDue(
-                      task as { dueDateBs?: string | null; dueDate?: string | null },
-                    );
-                    return (
-                      <DashboardListRow
-                        key={task._id}
-                        className={cn(
-                          "client-matter-detail-row flex items-start gap-3",
-                          isDone && "opacity-75",
-                        )}
-                      >
-                        {isDone ? (
-                          <CheckSquare className="mt-0.5 size-5 shrink-0 text-dashboard-success" />
-                        ) : (
-                          <Circle className="mt-0.5 size-5 shrink-0 text-dashboard-neutral" />
-                        )}
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <p
-                            className={cn(
-                              "text-sm font-semibold",
-                              isDone && "line-through text-muted-foreground",
-                            )}
-                          >
-                            {task.title}
-                          </p>
-                          {task.description ? (
-                            <p className="text-xs text-muted-foreground">{task.description}</p>
-                          ) : null}
-                          <div className="flex flex-wrap items-center gap-2">
-                            {due ? (
-                              <span className="text-[10px] text-muted-foreground">Due: {due}</span>
+            <ClientQueryBoundary
+              query={tasksQuery}
+              title="Unable to load action items"
+              loadingLabel="Loading action items…"
+            >
+              {tasks === undefined ? (
+                <DashboardListSkeleton rows={3} />
+              ) : checklist.length === 0 ? (
+                <EmptyState
+                  title="No client-visible actions"
+                  description="Any pending client action items will appear here."
+                  icon={CheckSquare}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {checklist.map(
+                    (task: {
+                      _id: string;
+                      title?: string;
+                      description?: string | null;
+                      status?: string;
+                      priority?: string;
+                    }) => {
+                      const isDone = task.status === "done";
+                      const due = formatTaskDue(
+                        task as { dueDateBs?: string | null; dueDate?: string | null },
+                      );
+                      return (
+                        <DashboardListRow
+                          key={task._id}
+                          className={cn(
+                            "client-matter-detail-row flex items-start gap-3",
+                            isDone && "opacity-75",
+                          )}
+                        >
+                          {isDone ? (
+                            <CheckSquare className="mt-0.5 size-5 shrink-0 text-dashboard-success" />
+                          ) : (
+                            <Circle className="mt-0.5 size-5 shrink-0 text-dashboard-neutral" />
+                          )}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p
+                              className={cn(
+                                "text-sm font-semibold",
+                                isDone && "line-through text-muted-foreground",
+                              )}
+                            >
+                              {task.title}
+                            </p>
+                            {task.description ? (
+                              <p className="text-xs text-muted-foreground">{task.description}</p>
                             ) : null}
-                            <DashboardStatusLabel status={task.priority} className="text-[10px]" />
-                            <DashboardStatusLabel
-                              status={task.status}
-                              label={TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
-                              className="text-[10px]"
-                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              {due ? (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Due: {due}
+                                </span>
+                              ) : null}
+                              <DashboardStatusLabel
+                                status={task.priority}
+                                className="text-[10px]"
+                              />
+                              <DashboardStatusLabel
+                                status={task.status}
+                                label={TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
+                                className="text-[10px]"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      </DashboardListRow>
-                    );
-                  },
-                )}
-              </div>
-            )}
+                        </DashboardListRow>
+                      );
+                    },
+                  )}
+                </div>
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
         </TabsContent>
 
@@ -936,60 +998,60 @@ export default function ClientCaseDetailPage() {
               </div>
             }
           >
-            {documentsQuery.isError ? (
-              <ClientQueryError
-                title="Unable to load documents"
-                onRetry={() => {
-                  void documentsQuery.refetch();
-                }}
-                retrying={documentsQuery.isFetching}
-              />
-            ) : documents === undefined ? (
-              <DashboardListSkeleton rows={3} />
-            ) : documents.length === 0 ? (
-              <EmptyState
-                title="No documents shared yet"
-                description="Documents filed or shared by your legal team will appear here."
-                icon={FileText}
-              />
-            ) : (
-              <div className="space-y-2">
-                {documents.map(
-                  (doc: {
-                    _id: string;
-                    title?: string;
-                    type?: string;
-                    mimeType?: string;
-                    requiresSignature?: boolean;
-                    signatureStatus?: string;
-                  }) => (
-                    <DashboardListRow key={doc._id} className="client-matter-detail-row">
-                      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <FileText className="mt-0.5 size-5 shrink-0 text-dashboard-primary" />
-                          <div className="min-w-0 space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="break-words text-sm font-semibold">{doc.title}</span>
-                              <DashboardStatusLabel status={doc.type} className="text-xs" />
-                              {doc.requiresSignature ? (
-                                <DashboardStatusLabel
-                                  status={doc.signatureStatus}
-                                  className="text-xs"
-                                />
-                              ) : null}
+            <ClientQueryBoundary
+              query={documentsQuery}
+              title="Unable to load documents"
+              loadingLabel="Loading documents…"
+            >
+              {documents === undefined ? (
+                <DashboardListSkeleton rows={3} />
+              ) : documents.length === 0 ? (
+                <EmptyState
+                  title="No documents shared yet"
+                  description="Documents filed or shared by your legal team will appear here."
+                  icon={FileText}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {documents.map(
+                    (doc: {
+                      _id: string;
+                      title?: string;
+                      type?: string;
+                      mimeType?: string;
+                      requiresSignature?: boolean;
+                      signatureStatus?: string;
+                    }) => (
+                      <DashboardListRow key={doc._id} className="client-matter-detail-row">
+                        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <FileText className="mt-0.5 size-5 shrink-0 text-dashboard-primary" />
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="break-words text-sm font-semibold">
+                                  {doc.title}
+                                </span>
+                                <DashboardStatusLabel status={doc.type} className="text-xs" />
+                                {doc.requiresSignature ? (
+                                  <DashboardStatusLabel
+                                    status={doc.signatureStatus}
+                                    className="text-xs"
+                                  />
+                                ) : null}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {doc.mimeType || "Document"}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {doc.mimeType || "Document"}
-                            </p>
                           </div>
+                          <DocDownload documentId={doc._id} />
                         </div>
-                        <DocDownload documentId={doc._id} />
-                      </div>
-                    </DashboardListRow>
-                  ),
-                )}
-              </div>
-            )}
+                      </DashboardListRow>
+                    ),
+                  )}
+                </div>
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
         </TabsContent>
 
@@ -999,36 +1061,42 @@ export default function ClientCaseDetailPage() {
             description="Notifications related to this matter"
             className="client-matter-detail-card"
           >
-            {matterUpdates.length === 0 ? (
-              <EmptyState
-                title="No recent matter activity"
-                description="Updates related to this matter will appear here when your legal team shares them."
-                icon={FolderOpen}
-              />
-            ) : (
-              <ul className="client-matter-detail-activity">
-                {matterUpdates.map((notification) => (
-                  <li
-                    key={String(notification._id ?? notification.id)}
-                    className="client-matter-detail-activity-item"
-                  >
-                    <span className="client-matter-detail-activity-time">
-                      {relativeTime(
-                        String(notification.createdAt ?? notification._creationTime ?? ""),
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{notificationTitle(notification)}</p>
-                      {notificationCategory(notification.type) ? (
-                        <p className="text-xs text-muted-foreground">
-                          {notificationCategory(notification.type)}
-                        </p>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ClientQueryBoundary
+              query={notificationsQuery}
+              title="Unable to load matter updates"
+              loadingLabel="Loading matter updates…"
+            >
+              {matterUpdates.length === 0 ? (
+                <EmptyState
+                  title="No recent matter activity"
+                  description="Updates related to this matter will appear here when your legal team shares them."
+                  icon={FolderOpen}
+                />
+              ) : (
+                <ul className="client-matter-detail-activity">
+                  {matterUpdates.map((notification) => (
+                    <li
+                      key={String(notification._id ?? notification.id)}
+                      className="client-matter-detail-activity-item"
+                    >
+                      <span className="client-matter-detail-activity-time">
+                        {relativeTime(
+                          String(notification.createdAt ?? notification._creationTime ?? ""),
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">{notificationTitle(notification)}</p>
+                        {notificationCategory(notification.type) ? (
+                          <p className="text-xs text-muted-foreground">
+                            {notificationCategory(notification.type)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
 
           {messages.length > 0 ? (

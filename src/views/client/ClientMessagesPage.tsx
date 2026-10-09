@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -25,7 +30,7 @@ export default function ClientMessagesPage() {
   const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
   const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
-  const cases = casesQuery.data ?? [];
+  const cases = clientQueryHasData(casesQuery) ? (casesQuery.data ?? []) : [];
   const users = useMyTeam() || [];
   const searchParams = useSearchParams();
   const queryCaseId = searchParams.get("caseId");
@@ -39,7 +44,9 @@ export default function ClientMessagesPage() {
   const lastQueryCaseIdRef = useRef<string | null>(queryCaseId);
 
   const caseIds = useMemo(() => cases.map((c: ClientCaseDto) => c._id), [cases]);
-  const { data: unreadByCase = {}, isFetched: unreadFetched } = useUnreadMessageCounts(caseIds);
+  const unreadQuery = useUnreadMessageCounts(caseIds);
+  const unreadByCase = clientQueryHasData(unreadQuery) ? unreadQuery.data : {};
+  const { isFetched: unreadFetched } = unreadQuery;
   const unreadReady = caseIds.length === 0 || unreadFetched;
 
   const totalUnread = Object.values(unreadByCase).reduce(
@@ -48,8 +55,8 @@ export default function ClientMessagesPage() {
   );
 
   const selectedMatter = useMemo(
-    () => cases.find((c: ClientCaseDto) => c._id === selected) || null,
-    [cases, selected],
+    () => cases.find((c: ClientCaseDto) => c._id === (queryCaseId || selected)) || null,
+    [cases, queryCaseId, selected],
   );
 
   useEffect(() => {
@@ -182,20 +189,54 @@ export default function ClientMessagesPage() {
           <div className="client-messages-sidebar-head">
             <h2>Conversations</h2>
             <p>
-              {casesQuery.isError ? (
+              {casesQuery.isError && !clientQueryHasData(casesQuery) ? (
                 "Conversation list unavailable"
+              ) : !clientQueryHasData(casesQuery) ? (
+                "Loading conversations…"
               ) : (
                 <>
                   {cases.length} matter{cases.length === 1 ? "" : "s"}
-                  {totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
+                  {caseIds.length === 0
+                    ? ""
+                    : clientQueryHasData(unreadQuery)
+                      ? totalUnread > 0
+                        ? ` · ${totalUnread} unread`
+                        : ""
+                      : unreadQuery.isError
+                        ? " · Unread counts unavailable"
+                        : " · Loading unread counts…"}
                 </>
               )}
             </p>
           </div>
 
-          {casesQuery.isError ? (
+          {casesQuery.isError && clientQueryHasData(casesQuery) ? (
             <ClientQueryError
-              title="Unable to load conversations"
+              title="Unable to refresh conversations"
+              onRetry={() => {
+                void casesQuery.refetch();
+              }}
+              retrying={casesQuery.isFetching}
+            />
+          ) : null}
+          {caseIds.length > 0 ? (
+            <ClientQueryBoundary
+              query={unreadQuery}
+              title="Unread counts unavailable"
+              loadingLabel="Loading unread counts…"
+            >
+              {null}
+            </ClientQueryBoundary>
+          ) : null}
+          {casesQuery.isError && !clientQueryHasData(casesQuery) ? (
+            <ClientQueryError
+              title={
+                (casesQuery.error as { status?: number } | null)?.status === 403
+                  ? "Access denied"
+                  : (casesQuery.error as { status?: number } | null)?.status === 404
+                    ? "Conversations not found"
+                    : "Unable to load conversations"
+              }
               onRetry={() => {
                 void casesQuery.refetch();
               }}
@@ -219,7 +260,7 @@ export default function ClientMessagesPage() {
           ) : (
             <ul className="client-messages-channel-list" aria-label="Matter conversations">
               {cases.map((matter: ClientCaseDto) => {
-                const active = selected === matter._id;
+                const active = selectedMatter?._id === matter._id;
                 const unread = Number(unreadByCase[matter._id] || 0);
                 return (
                   <li key={matter._id}>
@@ -266,9 +307,13 @@ export default function ClientMessagesPage() {
           )}
           aria-label="Selected matter conversation"
         >
-          {casesQuery.isError ? (
+          {casesQuery.isError && !clientQueryHasData(casesQuery) ? (
             <div className="client-messages-empty-pane" role="status">
               Conversations are temporarily unavailable.
+            </div>
+          ) : !clientQueryHasData(casesQuery) ? (
+            <div className="client-messages-empty-pane" role="status">
+              Loading conversation…
             </div>
           ) : queryCaseId && !selectedMatter ? (
             <EmptyState
@@ -276,9 +321,9 @@ export default function ClientMessagesPage() {
               description="That conversation link is not available for your account. Choose a matter from your list."
               icon={MessageCircle}
             />
-          ) : selectedMatter && selected ? (
+          ) : selectedMatter ? (
             <MatterChatPanel
-              caseId={selected}
+              caseId={selectedMatter._id}
               mode="client"
               appearance="client"
               title={selectedMatter.title}
@@ -287,7 +332,7 @@ export default function ClientMessagesPage() {
               users={users}
               showBack
               onBack={() => setMobileShowChat(false)}
-              externalLink={`/client/cases/${selected}`}
+              externalLink={`/client/cases/${selectedMatter._id}`}
               externalLinkLabel="View Matter"
               bordered={false}
               className="client-messages-chat-panel h-full"

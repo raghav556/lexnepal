@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -255,17 +260,30 @@ export default function ClientChecklistPage() {
     );
   }
 
-  if (casesQuery.isError || tasksQuery.isError) {
-    const failed = casesQuery.isError ? casesQuery : tasksQuery;
+  if (
+    (casesQuery.isError && !clientQueryHasData(casesQuery)) ||
+    (tasksQuery.isError && !clientQueryHasData(tasksQuery))
+  ) {
+    const failed = casesQuery.isError && !clientQueryHasData(casesQuery) ? casesQuery : tasksQuery;
     return (
       <PortalPageShell {...shellProps} showTodayDate>
         <ClientQueryError
-          title={casesQuery.isError ? "Unable to load your matters" : "Unable to load action items"}
+          title={
+            failed === casesQuery ? "Unable to load your matters" : "Unable to load action items"
+          }
           onRetry={() => {
             void failed.refetch();
           }}
           retrying={failed.isFetching}
         />
+      </PortalPageShell>
+    );
+  }
+
+  if (!clientQueryHasData(casesQuery) || !clientQueryHasData(tasksQuery)) {
+    return (
+      <PortalPageShell {...shellProps} loading loadingLabel="Loading your action checklist…">
+        <div />
       </PortalPageShell>
     );
   }
@@ -446,6 +464,24 @@ export default function ClientChecklistPage() {
         </div>
       }
     >
+      {casesQuery.isError ? (
+        <ClientQueryBoundary
+          query={casesQuery}
+          title="Unable to refresh your matters"
+          loadingLabel="Loading matters…"
+        >
+          {null}
+        </ClientQueryBoundary>
+      ) : null}
+      {tasksQuery.isError ? (
+        <ClientQueryBoundary
+          query={tasksQuery}
+          title="Unable to refresh action items"
+          loadingLabel="Loading action items…"
+        >
+          {null}
+        </ClientQueryBoundary>
+      ) : null}
       <div className="client-checklist-layout">
         <div className="client-checklist-main">
           <section className="client-checklist-progress" aria-label="Overall checklist progress">

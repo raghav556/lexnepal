@@ -167,6 +167,7 @@ export function useAppointments(filters?: {
   });
   return {
     data: next.data ?? [],
+    hasData: next.data !== undefined,
     isLoading: next.isLoading,
     isError: next.isError,
     error: next.error,
