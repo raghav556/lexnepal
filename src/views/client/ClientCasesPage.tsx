@@ -544,11 +544,10 @@ export default function ClientCasesPage() {
               ))}
             </select>
           </label>
-          <div className="client-matters-view" role="tablist" aria-label="Matter view">
+          <div className="client-matters-view" role="group" aria-label="Matter view">
             <button
               type="button"
-              role="tab"
-              aria-selected={viewMode === "list"}
+              aria-pressed={viewMode === "list"}
               className={cn(viewMode === "list" && "is-selected")}
               onClick={() => setViewMode("list")}
             >
@@ -556,8 +555,7 @@ export default function ClientCasesPage() {
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={viewMode === "table"}
+              aria-pressed={viewMode === "table"}
               className={cn(viewMode === "table" && "is-selected")}
               onClick={() => setViewMode("table")}
             >
@@ -591,7 +589,12 @@ export default function ClientCasesPage() {
               icon={FolderOpen}
             />
           ) : viewMode === "table" ? (
-            <div className="client-matters-table-wrap">
+            <div
+              className="client-matters-table-wrap"
+              tabIndex={0}
+              role="region"
+              aria-label="Scrollable matters table"
+            >
               <DashboardTable>
                 <DashboardTableHead>
                   <DashboardTableRow>

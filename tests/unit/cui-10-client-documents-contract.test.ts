@@ -94,8 +94,8 @@ describe("CUI-10 client documents contract", () => {
     expect(page).toContain("Download");
     expect(page).toContain('aria-label="Download document"');
     expect(page).toContain("aria-label={`Preview ${doc.title}`}");
-    expect(page).toContain("aria-selected={selected}");
-    expect(page).toContain('role="tablist"');
+    expect(page).toContain("aria-pressed={selected}");
+    expect(page).toContain('role="group"');
     expect(page).toContain("MAX_DOCUMENT_BYTES");
     expect(page).toContain("Files are scanned before they are added to your matter");
     expect(page).not.toMatch(/Encrypted storage/);

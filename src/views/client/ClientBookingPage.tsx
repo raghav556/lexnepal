@@ -400,18 +400,22 @@ export default function ClientBookingPage() {
                     const Icon = modeDetails.icon;
                     const selected = selectedMode === mode;
                     return (
-                      <button
+                      <label
                         key={mode}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        onClick={() => setSelectedMode(mode)}
-                        className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas ${
+                        className={`client-consultation-mode relative flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-dashboard-focus focus-within:ring-offset-2 focus-within:ring-offset-dashboard-canvas ${
                           selected
                             ? "border-dashboard-primary bg-dashboard-primary-soft text-foreground"
                             : "border-dashboard-border bg-dashboard-panel text-foreground hover:bg-dashboard-panel-hover"
                         }`}
                       >
+                        <input
+                          type="radio"
+                          name="consultation-mode"
+                          value={mode}
+                          checked={selected}
+                          onChange={() => setSelectedMode(mode)}
+                          className="sr-only"
+                        />
                         <Icon className="size-4 shrink-0 text-dashboard-primary" aria-hidden />
                         <span className="min-w-0">
                           <span className="block text-xs font-semibold">{modeDetails.label}</span>
@@ -419,7 +423,7 @@ export default function ClientBookingPage() {
                             {modeDetails.description}
                           </span>
                         </span>
-                      </button>
+                      </label>
                     );
                   })}
                 </div>

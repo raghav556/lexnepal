@@ -387,7 +387,7 @@ export default function ClientHearingsPage() {
         </ClientQueryBoundary>
       ) : null}
       <div className="client-hearings-toolbar" role="region" aria-label="Hearing filters">
-        <div className="client-hearings-views" role="tablist" aria-label="Hearing schedule views">
+        <div className="client-hearings-views" role="group" aria-label="Hearing schedule views">
           {(
             [
               ["upcoming", "Upcoming", upcoming.length],
@@ -398,8 +398,7 @@ export default function ClientHearingsPage() {
             <button
               key={value}
               type="button"
-              role="tab"
-              aria-selected={viewFilter === value}
+              aria-pressed={viewFilter === value}
               className={cn(
                 "client-hearings-view",
                 viewFilter === value && "client-hearings-view-active",

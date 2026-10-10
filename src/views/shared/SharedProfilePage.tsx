@@ -312,6 +312,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
         }
       >
         <TabsList
+          aria-label={variant === "client" ? "Account security and privacy" : undefined}
           className={
             variant === "client"
               ? "flex h-auto w-full min-w-0 justify-start gap-2 overflow-x-auto rounded-none border-b border-dashboard-border bg-transparent p-0 pb-2 [scrollbar-width:thin] [&_[data-slot=tabs-trigger]]:shrink-0"
@@ -709,6 +710,13 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       </Tabs>
 
       <PasswordConfirmDialog
+        dialogLabel={
+          variant === "client"
+            ? mfaPasswordMode === "disable"
+              ? "Disable two-factor authentication"
+              : "Enable two-factor authentication"
+            : undefined
+        }
         open={mfaPasswordMode !== null}
         onOpenChange={(open) => {
           if (!open) setMfaPasswordMode(null);
@@ -725,7 +733,10 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       />
 
       <Dialog open={totpDialogOpen} onOpenChange={setTotpDialogOpen}>
-        <DialogContent className="sm:max-w-lg bg-dashboard-panel border-dashboard-border">
+        <DialogContent
+          aria-label={variant === "client" ? "Set up authenticator" : undefined}
+          className="sm:max-w-lg bg-dashboard-panel border-dashboard-border"
+        >
           <DialogHeader>
             <DialogTitle className="text-foreground">Set up authenticator</DialogTitle>
           </DialogHeader>

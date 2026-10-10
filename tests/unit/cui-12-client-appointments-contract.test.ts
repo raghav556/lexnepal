@@ -55,7 +55,9 @@ describe("CUI-12 client appointments contract", () => {
     expect(page).toContain('label: "In-Person"');
     expect(page).toContain('label: "Phone"');
     expect(page).toContain('role="radiogroup"');
-    expect(page).toContain("aria-checked={selected}");
+    expect(page).toContain('type="radio"');
+    expect(page).toContain('name="consultation-mode"');
+    expect(page).toContain("checked={selected}");
     expect(page).toContain("aria-pressed={selected}");
     expect(page).toContain('htmlFor="appointment-notes"');
     expect(page).toMatch(/Submitting\s+request…/);

@@ -1,0 +1,270 @@
+/* CUI-18: every rule is scoped to the authenticated Client shell. */
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client) {
+  min-width: 0;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(.client-shell-frame) {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(.client-skip-link) {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 70;
+  transform: translateY(-200%);
+  border-radius: var(--dashboard-radius-control);
+  padding: 0.75rem 1rem;
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(.client-skip-link:focus) {
+  transform: none;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(:where(a, button, input, select, textarea, [tabindex]):focus-visible) {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(.client-desktop-sidebar :focus-visible) {
+  outline-color: var(--dashboard-sidebar-focus);
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(:is(.client-matters-table-wrap, .client-documents-table-wrap)) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(
+    :is(.client-matter-detail-tablist, #client-profile-account-controls [data-slot="tabs-list"])
+  ) {
+  max-width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  overflow-x: auto;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(
+    :is(.client-matter-detail-tablist, #client-profile-account-controls) [data-slot="tabs-trigger"]
+  ) {
+  flex-shrink: 0;
+}
+
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(
+    :is(.client-identity-file-name, .client-home-matter-title, .client-matter-detail-fact-value)
+  ) {
+  overflow-wrap: anywhere;
+}
+
+/* Operational labels below 12px in the frozen page styles remain readable. */
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(
+    :is(
+      .client-home-matter-fact dt,
+      .client-home-hearing-month,
+      .client-home-hearing-year,
+      .client-matters-card-fact dt,
+      .client-matter-detail-breadcrumb-list,
+      .client-matter-detail-fact-label,
+      .client-matter-detail-about dt,
+      .client-matter-detail-hearing-month,
+      .client-matter-detail-hearing-year,
+      .client-matter-detail-hearing-ics,
+      .client-matter-detail-activity-time,
+      .client-hearings-view,
+      .client-hearings-dateblock-month,
+      .client-hearings-dateblock-year,
+      .client-hearings-meta,
+      .client-hearings-row-meta,
+      .client-checklist-progress-label,
+      .client-checklist-progress-open,
+      .client-checklist-group-head,
+      .client-checklist-row-meta,
+      .client-checklist-bucket-tag,
+      .client-checklist-rail-note,
+      .client-documents-field,
+      .client-documents-dropzone-hint,
+      .client-documents-source,
+      .client-documents-table th,
+      .client-documents-file-badge,
+      .client-documents-submeta,
+      .client-documents-matter-cell,
+      .client-documents-type-label,
+      .client-documents-source-pill,
+      .client-documents-page-status,
+      .client-documents-page-jump,
+      .client-messages-sidebar-head p,
+      .client-messages-channel-meta,
+      .client-messages-unread
+    )
+  ) {
+  font-size: 0.75rem;
+}
+
+/* Fixed-width filters compete with the sidebar/rail at intermediate widths. */
+@media (max-width: 1279px) {
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-documents-toolbar) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is(.client-documents-search, .client-documents-sources)) {
+    grid-column: 1 / -1;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(
+      :is(
+        .client-checklist-toolbar,
+        .client-checklist-controls,
+        .client-hearings-views,
+        .client-documents-sources
+      )
+    ) {
+    flex-wrap: wrap;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-notifications-layout) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Keep the full-width compact shell through tablets, with the same five destinations. */
+@media (max-width: 1023px) {
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is(.client-desktop-sidebar, .client-desktop-topbar, .client-desktop-footer)) {
+    display: none;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is(.client-mobile-header, .client-mobile-bottom-nav)) {
+    display: flex;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(#client-main-content) {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-mobile-bottom-nav) {
+    padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-mobile-bottom-nav :is(a, button)) {
+    font-size: 0.75rem;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-mobile-drawer) {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    padding: 3.5rem 0 env(safe-area-inset-bottom, 0px);
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(
+      :where(
+        button,
+        select,
+        input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"])
+      ):not(.sr-only)
+    ),
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(
+      :is([data-slot="dashboard-button"], .client-identity-open, .client-mobile-bottom-nav a)
+    ) {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(
+      :is(.client-matter-detail-tablist, #client-profile-account-controls [data-slot="tabs-list"])
+    ) {
+    height: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is([class~="text-[10px]"], [class~="text-[11px]"])) {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is(.client-documents-toolbar, .client-matter-detail-facts)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(
+      :is(.client-checklist-control, .client-checklist-control select, .client-checklist-search)
+    ) {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(
+      :is(
+        .client-documents-control select,
+        .client-matters-field select,
+        .client-hearings-matter select
+      )
+    ) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is(input, select, textarea):not([type="radio"]):not([type="checkbox"])) {
+    font-size: 1rem;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(:is(.client-documents-preview-dialog, [data-client-signing-dialog]) h3) {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 639px) {
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(.client-home-kpis) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client),
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(*),
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(*::before),
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(*::after) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

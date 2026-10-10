@@ -532,8 +532,8 @@ export default function ClientChecklistPage() {
             ) : null}
           </section>
 
-          <div className="client-checklist-toolbar" role="toolbar" aria-label="Checklist filters">
-            <div className="client-checklist-views" role="tablist" aria-label="Due status filters">
+          <div className="client-checklist-toolbar" role="group" aria-label="Checklist filters">
+            <div className="client-checklist-views" role="group" aria-label="Due status filters">
               {FILTER_TABS.map((tab) => {
                 const count = counts[tab.id];
                 const selected = filter === tab.id;
@@ -541,8 +541,7 @@ export default function ClientChecklistPage() {
                   <button
                     key={tab.id}
                     type="button"
-                    role="tab"
-                    aria-selected={selected}
+                    aria-pressed={selected}
                     className={cn(
                       "client-checklist-view",
                       selected && "client-checklist-view-active",

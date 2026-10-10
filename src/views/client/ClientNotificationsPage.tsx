@@ -183,7 +183,7 @@ export default function ClientNotificationsPage() {
         ) : undefined
       }
     >
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] lg:items-start">
+      <div className="client-notifications-layout grid min-w-0 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] lg:items-start">
         <ClientPanel className="min-w-0 overflow-hidden !p-0">
           <div className="border-b border-dashboard-border px-4 py-3 sm:px-5">
             <p className="text-sm text-muted-foreground" role="status">
@@ -197,7 +197,11 @@ export default function ClientNotificationsPage() {
             <p className="mt-1 text-xs text-muted-foreground">
               Your recent feed shows up to 50 notifications.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2" aria-label="Notification filters">
+            <div
+              className="mt-3 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Notification filters"
+            >
               {categories.map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}

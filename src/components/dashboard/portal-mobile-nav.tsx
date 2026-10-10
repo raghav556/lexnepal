@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
+import { ClientMobileDrawer } from "@/components/dashboard/client-mobile-drawer";
 import {
   isPortalNavLink,
   PortalNavItemData,
@@ -43,6 +44,8 @@ export interface PortalMobileNavProps {
   itemClassName?: (active: boolean) => string;
   navAriaLabel?: string;
   drawerId?: string;
+  /** Client-only opt-in. Staff/Admin retain the existing non-modal drawer. */
+  clientModalDrawer?: boolean;
 }
 
 /**
@@ -64,6 +67,7 @@ export function PortalMobileNav({
   itemClassName,
   navAriaLabel = "Mobile navigation",
   drawerId = "portal-mobile-drawer",
+  clientModalDrawer = false,
 }: PortalMobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -81,7 +85,7 @@ export function PortalMobileNav({
   const controls: PortalMobileNavControls = { open, openMenu, closeMenu: close };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || clientModalDrawer) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -90,7 +94,49 @@ export function PortalMobileNav({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, clientModalDrawer]);
+
+  useEffect(() => {
+    if (!clientModalDrawer) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [clientModalDrawer]);
+
+  const drawerContent = open ? (
+    <>
+      <nav aria-label={navAriaLabel} className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
+        {items.map((item, idx) => {
+          if (item.heading !== undefined) {
+            return (
+              <div key={`heading-${idx}`} className={headingClassName}>
+                {item.heading}
+              </div>
+            );
+          }
+          if (!isPortalNavLink(item)) return null;
+          const { href, icon, label, i18nKey } = item;
+          return (
+            <PortalSidebarItem
+              key={href}
+              href={href}
+              icon={icon}
+              label={label}
+              i18nKey={i18nKey}
+              active={isActive(href)}
+              onNavigate={close}
+              className={itemClassName?.(isActive(href))}
+            />
+          );
+        })}
+      </nav>
+      {accountMenu?.(close)}
+    </>
+  ) : null;
 
   return (
     <>
@@ -121,13 +167,23 @@ export function PortalMobileNav({
             aria-label="Toggle menu"
             aria-expanded={open}
             aria-controls={drawerId}
+            aria-haspopup={clientModalDrawer ? "dialog" : undefined}
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {open && (
+      {clientModalDrawer ? (
+        <ClientMobileDrawer
+          open={open}
+          onOpenChange={setOpen}
+          id={drawerId}
+          className={drawerClassName}
+        >
+          {drawerContent}
+        </ClientMobileDrawer>
+      ) : open ? (
         <div
           id={drawerId}
           className={cn(
@@ -135,34 +191,9 @@ export function PortalMobileNav({
             drawerClassName,
           )}
         >
-          <nav aria-label={navAriaLabel} className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
-            {items.map((item, idx) => {
-              if (item.heading !== undefined) {
-                return (
-                  <div key={`heading-${idx}`} className={headingClassName}>
-                    {item.heading}
-                  </div>
-                );
-              }
-              if (!isPortalNavLink(item)) return null;
-              const { href, icon, label, i18nKey } = item;
-              return (
-                <PortalSidebarItem
-                  key={href}
-                  href={href}
-                  icon={icon}
-                  label={label}
-                  i18nKey={i18nKey}
-                  active={isActive(href)}
-                  onNavigate={close}
-                  className={itemClassName?.(isActive(href))}
-                />
-              );
-            })}
-          </nav>
-          {accountMenu?.(close)}
+          {drawerContent}
         </div>
-      )}
+      ) : null}
 
       {typeof bottomBar === "function" ? bottomBar(controls) : bottomBar}
     </>

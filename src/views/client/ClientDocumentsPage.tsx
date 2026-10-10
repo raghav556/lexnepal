@@ -409,7 +409,7 @@ export default function ClientDocumentsPage() {
   );
 
   const sourceTabs = (
-    <div className="client-documents-sources" role="tablist" aria-label="Document source filters">
+    <div className="client-documents-sources" role="group" aria-label="Document source filters">
       {(
         [
           { id: "all", label: "All", count: docsList.length },
@@ -422,8 +422,7 @@ export default function ClientDocumentsPage() {
           <button
             key={source.id}
             type="button"
-            role="tab"
-            aria-selected={selected}
+            aria-pressed={selected}
             className={cn("client-documents-source", selected && "client-documents-source-active")}
             onClick={() => setSourceFilter(source.id)}
           >
@@ -546,7 +545,12 @@ export default function ClientDocumentsPage() {
                 <EmptyState title={emptyTitle} description={emptyDescription} icon={FileText} />
               ) : (
                 <>
-                  <div className="client-documents-table-wrap">
+                  <div
+                    className="client-documents-table-wrap"
+                    tabIndex={0}
+                    role="region"
+                    aria-label="Scrollable document library"
+                  >
                     <table className="client-documents-table">
                       <thead>
                         <tr>
@@ -760,7 +764,10 @@ export default function ClientDocumentsPage() {
       </div>
 
       <Dialog open={uploadOpen} onOpenChange={handleUploadOpenChange}>
-        <DialogContent className="client-documents-upload-dialog max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          aria-label="Upload Document"
+          className="client-documents-upload-dialog max-w-lg max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
           </DialogHeader>
@@ -890,9 +897,12 @@ export default function ClientDocumentsPage() {
       </Dialog>
 
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="client-documents-preview-dialog max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogContent
+          aria-label={previewDoc?.title || "Document preview"}
+          className="client-documents-preview-dialog max-w-3xl max-h-[85vh] flex flex-col"
+        >
           <DialogHeader>
-            <DialogTitle className="truncate pr-6 text-base font-serif">
+            <DialogTitle className="break-words pr-12 text-base font-serif">
               {previewDoc?.title || "Document preview"}
             </DialogTitle>
           </DialogHeader>

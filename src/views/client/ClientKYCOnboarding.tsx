@@ -410,7 +410,7 @@ export default function ClientKYCOnboarding() {
                       <FileText className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="client-identity-file-name break-words text-sm font-medium text-foreground">
                         {file.fileName ||
                           file.name ||
                           file.originalFileName ||
@@ -426,7 +426,7 @@ export default function ClientKYCOnboarding() {
                         href={file.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-semibold text-dashboard-primary underline-offset-2 hover:underline"
+                        className="client-identity-open inline-flex items-center justify-center text-xs font-semibold text-dashboard-primary underline-offset-2 hover:underline"
                         aria-label={`Open ${file.fileName || "submitted document"}`}
                       >
                         Open

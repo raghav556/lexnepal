@@ -22,6 +22,8 @@ type PasswordConfirmDialogProps = {
   confirmLabel?: string;
   busy?: boolean;
   onConfirm: (password: string) => void | Promise<void>;
+  /** Opt-in accessible name; existing Staff/Admin callers are unchanged. */
+  dialogLabel?: string;
 };
 
 export function PasswordConfirmDialog({
@@ -32,6 +34,7 @@ export function PasswordConfirmDialog({
   confirmLabel = "Confirm",
   busy = false,
   onConfirm,
+  dialogLabel,
 }: PasswordConfirmDialogProps) {
   const [password, setPassword] = useState("");
 
@@ -48,7 +51,7 @@ export function PasswordConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-label={dialogLabel}>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
