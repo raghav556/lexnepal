@@ -68,6 +68,7 @@ describe("CUI-18 Client-scoped compiled stylesheet", () => {
     expect(properties(".client-documents-table-wrap", 360)["overflow-x"]).toBe("auto");
     expect(properties(".client-matter-detail-tablist", 360)["overflow-x"]).toBe("auto");
     expect(properties(".client-matter-detail-tablist", 360)["max-width"]).toBe("100%");
+    expect(properties(".client-hearings-control select", 360)["min-width"]).toBe("0");
   });
 
   it("raises small operational labels without changing decorative avatar lettering", () => {

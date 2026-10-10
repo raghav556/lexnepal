@@ -233,7 +233,7 @@
       :is(
         .client-documents-control select,
         .client-matters-field select,
-        .client-hearings-matter select
+        .client-hearings-control select
       )
     ) {
     min-width: 0;
