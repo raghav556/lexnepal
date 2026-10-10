@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useClientCommands, useKycFilesQuery, useMyClientQuery } from "@/client/queries/clients";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
+import { clientQueryHasData } from "@/components/dashboard/client-query-boundary";
 import {
   DashboardButton,
   DashboardListRow,
@@ -242,7 +243,7 @@ export default function ClientKYCOnboarding() {
   const [justSubmitted, setJustSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const filesQuery = useKycFilesQuery(client?._id || null);
-  const files = filesQuery.data;
+  const files = clientQueryHasData(filesQuery) ? filesQuery.data : undefined;
   const status = (justSubmitted ? "submitted" : client?.kycStatus || "pending") as KycStatus;
   const hasId = uploadedFiles.some((file) => file.docType === "government_id");
   const hasAddressProof = uploadedFiles.some((file) => file.docType === "proof_of_address");

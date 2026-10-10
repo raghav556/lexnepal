@@ -39,6 +39,7 @@ import { TotpEnrollmentPanel } from "@/components/auth/TotpEnrollmentPanel";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { SessionListPanel } from "@/components/auth/SessionListPanel";
 import { ClientQueryError, DashboardButton, DashboardSection } from "@/components/dashboard";
+import { clientQueryHasData } from "@/components/dashboard/client-query-boundary";
 import { NepalDecoratedHero } from "@/components/dashboard/nepal-decorated-hero";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -56,7 +57,8 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const sessionsQuery = useSessionsQuery(user?.id);
   const auditQuery = useOwnAuditEventsQuery();
   const sessions = sessionsQuery.data;
-  const auditLog = auditQuery.data;
+  const auditLog =
+    variant === "client" && !clientQueryHasData(auditQuery) ? undefined : auditQuery.data;
   const {
     revokeSession,
     revokeAllOtherSessions,
@@ -626,8 +628,11 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                     }}
                     retrying={auditQuery.isFetching}
                   />
-                ) : auditLog === undefined ? (
-                  <p className="text-xs text-muted-foreground">Loading...</p>
+                ) : null}
+                {auditLog === undefined ? (
+                  variant === "client" && auditQuery.isError ? null : (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  )
                 ) : auditLog.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">
                     No activity recorded.
