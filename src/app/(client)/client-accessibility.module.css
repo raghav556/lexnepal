@@ -257,6 +257,35 @@
   }
 }
 
+/* CUI-19: intrinsic grid widths must not let long content cover adjacent cards. */
+.shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+  :global(
+    :is(
+      .client-matters-main,
+      .client-matters-cards,
+      .client-matter-detail-main,
+      .client-matter-detail-rail
+    )
+  ) {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1023px) {
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(.client-pagination),
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-pagination > div) {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .shell[data-client-shell]:global(.dashboard-theme.dashboard-client)
+    :global(.client-pagination > div > *) {
+    margin-inline: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shell[data-client-shell]:global(.dashboard-theme.dashboard-client),
   .shell[data-client-shell]:global(.dashboard-theme.dashboard-client) :global(*),

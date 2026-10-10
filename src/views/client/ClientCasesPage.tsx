@@ -641,6 +641,7 @@ export default function ClientCasesPage() {
                 </DashboardTableBody>
               </DashboardTable>
               <Pagination
+                className="client-pagination"
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={goToPage}
@@ -778,6 +779,7 @@ export default function ClientCasesPage() {
                 );
               })}
               <Pagination
+                className="client-pagination"
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={goToPage}

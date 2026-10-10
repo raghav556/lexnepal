@@ -1,0 +1,86 @@
+[
+  {
+    "file": "01-home.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "c8ba89f9f2e6206db349e74962d25e0039a04c4da87eef8f8eca93986493cb5e",
+    "bodyOnly": false
+  },
+  {
+    "file": "02-my-matters.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "6ccad951904a144bb0a2e6c6f955ebaae7b11e0f6f06b77654e0748996766b22",
+    "bodyOnly": false
+  },
+  {
+    "file": "03-matter-details.jpg",
+    "width": 1400,
+    "height": 933,
+    "sha256": "de97a61df58848a67cb4bf70c6b4a37dc01a2b41fe8face73c0d3cad8ca8f335",
+    "bodyOnly": true
+  },
+  {
+    "file": "04-hearings.jpg",
+    "width": 1400,
+    "height": 933,
+    "sha256": "8b87859a463e4fba687c937dc76c552aa189ca3a5b1306b62db5fdbef790deaf",
+    "bodyOnly": false
+  },
+  {
+    "file": "05-checklist.jpg",
+    "width": 1400,
+    "height": 933,
+    "sha256": "77e9d05f8b9995ef2b2c65bd0b63c2fa41370ac2d2a0231c3a508112c3a8fc2e",
+    "bodyOnly": true
+  },
+  {
+    "file": "06-documents.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "e1e4c42e95296de30187d6b6d358d32b5c67459ee321750aebfa7705939ade32",
+    "bodyOnly": false
+  },
+  {
+    "file": "07-messages.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "c45617d69b6e9051bf2c9a38935688f1a30531d0a71a02247e8ea3dc3b009d83",
+    "bodyOnly": false
+  },
+  {
+    "file": "08-appointments.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "6953371fb141bf2e52caa9065e29fad34142b7802f50996431007a067271c88e",
+    "bodyOnly": false
+  },
+  {
+    "file": "09-identity-verification.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "186db03d13892ed6c703c425a47bc5b4fced9e68aabfd5995d1d7257d1afb19e",
+    "bodyOnly": false
+  },
+  {
+    "file": "10-sign-documents.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "6a970ffdf49f6798c4207ec2aef35d8bdaf57e54650e5aaf18eb8f2aee123a86",
+    "bodyOnly": false
+  },
+  {
+    "file": "11-notifications.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "d2480f975252f252e50538914863a6c666000711ba4f535bc1e107f68dfb7b4a",
+    "bodyOnly": false
+  },
+  {
+    "file": "12-profile.jpg",
+    "width": 1400,
+    "height": 876,
+    "sha256": "588856df7c60266141222c8a4bbcc123cc4bdf728570c251be7b380cded2aa2f",
+    "bodyOnly": false
+  }
+]

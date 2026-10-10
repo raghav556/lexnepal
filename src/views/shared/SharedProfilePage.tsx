@@ -670,6 +670,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                     </div>
                     {auditTotalPages > 1 && (
                       <Pagination
+                        className={variant === "client" ? "client-pagination" : undefined}
                         currentPage={auditPage}
                         totalPages={auditTotalPages}
                         onPageChange={auditGoToPage}
