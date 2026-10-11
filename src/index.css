@@ -2472,7 +2472,7 @@
   font-size: 0.6875rem;
   text-transform: none;
   letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--dashboard-primary-foreground) 78%, transparent);
+  color: var(--dashboard-hero-foreground);
 }
 
 .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-breadcrumb-link {
@@ -2489,7 +2489,7 @@
 
 .dashboard-theme.dashboard-client.client-matter-detail .client-matter-detail-breadcrumb-current {
   font-weight: 600;
-  color: var(--dashboard-primary-foreground);
+  color: var(--dashboard-hero-foreground);
   max-width: 18rem;
   overflow: hidden;
   text-overflow: ellipsis;

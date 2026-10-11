@@ -176,6 +176,119 @@ for (const status of [401, 403, 404])
     await expect(page.locator("main")).not.toContainText(healthy.detail.title);
     expect(await commands(page, "downloadDocument")).toHaveLength(0);
   });
+for (const width of [1440, 1280, 1024, 768, 390, 360])
+  test(`S22-A11Y-01 — Matter Details breadcrumb contrast and keyboard access at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mount(page, "/client/cases/matter-1");
+    await page.evaluate(() => document.fonts.ready);
+    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb", exact: true });
+    const link = breadcrumb.getByRole("link", { name: "My Matters", exact: true });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", "/client/cases");
+    await expect(breadcrumb.locator('[aria-current="page"]')).toHaveText(healthy.detail.title);
+
+    // Reach the real link using the keyboard, without forcing focus or clicking it.
+    for (
+      let tab = 0;
+      tab < 60 && !(await link.evaluate((node) => document.activeElement === node));
+      tab++
+    )
+      await page.keyboard.press("Tab");
+    await expect(link).toBeFocused();
+
+    const measurements = await breadcrumb.evaluate((nav) => {
+      const hero = nav.closest('[data-slot="dashboard-hero"]');
+      const anchor = nav.querySelector("a");
+      const separator = nav.querySelector('li[aria-hidden="true"]');
+      const current = nav.querySelector('[aria-current="page"]');
+      if (!hero || !anchor || !separator || !current) throw new Error("Missing breadcrumb parts");
+      const surface = getComputedStyle(hero);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Canvas color measurement unavailable");
+      // Rasterize CSS colors over the actual white header, including translucent text.
+      function rgb(color: string, background: string) {
+        context!.clearRect(0, 0, 1, 1);
+        context!.fillStyle = background;
+        context!.fillRect(0, 0, 1, 1);
+        context!.fillStyle = color;
+        context!.fillRect(0, 0, 1, 1);
+        return Array.from(context!.getImageData(0, 0, 1, 1).data).slice(0, 3);
+      }
+      function luminance(channels: number[]) {
+        const linear = channels.map((value) => {
+          const channel = value / 255;
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      }
+      function contrast(color: string) {
+        const foreground = luminance(rgb(color, surface.backgroundColor));
+        const background = luminance(rgb(surface.backgroundColor, "white"));
+        return (
+          (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+        );
+      }
+      const text = [anchor, separator, current].map((node) => {
+        const style = getComputedStyle(node);
+        return {
+          text: node.textContent,
+          color: style.color,
+          contrast: contrast(style.color),
+          opacity: style.opacity,
+          background: style.backgroundColor,
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+          rect: node.getBoundingClientRect().toJSON(),
+        };
+      });
+      const focus = getComputedStyle(anchor);
+      return {
+        background: surface.backgroundColor,
+        backgroundImage: surface.backgroundImage,
+        heroOpacity: surface.opacity,
+        text,
+        focus: {
+          visible: anchor.matches(":focus-visible"),
+          color: focus.outlineColor,
+          width: focus.outlineWidth,
+          offset: focus.outlineOffset,
+          style: focus.outlineStyle,
+          contrast: contrast(focus.outlineColor),
+        },
+      };
+    });
+    await info.attach("breadcrumb-contrast", {
+      body: JSON.stringify({ width, ...measurements }, null, 2),
+      contentType: "application/json",
+    });
+    await info.attach("focused-breadcrumb", {
+      body: await page.screenshot({ animations: "disabled" }),
+      contentType: "image/png",
+    });
+    // These assumptions keep the measurement valid if the header treatment changes.
+    expect(measurements.background).toBe("rgb(255, 255, 255)");
+    expect(measurements.backgroundImage).toBe("none");
+    expect(measurements.heroOpacity).toBe("1");
+    for (const sample of measurements.text) {
+      expect(sample.opacity).toBe("1");
+      expect(sample.background).toBe("rgba(0, 0, 0, 0)");
+      expect(sample.contrast, `Normal text: ${sample.text}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(measurements.focus.visible).toBe(true);
+    expect(measurements.focus.style).toBe("solid");
+    expect(parseFloat(measurements.focus.width)).toBeGreaterThanOrEqual(2);
+    expect(parseFloat(measurements.focus.offset)).toBeGreaterThanOrEqual(2);
+    expect(measurements.focus.contrast).toBeGreaterThanOrEqual(3);
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(() => page.evaluate(() => window.clientFunctional.navigation().at(-1)))
+      .toBe("/client/cases");
+  });
+
 test("Hearings — search, upcoming/past/all, matter filter and calendar export", async ({
   page,
 }) => {
