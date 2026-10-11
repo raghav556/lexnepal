@@ -292,6 +292,7 @@ export default function ClientDocumentsPage() {
   };
 
   const handleFiles = async (files: FileList | null) => {
+    if (uploadPhase === "uploading") return;
     if (!files || files.length === 0) return;
     if (
       !clientQueryHasData(casesQuery) ||
@@ -853,7 +854,9 @@ export default function ClientDocumentsPage() {
               type="file"
               multiple
               className="sr-only"
-              disabled={!clientQueryHasData(casesQuery) || !uploadCaseId}
+              disabled={
+                uploadPhase === "uploading" || !clientQueryHasData(casesQuery) || !uploadCaseId
+              }
               aria-label="Choose files to upload"
               onChange={(e) => void handleFiles(e.target.files)}
             />

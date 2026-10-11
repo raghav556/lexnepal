@@ -121,7 +121,8 @@
     "signatures:verify-artifact-migration": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/signatures/verify-signature-artifact-migration.ts",
     "analytics:verify-local": "npm run auth:verify-boundary && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/analytics/verify-local.ts",
     "hr:verify-local": "npm run auth:verify-boundary && npm run migration:identity -- tests/fixtures/convex-identity-export tests/fixtures/convex-identity-firm-map.json && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/hr/verify-local.ts",
-    "test:migration-characterization": "node --conditions=react-server --import tsx --test tests/characterization/*.test.mjs"
+    "test:migration-characterization": "node --conditions=react-server --import tsx --test tests/characterization/*.test.mjs",
+    "test:functional:client": "playwright test --config playwright.functional.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

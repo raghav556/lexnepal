@@ -75,6 +75,8 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState({ current: "", newPass: "", confirm: "" });
+  const [clientPasswordBusy, setClientPasswordBusy] = useState(false);
+  const clientPasswordRequest = useRef(false);
 
   const [mfaPasswordMode, setMfaPasswordMode] = useState<MfaPasswordMode>(null);
   const [mfaPasswordBusy, setMfaPasswordBusy] = useState(false);
@@ -117,6 +119,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (variant === "client" && clientPasswordRequest.current) return;
     if (passwordForm.newPass !== passwordForm.confirm) {
       toast.error("New passwords do not match!");
       return;
@@ -125,12 +128,21 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       toast.error("Password must be at least 8 characters");
       return;
     }
+    if (variant === "client") {
+      clientPasswordRequest.current = true;
+      setClientPasswordBusy(true);
+    }
     try {
       await changePassword(passwordForm.current, passwordForm.newPass);
       toast.success("Password changed successfully!");
       setPasswordForm({ current: "", newPass: "", confirm: "" });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to change password");
+    } finally {
+      if (variant === "client") {
+        clientPasswordRequest.current = false;
+        setClientPasswordBusy(false);
+      }
     }
   };
 
@@ -531,9 +543,13 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                 </div>
                 <DashboardButton
                   type="submit"
+                  disabled={variant === "client" ? clientPasswordBusy : undefined}
+                  aria-busy={variant === "client" ? clientPasswordBusy : undefined}
                   className={variant === "client" ? "md:self-end md:justify-self-start" : undefined}
                 >
-                  Update Password
+                  {variant === "client" && clientPasswordBusy
+                    ? "Updating password…"
+                    : "Update Password"}
                 </DashboardButton>
               </form>
             </DashboardSection>

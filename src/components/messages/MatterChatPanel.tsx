@@ -116,10 +116,14 @@ export function MatterChatPanel({
     data: messagesResponse,
     isLoading,
     isError,
+    error,
     isFetching,
     refetch,
   } = useMessages(caseId, listFilter);
   const messages = messagesResponse?.page || [];
+  const errorStatus = (error as { status?: number } | null)?.status;
+  const clientAccessDenied =
+    isClientAppearance && isError && [401, 403, 404].includes(errorStatus ?? 0);
   const { sendMessage, markMessagesRead } = useMessageCommands();
 
   const forcedInternal = mode === "staff" && stream === "team";
@@ -349,6 +353,7 @@ export function MatterChatPanel({
 
       <LuxuryChatComposer
         appearance={appearance}
+        disabled={isClientAppearance && (isLoading || clientAccessDenied)}
         isInternal={sendAsInternal}
         canToggleInternal={mode === "staff" && stream === "all"}
         onToggleInternal={setIsInternal}
