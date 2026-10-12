@@ -72,7 +72,10 @@ export function SessionListPanel({
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
                     {display.deviceLabel} · {display.browserLabel}
                     {display.isCurrent ? (
-                      <span className="rounded border border-green-200 bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-600 dark:border-green-800 dark:text-green-400">
+                      <span
+                        data-slot="session-current-status"
+                        className="rounded border border-green-200 bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-600 dark:border-green-800 dark:text-green-400"
+                      >
                         Current session
                       </span>
                     ) : null}

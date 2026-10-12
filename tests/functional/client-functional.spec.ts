@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import type { FixtureOptions } from "./support/adapters";
 import { createVisualData } from "../visual/support/scenarios";
 import { MAX_DOCUMENT_BYTES } from "../../src/shared/contracts/documents";
@@ -1183,3 +1184,310 @@ for (const status of [401, 403, 404])
     await expect(page.locator("main")).not.toContainText("Proof of address.pdf");
     await expect(page.locator("main a[href*='disabled-file']")).toHaveCount(0);
   });
+
+// Focused release corrections. The fixture uses actual views/CSS, synthetic
+// query/command adapters and blocked network; this is not authenticated API E2E.
+async function renderedTextContrast(target: Locator) {
+  return target.evaluate((element) => {
+    const surfaces: string[] = [];
+    let opacity = 1;
+    let screenReaderOnly = false;
+    let reachedOpaque = false;
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      opacity *= Number(style.opacity);
+      screenReaderOnly ||=
+        style.clip === "rect(0px, 0px, 0px, 0px)" ||
+        style.clipPath === "inset(50%)" ||
+        (rect.width <= 1 && rect.height <= 1 && style.overflow === "hidden");
+      if (!reachedOpaque) {
+        if (style.backgroundImage !== "none") throw new Error("Unmeasured background image");
+        surfaces.push(style.backgroundColor);
+        reachedOpaque = style.backgroundColor.startsWith("rgb(");
+      }
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true })!;
+    context.fillStyle = "white";
+    context.fillRect(0, 0, 1, 1);
+    for (const background of surfaces.reverse()) {
+      context.fillStyle = background;
+      context.fillRect(0, 0, 1, 1);
+    }
+    const background = Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+    const style = getComputedStyle(element);
+    context.globalAlpha = opacity;
+    context.fillStyle = style.color;
+    context.fillRect(0, 0, 1, 1);
+    const foreground = Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+    function luminance(rgb: number[]) {
+      const linear = rgb.map((value) => {
+        const s = value / 255;
+        return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+    }
+    const first = luminance(foreground),
+      second = luminance(background);
+    return {
+      color: style.color,
+      background,
+      foreground,
+      opacity,
+      screenReaderOnly,
+      contrast: (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05),
+    };
+  });
+}
+
+for (const width of [1440, 1280, 1024, 768, 390, 360]) {
+  for (const [route, selector] of [
+    ["/client", ".client-home-matter-facts"],
+    ["/client/cases", ".client-matters-card-facts"],
+  ])
+    test(`S22-A11Y-02 — ${route} accessible matter facts and navigation at ${width}px`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width, height: 900 });
+      await mount(page, route);
+      const facts = page.locator(selector).first();
+      await expect(facts).toBeVisible();
+      await expect(facts.locator("dl")).toHaveCount(3);
+      const pairs = await facts.locator("dl").evaluateAll((lists) =>
+        lists.map((list) => ({
+          tags: Array.from(list.children).map((child) => child.tagName),
+          label: list.querySelector("dt")?.textContent,
+          value: list.querySelector("dd")?.textContent,
+        })),
+      );
+      expect(pairs.map((pair) => pair.label)).toEqual([
+        "Lead Advocate",
+        "Next Hearing",
+        "Last Update",
+      ]);
+      for (const pair of pairs) {
+        expect(pair.tags).toEqual(["DT", "DD"]);
+        expect(pair.value?.trim()).toBeTruthy();
+      }
+      const scan = await new AxeBuilder({ page })
+        .include(selector)
+        .withRules(["definition-list", "dlitem"])
+        .analyze();
+      expect(scan.violations).toEqual([]);
+      await info.attach("valid-matter-facts", {
+        body: JSON.stringify({ width, pairs, scan }),
+        contentType: "application/json",
+      });
+      const link = page.locator("main a[href='/client/cases/matter-1']").first();
+      for (
+        let tabs = 0;
+        tabs < 60 && !(await link.evaluate((el) => el === document.activeElement));
+        tabs++
+      )
+        await page.keyboard.press("Tab");
+      await expect(link).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect
+        .poll(() => page.evaluate(() => window.clientFunctional.navigation().at(-1)))
+        .toBe("/client/cases/matter-1");
+    });
+
+  test(`S22-A11Y-03 — summary contrast and existing breadcrumb at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mount(page, "/client/cases/matter-1");
+    const summary = page.locator(".client-matter-detail-hero-summary");
+    const measurement = await renderedTextContrast(summary);
+    expect(measurement.opacity).toBe(1);
+    expect(measurement.contrast).toBeGreaterThanOrEqual(4.5);
+    expect(measurement.screenReaderOnly).toBe(width < 640);
+    const scan = await new AxeBuilder({ page })
+      .include(".client-matter-detail-hero")
+      .withRules(["color-contrast"])
+      .analyze();
+    expect(scan.violations).toEqual([]);
+    await info.attach("summary-contrast", {
+      body: JSON.stringify({ width, measurement, scan }),
+      contentType: "application/json",
+    });
+  });
+
+  test(`S22-A11Y-04 — single upload target, keyboard/mouse picker and focus at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    for (const activation of ["Enter", "Space", "mouse"]) {
+      await mount(page, "/client/documents", { holds: ["uploadDocument"] });
+      const trigger = page.getByRole("button", { name: "Upload Document", exact: true }).first();
+      await trigger.click();
+      const dialog = page.getByRole("dialog");
+      const target = dialog.getByRole("button", { name: "Upload document files", exact: true });
+      const input = page.getByLabel("Choose files to upload", { exact: true });
+      await expect(input).toBeHidden();
+      await expect(input).toHaveAttribute("tabindex", "-1");
+      await expect(target.locator("input, button, a, select, textarea, [tabindex]")).toHaveCount(0);
+      await expect(target).toHaveAttribute("aria-disabled", "false");
+      const scan = await new AxeBuilder({ page })
+        .include(".client-documents-upload-dialog")
+        .withRules(["nested-interactive", "button-name", "label"])
+        .analyze();
+      expect(scan.violations).toEqual([]);
+      for (
+        let tabs = 0;
+        tabs < 15 && !(await target.evaluate((el) => el === document.activeElement));
+        tabs++
+      )
+        await page.keyboard.press("Tab");
+      await expect(target).toBeFocused();
+      const focus = await target.evaluate((el) => ({
+        visible: el.matches(":focus-visible"),
+        outline: getComputedStyle(el).outlineStyle,
+        width: getComputedStyle(el).outlineWidth,
+        rect: el.getBoundingClientRect().toJSON(),
+      }));
+      expect(focus.visible).toBe(true);
+      expect(focus.outline).toBe("solid");
+      expect(parseFloat(focus.width)).toBeGreaterThanOrEqual(2);
+      expect(focus.rect.width).toBeGreaterThan(10);
+      expect(focus.rect.height).toBeGreaterThan(10);
+      expect(focus.rect.x).toBeGreaterThanOrEqual(0);
+      expect(focus.rect.right).toBeLessThanOrEqual(width);
+      await info.attach(`upload-focus-${activation}`, {
+        body: await page.screenshot({ animations: "disabled" }),
+        contentType: "image/png",
+      });
+      await page.keyboard.press("Tab");
+      expect(await input.evaluate((el) => el === document.activeElement)).toBe(false);
+      expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+      await page.keyboard.press("Shift+Tab");
+      await expect(target).toBeFocused();
+      let chooserCount = 0;
+      const countChooser = () => {
+        chooserCount++;
+      };
+      page.on("filechooser", countChooser);
+      const chooserPromise = page.waitForEvent("filechooser");
+      if (activation === "mouse") await target.click();
+      else await page.keyboard.press(activation);
+      const chooser = await chooserPromise;
+      expect(chooser.isMultiple()).toBe(true);
+      await chooser.setFiles({
+        name: `${activation}.pdf`,
+        mimeType: "application/pdf",
+        buffer: Buffer.from("synthetic"),
+      });
+      page.off("filechooser", countChooser);
+      expect(chooserCount).toBe(1);
+      await expectCommand(page, "uploadDocument");
+      await expect(target).toHaveAttribute("aria-busy", "true");
+      await expect(target).toHaveAttribute("aria-disabled", "true");
+      await expect(target).toHaveAttribute("tabindex", "-1");
+      await expect(input).toBeDisabled();
+      await page.keyboard.press("Enter");
+      await expectCommand(page, "uploadDocument");
+      await page.evaluate(() => window.clientFunctional.release("uploadDocument"));
+      await expect(dialog).toContainText("Upload received");
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    }
+  });
+
+  test(`S22-A11Y-04 — multiple drop, failure/retry and authorization guard at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mount(page, "/client/documents", {
+      failures: { uploadDocument: "Synthetic rejected upload" },
+    });
+    await page.getByRole("button", { name: "Upload Document", exact: true }).first().click();
+    const target = page.getByRole("button", { name: "Upload document files", exact: true });
+    const files = await page.evaluateHandle(() => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(["synthetic"], "one.pdf", { type: "application/pdf" }));
+      transfer.items.add(new File(["synthetic"], "two.pdf", { type: "application/pdf" }));
+      return transfer;
+    });
+    await target.dispatchEvent("dragover", { dataTransfer: files });
+    await expect(target).toHaveClass(/client-documents-dropzone-active/);
+    await target.dispatchEvent("drop", { dataTransfer: files });
+    await expect(page.getByRole("dialog")).toContainText("Upload failed");
+    await expect(target).toHaveAttribute("aria-disabled", "false");
+    await page.evaluate(() => window.clientFunctional.recover("uploadDocument"));
+    await target.dispatchEvent("drop", { dataTransfer: files });
+    await expectCommand(page, "uploadDocument", 3);
+    await expect(page.getByRole("dialog")).toContainText("Upload received");
+    const uploads = await commands(page, "uploadDocument");
+    expect(uploads.slice(1).map((event) => (event.args[0] as { title: string }).title)).toEqual([
+      "one.pdf",
+      "two.pdf",
+    ]);
+    await mount(page, "/client/documents", { queries: { cases: { status: 403 } } });
+    await page.getByRole("button", { name: "Upload Document", exact: true }).first().click();
+    await expect(
+      page.getByRole("button", { name: "Upload document files", exact: true }),
+    ).toHaveAttribute("aria-disabled", "true");
+    await expect(page.getByLabel("Choose files to upload", { exact: true })).toBeDisabled();
+    const deniedFiles = await page.evaluateHandle(() => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(["synthetic"], "denied.pdf", { type: "application/pdf" }));
+      return transfer;
+    });
+    await page
+      .getByRole("button", { name: "Upload document files", exact: true })
+      .dispatchEvent("drop", { dataTransfer: deniedFiles });
+    expect(await commands(page, "uploadDocument")).toHaveLength(0);
+  });
+
+  test(`S22-A11Y-05 — Client badge contrast preserves shared defaults at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    const results: {
+      variant: "client" | "staff" | "admin";
+      measurement: Awaited<ReturnType<typeof renderedTextContrast>>;
+    }[] = [];
+    for (const variant of ["client", "staff", "admin"] as const) {
+      await mount(page, "/client/profile", { profileVariant: variant });
+      const sessions = page.getByRole("tab", { name: "Active Sessions", exact: true });
+      await sessions.focus();
+      await page.keyboard.press("Enter");
+      await expect(sessions).toHaveAttribute("aria-selected", "true");
+      const badges = page.getByText("Current session", { exact: true });
+      const sharedBadge = page.locator('[data-slot="session-current-status"]');
+      await expect(sharedBadge).toHaveCount(1);
+      const measurement = await renderedTextContrast(sharedBadge);
+      if (variant === "client") {
+        expect(measurement.contrast).toBeGreaterThanOrEqual(4.5);
+        const scan = await new AxeBuilder({ page })
+          .include('[data-slot="session-current-status"]')
+          .withRules(["color-contrast"])
+          .analyze();
+        expect(scan.violations).toEqual([]);
+        for (const badge of await badges.all())
+          if (await badge.isVisible())
+            expect((await renderedTextContrast(badge)).contrast).toBeGreaterThanOrEqual(4.5);
+      } else {
+        // The added data hook must not override the shared green utility classes.
+        const defaultColor = await sharedBadge.evaluate((el) => {
+          const probe = document.createElement("span");
+          probe.className = el.className;
+          el.parentElement!.appendChild(probe);
+          const color = getComputedStyle(probe).color;
+          probe.remove();
+          return color;
+        });
+        expect(measurement.color).toBe(defaultColor);
+        await expect(page.locator("#client-profile-account-controls")).toHaveCount(0);
+      }
+      results.push({ variant, measurement });
+    }
+    await info.attach("session-badge-colors", {
+      body: JSON.stringify({ width, results }),
+      contentType: "application/json",
+    });
+  });
+}

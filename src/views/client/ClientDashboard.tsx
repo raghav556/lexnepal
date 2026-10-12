@@ -532,21 +532,21 @@ export default function ClientDashboard() {
                       </p>
                     </div>
                   </div>
-                  <dl className="client-home-matter-facts">
+                  <div className="client-home-matter-facts">
                     <div className="client-home-matter-fact">
                       <span className="client-home-matter-avatar" aria-hidden>
                         {initialsOf(advocateName)}
                       </span>
-                      <div className="min-w-0">
+                      <dl className="min-w-0">
                         <dt>Lead Advocate</dt>
                         <dd>{advocateName || "Not assigned"}</dd>
-                      </div>
+                      </dl>
                     </div>
                     <div className="client-home-matter-fact">
                       <span className="client-home-matter-fact-icon" aria-hidden>
                         <CalendarDays className="size-3.5" />
                       </span>
-                      <div className="min-w-0">
+                      <dl className="min-w-0">
                         <dt>Next Hearing</dt>
                         <dd>
                           {homeMatterHearing?.dateGregorian ? (
@@ -565,13 +565,13 @@ export default function ClientDashboard() {
                             )
                           )}
                         </dd>
-                      </div>
+                      </dl>
                     </div>
                     <div className="client-home-matter-fact">
                       <span className="client-home-matter-fact-icon" aria-hidden>
                         <FileText className="size-3.5" />
                       </span>
-                      <div className="min-w-0">
+                      <dl className="min-w-0">
                         <dt>Last Update</dt>
                         <dd>
                           {lastUpdateTitle ? (
@@ -594,9 +594,9 @@ export default function ClientDashboard() {
                             )
                           )}
                         </dd>
-                      </div>
+                      </dl>
                     </div>
-                  </dl>
+                  </div>
                   <div className="client-home-matter-actions">
                     <DashboardButton asChild size="sm">
                       <Link href={`/client/cases/${homeMatter._id}`}>

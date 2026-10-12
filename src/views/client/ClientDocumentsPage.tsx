@@ -819,11 +819,30 @@ export default function ClientDocumentsPage() {
             </label>
           </div>
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            hidden
+            tabIndex={-1}
+            disabled={
+              uploadPhase === "uploading" || !clientQueryHasData(casesQuery) || !uploadCaseId
+            }
+            aria-label="Choose files to upload"
+            onChange={(e) => void handleFiles(e.target.files)}
+          />
           <div
             role="button"
-            tabIndex={0}
+            tabIndex={
+              uploadPhase === "uploading" || !clientQueryHasData(casesQuery) || !uploadCaseId
+                ? -1
+                : 0
+            }
             aria-label="Upload document files"
             aria-busy={uploadPhase === "uploading"}
+            aria-disabled={
+              uploadPhase === "uploading" || !clientQueryHasData(casesQuery) || !uploadCaseId
+            }
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
@@ -849,17 +868,6 @@ export default function ClientDocumentsPage() {
             )}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="sr-only"
-              disabled={
-                uploadPhase === "uploading" || !clientQueryHasData(casesQuery) || !uploadCaseId
-              }
-              aria-label="Choose files to upload"
-              onChange={(e) => void handleFiles(e.target.files)}
-            />
             {uploadPhase === "uploading" ? (
               <>
                 <Loader2 className="h-7 w-7 animate-spin text-dashboard-primary" aria-hidden />

@@ -681,7 +681,7 @@ export default function ClientCasesPage() {
                         </p>
                       </div>
                     </div>
-                    <dl className="client-matters-card-facts">
+                    <div className="client-matters-card-facts">
                       <div className="client-matters-card-fact">
                         {portrait ? (
                           <img src={portrait} alt="" className="client-matters-avatar-image" />
@@ -694,16 +694,16 @@ export default function ClientCasesPage() {
                             )}
                           </span>
                         )}
-                        <div className="min-w-0">
+                        <dl className="min-w-0">
                           <dt>Lead Advocate</dt>
                           <dd>{name}</dd>
-                        </div>
+                        </dl>
                       </div>
                       <div className="client-matters-card-fact">
                         <span className="client-matters-fact-icon" aria-hidden>
                           <CalendarDays className="size-3.5" />
                         </span>
-                        <div className="min-w-0">
+                        <dl className="min-w-0">
                           <dt>Next Hearing</dt>
                           <dd>
                             {clientQueryHasData(hearingsQuery) ? (
@@ -729,13 +729,13 @@ export default function ClientCasesPage() {
                               )
                             )}
                           </dd>
-                        </div>
+                        </dl>
                       </div>
                       <div className="client-matters-card-fact">
                         <span className="client-matters-fact-icon" aria-hidden>
                           <FolderOpen className="size-3.5" />
                         </span>
-                        <div className="min-w-0">
+                        <dl className="min-w-0">
                           <dt>Last Update</dt>
                           <dd>
                             {clientQueryHasData(notificationsQuery) ? (
@@ -760,9 +760,9 @@ export default function ClientCasesPage() {
                               )
                             )}
                           </dd>
-                        </div>
+                        </dl>
                       </div>
-                    </dl>
+                    </div>
                     <div className="client-matters-card-actions">
                       <DashboardButton asChild size="sm">
                         <Link href={`/client/cases/${c._id}`}>
