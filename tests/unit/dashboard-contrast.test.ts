@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { compositeCssColor } from "../support/css-color";
 
 type Theme = Record<string, string>;
 
@@ -12,10 +13,9 @@ function declarations(selector: string): Theme {
   if (!match) throw new Error(`Missing dashboard selector: ${selector}`);
 
   return Object.fromEntries(
-    [...match[1].matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6});/gi)].map(([, name, value]) => [
-      name,
-      value.toLowerCase(),
-    ]),
+    [...match[1].matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6}|rgba\([^;]+\));/gi)].map(
+      ([, name, value]) => [name, value.toLowerCase()],
+    ),
   );
 }
 
@@ -48,10 +48,10 @@ function portalTheme(portal: (typeof portals)[number], dark: boolean): Theme {
 }
 
 function expectPair(theme: Theme, foreground: string, background: string, minimum: number) {
-  expect(theme[foreground], foreground).toMatch(/^#[0-9a-f]{6}$/);
+  expect(theme[foreground], foreground).toMatch(/^(?:#[0-9a-f]{6}|rgba\()/);
   expect(theme[background], background).toMatch(/^#[0-9a-f]{6}$/);
   expect(
-    contrast(theme[foreground], theme[background]),
+    contrast(compositeCssColor(theme[foreground], theme[background]), theme[background]),
     `${foreground} on ${background}`,
   ).toBeGreaterThanOrEqual(minimum);
 }

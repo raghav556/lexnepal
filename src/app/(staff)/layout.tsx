@@ -4,21 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  LayoutDashboard,
-  FolderOpen,
-  CalendarDays,
-  FileText,
-  CheckSquare,
-  Users,
-  Calendar,
-  BookOpen,
-  MessageSquare,
-  UserCog,
-  KanbanSquare,
-  MessagesSquare,
-  PenTool,
-} from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
 import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
@@ -36,7 +22,6 @@ import {
   PORTAL_SIDEBAR_ACTIVE_SHADOW,
   splitPortalNavGroups,
   isPortalNavLink,
-  type PortalNavItemData,
 } from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
 
@@ -52,41 +37,21 @@ const GlobalSearchPalette = dynamic(
   { ssr: false },
 );
 
-const NAV: PortalNavItemData[] = [
-  { label: "Dashboard", i18nKey: "nav.dashboard", href: "/staff", icon: LayoutDashboard },
-  { label: "Tasks", i18nKey: "nav.tasks", href: "/staff/tasks", icon: CheckSquare },
-  { label: "HR", i18nKey: "nav.hr", href: "/staff/hr", icon: UserCog },
-
-  { heading: "Legal Practice" },
-  { label: "Cases", i18nKey: "nav.cases", href: "/staff/cases", icon: FolderOpen },
-  { label: "Hearings", i18nKey: "nav.hearings", href: "/staff/hearings", icon: CalendarDays },
-  { label: "Documents", i18nKey: "nav.documents", href: "/staff/documents", icon: FileText },
-  { label: "Research Vault", i18nKey: "nav.research", href: "/staff/research", icon: BookOpen },
-  { label: "Content", href: "/staff/content", icon: PenTool },
-
-  { heading: "Client Relations" },
-  { label: "CRM", i18nKey: "nav.crm", href: "/staff/crm", icon: KanbanSquare },
-  { label: "Clients", i18nKey: "nav.clients", href: "/staff/clients", icon: Users },
-  { label: "Messages", i18nKey: "nav.messages", href: "/staff/messages", icon: MessageSquare },
-  { label: "Team Chat", i18nKey: "nav.team_chat", href: "/staff/team-chat", icon: MessagesSquare },
-  {
-    label: "Appointments",
-    i18nKey: "nav.appointments",
-    href: "/staff/appointments",
-    icon: Calendar,
-  },
-];
+import { STAFF_NAV as NAV } from "@/lib/operational-navigation";
 
 function useIsActive() {
   const pathname = usePathname();
-  return (href: string) => (href === "/staff" ? pathname === "/staff" : pathname.startsWith(href));
+  return (href: string) =>
+    href === "/staff"
+      ? pathname === "/staff"
+      : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 const navGroups = splitPortalNavGroups(NAV);
 
 const desktopItemClassName = (active: boolean) =>
   cn(
-    "staff-nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all relative",
+    "staff-nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
       ? "staff-nav-item-active border border-dashboard-sidebar-active-border bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground font-semibold shadow-sm"
       : "border border-transparent text-dashboard-sidebar-muted hover:border-dashboard-sidebar-border hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
@@ -102,7 +67,7 @@ const desktopIconClassName = (active: boolean) =>
 
 const mobileItemClassName = (active: boolean) =>
   cn(
-    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+    "flex min-h-11 items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
       ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground border border-dashboard-sidebar-active-border"
       : "text-dashboard-sidebar-muted hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground",
@@ -187,7 +152,10 @@ function StaffMobileChrome() {
   const isActive = useIsActive();
 
   const bottomBar = (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-dashboard-sidebar/95 backdrop-blur border-t border-dashboard-sidebar-border flex justify-around py-2 z-30 print:hidden text-dashboard-sidebar-foreground">
+    <nav
+      aria-label="Staff primary navigation"
+      className="staff-mobile-primary md:hidden fixed bottom-0 left-0 right-0 bg-dashboard-sidebar/95 backdrop-blur border-t border-dashboard-sidebar-border flex justify-around z-30 print:hidden text-dashboard-sidebar-foreground"
+    >
       {NAV.filter(isPortalNavLink)
         .slice(0, 5)
         .map(({ href, icon: Icon, label, i18nKey }) => (
@@ -195,14 +163,16 @@ function StaffMobileChrome() {
             key={href}
             href={href}
             className={cn(
-              "p-2 rounded-lg focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
+              "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-xs leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
               isActive(href)
-                ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-icon border border-dashboard-sidebar-active-border"
+                ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground border border-dashboard-sidebar-active-border"
                 : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground",
             )}
             aria-label={i18nKey ? t(i18nKey) : label}
+            aria-current={isActive(href) ? "page" : undefined}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="size-5 shrink-0" aria-hidden />
+            <span>{i18nKey && t(i18nKey) !== i18nKey ? t(i18nKey) : label}</span>
           </Link>
         ))}
     </nav>
@@ -210,7 +180,9 @@ function StaffMobileChrome() {
 
   return (
     <PortalMobileNav
-      navAriaLabel="Mobile navigation"
+      navAriaLabel="Staff navigation"
+      drawerId="staff-mobile-drawer"
+      operationalDrawer
       items={NAV}
       isActive={isActive}
       brand={
@@ -218,7 +190,7 @@ function StaffMobileChrome() {
           href="/staff"
           subtitle={t("nav.staff_portal")}
           logoFit="cover"
-          className="max-w-[58%] gap-2"
+          className="min-w-0 flex-1 gap-2"
           logoClassName="size-8 max-w-10 rounded-lg"
           fallbackClassName="size-8 bg-dashboard-sidebar-brand-bg"
           fallbackIconClassName="size-4 text-dashboard-sidebar-brand-icon"
@@ -229,7 +201,7 @@ function StaffMobileChrome() {
       headerClassName="bg-dashboard-sidebar/95 border-dashboard-sidebar-border print:hidden text-dashboard-sidebar-foreground"
       langButtonClassName="focus-visible:ring-dashboard-sidebar-focus"
       menuButtonClassName="text-dashboard-sidebar-foreground focus-visible:ring-dashboard-sidebar-focus"
-      drawerClassName="bg-dashboard-sidebar text-dashboard-sidebar-foreground pb-16"
+      drawerClassName="bg-dashboard-sidebar text-dashboard-sidebar-foreground"
       headingClassName="text-xs font-semibold text-dashboard-sidebar-heading mt-4 mb-1 px-3 uppercase tracking-wider"
       itemClassName={mobileItemClassName}
       accountMenu={(close) => (
@@ -274,18 +246,19 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <IdleSessionGuard />
           <div className="flex h-full min-h-0 overflow-hidden bg-dashboard-canvas print:h-auto print:overflow-visible">
             <StaffDesktopSidebar onOpenChat={() => setChatOpen(true)} />
-            <div className="flex min-h-0 flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
+            <div className="staff-shell-content flex min-h-0 flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
               <StaffMobileChrome />
               <PortalTopbar
                 portal="staff"
                 onOpenSearch={() => setSearchOpen(true)}
                 onOpenChat={() => setChatOpen(true)}
                 onOpenCommandCenter={() => setChatOpen(true)}
-                className="hidden md:flex"
+                className="staff-admin-topbar hidden md:flex"
               />
               <main
                 ref={mainRef}
                 id="staff-main-canvas"
+                tabIndex={-1}
                 className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
               >
                 {children}

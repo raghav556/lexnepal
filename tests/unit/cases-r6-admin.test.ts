@@ -21,8 +21,10 @@ describe("R6 Admin Case entry", () => {
     const layout = readSrc("src/app/(admin)/layout.tsx");
     const dashboard = readSrc("src/views/admin/AdminDashboard.tsx");
     const topbar = readSrc("src/components/dashboard/portal-topbar.tsx");
-    expect(layout).toMatch(/href: "\/admin\/cases"/);
-    expect(layout).toMatch(/i18nKey: "nav.cases"/);
+    const navigation = readSrc("src/lib/operational-navigation.ts");
+    expect(layout).toMatch(/ADMIN_NAV_TREE/);
+    expect(navigation).toMatch(/href: "\/admin\/cases"/);
+    expect(navigation).toMatch(/i18nKey: "nav.cases"/);
     expect(layout).toMatch(/PortalRoleGuard/);
     expect(layout).toMatch(/allowed="admin"/);
     expect(layout).not.toMatch(/from "@\/app\/\(staff\)/);
@@ -59,7 +61,7 @@ describe("R6 Admin Case entry", () => {
   it("Admin search opens cases under /admin/cases", () => {
     const search = readSrc("src/components/dashboard/global-search-palette.tsx");
     expect(search).toMatch(/portal === "admin" \? "\/admin\/cases" : "\/staff\/cases"/);
-    expect(search).toMatch(/href: "\/admin\/cases"/);
+    expect(readSrc("src/lib/operational-navigation.ts")).toMatch(/href: "\/admin\/cases"/);
     expect(search).toMatch(/\/admin\/cases\?create=1/);
   });
 });

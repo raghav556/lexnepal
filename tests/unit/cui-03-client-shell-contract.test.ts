@@ -179,7 +179,8 @@ describe("CUI-03 client shell contract", () => {
     expect(search).toMatch(/portal === "client"/);
     expect(search).toMatch(/useClients\(\{ enabled: !isClientPortal \}\)/);
     expect(search).not.toMatch(/\/client\/billing/);
-    expect(search).toMatch(/Conflict Checker/);
+    // The old assertion required an unsupported Admin module in a Client contract.
+    expect(search).not.toMatch(/\/admin\/conflict-checker/);
     expect(search).toMatch(/portal === "admin" \? "\/admin\/cases" : "\/staff\/cases"/);
   });
 });

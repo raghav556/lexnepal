@@ -57,8 +57,9 @@ describe("CUI-02 client token contract", () => {
     expect(token(client, "--dashboard-font-nepali")).toContain("Mukta");
   });
 
-  it("does not drift Staff or Admin selector values", () => {
-    expect(token(admin, "--dashboard-primary")).toBe("#487fff");
+  it("keeps role token ownership separate from the frozen Client palette", () => {
+    // Session 03 darkens the Admin action token to meet AA; Client tokens above stay locked.
+    expect(token(admin, "--dashboard-primary")).toBe("#2563eb");
     expect(token(admin, "--dashboard-sidebar-width")).toBe("17rem");
     expect(token(admin, "--dashboard-sidebar")).toBe("#0f172a");
     expect(token(staff, "--dashboard-primary")).toBe("#6d28d9");

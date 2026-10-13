@@ -254,7 +254,7 @@ export default function AdminDashboard() {
       icon: CalendarDays,
       tone: DASHBOARD_METRIC_TONES.hearings,
       helper: "Scheduled court commitments",
-      href: "/admin/appointments",
+      href: "/admin/cases",
     },
     {
       label: "New leads",
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
         title: caseTitleById.get(item.caseId) ?? "Court hearing",
         subtitle: item.court,
         meta: item.time ?? "Today",
-        href: "/admin/appointments",
+        href: `/admin/cases/${item.caseId}?tab=hearings`,
       }));
     const appointmentEntries = appointments
       .filter((item) => {
@@ -611,8 +611,8 @@ export default function AdminDashboard() {
                     Monthly hearing activity appears as hearings are scheduled.
                   </p>
                   <DashboardButton asChild size="sm" className="mt-3">
-                    <Link href="/admin/appointments">
-                      Schedule a hearing <ArrowRight className="size-3" aria-hidden />
+                    <Link href="/admin/cases">
+                      View cases <ArrowRight className="size-3" aria-hidden />
                     </Link>
                   </DashboardButton>
                 </div>
@@ -744,7 +744,7 @@ export default function AdminDashboard() {
           actions={
             <DashboardButton asChild variant="ghost" size="sm">
               <Link href="/admin/appointments">
-                View all <ArrowRight className="size-3.5" aria-hidden />
+                View appointments <ArrowRight className="size-3.5" aria-hidden />
               </Link>
             </DashboardButton>
           }

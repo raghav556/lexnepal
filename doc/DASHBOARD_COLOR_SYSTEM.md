@@ -2,6 +2,11 @@
 
 ## Scope
 
+Session 03 status: Staff/Admin search and scoped contrast contracts are verified with
+isolated component QA. Full authenticated and reference acceptance remain outstanding.
+The shared-token table below predates measured Client styling; exact runtime values
+come from `src/index.css` and CMS resolution, not from historical table samples.
+
 This contract applies only inside `.dashboard-theme` roots. Portal ownership is declared by one
 additional class: `.dashboard-admin`, `.dashboard-staff`, or `.dashboard-client`. Public pages and
 ordinary portal CRUD screens retain the existing application theme until they deliberately opt in.
@@ -65,47 +70,52 @@ raw hex, RGB, HSL, OKLCH, or Tailwind palette colors.
 
 ## Portal ownership
 
-### Admin — navy, indigo, violet, gold
+The Staff/Admin values below reflect source at Session 03. CMS primary overrides are
+resolved by `portal-branding.ts`; Client disables that palette application. Alpha
+text must be composited against its actual surface before calculating contrast.
 
-| Role            |                               Light |                    Dark |
-| --------------- | ----------------------------------: | ----------------------: |
-| Primary         |                           `#5B5CE2` |               `#7778FF` |
-| Primary hover   |                           `#4E4FCA` |               `#8C8DFF` |
-| Primary pressed |                           `#4142AD` |               `#6F70EF` |
-| Primary soft    |                           `#EDECFF` |               `#292852` |
-| Focus           |                           `#5B5CE2` |               `#D6AB42` |
-| Chart 1–5       | gold, emerald, indigo, violet, cyan | same semantic ownership |
+### Admin — navy, blue, violet, gold
 
-Admin CRUD screens share the dashboard shell and therefore receive an admin-only compatibility
-bridge for existing `background`, `card`, `muted`, `primary`, `accent`, `border`, `input`, and
-sidebar utilities. The bridge uses deep navy `#0C1222`, elevated navy `#141D31`, ivory
-`#F8FAFC`, slate-blue `#B7C3D6`, indigo `#7778FF`, and restrained gold `#E4BD5B`. This prevents
-light canvases from being combined with dark-mode text while leaving public and non-admin pages
-unchanged.
+| Role               | Light                                   | Dark                                |
+| ------------------ | --------------------------------------- | ----------------------------------- |
+| Primary            | `#2563EB`                               | `#8C8DFF`                           |
+| Primary hover      | `#1D4ED8`                               | `#8C8DFF`                           |
+| Primary pressed    | `#4536B6`                               | `#6F70EF`                           |
+| Primary foreground | `#FFFFFF`                               | `#0C1222`                           |
+| Primary soft       | `#E4F1FF`                               | `#292852`                           |
+| Focus              | `#487FFF`                               | `#D6AB42`                           |
+| Border             | `#8390A2`                               | `#5D6F90`                           |
+| Chart 1–5          | blue, green, brown-orange, violet, teal | gold, emerald, indigo, violet, cyan |
 
-The admin desktop sidebar remains dark in every admin appearance. Its brand and navigation labels
-use dedicated sidebar tokens; the light selected row uses
-`--dashboard-sidebar-active-foreground` instead of inheriting the dark-sidebar foreground. Brand
-icon background, border, icon, and gradient endpoint tokens are required so those utilities cannot
-silently fall back to transparent or inherited colors.
+Session 03 darkens the light action, hero endpoint and two chart tokens to retain
+AA text / 3:1 meaningful graphics contrast. Decorative metric tints remain separate.
+The always-dark sidebar uses `#0F172A`–`#090E17`, `#F8FAFC` text and `#94A3B8`
+muted/headings. Active blue is RGBA composited over this surface, not a hex color.
+Section rails and brand frames are decorative; focus is tested against both sidebar
+endpoints and active surfaces at 3:1. The dark legacy CRUD bridge remains role-owned.
 
-### Staff — navy, cyan, blue, emerald, amber
+### Staff — navy, violet, gold
 
-| Role            |                                    Light |                    Dark |
-| --------------- | ---------------------------------------: | ----------------------: |
-| Primary         |                                `#0E7490` |               `#22D3EE` |
-| Primary hover   |                                `#0C667B` |               `#52DDF1` |
-| Primary pressed |                                `#09576A` |               `#0EB5D0` |
-| Primary soft    |                                `#E1F7FB` |               `#153944` |
-| Focus           |                                `#087D99` |               `#67E8F9` |
-| Chart 1–5       | cyan, royal blue, emerald, amber, violet | same semantic ownership |
+| Role               | Light                              | Dark                              |
+| ------------------ | ---------------------------------- | --------------------------------- |
+| Primary            | `#6D28D9`                          | `#8554EA`                         |
+| Primary hover      | `#5B21B6`                          | `#8757EC`                         |
+| Primary pressed    | `#4C1D95`                          | `#7C3AED`                         |
+| Primary foreground | `#FFFFFF`                          | `#FFFFFF`                         |
+| Primary soft       | `#F5F3FF`                          | `#231B42`                         |
+| Focus              | `#6D28D9`                          | `#8B5CF6`                         |
+| Chart 1–5          | violet, emerald, blue, amber, teal | violet, sky, emerald, amber, rose |
 
-Staff CRUD screens receive a staff-only compatibility bridge for existing surface and control
-utilities. It uses deep navy `#0C1222`, elevated navy `#141D31`, ivory `#F8FAFC`, slate-blue
-`#B7C3D6`, operational cyan `#22D3EE`, supportive blue `#60A5FA`, and cyan focus `#67E8F9`.
-Gold remains owned by dashboard milestone and hearing treatments instead of generic staff actions.
+The Staff sidebar stays navy with a gold focus token in both modes. The legacy dark
+CRUD bridge uses the existing violet action tokens. Sessions 01/02 control borders
+use neutral tokens; dark selected text is lightened for AA. No cyan palette is
+introduced by the Staff/Admin upgrade.
 
-### Client — soft slate, royal blue, teal, gold
+### Client — historical generic palette (not the frozen reference contract)
+
+The table below is retained as historical documentation. Client rendering is controlled
+by `doc/ui-reference/client/LexNepal_Client_UI_Upgrade_Source_of_Truth_v1.0.docx`, its
+measured token audit and existing scoped styles. It must not be changed to fit this table.
 
 | Role                 |                                   Light |           Dark fallback |
 | -------------------- | --------------------------------------: | ----------------------: |
@@ -188,10 +198,13 @@ OKLCH, or Tailwind palette colors are prohibited in dashboard chart configuratio
 - [x] Recharts consumes shared CSS variables instead of embedded colors.
 - [x] WCAG AA, focus and chart readability requirements are documented.
 
-## Phase 2 implementation checklist
+## Historical Phase 2 implementation checklist
+
+These earlier implementation claims are not current acceptance evidence. Raw page
+colors and frozen Client boundary-contract debt remain; see the Session 03 report.
 
 - [x] Admin uses a navy/indigo executive canvas, gold/emerald revenue chart, multi-series practice chart, and semantic utilization states.
-- [x] Staff uses a navy/cyan workspace, priority task strips, hearing milestones, workload progress, and overdue danger states.
+- [ ] Staff uses a navy/cyan workspace, priority task strips, hearing milestones, workload progress, and overdue danger states.
 - [x] Client uses a soft slate canvas, navy/teal welcome hero, amber action panel, reassuring elevated cards, and semantic matter rails.
 - [x] Desktop sidebars, mobile headers, drawers, and bottom navigation inherit their portal-owned tokens.
-- [x] Dashboard cards, buttons, badges, charts, progress indicators, loading, empty, hover, pressed, and focus states use named roles.
+- [ ] Dashboard cards, buttons, badges, charts, progress indicators, loading, empty, hover, pressed, and focus states use named roles.

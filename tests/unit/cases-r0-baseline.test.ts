@@ -115,7 +115,8 @@ describe("R0 Cases baseline — current contracts (must keep)", () => {
     expect(list).toMatch(/basePath="\/admin\/cases"/);
     expect(detail).toMatch(/StaffCaseDetailPage/);
     expect(create).toMatch(/redirect\("\/admin\/cases\?create=1"\)/);
-    expect(readSrc("src/app/(admin)/layout.tsx")).toMatch(/href: "\/admin\/cases"/);
+    expect(readSrc("src/app/(admin)/layout.tsx")).toMatch(/ADMIN_NAV_TREE/);
+    expect(readSrc("src/lib/operational-navigation.ts")).toMatch(/href: "\/admin\/cases"/);
   });
 });
 

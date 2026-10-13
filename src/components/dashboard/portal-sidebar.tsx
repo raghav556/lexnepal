@@ -204,6 +204,8 @@ export function PortalSidebarTreeBranch({
   id,
 }: PortalSidebarTreeBranchProps) {
   const [isOpen, setIsOpen] = React.useState(defaultOpen || active);
+  const generatedId = React.useId();
+  const contentId = id ?? generatedId;
 
   React.useEffect(() => {
     if (active) {
@@ -212,17 +214,17 @@ export function PortalSidebarTreeBranch({
   }, [active]);
 
   return (
-    <div className={cn("space-y-1", className)}>
+    <div data-slot="portal-sidebar-branch" className={cn("space-y-1", className)}>
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        aria-controls={id}
+        aria-controls={contentId}
         className={cn(
-          "group flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-[13.5px] font-medium transition-all duration-200",
+          "group flex min-h-11 w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
           active
-            ? "text-white bg-white/[0.07] font-semibold"
-            : "text-slate-300 hover:text-white hover:bg-white/[0.04]",
+            ? "text-dashboard-sidebar-active-foreground bg-dashboard-sidebar-active font-semibold"
+            : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover",
           buttonClassName,
         )}
       >
@@ -231,7 +233,9 @@ export function PortalSidebarTreeBranch({
             <Icon
               className={cn(
                 "size-[18px] shrink-0 transition-colors",
-                active ? "text-[#487FFF]" : "text-slate-400 group-hover:text-slate-200",
+                active
+                  ? "text-dashboard-sidebar-active-icon"
+                  : "text-dashboard-sidebar-muted group-hover:text-dashboard-sidebar-foreground",
               )}
               aria-hidden
             />
@@ -242,7 +246,7 @@ export function PortalSidebarTreeBranch({
           {badge}
           <ChevronDown
             className={cn(
-              "size-3.5 text-slate-400 transition-transform duration-200 group-hover:text-slate-200",
+              "size-3.5 text-dashboard-sidebar-chevron transition-transform duration-200 group-hover:text-dashboard-sidebar-foreground",
               !isOpen && "-rotate-90",
             )}
             aria-hidden
@@ -250,14 +254,13 @@ export function PortalSidebarTreeBranch({
         </span>
       </button>
 
-      {isOpen ? (
-        <div
-          id={id}
-          className={cn("tree-branch-rail ml-3 pl-3.5 space-y-1 py-0.5", childrenClassName)}
-        >
-          {children}
-        </div>
-      ) : null}
+      <div
+        id={contentId}
+        hidden={!isOpen}
+        className={cn("tree-branch-rail ml-3 pl-3.5 space-y-1 py-0.5", childrenClassName)}
+      >
+        {children}
+      </div>
     </div>
   );
 }

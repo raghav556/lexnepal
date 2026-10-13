@@ -2,27 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Activity,
-  FileText,
-  FolderOpen,
-  Settings,
-  Shield,
-  Globe,
-  PenTool,
-  Briefcase,
-  Calendar,
-  Quote,
-  LayoutDashboard,
-  Users,
-  UserCheck,
-  Contact,
-  BarChart3,
-  Navigation,
-  Newspaper,
-  User as UserIcon,
-  type LucideIcon,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CommandCenter } from "@/components/ui/CommandCenter";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
@@ -43,349 +22,52 @@ import {
   ScrollToTop,
   GlobalSearchPalette,
   PORTAL_SIDEBAR_ACTIVE_SHADOW,
-  type PortalNavItemData,
 } from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
 
-export interface NavItemLink {
-  type: "link";
-  label: string;
-  i18nKey?: string;
-  href: string;
-  icon: LucideIcon;
-}
-
-export interface NavItemBranch {
-  type: "branch";
-  id: string;
-  label: string;
-  i18nKey?: string;
-  icon: LucideIcon;
-  defaultOpen?: boolean;
-  items: NavItemLink[];
-}
-
-export interface NavGroupSection {
-  heading: string;
-  items: (NavItemLink | NavItemBranch)[];
-}
-
-const ADMIN_NAV_TREE: NavGroupSection[] = [
-  {
-    heading: "Overview",
-    items: [
-      {
-        type: "link",
-        label: "Dashboard",
-        i18nKey: "nav.dashboard",
-        href: "/admin",
-        icon: LayoutDashboard,
-      },
-      {
-        type: "link",
-        label: "Advanced Analytics",
-        i18nKey: "nav.analytics",
-        href: "/admin/analytics",
-        icon: Activity,
-      },
-    ],
-  },
-  {
-    heading: "Practice & Operations",
-    items: [
-      {
-        type: "link",
-        label: "Cases",
-        i18nKey: "nav.cases",
-        href: "/admin/cases",
-        icon: FolderOpen,
-      },
-      {
-        type: "branch",
-        id: "crm-branch",
-        label: "Clients & CRM",
-        icon: Contact,
-        defaultOpen: true,
-        items: [
-          {
-            type: "link",
-            label: "Clients",
-            i18nKey: "nav.clients",
-            href: "/admin/clients",
-            icon: Contact,
-          },
-          {
-            type: "link",
-            label: "CRM & Leads",
-            i18nKey: "nav.crm",
-            href: "/admin/crm",
-            icon: BarChart3,
-          },
-          {
-            type: "link",
-            label: "Appointments",
-            i18nKey: "nav.appointments",
-            href: "/admin/appointments",
-            icon: Calendar,
-          },
-        ],
-      },
-      {
-        type: "branch",
-        id: "workforce-branch",
-        label: "Firm & Workforce",
-        icon: Users,
-        defaultOpen: false,
-        items: [
-          {
-            type: "link",
-            label: "User Directory",
-            i18nKey: "nav.users",
-            href: "/admin/users",
-            icon: Users,
-          },
-          {
-            type: "link",
-            label: "HR & Leaves",
-            i18nKey: "nav.hr",
-            href: "/admin/hr",
-            icon: UserCheck,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    heading: "Public CMS & Portal",
-    items: [
-      {
-        type: "branch",
-        id: "cms-pages-branch",
-        label: "Website Pages",
-        icon: Globe,
-        defaultOpen: false,
-        items: [
-          {
-            type: "link",
-            label: "Site Settings",
-            i18nKey: "nav.site_settings",
-            href: "/admin/cms",
-            icon: Globe,
-          },
-          {
-            type: "link",
-            label: "Homepage",
-            href: "/admin/cms/homepage",
-            icon: LayoutDashboard,
-          },
-          {
-            type: "link",
-            label: "Navigation & Menus",
-            i18nKey: "nav.navigation",
-            href: "/admin/cms/navigation",
-            icon: Navigation,
-          },
-          {
-            type: "link",
-            label: "Practice Areas",
-            i18nKey: "nav.practice_areas",
-            href: "/admin/cms/practice-areas",
-            icon: Briefcase,
-          },
-          {
-            type: "link",
-            label: "About Page",
-            i18nKey: "nav.about_page",
-            href: "/admin/cms/about",
-            icon: FileText,
-          },
-          {
-            type: "link",
-            label: "Careers",
-            i18nKey: "nav.careers",
-            href: "/admin/cms/careers",
-            icon: Briefcase,
-          },
-          {
-            type: "link",
-            label: "Legal & Governance",
-            href: "/admin/cms/governance",
-            icon: Shield,
-          },
-        ],
-      },
-      {
-        type: "branch",
-        id: "cms-content-branch",
-        label: "Media & Content",
-        icon: Newspaper,
-        defaultOpen: false,
-        items: [
-          {
-            type: "link",
-            label: "Blog Articles",
-            i18nKey: "nav.blog_articles",
-            href: "/admin/cms/blog",
-            icon: PenTool,
-          },
-          {
-            type: "link",
-            label: "News & Awards",
-            i18nKey: "nav.news_awards",
-            href: "/admin/cms/news",
-            icon: Newspaper,
-          },
-          {
-            type: "link",
-            label: "Resources",
-            i18nKey: "nav.resources",
-            href: "/admin/cms/resources",
-            icon: FileText,
-          },
-          {
-            type: "link",
-            label: "Testimonials",
-            i18nKey: "nav.testimonials",
-            href: "/admin/cms/testimonials",
-            icon: Quote,
-          },
-          {
-            type: "link",
-            label: "Public Team",
-            i18nKey: "nav.public_team",
-            href: "/admin/cms/team",
-            icon: Users,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    heading: "Legal Systems & Records",
-    items: [
-      {
-        type: "branch",
-        id: "systems-branch",
-        label: "System & Governance",
-        icon: Settings,
-        defaultOpen: false,
-        items: [
-          {
-            type: "link",
-            label: "Doc Generator",
-            i18nKey: "nav.doc_generator",
-            href: "/admin/document-generator",
-            icon: FileText,
-          },
-          {
-            type: "link",
-            label: "Document Templates",
-            i18nKey: "nav.document_templates",
-            href: "/admin/templates",
-            icon: FileText,
-          },
-          {
-            type: "link",
-            label: "Audit & Security",
-            i18nKey: "nav.audit_log",
-            href: "/admin/audit",
-            icon: Shield,
-          },
-          {
-            type: "link",
-            label: "System Settings",
-            i18nKey: "nav.settings",
-            href: "/admin/settings",
-            icon: Settings,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    heading: "Account",
-    items: [
-      {
-        type: "link",
-        label: "Profile & Settings",
-        i18nKey: "nav.profile",
-        href: "/admin/profile",
-        icon: UserIcon,
-      },
-    ],
-  },
-];
-
-function flattenNavTree(tree: NavGroupSection[]): PortalNavItemData[] {
-  const result: PortalNavItemData[] = [];
-  for (const group of tree) {
-    result.push({ heading: group.heading });
-    for (const item of group.items) {
-      if (item.type === "link") {
-        result.push({
-          label: item.label,
-          i18nKey: item.i18nKey,
-          href: item.href,
-          icon: item.icon,
-        });
-      } else if (item.type === "branch") {
-        for (const subItem of item.items) {
-          result.push({
-            label: subItem.label,
-            i18nKey: subItem.i18nKey,
-            href: subItem.href,
-            icon: subItem.icon,
-          });
-        }
-      }
-    }
-  }
-  return result;
-}
-
-const FLAT_MOBILE_NAV = flattenNavTree(ADMIN_NAV_TREE);
+import { ADMIN_NAV_TREE } from "@/lib/operational-navigation";
 
 function useIsActive() {
   const pathname = usePathname();
   return (href: string) => {
     if (href === "/admin") return pathname === "/admin";
     if (href === "/admin/cms") return pathname === "/admin/cms";
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 }
 
 const desktopItemClassName = (active: boolean) =>
   cn(
-    "group relative flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-[13.5px] font-medium leading-5 transition-all duration-200",
+    "group relative flex min-h-11 items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-[13.5px] font-medium leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
-      ? "text-white font-semibold bg-white/10 border border-blue-500/35 shadow-[0_0_16px_-2px_rgba(72,127,255,0.35)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-[#487FFF] before:shadow-[0_0_10px_#487FFF]"
-      : "text-slate-300 hover:text-white hover:bg-white/5 border border-transparent focus-visible:ring-2 focus-visible:ring-[#487FFF]",
+      ? "text-dashboard-sidebar-active-foreground font-semibold bg-dashboard-sidebar-active border border-dashboard-sidebar-active-border"
+      : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover border border-transparent",
   );
 
 const desktopSubItemClassName = (active: boolean) =>
   cn(
-    "group relative flex items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium leading-5 transition-all duration-200",
+    "group relative flex min-h-11 items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
-      ? "text-white font-semibold bg-white/10 border border-blue-500/35 shadow-[0_0_12px_-2px_rgba(72,127,255,0.3)] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-r-full before:bg-[#487FFF]"
-      : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent focus-visible:ring-2 focus-visible:ring-[#487FFF]",
+      ? "text-dashboard-sidebar-active-foreground font-semibold bg-dashboard-sidebar-active border border-dashboard-sidebar-active-border"
+      : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground hover:bg-dashboard-sidebar-hover border border-transparent",
   );
 
 const desktopIconClassName = (active: boolean) =>
   active
-    ? "size-[18px] text-[#487FFF] drop-shadow-[0_0_8px_rgba(72,127,255,0.7)]"
-    : "size-[18px] text-slate-400 group-hover:text-slate-200 transition-colors";
+    ? "size-[18px] text-dashboard-sidebar-active-icon"
+    : "size-[18px] text-dashboard-sidebar-muted group-hover:text-dashboard-sidebar-foreground transition-colors";
 
 const desktopSubIconClassName = (active: boolean) =>
   active
-    ? "size-4 text-[#487FFF] drop-shadow-[0_0_6px_rgba(72,127,255,0.7)]"
-    : "size-4 text-slate-400 group-hover:text-slate-200 transition-colors";
+    ? "size-4 text-dashboard-sidebar-active-icon"
+    : "size-4 text-dashboard-sidebar-muted group-hover:text-dashboard-sidebar-foreground transition-colors";
 
 const mobileItemClassName = (active: boolean) =>
   cn(
-    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium",
+    "flex min-h-11 items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
-      ? "bg-dashboard-primary-soft text-dashboard-primary"
-      : "text-dashboard-neutral hover:bg-dashboard-panel-hover hover:text-foreground",
+      ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground"
+      : "text-dashboard-sidebar-muted hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground",
   );
 
 function AdminDesktopSidebar() {
@@ -480,7 +162,7 @@ function AdminDesktopSidebar() {
         <PortalSidebarGroup
           key={section.heading}
           label={section.heading}
-          labelClassName="text-[12px] font-bold tracking-[0.1em] text-slate-400"
+          labelClassName="text-[12px] font-bold tracking-[0.1em] text-dashboard-sidebar-muted"
         >
           {section.items.map((item) => {
             if (item.type === "link") {
@@ -545,15 +227,63 @@ function AdminMobileChrome() {
 
   return (
     <PortalMobileNav
-      navAriaLabel="Mobile navigation"
-      items={FLAT_MOBILE_NAV}
+      navAriaLabel="Admin navigation"
+      drawerId="admin-mobile-drawer"
+      operationalDrawer
+      items={[]}
       isActive={isActive}
+      renderNavigation={(close) =>
+        ADMIN_NAV_TREE.map((section) => (
+          <PortalSidebarGroup
+            key={section.heading}
+            label={section.heading}
+            labelClassName="text-xs text-dashboard-sidebar-muted"
+          >
+            {section.items.map((item) =>
+              item.type === "link" ? (
+                <PortalSidebarItem
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  i18nKey={item.i18nKey}
+                  active={isActive(item.href)}
+                  className={mobileItemClassName(isActive(item.href))}
+                  onNavigate={close}
+                />
+              ) : (
+                <PortalSidebarTreeBranch
+                  key={item.id}
+                  id={`mobile-${item.id}`}
+                  label={item.label}
+                  icon={item.icon}
+                  active={item.items.some((child) => isActive(child.href))}
+                  defaultOpen={item.defaultOpen}
+                >
+                  {item.items.map((child) => (
+                    <PortalSidebarItem
+                      key={child.href}
+                      href={child.href}
+                      icon={child.icon}
+                      label={child.label}
+                      i18nKey={child.i18nKey}
+                      active={isActive(child.href)}
+                      className={mobileItemClassName(isActive(child.href))}
+                      onNavigate={close}
+                    />
+                  ))}
+                </PortalSidebarTreeBranch>
+              ),
+            )}
+          </PortalSidebarGroup>
+        ))
+      }
       brand={
         <PortalFirmBrand
           href="/admin"
           subtitle={t("nav.admin_console")}
           logoFit="cover"
-          className="max-w-[58%] gap-2"
+          className="min-w-0 flex-1 gap-2"
           logoClassName="size-8 max-w-10 rounded-lg"
           fallbackClassName="size-8"
           nameClassName="text-sm text-foreground"
@@ -563,9 +293,7 @@ function AdminMobileChrome() {
       headerClassName="bg-dashboard-canvas-elevated/95 border-dashboard-border"
       langButtonClassName="focus-visible:ring-dashboard-focus"
       menuButtonClassName="text-foreground focus-visible:ring-dashboard-focus"
-      drawerClassName="bg-dashboard-canvas-elevated"
-      headingClassName="text-xs font-semibold text-muted-foreground mt-4 mb-1 px-3 uppercase tracking-wider"
-      itemClassName={mobileItemClassName}
+      drawerClassName="bg-dashboard-sidebar text-dashboard-sidebar-foreground"
       accountMenu={(close) => (
         <PortalAccountMenu
           profileHref="/admin/profile"
@@ -614,11 +342,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 portal="admin"
                 onOpenSearch={() => setSearchOpen(true)}
                 onOpenChat={() => setChatOpen(true)}
-                className="hidden md:flex"
+                className="staff-admin-topbar hidden md:flex"
               />
               <main
                 ref={mainRef}
                 id="admin-main-canvas"
+                tabIndex={-1}
                 className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
               >
                 {children}

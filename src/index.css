@@ -308,8 +308,8 @@
 
 .dashboard-theme.dashboard-admin {
   /* ── EduDash Core Palette: Royal Cobalt Blue + Vibrant Tangerine ── */
-  --dashboard-primary: #487fff;
-  --dashboard-primary-hover: #458eff;
+  --dashboard-primary: #2563eb;
+  --dashboard-primary-hover: #1d4ed8;
   --dashboard-primary-pressed: #4536b6;
   --dashboard-primary-soft: #e4f1ff;
   --dashboard-focus: #487fff;
@@ -322,12 +322,12 @@
   --dashboard-canvas-elevated: #ffffff;
   --dashboard-panel: #ffffff;
   --dashboard-panel-hover: #f8fafc;
-  --dashboard-border: #e2e8f0;
+  --dashboard-border: #8390a2;
 
   /* ── Executive Hero: Deep Navy to Royal Cobalt Gradient ── */
   --dashboard-hero-start: #0f172a;
   --dashboard-hero-mid: #1e3a8a;
-  --dashboard-hero-end: #487fff;
+  --dashboard-hero-end: #1d4ed8;
   --dashboard-hero-foreground: #ffffff;
   --dashboard-hero-muted: rgba(255, 255, 255, 0.8);
   --dashboard-hero-border: rgba(255, 255, 255, 0.18);
@@ -374,9 +374,9 @@
   /* ── Chart Palette ── */
   --dashboard-chart-1: #487fff;
   --dashboard-chart-2: #16a34a;
-  --dashboard-chart-3: #ff9f29;
+  --dashboard-chart-3: #b45309;
   --dashboard-chart-4: #8c01f9;
-  --dashboard-chart-5: #06b6d4;
+  --dashboard-chart-5: #0e7490;
 
   /* ── Micro-animation Easing & Timing ── */
   --dashboard-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -401,7 +401,7 @@
   --dashboard-sidebar-bg-to: #090e17;
   --dashboard-sidebar-foreground: #f8fafc;
   --dashboard-sidebar-muted: #94a3b8;
-  --dashboard-sidebar-heading: #64748b;
+  --dashboard-sidebar-heading: #94a3b8;
   --dashboard-sidebar-heading-bar: #487fff;
   --dashboard-sidebar-active: rgba(72, 127, 255, 0.15);
   --dashboard-sidebar-active-foreground: #ffffff;
@@ -3785,33 +3785,283 @@
 }
 
 /*
- * Staff/Admin tab control calibration.
- * Uses existing dashboard semantic tokens and intentionally excludes Client
- * and public surfaces (the Client reference is frozen).
+ * Staff/Admin shared control and surface foundation.
+ * Keep these overrides role-scoped: Client and public styles retain their
+ * existing contract, including shared components rendered outside these roots.
  */
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) {
+  --dashboard-radius-control: 0.5rem;
+  --dashboard-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --dashboard-control-border: var(--dashboard-neutral);
+  --dashboard-control-selected-foreground: var(--dashboard-primary);
+}
+
+/* The darker information foreground is readable on Admin's active panels. */
+.dashboard-theme.dashboard-admin {
+  --dashboard-control-selected-foreground: var(--dashboard-information-foreground);
+}
+
+.dark.dashboard-theme.dashboard-staff,
+.dark .dashboard-theme.dashboard-staff {
+  --dashboard-control-selected-foreground: color-mix(
+    in srgb,
+    var(--dashboard-primary) 15%,
+    var(--dashboard-neutral-foreground)
+  );
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is(
+    [data-slot="dashboard-section"],
+    [data-slot="metric-card"],
+    [data-slot="dashboard-list-row"]
+  ) {
+  border-radius: var(--dashboard-radius-card);
+  box-shadow: var(--dashboard-shadow-card);
+  transition-property: background-color, border-color, box-shadow;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is(
+    [data-slot="dashboard-section"],
+    [data-slot="metric-card"],
+    [data-slot="dashboard-list-row"]
+  ):hover {
+  box-shadow: var(--dashboard-shadow-card);
+  transform: none;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="metric-card-icon"] {
+  transform: none;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-section-header"] {
+  border-top-left-radius: var(--dashboard-radius-card);
+  border-top-right-radius: var(--dashboard-radius-card);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-section-title"] {
+  font-family: inherit;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-filter-bar"] {
+  border-radius: var(--dashboard-radius-card);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-button"] {
+  border-radius: var(--dashboard-radius-control);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) {
+  border-radius: var(--dashboard-radius-control);
+  background: var(--dashboard-panel);
+  box-shadow: none;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):not(
+    [aria-invalid="true"]
+  ) {
+  border-color: var(--dashboard-control-border);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is([data-slot="dashboard-table-head"], [data-slot="dashboard-table-header-cell"]) {
+  background: var(--dashboard-neutral-soft);
+  color: var(--dashboard-neutral-foreground);
+  font-size: 0.75rem;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-table-row"]:hover {
+  background: var(--dashboard-panel-hover);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-empty-state"] {
+  border-radius: var(--dashboard-radius-card);
+  background: var(--dashboard-neutral-soft);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="dashboard-empty-icon"] {
+  box-shadow: none;
+  transform: none;
+}
+
 .dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="tabs-list"] {
+  max-width: 100%;
+  height: auto;
+  min-height: 2.5rem;
+  justify-content: flex-start;
+  overflow-x: auto;
   background: var(--dashboard-neutral-soft);
   border-color: var(--dashboard-border);
-  border-radius: var(--dashboard-radius-control, 0.75rem);
+  border-radius: var(--dashboard-radius-control);
   box-shadow: none;
 }
 
 .dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="tabs-trigger"] {
+  flex-shrink: 0;
+  min-height: 2rem;
   color: var(--dashboard-neutral-foreground);
-  border-radius: var(--dashboard-radius-control, 0.5rem);
+  border-color: transparent;
+  border-radius: var(--dashboard-radius-control);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  [data-slot="tabs-trigger"]:not(:disabled):hover {
+  background: var(--dashboard-panel-hover);
 }
 
 .dashboard-theme:is(.dashboard-staff, .dashboard-admin)
   [data-slot="tabs-trigger"][data-state="active"] {
   background: var(--dashboard-panel);
-  color: var(--dashboard-primary);
-  box-shadow: var(--dashboard-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.06));
+  color: var(--dashboard-control-selected-foreground);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="tabs-trigger"]:focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+    :is(
+      .hero-animate-in,
+      [data-slot="metric-card"],
+      [data-slot="dashboard-list-row"],
+      [data-slot="tabs-trigger"]
+    ) {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Staff/Admin navigation: shared Dialog behavior, role-scoped presentation. */
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-header {
+  gap: 0.5rem;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-drawer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28rem;
+  height: calc(100dvh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  border-color: var(--dashboard-sidebar-border);
+  background: var(--dashboard-sidebar);
+  color: var(--dashboard-sidebar-foreground);
+  padding: 0;
+  gap: 0;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-drawer-title {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 1.25rem 4rem 1rem 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--dashboard-sidebar-foreground);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-drawer-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-drawer nav {
+  overflow: visible;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-drawer :is(a, button) {
+  min-height: 2.75rem;
 }
 
 .dashboard-theme:is(.dashboard-staff, .dashboard-admin)
-  [data-slot="tabs-trigger"]:focus-visible {
+  .portal-operational-drawer
+  nav
+  [class~="truncate"] {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  .portal-operational-drawer
+  > button[aria-label="Close dialog"] {
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2.75rem;
+  color: var(--dashboard-sidebar-foreground);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  :is(.portal-operational-drawer, .portal-operational-header)
+  :is(a, button):focus-visible {
+  outline: 2px solid var(--dashboard-sidebar-focus);
+  outline-offset: -2px;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  .staff-admin-topbar
+  :is(a, button):focus-visible {
   outline: 2px solid var(--dashboard-focus);
-  outline-offset: 2px;
+  outline-offset: -2px;
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin)
+  .staff-admin-topbar
+  button[aria-label^="Switch language"] {
+  background: var(--dashboard-neutral-soft);
+  color: var(--dashboard-neutral-foreground);
+}
+
+.dashboard-theme:is(.dashboard-staff, .dashboard-admin) .tree-branch-rail::before {
+  background: var(--dashboard-sidebar-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-theme:is(.dashboard-staff, .dashboard-admin) .portal-operational-drawer {
+    animation: none;
+  }
+
+  .dashboard-theme:is(.dashboard-staff, .dashboard-admin) [data-slot="portal-sidebar-branch"] svg {
+    transition: none;
+  }
+}
+
+@media screen and (width < 48rem) {
+  .dashboard-theme.dashboard-staff .staff-mobile-primary {
+    height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.25rem 0.25rem calc(0.25rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.125rem;
+  }
+
+  .dashboard-theme.dashboard-staff .staff-mobile-primary span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
+  .dashboard-theme.dashboard-staff .staff-shell-content {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ── Staff Sidebar Navigation Refinements ── */
