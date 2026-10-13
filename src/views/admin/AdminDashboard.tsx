@@ -143,9 +143,8 @@ function auditEventStyle(action: string) {
 
 const QUICK_ACTIONS = [
   { label: "New case", href: "/admin/cases?create=1", icon: Briefcase },
-  { label: "Schedule hearing", href: "/admin/appointments", icon: CalendarDays },
+  { label: "View appointments", href: "/admin/appointments", icon: CalendarDays },
   { label: "Add client", href: "/admin/clients", icon: UserPlus },
-  { label: "Create task", href: "/admin/tasks", icon: CheckSquare },
 ] as const;
 
 export default function AdminDashboard() {
@@ -458,11 +457,6 @@ export default function AdminDashboard() {
               )}
             />
             {pendingApprovalsTotal} pending approval{pendingApprovalsTotal === 1 ? "" : "s"}
-          </span>
-          {/* Live indicator */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/60 backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live · Updated just now
           </span>
         </div>
       }
@@ -847,13 +841,6 @@ export default function AdminDashboard() {
           title="Team Workload"
           description="Open & overdue tasks"
           icon={Users}
-          actions={
-            <DashboardButton asChild variant="ghost" size="sm">
-              <Link href="/admin/tasks">
-                View all <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </DashboardButton>
-          }
         >
           {workload.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-blue-50/50 to-transparent px-4 py-8 text-center dark:from-blue-950/10">
