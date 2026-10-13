@@ -42,6 +42,7 @@ import {
   isClientDesktopNavActive,
   resolveClientMobileNav,
 } from "@/lib/client-shell-nav";
+import styles from "./client-accessibility.module.css";
 
 const GlobalSearchPalette = dynamic(
   () =>
@@ -137,7 +138,7 @@ function ClientDesktopSidebar() {
   return (
     <PortalSidebar
       navAriaLabel="Client portal navigation"
-      className="md:w-[var(--dashboard-sidebar-width)] h-screen sticky top-0 shrink-0 overflow-hidden"
+      className="client-desktop-sidebar md:w-[var(--dashboard-sidebar-width)] h-screen sticky top-0 shrink-0 overflow-hidden"
       style={{
         background:
           "linear-gradient(180deg, var(--dashboard-sidebar) 0%, color-mix(in srgb, var(--dashboard-sidebar) 60%, var(--dashboard-sidebar-deep)) 40%, var(--dashboard-sidebar-deep) 100%)",
@@ -210,6 +211,7 @@ function ClientMobileChrome() {
     <PortalMobileNav
       navAriaLabel="Client mobile navigation"
       drawerId="client-mobile-drawer"
+      clientModalDrawer
       items={NAV}
       isActive={isActive}
       brand={
@@ -225,7 +227,7 @@ function ClientMobileChrome() {
           subtitleClassName="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground"
         />
       }
-      headerClassName="bg-dashboard-panel/95 border-dashboard-border"
+      headerClassName="client-mobile-header bg-dashboard-panel/95 border-dashboard-border"
       langButtonClassName="h-11 w-11 focus-visible:ring-dashboard-focus"
       menuButtonClassName="min-h-11 min-w-11 p-2.5 focus-visible:ring-dashboard-focus"
       drawerClassName="bg-dashboard-canvas pb-20"
@@ -246,7 +248,7 @@ function ClientMobileChrome() {
       bottomBar={({ open, openMenu }) => (
         <nav
           aria-label="Client primary navigation"
-          className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-dashboard-border bg-dashboard-panel/95 px-1 py-1 backdrop-blur md:hidden"
+          className="client-mobile-bottom-nav fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-dashboard-border bg-dashboard-panel/95 px-1 py-1 backdrop-blur md:hidden"
         >
           {CLIENT_MOBILE_PRIMARY.map(({ id, href, label, i18nKey }) => {
             const Icon = CLIENT_MOBILE_ICONS[id];
@@ -275,6 +277,7 @@ function ClientMobileChrome() {
             aria-label={t("nav.more")}
             aria-expanded={open}
             aria-controls="client-mobile-drawer"
+            aria-haspopup="dialog"
             className={cn(
               "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-[10px] font-medium leading-tight focus-visible:ring-2 focus-visible:ring-dashboard-focus",
               mobileActive === "more" || open
@@ -307,21 +310,30 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <PortalBrandingProvider applyPalette={false}>
-      <div className="dashboard-theme dashboard-client min-h-screen bg-dashboard-canvas">
+      <div
+        data-client-shell
+        className={cn(
+          "dashboard-theme dashboard-client min-h-screen bg-dashboard-canvas",
+          styles.shell,
+        )}
+      >
         <PortalRoleGuard
           allowed="client"
           title="Client Portal"
           description="Please sign in to access your cases, documents, and messages."
         >
           <IdleSessionGuard />
-          <div className="flex h-screen overflow-hidden bg-dashboard-canvas">
+          <a href="#client-main-content" className="client-skip-link">
+            Skip to main content
+          </a>
+          <div className="client-shell-frame flex h-screen overflow-hidden bg-dashboard-canvas">
             <ClientDesktopSidebar />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <ClientMobileChrome />
               <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
                 <PortalTopbar
                   portal="client"
-                  className="hidden md:flex"
+                  className="client-desktop-topbar hidden md:flex"
                   onOpenSearch={() => setSearchOpen(true)}
                   accountSlot={
                     <PortalAccountMenu
@@ -336,8 +348,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     />
                   }
                 />
-                <main className="min-w-0 flex-1 bg-dashboard-canvas pb-20 md:pb-0">{children}</main>
-                <PortalFooter portal="client" className="hidden md:block" />
+                <main
+                  id="client-main-content"
+                  tabIndex={-1}
+                  className="min-w-0 flex-1 bg-dashboard-canvas pb-20 md:pb-0"
+                >
+                  {children}
+                </main>
+                <PortalFooter portal="client" className="client-desktop-footer hidden md:block" />
               </div>
             </div>
           </div>

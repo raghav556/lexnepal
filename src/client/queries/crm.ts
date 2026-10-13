@@ -167,9 +167,12 @@ export function useAppointments(filters?: {
   });
   return {
     data: next.data ?? [],
+    hasData: next.data !== undefined,
     isLoading: next.isLoading,
     isError: next.isError,
     error: next.error,
+    isFetching: next.isFetching,
+    refetch: next.refetch,
   };
 }
 
@@ -183,7 +186,14 @@ export function useAvailableSlots(date?: string, assignedLawyerId?: string) {
       }),
     enabled: !!date,
   });
-  return { data: next.data ?? [], isLoading: next.isLoading };
+  return {
+    data: next.data ?? [],
+    isLoading: next.isLoading,
+    isError: next.isError,
+    error: next.error,
+    isFetching: next.isFetching,
+    refetch: next.refetch,
+  };
 }
 
 export function useAppointmentCommands() {

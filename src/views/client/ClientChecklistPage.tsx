@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -12,9 +17,9 @@ import {
   MessageSquare,
   Search,
 } from "lucide-react";
-import { useMyClient } from "@/client/queries/clients";
-import { useClientCases } from "@/client/queries/cases";
-import { useTasks } from "@/client/queries/tasks";
+import { useMyClientQuery } from "@/client/queries/clients";
+import { useClientCasesQuery } from "@/client/queries/cases";
+import { useTasksQuery } from "@/client/queries/tasks";
 import type { ClientCaseDto, TaskDto } from "@/shared/contracts/domains";
 import { CASE_LIST_HERO_CLASS } from "@/shared/contracts/case-ui";
 import {
@@ -22,6 +27,7 @@ import {
   DashboardListSkeleton,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 import { localDateIso } from "@/lib/dashboard-format";
@@ -116,10 +122,13 @@ function compareOpenTasks(left: TaskDto, right: TaskDto, today: string): number 
  * Clients cannot mutate tasks — read-only progress view.
  */
 export default function ClientChecklistPage() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {}) || [];
-  const tasks = useTasks(clientRecord ? {} : "skip");
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const cases = casesQuery.data ?? [];
+  const tasksQuery = useTasksQuery(clientRecord ? {} : "skip");
+  const tasks = tasksQuery.data;
 
   const [filter, setFilter] = useState<FilterTab>("all");
   const [matterFilter, setMatterFilter] = useState<string>("all");
@@ -225,6 +234,20 @@ export default function ClientChecklistPage() {
     );
   }
 
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
   if (clientRecord === null) {
     return (
       <PortalPageShell {...shellProps} showTodayDate>
@@ -233,6 +256,34 @@ export default function ClientChecklistPage() {
           description="Your portal account is not linked to a client profile yet. Contact the firm to view shared action checklists."
           icon={ClipboardList}
         />
+      </PortalPageShell>
+    );
+  }
+
+  if (
+    (casesQuery.isError && !clientQueryHasData(casesQuery)) ||
+    (tasksQuery.isError && !clientQueryHasData(tasksQuery))
+  ) {
+    const failed = casesQuery.isError && !clientQueryHasData(casesQuery) ? casesQuery : tasksQuery;
+    return (
+      <PortalPageShell {...shellProps} showTodayDate>
+        <ClientQueryError
+          title={
+            failed === casesQuery ? "Unable to load your matters" : "Unable to load action items"
+          }
+          onRetry={() => {
+            void failed.refetch();
+          }}
+          retrying={failed.isFetching}
+        />
+      </PortalPageShell>
+    );
+  }
+
+  if (!clientQueryHasData(casesQuery) || !clientQueryHasData(tasksQuery)) {
+    return (
+      <PortalPageShell {...shellProps} loading loadingLabel="Loading your action checklist…">
+        <div />
       </PortalPageShell>
     );
   }
@@ -413,6 +464,24 @@ export default function ClientChecklistPage() {
         </div>
       }
     >
+      {casesQuery.isError ? (
+        <ClientQueryBoundary
+          query={casesQuery}
+          title="Unable to refresh your matters"
+          loadingLabel="Loading matters…"
+        >
+          {null}
+        </ClientQueryBoundary>
+      ) : null}
+      {tasksQuery.isError ? (
+        <ClientQueryBoundary
+          query={tasksQuery}
+          title="Unable to refresh action items"
+          loadingLabel="Loading action items…"
+        >
+          {null}
+        </ClientQueryBoundary>
+      ) : null}
       <div className="client-checklist-layout">
         <div className="client-checklist-main">
           <section className="client-checklist-progress" aria-label="Overall checklist progress">
@@ -463,8 +532,8 @@ export default function ClientChecklistPage() {
             ) : null}
           </section>
 
-          <div className="client-checklist-toolbar" role="toolbar" aria-label="Checklist filters">
-            <div className="client-checklist-views" role="tablist" aria-label="Due status filters">
+          <div className="client-checklist-toolbar" role="group" aria-label="Checklist filters">
+            <div className="client-checklist-views" role="group" aria-label="Due status filters">
               {FILTER_TABS.map((tab) => {
                 const count = counts[tab.id];
                 const selected = filter === tab.id;
@@ -472,8 +541,7 @@ export default function ClientChecklistPage() {
                   <button
                     key={tab.id}
                     type="button"
-                    role="tab"
-                    aria-selected={selected}
+                    aria-pressed={selected}
                     className={cn(
                       "client-checklist-view",
                       selected && "client-checklist-view-active",

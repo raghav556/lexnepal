@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   useCurrentIdentityUser,
-  useOwnAuditEvents,
+  useOwnAuditEventsQuery,
   useProfileCommands,
-  useSessions,
+  useSessionsQuery,
 } from "@/client/queries/identity";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input.tsx";
@@ -38,7 +38,8 @@ import { PasswordConfirmDialog } from "@/components/auth/PasswordConfirmDialog";
 import { TotpEnrollmentPanel } from "@/components/auth/TotpEnrollmentPanel";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { SessionListPanel } from "@/components/auth/SessionListPanel";
-import { DashboardButton, DashboardSection } from "@/components/dashboard";
+import { ClientQueryError, DashboardButton, DashboardSection } from "@/components/dashboard";
+import { clientQueryHasData } from "@/components/dashboard/client-query-boundary";
 import { NepalDecoratedHero } from "@/components/dashboard/nepal-decorated-hero";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -53,8 +54,11 @@ type MfaPasswordMode = "enable" | "disable" | null;
 export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const user = useCurrentIdentityUser();
   const { signout } = useAuth();
-  const sessions = useSessions(user?.id);
-  const auditLog = useOwnAuditEvents();
+  const sessionsQuery = useSessionsQuery(user?.id);
+  const auditQuery = useOwnAuditEventsQuery();
+  const sessions = sessionsQuery.data;
+  const auditLog =
+    variant === "client" && !clientQueryHasData(auditQuery) ? undefined : auditQuery.data;
   const {
     revokeSession,
     revokeAllOtherSessions,
@@ -71,6 +75,8 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState({ current: "", newPass: "", confirm: "" });
+  const [clientPasswordBusy, setClientPasswordBusy] = useState(false);
+  const clientPasswordRequest = useRef(false);
 
   const [mfaPasswordMode, setMfaPasswordMode] = useState<MfaPasswordMode>(null);
   const [mfaPasswordBusy, setMfaPasswordBusy] = useState(false);
@@ -113,6 +119,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (variant === "client" && clientPasswordRequest.current) return;
     if (passwordForm.newPass !== passwordForm.confirm) {
       toast.error("New passwords do not match!");
       return;
@@ -121,12 +128,21 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       toast.error("Password must be at least 8 characters");
       return;
     }
+    if (variant === "client") {
+      clientPasswordRequest.current = true;
+      setClientPasswordBusy(true);
+    }
     try {
       await changePassword(passwordForm.current, passwordForm.newPass);
       toast.success("Password changed successfully!");
       setPasswordForm({ current: "", newPass: "", confirm: "" });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to change password");
+    } finally {
+      if (variant === "client") {
+        clientPasswordRequest.current = false;
+        setClientPasswordBusy(false);
+      }
     }
   };
 
@@ -308,6 +324,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
         }
       >
         <TabsList
+          aria-label={variant === "client" ? "Account security and privacy" : undefined}
           className={
             variant === "client"
               ? "flex h-auto w-full min-w-0 justify-start gap-2 overflow-x-auto rounded-none border-b border-dashboard-border bg-transparent p-0 pb-2 [scrollbar-width:thin] [&_[data-slot=tabs-trigger]]:shrink-0"
@@ -526,9 +543,13 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                 </div>
                 <DashboardButton
                   type="submit"
+                  disabled={variant === "client" ? clientPasswordBusy : undefined}
+                  aria-busy={variant === "client" ? clientPasswordBusy : undefined}
                   className={variant === "client" ? "md:self-end md:justify-self-start" : undefined}
                 >
-                  Update Password
+                  {variant === "client" && clientPasswordBusy
+                    ? "Updating password…"
+                    : "Update Password"}
                 </DashboardButton>
               </form>
             </DashboardSection>
@@ -576,12 +597,26 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               description="These are the devices that have logged into your account. Revoke any sessions that you do not recognize."
               icon={MonitorSmartphone}
             >
-              <SessionListPanel
-                sessions={sessions}
-                busy={sessionsBusy}
-                onRevokeSession={handleRevokeSession}
-                onRevokeAllOther={handleRevokeAllOtherSessions}
-              />
+              {variant === "client" && sessionsQuery.isError ? (
+                <ClientQueryError
+                  title="Sessions unavailable"
+                  onRetry={() => {
+                    void sessionsQuery.refetch();
+                  }}
+                  retrying={sessionsQuery.isFetching}
+                />
+              ) : variant === "client" && sessionsQuery.isPending ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  Loading sessions…
+                </p>
+              ) : (
+                <SessionListPanel
+                  sessions={sessions}
+                  busy={sessionsBusy}
+                  onRevokeSession={handleRevokeSession}
+                  onRevokeAllOther={handleRevokeAllOtherSessions}
+                />
+              )}
             </DashboardSection>
           </TabsContent>
 
@@ -602,8 +637,19 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               }
             >
               <div className="space-y-4">
+                {variant === "client" && auditQuery.isError ? (
+                  <ClientQueryError
+                    title="Activity unavailable"
+                    onRetry={() => {
+                      void auditQuery.refetch();
+                    }}
+                    retrying={auditQuery.isFetching}
+                  />
+                ) : null}
                 {auditLog === undefined ? (
-                  <p className="text-xs text-muted-foreground">Loading...</p>
+                  variant === "client" && auditQuery.isError ? null : (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  )
                 ) : auditLog.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">
                     No activity recorded.
@@ -640,6 +686,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                     </div>
                     {auditTotalPages > 1 && (
                       <Pagination
+                        className={variant === "client" ? "client-pagination" : undefined}
                         currentPage={auditPage}
                         totalPages={auditTotalPages}
                         onPageChange={auditGoToPage}
@@ -680,6 +727,13 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       </Tabs>
 
       <PasswordConfirmDialog
+        dialogLabel={
+          variant === "client"
+            ? mfaPasswordMode === "disable"
+              ? "Disable two-factor authentication"
+              : "Enable two-factor authentication"
+            : undefined
+        }
         open={mfaPasswordMode !== null}
         onOpenChange={(open) => {
           if (!open) setMfaPasswordMode(null);
@@ -696,7 +750,10 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       />
 
       <Dialog open={totpDialogOpen} onOpenChange={setTotpDialogOpen}>
-        <DialogContent className="sm:max-w-lg bg-dashboard-panel border-dashboard-border">
+        <DialogContent
+          aria-label={variant === "client" ? "Set up authenticator" : undefined}
+          className="sm:max-w-lg bg-dashboard-panel border-dashboard-border"
+        >
           <DialogHeader>
             <DialogTitle className="text-foreground">Set up authenticator</DialogTitle>
           </DialogHeader>

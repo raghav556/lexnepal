@@ -83,9 +83,9 @@ test.describe("CUI-10 client documents", () => {
     await expect(page.getByLabel("Matter for upload")).toHaveCount(0);
     await expect(page.getByLabel("Choose files to upload")).toHaveCount(0);
 
-    await expect(page.getByRole("tab", { name: /^All/i })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /Legal Team/i })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /My Uploads/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^All/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Legal Team/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /My Uploads/i })).toBeVisible();
     await expect(page.getByLabel("Search documents")).toBeVisible();
     await expect(page.getByLabel("Filter by Matter")).toBeVisible();
     await expect(page.getByLabel("Filter by document type")).toBeVisible();
@@ -190,21 +190,21 @@ test.describe("CUI-10 client documents", () => {
     await expect(page.getByText(UI_PREVIEW_DOCUMENTS.clientDocx.title)).toHaveCount(0);
 
     await page.getByLabel("Search documents").fill("");
-    await page.getByRole("tab", { name: /My Uploads/i }).click();
-    await expect(page.getByRole("tab", { name: /My Uploads/i })).toHaveAttribute(
-      "aria-selected",
+    await page.getByRole("button", { name: /My Uploads/i }).click();
+    await expect(page.getByRole("button", { name: /My Uploads/i })).toHaveAttribute(
+      "aria-pressed",
       "true",
     );
     await expect(page.getByText(UI_PREVIEW_DOCUMENTS.clientDocx.title).first()).toBeVisible();
 
-    await page.getByRole("tab", { name: /Legal Team/i }).click();
-    await expect(page.getByRole("tab", { name: /Legal Team/i })).toHaveAttribute(
-      "aria-selected",
+    await page.getByRole("button", { name: /Legal Team/i }).click();
+    await expect(page.getByRole("button", { name: /Legal Team/i })).toHaveAttribute(
+      "aria-pressed",
       "true",
     );
     await expect(page.getByText(UI_PREVIEW_DOCUMENTS.courtPdf.title).first()).toBeVisible();
 
-    await page.getByRole("tab", { name: /^All/i }).click();
+    await page.getByRole("button", { name: /^All/i }).click();
     await page.getByLabel("Filter by document type").selectOption("court_filing");
     await expect(page.getByText(UI_PREVIEW_DOCUMENTS.courtPdf.title).first()).toBeVisible();
     await expect(page.getByText(UI_PREVIEW_DOCUMENTS.evidencePdf.title)).toHaveCount(0);

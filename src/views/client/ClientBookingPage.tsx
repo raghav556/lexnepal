@@ -16,7 +16,7 @@ import {
   Video,
 } from "lucide-react";
 import { useAvailableSlots, useAppointmentCommands, useAppointments } from "@/client/queries/crm";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import {
   addCalendarDaysIso,
   formatAppointmentDate,
@@ -28,6 +28,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 
@@ -120,7 +121,8 @@ function AppointmentRow({ appointment }: { appointment: ClientAppointment }) {
 }
 
 export default function ClientBookingPage() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const today = todayIsoInFirmTz();
   const [selectedDateIso, setSelectedDateIso] = useState(today);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -193,6 +195,25 @@ export default function ClientBookingPage() {
         className="client-appointments"
       >
         <div />
+      </PortalPageShell>
+    );
+  }
+
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell
+        portal="client"
+        decorated
+        title="Appointments"
+        className="client-appointments"
+      >
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
       </PortalPageShell>
     );
   }
@@ -379,18 +400,22 @@ export default function ClientBookingPage() {
                     const Icon = modeDetails.icon;
                     const selected = selectedMode === mode;
                     return (
-                      <button
+                      <label
                         key={mode}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        onClick={() => setSelectedMode(mode)}
-                        className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas ${
+                        className={`client-consultation-mode relative flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-dashboard-focus focus-within:ring-offset-2 focus-within:ring-offset-dashboard-canvas ${
                           selected
                             ? "border-dashboard-primary bg-dashboard-primary-soft text-foreground"
                             : "border-dashboard-border bg-dashboard-panel text-foreground hover:bg-dashboard-panel-hover"
                         }`}
                       >
+                        <input
+                          type="radio"
+                          name="consultation-mode"
+                          value={mode}
+                          checked={selected}
+                          onChange={() => setSelectedMode(mode)}
+                          className="sr-only"
+                        />
                         <Icon className="size-4 shrink-0 text-dashboard-primary" aria-hidden />
                         <span className="min-w-0">
                           <span className="block text-xs font-semibold">{modeDetails.label}</span>
@@ -398,7 +423,7 @@ export default function ClientBookingPage() {
                             {modeDetails.description}
                           </span>
                         </span>
-                      </button>
+                      </label>
                     );
                   })}
                 </div>
@@ -440,6 +465,14 @@ export default function ClientBookingPage() {
                 <div className="mt-3" aria-live="polite">
                   {slotsQuery.isLoading ? (
                     <DashboardListSkeleton rows={2} />
+                  ) : slotsQuery.isError ? (
+                    <ClientQueryError
+                      title="Availability could not be loaded"
+                      onRetry={() => {
+                        void slotsQuery.refetch();
+                      }}
+                      retrying={slotsQuery.isFetching}
+                    />
                   ) : slotsQuery.data.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-dashboard-border bg-dashboard-neutral-soft px-4 py-5 text-center">
                       <p className="text-xs font-medium text-foreground">
@@ -513,7 +546,7 @@ export default function ClientBookingPage() {
               <DashboardButton
                 type="submit"
                 className="w-full"
-                disabled={!selectedTime || bookConsultation.isPending}
+                disabled={!selectedTime || slotsQuery.isError || bookConsultation.isPending}
               >
                 {bookConsultation.isPending ? (
                   <>

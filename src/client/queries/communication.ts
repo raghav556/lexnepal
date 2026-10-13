@@ -22,7 +22,14 @@ export function useMessages(caseId: string, isInternal?: boolean) {
     enabled: !!caseId,
     refetchInterval: 5000,
   });
-  return { data: next.data, isLoading: next.isLoading };
+  return {
+    data: next.data,
+    isLoading: next.isLoading,
+    isError: next.isError,
+    error: next.error,
+    isFetching: next.isFetching,
+    refetch: next.refetch,
+  };
 }
 
 export function useUnreadMessageCounts(caseIds: string[]) {
@@ -39,8 +46,13 @@ export function useUnreadMessageCounts(caseIds: string[]) {
   });
   return {
     data: next.data ?? {},
+    hasData: next.data !== undefined,
     isLoading: next.isLoading,
     isFetched: next.isFetched,
+    isError: next.isError,
+    error: next.error,
+    isFetching: next.isFetching,
+    refetch: next.refetch,
   };
 }
 
@@ -104,7 +116,9 @@ export function useNotifications() {
   });
   return {
     data: next.data ?? [],
+    hasData: next.data !== undefined,
     isLoading: next.isLoading,
+    isFetching: next.isFetching,
     isError: next.isError,
     error: next.error,
     refetch: next.refetch,

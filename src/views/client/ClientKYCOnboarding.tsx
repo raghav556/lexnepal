@@ -11,9 +11,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useClientCommands, useKycFiles, useMyClient } from "@/client/queries/clients";
+import { useClientCommands, useKycFilesQuery, useMyClientQuery } from "@/client/queries/clients";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
+import { clientQueryHasData } from "@/components/dashboard/client-query-boundary";
 import {
   DashboardButton,
   DashboardListRow,
@@ -21,6 +22,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 
@@ -226,7 +228,8 @@ function StatusSummary({
 }
 
 export default function ClientKYCOnboarding() {
-  const client = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const client = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const commands = useClientCommands();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -239,7 +242,8 @@ export default function ClientKYCOnboarding() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const files = useKycFiles(client?._id || null);
+  const filesQuery = useKycFilesQuery(client?._id || null);
+  const files = clientQueryHasData(filesQuery) ? filesQuery.data : undefined;
   const status = (justSubmitted ? "submitted" : client?.kycStatus || "pending") as KycStatus;
   const hasId = uploadedFiles.some((file) => file.docType === "government_id");
   const hasAddressProof = uploadedFiles.some((file) => file.docType === "proof_of_address");
@@ -318,6 +322,18 @@ export default function ClientKYCOnboarding() {
         <div />
       </PortalPageShell>
     );
+  if (clientQuery.isError)
+    return (
+      <PortalPageShell portal="client" decorated title="Identity Verification" icon={ShieldCheck}>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
   if (client === null)
     return (
       <PortalPageShell
@@ -360,7 +376,15 @@ export default function ClientKYCOnboarding() {
             description="Documents already submitted for this verification."
           >
             <div className="divide-y divide-dashboard-border">
-              {files === undefined ? (
+              {filesQuery.isError ? (
+                <ClientQueryError
+                  title="Unable to load submitted documents"
+                  onRetry={() => {
+                    void filesQuery.refetch();
+                  }}
+                  retrying={filesQuery.isFetching}
+                />
+              ) : files === undefined ? (
                 <div className="p-4">
                   <DashboardListSkeleton rows={2} />
                 </div>
@@ -386,7 +410,7 @@ export default function ClientKYCOnboarding() {
                       <FileText className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="client-identity-file-name break-words text-sm font-medium text-foreground">
                         {file.fileName ||
                           file.name ||
                           file.originalFileName ||
@@ -402,7 +426,7 @@ export default function ClientKYCOnboarding() {
                         href={file.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-semibold text-dashboard-primary underline-offset-2 hover:underline"
+                        className="client-identity-open inline-flex items-center justify-center text-xs font-semibold text-dashboard-primary underline-offset-2 hover:underline"
                         aria-label={`Open ${file.fileName || "submitted document"}`}
                       >
                         Open

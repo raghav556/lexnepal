@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Paperclip, Send, Lock, Globe, Sparkles, X, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { CANNED_LEGAL_TEMPLATES, type CannedLegalTemplate } from "./chat-types";
@@ -64,6 +65,9 @@ export function LuxuryChatComposer({
       setDraft("");
       setPendingAttachments([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
+    } catch {
+      // The messaging owner reports the failure. Keep the draft/attachments for
+      // retry and contain the rejection from click/keyboard event handlers.
     } finally {
       setIsSending(false);
     }
@@ -77,13 +81,15 @@ export function LuxuryChatComposer({
   };
 
   const handleFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !onAttachFile) return;
+    if (!files || files.length === 0 || !onAttachFile || disabled || isUploading) return;
     setIsUploading(true);
     try {
       for (let i = 0; i < files.length; i++) {
         const item = await onAttachFile(files[i]);
         setPendingAttachments((prev) => [...prev, item]);
       }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Attachment upload failed.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -126,6 +132,7 @@ export function LuxuryChatComposer({
         type="file"
         multiple
         className="sr-only"
+        disabled={disabled || isUploading}
         aria-label="Attach documents or files"
         onChange={(e) => void handleFileUpload(e.target.files)}
       />

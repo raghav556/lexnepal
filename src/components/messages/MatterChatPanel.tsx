@@ -8,6 +8,7 @@ import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 import { computeSHA256 } from "@/lib/document-utils.ts";
 import { apiClient } from "@/client/api/client";
+import { ClientQueryError } from "@/components/dashboard/client-query-error";
 import {
   LuxuryChatBubble,
   LuxuryChatComposer,
@@ -111,8 +112,18 @@ export function MatterChatPanel({
   const listFilter =
     mode === "client" ? false : stream === "team" ? true : stream === "client" ? false : undefined;
 
-  const { data: messagesResponse, isLoading } = useMessages(caseId, listFilter);
+  const {
+    data: messagesResponse,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useMessages(caseId, listFilter);
   const messages = messagesResponse?.page || [];
+  const errorStatus = (error as { status?: number } | null)?.status;
+  const clientAccessDenied =
+    isClientAppearance && isError && [401, 403, 404].includes(errorStatus ?? 0);
   const { sendMessage, markMessagesRead } = useMessageCommands();
 
   const forcedInternal = mode === "staff" && stream === "team";
@@ -232,7 +243,19 @@ export function MatterChatPanel({
         aria-busy={isLoading || undefined}
         aria-label={title ? `${title} messages` : "Matter messages"}
       >
-        {messages.length === 0 ? (
+        {isClientAppearance && isError ? (
+          <ClientQueryError
+            title="Unable to load messages"
+            onRetry={() => {
+              void refetch();
+            }}
+            retrying={isFetching}
+          />
+        ) : isClientAppearance && isLoading ? (
+          <p className="py-8 text-center text-sm text-muted-foreground" role="status">
+            Loading messages…
+          </p>
+        ) : messages.length === 0 ? (
           <div
             className={cn(
               "h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6 gap-3",
@@ -330,6 +353,7 @@ export function MatterChatPanel({
 
       <LuxuryChatComposer
         appearance={appearance}
+        disabled={isClientAppearance && (isLoading || clientAccessDenied)}
         isInternal={sendAsInternal}
         canToggleInternal={mode === "staff" && stream === "all"}
         onToggleInternal={setIsInternal}

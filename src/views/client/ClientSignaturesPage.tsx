@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+} from "@/components/dashboard/client-query-boundary";
+
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -14,7 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import { useDownloadDocument } from "@/client/queries/documents";
 import {
   useDeclineEnvelope,
@@ -31,6 +36,7 @@ import {
   DashboardSection,
   DashboardStatusLabel,
   EmptyState,
+  ClientQueryError,
   PortalPageShell,
 } from "@/components/dashboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -326,7 +332,8 @@ function OriginalDocumentAction({ documentId, title }: { documentId: string; tit
 
 export default function ClientSignaturesPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const signingInbox = useSigningInbox();
   const inbox = signingInbox.data as SigningInbox | undefined;
   const pending = pendingSigningActions(inbox);
@@ -655,6 +662,19 @@ export default function ClientSignaturesPage() {
       </PortalPageShell>
     );
 
+  if (clientQuery.isError)
+    return (
+      <PortalPageShell portal="client" decorated title="Sign Documents" icon={PenLine}>
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
+        />
+      </PortalPageShell>
+    );
+
   if (clientRecord === null)
     return (
       <PortalPageShell
@@ -701,69 +721,83 @@ export default function ClientSignaturesPage() {
         <div className="min-w-0 space-y-4">
           <DashboardSection
             title="Documents awaiting your signature"
-            description={`${pending.length} ${pending.length === 1 ? "request" : "requests"} requiring your action.`}
+            description={
+              clientQueryHasData(signingInbox)
+                ? `${pending.length} ${pending.length === 1 ? "request" : "requests"} requiring your action.`
+                : signingInbox.isError
+                  ? "Signing requests unavailable"
+                  : "Loading signing requests…"
+            }
             icon={PenLine}
             density="compact"
           >
-            {signingInbox.isLoading ? (
-              <DashboardListSkeleton rows={2} />
-            ) : signingInbox.isError ? (
-              <EmptyState
-                title="Signing requests unavailable"
-                description="Please try again later or message the legal team."
-                icon={FileText}
-              />
-            ) : pending.length === 0 ? (
-              <EmptyState
-                title="No documents awaiting your signature"
-                description="New signing requests will appear here when the firm shares them with you."
-                icon={CheckCircle2}
-              />
-            ) : (
-              <div
-                className="divide-y divide-dashboard-border"
-                aria-label="Pending signing requests"
-              >
-                {pending.map((action) => (
-                  <DashboardListRow
-                    key={
-                      action.kind === "envelope"
-                        ? `envelope:${action.envelopeId}`
-                        : `direct:${action.document.id}`
-                    }
-                    className="flex min-w-0 flex-col gap-3 border-0 px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-primary-soft text-dashboard-primary">
-                        <FileText className="size-5" aria-hidden />
-                      </div>
-                      <div className="min-w-0 space-y-1">
-                        <p className="break-words text-sm font-semibold text-foreground">
-                          {action.document.title}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
-                          <DashboardStatusLabel status="pending" label="Signature requested" />
-                          {action.kind === "envelope" &&
-                            action.envelopeTitle !== action.document.title && (
-                              <span className="break-words">{action.envelopeTitle}</span>
+            <ClientQueryBoundary
+              query={signingInbox}
+              title="Signing information unavailable"
+              loadingLabel="Loading signing information…"
+            >
+              {!clientQueryHasData(signingInbox) && signingInbox.isLoading ? (
+                <DashboardListSkeleton rows={2} />
+              ) : !clientQueryHasData(signingInbox) && signingInbox.isError ? (
+                <EmptyState
+                  title="Signing requests unavailable"
+                  description="Please try again later or message the legal team."
+                  icon={FileText}
+                />
+              ) : pending.length === 0 ? (
+                <EmptyState
+                  title="No documents awaiting your signature"
+                  description="New signing requests will appear here when the firm shares them with you."
+                  icon={CheckCircle2}
+                />
+              ) : (
+                <div
+                  className="divide-y divide-dashboard-border"
+                  aria-label="Pending signing requests"
+                >
+                  {pending.map((action) => (
+                    <DashboardListRow
+                      key={
+                        action.kind === "envelope"
+                          ? `envelope:${action.envelopeId}`
+                          : `direct:${action.document.id}`
+                      }
+                      className="flex min-w-0 flex-col gap-3 border-0 px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-primary-soft text-dashboard-primary">
+                          <FileText className="size-5" aria-hidden />
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <p className="break-words text-sm font-semibold text-foreground">
+                            {action.document.title}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
+                            <DashboardStatusLabel status="pending" label="Signature requested" />
+                            {action.kind === "envelope" &&
+                              action.envelopeTitle !== action.document.title && (
+                                <span className="break-words">{action.envelopeTitle}</span>
+                              )}
+                            {action.kind === "envelope" && action.expiresAt && (
+                              <span>
+                                Expires {format(new Date(action.expiresAt), "d MMM yyyy")}
+                              </span>
                             )}
-                          {action.kind === "envelope" && action.expiresAt && (
-                            <span>Expires {format(new Date(action.expiresAt), "d MMM yyyy")}</span>
-                          )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <DashboardButton
-                      size="sm"
-                      className="w-full shrink-0 sm:w-auto"
-                      onClick={() => void openSign(action)}
-                    >
-                      Review &amp; Sign
-                    </DashboardButton>
-                  </DashboardListRow>
-                ))}
-              </div>
-            )}
+                      <DashboardButton
+                        size="sm"
+                        className="w-full shrink-0 sm:w-auto"
+                        onClick={() => void openSign(action)}
+                      >
+                        Review &amp; Sign
+                      </DashboardButton>
+                    </DashboardListRow>
+                  ))}
+                </div>
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
 
           <DashboardSection
@@ -772,80 +806,86 @@ export default function ClientSignaturesPage() {
             icon={FileCheck2}
             density="compact"
           >
-            {signingInbox.isLoading ? (
-              <DashboardListSkeleton rows={2} />
-            ) : signingInbox.isError ? (
-              <p className="text-sm text-dashboard-neutral">
-                Signing history is unavailable right now.
-              </p>
-            ) : history.length === 0 ? (
-              <EmptyState
-                title="No signing history yet"
-                description="Documents you sign will appear here."
-                icon={FileText}
-              />
-            ) : (
-              <div
-                className="divide-y divide-dashboard-border"
-                aria-label="Recently signed documents"
-              >
-                {history.map((action) => (
-                  <DashboardListRow
-                    key={signedActionKey(action)}
-                    className="flex min-w-0 flex-col gap-3 border-0 px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-success-soft text-dashboard-success">
-                        <FileCheck2 className="size-5" aria-hidden />
-                      </div>
-                      <div className="min-w-0 space-y-1">
-                        <p className="break-words text-sm font-semibold text-foreground">
-                          {action.document.title}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
-                          <DashboardStatusLabel status="signed" label="Signed" />
-                          {action.document.signedAt && (
-                            <span>
-                              Signed {format(new Date(action.document.signedAt), "d MMM yyyy")}
-                            </span>
-                          )}
-                          {action.kind === "direct" && action.document.signatureMethod && (
-                            <span>By {action.document.signatureMethod}</span>
-                          )}
+            <ClientQueryBoundary
+              query={signingInbox}
+              title="Signing information unavailable"
+              loadingLabel="Loading signing information…"
+            >
+              {!clientQueryHasData(signingInbox) && signingInbox.isLoading ? (
+                <DashboardListSkeleton rows={2} />
+              ) : !clientQueryHasData(signingInbox) && signingInbox.isError ? (
+                <p className="text-sm text-dashboard-neutral">
+                  Signing history is unavailable right now.
+                </p>
+              ) : history.length === 0 ? (
+                <EmptyState
+                  title="No signing history yet"
+                  description="Documents you sign will appear here."
+                  icon={FileText}
+                />
+              ) : (
+                <div
+                  className="divide-y divide-dashboard-border"
+                  aria-label="Recently signed documents"
+                >
+                  {history.map((action) => (
+                    <DashboardListRow
+                      key={signedActionKey(action)}
+                      className="flex min-w-0 flex-col gap-3 border-0 px-1 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-success-soft text-dashboard-success">
+                          <FileCheck2 className="size-5" aria-hidden />
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <p className="break-words text-sm font-semibold text-foreground">
+                            {action.document.title}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
+                            <DashboardStatusLabel status="signed" label="Signed" />
+                            {action.document.signedAt && (
+                              <span>
+                                Signed {format(new Date(action.document.signedAt), "d MMM yyyy")}
+                              </span>
+                            )}
+                            {action.kind === "direct" && action.document.signatureMethod && (
+                              <span>By {action.document.signatureMethod}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-                      <DashboardButton
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          generateSignatureEventSummaryPDF({
-                            title: action.document.title,
-                            signedAt: action.document.signedAt,
-                            signerName: currentUser?.name || clientRecord.fullName,
-                            signatureMethod:
-                              action.kind === "direct"
-                                ? action.document.signatureMethod
-                                : undefined,
-                            consentVersion:
-                              action.kind === "direct"
-                                ? action.document.signConsentVersion
-                                : undefined,
-                          })
-                        }
-                      >
-                        Signature event summary
-                      </DashboardButton>
-                      <OriginalDocumentAction
-                        documentId={action.document.id}
-                        title={action.document.title}
-                      />
-                    </div>
-                  </DashboardListRow>
-                ))}
-              </div>
-            )}
+                      <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+                        <DashboardButton
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            generateSignatureEventSummaryPDF({
+                              title: action.document.title,
+                              signedAt: action.document.signedAt,
+                              signerName: currentUser?.name || clientRecord.fullName,
+                              signatureMethod:
+                                action.kind === "direct"
+                                  ? action.document.signatureMethod
+                                  : undefined,
+                              consentVersion:
+                                action.kind === "direct"
+                                  ? action.document.signConsentVersion
+                                  : undefined,
+                            })
+                          }
+                        >
+                          Signature event summary
+                        </DashboardButton>
+                        <OriginalDocumentAction
+                          documentId={action.document.id}
+                          title={action.document.title}
+                        />
+                      </div>
+                    </DashboardListRow>
+                  ))}
+                </div>
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
         </div>
 

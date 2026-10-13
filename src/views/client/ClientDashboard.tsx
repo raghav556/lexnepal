@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+  clientQuerySummary,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useState } from "react";
 import {
   ArrowRight,
@@ -16,15 +22,16 @@ import {
   Upload,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
-import { useClientCases } from "@/client/queries/cases";
-import { useMyClient } from "@/client/queries/clients";
-import { useDocuments } from "@/client/queries/documents";
-import { useHearings } from "@/client/queries/hearings";
+import { useClientCasesQuery } from "@/client/queries/cases";
+import { useMyClientQuery } from "@/client/queries/clients";
+import { useDocumentsQuery } from "@/client/queries/documents";
+import { useHearingsQuery } from "@/client/queries/hearings";
 import { useNotifications } from "@/client/queries/communication";
-import { useMyPendingEnvelopeActions } from "@/client/queries/envelopes";
-import { useTasks } from "@/client/queries/tasks";
+import { useMyPendingEnvelopeActionsQuery } from "@/client/queries/envelopes";
+import { useTasksQuery } from "@/client/queries/tasks";
 import {
   ClientDocumentItem,
+  ClientQueryError,
   ClientSoftPanel,
   ClientStatePanel,
   ClientTimelineItem,
@@ -167,22 +174,32 @@ function fileKind(type?: string | null, mimeType?: string | null): "pdf" | "doc"
 }
 
 export default function ClientDashboard() {
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
-  const cases = useClientCases(clientId ? { clientId } : {});
-  const hearings = useHearings(clientRecord ? {} : "skip");
-  const documents = useDocuments(clientRecord ? {} : "skip");
-  const tasks = useTasks(clientRecord ? {} : "skip");
-  const pendingEnvelopeActions = useMyPendingEnvelopeActions();
+  const casesQuery = useClientCasesQuery(clientId ? { clientId } : {});
+  const hearingsQuery = useHearingsQuery(clientRecord ? {} : "skip");
+  const documentsQuery = useDocumentsQuery(clientRecord ? {} : "skip");
+  const tasksQuery = useTasksQuery(clientRecord ? {} : "skip");
+  const cases = casesQuery.data;
+  const hearings = hearingsQuery.data;
+  const documents = documentsQuery.data;
+  const tasks = tasksQuery.data;
+  const envelopesQuery = useMyPendingEnvelopeActionsQuery();
+  const pendingEnvelopeActions = clientQueryHasData(envelopesQuery)
+    ? (envelopesQuery.data ?? [])
+    : [];
   const notificationsQuery = useNotifications();
   const { heroImageUrl } = usePortalBranding();
   const [heroMediaUsable, setHeroMediaUsable] = useState(Boolean(heroImageUrl));
 
-  const caseList = cases ?? [];
-  const hearingList = hearings ?? [];
-  const documentList = documents ?? [];
-  const taskList = tasks ?? [];
-  const notifications = notificationsQuery.data ?? [];
+  const caseList = clientQueryHasData(casesQuery) ? (cases ?? []) : [];
+  const hearingList = clientQueryHasData(hearingsQuery) ? (hearings ?? []) : [];
+  const documentList = clientQueryHasData(documentsQuery) ? (documents ?? []) : [];
+  const taskList = clientQueryHasData(tasksQuery) ? (tasks ?? []) : [];
+  const notifications = clientQueryHasData(notificationsQuery)
+    ? (notificationsQuery.data ?? [])
+    : [];
 
   const todayIso = localDateIso(new Date());
   const caseIds = new Set(caseList.map((item) => item._id));
@@ -253,17 +270,14 @@ export default function ClientDashboard() {
   const firstName = firstNameOf(clientRecord?.fullName);
   const greeting = firstName ? `${titleCaseGreeting()}, ${firstName}` : titleCaseGreeting();
 
-  const kpisReady = Boolean(
-    clientRecord &&
-    cases !== undefined &&
-    hearings !== undefined &&
-    documents !== undefined &&
-    tasks !== undefined,
-  );
   const kpis = [
     {
       label: "Active Matters",
-      value: kpisReady ? String(activeCases.length) : "—",
+      loading:
+        [casesQuery].some((query) => query.isPending && !clientQueryHasData(query)) &&
+        ![casesQuery].some((query) => query.isError && !clientQueryHasData(query)),
+      value: clientQueryHasData(casesQuery) ? String(activeCases.length) : "—",
+      ready: clientQueryHasData(casesQuery),
       helper: "View Matters →",
       href: "/client/cases",
       icon: FolderOpen,
@@ -271,7 +285,16 @@ export default function ClientDashboard() {
     },
     {
       label: "Upcoming Hearing",
-      value: kpisReady ? String(upcomingHearings.length) : "—",
+      loading:
+        [casesQuery, hearingsQuery].some(
+          (query) => query.isPending && !clientQueryHasData(query),
+        ) &&
+        ![casesQuery, hearingsQuery].some((query) => query.isError && !clientQueryHasData(query)),
+      value:
+        clientQueryHasData(casesQuery) && clientQueryHasData(hearingsQuery)
+          ? String(upcomingHearings.length)
+          : "—",
+      ready: clientQueryHasData(casesQuery) && clientQueryHasData(hearingsQuery),
       helper: "View Calendar →",
       href: "/client/hearings",
       icon: CalendarDays,
@@ -279,7 +302,11 @@ export default function ClientDashboard() {
     },
     {
       label: "Documents Pending",
-      value: kpisReady ? String(pendingDocsCount) : "—",
+      loading:
+        [envelopesQuery].some((query) => query.isPending && !clientQueryHasData(query)) &&
+        ![envelopesQuery].some((query) => query.isError && !clientQueryHasData(query)),
+      value: clientQueryHasData(envelopesQuery) ? String(pendingDocsCount) : "—",
+      ready: clientQueryHasData(envelopesQuery),
       helper: "View Documents →",
       href: pendingDocsCount > 0 ? "/client/signatures" : "/client/documents",
       icon: FileText,
@@ -287,7 +314,23 @@ export default function ClientDashboard() {
     },
     {
       label: "Actions Required",
-      value: kpisReady ? String(actionRequiredCount) : "—",
+      loading:
+        [casesQuery, tasksQuery, envelopesQuery].some(
+          (query) => query.isPending && !clientQueryHasData(query),
+        ) &&
+        ![casesQuery, tasksQuery, envelopesQuery].some(
+          (query) => query.isError && !clientQueryHasData(query),
+        ),
+      value:
+        clientQueryHasData(casesQuery) &&
+        clientQueryHasData(tasksQuery) &&
+        clientQueryHasData(envelopesQuery)
+          ? String(actionRequiredCount)
+          : "—",
+      ready:
+        clientQueryHasData(casesQuery) &&
+        clientQueryHasData(tasksQuery) &&
+        clientQueryHasData(envelopesQuery),
       helper: "View Tasks →",
       href: "/client/checklist",
       icon: CheckCircle2,
@@ -319,14 +362,7 @@ export default function ClientDashboard() {
     },
   ];
 
-  const homeLoading =
-    clientRecord === undefined ||
-    (clientRecord !== null &&
-      (cases === undefined ||
-        hearings === undefined ||
-        documents === undefined ||
-        tasks === undefined ||
-        notificationsQuery.isLoading));
+  const homeLoading = clientQuery.isPending;
 
   const kpiRow = (
     <section aria-label="Home summary" className="client-home-kpis">
@@ -342,9 +378,9 @@ export default function ClientDashboard() {
             label={card.label}
             value={card.value}
             icon={card.icon}
-            tone={card.tone}
+            tone={card.ready ? card.tone : "neutral"}
             helperText={card.helper}
-            state={kpisReady ? "default" : "loading"}
+            state={card.loading ? "loading" : "default"}
           />
         </Link>
       ))}
@@ -375,7 +411,7 @@ export default function ClientDashboard() {
     eyebrow: "Client Portal",
     icon: Scale,
     actions: heroPhoto,
-    heroChildren: kpiRow,
+    heroChildren: clientRecord && !clientQuery.isError ? kpiRow : undefined,
   };
 
   if (homeLoading) {
@@ -390,6 +426,24 @@ export default function ClientDashboard() {
           title="Preparing your portal"
           description="Your matters and updates will appear here in a moment."
           icon={Scale}
+        />
+      </PortalPageShell>
+    );
+  }
+
+  if (clientQuery.isError) {
+    return (
+      <PortalPageShell
+        {...shellProps}
+        title="Client Portal"
+        description="Here's what's happening with your legal matters."
+      >
+        <ClientQueryError
+          title="Unable to load your client profile"
+          onRetry={() => {
+            void clientQuery.refetch();
+          }}
+          retrying={clientQuery.isFetching}
         />
       </PortalPageShell>
     );
@@ -425,6 +479,20 @@ export default function ClientDashboard() {
       description="Here's what's happening with your legal matters."
     >
       <div className="client-home-body">
+        <ClientQueryBoundary
+          query={tasksQuery}
+          title="Unable to load action items"
+          loadingLabel="Loading action items..."
+        >
+          {null}
+        </ClientQueryBoundary>
+        <ClientQueryBoundary
+          query={envelopesQuery}
+          title="Unable to load signing requests"
+          loadingLabel="Loading signing requests..."
+        >
+          {null}
+        </ClientQueryBoundary>
         <div className="client-home-left">
           <DashboardSection
             className="client-home-matters"
@@ -438,97 +506,117 @@ export default function ClientDashboard() {
               </DashboardButton>
             }
           >
-            {homeMatter ? (
-              <article className="client-home-matter">
-                <div className="client-home-matter-top">
-                  <span className="client-home-matter-icon">
-                    <Scale className="size-4" aria-hidden />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="client-home-matter-title">{homeMatter.title}</h3>
-                      <DashboardStatusLabel status={homeMatter.status} />
-                    </div>
-                    <p className="client-home-matter-meta">
-                      {[
-                        homeMatter.practiceArea || undefined,
-                        homeMatter.caseNumber ? `Case No. ${homeMatter.caseNumber}` : undefined,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                </div>
-                <dl className="client-home-matter-facts">
-                  <div className="client-home-matter-fact">
-                    <span className="client-home-matter-avatar" aria-hidden>
-                      {initialsOf(advocateName)}
+            <ClientQueryBoundary
+              query={casesQuery}
+              title="Unable to load your matters"
+              loadingLabel="Loading your matters…"
+            >
+              {homeMatter ? (
+                <article className="client-home-matter">
+                  <div className="client-home-matter-top">
+                    <span className="client-home-matter-icon">
+                      <Scale className="size-4" aria-hidden />
                     </span>
-                    <div className="min-w-0">
-                      <dt>Lead Advocate</dt>
-                      <dd>{advocateName || "Not assigned"}</dd>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <h3 className="client-home-matter-title">{homeMatter.title}</h3>
+                        <DashboardStatusLabel status={homeMatter.status} />
+                      </div>
+                      <p className="client-home-matter-meta">
+                        {[
+                          homeMatter.practiceArea || undefined,
+                          homeMatter.caseNumber ? `Case No. ${homeMatter.caseNumber}` : undefined,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
                     </div>
                   </div>
-                  <div className="client-home-matter-fact">
-                    <span className="client-home-matter-fact-icon" aria-hidden>
-                      <CalendarDays className="size-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <dt>Next Hearing</dt>
-                      <dd>
-                        {homeMatterHearing?.dateGregorian ? (
-                          <DualDateDisplay
-                            isoDate={`${homeMatterHearing.dateGregorian.slice(0, 10)}T00:00:00`}
-                            alwaysDual
-                          />
-                        ) : (
-                          "None scheduled"
-                        )}
-                      </dd>
+                  <div className="client-home-matter-facts">
+                    <div className="client-home-matter-fact">
+                      <span className="client-home-matter-avatar" aria-hidden>
+                        {initialsOf(advocateName)}
+                      </span>
+                      <dl className="min-w-0">
+                        <dt>Lead Advocate</dt>
+                        <dd>{advocateName || "Not assigned"}</dd>
+                      </dl>
+                    </div>
+                    <div className="client-home-matter-fact">
+                      <span className="client-home-matter-fact-icon" aria-hidden>
+                        <CalendarDays className="size-3.5" />
+                      </span>
+                      <dl className="min-w-0">
+                        <dt>Next Hearing</dt>
+                        <dd>
+                          {homeMatterHearing?.dateGregorian ? (
+                            <DualDateDisplay
+                              isoDate={`${homeMatterHearing.dateGregorian.slice(0, 10)}T00:00:00`}
+                              alwaysDual
+                            />
+                          ) : hearingsQuery.isError ? (
+                            "Hearing information unavailable"
+                          ) : (
+                            clientQuerySummary(
+                              hearingsQuery,
+                              "None scheduled",
+                              "Loading hearing information…",
+                              "Hearing information unavailable",
+                            )
+                          )}
+                        </dd>
+                      </dl>
+                    </div>
+                    <div className="client-home-matter-fact">
+                      <span className="client-home-matter-fact-icon" aria-hidden>
+                        <FileText className="size-3.5" />
+                      </span>
+                      <dl className="min-w-0">
+                        <dt>Last Update</dt>
+                        <dd>
+                          {lastUpdateTitle ? (
+                            <>
+                              {lastUpdateTitle}
+                              {lastUpdateWhen ? (
+                                <span className="mt-0.5 block font-medium text-muted-foreground">
+                                  {lastUpdateWhen}
+                                </span>
+                              ) : null}
+                            </>
+                          ) : notificationsQuery.isError ? (
+                            "Updates unavailable"
+                          ) : (
+                            clientQuerySummary(
+                              notificationsQuery,
+                              "No recent update",
+                              "Loading updates…",
+                              "Updates unavailable",
+                            )
+                          )}
+                        </dd>
+                      </dl>
                     </div>
                   </div>
-                  <div className="client-home-matter-fact">
-                    <span className="client-home-matter-fact-icon" aria-hidden>
-                      <FileText className="size-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <dt>Last Update</dt>
-                      <dd>
-                        {lastUpdateTitle ? (
-                          <>
-                            {lastUpdateTitle}
-                            {lastUpdateWhen ? (
-                              <span className="mt-0.5 block font-medium text-muted-foreground">
-                                {lastUpdateWhen}
-                              </span>
-                            ) : null}
-                          </>
-                        ) : (
-                          "No recent update"
-                        )}
-                      </dd>
-                    </div>
+                  <div className="client-home-matter-actions">
+                    <DashboardButton asChild size="sm">
+                      <Link href={`/client/cases/${homeMatter._id}`}>
+                        View Matter Details <ArrowRight className="size-3.5" aria-hidden />
+                      </Link>
+                    </DashboardButton>
+                    <DashboardButton asChild size="sm" variant="secondary">
+                      <Link href="/client/messages">Message Your Legal Team</Link>
+                    </DashboardButton>
                   </div>
-                </dl>
-                <div className="client-home-matter-actions">
-                  <DashboardButton asChild size="sm">
-                    <Link href={`/client/cases/${homeMatter._id}`}>
-                      View Matter Details <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
-                  </DashboardButton>
-                  <DashboardButton asChild size="sm" variant="secondary">
-                    <Link href="/client/messages">Message Your Legal Team</Link>
-                  </DashboardButton>
-                </div>
-              </article>
-            ) : (
-              <ClientStatePanel
-                state="empty"
-                title="No matters yet"
-                description="When the firm opens a matter for you, it will appear here."
-                icon={FolderOpen}
-              />
-            )}
+                </article>
+              ) : (
+                <ClientStatePanel
+                  state="empty"
+                  title="No matters yet"
+                  description="When the firm opens a matter for you, it will appear here."
+                  icon={FolderOpen}
+                />
+              )}
+            </ClientQueryBoundary>
           </DashboardSection>
 
           <div className="client-home-lower">
@@ -544,29 +632,36 @@ export default function ClientDashboard() {
                 </DashboardButton>
               }
             >
-              {recentUpdates.length === 0 ? (
-                <ClientStatePanel
-                  state="empty"
-                  title="No recent updates"
-                  description="Updates about your matters will appear here."
-                  icon={FileText}
-                />
-              ) : (
-                <div>
-                  {recentUpdates.map((notification, index) => (
-                    <ClientTimelineItem
-                      key={notification._id ?? notification.id ?? `update-${index}`}
-                      title={conciseUpdateTitle(notification)}
-                      date={relativeTime(
-                        notification.createdAt ?? notification._creationTime ?? null,
-                      )}
-                      category={
-                        notificationCategory(notification.type) ?? conciseUpdateDetail(notification)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
+              <ClientQueryBoundary
+                query={notificationsQuery}
+                title="Unable to load recent updates"
+                loadingLabel="Loading recent updates…"
+              >
+                {recentUpdates.length === 0 ? (
+                  <ClientStatePanel
+                    state="empty"
+                    title="No recent updates"
+                    description="Updates about your matters will appear here."
+                    icon={FileText}
+                  />
+                ) : (
+                  <div>
+                    {recentUpdates.map((notification, index) => (
+                      <ClientTimelineItem
+                        key={notification._id ?? notification.id ?? `update-${index}`}
+                        title={conciseUpdateTitle(notification)}
+                        date={relativeTime(
+                          notification.createdAt ?? notification._creationTime ?? null,
+                        )}
+                        category={
+                          notificationCategory(notification.type) ??
+                          conciseUpdateDetail(notification)
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </ClientQueryBoundary>
             </DashboardSection>
 
             <DashboardSection
@@ -581,38 +676,50 @@ export default function ClientDashboard() {
                 </DashboardButton>
               }
             >
-              {recentDocuments.length === 0 ? (
-                <ClientStatePanel
-                  state="empty"
-                  title="No documents yet"
-                  description="Documents shared with you will appear here."
-                  icon={FileText}
-                />
-              ) : (
-                <div>
-                  {recentDocuments.map((doc) => {
-                    const pendingSignature = pendingSignatureIds.has(doc._id);
-                    const kind = fileKind(doc.type, doc.mimeType);
-                    return (
-                      <ClientDocumentItem
-                        key={doc._id}
-                        data-file-kind={kind}
-                        name={doc.title}
-                        fileType={kind === "file" ? undefined : kind.toUpperCase()}
-                        date={`Added ${relativeTime(doc.updatedAt ?? doc.createdAt ?? null)}`}
-                        status={pendingSignature ? "Awaiting signature" : undefined}
-                        statusTone={pendingSignature ? "warning" : "neutral"}
-                        icon={<FileText className="size-4" aria-hidden />}
-                        action={
-                          <DashboardButton asChild size="sm" variant="ghost">
-                            <Link href="/client/documents">View</Link>
-                          </DashboardButton>
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              )}
+              <ClientQueryBoundary
+                query={documentsQuery}
+                title="Unable to load documents"
+                loadingLabel="Loading documents…"
+              >
+                <ClientQueryBoundary
+                  query={casesQuery}
+                  title="Unable to load document matters"
+                  loadingLabel="Loading document matters..."
+                >
+                  {recentDocuments.length === 0 ? (
+                    <ClientStatePanel
+                      state="empty"
+                      title="No documents yet"
+                      description="Documents shared with you will appear here."
+                      icon={FileText}
+                    />
+                  ) : (
+                    <div>
+                      {recentDocuments.map((doc) => {
+                        const pendingSignature = pendingSignatureIds.has(doc._id);
+                        const kind = fileKind(doc.type, doc.mimeType);
+                        return (
+                          <ClientDocumentItem
+                            key={doc._id}
+                            data-file-kind={kind}
+                            name={doc.title}
+                            fileType={kind === "file" ? undefined : kind.toUpperCase()}
+                            date={`Added ${relativeTime(doc.updatedAt ?? doc.createdAt ?? null)}`}
+                            status={pendingSignature ? "Awaiting signature" : undefined}
+                            statusTone={pendingSignature ? "warning" : "neutral"}
+                            icon={<FileText className="size-4" aria-hidden />}
+                            action={
+                              <DashboardButton asChild size="sm" variant="ghost">
+                                <Link href="/client/documents">View</Link>
+                              </DashboardButton>
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </ClientQueryBoundary>
+              </ClientQueryBoundary>
             </DashboardSection>
           </div>
         </div>
@@ -630,73 +737,87 @@ export default function ClientDashboard() {
               </DashboardButton>
             }
           >
-            {nextHearing ? (
-              <article className="client-home-hearing-card">
-                <div className="client-home-hearing-date">
-                  {nextHearingParts ? (
-                    <>
-                      <span className="client-home-hearing-day">{nextHearingParts.day}</span>
-                      <span className="client-home-hearing-month">{nextHearingParts.month}</span>
-                      <span className="client-home-hearing-year">{nextHearingParts.year}</span>
-                    </>
-                  ) : (
-                    (formatHearingDate(nextHearing.dateGregorian) ?? nextHearing.dateGregorian)
-                  )}
-                </div>
-                <div className="client-home-hearing-lines">
-                  {nextHearing.court ? (
-                    <p className="client-home-hearing-line">
-                      <Building2 aria-hidden />
-                      <span>{nextHearing.court}</span>
-                    </p>
-                  ) : null}
-                  {nextHearing.time ? (
-                    <p className="client-home-hearing-line">
-                      <Clock aria-hidden />
-                      <span>{formatHearingTime(nextHearing.time) ?? nextHearing.time}</span>
-                    </p>
-                  ) : null}
-                  {nextHearing.purpose ? (
-                    <p className="client-home-hearing-line">
-                      <MapPin aria-hidden />
-                      <span>{nextHearing.purpose}</span>
-                    </p>
-                  ) : null}
-                  {nextHearingMatter?.title ? (
-                    <p className="client-home-hearing-line">
-                      <FolderOpen aria-hidden />
-                      <span>{nextHearingMatter.title}</span>
-                    </p>
-                  ) : null}
-                  <div>
-                    <DashboardButton
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        downloadHearingIcs({
-                          id: nextHearing._id,
-                          title: nextHearingMatter?.title ?? "Hearing",
-                          court: nextHearing.court,
-                          purpose: nextHearing.purpose,
-                          dateGregorian: nextHearing.dateGregorian,
-                          time: nextHearing.time,
-                        })
-                      }
-                    >
-                      Add to Calendar
-                    </DashboardButton>
-                  </div>
-                </div>
-              </article>
-            ) : (
-              <ClientStatePanel
-                state="empty"
-                title="No upcoming hearing"
-                description="Scheduled court appearances for your matters will appear here."
-                icon={Scale}
-              />
-            )}
+            <ClientQueryBoundary
+              query={hearingsQuery}
+              title="Unable to load upcoming hearings"
+              loadingLabel="Loading upcoming hearings…"
+            >
+              <ClientQueryBoundary
+                query={casesQuery}
+                title="Unable to load hearing matters"
+                loadingLabel="Loading hearing matters…"
+              >
+                {nextHearing ? (
+                  <article className="client-home-hearing-card">
+                    <div className="client-home-hearing-date">
+                      {nextHearingParts ? (
+                        <>
+                          <span className="client-home-hearing-day">{nextHearingParts.day}</span>
+                          <span className="client-home-hearing-month">
+                            {nextHearingParts.month}
+                          </span>
+                          <span className="client-home-hearing-year">{nextHearingParts.year}</span>
+                        </>
+                      ) : (
+                        (formatHearingDate(nextHearing.dateGregorian) ?? nextHearing.dateGregorian)
+                      )}
+                    </div>
+                    <div className="client-home-hearing-lines">
+                      {nextHearing.court ? (
+                        <p className="client-home-hearing-line">
+                          <Building2 aria-hidden />
+                          <span>{nextHearing.court}</span>
+                        </p>
+                      ) : null}
+                      {nextHearing.time ? (
+                        <p className="client-home-hearing-line">
+                          <Clock aria-hidden />
+                          <span>{formatHearingTime(nextHearing.time) ?? nextHearing.time}</span>
+                        </p>
+                      ) : null}
+                      {nextHearing.purpose ? (
+                        <p className="client-home-hearing-line">
+                          <MapPin aria-hidden />
+                          <span>{nextHearing.purpose}</span>
+                        </p>
+                      ) : null}
+                      {nextHearingMatter?.title ? (
+                        <p className="client-home-hearing-line">
+                          <FolderOpen aria-hidden />
+                          <span>{nextHearingMatter.title}</span>
+                        </p>
+                      ) : null}
+                      <div>
+                        <DashboardButton
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            downloadHearingIcs({
+                              id: nextHearing._id,
+                              title: nextHearingMatter?.title ?? "Hearing",
+                              court: nextHearing.court,
+                              purpose: nextHearing.purpose,
+                              dateGregorian: nextHearing.dateGregorian,
+                              time: nextHearing.time,
+                            })
+                          }
+                        >
+                          Add to Calendar
+                        </DashboardButton>
+                      </div>
+                    </div>
+                  </article>
+                ) : (
+                  <ClientStatePanel
+                    state="empty"
+                    title="No upcoming hearing"
+                    description="Scheduled court appearances for your matters will appear here."
+                    icon={Scale}
+                  />
+                )}
+              </ClientQueryBoundary>
+            </ClientQueryBoundary>
           </DashboardSection>
 
           <DashboardSection className="client-home-actions" density="compact" title="Quick Actions">

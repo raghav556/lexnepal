@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ClientQueryBoundary,
+  clientQueryHasData,
+  clientQuerySummary,
+} from "@/components/dashboard/client-query-boundary";
+
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -18,12 +24,13 @@ import { toast } from "sonner";
 import { useNotifications, useNotificationCommands } from "@/client/queries/communication";
 import { useAppointments } from "@/client/queries/crm";
 import { useHearingsQuery } from "@/client/queries/hearings";
-import { useMyClient } from "@/client/queries/clients";
+import { useMyClientQuery } from "@/client/queries/clients";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatAppointmentDate } from "@/shared/crm/appointment-dates";
 import { safeNotificationPath } from "@/shared/notification-links";
 import {
   ClientPanel,
+  ClientQueryError,
   DashboardButton,
   DashboardListSkeleton,
   PortalPageShell,
@@ -92,7 +99,8 @@ function formatHearingTime(value?: string | null): string | null {
 
 export default function ClientNotificationsPage() {
   const currentUser = useCurrentUser();
-  const clientRecord = useMyClient();
+  const clientQuery = useMyClientQuery();
+  const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const notificationQuery = useNotifications();
   const hearingsQuery = useHearingsQuery(clientRecord ? {} : "skip");
   const appointmentsQuery = useAppointments({});
@@ -110,9 +118,9 @@ export default function ClientNotificationsPage() {
     appointmentsQuery.data as ClientImportantAppointment[],
     now,
   );
-  const datesLoading =
-    clientRecord === undefined || hearingsQuery.isLoading || appointmentsQuery.isLoading;
-  const datesError = hearingsQuery.isError || appointmentsQuery.isError;
+  const hearingDatesAvailable =
+    Boolean(clientRecord) && !clientQuery.isError && clientQueryHasData(hearingsQuery);
+  const appointmentDatesAvailable = clientQueryHasData(appointmentsQuery);
   const shellProps = {
     portal: "client" as const,
     decorated: true,
@@ -175,18 +183,25 @@ export default function ClientNotificationsPage() {
         ) : undefined
       }
     >
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] lg:items-start">
+      <div className="client-notifications-layout grid min-w-0 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] lg:items-start">
         <ClientPanel className="min-w-0 overflow-hidden !p-0">
           <div className="border-b border-dashboard-border px-4 py-3 sm:px-5">
             <p className="text-sm text-muted-foreground" role="status">
-              {notificationQuery.isLoading
-                ? "Loading recent notifications…"
-                : `${unreadCount} unread in your recent notifications`}
+              {clientQuerySummary(
+                notificationQuery,
+                `${unreadCount} unread in your recent notifications`,
+                "Loading recent notifications…",
+                "Unread notification count unavailable",
+              )}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Your recent feed shows up to 50 notifications.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2" aria-label="Notification filters">
+            <div
+              className="mt-3 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Notification filters"
+            >
               {categories.map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
@@ -220,120 +235,126 @@ export default function ClientNotificationsPage() {
             </div>
           </div>
 
-          {notificationQuery.isLoading ? (
-            <div className="p-4" aria-label="Loading notifications">
-              <DashboardListSkeleton rows={4} />
-            </div>
-          ) : notificationQuery.isError ? (
-            <div className="p-5" role="alert">
-              <h2 className="text-base font-semibold">Notifications could not be loaded</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Please try again.</p>
-              <DashboardButton
-                className="mt-4"
-                variant="outline"
-                size="sm"
-                onClick={() => void notificationQuery.refetch()}
-              >
-                Retry
-              </DashboardButton>
-            </div>
-          ) : notifications.length === 0 || filtered.length === 0 ? (
-            <div className="px-5 py-12 text-center" role="status">
-              <Inbox className="mx-auto size-8 text-muted-foreground" aria-hidden />
-              <h2 className="mt-3 text-base font-semibold">{emptyFilterCopy[category]}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {notifications.length === 0
-                  ? "Updates from your legal team will appear here."
-                  : "Try another filter to see your recent notifications."}
-              </p>
-            </div>
-          ) : (
-            <section aria-label="Recent notifications">
-              {groups.map((group) => (
-                <div key={group.heading}>
-                  <h2 className="border-b border-dashboard-border bg-dashboard-neutral-soft px-4 py-2 text-sm font-semibold sm:px-5">
-                    {group.heading}
-                  </h2>
-                  <ul>
-                    {group.items.map((item) => {
-                      const Icon = notificationIcons[item.type] ?? Bell;
-                      const destination = safeNotificationPath(item.link, currentUser.role);
-                      const interactive = !item.isRead || Boolean(destination);
-                      const content = (
-                        <>
-                          <span
-                            className={cn(
-                              "flex size-10 shrink-0 items-center justify-center rounded-lg",
-                              notificationTones[item.type] ?? notificationTones.system,
-                            )}
-                          >
-                            <Icon className="size-5" aria-hidden />
-                          </span>
-                          <span className="flex min-w-0 flex-1 flex-col gap-1 [overflow-wrap:anywhere] sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                            <span className="min-w-0">
-                              <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
-                                {item.title || "Notification"}
-                                {!item.isRead ? (
-                                  <span className="rounded bg-dashboard-primary-soft px-1.5 py-0.5 text-[11px] font-semibold text-dashboard-primary">
-                                    Unread
+          <ClientQueryBoundary
+            query={notificationQuery}
+            title="Unable to load notifications"
+            loadingLabel="Loading recent notifications…"
+          >
+            {!clientQueryHasData(notificationQuery) && notificationQuery.isLoading ? (
+              <div className="p-4" aria-label="Loading notifications">
+                <DashboardListSkeleton rows={4} />
+              </div>
+            ) : !clientQueryHasData(notificationQuery) && notificationQuery.isError ? (
+              <div className="p-5" role="alert">
+                <h2 className="text-base font-semibold">Notifications could not be loaded</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Please try again.</p>
+                <DashboardButton
+                  className="mt-4"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void notificationQuery.refetch()}
+                >
+                  Retry
+                </DashboardButton>
+              </div>
+            ) : notifications.length === 0 || filtered.length === 0 ? (
+              <div className="px-5 py-12 text-center" role="status">
+                <Inbox className="mx-auto size-8 text-muted-foreground" aria-hidden />
+                <h2 className="mt-3 text-base font-semibold">{emptyFilterCopy[category]}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {notifications.length === 0
+                    ? "Updates from your legal team will appear here."
+                    : "Try another filter to see your recent notifications."}
+                </p>
+              </div>
+            ) : (
+              <section aria-label="Recent notifications">
+                {groups.map((group) => (
+                  <div key={group.heading}>
+                    <h2 className="border-b border-dashboard-border bg-dashboard-neutral-soft px-4 py-2 text-sm font-semibold sm:px-5">
+                      {group.heading}
+                    </h2>
+                    <ul>
+                      {group.items.map((item) => {
+                        const Icon = notificationIcons[item.type] ?? Bell;
+                        const destination = safeNotificationPath(item.link, currentUser.role);
+                        const interactive = !item.isRead || Boolean(destination);
+                        const content = (
+                          <>
+                            <span
+                              className={cn(
+                                "flex size-10 shrink-0 items-center justify-center rounded-lg",
+                                notificationTones[item.type] ?? notificationTones.system,
+                              )}
+                            >
+                              <Icon className="size-5" aria-hidden />
+                            </span>
+                            <span className="flex min-w-0 flex-1 flex-col gap-1 [overflow-wrap:anywhere] sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                              <span className="min-w-0">
+                                <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                                  {item.title || "Notification"}
+                                  {!item.isRead ? (
+                                    <span className="rounded bg-dashboard-primary-soft px-1.5 py-0.5 text-[11px] font-semibold text-dashboard-primary">
+                                      Unread
+                                    </span>
+                                  ) : null}
+                                </span>
+                                {item.body ? (
+                                  <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                                    {item.body}
                                   </span>
                                 ) : null}
                               </span>
-                              {item.body ? (
-                                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
-                                  {item.body}
-                                </span>
-                              ) : null}
+                              <time
+                                dateTime={item.createdAt}
+                                className="block shrink-0 text-xs text-muted-foreground sm:whitespace-nowrap"
+                                suppressHydrationWarning
+                              >
+                                {formatNotificationTime(item.createdAt, group.heading)}
+                              </time>
                             </span>
-                            <time
-                              dateTime={item.createdAt}
-                              className="block shrink-0 text-xs text-muted-foreground sm:whitespace-nowrap"
-                              suppressHydrationWarning
-                            >
-                              {formatNotificationTime(item.createdAt, group.heading)}
-                            </time>
-                          </span>
-                          {pendingId === item.id ? (
-                            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                          ) : destination ? (
-                            <ChevronRight
-                              className="size-4 shrink-0 text-muted-foreground"
-                              aria-hidden
-                            />
-                          ) : null}
-                        </>
-                      );
-                      return (
-                        <li
-                          key={item.id}
-                          className="border-b border-dashboard-border last:border-b-0"
-                        >
-                          {interactive ? (
-                            <button
-                              type="button"
-                              disabled={pendingId !== null || markAllRead.isPending}
-                              aria-busy={pendingId === item.id}
-                              onClick={() => void activateNotification(item, destination)}
-                              className={cn(
-                                "flex w-full min-w-0 items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-dashboard-panel-hover focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-dashboard-focus sm:px-5",
-                                !item.isRead && "bg-dashboard-primary-soft/30",
-                              )}
-                            >
-                              {content}
-                            </button>
-                          ) : (
-                            <div className="flex min-w-0 items-start gap-3 px-4 py-3 sm:px-5">
-                              {content}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-            </section>
-          )}
+                            {pendingId === item.id ? (
+                              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                            ) : destination ? (
+                              <ChevronRight
+                                className="size-4 shrink-0 text-muted-foreground"
+                                aria-hidden
+                              />
+                            ) : null}
+                          </>
+                        );
+                        return (
+                          <li
+                            key={item.id}
+                            className="border-b border-dashboard-border last:border-b-0"
+                          >
+                            {interactive ? (
+                              <button
+                                type="button"
+                                disabled={pendingId !== null || markAllRead.isPending}
+                                aria-busy={pendingId === item.id}
+                                onClick={() => void activateNotification(item, destination)}
+                                className={cn(
+                                  "flex w-full min-w-0 items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-dashboard-panel-hover focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-dashboard-focus sm:px-5",
+                                  !item.isRead && "bg-dashboard-primary-soft/30",
+                                )}
+                              >
+                                {content}
+                              </button>
+                            ) : (
+                              <div className="flex min-w-0 items-start gap-3 px-4 py-3 sm:px-5">
+                                {content}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            )}
+          </ClientQueryBoundary>
         </ClientPanel>
 
         <aside className="min-w-0 space-y-4" aria-label="Notification context">
@@ -342,19 +363,39 @@ export default function ClientNotificationsPage() {
               <CalendarDays className="size-5 text-dashboard-primary" aria-hidden />
               Important Dates
             </h2>
-            {datesError ? (
-              <p className="mt-4 text-sm text-muted-foreground" role="status">
-                Important dates are unavailable right now.
+            {clientQuery.isError ? (
+              <ClientQueryError
+                title="Unable to load your client profile"
+                onRetry={() => {
+                  void clientQuery.refetch();
+                }}
+                retrying={clientQuery.isFetching}
+              />
+            ) : clientRecord === undefined ? (
+              <p role="status" className="mt-4 text-sm text-muted-foreground">
+                Loading hearing profile...
               </p>
-            ) : datesLoading ? (
-              <p className="mt-4 text-sm text-muted-foreground" role="status">
-                Loading important dates…
-              </p>
-            ) : !nextHearing && !nextAppointment ? (
-              <p className="mt-4 text-sm text-muted-foreground">No upcoming important dates.</p>
+            ) : clientRecord ? (
+              <ClientQueryBoundary
+                query={hearingsQuery}
+                title="Unable to load hearing dates"
+                loadingLabel="Loading hearing dates..."
+              >
+                {null}
+              </ClientQueryBoundary>
             ) : (
-              <ul className="mt-3 divide-y divide-dashboard-border">
-                {nextHearing ? (
+              <p>No linked client profile for hearing dates.</p>
+            )}
+            <ClientQueryBoundary
+              query={appointmentsQuery}
+              title="Unable to load appointment dates"
+              loadingLabel="Loading appointment dates…"
+            >
+              {null}
+            </ClientQueryBoundary>
+            <ul className="mt-3 divide-y divide-dashboard-border">
+              {hearingDatesAvailable ? (
+                nextHearing ? (
                   <li className="py-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-dashboard-primary">
                       Next hearing
@@ -373,8 +414,10 @@ export default function ClientNotificationsPage() {
                       View hearings <ArrowRight className="size-4" aria-hidden />
                     </Link>
                   </li>
-                ) : null}
-                {nextAppointment ? (
+                ) : null
+              ) : null}
+              {appointmentDatesAvailable ? (
+                nextAppointment ? (
                   <li className="py-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-dashboard-primary">
                       Next confirmed appointment
@@ -392,9 +435,15 @@ export default function ClientNotificationsPage() {
                       View appointments <ArrowRight className="size-4" aria-hidden />
                     </Link>
                   </li>
-                ) : null}
-              </ul>
-            )}
+                ) : null
+              ) : null}
+            </ul>
+            {hearingDatesAvailable &&
+            appointmentDatesAvailable &&
+            !nextHearing &&
+            !nextAppointment ? (
+              <p className="mt-4 text-sm text-muted-foreground">No upcoming important dates.</p>
+            ) : null}
           </ClientPanel>
           <ClientPanel variant="soft" className="min-w-0">
             <h2 className="text-base font-semibold">Need help?</h2>

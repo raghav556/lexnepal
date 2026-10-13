@@ -33,8 +33,11 @@ test.describe("CUI-06 client my matters", () => {
     await expect(page.getByLabel("Search matters")).toBeVisible();
     await expect(page.getByLabel("Matter Type")).toBeVisible();
     await expect(page.getByLabel("Status")).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Cards" })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("tab", { name: "Table" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cards" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.getByRole("button", { name: "Table" })).toBeVisible();
     await expect(page.getByText("Sharma vs. ABC Construction Pvt. Ltd.").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Next Important Date" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Action Checklist" })).toBeVisible();
@@ -109,10 +112,13 @@ test.describe("CUI-06 client my matters", () => {
     ).toHaveCount(0);
     await page.getByRole("button", { name: /All Matters,/ }).click();
 
-    await page.getByRole("tab", { name: "Table" }).click();
+    await page.getByRole("button", { name: "Table" }).click();
     await expect(page.getByRole("columnheader", { name: "Matter Number" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Table" })).toHaveAttribute("aria-selected", "true");
-    await page.getByRole("tab", { name: "Cards" }).click();
+    await expect(page.getByRole("button", { name: "Table" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: "Cards" }).click();
 
     const viewMatter = page.getByRole("link", { name: /View Matter Details/i }).first();
     await expect(viewMatter).toHaveAttribute("href", /\/client\/cases\//);
