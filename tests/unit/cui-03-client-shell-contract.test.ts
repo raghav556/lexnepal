@@ -150,7 +150,7 @@ describe("CUI-03 client shell contract", () => {
     expect(staff).toMatch(/onOpenCommandCenter/);
   });
 
-  it("removes unsupported Client footer claims while leaving Staff/Admin copy", () => {
+  it("preserves Client legal copy and excludes unsupported operational footer claims", () => {
     const footer = readSrc("src/components/dashboard/portal-footer.tsx");
     const clientStart = footer.indexOf("if (isClient)");
     const staffStart = footer.lastIndexOf("return (");
@@ -158,7 +158,12 @@ describe("CUI-03 client shell contract", () => {
     for (const claim of CLIENT_UNSUPPORTED_FOOTER_CLAIMS) {
       expect(clientBranch).not.toMatch(new RegExp(claim, "i"));
     }
-    expect(footer).toMatch(/256-bit AES Encrypted/);
+    // Staff/Admin claims were subsequently verified as unsupported static copy.
+    // Keep the frozen Client guarantees and prevent these claims in either branch.
+    const operationalBranch = footer.slice(staffStart);
+    for (const claim of CLIENT_UNSUPPORTED_FOOTER_CLAIMS) {
+      expect(operationalBranch).not.toMatch(new RegExp(claim, "i"));
+    }
     expect(footer).toMatch(/Privacy Policy/);
     expect(footer).toMatch(/Terms of Service/);
     expect(footer).toMatch(/Contact Us/);

@@ -1,20 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   ArrowRight,
   CalendarDays,
-  CalendarPlus,
   CheckSquare,
   FileText,
   FolderOpen,
   MessageSquare,
   MessagesSquare,
-  Sparkles,
-  Upload,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { Link } from "@/client/navigation";
@@ -39,13 +34,10 @@ import {
   DashboardTableHeaderCell,
   DashboardTableRow,
   EmptyState,
-  HeroHealthChip,
-  HeroStatChip,
   PortalPageShell,
-  STAFF_HERO_OUTLINE_BUTTON_CLASS,
-  StaffHeroChipRow,
   ScheduleTimeline,
   StatusBadge,
+  usePortalBranding,
 } from "@/components/dashboard";
 import {
   DASHBOARD_METRIC_TONES,
@@ -110,27 +102,36 @@ function initialsOf(name: string): string {
 function DashboardLoadingSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading dashboard">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="staff-home-kpis" aria-hidden>
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="h-32 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel"
+            className="h-36 animate-pulse rounded-xl border border-dashboard-border bg-dashboard-panel"
           />
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="h-72 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel xl:col-span-2" />
-        <div className="h-72 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel" />
+      <div className="staff-home-workspace" aria-hidden>
+        <div className="h-80 animate-pulse rounded-xl border border-dashboard-border bg-dashboard-panel" />
+        <div className="h-80 animate-pulse rounded-xl border border-dashboard-border bg-dashboard-panel" />
       </div>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="h-64 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel" />
-        <div className="h-64 animate-pulse rounded-2xl border border-dashboard-border bg-dashboard-panel" />
+      <div className="staff-home-matters" aria-hidden>
+        <div className="h-64 animate-pulse rounded-xl border border-dashboard-border bg-dashboard-panel" />
+        <div className="h-64 animate-pulse rounded-xl border border-dashboard-border bg-dashboard-panel" />
+      </div>
+      <div className="staff-home-support" aria-hidden>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-64 animate-pulse rounded-xl border border-dashboard-border bg-dashboard-panel"
+          />
+        ))}
       </div>
     </div>
   );
 }
 
 export default function StaffDashboard() {
+  const { heroImageUrl } = usePortalBranding();
   const currentUser = useCurrentUser();
   const casesResult = useCases({});
   const hearingsResult = useHearings({});
@@ -319,25 +320,25 @@ export default function StaffDashboard() {
   const upcomingHearings = scheduledHearings.slice(0, 4);
 
   const quickActions = [
-    { href: "/staff/tasks", icon: CheckSquare, label: "New task", description: "Create a task" },
+    { href: "/staff/tasks", icon: CheckSquare, label: "Tasks", description: "Open the task board" },
     {
       href: "/staff/hearings",
-      icon: CalendarPlus,
-      label: "Add hearing",
-      description: "Schedule a hearing",
+      icon: CalendarDays,
+      label: "Hearings",
+      description: "Open the hearing schedule",
     },
     {
       href: "/staff/documents",
-      icon: Upload,
-      label: "Upload document",
-      description: "Add to matter",
+      icon: FileText,
+      label: "Documents",
+      description: "Open matter documents",
     },
-    { href: "/staff/clients", icon: UserPlus, label: "Add client", description: "Create client" },
+    { href: "/staff/clients", icon: Users, label: "Clients", description: "Open client records" },
     {
       href: "/staff/appointments",
       icon: CalendarDays,
-      label: "Book meeting",
-      description: "Schedule appointment",
+      label: "Appointments",
+      description: "Open appointments",
     },
     {
       href: "/staff/research",
@@ -350,60 +351,46 @@ export default function StaffDashboard() {
   return (
     <PortalPageShell
       portal="staff"
-      title={firstName ? `Good ${dayPart}, ${firstName}` : `Good ${dayPart}`}
-      description="A focused view of hearings, deadlines, cases, and team capacity."
-      icon={Sparkles}
-      actions={
+      className="staff-dashboard-home"
+      heroClassName="staff-home-welcome"
+      title={
         <>
-          <DashboardButton asChild size="sm" variant="primary">
-            <Link href="/staff/tasks">
-              Review today&apos;s work <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </DashboardButton>
-          <DashboardButton
-            asChild
-            size="sm"
-            variant="outline"
-            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
-          >
-            <Link href="/staff/hearings">Hearings</Link>
-          </DashboardButton>
+          <span className="staff-home-greeting">
+            Good {dayPart}
+            {firstName ? "," : ""}
+          </span>
+          {firstName ? ` ${firstName}` : null}
         </>
       }
+      description="Your schedule, priorities and matters, together in one workspace."
       heroChildren={
-        <StaffHeroChipRow>
-          <HeroHealthChip
-            healthy={!urgentPending && overdueCount === 0}
-            overdueCount={overdueCount}
-          />
-          <HeroStatChip
-            href="/staff/hearings"
-            icon={CalendarDays}
-            value={hearingsTodayCount}
-            label="hearings today"
-          />
-          <HeroStatChip
-            href="/staff/tasks"
-            icon={CheckSquare}
-            value={dueTodayCount}
-            label="tasks due today"
-          />
-          <HeroStatChip
-            href="/staff/messages"
-            icon={MessageSquare}
-            value={unreadTotal}
-            label="unread messages"
-          />
-        </StaffHeroChipRow>
+        <span
+          aria-hidden
+          className="staff-home-hero-art"
+          style={
+            heroImageUrl
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
+              : undefined
+          }
+        />
+      }
+      actions={
+        <DashboardButton asChild variant="primary">
+          <Link href="/staff/tasks">
+            Review today&apos;s work <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </DashboardButton>
       }
     >
       {isLoading ? (
         <DashboardLoadingSkeleton />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => {
-              const card = (
+          <div className="staff-home-kpis">
+            {metrics.map((metric) => (
+              <Link key={metric.label} href={metric.href} className="staff-home-metric-link">
                 <MetricCard
                   label={metric.label}
                   value={metric.value}
@@ -411,364 +398,332 @@ export default function StaffDashboard() {
                   tone={metric.tone}
                   helperText={metric.helper}
                   density="compact"
-                  chevron={Boolean(metric.href)}
-                  className={cn(
-                    "h-full card-micro-lift",
-                    metric.href &&
-                      "transition-all group-hover:border-dashboard-primary/50 group-hover:shadow-md",
-                  )}
+                  chevron
+                  className="h-full"
                 />
-              );
-              return metric.href ? (
-                <Link
-                  key={metric.label}
-                  href={metric.href}
-                  className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
-                >
-                  {card}
-                </Link>
-              ) : (
-                <div key={metric.label}>{card}</div>
-              );
-            })}
-          </div>
-
-          <nav aria-label="Quick actions" className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Quick actions
-            </span>
-            {quickActions.map((action) => (
-              <Link
-                key={action.href + action.label}
-                href={action.href}
-                title={action.description}
-                className="group inline-flex items-center gap-2 rounded-full border border-dashboard-border bg-dashboard-panel px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-dashboard-primary/40 hover:text-dashboard-primary hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-canvas"
-              >
-                <action.icon
-                  className="size-3.5 text-dashboard-primary transition-transform group-hover:scale-110"
-                  aria-hidden
-                />
-                {action.label}
               </Link>
             ))}
-          </nav>
-
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="min-w-0 space-y-6 xl:col-span-2">
-              <DashboardSection
-                density="compact"
-                className="card-micro-lift"
-                title="My Day"
-                description="Today's hearings and appointments, in order"
-                icon={CalendarDays}
-                actions={
-                  <DashboardButton asChild variant="ghost" size="sm">
-                    <Link href="/staff/appointments">
-                      View calendar <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
-                  </DashboardButton>
-                }
-              >
-                {myDay.length === 0 ? (
-                  <EmptyState
-                    title="Nothing scheduled today"
-                    description="Hearings and appointments for today will appear here."
-                    icon={CalendarDays}
-                    tone="neutral"
-                    action={
-                      <DashboardButton asChild variant="secondary" size="sm">
-                        <Link href="/staff/appointments">Book appointment</Link>
-                      </DashboardButton>
-                    }
-                  />
-                ) : (
-                  <ScheduleTimeline entries={myDay} />
-                )}
-              </DashboardSection>
-
-              <DashboardSection
-                density="compact"
-                className="card-micro-lift"
-                title="My Cases"
-                description="Active matters and their next court dates"
-                icon={FolderOpen}
-                actions={
-                  <DashboardButton asChild variant="ghost" size="sm">
-                    <Link href="/staff/cases">
-                      View All <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
-                  </DashboardButton>
-                }
-              >
-                {activeCases.length === 0 ? (
-                  <EmptyState
-                    title="No active matters"
-                    description="Cases assigned to you will appear here."
-                    icon={FolderOpen}
-                    tone="neutral"
-                    action={
-                      <DashboardButton asChild variant="secondary" size="sm">
-                        <Link href="/staff/cases">Open cases</Link>
-                      </DashboardButton>
-                    }
-                  />
-                ) : (
-                  <DashboardTable>
-                    <DashboardTableHead>
-                      <tr>
-                        <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
-                        <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
-                        <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-                        <DashboardTableHeaderCell>Next hearing</DashboardTableHeaderCell>
-                      </tr>
-                    </DashboardTableHead>
-                    <DashboardTableBody>
-                      {activeCases.slice(0, 5).map((item) => {
-                        const nextHearing = nextHearingByCase.get(item._id);
-                        return (
-                          <DashboardTableRow key={item._id}>
-                            <DashboardTableCell>
-                              <span className="block text-xs font-medium tabular-nums text-muted-foreground">
-                                {item.caseNumber}
-                              </span>
-                              <Link
-                                href={`/staff/cases/${item._id}`}
-                                className="block max-w-[16rem] truncate text-sm font-semibold text-foreground hover:text-dashboard-primary"
-                              >
-                                {item.title}
-                              </Link>
-                            </DashboardTableCell>
-                            <DashboardTableCell>
-                              <span className="block max-w-[10rem] truncate text-sm">
-                                {clientNameById.get(item.clientId) ?? "Client record"}
-                              </span>
-                            </DashboardTableCell>
-                            <DashboardTableCell>
-                              <StatusBadge tone={getDashboardStatusTone(item.status)}>
-                                {item.status}
-                              </StatusBadge>
-                            </DashboardTableCell>
-                            <DashboardTableCell>
-                              {nextHearing ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {nextHearing.dateBs}
-                                  <span className="block">{nextHearing.court}</span>
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </DashboardTableCell>
-                          </DashboardTableRow>
-                        );
-                      })}
-                    </DashboardTableBody>
-                  </DashboardTable>
-                )}
-              </DashboardSection>
-            </div>
-
-            <div className="min-w-0 space-y-6">
-              <DashboardSection
-                density="compact"
-                className="card-micro-lift"
-                title="Priority Tasks"
-                description="Ordered by urgency and due date"
-                icon={CheckSquare}
-                actions={
-                  <DashboardButton asChild variant="ghost" size="sm">
-                    <Link href="/staff/tasks">
-                      View All <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
-                  </DashboardButton>
-                }
-              >
-                {priorityTasks.length === 0 ? (
-                  <EmptyState
-                    title="No pending tasks"
-                    description="Your active task queue is clear."
-                    icon={CheckSquare}
-                    tone="success"
-                    action={
-                      <DashboardButton asChild variant="secondary" size="sm">
-                        <Link href="/staff/tasks">Create task</Link>
-                      </DashboardButton>
-                    }
-                  />
-                ) : (
-                  <div className="space-y-3">
-                    {priorityTasks.map((task) => {
-                      const tone = getDashboardStatusTone(task.priority);
-                      const due = (task as { dueDate?: string | null }).dueDate;
-                      const dueIso = due?.slice(0, 10);
-                      const dueBadge =
-                        dueIso && dueIso < todayIso ? (
-                          <StatusBadge tone="danger">Overdue</StatusBadge>
-                        ) : dueIso === todayIso ? (
-                          <StatusBadge tone="warning">Due today</StatusBadge>
-                        ) : (
-                          <StatusBadge tone={tone} className="uppercase">
-                            {task.priority}
-                          </StatusBadge>
-                        );
-                      return (
-                        <DashboardListRow key={task._id}>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-foreground">
-                              {task.title}
-                            </p>
-                            <p className="mt-1 truncate text-xs text-muted-foreground">
-                              {task.caseId
-                                ? (caseTitleById.get(task.caseId) ?? "Matter")
-                                : "No matter linked"}
-                              {dueIso ? ` · Due ${dueIso}` : ""}
-                            </p>
-                          </div>
-                          {dueBadge}
-                        </DashboardListRow>
-                      );
-                    })}
-                  </div>
-                )}
-              </DashboardSection>
-
-              <DashboardSection
-                density="compact"
-                className="card-micro-lift"
-                title="Upcoming Hearings"
-                description="Next court commitments"
-                icon={CalendarDays}
-                actions={
-                  <DashboardButton asChild variant="ghost" size="sm">
-                    <Link href="/staff/hearings">
-                      View All <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
-                  </DashboardButton>
-                }
-              >
-                {upcomingHearings.length === 0 ? (
-                  <EmptyState
-                    title="No upcoming hearings"
-                    description="New scheduled court hearings will appear here."
-                    icon={CalendarDays}
-                    tone="neutral"
-                    action={
-                      <DashboardButton asChild variant="secondary" size="sm">
-                        <Link href="/staff/hearings">Add hearing</Link>
-                      </DashboardButton>
-                    }
-                  />
-                ) : (
-                  <div className="space-y-3">
-                    {upcomingHearings.map((hearing) => {
-                      const urgent = hearing.purpose?.toLowerCase().includes("final") || false;
-                      const dateParts = hearing.dateBs.split(" ");
-                      return (
-                        <div
-                          key={hearing._id}
-                          className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3.5 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
-                        >
-                          <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary">
-                            <span className="text-xs font-bold leading-none">
-                              {dateParts[0] || "Court"}
-                            </span>
-                            <span className="mt-1 text-[10px] leading-none opacity-80">
-                              {dateParts[1] || ""}
-                            </span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-foreground">
-                              {caseTitleById.get(hearing.caseId) ?? "Matter hearing"}
-                            </p>
-                            <p className="mt-1 truncate text-xs text-muted-foreground">
-                              {hearing.court}
-                              {hearing.time ? ` · ${hearing.time}` : ""}
-                            </p>
-                          </div>
-                          {urgent ? (
-                            <StatusBadge tone="danger" icon={AlertTriangle}>
-                              Urgent
-                            </StatusBadge>
-                          ) : (
-                            <StatusBadge tone="warning">Scheduled</StatusBadge>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </DashboardSection>
-
-              <DashboardSection
-                density="compact"
-                className="card-micro-lift"
-                title="Messages & Team Updates"
-                description="Latest from your team"
-                icon={MessagesSquare}
-                actions={
-                  <DashboardButton asChild variant="ghost" size="sm">
-                    <Link href="/staff/team-chat">
-                      View All <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
-                  </DashboardButton>
-                }
-              >
-                {dmThreads.length === 0 ? (
-                  <EmptyState
-                    title="No team messages yet"
-                    description="Direct messages from colleagues will appear here."
-                    icon={MessagesSquare}
-                    tone="neutral"
-                    action={
-                      <DashboardButton asChild variant="secondary" size="sm">
-                        <Link href="/staff/team-chat">Open team chat</Link>
-                      </DashboardButton>
-                    }
-                  />
-                ) : (
-                  <div className="space-y-3">
-                    {dmThreads.slice(0, 5).map((thread) => (
-                      <div
-                        key={thread._id}
-                        className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
-                      >
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashboard-sidebar-border bg-dashboard-sidebar-active text-xs font-bold text-dashboard-sidebar-active-foreground">
-                          {initialsOf(thread.peerName)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-semibold text-foreground">
-                              {thread.peerName}
-                            </p>
-                            <span className="shrink-0 text-[10px] text-muted-foreground">
-                              {relativeTime(thread.lastMessageAt)}
-                            </span>
-                          </div>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {thread.lastMessage?.content ?? "No messages yet"}
-                          </p>
-                        </div>
-                        {thread.unreadCount ? (
-                          <StatusBadge tone="information">{thread.unreadCount} new</StatusBadge>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </DashboardSection>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="staff-home-workspace">
             <DashboardSection
               density="compact"
-              className="card-micro-lift"
+              className="staff-home-day"
+              title="My Day"
+              description="Today's hearings and appointments, in order"
+              icon={CalendarDays}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/appointments">
+                    Appointments <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {myDay.length === 0 ? (
+                <EmptyState
+                  title="Nothing scheduled today"
+                  description="Hearings and appointments for today will appear here."
+                  icon={CalendarDays}
+                  tone="neutral"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/appointments">Open appointments</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <ScheduleTimeline entries={myDay} />
+              )}
+            </DashboardSection>
+            <DashboardSection
+              density="compact"
+              className="staff-home-priorities"
+              title="Priority Tasks"
+              description="Pending work, ordered by priority"
+              icon={CheckSquare}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/tasks">
+                    View all <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {priorityTasks.length === 0 ? (
+                <EmptyState
+                  title="No pending tasks"
+                  description="Your active task queue is clear."
+                  icon={CheckSquare}
+                  tone="success"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/tasks">Open task board</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {urgentPending || overdueCount > 0 ? (
+                    <p className="staff-home-attention">
+                      <AlertTriangle className="size-4 shrink-0" aria-hidden />
+                      {overdueCount > 0
+                        ? `${overdueCount} overdue ${overdueCount === 1 ? "task needs" : "tasks need"} attention`
+                        : "High-priority tasks need attention"}
+                    </p>
+                  ) : null}
+                  {priorityTasks.map((task) => {
+                    const tone = getDashboardStatusTone(task.priority);
+                    const due = (task as { dueDate?: string | null }).dueDate;
+                    const dueIso = due?.slice(0, 10);
+                    const dueBadge =
+                      dueIso && dueIso < todayIso ? (
+                        <StatusBadge tone="danger">Overdue</StatusBadge>
+                      ) : dueIso === todayIso ? (
+                        <StatusBadge tone="warning">Due today</StatusBadge>
+                      ) : (
+                        <StatusBadge tone={tone} className="uppercase">
+                          {task.priority}
+                        </StatusBadge>
+                      );
+                    return (
+                      <DashboardListRow key={task._id}>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {task.title}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {task.caseId
+                              ? (caseTitleById.get(task.caseId) ?? "Matter")
+                              : "No matter linked"}
+                            {dueIso ? ` · Due ${dueIso}` : ""}
+                          </p>
+                        </div>
+                        {dueBadge}
+                      </DashboardListRow>
+                    );
+                  })}
+                </div>
+              )}
+            </DashboardSection>
+          </div>
+
+          <div className="staff-home-matters">
+            <DashboardSection
+              density="compact"
+              className="staff-home-cases"
+              title="My Cases"
+              description="Active matters and their next court dates"
+              icon={FolderOpen}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/cases">
+                    View all <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {activeCases.length === 0 ? (
+                <EmptyState
+                  title="No active matters"
+                  description="Cases assigned to you will appear here."
+                  icon={FolderOpen}
+                  tone="neutral"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/cases">Open cases</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <DashboardTable>
+                  <DashboardTableHead>
+                    <tr>
+                      <DashboardTableHeaderCell>Matter</DashboardTableHeaderCell>
+                      <DashboardTableHeaderCell>Client</DashboardTableHeaderCell>
+                      <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                      <DashboardTableHeaderCell>Next hearing</DashboardTableHeaderCell>
+                    </tr>
+                  </DashboardTableHead>
+                  <DashboardTableBody>
+                    {activeCases.slice(0, 5).map((item) => {
+                      const nextHearing = nextHearingByCase.get(item._id);
+                      return (
+                        <DashboardTableRow key={item._id}>
+                          <DashboardTableCell data-label="Matter">
+                            <span className="block text-xs font-medium tabular-nums text-muted-foreground">
+                              {item.caseNumber}
+                            </span>
+                            <Link
+                              href={`/staff/cases/${item._id}`}
+                              className="staff-home-case-link block text-sm font-semibold text-foreground"
+                            >
+                              {item.title}
+                            </Link>
+                          </DashboardTableCell>
+                          <DashboardTableCell data-label="Client">
+                            <span className="block text-sm">
+                              {clientNameById.get(item.clientId) ?? "Client record"}
+                            </span>
+                          </DashboardTableCell>
+                          <DashboardTableCell data-label="Status">
+                            <StatusBadge tone={getDashboardStatusTone(item.status)}>
+                              {item.status}
+                            </StatusBadge>
+                          </DashboardTableCell>
+                          <DashboardTableCell data-label="Next hearing">
+                            {nextHearing ? (
+                              <span className="text-xs text-muted-foreground">
+                                {nextHearing.dateBs}
+                                <span className="block">{nextHearing.court}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </DashboardTableCell>
+                        </DashboardTableRow>
+                      );
+                    })}
+                  </DashboardTableBody>
+                </DashboardTable>
+              )}
+            </DashboardSection>
+            <DashboardSection
+              density="compact"
+              className="staff-home-hearings"
+              title="Upcoming Hearings"
+              description="Next court commitments"
+              icon={CalendarDays}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/hearings">
+                    View all <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {upcomingHearings.length === 0 ? (
+                <EmptyState
+                  title="No upcoming hearings"
+                  description="New scheduled court hearings will appear here."
+                  icon={CalendarDays}
+                  tone="neutral"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/hearings">Open hearings</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {upcomingHearings.map((hearing) => {
+                    const urgent = hearing.purpose?.toLowerCase().includes("final") || false;
+                    const dateParts = hearing.dateBs.split(" ");
+                    return (
+                      <div
+                        key={hearing._id}
+                        className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3.5 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+                      >
+                        <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary">
+                          <span className="text-xs font-bold leading-none">
+                            {dateParts[0] || "Court"}
+                          </span>
+                          <span className="mt-1 text-[10px] leading-none opacity-80">
+                            {dateParts.slice(1).join(" ") || ""}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {caseTitleById.get(hearing.caseId) ?? "Matter hearing"}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {hearing.court}
+                            {hearing.time ? ` · ${hearing.time}` : ""}
+                          </p>
+                        </div>
+                        {urgent ? (
+                          <StatusBadge tone="danger" icon={AlertTriangle}>
+                            Urgent
+                          </StatusBadge>
+                        ) : (
+                          <StatusBadge tone="warning">Scheduled</StatusBadge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </DashboardSection>
+          </div>
+
+          <div className="staff-home-support">
+            <DashboardSection
+              density="compact"
+              className="staff-home-messages"
+              title="Messages & Team Updates"
+              description="Latest from your team"
+              icon={MessagesSquare}
+              actions={
+                <DashboardButton asChild variant="ghost" size="sm">
+                  <Link href="/staff/team-chat">
+                    View all <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </DashboardButton>
+              }
+            >
+              {dmThreads.length === 0 ? (
+                <EmptyState
+                  title="No team messages yet"
+                  description="Direct messages from colleagues will appear here."
+                  icon={MessagesSquare}
+                  tone="neutral"
+                  action={
+                    <DashboardButton asChild variant="secondary" size="sm">
+                      <Link href="/staff/team-chat">Open team chat</Link>
+                    </DashboardButton>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {dmThreads.slice(0, 5).map((thread) => (
+                    <div
+                      key={thread._id}
+                      className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-canvas-elevated/40 p-3 transition-all hover:border-dashboard-border hover:bg-dashboard-panel-hover"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashboard-sidebar-border bg-dashboard-sidebar-active text-xs font-bold text-dashboard-sidebar-active-foreground">
+                        {initialsOf(thread.peerName)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {thread.peerName}
+                          </p>
+                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                            {relativeTime(thread.lastMessageAt)}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {thread.lastMessage?.content ?? "No messages yet"}
+                        </p>
+                      </div>
+                      {thread.unreadCount ? (
+                        <StatusBadge tone="information">{thread.unreadCount} new</StatusBadge>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
+            <DashboardSection
+              density="compact"
+              className="staff-home-documents"
               title="Recent Documents"
               description="Latest uploads across your matters"
               icon={FileText}
               actions={
                 <DashboardButton asChild variant="ghost" size="sm">
                   <Link href="/staff/documents">
-                    View All <ArrowRight className="size-3.5" aria-hidden />
+                    View all <ArrowRight className="size-3.5" aria-hidden />
                   </Link>
                 </DashboardButton>
               }
@@ -781,12 +736,12 @@ export default function StaffDashboard() {
                   tone="neutral"
                   action={
                     <DashboardButton asChild variant="secondary" size="sm">
-                      <Link href="/staff/documents">Upload document</Link>
+                      <Link href="/staff/documents">Open documents</Link>
                     </DashboardButton>
                   }
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3">
                   {recentDocuments.map((document) => (
                     <div
                       key={document._id}
@@ -813,10 +768,9 @@ export default function StaffDashboard() {
                 </div>
               )}
             </DashboardSection>
-
             <DashboardSection
               density="compact"
-              className="card-micro-lift"
+              className="staff-home-workload"
               title="Team Workload"
               description="Open, high-priority, and overdue assignments"
               icon={Users}
@@ -841,7 +795,7 @@ export default function StaffDashboard() {
                   }
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3">
                   {workload.slice(0, 6).map((row) => {
                     const user = userNameById.get(row.assignedTo);
                     const tone: DashboardTone =
@@ -877,6 +831,22 @@ export default function StaffDashboard() {
               )}
             </DashboardSection>
           </div>
+
+          <nav aria-label="Quick actions" className="staff-home-quick-actions">
+            <div>
+              <h2>Quick actions</h2>
+              <p>Open a workspace to manage your work.</p>
+            </div>
+            <div className="staff-home-shortcuts">
+              {quickActions.map((action) => (
+                <Link key={action.href} href={action.href} title={action.description}>
+                  <action.icon className="size-4 shrink-0" aria-hidden />
+                  <span>{action.label}</span>
+                  <ArrowRight className="size-3.5 shrink-0" aria-hidden />
+                </Link>
+              ))}
+            </div>
+          </nav>
         </>
       )}
     </PortalPageShell>

@@ -9,6 +9,8 @@ export interface ScrollToTopProps {
   containerRef?: React.RefObject<HTMLElement | null>;
   threshold?: number;
   className?: string;
+  /** Defaults to the existing smooth behavior; auto follows the container's CSS motion policy. */
+  behavior?: ScrollBehavior;
 }
 
 /**
@@ -16,7 +18,12 @@ export interface ScrollToTopProps {
  * Renders with a progress ring indicating scroll depth and provides one-click
  * smooth navigation back to the top of the canvas.
  */
-export function ScrollToTop({ containerRef, threshold = 240, className }: ScrollToTopProps) {
+export function ScrollToTop({
+  containerRef,
+  threshold = 240,
+  className,
+  behavior = "smooth",
+}: ScrollToTopProps) {
   const [visible, setVisible] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
 
@@ -62,9 +69,9 @@ export function ScrollToTop({ containerRef, threshold = 240, className }: Scroll
 
   const scrollToTop = () => {
     if (containerRef?.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      containerRef.current.scrollTo({ top: 0, behavior });
     } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior });
     }
   };
 

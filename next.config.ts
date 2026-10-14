@@ -1,10 +1,29 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "url";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
 const deploymentGitSha = process.env.GIT_SHA?.trim();
+
+// Turbopack must include linked dependencies within its filesystem root.
+// The application directory stays rootDir; only development's resolver boundary
+// expands when a worktree shares node_modules through a Windows junction.
+let turbopackRoot = rootDir;
+if (!isProduction) {
+  const dependencyDirectory = realpathSync(path.join(rootDir, "node_modules"));
+  while (true) {
+    const relative = path.relative(turbopackRoot, dependencyDirectory);
+    if (!path.isAbsolute(relative) && relative !== ".." && !relative.startsWith(`..${path.sep}`)) {
+      break;
+    }
+    const parent = path.dirname(turbopackRoot);
+    if (parent === turbopackRoot)
+      throw new Error("Linked dependencies must share a filesystem root");
+    turbopackRoot = parent;
+  }
+}
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -40,6 +59,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   allowedDevOrigins: ["127.0.0.1"],
+  // The development-only floating button covers fixed portal navigation.
+  // Compile/runtime error reporting and Fast Refresh remain enabled.
+  devIndicators: false,
   env: {
     VITE_HERCULES_OIDC_AUTHORITY: process.env.VITE_HERCULES_OIDC_AUTHORITY,
     VITE_HERCULES_OIDC_CLIENT_ID: process.env.VITE_HERCULES_OIDC_CLIENT_ID,
@@ -52,8 +74,7 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
   },
   turbopack: {
-    // Avoid picking a parent lockfile (e.g. under the user home) as the workspace root.
-    root: rootDir,
+    root: turbopackRoot,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

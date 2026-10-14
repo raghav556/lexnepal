@@ -220,6 +220,7 @@ function StaffMobileChrome() {
 }
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
+  const isStaffHome = usePathname() === "/staff";
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -262,9 +263,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
               >
                 {children}
+                {isStaffHome ? <PortalFooter portal="staff" className="staff-home-footer" /> : null}
+                {isStaffHome ? (
+                  <ScrollToTop
+                    containerRef={mainRef}
+                    className="staff-home-scroll-top"
+                    behavior="auto"
+                  />
+                ) : null}
               </main>
-              <PortalFooter portal="staff" />
-              <ScrollToTop containerRef={mainRef} />
+              {isStaffHome ? null : <PortalFooter portal="staff" />}
+              {isStaffHome ? null : <ScrollToTop containerRef={mainRef} />}
             </div>
           </div>
           {searchOpen ? (
