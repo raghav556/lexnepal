@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { CalendarDays, FolderOpen, Plus, Search } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarDays, CircleCheck, FolderOpen, Plus, Scale, Search } from "lucide-react";
 import { Link, useNavigate } from "@/client/navigation";
 import { useSearchParams } from "next/navigation";
 import { caseQueryFailureKind } from "@/client/queries/case-query-error";
@@ -13,6 +13,7 @@ import { CaseCreateDialog } from "@/components/cases/case-create-dialog";
 import { CaseIdentity } from "@/components/cases/case-identity";
 import { CaseQueryState } from "@/components/cases/case-query-state";
 import { CaseStatusFilters } from "@/components/cases/case-status-filters";
+import { StaffCasesList } from "@/components/cases/staff-cases-list";
 import {
   DashboardButton,
   DashboardFilterBar,
@@ -22,9 +23,11 @@ import {
   DualDateDisplay,
   EmptyState,
   HeroStatChip,
+  MetricCard,
   PortalPageShell,
   StaffHeroChipRow,
   StatusBadge,
+  usePortalBranding,
 } from "@/components/dashboard";
 import { Pagination } from "@/components/ui/pagination.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -48,6 +51,7 @@ export interface CasesWorkspaceProps {
 }
 
 function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
+  const { heroImageUrl } = usePortalBranding();
   const navigate = useNavigate();
   const searchParams = useSearchParams();
   const casesQuery = useCasesQuery({});
@@ -103,15 +107,18 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
   const onHoldCount = statusCounts.on_hold ?? 0;
   const closedCount = statusCounts.closed ?? 0;
 
-  const handleCreateOpenChange = (open: boolean) => {
-    setShowCreateModal(open);
-    if (!open && searchParams.get("create") === "1") {
-      navigate(basePath, { replace: true });
-    }
-  };
+  const handleCreateOpenChange = useCallback(
+    (open: boolean) => {
+      setShowCreateModal(open);
+      if (!open && searchParams.get("create") === "1") {
+        navigate(basePath, { replace: true });
+      }
+    },
+    [basePath, navigate, searchParams],
+  );
 
   if (casesQuery.isError) {
-    return (
+    const queryState = (
       <CaseQueryState
         portal={portal}
         kind={caseQueryFailureKind(casesQuery.error)}
@@ -121,40 +128,99 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
         }}
       />
     );
+    return portal === "staff" ? (
+      <div className="staff-cases-workspace staff-cases-query-state">{queryState}</div>
+    ) : (
+      queryState
+    );
   }
 
   return (
     <PortalPageShell
       portal={portal}
+      className={portal === "staff" ? "staff-cases-workspace" : undefined}
       loading={casesData === undefined}
       loadingLabel="Loading matters…"
       titleKey="portal.cases.title"
       descriptionKey="portal.cases.description"
       eyebrow={portal === "admin" ? "Matters" : undefined}
-      icon={FolderOpen}
-      heroClassName={CASE_LIST_HERO_CLASS}
+      icon={portal === "staff" ? undefined : FolderOpen}
+      heroClassName={portal === "staff" ? "staff-cases-hero" : CASE_LIST_HERO_CLASS}
       actions={
         <DashboardButton size="sm" onClick={() => setShowCreateModal(true)}>
           <Plus className="size-3.5" aria-hidden /> New case
         </DashboardButton>
       }
       heroChildren={
-        <StaffHeroChipRow>
-          <HeroStatChip icon={FolderOpen} value={cases.length} label="total matters" />
-          <HeroStatChip icon={FolderOpen} value={activeCount} label="active" />
-          <HeroStatChip icon={CalendarDays} value={onHoldCount} label="on hold" />
-          <HeroStatChip icon={FolderOpen} value={closedCount} label="closed" />
-        </StaffHeroChipRow>
+        portal === "staff" ? (
+          <span
+            aria-hidden
+            className="staff-cases-hero-art"
+            style={
+              heroImageUrl
+                ? {
+                    backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          <StaffHeroChipRow>
+            <HeroStatChip icon={FolderOpen} value={cases.length} label="total matters" />
+            <HeroStatChip icon={FolderOpen} value={activeCount} label="active" />
+            <HeroStatChip icon={CalendarDays} value={onHoldCount} label="on hold" />
+            <HeroStatChip icon={FolderOpen} value={closedCount} label="closed" />
+          </StaffHeroChipRow>
+        )
       }
     >
+      {portal === "staff" ? (
+        <div className="staff-cases-summary" role="group" aria-label="Case summary">
+          <MetricCard
+            label="Total matters"
+            value={cases.length}
+            icon={FolderOpen}
+            tone="information"
+            helperText="All matters"
+          />
+          <MetricCard
+            label="Active"
+            value={activeCount}
+            icon={Scale}
+            tone="success"
+            helperText="In progress"
+          />
+          <MetricCard
+            label="On hold"
+            value={onHoldCount}
+            icon={CalendarDays}
+            tone="warning"
+            helperText="Paused matters"
+          />
+          <MetricCard
+            label="Closed"
+            value={closedCount}
+            icon={CircleCheck}
+            tone="primary"
+            helperText="Closed files"
+          />
+        </div>
+      ) : null}
       <DashboardSection title="Filters & view">
-        <DashboardFilterBar className="justify-between gap-3">
+        <DashboardFilterBar
+          className={cn("justify-between gap-3", portal === "staff" && "staff-cases-controls")}
+        >
           <div className="relative w-full sm:max-w-[360px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               className="pl-9 bg-dashboard-panel h-9"
               placeholder="Search by case number, title, client, or lawyer..."
               value={search}
+              aria-label={
+                portal === "staff"
+                  ? "Search cases by case number, title, client or lawyer"
+                  : undefined
+              }
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
@@ -171,6 +237,7 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
             <button
               type="button"
               onClick={() => setViewMode("list")}
+              aria-pressed={portal === "staff" ? viewMode === "list" : undefined}
               className={cn(
                 "flex-1 sm:flex-none px-6 py-1.5 text-xs font-semibold tracking-wide rounded-md transition-all duration-200",
                 viewMode === "list"
@@ -183,6 +250,7 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
             <button
               type="button"
               onClick={() => setViewMode("board")}
+              aria-pressed={portal === "staff" ? viewMode === "board" : undefined}
               className={cn(
                 "flex-1 sm:flex-none px-6 py-1.5 text-xs font-semibold tracking-wide rounded-md transition-all duration-200",
                 viewMode === "board"
@@ -220,6 +288,14 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                 title="No matching cases"
                 description="No cases match your search or status filter."
                 icon={FolderOpen}
+              />
+            ) : portal === "staff" ? (
+              <StaffCasesList
+                cases={paginatedItems}
+                clients={clients}
+                users={users}
+                hearings={hearings}
+                basePath={basePath}
               />
             ) : (
               <div className="space-y-2">
@@ -297,11 +373,20 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
             onPageChange={goToPage}
             onNextPage={nextPage}
             onPrevPage={prevPage}
+            ariaLabel={portal === "staff" ? "Case pagination" : undefined}
             className="mt-6"
           />
         </>
       ) : (
-        <div className="flex gap-5 overflow-x-auto pb-6 pt-2 snap-x -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div
+          role={portal === "staff" ? "region" : undefined}
+          aria-label={portal === "staff" ? "Cases by lifecycle status" : undefined}
+          tabIndex={portal === "staff" ? 0 : undefined}
+          className={cn(
+            "flex gap-5 overflow-x-auto pb-6 pt-2 snap-x -mx-4 px-4 sm:mx-0 sm:px-0",
+            portal === "staff" && "staff-cases-board",
+          )}
+        >
           {CASE_LIFECYCLE_STATUSES.map((statusKey) => {
             const columnCases = filteredCases.filter((matter) =>
               matchesCaseStatusFilter(matter.status, statusKey),

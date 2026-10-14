@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -78,12 +78,16 @@ export function CaseCreateDialog({
     return () => window.clearTimeout(id);
   }, [open]);
 
-  const reset = () => setForm(emptyForm);
+  const reset = useCallback(() => setForm(emptyForm), []);
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next) reset();
-    onOpenChange(next);
-  };
+  // Keep Dialog's focus effect stable while a field edit re-renders this form.
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) reset();
+      onOpenChange(next);
+    },
+    [onOpenChange, reset],
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

@@ -13,6 +13,8 @@ export interface CaseIdentityProps {
   closureOutcome?: string | null;
   practiceArea?: string | null;
   filingDate?: string | null;
+  /** A listing may place these same status labels in its own table column. */
+  showStatus?: boolean;
   className?: string;
 }
 
@@ -23,6 +25,7 @@ export function CaseIdentity({
   closureOutcome,
   practiceArea,
   filingDate,
+  showStatus = true,
   className,
 }: CaseIdentityProps) {
   const lifecycle = toLifecycleStatus(status);
@@ -33,12 +36,14 @@ export function CaseIdentity({
       <span className="text-[10px] font-mono font-medium text-muted-foreground bg-dashboard-neutral-soft px-2 py-0.5 rounded-md border border-dashboard-border">
         {caseNumber}
       </span>
-      <DashboardStatusLabel
-        status={lifecycle}
-        label={CASE_LIFECYCLE_LABELS[lifecycle]}
-        className="text-[10px] uppercase tracking-wider"
-      />
-      {outcome ? (
+      {showStatus ? (
+        <DashboardStatusLabel
+          status={lifecycle}
+          label={CASE_LIFECYCLE_LABELS[lifecycle]}
+          className="text-[10px] uppercase tracking-wider"
+        />
+      ) : null}
+      {showStatus && outcome ? (
         <DashboardStatusLabel
           status={outcome}
           label={CASE_OUTCOME_LABELS[outcome]}

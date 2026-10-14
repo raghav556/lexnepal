@@ -220,7 +220,9 @@ function StaffMobileChrome() {
 }
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
-  const isStaffHome = usePathname() === "/staff";
+  const pathname = usePathname();
+  const isStaffHome = pathname === "/staff";
+  const useFlowFooter = isStaffHome || pathname === "/staff/cases";
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -263,17 +265,22 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
               >
                 {children}
-                {isStaffHome ? <PortalFooter portal="staff" className="staff-home-footer" /> : null}
-                {isStaffHome ? (
+                {useFlowFooter ? (
+                  <PortalFooter
+                    portal="staff"
+                    className={isStaffHome ? "staff-home-footer" : "staff-cases-footer"}
+                  />
+                ) : null}
+                {useFlowFooter ? (
                   <ScrollToTop
                     containerRef={mainRef}
-                    className="staff-home-scroll-top"
+                    className={isStaffHome ? "staff-home-scroll-top" : "staff-cases-scroll-top"}
                     behavior="auto"
                   />
                 ) : null}
               </main>
-              {isStaffHome ? null : <PortalFooter portal="staff" />}
-              {isStaffHome ? null : <ScrollToTop containerRef={mainRef} />}
+              {useFlowFooter ? null : <PortalFooter portal="staff" />}
+              {useFlowFooter ? null : <ScrollToTop containerRef={mainRef} />}
             </div>
           </div>
           {searchOpen ? (
