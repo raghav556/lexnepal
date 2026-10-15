@@ -3,6 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, usePathname } from "@/client/navigation";
 import { useSearchParams } from "next/navigation";
 import { CaseIdentity } from "@/components/cases/case-identity";
+import { StaffCaseSummary, StaffCaseOverviewAside } from "@/components/cases/staff-case-summary";
+import { StaffCaseHistory } from "@/components/cases/staff-case-history";
+import type { ReactNode } from "react";
 import { CaseHearingDialog } from "@/components/cases/case-hearing-dialog";
 import {
   CaseMislUploadDialog,
@@ -52,9 +55,11 @@ import {
   FolderTree,
   Scale,
   FileArchive,
+  File as FileIcon,
   Zap,
   Users,
   MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -102,6 +107,13 @@ export default function StaffCaseDetailPage() {
   const isAdminSurface = pathname?.startsWith("/admin") ?? false;
   const portal = isAdminSurface ? "admin" : "staff";
   const basePath: CaseWorkspaceBasePath = isAdminSurface ? "/admin/cases" : "/staff/cases";
+  const detailClass = portal === "staff" ? "staff-case-detail" : undefined;
+  const frameQueryState = (content: ReactNode) =>
+    portal === "staff" ? (
+      <div className="staff-case-detail staff-detail-query">{content}</div>
+    ) : (
+      content
+    );
 
   const caseQuery = useCaseQuery(caseId || null);
   const caseData = caseQuery.data;
@@ -326,7 +338,7 @@ export default function StaffCaseDetailPage() {
 
   if (!caseId || caseQuery.isError) {
     const kind = !caseId ? "not_found" : caseQueryFailureKind(caseQuery.error);
-    return (
+    return frameQueryState(
       <CaseQueryState
         portal={portal}
         kind={kind}
@@ -339,18 +351,26 @@ export default function StaffCaseDetailPage() {
               }
             : undefined
         }
-      />
+      />,
     );
   }
   if (caseQuery.isPending || caseData === undefined) {
     return (
-      <PortalPageShell portal={portal} loading loadingLabel="Loading matter…" title="Case">
+      <PortalPageShell
+        portal={portal}
+        className={detailClass}
+        loading
+        loadingLabel="Loading matter…"
+        title="Case"
+      >
         {null}
       </PortalPageShell>
     );
   }
   if (caseData === null) {
-    return <CaseQueryState portal={portal} kind="not_found" scope="detail" backHref={basePath} />;
+    return frameQueryState(
+      <CaseQueryState portal={portal} kind="not_found" scope="detail" backHref={basePath} />,
+    );
   }
 
   const client = clients.find((c: any) => c._id === caseData.clientId);
@@ -370,15 +390,17 @@ export default function StaffCaseDetailPage() {
     ...((caseData.teamMemberIds as string[] | undefined) ?? []),
   ]);
   const teamRoster = users.filter((user: any) => teamIds.has(user._id) || teamIds.has(user.id));
+  const BinderHeading = portal === "staff" ? "button" : "div";
+  const BinderTitle = portal === "staff" ? "span" : "h4";
 
   return (
     <PortalPageShell
       portal={portal}
-      className="print:p-0 print:space-y-0"
+      className={cn("print:p-0 print:space-y-0", detailClass)}
       title={caseData.title}
       description={caseData.description || "No case description provided."}
       icon={Scale}
-      heroClassName={CASE_DETAIL_HERO_CLASS}
+      heroClassName={cn(CASE_DETAIL_HERO_CLASS, portal === "staff" && "staff-detail-hero")}
       actions={
         isEditing ? (
           <div className="flex items-center gap-2">
@@ -413,31 +435,49 @@ export default function StaffCaseDetailPage() {
         )
       }
       heroChildren={
-        <StaffHeroChipRow>
-          <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
-          <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
-          <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents" />
-        </StaffHeroChipRow>
+        portal === "staff" ? (
+          <div className="staff-detail-header-meta">
+            <CaseIdentity
+              caseNumber={caseData.caseNumber}
+              status={caseData.status}
+              closureOutcome={caseData.closureOutcome}
+              practiceArea={caseData.practiceArea}
+            />
+            <StaffHeroChipRow>
+              <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
+              <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
+              <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents" />
+            </StaffHeroChipRow>
+          </div>
+        ) : (
+          <StaffHeroChipRow>
+            <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
+            <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
+            <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents" />
+          </StaffHeroChipRow>
+        )
       }
     >
       <div className="print:hidden space-y-6">
-        <div className="flex items-center gap-2">
-          <DashboardButton
-            variant="ghost"
-            size="sm"
-            className="p-1 h-auto"
-            aria-label="Back to cases"
-            onClick={() => navigate(basePath)}
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden />
-          </DashboardButton>
-          <CaseIdentity
-            caseNumber={caseData.caseNumber}
-            status={caseData.status}
-            closureOutcome={caseData.closureOutcome}
-            practiceArea={caseData.practiceArea}
-          />
-        </div>
+        {portal === "admin" ? (
+          <div className="flex items-center gap-2">
+            <DashboardButton
+              variant="ghost"
+              size="sm"
+              className="p-1 h-auto"
+              aria-label="Back to cases"
+              onClick={() => navigate(basePath)}
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden />
+            </DashboardButton>
+            <CaseIdentity
+              caseNumber={caseData.caseNumber}
+              status={caseData.status}
+              closureOutcome={caseData.closureOutcome}
+              practiceArea={caseData.practiceArea}
+            />
+          </div>
+        ) : null}
 
         {isEditing ? (
           <DashboardSection title="Quick editor" state="selected">
@@ -450,16 +490,28 @@ export default function StaffCaseDetailPage() {
               />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Court</label>
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor={portal === "staff" ? "detail-court" : undefined}
+                  >
+                    Court
+                  </label>
                   <Input
+                    id={portal === "staff" ? "detail-court" : undefined}
                     className="bg-background text-xs"
                     value={court}
                     onChange={(e) => setCourt(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Judge Name</label>
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor={portal === "staff" ? "detail-judge" : undefined}
+                  >
+                    Judge Name
+                  </label>
                   <Input
+                    id={portal === "staff" ? "detail-judge" : undefined}
                     className="bg-background text-xs"
                     value={judge}
                     onChange={(e) => setJudge(e.target.value)}
@@ -467,8 +519,14 @@ export default function StaffCaseDetailPage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium">Opposing counsel</label>
+                <label
+                  className="text-xs font-medium"
+                  htmlFor={portal === "staff" ? "detail-opposing" : undefined}
+                >
+                  Opposing counsel
+                </label>
                 <Input
+                  id={portal === "staff" ? "detail-opposing" : undefined}
                   className="bg-background text-xs"
                   value={opposingCounsel}
                   onChange={(e) => setOpposingCounsel(e.target.value)}
@@ -505,7 +563,7 @@ export default function StaffCaseDetailPage() {
               />
             </div>
           </DashboardSection>
-        ) : (
+        ) : portal === "admin" ? (
           <DashboardSection title="Matter overview" className="max-sm:hidden">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
@@ -583,7 +641,7 @@ export default function StaffCaseDetailPage() {
               ) : null}
             </div>
           </DashboardSection>
-        )}
+        ) : null}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList
@@ -642,8 +700,39 @@ export default function StaffCaseDetailPage() {
           </TabsList>
 
           {/* Overview */}
-          <TabsContent value="overview" className="mt-6 space-y-4">
-            <DashboardSection title="File notes">
+          <TabsContent
+            value="overview"
+            className={cn(
+              "mt-6 space-y-4",
+              portal === "staff" && !isEditing && "staff-detail-overview",
+            )}
+          >
+            {portal === "staff" && !isEditing ? (
+              <StaffCaseSummary
+                client={client ? client.fullName : "Unknown"}
+                lawyer={lawyer ? lawyer.name : "Unassigned"}
+                court={caseData.court || "Not Specified"}
+                judge={caseData.judge || "Not Assigned"}
+                opposingCounsel={caseData.opposingCounsel || "Not Specified"}
+                nextAction={
+                  nextAction ? (
+                    <>
+                      {nextAction.kind === "hearing" ? "Hearing" : "Task"} ·{" "}
+                      <DualDateDisplay isoDate={nextAction.iso} />
+                    </>
+                  ) : (
+                    "None scheduled"
+                  )
+                }
+                nextHearing={nextHearingIso}
+                nextTask={nextTaskIso}
+                filingDate={caseData.filingDate}
+              />
+            ) : null}
+            <DashboardSection
+              title="File notes"
+              className={portal === "staff" ? "staff-detail-notes" : undefined}
+            >
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1.5">
@@ -663,76 +752,83 @@ export default function StaffCaseDetailPage() {
                 </div>
               </div>
             </DashboardSection>
-            <DashboardSection title="Case Team" icon={Users}>
-              {teamRoster.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No team members assigned.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {teamRoster.map((member: any) => {
-                    const isLead =
-                      member._id === caseData.assignedLawyerId ||
-                      member.id === caseData.assignedLawyerId;
-                    return (
+            <StaffCaseOverviewAside staff={portal === "staff"}>
+              <DashboardSection
+                title="Case Team"
+                icon={Users}
+                className={portal === "staff" ? "staff-detail-team" : undefined}
+              >
+                {teamRoster.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No team members assigned.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {teamRoster.map((member: any) => {
+                      const isLead =
+                        member._id === caseData.assignedLawyerId ||
+                        member.id === caseData.assignedLawyerId;
+                      return (
+                        <li
+                          key={member._id || member.id}
+                          className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
+                        >
+                          <span>{member.name || member.email}</span>
+                          {isLead ? (
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Responsible Lawyer
+                            </span>
+                          ) : (
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Team
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </DashboardSection>
+              <DashboardSection
+                title="Parties"
+                className={portal === "staff" ? "staff-detail-parties" : undefined}
+                icon={Users}
+                actions={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setActiveTab("parties")}
+                  >
+                    Manage parties
+                  </Button>
+                }
+              >
+                {parties.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No case parties yet. The CRM instructing client is not added automatically.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {parties.map((party) => (
                       <li
-                        key={member._id || member.id}
+                        key={party.id}
                         className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
                       >
-                        <span>{member.name || member.email}</span>
-                        {isLead ? (
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Responsible Lawyer
+                        <span>
+                          {party.name}
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {CASE_PARTY_SIDE_LABELS[party.side]}
+                            {party.roleLabel ? ` · ${party.roleLabel}` : ""}
                           </span>
-                        ) : (
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Team
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </DashboardSection>
-            <DashboardSection
-              title="Parties"
-              icon={Users}
-              actions={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setActiveTab("parties")}
-                >
-                  Manage parties
-                </Button>
-              }
-            >
-              {parties.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No case parties yet. The CRM instructing client is not added automatically.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {parties.map((party) => (
-                    <li
-                      key={party.id}
-                      className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
-                    >
-                      <span>
-                        {party.name}
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {CASE_PARTY_SIDE_LABELS[party.side]}
-                          {party.roleLabel ? ` · ${party.roleLabel}` : ""}
                         </span>
-                      </span>
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {party.clientVisible ? "Visible to client" : "Staff only"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </DashboardSection>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {party.clientVisible ? "Visible to client" : "Staff only"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </DashboardSection>
+            </StaffCaseOverviewAside>
           </TabsContent>
 
           {/* 1. Tasks & SOPs */}
@@ -744,6 +840,7 @@ export default function StaffCaseDetailPage() {
                     <div className="flex gap-2">
                       <Input
                         placeholder="Quick add ad-hoc task..."
+                        aria-label={portal === "staff" ? "New task title" : undefined}
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         disabled={isAddingTask}
@@ -786,11 +883,15 @@ export default function StaffCaseDetailPage() {
                         return (
                           <div
                             key={task._id}
+                            data-detail-task={portal === "staff" ? task.status : undefined}
                             className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${task.status === "done" || task.status === "cancelled" ? "bg-secondary/40 border-border/50 opacity-60" : "bg-card hover:border-primary/30"}`}
                           >
                             <div className="flex items-start gap-3 w-full">
                               <input
                                 type="checkbox"
+                                aria-label={
+                                  portal === "staff" ? `Completion: ${task.title}` : undefined
+                                }
                                 className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                 checked={task.status === "done"}
                                 disabled={task.status === "cancelled"}
@@ -824,6 +925,9 @@ export default function StaffCaseDetailPage() {
                                     status={task.priority}
                                     className="text-[9px] h-4 py-0 uppercase tracking-wider"
                                   />
+                                  {portal === "staff" ? (
+                                    <DashboardStatusLabel status={task.status} />
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -894,6 +998,7 @@ export default function StaffCaseDetailPage() {
                   {(hearings as any[]).map((hearing) => (
                     <div
                       key={hearing._id || hearing.id}
+                      data-detail-hearing={portal === "staff" ? "" : undefined}
                       className="flex items-center justify-between rounded-lg border border-dashboard-border p-3"
                     >
                       <div>
@@ -913,11 +1018,17 @@ export default function StaffCaseDetailPage() {
           </TabsContent>
 
           <TabsContent value="messages" className="mt-6 space-y-3">
-            <div className="flex gap-2">
+            {portal === "staff" ? <h2 className="staff-detail-stream-title">Messages</h2> : null}
+            <div
+              className="flex gap-2"
+              role={portal === "staff" ? "group" : undefined}
+              aria-label={portal === "staff" ? "Message stream" : undefined}
+            >
               <Button
                 type="button"
                 size="sm"
                 variant={messageStream === "client" ? "default" : "outline"}
+                aria-pressed={portal === "staff" ? messageStream === "client" : undefined}
                 onClick={() => setMessageStream("client")}
               >
                 Client
@@ -926,6 +1037,7 @@ export default function StaffCaseDetailPage() {
                 type="button"
                 size="sm"
                 variant={messageStream === "team" ? "default" : "outline"}
+                aria-pressed={portal === "staff" ? messageStream === "team" : undefined}
                 onClick={() => setMessageStream("team")}
               >
                 Case Team
@@ -939,6 +1051,7 @@ export default function StaffCaseDetailPage() {
                 title={messageStream === "team" ? "Case team discussion" : "Client messages"}
                 users={users}
                 bordered
+                keyboardScrollable={portal === "staff"}
                 className="h-[min(70vh,640px)]"
               />
             ) : null}
@@ -986,7 +1099,17 @@ export default function StaffCaseDetailPage() {
 
                     return (
                       <div key={category.id} className="group">
-                        <div
+                        <BinderHeading
+                          type={portal === "staff" ? "button" : undefined}
+                          aria-expanded={
+                            portal === "staff" ? Boolean(expandedMisl[category.id]) : undefined
+                          }
+                          aria-controls={
+                            portal === "staff" && expandedMisl[category.id]
+                              ? `staff-detail-binder-${category.id}`
+                              : undefined
+                          }
+                          data-detail-binder={portal === "staff" ? "" : undefined}
                           className="flex items-center justify-between p-3 bg-muted/40 cursor-pointer hover:bg-muted/70 transition-colors"
                           onClick={() =>
                             setExpandedMisl((prev) => ({
@@ -995,16 +1118,27 @@ export default function StaffCaseDetailPage() {
                             }))
                           }
                         >
-                          <h4 className="font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
+                          <BinderTitle className="font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
                             <FolderTree className="w-3.5 h-3.5 text-muted-foreground" />{" "}
                             {category.label}
-                          </h4>
+                          </BinderTitle>
                           <StatusBadge tone="neutral" className="text-[10px] h-5">
                             {catDocs.length + catPending.length}
                           </StatusBadge>
-                        </div>
+                          {portal === "staff" ? (
+                            <ChevronDown
+                              className="staff-detail-binder-chevron size-4"
+                              aria-hidden
+                            />
+                          ) : null}
+                        </BinderHeading>
                         {expandedMisl[category.id] && (
-                          <div className="p-2 space-y-1 bg-card">
+                          <div
+                            className="p-2 space-y-1 bg-card"
+                            id={
+                              portal === "staff" ? `staff-detail-binder-${category.id}` : undefined
+                            }
+                          >
                             {catDocs.length === 0 && catPending.length === 0 && (
                               <p className="text-xs text-muted-foreground p-2">Empty binder.</p>
                             )}
@@ -1041,14 +1175,19 @@ export default function StaffCaseDetailPage() {
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                                    {(doc.type || "DOC").substring(0, 3)}
+                                    {portal === "staff" ? (
+                                      <FileIcon className="size-4" aria-hidden />
+                                    ) : (
+                                      (doc.type || "DOC").substring(0, 3)
+                                    )}
                                   </div>
                                   <div>
                                     <p className="text-sm font-semibold text-foreground cursor-pointer hover:underline">
                                       {doc.title}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground font-mono">
-                                      Index: {category.id.substring(0, 2).toUpperCase()}-{idx + 1} •{" "}
+                                      {portal === "staff" ? `${category.label} · ` : null}Index:{" "}
+                                      {category.id.substring(0, 2).toUpperCase()}-{idx + 1} •{" "}
                                       <DualDateDisplay
                                         isoDate={new Date(doc._creationTime)
                                           .toISOString()
@@ -1061,6 +1200,7 @@ export default function StaffCaseDetailPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 text-xs"
+                                  aria-label={portal === "staff" ? `View ${doc.title}` : undefined}
                                   type="button"
                                   onClick={async () => {
                                     try {
@@ -1108,6 +1248,7 @@ export default function StaffCaseDetailPage() {
             </DashboardSection>
             <CasePartiesEditor
               caseId={String(caseId)}
+              accessibleControls={portal === "staff"}
               parties={parties}
               clients={clients.map((entry: any) => ({
                 _id: entry._id ?? entry.id,
@@ -1123,6 +1264,8 @@ export default function StaffCaseDetailPage() {
                 <p className="text-sm text-muted-foreground text-center">
                   No timeline events recorded.
                 </p>
+              ) : portal === "staff" ? (
+                <StaffCaseHistory events={timeline} />
               ) : (
                 <div className="relative border-l-2 border-dashboard-primary/20 ml-3 pl-6 space-y-8 py-2">
                   {timeline.map((event, idx) => (
@@ -1149,6 +1292,11 @@ export default function StaffCaseDetailPage() {
             caseId={String(caseId)}
             defaultCourt={caseData.court}
             defaultJudge={caseData.judge}
+            description={
+              portal === "staff"
+                ? "Set the court, date and time for this case. The Bikram Sambat date follows the Gregorian date."
+                : undefined
+            }
           />
           <CaseMislUploadDialog
             open={mislUploadOpen}

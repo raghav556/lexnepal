@@ -36,6 +36,8 @@ export interface PortalTopbarProps {
   onOpenChat?: () => void;
   className?: string;
   accountSlot?: React.ReactNode;
+  /** Staff may supply an already-resolved record label without fetching in the shared shell. */
+  currentPageLabel?: string;
 }
 
 const SEGMENT_LABELS: Record<string, { label: string; i18nKey?: string }> = {
@@ -87,6 +89,7 @@ export function PortalTopbar({
   onOpenChat,
   className,
   accountSlot,
+  currentPageLabel,
 }: PortalTopbarProps) {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -105,7 +108,12 @@ export function PortalTopbar({
           ? t(meta.i18nKey)
           : meta.label;
     const isLast = index === pathSegments.length - 1;
-    return { segment, href, label, isLast };
+    return {
+      segment,
+      href,
+      label: portal === "staff" && isLast && currentPageLabel ? currentPageLabel : label,
+      isLast,
+    };
   });
 
   const isStaff = portal === "staff";

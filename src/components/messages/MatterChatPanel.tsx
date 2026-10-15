@@ -40,6 +40,8 @@ export type MatterChatPanelProps = {
   bordered?: boolean;
   /** Client portal light presentation. Default preserves Staff dark appearance. */
   appearance?: "default" | "client";
+  /** Opt-in keyboard access to the message log; existing consumers keep their tab order. */
+  keyboardScrollable?: boolean;
   externalLink?: string;
   externalLinkLabel?: string;
 };
@@ -104,6 +106,7 @@ export function MatterChatPanel({
   onClose,
   bordered = true,
   appearance = "default",
+  keyboardScrollable = false,
   externalLink,
   externalLinkLabel,
 }: MatterChatPanelProps) {
@@ -238,6 +241,7 @@ export function MatterChatPanel({
             : "bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950",
         )}
         role="log"
+        tabIndex={keyboardScrollable ? 0 : undefined}
         aria-live="polite"
         aria-relevant="additions"
         aria-busy={isLoading || undefined}

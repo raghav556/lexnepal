@@ -12,7 +12,6 @@ import { IdleSessionGuard } from "@/components/auth/IdleSessionGuard";
 import { useI18n } from "@/lib/i18n-context";
 import {
   PortalBrandingProvider,
-  PortalTopbar,
   PortalFooter,
   PortalSidebar,
   PortalSidebarGroup,
@@ -24,6 +23,7 @@ import {
   isPortalNavLink,
 } from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
+import { StaffCaseTopbar } from "@/components/cases/staff-case-topbar";
 
 const CommandCenter = dynamic(
   () => import("@/components/ui/CommandCenter").then((module) => module.CommandCenter),
@@ -222,10 +222,24 @@ function StaffMobileChrome() {
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isStaffHome = pathname === "/staff";
-  const useFlowFooter = isStaffHome || pathname === "/staff/cases";
+  const isCaseDetail = /^\/staff\/cases\/[^/]+$/.test(pathname);
+  const useFlowFooter = isStaffHome || pathname === "/staff/cases" || isCaseDetail;
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const scrollTopControl = (
+    <ScrollToTop
+      containerRef={mainRef}
+      className={
+        isStaffHome
+          ? "staff-home-scroll-top"
+          : isCaseDetail
+            ? "staff-detail-scroll-top"
+            : "staff-cases-scroll-top"
+      }
+      behavior="auto"
+    />
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -251,8 +265,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             <StaffDesktopSidebar onOpenChat={() => setChatOpen(true)} />
             <div className="staff-shell-content flex min-h-0 flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
               <StaffMobileChrome />
-              <PortalTopbar
-                portal="staff"
+              <StaffCaseTopbar
                 onOpenSearch={() => setSearchOpen(true)}
                 onOpenChat={() => setChatOpen(true)}
                 onOpenCommandCenter={() => setChatOpen(true)}
@@ -268,15 +281,21 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 {useFlowFooter ? (
                   <PortalFooter
                     portal="staff"
-                    className={isStaffHome ? "staff-home-footer" : "staff-cases-footer"}
+                    className={
+                      isStaffHome
+                        ? "staff-home-footer"
+                        : isCaseDetail
+                          ? "staff-detail-footer"
+                          : "staff-cases-footer"
+                    }
                   />
                 ) : null}
                 {useFlowFooter ? (
-                  <ScrollToTop
-                    containerRef={mainRef}
-                    className={isStaffHome ? "staff-home-scroll-top" : "staff-cases-scroll-top"}
-                    behavior="auto"
-                  />
+                  isCaseDetail ? (
+                    <div className="staff-detail-scroll-slot">{scrollTopControl}</div>
+                  ) : (
+                    scrollTopControl
+                  )
                 ) : null}
               </main>
               {useFlowFooter ? null : <PortalFooter portal="staff" />}

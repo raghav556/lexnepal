@@ -22,14 +22,17 @@ export function ConfirmDialog({
   state,
   onOpenChange,
   busy = false,
+  ariaLabel,
 }: {
   state: ConfirmDialogState;
   onOpenChange: (open: boolean) => void;
   busy?: boolean;
+  /** Opt-in name; default preserves existing callers' markup. */
+  ariaLabel?: string;
 }) {
   return (
     <Dialog open={Boolean(state)} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-label={ariaLabel}>
         {state && (
           <>
             <DialogHeader>

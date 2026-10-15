@@ -23,6 +23,7 @@ type CaseHearingDialogProps = {
   caseId: string;
   defaultCourt?: string | null;
   defaultJudge?: string | null;
+  description?: string;
 };
 
 export function CaseHearingDialog({
@@ -31,6 +32,7 @@ export function CaseHearingDialog({
   caseId,
   defaultCourt,
   defaultJudge,
+  description,
 }: CaseHearingDialogProps) {
   const { createHearing } = useHearingCommands();
   const [court, setCourt] = useState("");
@@ -101,8 +103,8 @@ export function CaseHearingDialog({
         <DialogHeader>
           <DialogTitle id="case-hearing-title">Schedule hearing</DialogTitle>
           <DialogDescription>
-            Adds a hearing on this case file using the existing hearings API. No separate deadlines
-            table.
+            {description ??
+              "Adds a hearing on this case file using the existing hearings API. No separate deadlines table."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
