@@ -197,7 +197,15 @@ export function PortalTopbar({
       {isClient ? (
         <div className="min-w-0 flex-1" aria-hidden />
       ) : showCommandSearch ? (
-        <div className="mx-2 hidden max-w-md flex-1 sm:block">
+        <div
+          className={cn(
+            "mx-2 hidden max-w-md flex-1",
+            // Staff: the wide search field needs the sidebar + breadcrumb + actions to fit,
+            // so it only expands from lg; below that a compact icon button (next to the
+            // actions) opens the same search.
+            isStaff ? "min-w-0 lg:block" : "sm:block",
+          )}
+        >
           <button
             type="button"
             onClick={handleSearch}
@@ -229,6 +237,18 @@ export function PortalTopbar({
             <ExternalLink className="size-3 text-dashboard-primary" />
             <span>Live Site</span>
           </Link>
+        ) : null}
+
+        {isStaff && showCommandSearch ? (
+          <button
+            type="button"
+            onClick={handleSearch}
+            aria-label="Open search"
+            title="Search (Ctrl/⌘ K)"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-panel text-muted-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus lg:hidden"
+          >
+            <Search className="size-4" aria-hidden />
+          </button>
         ) : null}
 
         {isClient ? null : (
