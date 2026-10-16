@@ -12,6 +12,7 @@ import {
 type TaskCardProps = {
   task: any;
   caseLabel?: string | null;
+  assigneeLabel?: string;
   variant?: "kanban" | "list";
   draggable?: boolean;
   onOpen: (task: any) => void;
@@ -19,12 +20,10 @@ type TaskCardProps = {
   onDragStart?: (task: any, e: React.DragEvent) => void;
 };
 
-const interactiveCardClass =
-  "cursor-pointer transition-all hover:shadow-sm hover:border-dashboard-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus focus-visible:ring-offset-1";
-
 export function TaskCard({
   task,
   caseLabel,
+  assigneeLabel,
   variant = "kanban",
   draggable = false,
   onOpen,
@@ -35,144 +34,90 @@ export function TaskCard({
   const overdue = isTaskOverdue(task);
   const done = task.status === "done";
   const cancelled = task.status === "cancelled";
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onOpen(task);
-    }
-  };
-
-  if (variant === "list") {
-    return (
-      <Card
-        role="button"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        className={cn(
-          interactiveCardClass,
-          (done || cancelled) && "opacity-75",
-          overdue && "border-l-4 border-l-dashboard-danger",
-        )}
-        onClick={() => onOpen(task)}
-      >
-        <CardContent className="p-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={(e) => onToggleComplete(task, e)}
-              className="text-muted-foreground hover:text-accent cursor-pointer flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus rounded"
-              disabled={cancelled}
-              aria-label={done ? "Reopen task" : "Mark task done"}
-            >
-              {done ? (
-                <CheckSquare className="w-4 h-4 text-accent" />
-              ) : (
-                <Circle className="w-4 h-4" />
-              )}
-            </button>
-            <div className="min-w-0">
-              <p
-                className={cn(
-                  "text-sm font-semibold truncate",
-                  (done || cancelled) && "line-through text-muted-foreground",
-                )}
-              >
-                {task.title}
-              </p>
-              <p
-                className={cn(
-                  "text-xs truncate",
-                  overdue ? "text-destructive" : "text-muted-foreground",
-                )}
-              >
-                {caseLabel || "General Task"}
-                {due ? ` — Due: ${due}` : ""}
-                {overdue ? " (Overdue)" : ""}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <StatusBadge tone={getDashboardStatusTone(task.priority)} className="capitalize">
-              {task.priority}
-            </StatusBadge>
-            <StatusBadge tone={getDashboardStatusTone(task.status)}>
-              {TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
-            </StatusBadge>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card
+      role="article"
+      aria-label={`Task: ${task.title}`}
+      onClick={(event) => {
+        if (event.target instanceof Element && event.target.closest("button")) return;
+        event.currentTarget
+          .querySelector<HTMLButtonElement>(".staff-task-title")
+          ?.focus({ preventScroll: true });
+        onOpen(task);
+      }}
+      data-task-id={String(task._id)}
+      className={cn(
+        "staff-task-card",
+        variant === "list" ? "staff-task-row" : "staff-task-board-card",
+      )}
+      data-overdue={overdue || undefined}
+      data-completed={done || cancelled || undefined}
       draggable={draggable && !cancelled}
       onDragStart={(e) => onDragStart?.(task, e)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      className={cn(
-        interactiveCardClass,
-        (done || cancelled) && "opacity-75",
-        overdue && "border-l-4 border-l-dashboard-danger",
-        draggable && !cancelled && "cursor-grab active:cursor-grabbing",
-      )}
-      onClick={() => onOpen(task)}
     >
-      <CardContent className="p-3">
-        <div className="flex items-start gap-2">
-          {draggable && !cancelled && (
-            <GripVertical className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/50 shrink-0" />
-          )}
+      <CardContent className="staff-task-record">
+        <div className="staff-task-record-title">
+          {draggable && !cancelled ? (
+            <GripVertical className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          ) : null}
           <button
             type="button"
-            onClick={(e) => onToggleComplete(task, e)}
-            className="mt-0.5 text-muted-foreground hover:text-accent cursor-pointer flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus rounded"
+            role="checkbox"
+            aria-checked={done}
+            aria-label={(done ? "Reopen task: " : "Complete task: ") + task.title}
+            className="staff-task-completion"
             disabled={cancelled}
-            aria-label={done ? "Reopen task" : "Mark task done"}
+            onClick={(e) => onToggleComplete(task, e)}
           >
             {done ? (
-              <CheckSquare className="w-4 h-4 text-accent" />
+              <CheckSquare className="size-5" aria-hidden />
             ) : (
-              <Circle className="w-4 h-4" />
+              <Circle className="size-5" aria-hidden />
             )}
           </button>
-          <div className="flex-1 min-w-0">
-            <p
-              className={cn(
-                "text-sm font-semibold truncate",
-                (done || cancelled) && "line-through text-muted-foreground",
-              )}
-            >
+          <div className="min-w-0">
+            <button type="button" className="staff-task-title" onClick={() => onOpen(task)}>
               {task.title}
-            </p>
-            {caseLabel && (
-              <p className="text-xs font-semibold text-muted-foreground truncate mt-0.5">
-                {caseLabel}
-              </p>
-            )}
-            <div className="flex items-center justify-between gap-1.5 mt-2 flex-wrap">
-              <StatusBadge
-                tone={getDashboardStatusTone(task.priority)}
-                className="text-[9px] uppercase"
-              >
-                {task.priority}
-              </StatusBadge>
-              {due && !done && (
-                <span
-                  className={cn(
-                    "text-[10px]",
-                    overdue ? "text-destructive font-semibold" : "text-muted-foreground",
-                  )}
-                >
-                  Due: {due}
-                  {overdue ? " · Overdue" : ""}
-                </span>
-              )}
-            </div>
+            </button>
+            {task.description ? <p className="staff-task-excerpt">{task.description}</p> : null}
           </div>
         </div>
+        <div className="staff-task-matter">
+          <span className="staff-task-mobile-label">Related matter</span>
+          {caseLabel || "General Task"}
+        </div>
+        <div>
+          <span className="staff-task-mobile-label">Status</span>
+          <StatusBadge tone={getDashboardStatusTone(task.status)}>
+            {TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
+          </StatusBadge>
+        </div>
+        <div>
+          <span className="staff-task-mobile-label">Priority</span>
+          <StatusBadge tone={getDashboardStatusTone(task.priority)} className="capitalize">
+            {task.priority}
+          </StatusBadge>
+        </div>
+        <div className="staff-task-due">
+          <span className="staff-task-mobile-label">Due date</span>
+          {due || "Not set"}
+          {task.dueDateBs && task.dueDate ? <small>{task.dueDate.slice(0, 10)} AD</small> : null}
+          {overdue ? <strong>Overdue</strong> : null}
+        </div>
+        {variant === "list" ? (
+          <div className="staff-task-assignee">
+            <span className="staff-task-mobile-label">Assigned to</span>
+            {assigneeLabel || "Name unavailable"}
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className="staff-task-view"
+          aria-label={"View task: " + task.title}
+          onClick={() => onOpen(task)}
+        >
+          View
+        </button>
       </CardContent>
     </Card>
   );

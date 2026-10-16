@@ -27,7 +27,7 @@ export function TaskWorkloadView({ workload, users, onFilterAssignee }: Props) {
   const max = Math.max(...workload.map((w) => w.total), 1);
 
   return (
-    <div className="space-y-3">
+    <div className="staff-task-workload space-y-3">
       <div className="flex items-center gap-2 mb-2">
         <Users className="w-4 h-4 text-primary" />
         <h3 className="font-serif text-lg font-bold">Team Workload</h3>
@@ -39,6 +39,15 @@ export function TaskWorkloadView({ workload, users, onFilterAssignee }: Props) {
           return (
             <Card
               key={row.assignedTo}
+              role="button"
+              tabIndex={0}
+              aria-label={`Filter tasks assigned to ${user?.name || user?.email || "Unknown"}`}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onFilterAssignee(row.assignedTo);
+                }
+              }}
               className="cursor-pointer hover:border-primary/40 transition-colors"
               onClick={() => onFilterAssignee(row.assignedTo)}
             >
@@ -56,7 +65,7 @@ export function TaskWorkloadView({ workload, users, onFilterAssignee }: Props) {
                   />
                 </div>
                 <div className="flex gap-3 text-[10px] text-muted-foreground">
-                  <span className="text-orange-600 dark:text-orange-400 font-medium">
+                  <span className="text-dashboard-warning-foreground font-medium">
                     {row.urgent} high/urgent
                   </span>
                   <span className={row.overdue > 0 ? "text-destructive font-medium" : ""}>

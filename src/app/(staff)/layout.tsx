@@ -223,7 +223,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const isStaffHome = pathname === "/staff";
   const isCaseDetail = /^\/staff\/cases\/[^/]+$/.test(pathname);
-  const useFlowFooter = isStaffHome || pathname === "/staff/cases" || isCaseDetail;
+  const isStaffTasks = pathname === "/staff/tasks";
+  const useFlowFooter = isStaffHome || pathname === "/staff/cases" || isCaseDetail || isStaffTasks;
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -233,9 +234,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       className={
         isStaffHome
           ? "staff-home-scroll-top"
-          : isCaseDetail
-            ? "staff-detail-scroll-top"
-            : "staff-cases-scroll-top"
+          : isStaffTasks
+            ? "staff-tasks-scroll-top"
+            : isCaseDetail
+              ? "staff-detail-scroll-top"
+              : "staff-cases-scroll-top"
       }
       behavior="auto"
     />
@@ -284,15 +287,23 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     className={
                       isStaffHome
                         ? "staff-home-footer"
-                        : isCaseDetail
-                          ? "staff-detail-footer"
-                          : "staff-cases-footer"
+                        : isStaffTasks
+                          ? "staff-tasks-footer"
+                          : isCaseDetail
+                            ? "staff-detail-footer"
+                            : "staff-cases-footer"
                     }
                   />
                 ) : null}
                 {useFlowFooter ? (
-                  isCaseDetail ? (
-                    <div className="staff-detail-scroll-slot">{scrollTopControl}</div>
+                  isCaseDetail || isStaffTasks ? (
+                    <div
+                      className={
+                        isStaffTasks ? "staff-tasks-scroll-slot" : "staff-detail-scroll-slot"
+                      }
+                    >
+                      {scrollTopControl}
+                    </div>
                   ) : (
                     scrollTopControl
                   )

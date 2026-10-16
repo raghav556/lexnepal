@@ -40,7 +40,12 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
     });
 
   return (
-    <div className="space-y-3">
+    <div
+      className="staff-task-calendar space-y-3"
+      role="region"
+      aria-label="Task calendar"
+      tabIndex={0}
+    >
       <div className="flex items-center justify-between">
         <h3 className="font-serif text-lg font-bold">{format(currentMonth, "MMMM yyyy")}</h3>
         <div className="flex gap-1">
@@ -48,6 +53,7 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
             size="icon"
             variant="secondary"
             className="h-8 w-8"
+            aria-label="Previous month"
             onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -59,6 +65,7 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
             size="icon"
             variant="secondary"
             className="h-8 w-8"
+            aria-label="Next month"
             onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
           >
             <ChevronRight className="w-4 h-4" />
@@ -95,6 +102,7 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
                   <button
                     key={t._id}
                     type="button"
+                    data-overdue={isTaskOverdue(t) || undefined}
                     onClick={() => onOpen(t)}
                     className={cn(
                       "w-full text-left text-[10px] px-1 py-0.5 rounded truncate border border-transparent hover:border-border",
