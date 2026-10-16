@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import StaffLayout from "@/app/(staff)/layout";
 import AdminLayout from "@/app/(admin)/layout";
@@ -16,6 +17,7 @@ declare global {
   }
 }
 const root = createRoot(document.getElementById("root")!);
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 function Cases({ role }: { role: "staff" | "admin" }) {
   const { setLanguage } = useI18n();
   useEffect(() => {
@@ -33,9 +35,11 @@ window.renderStaffCases = (role, state, brand) => {
   setIdentityRole(role);
   setCasesState(state, brand);
   root.render(
-    <I18nProvider>
-      <Cases role={role} />
-      <Toaster richColors position="top-right" />
-    </I18nProvider>,
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider>
+        <Cases role={role} />
+        <Toaster richColors position="top-right" />
+      </I18nProvider>
+    </QueryClientProvider>,
   );
 };

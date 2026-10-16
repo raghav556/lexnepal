@@ -7935,3 +7935,181 @@
     scroll-behavior: auto !important;
   }
 }
+/* Session 05 completion: listing toolbar, scoped filter overlays and View links. */
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-toolbar {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) 8.5rem 10rem auto auto;
+  gap: 0.625rem;
+  align-items: center;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-search {
+  min-width: 0;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-toolbar > div:first-child {
+  grid-column: auto;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-toolbar input {
+  width: 100%;
+  min-height: 2.75rem;
+  border-color: var(--dashboard-control-border);
+  font-size: 0.8125rem;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-toolbar-actions {
+  display: contents;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-view-toggle {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-view-toggle button,
+.dashboard-staff .staff-cases-workspace .staff-cases-more-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-view-toggle button[aria-pressed="true"] {
+  background: var(--dashboard-sidebar-deep);
+  color: var(--dashboard-sidebar-foreground);
+  border-color: var(--dashboard-sidebar-active-icon);
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-toolbar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  border-radius: 0.375rem;
+  background: var(--dashboard-neutral-soft);
+  color: var(--foreground);
+  font-size: 0.75rem;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-select-menu {
+  z-index: 90;
+  min-width: var(--radix-select-trigger-width);
+  max-width: calc(100vw - 1.5rem);
+  max-height: min(22rem, var(--radix-select-content-available-height));
+  overflow: hidden;
+  padding: 0.375rem;
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  border: 1px solid var(--dashboard-control-border);
+  border-radius: var(--dashboard-radius-control);
+  box-shadow: var(--staff-cases-shadow);
+  font-family: var(--font-sans);
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-select-menu [role="option"] {
+  min-height: 2.75rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-select-menu [data-highlighted] {
+  background: var(--dashboard-neutral-soft);
+  color: var(--foreground);
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: -2px;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-option-count {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-staff .staff-cases-workspace div:has(> .staff-cases-filter-panel) {
+  background: transparent;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-panel {
+  position: fixed;
+  left: var(--staff-filter-left, 1rem);
+  top: var(--staff-filter-top, 1rem);
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  box-shadow: var(--staff-cases-shadow);
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-panel > .staff-cases-extra-fields {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 1rem;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-extra-fields label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-filter-panel > .staff-cases-filter-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 0;
+}
+.dashboard-staff .staff-cases-workspace .staff-cases-table th:last-child {
+  width: 5.5rem;
+}
+.dashboard-staff .staff-cases-workspace .staff-case-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--dashboard-control-border);
+  border-radius: var(--dashboard-radius-control);
+  background: var(--dashboard-panel);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.dashboard-staff .staff-cases-workspace .staff-case-view:hover {
+  background: var(--dashboard-neutral-soft);
+}
+@media (max-width: 69.999rem) {
+  .dashboard-staff .staff-cases-workspace .staff-cases-table td[data-label="Actions"] {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-table td[data-label="Actions"]::before {
+    display: none;
+  }
+}
+@media (max-width: 79.999rem) {
+  .dashboard-staff .staff-cases-workspace .staff-cases-filter-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-search,
+  .dashboard-staff .staff-cases-workspace .staff-cases-toolbar-actions {
+    grid-column: 1 / -1;
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-filter-toolbar > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-toolbar-actions {
+    display: flex;
+    gap: 0.625rem;
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-view-toggle,
+  .dashboard-staff .staff-cases-workspace .staff-cases-view-toggle button {
+    flex: 1;
+  }
+}
+@media (max-width: 47.999rem) {
+  .dashboard-staff .staff-cases-workspace .staff-cases-view-toggle svg {
+    display: none;
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-view-toggle button,
+  .dashboard-staff .staff-cases-workspace .staff-cases-more-trigger {
+    padding-inline: 0.5rem;
+  }
+  .dashboard-staff .staff-cases-workspace div:has(> .staff-cases-filter-panel) {
+    background: color-mix(in srgb, var(--dashboard-sidebar-deep) 35%, transparent);
+  }
+  .dashboard-staff .staff-cases-workspace .staff-cases-filter-panel {
+    left: 1rem;
+    right: 1rem;
+    top: auto;
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 7.5rem - env(safe-area-inset-bottom, 0px));
+  }
+}

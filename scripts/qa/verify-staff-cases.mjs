@@ -17,6 +17,10 @@ const artifacts = path.resolve(
 assert(artifacts.startsWith(path.join(root, ".local/qa") + path.sep));
 fs.mkdirSync(artifacts, { recursive: true });
 const require = createRequire(path.join(root, "package.json"));
+const baselineRoot = process.env.STAFF_CASES_BASELINE_DIR
+  ? path.resolve(process.env.STAFF_CASES_BASELINE_DIR)
+  : undefined;
+if (baselineRoot) assert(baselineRoot.startsWith(path.join(root, ".local/qa") + path.sep));
 const replacements = new Set([
   "@/hooks/use-current-user",
   "@/hooks/use-auth",
@@ -60,11 +64,21 @@ async function bundle(phase) {
           }));
           builder.onResolve({ filter: /^(?:@\/|next\/)/ }, (args) => {
             const key = args.path.replace(/\.(tsx?|jsx?)$/, "");
-            if (phase === "before" && old.has(key))
+            if (
+              phase === "before" &&
+              baselineRoot &&
+              [
+                "@/components/cases/cases-workspace",
+                "@/components/cases/staff-cases-list",
+              ].includes(key)
+            )
+              return { path: path.join(baselineRoot, "src", key.slice(2) + ".tsx") };
+            if (phase === "before" && !baselineRoot && old.has(key))
               return { path: path.join(root, ".local/qa/session-05/starting", old.get(key)) };
             if (
               replacements.has(key) ||
-              (key.startsWith("@/client/queries/") && key !== "@/client/queries/case-query-error")
+              (key.startsWith("@/client/queries/") &&
+                !["@/client/queries/case-query-error", "@/client/queries/query-keys"].includes(key))
             )
               return { path: path.join(root, "tests/staff-cases/adapters.tsx") };
             if (key === "next/dynamic") return { path: key, namespace: "fixture-dynamic" };
@@ -94,9 +108,13 @@ async function bundle(phase) {
   });
   assert.equal(output.warnings.length, 0);
   const cssSource =
-    phase === "before" ? ".local/qa/session-05/starting/index.css" : "src/index.css";
+    phase === "before"
+      ? baselineRoot
+        ? path.join(baselineRoot, "src/index.css")
+        : ".local/qa/session-05/starting/index.css"
+      : "src/index.css";
   const compiled = await postcss([tailwind({ base: root, optimize: false })]).process(
-    fs.readFileSync(path.join(root, cssSource), "utf8"),
+    fs.readFileSync(path.resolve(root, cssSource), "utf8"),
     { from: path.join(root, "src/index.css") },
   );
   const css = postcss.parse(compiled.css);
@@ -122,7 +140,13 @@ async function bundle(phase) {
   };
 }
 const bundles = { after: await bundle("after") };
-if (fs.existsSync(path.join(root, ".local/qa/session-05/starting/cases-workspace.tsx")))
+if (
+  fs.existsSync(
+    baselineRoot
+      ? path.join(baselineRoot, "src/components/cases/cases-workspace.tsx")
+      : path.join(root, ".local/qa/session-05/starting/cases-workspace.tsx"),
+  )
+)
   bundles.before = await bundle("before");
 for (const [phase, result] of Object.entries(bundles))
   for (const [type, content] of Object.entries(result))
@@ -196,7 +220,7 @@ try {
         await expect(page.getByText(`${count} matching matters`, { exact: true })).toBeVisible();
       }
       await search.fill("");
-      const group = page.getByRole("group", { name: "Case status", exact: true });
+      const statusSelect = page.getByRole("combobox", { name: "Case status", exact: true });
       for (const [label, count] of [
         ["Inquiry", 5],
         ["Active", 5],
@@ -204,9 +228,14 @@ try {
         ["Closed", 7],
         ["All", 23],
       ]) {
-        const button = group.getByRole("button", { name: new RegExp(`^${label}\\s*${count}$`) });
-        await button.click();
-        await expect(button).toHaveAttribute("aria-pressed", "true");
+        await statusSelect.click();
+        const option = page.getByRole("option", {
+          name: label === "All" ? "All Statuses" : label,
+          exact: true,
+        });
+        await expect(option).toContainText(String(count));
+        await option.click();
+        await expect(statusSelect).toBeFocused();
         await expect(page.getByText(`${count} matching matters`, { exact: true })).toBeVisible();
       }
       const pagination = page.getByRole("navigation", { name: "Case pagination" });
@@ -223,6 +252,53 @@ try {
       await expect(pagination).toHaveCount(0);
       await search.fill("");
       await expect(home.locator("tbody tr")).toHaveCount(10);
+      await expect(home.locator("thead th")).toHaveCount(6);
+      for (const row of await home.locator("tbody tr").all()) {
+        const view = row.getByRole("link", { name: /^View case / });
+        await expect(view).toBeVisible();
+        assert.equal(
+          await view.getAttribute("href"),
+          await row.locator(".staff-case-title").getAttribute("href"),
+        );
+      }
+      const lawyerSelect = page.getByRole("combobox", { name: "Assigned lawyer", exact: true });
+      await pagination.getByRole("button", { name: "3", exact: true }).click();
+      await lawyerSelect.click();
+      await page.getByRole("option", { name: "Synthetic Sita Adhikari", exact: true }).click();
+      await expect(page.getByText("12 matching matters", { exact: true })).toBeVisible();
+      await expect(pagination.getByRole("button", { name: "1", exact: true })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await lawyerSelect.click();
+      await page.getByRole("option", { name: "All Lawyers", exact: true }).click();
+      const more = page.getByRole("button", { name: /^More Filters/ });
+      await pagination.getByRole("button", { name: "3", exact: true }).click();
+      await more.click();
+      const filtersDialog = page.getByRole("dialog", { name: "More Filters", exact: true });
+      await expect(filtersDialog).toBeVisible();
+      await page.getByRole("combobox", { name: "Filter by client", exact: true }).click();
+      await page.getByRole("option", { name: "Synthetic Ravi Sharma", exact: true }).click();
+      await expect(pagination.getByRole("button", { name: "1", exact: true })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await page.getByRole("combobox", { name: "Practice Area", exact: true }).click();
+      await page.getByRole("option", { name: "Civil Litigation", exact: true }).click();
+      await expect(page.getByText("12 matching matters", { exact: true })).toBeVisible();
+      assert.equal(
+        (await new AxeBuilder({ page }).include(".staff-cases-filter-panel").analyze()).violations
+          .length,
+        0,
+      );
+      await filtersDialog.getByRole("button", { name: "Show results", exact: true }).click();
+      await expect(more).toBeFocused();
+      await expect(more).toContainText("2");
+      await more.click();
+      await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+      await page.keyboard.press("Escape");
+      await expect(more).toBeFocused();
+      await expect(page.getByText("23 matching matters", { exact: true })).toBeVisible();
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)));
       const axe = await new AxeBuilder({ page }).include("#staff-main-canvas").analyze();
       assert.equal(
@@ -242,14 +318,16 @@ try {
             .evaluateAll((ns) => ns.map((n) => n.getAttribute("href"))),
         ),
       ];
-      await page.getByRole("button", { name: "By status", exact: true }).click();
-      await expect(page.getByRole("button", { name: "By status", exact: true })).toHaveAttribute(
+      await page.getByRole("button", { name: "Board View", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Board View", exact: true })).toHaveAttribute(
         "aria-pressed",
         "true",
       );
       assert.equal(await home.locator(".staff-cases-board > div").count(), 4);
       assert.equal(await home.locator('a[href^="/staff/cases/"]').count(), 23);
       const board = home.locator(".staff-cases-board");
+      await page.keyboard.press("Tab");
+      await expect(more).toBeFocused();
       await page.keyboard.press("Tab");
       await expect(board).toBeFocused();
       assert(
@@ -305,7 +383,10 @@ try {
       assert.equal((await page.evaluate(() => window.casesFixtureEvidence())).attempts.length, 0);
       await page.keyboard.press("Escape");
       await expect(newCase).toBeFocused();
-      await main.locator('a[href^="/staff/cases/"]').first().focus();
+      await main
+        .getByRole("link", { name: /^View case / })
+        .first()
+        .focus();
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(/\/staff\/cases\/synthetic-case-1$/);
       await page.goBack();
@@ -367,6 +448,53 @@ try {
     }
   // Actual creation component, mocked writes only. No owner records are created.
   {
+    const { context, page, main } = await mount("staff", 390, false, "filter-edges");
+    const select = async (label, option, index = 0) => {
+      await page.getByRole("combobox", { name: label, exact: true }).click();
+      await page.getByRole("option", { name: option, exact: true }).nth(index).click();
+    };
+    await select("Assigned lawyer", "Synthetic Sita Adhikari", 1);
+    await expect(page.getByText("1 matching matters", { exact: true })).toBeVisible();
+    await expect(main.locator(".staff-case-identity")).toContainText("TEST-2083-021");
+    await select("Assigned lawyer", "Unassigned");
+    await expect(page.getByText("1 matching matters", { exact: true })).toBeVisible();
+    await expect(main.locator(".staff-case-identity")).toContainText("TEST-2083-023");
+    await select("Assigned lawyer", "All Lawyers");
+    const more = page.getByRole("button", { name: /^More Filters/ });
+    await more.click();
+    await page.getByRole("combobox", { name: "Practice Area", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "More Filters", exact: true })).toBeVisible();
+    await select("Practice Area", "Corporate");
+    await select("Filter by client", "Synthetic Ravi Sharma");
+    await page.getByRole("button", { name: "Show results", exact: true }).click();
+    await expect(page.getByText("3 matching matters", { exact: true })).toBeVisible();
+    await select("Assigned lawyer", "Synthetic Sita Adhikari");
+    await page.getByRole("combobox", { name: "Case status", exact: true }).click();
+    await page.getByRole("option", { name: /^Inquiry/ }).click();
+    await expect(page.getByText("2 matching matters", { exact: true })).toBeVisible();
+    await page
+      .getByRole("textbox", { name: "Search cases by case number, title, client or lawyer" })
+      .fill("construction");
+    await expect(page.getByText("1 matching matters", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Board View", exact: true }).click();
+    await expect(main.locator('.staff-cases-board a[href^="/staff/cases/"]')).toHaveCount(1);
+    await page
+      .getByRole("textbox", { name: "Search cases by case number, title, client or lawyer" })
+      .fill("no matching record");
+    await expect(main.getByText("No matching cases", { exact: true })).toBeVisible();
+    await main.getByRole("button", { name: "Clear filters", exact: true }).click();
+    await expect(main.locator('.staff-cases-board a[href^="/staff/cases/"]')).toHaveCount(23);
+    results.push({
+      kind: "Exact-ID/AND/empty/reset edge cases",
+      duplicateNames: true,
+      unassignedDistinctFromMissing: true,
+      boardMatchesFilters: true,
+    });
+    await context.close();
+  }
+  // Actual creation component, mocked writes only. No owner records are created.
+  {
     const { context, page } = await mount("staff", 390, false);
     await page.getByRole("button", { name: "New case", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Create New Case" });
@@ -420,7 +548,8 @@ try {
       "#00ff00",
     ]) {
       const { context, page, main } = await mount("staff", 1440, dark, "populated", brand);
-      await page.getByRole("button", { name: "By status", exact: true }).click();
+      await page.getByRole("button", { name: "Board View", exact: true }).click();
+      await page.keyboard.press("Tab");
       await page.keyboard.press("Tab");
       await expect(page.getByRole("region", { name: "Cases by lifecycle status" })).toBeFocused();
       const measurements = await main.locator(".staff-cases-workspace").evaluate((home) => {

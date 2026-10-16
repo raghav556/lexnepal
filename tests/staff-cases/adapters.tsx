@@ -4,7 +4,8 @@ export { default, default as Link } from "../navigation/adapters";
 import { navigate } from "../navigation/adapters";
 import { ApiClientError } from "@/client/api/errors";
 
-export type CasesFixtureState = "populated" | "loading" | "empty" | "error" | "forbidden";
+export type CasesFixtureState =
+  "populated" | "loading" | "empty" | "error" | "forbidden" | "filter-edges";
 let state: CasesFixtureState = "populated";
 let primaryColor: string | undefined;
 const listeners = new Set<() => void>();
@@ -66,10 +67,32 @@ const hearings = [
   },
   { _id: "hearing-bs", caseId: "synthetic-case-3", status: "scheduled", dateBs: "18 Kartik 2083" },
 ];
+// Opt-in filtering edge cases; default records used by protected comparisons stay identical.
+const filterRecords = records.map((record, index) => ({
+  ...record,
+  practiceArea: index === 18 ? "" : index % 3 === 0 ? "Corporate" : "Civil Litigation",
+  assignedLawyerId:
+    index === 22
+      ? ""
+      : index === 21
+        ? "missing-directory-lawyer"
+        : index === 20
+          ? "lawyer-c"
+          : record.assignedLawyerId,
+  clientId: index === 19 ? "missing-directory-client" : record.clientId,
+}));
+const filterUsers = [...users, { _id: "lawyer-c", name: users[0].name, role: "lawyer" }];
 export function useCasesQuery() {
   const current = useSyncExternalStore(subscribe, () => state);
   return {
-    data: current === "loading" ? undefined : current === "empty" ? [] : records,
+    data:
+      current === "loading"
+        ? undefined
+        : current === "empty"
+          ? []
+          : current === "filter-edges"
+            ? filterRecords
+            : records,
     isPending: current === "loading",
     isLoading: current === "loading",
     isError: current === "error" || current === "forbidden",
@@ -85,7 +108,7 @@ export function useCasesQuery() {
 }
 export const useCases = () => useCasesQuery().data;
 export const useClients = () => clients;
-export const useStaffDirectory = () => users;
+export const useStaffDirectory = () => (state === "filter-edges" ? filterUsers : users);
 export const useHearings = () => hearings;
 export function useCreateCase() {
   return async (input: Record<string, unknown>) => {

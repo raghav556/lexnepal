@@ -42,11 +42,13 @@ export function StaffCasesList({
       <caption className="sr-only">Cases, clients, lifecycle status and hearing dates</caption>
       <DashboardTableHead>
         <tr>
-          {["Case", "Client", "Status", "Next hearing", "Assigned lawyer"].map((label) => (
-            <DashboardTableHeaderCell key={label} scope="col">
-              {label}
-            </DashboardTableHeaderCell>
-          ))}
+          {["Case", "Client", "Status", "Next hearing", "Assigned lawyer", "Actions"].map(
+            (label) => (
+              <DashboardTableHeaderCell key={label} scope="col">
+                {label}
+              </DashboardTableHeaderCell>
+            ),
+          )}
         </tr>
       </DashboardTableHead>
       <DashboardTableBody>
@@ -106,8 +108,19 @@ export function StaffCasesList({
                   <span aria-hidden className="staff-case-avatar">
                     {lawyer ? lawyer.name?.charAt(0).toUpperCase() : "?"}
                   </span>
-                  <span>{lawyer ? lawyer.name : "Unassigned"}</span>
+                  <span>
+                    {lawyer?.name || (matter.assignedLawyerId ? "Name unavailable" : "Unassigned")}
+                  </span>
                 </div>
+              </DashboardTableCell>
+              <DashboardTableCell data-label="Actions">
+                <Link
+                  href={caseDetailPath(basePath, matter._id)}
+                  className="staff-case-view"
+                  aria-label={`View case ${matter.caseNumber}`}
+                >
+                  View
+                </Link>
               </DashboardTableCell>
             </DashboardTableRow>
           );
