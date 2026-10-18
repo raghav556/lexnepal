@@ -1,16 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCases } from "@/client/queries/cases";
 import { useResearchNotes, useResearchCommands } from "@/client/queries/research";
 import type { ResearchDto } from "@/shared/contracts/domains";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog.tsx";
 import {
   Select,
   SelectContent,
@@ -23,28 +16,22 @@ import {
   BookOpen,
   Plus,
   Search,
-  Edit2,
   Trash2,
   Loader2,
   Scale,
-  X,
   FolderOpen,
-  Gavel,
   FileText,
+  Pencil,
+  ArrowLeft,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils.ts";
 import {
   DashboardButton,
-  DashboardFilterBar,
-  DashboardSection,
-  DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
-  HeroStatChip,
   PortalPageShell,
-  STAFF_HERO_OUTLINE_BUTTON_CLASS,
-  StaffHeroChipRow,
+  usePortalBranding,
 } from "@/components/dashboard";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -56,462 +43,538 @@ const CATEGORY_LABELS: Record<string, string> = {
   template_research: "Template Research",
 };
 
-export default function StaffResearchPage() {
-  const notes = useResearchNotes() || [];
-  const cases = useCases({}) || [];
+type FormState = {
+  title: string;
+  category: string;
+  content: string;
+  tags: string;
+  caseId: string;
+  nkp: string;
+  decision: string;
+  bench: string;
+};
 
+const EMPTY_FORM: FormState = {
+  title: "",
+  category: "procedure",
+  content: "",
+  tags: "",
+  caseId: "none",
+  nkp: "",
+  decision: "",
+  bench: "",
+};
+
+function formFromNote(note: ResearchDto): FormState {
+  return {
+    title: note.title,
+    category: note.category,
+    content: note.content,
+    tags: note.tags?.join(", ") || "",
+    caseId: note.caseId || "none",
+    nkp: note.citation?.nkpNo || "",
+    decision: note.citation?.decisionNo || "",
+    bench: note.citation?.bench || "",
+  };
+}
+
+function snapshot(form: FormState): string {
+  return JSON.stringify(form);
+}
+
+function wordCount(value: string): number {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  return words.length;
+}
+
+export default function StaffResearchPage() {
+  const { heroImageUrl } = usePortalBranding();
+  const notesResult = useResearchNotes();
+  const casesResult = useCases({});
+  const notes = notesResult ?? [];
+  const cases = casesResult ?? [];
   const { createNote, updateNote, deleteNote } = useResearchCommands();
 
-  // Vault States
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [selectedNote, setSelectedNote] = useState<ResearchDto | null>(null);
-
-  // Modal States
-  const [showModal, setShowModal] = useState(false);
-  const [editingNote, setEditingNote] = useState<ResearchDto | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<"create" | "edit" | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [baseline, setBaseline] = useState(snapshot(EMPTY_FORM));
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form States
-  const [formTitle, setFormTitle] = useState("");
-  const [formCategory, setFormCategory] = useState<string>("supreme_court");
-  const [formContent, setFormContent] = useState("");
-  const [formTags, setFormTags] = useState("");
-  const [formCaseId, setFormCaseId] = useState<string>("none");
-  const [formNkp, setFormNkp] = useState("");
-  const [formDecision, setFormDecision] = useState("");
-  const [formBench, setFormBench] = useState("");
+  const selectedNote = notes.find((note) => note._id === selectedId) ?? null;
+  const dirty = editorMode !== null && snapshot(form) !== baseline;
+  const workspaceOpen = editorMode !== null || Boolean(selectedNote);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  const confirmDiscard = () => {
+    if (!dirty) return true;
+    return window.confirm("You have unsaved changes. Discard them?");
+  };
 
   const openCreate = () => {
-    setEditingNote(null);
-    setFormTitle("");
-    setFormCategory("procedure");
-    setFormContent("");
-    setFormTags("");
-    setFormCaseId("none");
-    setFormNkp("");
-    setFormDecision("");
-    setFormBench("");
-    setShowModal(true);
+    if (!confirmDiscard()) return;
+    setForm(EMPTY_FORM);
+    setBaseline(snapshot(EMPTY_FORM));
+    setEditorMode("create");
   };
 
   const openEdit = (note: ResearchDto) => {
-    setEditingNote(note);
-    setFormTitle(note.title);
-    setFormCategory(note.category);
-    setFormContent(note.content);
-    setFormTags(note.tags?.join(", ") || "");
-    setFormCaseId(note.caseId || "none");
-    setFormNkp(note.citation?.nkpNo || "");
-    setFormDecision(note.citation?.decisionNo || "");
-    setFormBench(note.citation?.bench || "");
-    setShowModal(true);
+    if (editorMode === "edit" && selectedId === note._id) return;
+    if (!confirmDiscard()) return;
+    const next = formFromNote(note);
+    setSelectedId(note._id);
+    setForm(next);
+    setBaseline(snapshot(next));
+    setEditorMode("edit");
+  };
+
+  const openRead = (note: ResearchDto) => {
+    if (selectedId === note._id && editorMode === null) return;
+    if (!confirmDiscard()) return;
+    setEditorMode(null);
+    setSelectedId(note._id);
+  };
+
+  const cancelEditor = () => {
+    if (!confirmDiscard()) return;
+    setEditorMode(null);
+    setForm(EMPTY_FORM);
+    setBaseline(snapshot(EMPTY_FORM));
+  };
+
+  const backToLibrary = () => {
+    if (!confirmDiscard()) return;
+    setEditorMode(null);
+    setSelectedId(null);
   };
 
   const handleSave = async () => {
-    if (!formTitle.trim() || !formContent.trim()) return toast.error("Title and Content required");
+    if (!form.title.trim() || !form.content.trim()) {
+      toast.error("Title and content are required.");
+      return;
+    }
+    if (form.title.trim().length > 300) {
+      toast.error("Title must be 300 characters or fewer.");
+      return;
+    }
     setIsSaving(true);
     const payload = {
-      title: formTitle,
-      category: formCategory,
-      content: formContent,
-      tags: formTags
+      title: form.title.trim(),
+      category: form.category,
+      content: form.content.trim(),
+      tags: form.tags
         .split(",")
-        .map((t) => t.trim())
+        .map((tag) => tag.trim())
         .filter(Boolean),
-      caseId: formCaseId === "none" ? null : formCaseId,
+      caseId: form.caseId === "none" ? null : form.caseId,
       citation:
-        formNkp || formDecision || formBench
-          ? {
-              nkpNo: formNkp,
-              decisionNo: formDecision,
-              bench: formBench,
-            }
+        form.nkp || form.decision || form.bench
+          ? { nkpNo: form.nkp, decisionNo: form.decision, bench: form.bench }
           : null,
     };
-
     try {
-      if (editingNote) {
-        const updated = (await updateNote(editingNote._id, payload)) as ResearchDto;
+      if (editorMode === "edit" && selectedId) {
+        const updated = (await updateNote(selectedId, payload)) as ResearchDto;
         toast.success("Note updated");
-        if (selectedNote?._id === editingNote._id) setSelectedNote(updated);
+        if (updated?._id) setSelectedId(updated._id);
       } else {
-        await createNote(payload);
+        const created = (await createNote(payload)) as ResearchDto;
         toast.success("Saved to vault");
+        if (created?._id) setSelectedId(created._id);
       }
-      setShowModal(false);
-    } catch (err) {
-      toast.error("Failed to save note");
+      setEditorMode(null);
+      setBaseline(snapshot(form));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save note");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this note?")) return;
+  const handleDelete = async (note: ResearchDto) => {
+    if (!window.confirm("Delete this note?")) return;
+    if (editorMode && selectedId === note._id && !confirmDiscard()) return;
     try {
-      await deleteNote(id);
+      await deleteNote(note._id);
       toast.success("Note deleted");
-      if (selectedNote?._id === id) setSelectedNote(null);
-    } catch {
-      toast.error("Failed to delete note");
+      if (selectedId === note._id) {
+        setSelectedId(null);
+        setEditorMode(null);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete note");
     }
   };
 
-  // Filter Vault
-  const filteredNotes = notes.filter((n) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      n.title.toLowerCase().includes(q) ||
-      n.content.toLowerCase().includes(q) ||
-      (n.citation?.nkpNo || "").toLowerCase().includes(q);
-    const matchCat = categoryFilter === "all" || n.category === categoryFilter;
-    return matchSearch && matchCat;
-  });
+  const filteredNotes = useMemo(() => {
+    const query = search.toLowerCase();
+    return notes.filter((note) => {
+      const matchSearch =
+        !query ||
+        note.title.toLowerCase().includes(query) ||
+        note.content.toLowerCase().includes(query) ||
+        (note.citation?.nkpNo || "").toLowerCase().includes(query);
+      const matchCategory = categoryFilter === "all" || note.category === categoryFilter;
+      return matchSearch && matchCategory;
+    });
+  }, [notes, search, categoryFilter]);
+
+  const linkedMatters = new Set(notes.map((note) => note.caseId).filter(Boolean)).size;
+  const recentAdditions = notes.filter((note) => {
+    const created = Date.parse(note.createdAt);
+    return Number.isFinite(created) && Date.now() - created <= 30 * 24 * 60 * 60 * 1000;
+  }).length;
+
+  if (notesResult === undefined || casesResult === undefined) {
+    return (
+      <PortalPageShell
+        portal="staff"
+        loading
+        loadingLabel="Loading research vault…"
+        title="Research Vault"
+      >
+        {null}
+      </PortalPageShell>
+    );
+  }
+
+  const updateForm = (patch: Partial<FormState>) =>
+    setForm((current) => ({ ...current, ...patch }));
 
   return (
     <PortalPageShell
       portal="staff"
-      title="Legal research & vault"
-      description="Firm knowledge base of precedents, commentary and procedure."
+      eyebrow="Legal practice · Knowledge base"
+      title="Research Vault"
+      description="Firm precedents, research notes and legal references."
       icon={BookOpen}
-      className="h-[calc(100vh-4rem)] overflow-hidden"
-      contentClassName="flex flex-col min-h-0 flex-1"
-      actions={
-        <>
-          <DashboardButton size="sm" onClick={openCreate} className="gap-2">
-            <Plus className="size-3.5" aria-hidden /> Add to vault
-          </DashboardButton>
-          <DashboardButton
-            size="sm"
-            variant="outline"
-            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
-            onClick={() => {
-              setCategoryFilter("all");
-              setSearch("");
-            }}
-          >
-            Clear filters
-          </DashboardButton>
-        </>
-      }
+      className="staff-research-workspace"
+      heroClassName="staff-research-hero"
+      metricsClassName="staff-research-metrics"
+      metrics={[
+        {
+          label: "Research notes",
+          value: String(notes.length),
+          icon: BookOpen,
+          tone: "information",
+          helperText: "All notes",
+        },
+        {
+          label: "Linked matters",
+          value: String(linkedMatters),
+          icon: Scale,
+          tone: "warning",
+          helperText: "Connected cases",
+        },
+        {
+          label: "Research categories",
+          value: String(new Set(notes.map((note) => note.category)).size),
+          icon: FolderOpen,
+          tone: "success",
+          helperText: "In this vault",
+        },
+        {
+          label: "Recent additions",
+          value: String(recentAdditions),
+          icon: Clock,
+          tone: "information",
+          helperText: "In the last 30 days",
+        },
+      ]}
       heroChildren={
-        <StaffHeroChipRow>
-          <HeroStatChip icon={BookOpen} value={notes.length} label="vault notes" />
-          <HeroStatChip icon={Search} value={filteredNotes.length} label="in view" />
-          <HeroStatChip
-            icon={FolderOpen}
-            value={notes.filter((n) => Boolean(n.caseId)).length}
-            label="linked to matters"
-          />
-          <HeroStatChip
-            icon={Scale}
-            value={new Set(notes.map((n) => n.category)).size}
-            label="categories"
-          />
-        </StaffHeroChipRow>
+        <div
+          aria-hidden
+          className="staff-research-hero-art"
+          style={
+            heroImageUrl
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
+              : undefined
+          }
+        />
       }
     >
-      <DashboardSection className="flex-1 flex flex-col min-h-0 overflow-hidden !p-0">
-        <DashboardFilterBar className="p-4 border-b border-dashboard-border bg-dashboard-neutral-soft/50">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-9 h-9 text-sm bg-dashboard-panel"
-              placeholder="Search firm vault..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      <div className="staff-research-layout" data-pane={workspaceOpen ? "workspace" : "library"}>
+        <section className="staff-research-library" aria-label="Research library">
+          <div className="staff-research-library-head">
+            <h2>Research notes</h2>
+            <DashboardButton size="sm" variant="primary" onClick={openCreate}>
+              <Plus className="size-3.5" aria-hidden /> New Research Note
+            </DashboardButton>
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px] h-9 text-sm bg-dashboard-panel">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
-                <SelectItem key={val} value={val}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </DashboardFilterBar>
-
-        <div className="flex-1 flex overflow-hidden">
-          {/* List View */}
-          <div
-            className={cn(
-              "w-full lg:w-[40%] border-r border-border overflow-y-auto p-3 space-y-2",
-              selectedNote ? "hidden lg:block" : "block",
-            )}
-          >
-            {filteredNotes.length === 0 ? (
-              <EmptyState
-                title="No notes found"
-                description="Try a different search or category."
-                icon={FolderOpen}
-                className="py-12"
+          <div className="staff-research-filters">
+            <div className="staff-research-search">
+              <Search aria-hidden />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search notes…"
+                aria-label="Search research notes"
               />
-            ) : (
-              filteredNotes.map((note) => {
-                const categoryLabel = CATEGORY_LABELS[note.category] || note.category;
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger aria-label="Filter by category">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {filteredNotes.length === 0 ? (
+            <EmptyState
+              title="No notes found"
+              description="Try a different search or category."
+              icon={FolderOpen}
+              className="py-10"
+            />
+          ) : (
+            <ul className="staff-research-list">
+              {filteredNotes.map((note) => {
+                const linked = cases.find((item) => item._id === note.caseId);
+                const active = selectedId === note._id;
                 return (
-                  <div
-                    key={note._id}
-                    onClick={() => setSelectedNote(note)}
-                    className={cn(
-                      "p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50 text-left",
-                      selectedNote?._id === note._id
-                        ? "bg-primary/5 border-primary shadow-sm"
-                        : "bg-background border-border",
-                    )}
-                  >
-                    <h3 className="font-semibold text-sm line-clamp-1 mb-1">{note.title}</h3>
-                    <div className="flex items-center justify-between mt-2">
-                      <DashboardStatusLabel
-                        label={categoryLabel}
-                        tone="information"
-                        className="text-[10px] px-1.5 py-0"
-                      />
-                      <span className="text-[10px] text-muted-foreground font-mono">
+                  <li key={note._id}>
+                    <button
+                      type="button"
+                      className="staff-research-note"
+                      aria-pressed={active}
+                      onClick={() => openRead(note)}
+                    >
+                      <strong>{note.title}</strong>
+                      <span className="staff-research-note-meta">
+                        <span>{CATEGORY_LABELS[note.category] || note.category}</span>
+                        {note.citation?.nkpNo ? <span>NKP {note.citation.nkpNo}</span> : null}
                         <DualDateDisplay isoDate={note.createdAt} />
                       </span>
-                    </div>
-                    {note.caseId && (
-                      <div className="mt-2 text-[10px] font-bold text-primary flex items-center gap-1">
-                        <FolderOpen className="w-3 h-3" /> Bound to Case
-                      </div>
-                    )}
-                  </div>
+                      {note.caseId ? (
+                        <span className="staff-research-link">
+                          <FolderOpen className="size-3.5" aria-hidden />
+                          {linked ? linked.caseNumber : "Linked case"}
+                        </span>
+                      ) : null}
+                    </button>
+                  </li>
                 );
-              })
-            )}
-          </div>
+              })}
+            </ul>
+          )}
+        </section>
 
-          {/* Detail View */}
-          <div
-            className={cn(
-              "flex-1 overflow-y-auto bg-zinc-50/30 dark:bg-zinc-950/30 relative",
-              !selectedNote ? "hidden lg:flex" : "block w-full lg:w-auto lg:block",
-            )}
-          >
-            {!selectedNote ? (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground flex-col">
-                <FileText className="w-12 h-12 mb-4 opacity-10" />
-                <p className="text-sm">Select a note to read</p>
+        <section className="staff-research-stage" aria-label="Research workspace">
+          <button type="button" className="staff-research-back" onClick={backToLibrary}>
+            <ArrowLeft className="size-4" aria-hidden /> Back to library
+          </button>
+
+          {editorMode ? (
+            <form
+              className="staff-research-editor"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSave();
+              }}
+            >
+              <header className="staff-research-editor-head">
+                <div>
+                  <p>{editorMode === "edit" ? "Edit research note" : "New research note"}</p>
+                  <h2>{editorMode === "edit" ? form.title || "Untitled note" : "Write a note"}</h2>
+                </div>
+                {dirty ? <span className="staff-research-dirty">Unsaved changes</span> : null}
+              </header>
+              <div className="staff-research-fields">
+                <label>
+                  Title
+                  <Input
+                    value={form.title}
+                    onChange={(event) => updateForm({ title: event.target.value })}
+                    maxLength={300}
+                    required
+                  />
+                </label>
+                <div className="staff-research-field-row">
+                  <label>
+                    Category
+                    <Select
+                      value={form.category}
+                      onValueChange={(category) => updateForm({ category })}
+                    >
+                      <SelectTrigger aria-label="Category">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label>
+                    Linked case
+                    <Select value={form.caseId} onValueChange={(caseId) => updateForm({ caseId })}>
+                      <SelectTrigger aria-label="Linked case">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">General firm vault</SelectItem>
+                        {cases.map((item) => (
+                          <SelectItem key={item._id} value={item._id}>
+                            {item.caseNumber} — {item.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                </div>
+                <div className="staff-research-field-row staff-research-citation-fields">
+                  <label>
+                    NKP No.
+                    <Input
+                      value={form.nkp}
+                      onChange={(event) => updateForm({ nkp: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Decision No.
+                    <Input
+                      value={form.decision}
+                      onChange={(event) => updateForm({ decision: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Bench
+                    <Input
+                      value={form.bench}
+                      onChange={(event) => updateForm({ bench: event.target.value })}
+                    />
+                  </label>
+                </div>
+                <label>
+                  Tags
+                  <Input
+                    value={form.tags}
+                    onChange={(event) => updateForm({ tags: event.target.value })}
+                    placeholder="Comma-separated tags"
+                  />
+                </label>
+                <label className="staff-research-content-label">
+                  Research content
+                  <Textarea
+                    value={form.content}
+                    onChange={(event) => updateForm({ content: event.target.value })}
+                    className="staff-research-canvas"
+                    required
+                    aria-label="Research content"
+                  />
+                </label>
               </div>
-            ) : (
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-4 mb-6">
+              <div className="staff-research-editor-actions">
+                <span>{wordCount(form.content)} words</span>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEditor}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                    Save to Vault
+                  </Button>
+                </div>
+              </div>
+            </form>
+          ) : selectedNote ? (
+            <article className="staff-research-reader">
+              <header>
+                <div>
+                  <p className="staff-research-badge">
+                    {CATEGORY_LABELS[selectedNote.category] || selectedNote.category}
+                  </p>
+                  <h2>{selectedNote.title}</h2>
+                  <p className="staff-research-reader-date">
+                    <DualDateDisplay isoDate={selectedNote.createdAt} />
+                  </p>
+                </div>
+                <div className="staff-research-reader-actions">
+                  <Button type="button" variant="outline" onClick={() => openEdit(selectedNote)}>
+                    <Pencil className="size-4" aria-hidden /> Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleDelete(selectedNote)}
+                  >
+                    <Trash2 className="size-4" aria-hidden /> Delete
+                  </Button>
+                </div>
+              </header>
+              {selectedNote.caseId ? (
+                <p className="staff-research-link">
+                  <FolderOpen className="size-3.5" aria-hidden />
+                  Linked case:{" "}
+                  {cases.find((item) => item._id === selectedNote.caseId)?.caseNumber ||
+                    "Linked case"}
+                </p>
+              ) : null}
+              {selectedNote.citation &&
+              (selectedNote.citation.nkpNo ||
+                selectedNote.citation.decisionNo ||
+                selectedNote.citation.bench) ? (
+                <dl className="staff-research-citation">
                   <div>
-                    <h2 className="text-xl font-serif font-bold text-foreground leading-tight mb-2">
-                      {selectedNote.title}
-                    </h2>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <DashboardStatusLabel
-                        label={CATEGORY_LABELS[selectedNote.category] || selectedNote.category}
-                        tone="information"
-                        className="text-xs"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        <DualDateDisplay isoDate={selectedNote.createdAt} />
-                      </span>
-                      {selectedNote.caseId && (
-                        <DashboardStatusLabel
-                          label={`Linked: ${cases.find((c) => c._id === selectedNote.caseId)?.caseNumber || selectedNote.caseId}`}
-                          tone="primary"
-                          className="text-xs font-mono"
-                        />
-                      )}
-                    </div>
+                    <dt>NKP No.</dt>
+                    <dd>{selectedNote.citation.nkpNo || "—"}</dd>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8"
-                      onClick={() => openEdit(selectedNote)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => handleDelete(selectedNote._id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 lg:hidden"
-                      onClick={() => setSelectedNote(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                  <div>
+                    <dt>Decision No.</dt>
+                    <dd>{selectedNote.citation.decisionNo || "—"}</dd>
                   </div>
-                </div>
-
-                {selectedNote.citation &&
-                  (selectedNote.citation.nkpNo || selectedNote.citation.decisionNo) && (
-                    <div className="mb-6 p-4 bg-muted border border-border rounded-lg grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">
-                          NKP Number
-                        </p>
-                        <p className="font-mono text-sm font-semibold">
-                          {selectedNote.citation.nkpNo || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">
-                          Decision No
-                        </p>
-                        <p className="font-mono text-sm font-semibold">
-                          {selectedNote.citation.decisionNo || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">
-                          Bench
-                        </p>
-                        <p className="text-sm font-semibold">
-                          {selectedNote.citation.bench || "-"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                <div className="prose prose-sm dark:prose-invert max-w-none font-serif text-base leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                  {selectedNote.content}
-                </div>
-
-                {selectedNote.tags?.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-border flex flex-wrap gap-2">
-                    {selectedNote.tags.map((t: string) => (
-                      <DashboardStatusLabel
-                        key={t}
-                        label={`#${t}`}
-                        tone="neutral"
-                        className="text-[10px]"
-                      />
-                    ))}
+                  <div>
+                    <dt>Bench</dt>
+                    <dd>{selectedNote.citation.bench || "—"}</dd>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </DashboardSection>
-
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Gavel className="w-5 h-5 text-primary" />
-              {editingNote ? "Edit Research Note" : "Save to Firm Vault"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Title</label>
-              <Input
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-                placeholder="e.g., Precedent on Property Partition"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium">Category</label>
-                <Select value={formCategory} onValueChange={setFormCategory}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
-                      <SelectItem key={val} value={val}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium">Link to Case</label>
-                <Select value={formCaseId} onValueChange={setFormCaseId}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">-- General Firm Vault --</SelectItem>
-                    {cases.map((c) => (
-                      <SelectItem key={c._id} value={c._id}>
-                        {c.caseNumber} - {c.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="p-3 bg-muted rounded-lg border border-border space-y-3">
-              <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
-                <Scale className="w-3.5 h-3.5" /> Citation Metadata (Optional)
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                <Input
-                  className="h-8 text-xs bg-background"
-                  placeholder="NKP No (e.g. 2078)"
-                  value={formNkp}
-                  onChange={(e) => setFormNkp(e.target.value)}
-                />
-                <Input
-                  className="h-8 text-xs bg-background"
-                  placeholder="Decision No"
-                  value={formDecision}
-                  onChange={(e) => setFormDecision(e.target.value)}
-                />
-                <Input
-                  className="h-8 text-xs bg-background"
-                  placeholder="Bench (e.g. Full Bench)"
-                  value={formBench}
-                  onChange={(e) => setFormBench(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Content / Precedent Details</label>
-              <Textarea
-                value={formContent}
-                onChange={(e) => setFormContent(e.target.value)}
-                placeholder="Paste or write the legal research here..."
-                className="min-h-[200px] font-serif resize-y"
-              />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Tags (comma-separated)</label>
-              <Input
-                value={formTags}
-                onChange={(e) => setFormTags(e.target.value)}
-                placeholder="e.g., partition, family law, limitation"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Save to Vault"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                </dl>
+              ) : null}
+              <div className="staff-research-body">{selectedNote.content}</div>
+              {selectedNote.tags?.length ? (
+                <ul className="staff-research-tags" aria-label="Tags">
+                  {selectedNote.tags.map((tag) => (
+                    <li key={tag}>{tag}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </article>
+          ) : (
+            <EmptyState
+              title="Select a research note"
+              description="Choose a note from the library, or start a new one."
+              icon={FileText}
+              className="staff-research-empty"
+            />
+          )}
+        </section>
+      </div>
     </PortalPageShell>
   );
 }
