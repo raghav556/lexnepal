@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCases } from "@/client/queries/cases";
 import { useResearchNotes, useResearchCommands } from "@/client/queries/research";
 import type { ResearchDto } from "@/shared/contracts/domains";
@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
+import { Pagination } from "@/components/ui/pagination.tsx";
+import { usePagination } from "@/hooks/use-pagination.ts";
 import {
   BookOpen,
   Plus,
@@ -33,6 +35,8 @@ import {
   PortalPageShell,
   usePortalBranding,
 } from "@/components/dashboard";
+
+const NOTES_PER_PAGE = 10;
 
 const CATEGORY_LABELS: Record<string, string> = {
   supreme_court: "Supreme Court",
@@ -85,6 +89,24 @@ function snapshot(form: FormState): string {
 function wordCount(value: string): number {
   const words = value.trim().split(/\s+/).filter(Boolean);
   return words.length;
+}
+
+function alignInCanvas(element: HTMLElement | null, clearance = 16) {
+  const canvas = document.getElementById("staff-main-canvas");
+  if (!element || !canvas) return;
+  const delta = element.getBoundingClientRect().top - (canvas.getBoundingClientRect().top + clearance);
+  if (Math.abs(delta) < 4) return;
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  canvas.scrollTo({ top: Math.max(0, canvas.scrollTop + delta), behavior });
+}
+
+function revealInCanvas(element: HTMLElement | null, clearance = 16) {
+  const canvas = document.getElementById("staff-main-canvas");
+  if (!element || !canvas) return;
+  const canvasBox = canvas.getBoundingClientRect();
+  const box = element.getBoundingClientRect();
+  if (box.top >= canvasBox.top + clearance && box.bottom <= canvasBox.bottom - 8) return;
+  alignInCanvas(element, clearance);
 }
 
 export default function StaffResearchPage() {
@@ -230,6 +252,53 @@ export default function StaffResearchPage() {
     });
   }, [notes, search, categoryFilter]);
 
+  const {
+    paginatedItems: visibleNotes,
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination,
+  } = usePagination(filteredNotes, NOTES_PER_PAGE);
+  const rangeStart = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const rangeEnd = Math.min(currentPage * itemsPerPage, totalItems);
+  const filterKey = `${search}\0${categoryFilter}`;
+  const filterKeyRef = useRef(filterKey);
+  const noteCountRef = useRef(filteredNotes.length);
+  const libraryRef = useRef<HTMLElement>(null);
+  const seenPageRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (seenPageRef.current === null) {
+      seenPageRef.current = currentPage;
+      return;
+    }
+    if (seenPageRef.current === currentPage) return;
+    seenPageRef.current = currentPage;
+    alignInCanvas(libraryRef.current);
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (!selectedNote || editorMode) return;
+    if (!window.matchMedia("(min-width: 64rem)").matches) return;
+    const heading = document.querySelector(".staff-research-reader h2");
+    revealInCanvas(heading instanceof HTMLElement ? heading : null);
+  }, [selectedId, editorMode, selectedNote]);
+
+  useEffect(() => {
+    if (filterKeyRef.current !== filterKey) {
+      filterKeyRef.current = filterKey;
+      noteCountRef.current = filteredNotes.length;
+      resetPagination();
+      return;
+    }
+    if (filteredNotes.length < noteCountRef.current) goToPage(currentPage);
+    noteCountRef.current = filteredNotes.length;
+  }, [filterKey, filteredNotes.length, currentPage, goToPage, resetPagination]);
+
   const linkedMatters = new Set(notes.map((note) => note.caseId).filter(Boolean)).size;
   const recentAdditions = notes.filter((note) => {
     const created = Date.parse(note.createdAt);
@@ -307,7 +376,7 @@ export default function StaffResearchPage() {
       }
     >
       <div className="staff-research-layout" data-pane={workspaceOpen ? "workspace" : "library"}>
-        <section className="staff-research-library" aria-label="Research library">
+        <section ref={libraryRef} className="staff-research-library" aria-label="Research library">
           <div className="staff-research-library-head">
             <h2>Research notes</h2>
             <DashboardButton size="sm" variant="primary" onClick={openCreate}>
@@ -346,35 +415,51 @@ export default function StaffResearchPage() {
               className="py-10"
             />
           ) : (
-            <ul className="staff-research-list">
-              {filteredNotes.map((note) => {
-                const linked = cases.find((item) => item._id === note.caseId);
-                const active = selectedId === note._id;
-                return (
-                  <li key={note._id}>
-                    <button
-                      type="button"
-                      className="staff-research-note"
-                      aria-pressed={active}
-                      onClick={() => openRead(note)}
-                    >
-                      <strong>{note.title}</strong>
-                      <span className="staff-research-note-meta">
-                        <span>{CATEGORY_LABELS[note.category] || note.category}</span>
-                        {note.citation?.nkpNo ? <span>NKP {note.citation.nkpNo}</span> : null}
-                        <DualDateDisplay isoDate={note.createdAt} />
-                      </span>
-                      {note.caseId ? (
-                        <span className="staff-research-link">
-                          <FolderOpen className="size-3.5" aria-hidden />
-                          {linked ? linked.caseNumber : "Linked case"}
+            <>
+              <ul className="staff-research-list">
+                {visibleNotes.map((note) => {
+                  const linked = cases.find((item) => item._id === note.caseId);
+                  const active = selectedId === note._id;
+                  return (
+                    <li key={note._id}>
+                      <button
+                        type="button"
+                        className="staff-research-note"
+                        aria-pressed={active}
+                        onClick={() => openRead(note)}
+                      >
+                        <strong>{note.title}</strong>
+                        <span className="staff-research-note-meta">
+                          <span>{CATEGORY_LABELS[note.category] || note.category}</span>
+                          {note.citation?.nkpNo ? <span>NKP {note.citation.nkpNo}</span> : null}
+                          <DualDateDisplay isoDate={note.createdAt} />
                         </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                        {note.caseId ? (
+                          <span className="staff-research-link">
+                            <FolderOpen className="size-3.5" aria-hidden />
+                            {linked ? linked.caseNumber : "Linked case"}
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="staff-research-pagination">
+                <p className="staff-research-page-status" aria-live="polite">
+                  Showing {rangeStart}–{rangeEnd} of {totalItems} research notes
+                </p>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  onNextPage={nextPage}
+                  onPrevPage={prevPage}
+                  ariaLabel="Research notes pages"
+                  className="py-1"
+                />
+              </div>
+            </>
           )}
         </section>
 

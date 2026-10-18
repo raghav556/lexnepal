@@ -71,3 +71,15 @@ Approved checkpoint: dark KPI contrast verified; desktop and mobile Save and Can
 - `mobile-editor-actions-390.png`
 
 Approved files only: `StaffResearchPage.tsx`, `src/index.css`, this report.
+
+## Post-checkpoint fix
+
+KPI cards now use the Documents and Hearings layout: icon on the left, label, value, and helper on the right, with the same height, padding, border, spacing, and soft semantic icon colors. Four columns from 1152px, two columns below that. The four counts are unchanged.
+
+The library paginates `filteredNotes` at 10 notes per page with Previous, Next, and numbered pages. Changing pages aligns the library just below the sticky topbar. On a wide screen, choosing a note from the bottom of the list brings its reader into view. Mobile still replaces the library with the reader. The status reads “Showing X–Y of Z research notes”. Search and category changes return to page 1. One page hides the page controls. Deleting the last note on a page keeps the reader on a valid page. Changing pages does not clear the selected note or unsaved editor text.
+
+Verified with 23 in-memory notes and mocked writes. No owner record was changed. Focused pagination tests passed. `eslint` on `StaffResearchPage.tsx`, `tsc --noEmit`, and `use-pagination` unit tests passed. Dark KPI contrast is 16.1 for values, 6.6 for labels, 11.8–13.5 for helpers, and 9.5 for icons. No horizontal overflow at 1440, 768, 390, or 360.
+
+Final scroll check: after transitions settle, only page 2 uses the shared Pagination navy active style and pages 1 and 3 stay outlined. A page change places the library 16px below the topbar, and a desktop selection from the bottom of the list brings the reader into view. Screenshot: `.local/qa/session-10/pagination-ux/desktop-page2-settled-1440.png`.
+
+Screenshots in `.local/qa/session-10/pagination-fix/`: `desktop-kpis-page1-1440-light.png`, `desktop-page2-1440-light.png`, `mobile-kpis-390-light.png`, `mobile-pagination-390-light.png`, `desktop-kpis-1440-dark.png`.
