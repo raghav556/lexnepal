@@ -1,128 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { queryKeys } from "@/client/queries/query-keys";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { slugifyBlogTitle, staffCanEditBlogStatus } from "@/shared/blog-visibility";
-import { slugifyNewsTitle } from "@/shared/news-visibility";
+import { Pagination } from "@/components/ui/pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import {
   DashboardButton,
-  DashboardListRow,
-  DashboardSection,
-  DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
-  HeroStatChip,
   PortalPageShell,
-  STAFF_HERO_OUTLINE_BUTTON_CLASS,
-  StaffHeroChipRow,
   StatusBadge,
+  usePortalBranding,
 } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { CmsImageUploadField } from "@/components/cms/CmsImageUploadField";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  PenTool,
-  Plus,
-  Edit,
-  Send,
-  Clock,
   CheckCircle2,
-  XCircle,
+  Clock,
   FileText,
   Newspaper,
+  PenTool,
+  Plus,
+  Search,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import {
+  BLOG_CATEGORIES,
+  CONTENT_STATUSES,
+  NEWS_TYPES,
+  type BlogPost,
+  type ContentKind,
+  type ContentStatus,
+  type NewsItem,
+  type NewsType,
+  contentStatusLabel,
+  contentStatusTone,
+  libraryHref,
+  isNewsItem,
+  newsTypeLabel,
+  staffCanEditContent,
+  writeHref,
+} from "@/views/staff/staff-content-model";
 
-type BlogStatus = "draft" | "pending_review" | "published" | "rejected";
-type NewsType = "firm_news" | "award" | "press_release";
+const PAGE_SIZE = 10;
 
-type BlogPost = {
-  _id: string;
-  title: string;
-  slug: string;
-  category?: string;
-  excerpt?: string;
-  content?: string;
-  coverImageUrl?: string;
-  status: BlogStatus;
-  publishDate?: string;
-  seoTitle?: string;
-  seoDescription?: string;
-  author?: string;
-  reviewNotes?: string | null;
-};
-
-type NewsItem = {
-  _id: string;
-  title: string;
-  slug?: string;
-  excerpt?: string;
-  content?: string;
-  type: NewsType;
-  date: string;
-  imageUrl?: string;
-  status: BlogStatus;
-  linkUrl?: string;
-  reviewNotes?: string | null;
-};
-
-const emptyBlogForm = () => ({
-  title: "",
-  slug: "",
-  category: "General",
-  excerpt: "",
-  content: "",
-  coverImageUrl: "",
-  seoTitle: "",
-  seoDescription: "",
-});
-
-const emptyNewsForm = () => ({
-  title: "",
-  slug: "",
-  excerpt: "",
-  content: "",
-  type: "firm_news" as NewsType,
-  date: new Date().toISOString().slice(0, 10),
-  imageUrl: "",
-});
-
-function ContentStatusLabel({ status }: { status: string }) {
-  const icon =
-    status === "published"
-      ? CheckCircle2
-      : status === "pending_review"
-        ? Clock
-        : status === "rejected"
-          ? XCircle
-          : FileText;
-  return (
-    <DashboardStatusLabel
-      status={status}
-      icon={icon}
-      className="uppercase tracking-wider text-[10px] gap-1"
-    />
-  );
+function recordDate(value?: string | null): string | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? value : null;
 }
 
 export default function StaffContentPage() {
-  const user = useCurrentUser();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { heroImageUrl } = usePortalBranding();
   const queryClient = useQueryClient();
-  const [mainTab, setMainTab] = useState("blog");
+  const tab: ContentKind = searchParams.get("tab") === "news" ? "news" : "blog";
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   const postsQuery = useQuery({
     queryKey: [...queryKeys.cms.all, "staff", "blog-posts"],
@@ -131,688 +80,377 @@ export default function StaffContentPage() {
   });
   const newsQuery = useQuery({
     queryKey: [...queryKeys.cms.all, "staff", "news"],
-    queryFn: ({ signal }) =>
-      apiClient.request<NewsItem[]>("/api/v1/staff/content/news", { signal }),
+    queryFn: ({ signal }) => apiClient.request<NewsItem[]>("/api/v1/staff/content/news", { signal }),
   });
 
-  const posts = postsQuery.data || [];
-  const news = newsQuery.data || [];
+  const posts = postsQuery.data ?? [];
+  const news = newsQuery.data ?? [];
+  const items = tab === "blog" ? posts : news;
+  const loading = tab === "blog" ? postsQuery.isLoading : newsQuery.isLoading;
+  const failed = tab === "blog" ? postsQuery.isError : newsQuery.isError;
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.cms.all });
-
-  // Blog dialog
-  const [blogOpen, setBlogOpen] = useState(false);
-  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [blogForm, setBlogForm] = useState(emptyBlogForm);
-  const [blogReadOnly, setBlogReadOnly] = useState(false);
-  const [savingBlog, setSavingBlog] = useState(false);
-
-  // News dialog
-  const [newsOpen, setNewsOpen] = useState(false);
-  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
-  const [newsForm, setNewsForm] = useState(emptyNewsForm);
-  const [newsSlugTouched, setNewsSlugTouched] = useState(false);
-  const [newsReadOnly, setNewsReadOnly] = useState(false);
-  const [savingNews, setSavingNews] = useState(false);
-
-  const authorName = user?.name || user?.email || "Staff";
-
-  const openBlogCreate = () => {
-    setEditingBlogId(null);
-    setSlugTouched(false);
-    setBlogForm(emptyBlogForm());
-    setBlogReadOnly(false);
-    setBlogOpen(true);
-  };
-
-  const openBlogEdit = (post: BlogPost) => {
-    setEditingBlogId(post._id);
-    setSlugTouched(true);
-    setBlogForm({
-      title: post.title || "",
-      slug: post.slug || "",
-      category: post.category || "General",
-      excerpt: post.excerpt || "",
-      content: post.content || "",
-      coverImageUrl: post.coverImageUrl || "",
-      seoTitle: post.seoTitle || "",
-      seoDescription: post.seoDescription || "",
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((item) => {
+      const categoryValue = isNewsItem(item) ? item.type : item.category || "";
+      const matchesQuery =
+        !query ||
+        item.title.toLowerCase().includes(query) ||
+        (item.excerpt || "").toLowerCase().includes(query) ||
+        categoryValue.toLowerCase().includes(query);
+      const matchesCategory = category === "all" || categoryValue === category;
+      const matchesStatus = status === "all" || item.status === status;
+      return matchesQuery && matchesCategory && matchesStatus;
     });
-    setBlogReadOnly(!staffCanEditBlogStatus(post.status) || post.status === "published");
-    setBlogOpen(true);
-  };
+  }, [items, search, category, status]);
 
-  const handleBlogTitleChange = (title: string) => {
-    setBlogForm((prev) => ({
-      ...prev,
-      title,
-      slug: slugTouched ? prev.slug : slugifyBlogTitle(title),
-    }));
-  };
+  const {
+    paginatedItems,
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination,
+  } = usePagination(filtered, PAGE_SIZE);
+  const rangeStart = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const rangeEnd = Math.min(currentPage * itemsPerPage, totalItems);
+  const filterKey = `${tab}\0${search}\0${category}\0${status}`;
+  const filterKeyRef = useRef(filterKey);
 
-  const buildBlogPayload = () => {
-    const slug = (blogForm.slug.trim() || slugifyBlogTitle(blogForm.title)).toLowerCase();
+  useEffect(() => {
+    if (filterKeyRef.current === filterKey) return;
+    filterKeyRef.current = filterKey;
+    resetPagination();
+  }, [filterKey, resetPagination]);
+
+  const counts = useMemo(() => {
+    const all = [...posts, ...news];
     return {
-      title: blogForm.title.trim(),
-      slug,
-      category: blogForm.category || "General",
-      excerpt: blogForm.excerpt.trim(),
-      content: blogForm.content,
-      coverImageUrl: blogForm.coverImageUrl || null,
-      author: authorName,
-      status: "draft" as const,
-      publishDate: "",
-      seoTitle: blogForm.seoTitle.trim() || undefined,
-      seoDescription: blogForm.seoDescription.trim() || undefined,
+      total: all.length,
+      drafts: all.filter((item) => item.status === "draft").length,
+      review: all.filter((item) => item.status === "pending_review").length,
+      published: all.filter((item) => item.status === "published").length,
     };
+  }, [posts, news]);
+
+  const setTab = (value: string) => {
+    setCategory("all");
+    setStatus("all");
+    setSearch("");
+    router.replace(value === "news" ? libraryHref("news") : libraryHref("blog"));
   };
 
-  const saveBlogDraft = async (opts?: { close?: boolean; submitAfter?: boolean }) => {
-    if (!blogForm.title.trim() || !blogForm.excerpt.trim() || !blogForm.content.trim()) {
-      toast.error("Title, excerpt, and content are required.");
-      return null;
-    }
-    setSavingBlog(true);
+  const submitItem = async (kind: ContentKind, id: string) => {
+    setSubmittingId(id);
     try {
-      const payload = buildBlogPayload();
-      let id = editingBlogId;
-      if (id) {
-        await apiClient.request(`/api/v1/staff/content/blog-posts/${id}`, {
-          method: "PATCH",
-          body: payload,
-        });
-      } else {
-        const created = await apiClient.request<BlogPost>("/api/v1/staff/content/blog-posts", {
-          method: "POST",
-          body: payload,
-        });
-        id = created._id;
-        setEditingBlogId(id);
-      }
-      if (opts?.submitAfter && id) {
-        await apiClient.request(`/api/v1/staff/content/blog-posts/${id}/submit`, {
-          method: "POST",
-        });
-        toast.success("Submitted for review.");
-      } else {
-        toast.success(editingBlogId ? "Draft saved." : "Draft created.");
-      }
-      await invalidate();
-      if (opts?.close !== false) setBlogOpen(false);
-      return id;
-    } catch (e) {
-      console.error(e);
-      toast.error(opts?.submitAfter ? "Failed to submit." : "Failed to save draft.");
-      return null;
-    } finally {
-      setSavingBlog(false);
-    }
-  };
-
-  const submitBlog = async (id: string) => {
-    try {
-      await apiClient.request(`/api/v1/staff/content/blog-posts/${id}/submit`, { method: "POST" });
+      const path =
+        kind === "blog"
+          ? `/api/v1/staff/content/blog-posts/${id}/submit`
+          : `/api/v1/staff/content/news/${id}/submit`;
+      await apiClient.request(path, { method: "POST" });
       toast.success("Submitted for review.");
-      await invalidate();
-      setBlogOpen(false);
-    } catch (e) {
-      console.error(e);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cms.all });
+    } catch (error) {
+      console.error(error);
       toast.error("Failed to submit for review.");
-    }
-  };
-
-  const openNewsCreate = () => {
-    setEditingNewsId(null);
-    setNewsForm(emptyNewsForm());
-    setNewsSlugTouched(false);
-    setNewsReadOnly(false);
-    setNewsOpen(true);
-  };
-
-  const openNewsEdit = (item: NewsItem) => {
-    setEditingNewsId(item._id);
-    setNewsForm({
-      title: item.title || "",
-      slug: item.slug || "",
-      excerpt: item.excerpt || "",
-      content: item.content || "",
-      type: item.type || "firm_news",
-      date: item.date?.slice?.(0, 10) || item.date || new Date().toISOString().slice(0, 10),
-      imageUrl: item.imageUrl || "",
-    });
-    setNewsSlugTouched(true);
-    setNewsReadOnly(!staffCanEditBlogStatus(item.status) || item.status === "published");
-    setNewsOpen(true);
-  };
-
-  const saveNewsDraft = async (opts?: { close?: boolean; submitAfter?: boolean }) => {
-    if (!newsForm.title.trim() || !newsForm.excerpt.trim() || !newsForm.content.trim()) {
-      toast.error("Title, excerpt, and content are required.");
-      return null;
-    }
-    setSavingNews(true);
-    try {
-      const slug = (newsForm.slug.trim() || slugifyNewsTitle(newsForm.title)).toLowerCase();
-      const payload = {
-        title: newsForm.title.trim(),
-        slug,
-        excerpt: newsForm.excerpt.trim(),
-        content: newsForm.content,
-        type: newsForm.type,
-        date: newsForm.date,
-        imageUrl: newsForm.imageUrl || null,
-        status: "draft" as const,
-        displayOrder: 0,
-        isFeatured: false,
-      };
-      let id = editingNewsId;
-      if (id) {
-        await apiClient.request(`/api/v1/staff/content/news/${id}`, {
-          method: "PATCH",
-          body: payload,
-        });
-      } else {
-        const created = await apiClient.request<NewsItem>("/api/v1/staff/content/news", {
-          method: "POST",
-          body: payload,
-        });
-        id = created._id;
-        setEditingNewsId(id);
-      }
-      if (opts?.submitAfter && id) {
-        await apiClient.request(`/api/v1/staff/content/news/${id}/submit`, { method: "POST" });
-        toast.success("Submitted for review.");
-      } else {
-        toast.success(editingNewsId ? "Draft saved." : "Draft created.");
-      }
-      await invalidate();
-      if (opts?.close !== false) setNewsOpen(false);
-      return id;
-    } catch (e) {
-      console.error(e);
-      toast.error(opts?.submitAfter ? "Failed to submit." : "Failed to save draft.");
-      return null;
     } finally {
-      setSavingNews(false);
+      setSubmittingId(null);
     }
-  };
-
-  const submitNews = async (id: string) => {
-    try {
-      await apiClient.request(`/api/v1/staff/content/news/${id}/submit`, { method: "POST" });
-      toast.success("Submitted for review.");
-      await invalidate();
-      setNewsOpen(false);
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to submit for review.");
-    }
-  };
-
-  const typeLabel = (type: string) => {
-    if (type === "award") return "Award";
-    if (type === "press_release") return "Press Release";
-    return "Firm News";
   };
 
   return (
     <PortalPageShell
       portal="staff"
-      titleKey="portal.content.title"
-      descriptionKey="portal.content.description"
+      eyebrow="Legal practice · Publishing"
+      title="Content Studio"
+      description="Create and manage blog articles, firm news, and legal insights."
       icon={PenTool}
-      className="max-w-7xl mx-auto"
-      actions={
-        <>
-          <DashboardButton
-            size="sm"
-            onClick={() => {
-              setMainTab("blog");
-              openBlogCreate();
-            }}
-          >
-            <Plus className="size-3.5" aria-hidden /> New article
-          </DashboardButton>
-          <DashboardButton
-            size="sm"
-            variant="outline"
-            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
-            onClick={() => {
-              setMainTab("news");
-              openNewsCreate();
-            }}
-          >
-            <Newspaper className="size-3.5" aria-hidden /> New news
-          </DashboardButton>
-        </>
-      }
+      className="staff-content-workspace"
+      heroClassName="staff-content-hero"
+      metricsClassName="staff-content-metrics"
+      metrics={[
+        {
+          label: "Total content",
+          value: String(counts.total),
+          icon: FileText,
+          tone: "information",
+          helperText: "All articles & news",
+        },
+        {
+          label: "Drafts",
+          value: String(counts.drafts),
+          icon: PenTool,
+          tone: "neutral",
+          helperText: "In preparation",
+        },
+        {
+          label: "Under review",
+          value: String(counts.review),
+          icon: Clock,
+          tone: "warning",
+          helperText: "Awaiting approval",
+        },
+        {
+          label: "Published",
+          value: String(counts.published),
+          icon: CheckCircle2,
+          tone: "success",
+          helperText: "Live on website",
+        },
+      ]}
       heroChildren={
-        <StaffHeroChipRow>
-          <HeroStatChip icon={FileText} value={posts.length} label="articles" />
-          <HeroStatChip icon={Newspaper} value={news.length} label="news items" />
-          <HeroStatChip
-            icon={Clock}
-            value={[...posts, ...news].filter((item) => item.status === "draft").length}
-            label="drafts"
-          />
-          <HeroStatChip
-            icon={Send}
-            value={[...posts, ...news].filter((item) => item.status === "pending_review").length}
-            label="in review"
-          />
-        </StaffHeroChipRow>
+        <div
+          aria-hidden
+          className="staff-content-hero-art"
+          style={
+            heroImageUrl
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
+              : undefined
+          }
+        />
       }
     >
-      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full min-w-0">
-        <TabsList className="grid w-full max-w-md grid-cols-2 h-auto">
-          <TabsTrigger value="blog" className="gap-1.5">
-            <FileText className="w-4 h-4" /> Blog
-          </TabsTrigger>
-          <TabsTrigger value="news" className="gap-1.5">
-            <Newspaper className="w-4 h-4" /> News
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={setTab} className="staff-content-library">
+        <div className="staff-content-library-head">
+          <TabsList>
+            <TabsTrigger value="blog">Blog Articles</TabsTrigger>
+            <TabsTrigger value="news">Firm News</TabsTrigger>
+          </TabsList>
+          <DashboardButton
+            size="sm"
+            variant="primary"
+            onClick={() => router.push(writeHref(tab))}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            {tab === "blog" ? "New Blog Article" : "New News"}
+          </DashboardButton>
+        </div>
 
-        <TabsContent value="blog" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <DashboardButton onClick={openBlogCreate} className="gap-2 w-full sm:w-auto">
-              <Plus className="w-4 h-4" /> New article
-            </DashboardButton>
+        <div className="staff-content-filters">
+          <div className="staff-content-search">
+            <Search aria-hidden />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={tab === "blog" ? "Search articles…" : "Search news…"}
+              aria-label={tab === "blog" ? "Search articles" : "Search news"}
+            />
           </div>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger aria-label={tab === "blog" ? "Filter by category" : "Filter by type"}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{tab === "blog" ? "All categories" : "All types"}</SelectItem>
+              {tab === "blog"
+                ? BLOG_CATEGORIES.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
+                  ))
+                : NEWS_TYPES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger aria-label="Filter by status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              {CONTENT_STATUSES.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          <DashboardSection title="Blog articles">
-            {postsQuery.isLoading ? (
-              <p className="text-center text-sm text-muted-foreground py-10">Loading…</p>
-            ) : posts.length === 0 ? (
-              <EmptyState
-                title="No articles yet"
-                description="Create a draft to get started."
-                icon={FileText}
-              />
-            ) : (
-              <div className="space-y-2">
-                {posts.map((post) => {
-                  const canEdit = staffCanEditBlogStatus(post.status);
-                  const canSubmit = canEdit;
-                  return (
-                    <DashboardListRow
-                      key={post._id}
-                      className="flex-col sm:flex-row items-start gap-3"
-                    >
-                      <div className="min-w-0 space-y-1.5 flex-1">
-                        <p className="font-semibold text-foreground text-sm sm:text-base break-words">
-                          {post.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{post.slug}</p>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <ContentStatusLabel status={post.status} />
-                          {post.category ? (
-                            <StatusBadge tone="neutral" className="text-[10px]">
-                              {post.category}
-                            </StatusBadge>
-                          ) : null}
-                        </div>
-                        {post.status === "rejected" && post.reviewNotes ? (
-                          <p className="text-xs text-dashboard-danger mt-1 break-words">
-                            Review notes: {post.reviewNotes}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {(canEdit ||
-                          post.status === "published" ||
-                          post.status === "pending_review") && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openBlogEdit(post)}
-                            className="gap-1.5"
-                          >
-                            <Edit className="w-4 h-4" />
-                            {canEdit ? "Edit" : "View"}
-                          </Button>
-                        )}
-                        {canSubmit && (
-                          <Button
-                            size="sm"
-                            onClick={() => submitBlog(post._id)}
-                            className="gap-1.5"
-                          >
-                            <Send className="w-4 h-4" /> Submit
-                          </Button>
-                        )}
-                      </div>
-                    </DashboardListRow>
-                  );
-                })}
-              </div>
-            )}
-          </DashboardSection>
-        </TabsContent>
-
-        <TabsContent value="news" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <DashboardButton onClick={openNewsCreate} className="gap-2 w-full sm:w-auto">
-              <Plus className="w-4 h-4" /> New news item
-            </DashboardButton>
-          </div>
-
-          <DashboardSection title="News items">
-            {newsQuery.isLoading ? (
-              <p className="text-center text-sm text-muted-foreground py-10">Loading…</p>
-            ) : news.length === 0 ? (
-              <EmptyState
-                title="No news drafts"
-                description="Create a draft to get started."
-                icon={Newspaper}
-              />
-            ) : (
-              <div className="space-y-2">
-                {news.map((item) => {
-                  const canEdit = staffCanEditBlogStatus(item.status);
-                  return (
-                    <DashboardListRow
-                      key={item._id}
-                      className="flex-col sm:flex-row items-start gap-3"
-                    >
-                      <div className="min-w-0 space-y-1.5 flex-1">
-                        <p className="font-semibold text-foreground text-sm sm:text-base break-words">
-                          {item.title}
-                        </p>
-                        {item.slug ? (
-                          <p className="text-xs text-muted-foreground truncate">{item.slug}</p>
-                        ) : null}
-                        <p className="text-xs text-muted-foreground line-clamp-2">{item.excerpt}</p>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <ContentStatusLabel status={item.status} />
-                          <StatusBadge tone="information" className="text-[10px]">
-                            {typeLabel(item.type)}
-                          </StatusBadge>
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            <DualDateDisplay isoDate={item.date} />
-                          </span>
-                        </div>
-                        {item.status === "rejected" && item.reviewNotes ? (
-                          <p className="text-xs text-dashboard-danger mt-1 break-words">
-                            Review notes: {item.reviewNotes}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openNewsEdit(item)}
-                          className="gap-1.5"
-                        >
-                          <Edit className="w-4 h-4" />
-                          {canEdit ? "Edit" : "View"}
-                        </Button>
-                        {canEdit && (
-                          <Button
-                            size="sm"
-                            onClick={() => submitNews(item._id)}
-                            className="gap-1.5"
-                          >
-                            <Send className="w-4 h-4" /> Submit
-                          </Button>
-                        )}
-                      </div>
-                    </DashboardListRow>
-                  );
-                })}
-              </div>
-            )}
-          </DashboardSection>
-        </TabsContent>
+        <ContentList
+          kind={tab}
+          loading={loading}
+          failed={failed}
+          hasRecords={(tab === "blog" ? posts : news).length > 0}
+          rows={paginatedItems}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          totalItems={totalItems}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          onNextPage={nextPage}
+          onPrevPage={prevPage}
+          submittingId={submittingId}
+          onOpen={(id) => router.push(writeHref(tab, id))}
+          onCreate={() => router.push(writeHref(tab))}
+          onSubmit={(id) => submitItem(tab, id)}
+        />
       </Tabs>
-
-      {/* Blog dialog */}
-      <Dialog open={blogOpen} onOpenChange={setBlogOpen}>
-        <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-full max-h-[90vh] overflow-y-auto bg-background border-border">
-          <DialogHeader>
-            <DialogTitle>
-              {blogReadOnly ? "View article" : editingBlogId ? "Edit draft" : "New article draft"}
-            </DialogTitle>
-            <DialogDescription>
-              Save as draft, then submit for admin review. Publishing is admin-only.
-            </DialogDescription>
-          </DialogHeader>
-          <div className={cn("space-y-4 py-2", blogReadOnly && "pointer-events-none opacity-90")}>
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                value={blogForm.title}
-                onChange={(e) => handleBlogTitleChange(e.target.value)}
-                placeholder="Article title"
-                disabled={blogReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Slug</Label>
-              <Input
-                value={blogForm.slug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setBlogForm({ ...blogForm, slug: e.target.value });
-                }}
-                placeholder="url-slug"
-                disabled={blogReadOnly}
-                className="text-muted-foreground"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                value={blogForm.category}
-                onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })}
-                disabled={blogReadOnly}
-              >
-                <option value="General">General</option>
-                <option value="Corporate Law">Corporate Law</option>
-                <option value="Civil Law">Civil Law</option>
-                <option value="Criminal Defense">Criminal Defense</option>
-                <option value="Firm News">Firm News</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Excerpt</Label>
-              <textarea
-                className="flex min-h-[70px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                value={blogForm.excerpt}
-                onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })}
-                disabled={blogReadOnly}
-                placeholder="Short summary"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Content (markdown)</Label>
-              <textarea
-                className="flex min-h-[160px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm font-mono"
-                value={blogForm.content}
-                onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })}
-                disabled={blogReadOnly}
-                placeholder="# Write your article..."
-              />
-            </div>
-            <CmsImageUploadField
-              label="Cover image"
-              purpose="blog_cover"
-              value={blogForm.coverImageUrl || undefined}
-              onChange={(url) => setBlogForm({ ...blogForm, coverImageUrl: url ?? "" })}
-              previewClassName="mt-2 w-full h-24 object-cover rounded-md border border-border"
-              hint="Upload a JPEG/PNG or paste a public HTTPS / CMS asset URL."
-            />
-            <div className="pt-2 border-t border-border space-y-3">
-              <p className="text-sm font-semibold text-muted-foreground">SEO (optional)</p>
-              <div className="space-y-2">
-                <Label>SEO title</Label>
-                <Input
-                  value={blogForm.seoTitle}
-                  onChange={(e) => setBlogForm({ ...blogForm, seoTitle: e.target.value })}
-                  disabled={blogReadOnly}
-                  placeholder="Leave blank to use main title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>SEO description</Label>
-                <textarea
-                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                  value={blogForm.seoDescription}
-                  onChange={(e) => setBlogForm({ ...blogForm, seoDescription: e.target.value })}
-                  disabled={blogReadOnly}
-                />
-              </div>
-            </div>
-          </div>
-          {!blogReadOnly && (
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setBlogOpen(false)}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => saveBlogDraft()}
-                disabled={savingBlog}
-                className="w-full sm:w-auto gap-1.5"
-              >
-                Save as draft
-              </Button>
-              <Button
-                onClick={() => saveBlogDraft({ submitAfter: true })}
-                disabled={savingBlog}
-                className="w-full sm:w-auto gap-1.5"
-              >
-                <Send className="w-4 h-4" /> Submit for review
-              </Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* News dialog */}
-      <Dialog open={newsOpen} onOpenChange={setNewsOpen}>
-        <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-full max-h-[90vh] overflow-y-auto bg-background border-border">
-          <DialogHeader>
-            <DialogTitle>
-              {newsReadOnly ? "View news" : editingNewsId ? "Edit news draft" : "New news draft"}
-            </DialogTitle>
-            <DialogDescription>Staff can only save drafts and submit for review.</DialogDescription>
-          </DialogHeader>
-          <div className={cn("space-y-4 py-2", newsReadOnly && "pointer-events-none opacity-90")}>
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                value={newsForm.title}
-                onChange={(e) => {
-                  const title = e.target.value;
-                  setNewsForm((prev) => ({
-                    ...prev,
-                    title,
-                    slug: newsSlugTouched ? prev.slug : slugifyNewsTitle(title),
-                  }));
-                }}
-                disabled={newsReadOnly}
-                placeholder="Headline"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">URL Slug</Label>
-              <Input
-                value={newsForm.slug}
-                onChange={(e) => {
-                  setNewsSlugTouched(true);
-                  setNewsForm({ ...newsForm, slug: e.target.value });
-                }}
-                disabled={newsReadOnly}
-                placeholder="url-slug"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                  value={newsForm.type}
-                  onChange={(e) => setNewsForm({ ...newsForm, type: e.target.value as NewsType })}
-                  disabled={newsReadOnly}
-                >
-                  <option value="firm_news">Firm News</option>
-                  <option value="award">Award</option>
-                  <option value="press_release">Press Release</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Input
-                  type="date"
-                  value={newsForm.date}
-                  onChange={(e) => setNewsForm({ ...newsForm, date: e.target.value })}
-                  disabled={newsReadOnly}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Excerpt</Label>
-              <textarea
-                className="flex min-h-[70px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                value={newsForm.excerpt}
-                onChange={(e) => setNewsForm({ ...newsForm, excerpt: e.target.value })}
-                disabled={newsReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Content (Markdown)</Label>
-              <textarea
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                value={newsForm.content}
-                onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
-                disabled={newsReadOnly}
-              />
-            </div>
-            <CmsImageUploadField
-              label="Image"
-              purpose="news_image"
-              value={newsForm.imageUrl || undefined}
-              onChange={(url) => setNewsForm({ ...newsForm, imageUrl: url ?? "" })}
-              previewClassName="mt-2 h-20 w-full max-w-xs rounded-md object-cover border"
-              hint="Upload JPEG/PNG or paste HTTPS / CMS asset URL."
-            />
-          </div>
-          {!newsReadOnly && (
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setNewsOpen(false)}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => saveNewsDraft()}
-                disabled={savingNews}
-                className="w-full sm:w-auto"
-              >
-                Save as draft
-              </Button>
-              <Button
-                onClick={() => saveNewsDraft({ submitAfter: true })}
-                disabled={savingNews}
-                className="w-full sm:w-auto gap-1.5"
-              >
-                <Send className="w-4 h-4" /> Submit for review
-              </Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
     </PortalPageShell>
+  );
+}
+
+function ContentList({
+  kind,
+  loading,
+  failed,
+  hasRecords,
+  rows,
+  rangeStart,
+  rangeEnd,
+  totalItems,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onNextPage,
+  onPrevPage,
+  submittingId,
+  onOpen,
+  onCreate,
+  onSubmit,
+}: {
+  kind: ContentKind;
+  loading: boolean;
+  failed: boolean;
+  hasRecords: boolean;
+  rows: Array<BlogPost | NewsItem>;
+  rangeStart: number;
+  rangeEnd: number;
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onNextPage: () => void;
+  onPrevPage: () => void;
+  submittingId: string | null;
+  onOpen: (id: string) => void;
+  onCreate: () => void;
+  onSubmit: (id: string) => void;
+}) {
+  if (loading) {
+    return <p className="staff-content-message">Loading content…</p>;
+  }
+  if (failed) {
+    return (
+      <EmptyState
+        title="Content could not be loaded"
+        description="Refresh the page and try again."
+        icon={FileText}
+      />
+    );
+  }
+  if (!hasRecords) {
+    return (
+      <EmptyState
+        title={kind === "blog" ? "No articles yet" : "No news yet"}
+        description="Create a draft to get started. Publishing stays with an administrator."
+        icon={kind === "blog" ? FileText : Newspaper}
+        action={
+          <Button type="button" onClick={onCreate}>
+            <Plus className="size-4" aria-hidden />
+            {kind === "blog" ? "New Blog Article" : "New News"}
+          </Button>
+        }
+      />
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        title="No matching content"
+        description="Try a different search, category, or status."
+        icon={Search}
+      />
+    );
+  }
+
+  return (
+    <div className="staff-content-table" role="table" aria-label={kind === "blog" ? "Blog articles" : "Firm news"}>
+      <div className="staff-content-table-head" role="row">
+        <span role="columnheader">Title</span>
+        <span role="columnheader">{kind === "blog" ? "Category" : "Type"}</span>
+        <span role="columnheader">Status</span>
+        <span role="columnheader">Updated</span>
+        <span role="columnheader">Actions</span>
+      </div>
+      <ul className="staff-content-rows">
+        {rows.map((item) => {
+          const canEdit = staffCanEditContent(item.status);
+          const image = isNewsItem(item) ? item.imageUrl : item.coverImageUrl;
+          const meta = isNewsItem(item) ? newsTypeLabel(item.type) : item.category || "General";
+          const dated =
+            recordDate(item.updatedAt) || recordDate(isNewsItem(item) ? item.date : item.publishDate);
+          return (
+            <li key={item._id} className="staff-content-row" role="row">
+              <div className="staff-content-title" role="cell">
+                {image ? (
+                  <img src={image} alt="" />
+                ) : (
+                  <span className="staff-content-thumb" aria-hidden>
+                    {kind === "blog" ? <FileText /> : <Newspaper />}
+                  </span>
+                )}
+                <span>
+                  <strong>{item.title}</strong>
+                  {item.excerpt ? <small>{item.excerpt}</small> : null}
+                </span>
+              </div>
+              <span className="staff-content-meta" role="cell">
+                {meta}
+              </span>
+              <span role="cell">
+                <StatusBadge tone={contentStatusTone(item.status as ContentStatus)}>
+                  {contentStatusLabel(item.status)}
+                </StatusBadge>
+                {item.status === "rejected" && item.reviewNotes ? (
+                  <small className="staff-content-feedback">Review: {item.reviewNotes}</small>
+                ) : null}
+              </span>
+              <span className="staff-content-date" role="cell">
+                {dated ? <DualDateDisplay isoDate={dated} /> : "—"}
+              </span>
+              <span className="staff-content-actions" role="cell">
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpen(item._id)}>
+                  {canEdit ? "Edit" : "View"}
+                </Button>
+                {canEdit ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onSubmit(item._id)}
+                    disabled={submittingId === item._id}
+                  >
+                    <Send className="size-3.5" aria-hidden /> Submit
+                  </Button>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="staff-content-pagination">
+        <p className="staff-content-page-status" aria-live="polite">
+          Showing {rangeStart}–{rangeEnd} of {totalItems} {kind === "blog" ? "articles" : "news items"}
+        </p>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          onNextPage={onNextPage}
+          onPrevPage={onPrevPage}
+          ariaLabel={kind === "blog" ? "Blog article pages" : "Firm news pages"}
+          className="py-1"
+        />
+      </div>
+    </div>
   );
 }
