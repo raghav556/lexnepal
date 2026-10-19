@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
 import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
@@ -25,10 +24,6 @@ import {
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
 import { StaffCaseTopbar } from "@/components/cases/staff-case-topbar";
 
-const CommandCenter = dynamic(
-  () => import("@/components/ui/CommandCenter").then((module) => module.CommandCenter),
-  { ssr: false },
-);
 const GlobalSearchPalette = dynamic(
   () =>
     import("@/components/dashboard/global-search-palette").then(
@@ -73,7 +68,7 @@ const mobileItemClassName = (active: boolean) =>
       : "text-dashboard-sidebar-muted hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground",
   );
 
-function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
+function StaffDesktopSidebar() {
   const { t } = useI18n();
   const isActive = useIsActive();
 
@@ -98,16 +93,6 @@ function StaffDesktopSidebar({ onOpenChat }: { onOpenChat: () => void }) {
       navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto sidebar-scroll-fade"
       footer={
         <>
-          <div className="px-3 pb-2 pt-2.5 border-t border-dashboard-sidebar-border">
-            <button
-              onClick={onOpenChat}
-              className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg border border-dashboard-sidebar-border bg-dashboard-sidebar-hover hover:border-dashboard-sidebar-active-border hover:bg-dashboard-sidebar-active text-dashboard-sidebar-muted hover:text-dashboard-sidebar-active-foreground font-medium transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus"
-            >
-              <MessageSquare className="size-[18px] text-dashboard-sidebar-active-icon shrink-0 transition-transform group-hover:scale-110" />
-              <span className="text-[13.5px]">Command Center</span>
-            </button>
-          </div>
-
           <div className="px-3 pb-4 pt-2 border-t border-dashboard-sidebar-border">
             <PortalAccountMenu
               profileHref="/staff/profile"
@@ -225,8 +210,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const isCaseDetail = /^\/staff\/cases\/[^/]+$/.test(pathname);
   const isStaffTasks = pathname === "/staff/tasks";
   const useFlowFooter = isStaffHome || pathname === "/staff/cases" || isCaseDetail || isStaffTasks;
+  const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const scrollTopControl = (
     <ScrollToTop
@@ -265,13 +250,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         >
           <IdleSessionGuard />
           <div className="flex h-full min-h-0 overflow-hidden bg-dashboard-canvas print:h-auto print:overflow-visible">
-            <StaffDesktopSidebar onOpenChat={() => setChatOpen(true)} />
+            <StaffDesktopSidebar />
             <div className="staff-shell-content flex min-h-0 flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
               <StaffMobileChrome />
               <StaffCaseTopbar
                 onOpenSearch={() => setSearchOpen(true)}
-                onOpenChat={() => setChatOpen(true)}
-                onOpenCommandCenter={() => setChatOpen(true)}
+                onOpenChat={() => router.push("/staff/messages")}
                 className="staff-admin-topbar hidden md:flex"
               />
               <main
@@ -316,7 +300,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           {searchOpen ? (
             <GlobalSearchPalette isOpen onClose={() => setSearchOpen(false)} portal="staff" />
           ) : null}
-          {chatOpen ? <CommandCenter isOpen onClose={() => setChatOpen(false)} /> : null}
         </PortalRoleGuard>
       </div>
     </PortalBrandingProvider>

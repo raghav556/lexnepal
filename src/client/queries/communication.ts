@@ -1,24 +1,43 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
 import { useCurrentIdentityUser } from "@/client/queries/identity";
 import { queryKeys } from "@/client/queries/query-keys";
+import { mergeMessagePages } from "@/shared/message-cursor";
 
-export function useMessages(caseId: string, isInternal?: boolean) {
+export type MessageListPage = {
+  page: any[];
+  isDone: boolean;
+  continueCursor: string;
+};
+
+const DEFAULT_MESSAGE_PAGE = 30;
+
+export async function fetchMessagePage(args: {
+  caseId: string;
+  isInternal?: boolean;
+  cursor?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<MessageListPage> {
+  return apiClient.request<MessageListPage>("/api/v1/messages", {
+    query: {
+      caseId: args.caseId,
+      isInternal: args.isInternal === undefined ? undefined : String(args.isInternal),
+      cursor: args.cursor,
+      limit: args.limit ?? DEFAULT_MESSAGE_PAGE,
+    },
+    signal: args.signal,
+  });
+}
+
+/** Latest page poll — existing callers that only need the recent window. */
+export function useMessages(caseId: string, isInternal?: boolean, limit = DEFAULT_MESSAGE_PAGE) {
   const next = useQuery({
-    queryKey: [...queryKeys.cases.detail(caseId), "messages", isInternal],
-    queryFn: ({ signal }) =>
-      apiClient.request<{ page: any[]; isDone: boolean; continueCursor: string }>(
-        "/api/v1/messages",
-        {
-          query: {
-            caseId,
-            isInternal: isInternal === undefined ? undefined : String(isInternal),
-          },
-          signal,
-        },
-      ),
+    queryKey: [...queryKeys.cases.detail(caseId), "messages", isInternal, limit],
+    queryFn: ({ signal }) => fetchMessagePage({ caseId, isInternal, limit, signal }),
     enabled: !!caseId,
     refetchInterval: 5000,
   });
@@ -29,6 +48,103 @@ export function useMessages(caseId: string, isInternal?: boolean) {
     error: next.error,
     isFetching: next.isFetching,
     refetch: next.refetch,
+  };
+}
+
+type HistoryBucket = {
+  key: string;
+  older: any[];
+  continueCursor: string;
+  hasMore: boolean | null;
+};
+
+/**
+ * Accumulating matter history: keeps earlier pages across polls, supports
+ * "Load earlier messages", and never drops already-loaded messages.
+ */
+export function useMatterMessageHistory(
+  caseId: string,
+  isInternal?: boolean,
+  limit = DEFAULT_MESSAGE_PAGE,
+) {
+  const latest = useMessages(caseId, isInternal, limit);
+  const streamKey = `${caseId}:${String(isInternal)}:${limit}`;
+  const [bucket, setBucket] = useState<HistoryBucket>({
+    key: streamKey,
+    older: [],
+    continueCursor: "",
+    hasMore: null,
+  });
+
+  if (bucket.key !== streamKey) {
+    setBucket({ key: streamKey, older: [], continueCursor: "", hasMore: null });
+  }
+
+  const active = bucket.key === streamKey ? bucket : { key: streamKey, older: [], continueCursor: "", hasMore: null };
+
+  const messages = useMemo(
+    () => mergeMessagePages(active.older, latest.data?.page ?? []),
+    [active.older, latest.data?.page],
+  );
+
+  const continueCursor =
+    active.older.length === 0
+      ? latest.data?.continueCursor || ""
+      : active.continueCursor;
+  const hasMore =
+    active.older.length === 0
+      ? latest.data
+        ? !latest.data.isDone
+        : false
+      : Boolean(active.hasMore);
+
+  const loadEarlier = useCallback(async () => {
+    if (!caseId || !continueCursor) return;
+    const page = await fetchMessagePage({
+      caseId,
+      isInternal,
+      cursor: continueCursor,
+      limit,
+    });
+    setBucket((prev) => {
+      const older = prev.key === streamKey ? prev.older : [];
+      return {
+        key: streamKey,
+        older: mergeMessagePages(page.page, older),
+        continueCursor: page.continueCursor || "",
+        hasMore: !page.isDone,
+      };
+    });
+  }, [caseId, continueCursor, isInternal, limit, streamKey]);
+
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [earlierError, setEarlierError] = useState<string | null>(null);
+
+  const loadEarlierSafe = useCallback(async () => {
+    if (!continueCursor || loadingEarlier) return;
+    setLoadingEarlier(true);
+    setEarlierError(null);
+    try {
+      await loadEarlier();
+    } catch (error) {
+      setEarlierError(error instanceof Error ? error.message : "Could not load earlier messages.");
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }, [continueCursor, loadEarlier, loadingEarlier]);
+
+  return {
+    messages,
+    isLoading: latest.isLoading && messages.length === 0,
+    isError: latest.isError,
+    error: latest.error,
+    isFetching: latest.isFetching,
+    refetch: latest.refetch,
+    hasMore,
+    continueCursor,
+    loadingEarlier,
+    earlierError,
+    loadEarlier: loadEarlierSafe,
   };
 }
 

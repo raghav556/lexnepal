@@ -17,6 +17,8 @@ export interface LuxuryChatComposerProps {
   className?: string;
   appearance?: "default" | "client";
   showTemplates?: boolean;
+  /** Replaces the default stream label when the composer cannot switch channels. */
+  audienceLabel?: string;
 }
 
 export function LuxuryChatComposer({
@@ -30,6 +32,7 @@ export function LuxuryChatComposer({
   className,
   appearance = "default",
   showTemplates = true,
+  audienceLabel,
 }: LuxuryChatComposerProps) {
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -106,7 +109,7 @@ export function LuxuryChatComposer({
     <div
       data-appearance={appearance}
       className={cn(
-        "relative p-3 border-t transition-colors",
+        "staff-chat-composer-shell relative p-3 border-t transition-colors",
         isClient
           ? "bg-[var(--dashboard-panel)] border-dashboard-border"
           : "bg-slate-900/90 border-slate-800/80 backdrop-blur-md",
@@ -211,7 +214,7 @@ export function LuxuryChatComposer({
       )}
 
       {!isClient && (
-        <div className="flex items-center justify-between gap-2 mb-2 px-1 text-[11px]">
+        <div className="staff-chat-composer-meta flex items-center justify-between gap-2 mb-2 px-1 text-[11px]">
           {canToggleInternal ? (
             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-800/90 border border-slate-700/70">
               <button
@@ -240,27 +243,25 @@ export function LuxuryChatComposer({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-slate-400">
-              {isInternal ? (
-                <span className="inline-flex items-center gap-1 text-amber-400 font-medium">
+            <div className="staff-chat-audience flex items-center gap-1.5">
+              {audienceLabel ? (
+                <span className="inline-flex items-center gap-1 font-semibold">{audienceLabel}</span>
+              ) : isInternal ? (
+                <span className="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-200">
                   <Lock className="size-3" /> Confidential Case Team Stream
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-blue-400 font-medium">
+                <span className="inline-flex items-center gap-1 font-semibold text-blue-800 dark:text-blue-200">
                   <Globe className="size-3" /> Client-Visible Stream
                 </span>
               )}
             </div>
           )}
 
-          <span className="hidden sm:inline-block text-[10px] text-slate-500 tracking-wider">
-            <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">
-              ↵
-            </kbd>{" "}
-            Send &nbsp;
-            <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">
-              ⇧↵
-            </kbd>{" "}
+          <span className="staff-chat-kbd-hints hidden sm:inline-flex items-center gap-1 text-[10px] tracking-wider">
+            <kbd className="staff-chat-kbd px-1 py-0.5 rounded border">↵</kbd>
+            Send
+            <kbd className="staff-chat-kbd px-1 py-0.5 rounded border">⇧↵</kbd>
             Newline
           </span>
         </div>
@@ -268,7 +269,7 @@ export function LuxuryChatComposer({
 
       <div
         className={cn(
-          "flex items-end gap-2 border rounded-2xl p-2 transition-all",
+          "staff-chat-input-row flex items-end gap-2 border rounded-2xl p-2 transition-all",
           isClient
             ? "bg-dashboard-neutral-soft border-dashboard-border focus-within:border-dashboard-primary focus-within:ring-1 focus-within:ring-dashboard-focus"
             : "bg-slate-950/70 border-slate-800 focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/30 shadow-inner",
@@ -280,7 +281,7 @@ export function LuxuryChatComposer({
             disabled={isUploading || disabled}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "size-8 rounded-xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-50",
+              "staff-chat-composer-icon size-8 rounded-xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-50",
               isClient
                 ? "text-muted-foreground hover:text-dashboard-primary hover:bg-[var(--dashboard-panel)]"
                 : "text-slate-400 hover:text-blue-400 hover:bg-slate-800/80",

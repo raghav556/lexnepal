@@ -10,7 +10,6 @@ import {
   MessageSquare,
   UserCog,
   KanbanSquare,
-  MessagesSquare,
   PenTool,
   Activity,
   Settings,
@@ -45,7 +44,6 @@ export const STAFF_NAV: PortalNavItemData[] = [
   { label: "CRM", i18nKey: "nav.crm", href: "/staff/crm", icon: KanbanSquare },
   { label: "Clients", i18nKey: "nav.clients", href: "/staff/clients", icon: Users },
   { label: "Messages", i18nKey: "nav.messages", href: "/staff/messages", icon: MessageSquare },
-  { label: "Team Chat", i18nKey: "nav.team_chat", href: "/staff/team-chat", icon: MessagesSquare },
   {
     label: "Appointments",
     i18nKey: "nav.appointments",

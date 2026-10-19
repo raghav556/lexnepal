@@ -18,6 +18,8 @@ export const messageListSchema = z.object({
     .optional()
     .transform((value) => (value === undefined ? undefined : value === "true")),
   limit: z.coerce.number().int().positive().max(200).optional(),
+  /** Opaque older-than cursor from a prior page (`createdAt` + message id). */
+  cursor: z.string().trim().min(1).max(512).optional(),
 });
 
 export const messageCreateSchema = z.object({

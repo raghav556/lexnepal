@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { MessageSquare } from "lucide-react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useDmMessages, useDmCommands } from "@/client/queries/dm";
+import { useDmMessageHistory, useDmCommands } from "@/client/queries/dm";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
+import { messageIdOf } from "@/shared/message-cursor";
 import {
   LuxuryChatBubble,
   LuxuryChatComposer,
@@ -18,11 +19,13 @@ export interface LuxuryDmPanelProps {
   peerName: string;
   peerRole?: string;
   peerPresence?: string;
+  subtitle?: string;
   className?: string;
   showBack?: boolean;
   onBack?: () => void;
   onClose?: () => void;
   bordered?: boolean;
+  showTemplates?: boolean;
 }
 
 function formatDateSeparator(dateInput?: string | Date): string {
@@ -43,58 +46,106 @@ export function LuxuryDmPanel({
   threadId,
   peerName,
   peerRole,
-  peerPresence = "Active now",
+  peerPresence = "",
+  subtitle,
   className,
   showBack,
   onBack,
   onClose,
   bordered = true,
+  showTemplates = true,
 }: LuxuryDmPanelProps) {
   const currentUser = useCurrentUser();
   const myId = currentUser?._id || currentUser?.id;
 
-  const { data: messages = [], isLoading } = useDmMessages(threadId);
+  const {
+    messages,
+    isLoading,
+    hasMore,
+    loadingEarlier,
+    earlierError,
+    loadEarlier,
+  } = useDmMessageHistory(threadId);
   const { sendMessage, markRead } = useDmCommands();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottomRef = useRef(true);
+  const pendingPrependRef = useRef<{ height: number; top: number } | null>(null);
+  const justSentRef = useRef(false);
+  const openedThreadRef = useRef("");
+
+  const markThreadRead = markRead.mutate;
+  useEffect(() => {
+    if (threadId) markThreadRead(threadId);
+  }, [threadId, markThreadRead]);
 
   useEffect(() => {
-    if (threadId) markRead.mutate(threadId);
-  }, [threadId, messages.length]);
+    if (openedThreadRef.current !== threadId) {
+      openedThreadRef.current = threadId;
+      stickToBottomRef.current = true;
+    }
+  }, [threadId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    if (pendingPrependRef.current && scroller) {
+      const { height, top } = pendingPrependRef.current;
+      scroller.scrollTop = top + (scroller.scrollHeight - height);
+      pendingPrependRef.current = null;
+      return;
+    }
+    if (!stickToBottomRef.current && !justSentRef.current) return;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    messagesEndRef.current?.scrollIntoView({
+      behavior: justSentRef.current && !reduceMotion ? "smooth" : "auto",
+    });
+    justSentRef.current = false;
   }, [messages]);
 
   const handleSendMessage = async (content: string, attachmentIds?: string[]) => {
     if (!threadId) return;
     try {
+      justSentRef.current = true;
+      stickToBottomRef.current = true;
       await sendMessage.mutateAsync({
         threadId,
         content,
         attachmentIds: attachmentIds && attachmentIds.length > 0 ? attachmentIds : undefined,
       });
     } catch (err: unknown) {
+      justSentRef.current = false;
       toast.error(err instanceof Error ? err.message : "Failed to send message");
       throw err;
     }
   };
 
+  const handleLoadEarlier = async () => {
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      pendingPrependRef.current = { height: scroller.scrollHeight, top: scroller.scrollTop };
+    }
+    stickToBottomRef.current = false;
+    await loadEarlier();
+  };
+
   return (
     <div
       className={cn(
-        "flex flex-col h-full min-h-[360px] bg-slate-950 text-slate-100 overflow-hidden",
+        "flex flex-col h-full min-h-0 bg-slate-950 text-slate-100 overflow-hidden",
         bordered && "border border-slate-800 rounded-2xl shadow-xl",
         className,
       )}
     >
-      {/* Header */}
       <LuxuryChatHeader
         type="dm"
         title={peerName}
         subtitle={
-          peerRole
-            ? `${peerRole.replace(/_/g, " ").toUpperCase()} · Staff DM`
-            : "Staff Direct Message"
+          subtitle ||
+          (peerRole
+            ? `${peerRole.replace(/_/g, " ")} · Private staff conversation`
+            : "Private staff conversation")
         }
         presence={peerPresence}
         showBack={showBack}
@@ -102,10 +153,54 @@ export function LuxuryDmPanel({
         onClose={onClose}
       />
 
-      {/* Message Stream */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-2 bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950">
-        {messages.length === 0 ? (
-          <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6 text-slate-400 gap-3">
+      <div
+        ref={scrollerRef}
+        className="flex-1 p-4 overflow-y-auto overflow-x-hidden space-y-2 min-h-0 bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950"
+        role="log"
+        aria-label={`Conversation with ${peerName}`}
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 72;
+        }}
+      >
+        {hasMore || loadingEarlier || earlierError ? (
+          <div className="staff-chat-load-earlier-wrap">
+            {earlierError ? (
+              <p className="text-xs text-dashboard-danger text-center" role="alert">
+                {earlierError}
+              </p>
+            ) : null}
+            {hasMore || loadingEarlier ? (
+              <button
+                type="button"
+                className="staff-chat-load-earlier"
+                disabled={loadingEarlier || !hasMore}
+                onClick={() => void handleLoadEarlier()}
+              >
+                {loadingEarlier ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Loading earlier messages…
+                  </>
+                ) : (
+                  "Load earlier messages"
+                )}
+              </button>
+            ) : null}
+            {!hasMore && !loadingEarlier && messages.length > 0 ? (
+              <p className="text-[11px] text-muted-foreground">Beginning of conversation</p>
+            ) : null}
+          </div>
+        ) : messages.length > 0 ? (
+          <p className="text-[11px] text-muted-foreground text-center pb-2">Beginning of conversation</p>
+        ) : null}
+
+        {isLoading && messages.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground" role="status">
+            Loading messages…
+          </p>
+        ) : messages.length === 0 ? (
+          <div className="h-full min-h-[12rem] flex flex-col items-center justify-center text-center p-6 text-slate-400 gap-3">
             <div className="size-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
               <MessageSquare className="size-6" />
             </div>
@@ -131,7 +226,7 @@ export function LuxuryDmPanel({
               }));
 
               const unifiedMsg: UnifiedChatMessage = {
-                id: msg._id || msg.id,
+                id: messageIdOf(msg),
                 senderId: msg.senderId,
                 senderName: isMe ? "You" : peerName,
                 senderRole: isMe ? currentUser?.role : peerRole,
@@ -139,7 +234,7 @@ export function LuxuryDmPanel({
                 createdAt: dateObj,
                 isMe,
                 attachments,
-                status: "read",
+                status: undefined,
               };
 
               return (
@@ -162,8 +257,12 @@ export function LuxuryDmPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Composer */}
-      <LuxuryChatComposer onSendMessage={handleSendMessage} placeholder={`Message ${peerName}…`} />
+      <LuxuryChatComposer
+        onSendMessage={handleSendMessage}
+        placeholder={`Message ${peerName}…`}
+        showTemplates={showTemplates}
+        audienceLabel="Private staff conversation"
+      />
     </div>
   );
 }

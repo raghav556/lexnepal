@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { MessageSquare, Lock, Globe } from "lucide-react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { MessageSquare, Lock, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useMessages, useMessageCommands } from "@/client/queries/communication";
+import { useMatterMessageHistory, useMessageCommands } from "@/client/queries/communication";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 import { computeSHA256 } from "@/lib/document-utils.ts";
 import { apiClient } from "@/client/api/client";
 import { ClientQueryError } from "@/components/dashboard/client-query-error";
+import { messageIdOf } from "@/shared/message-cursor";
 import {
   LuxuryChatBubble,
   LuxuryChatComposer,
@@ -44,6 +45,8 @@ export type MatterChatPanelProps = {
   keyboardScrollable?: boolean;
   externalLink?: string;
   externalLinkLabel?: string;
+  /** Existing composer snippets. Defaults to the current staff behavior. */
+  showTemplates?: boolean;
 };
 
 async function uploadAttachmentStorageId(file: File, caseId: string): Promise<string> {
@@ -109,6 +112,7 @@ export function MatterChatPanel({
   keyboardScrollable = false,
   externalLink,
   externalLinkLabel,
+  showTemplates,
 }: MatterChatPanelProps) {
   const currentUser = useCurrentUser();
   const isClientAppearance = appearance === "client";
@@ -116,14 +120,17 @@ export function MatterChatPanel({
     mode === "client" ? false : stream === "team" ? true : stream === "client" ? false : undefined;
 
   const {
-    data: messagesResponse,
+    messages,
     isLoading,
     isError,
     error,
     isFetching,
     refetch,
-  } = useMessages(caseId, listFilter);
-  const messages = messagesResponse?.page || [];
+    hasMore,
+    loadingEarlier,
+    earlierError,
+    loadEarlier,
+  } = useMatterMessageHistory(caseId, listFilter);
   const errorStatus = (error as { status?: number } | null)?.status;
   const clientAccessDenied =
     isClientAppearance && isError && [401, 403, 404].includes(errorStatus ?? 0);
@@ -134,25 +141,54 @@ export function MatterChatPanel({
 
   const [isInternal, setIsInternal] = useState(forcedInternal);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottomRef = useRef(true);
+  const pendingPrependRef = useRef<{ height: number; top: number } | null>(null);
+  const justSentRef = useRef(false);
+  const openedKeyRef = useRef("");
 
   useEffect(() => {
     setIsInternal(forcedInternal);
   }, [forcedInternal, caseId, stream]);
 
+  const markRead = markMessagesRead.mutate;
   useEffect(() => {
-    if (caseId) markMessagesRead.mutate({ caseId });
-  }, [caseId, messages.length]);
+    if (caseId) markRead({ caseId });
+  }, [caseId, stream, markRead]);
 
   useEffect(() => {
+    const key = `${caseId}:${String(listFilter)}`;
+    if (openedKeyRef.current !== key) {
+      openedKeyRef.current = key;
+      stickToBottomRef.current = true;
+    }
+  }, [caseId, listFilter]);
+
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    if (pendingPrependRef.current && scroller) {
+      const { height, top } = pendingPrependRef.current;
+      scroller.scrollTop = top + (scroller.scrollHeight - height);
+      pendingPrependRef.current = null;
+      return;
+    }
+    if (!stickToBottomRef.current && !justSentRef.current) return;
     const reduceMotion =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     messagesEndRef.current?.scrollIntoView({
-      behavior: reduceMotion ? "auto" : "smooth",
+      behavior: justSentRef.current && !reduceMotion ? "smooth" : "auto",
     });
+    justSentRef.current = false;
   }, [messages]);
 
   const uid = currentUser?._id || currentUser?.id;
+  const audienceLabel =
+    stream === "team"
+      ? "Confidential — hidden from clients"
+      : stream === "client"
+        ? "Client-visible — the client can read this"
+        : undefined;
   const sendAsInternal = forcedClient ? false : forcedInternal ? true : isInternal;
 
   const handleAttachFile = async (file: File) => {
@@ -164,6 +200,8 @@ export function MatterChatPanel({
   const handleSendMessage = async (content: string, attachmentIds?: string[]) => {
     if (!caseId) return;
     try {
+      justSentRef.current = true;
+      stickToBottomRef.current = true;
       await sendMessage.mutateAsync({
         caseId,
         content: content || "(attachment)",
@@ -171,9 +209,19 @@ export function MatterChatPanel({
         attachmentIds: attachmentIds && attachmentIds.length > 0 ? attachmentIds : undefined,
       });
     } catch (err: unknown) {
+      justSentRef.current = false;
       toast.error(err instanceof Error ? err.message : "Failed to send message.");
       throw err;
     }
+  };
+
+  const handleLoadEarlier = async () => {
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      pendingPrependRef.current = { height: scroller.scrollHeight, top: scroller.scrollTop };
+    }
+    stickToBottomRef.current = false;
+    await loadEarlier();
   };
 
   const emptyCopy =
@@ -187,7 +235,7 @@ export function MatterChatPanel({
     <div
       data-appearance={appearance}
       className={cn(
-        "flex flex-col h-full min-h-[360px] overflow-hidden",
+        "flex flex-col h-full min-h-0 overflow-hidden",
         isClientAppearance
           ? "matter-chat-appearance-client bg-[var(--dashboard-panel)] text-foreground"
           : "bg-slate-950 text-slate-100",
@@ -221,21 +269,22 @@ export function MatterChatPanel({
       />
 
       {stream === "team" && (
-        <div className="px-4 py-1.5 bg-amber-950/40 border-b border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-1.5 font-medium shrink-0">
-          <Lock className="size-3 text-amber-400 shrink-0" />
+        <div className="staff-chat-banner staff-chat-banner-team px-4 py-2 border-b text-[11px] font-medium flex items-center gap-1.5 shrink-0">
+          <Lock className="size-3.5 shrink-0" aria-hidden />
           <span>Case Team Confidential Room — Messages here are invisible to clients.</span>
         </div>
       )}
       {stream === "client" && mode === "staff" && (
-        <div className="px-4 py-1.5 bg-blue-950/40 border-b border-blue-500/20 text-[11px] text-blue-300 flex items-center gap-1.5 font-medium shrink-0">
-          <Globe className="size-3 text-blue-400 shrink-0" />
+        <div className="staff-chat-banner staff-chat-banner-client px-4 py-2 border-b text-[11px] font-medium flex items-center gap-1.5 shrink-0">
+          <Globe className="size-3.5 shrink-0" aria-hidden />
           <span>Client Channel — Messages sent here are directly visible to the client.</span>
         </div>
       )}
 
       <div
+        ref={scrollerRef}
         className={cn(
-          "flex-1 p-4 overflow-y-auto space-y-2 min-h-0",
+          "flex-1 p-4 overflow-y-auto overflow-x-hidden space-y-2 min-h-0",
           isClientAppearance
             ? "bg-[var(--dashboard-neutral-soft)]"
             : "bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950",
@@ -246,8 +295,44 @@ export function MatterChatPanel({
         aria-relevant="additions"
         aria-busy={isLoading || undefined}
         aria-label={title ? `${title} messages` : "Matter messages"}
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 72;
+        }}
       >
-        {isClientAppearance && isError ? (
+        {hasMore || loadingEarlier || earlierError ? (
+          <div className="staff-chat-load-earlier-wrap">
+            {earlierError ? (
+              <p className="text-xs text-dashboard-danger text-center" role="alert">
+                {earlierError}
+              </p>
+            ) : null}
+            {hasMore || loadingEarlier ? (
+              <button
+                type="button"
+                className="staff-chat-load-earlier"
+                disabled={loadingEarlier || !hasMore}
+                onClick={() => void handleLoadEarlier()}
+              >
+                {loadingEarlier ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Loading earlier messages…
+                  </>
+                ) : (
+                  "Load earlier messages"
+                )}
+              </button>
+            ) : null}
+            {!hasMore && !loadingEarlier && messages.length > 0 ? (
+              <p className="text-[11px] text-muted-foreground">Beginning of conversation</p>
+            ) : null}
+          </div>
+        ) : messages.length > 0 ? (
+          <p className="text-[11px] text-muted-foreground text-center pb-2">Beginning of conversation</p>
+        ) : null}
+
+        {isError ? (
           <ClientQueryError
             title="Unable to load messages"
             onRetry={() => {
@@ -255,14 +340,14 @@ export function MatterChatPanel({
             }}
             retrying={isFetching}
           />
-        ) : isClientAppearance && isLoading ? (
+        ) : isLoading && messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground" role="status">
             Loading messages…
           </p>
         ) : messages.length === 0 ? (
           <div
             className={cn(
-              "h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6 gap-3",
+              "h-full min-h-[12rem] flex flex-col items-center justify-center text-center p-6 gap-3",
               isClientAppearance ? "text-muted-foreground" : "text-slate-400",
             )}
           >
@@ -305,7 +390,7 @@ export function MatterChatPanel({
               }));
 
               const unifiedMsg: UnifiedChatMessage = {
-                id: msg._id || msg.id,
+                id: messageIdOf(msg),
                 senderId: msg.senderId,
                 senderName: isMe
                   ? "You"
@@ -316,8 +401,8 @@ export function MatterChatPanel({
                 isInternal: Boolean(msg.isInternal),
                 isMe,
                 attachments,
-                // Decorative only — hide unsupported read receipts in Client appearance.
-                status: isClientAppearance ? undefined : "read",
+                // No delivery/read API — never imply confirmation.
+                status: undefined,
               };
 
               return (
@@ -359,11 +444,12 @@ export function MatterChatPanel({
         appearance={appearance}
         disabled={isClientAppearance && (isLoading || clientAccessDenied)}
         isInternal={sendAsInternal}
+        audienceLabel={audienceLabel}
         canToggleInternal={mode === "staff" && stream === "all"}
         onToggleInternal={setIsInternal}
         onSendMessage={handleSendMessage}
         onAttachFile={handleAttachFile}
-        showTemplates={!isClientAppearance}
+        showTemplates={showTemplates ?? !isClientAppearance}
         placeholder={
           sendAsInternal
             ? "Share internal strategy or confidential case notes…"

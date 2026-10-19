@@ -1,6 +1,6 @@
 import { returningInsert } from "@/server/db/mysql-returning";
 import "server-only";
-import { and, asc, desc, eq, inArray, ne, notExists, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
 import { getDatabase } from "@/server/db/client";
 import {
@@ -12,7 +12,8 @@ import {
   notifications,
   users,
 } from "@/server/db/schema";
-import type { DmMessageCreateInput } from "@/shared/contracts/dm";
+import type { DmMessageCreateInput, DmMessageListInput } from "@/shared/contracts/dm";
+import { decodeMessageCursor, encodeMessageCursor } from "@/shared/message-cursor";
 import { AppError } from "@/shared/errors/api-error";
 
 const database = getDatabase();
@@ -183,15 +184,32 @@ export class DmRepository {
     });
   }
 
-  async listMessages(firmId: string, threadId: string, limit = 50) {
+  async listMessages(firmId: string, threadId: string, input: DmMessageListInput = {}) {
+    const limit = input.limit ?? 50;
+    const conditions = [eq(dmMessages.firmId, firmId), eq(dmMessages.threadId, threadId)];
+    if (input.cursor) {
+      const decoded = decodeMessageCursor(input.cursor);
+      if (!decoded) {
+        throw new AppError("BAD_REQUEST", "Direct message history cursor is invalid", 400);
+      }
+      conditions.push(
+        or(
+          lt(dmMessages.createdAt, decoded.createdAt),
+          and(eq(dmMessages.createdAt, decoded.createdAt), lt(dmMessages.id, decoded.id)),
+        )!,
+      );
+    }
+
     const rows = await database
       .select()
       .from(dmMessages)
-      .where(and(eq(dmMessages.firmId, firmId), eq(dmMessages.threadId, threadId)))
-      .orderBy(desc(dmMessages.createdAt))
-      .limit(limit);
+      .where(and(...conditions))
+      .orderBy(desc(dmMessages.createdAt), desc(dmMessages.id))
+      .limit(limit + 1);
 
-    const messageIds = rows.map((r) => r.id);
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const messageIds = pageRows.map((r) => r.id);
     const attachmentMap: Record<string, string[]> = {};
     if (messageIds.length > 0) {
       const attachments = await database
@@ -209,7 +227,7 @@ export class DmRepository {
       }
     }
 
-    return rows
+    const page = pageRows
       .map((row) =>
         toDto({
           ...(row as unknown as Record<string, unknown>),
@@ -217,6 +235,14 @@ export class DmRepository {
         }),
       )
       .reverse();
+
+    const oldestRow = pageRows[pageRows.length - 1];
+    const continueCursor =
+      hasMore && oldestRow
+        ? encodeMessageCursor(oldestRow.createdAt, oldestRow.id)
+        : "";
+
+    return { page, isDone: !hasMore, continueCursor };
   }
 
   async createMessage(

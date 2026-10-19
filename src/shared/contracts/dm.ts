@@ -12,6 +12,8 @@ export const dmMessageCreateSchema = z.object({
 
 export const dmMessageListSchema = z.object({
   limit: z.coerce.number().int().positive().max(200).optional(),
+  /** Opaque older-than cursor from a prior page (`createdAt` + message id). */
+  cursor: z.string().trim().min(1).max(512).optional(),
 });
 
 export type DmThreadCreateInput = z.infer<typeof dmThreadCreateSchema>;

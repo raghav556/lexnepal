@@ -33,11 +33,12 @@ describe("CUI-11 client messages contract", () => {
     expect(page).toContain('mode="client"');
     expect(page).toContain('appearance="client"');
     expect(page).not.toMatch(/ClientMessagePanel|MessagesV2|NewChatEngine/);
-    expect(panel).toContain("useMessages");
+    expect(panel).toContain("useMatterMessageHistory");
     expect(panel).toContain("useMessageCommands");
     expect(panel).toContain("sendMessage.mutateAsync");
     expect(panel).toContain("markMessagesRead.mutate");
     expect(panel).toContain("/api/v1/document-upload-intents");
+    expect(queries).toContain("useMessages");
     expect(queries).toContain('"/api/v1/messages"');
     expect(queries).toContain('"/api/v1/messages/unread"');
     expect(queries).toContain('"/api/v1/messages/read"');
@@ -58,7 +59,8 @@ describe("CUI-11 client messages contract", () => {
     expect(bubble).toContain('appearance = "default"');
     expect(composer).toContain('appearance = "default"');
     expect(header).toContain('appearance = "default"');
-    expect(panel).toContain('status: isClientAppearance ? undefined : "read"');
+    // No delivery/read API — never imply confirmation in either appearance.
+    expect(panel).toContain("status: undefined");
     expect(staffMessages).toContain("<MatterChatPanel");
     expect(staffMessages).not.toContain('appearance="client"');
     expect(bubble).toContain("bg-slate-800/95");

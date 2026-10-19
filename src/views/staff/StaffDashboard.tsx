@@ -665,7 +665,7 @@ export default function StaffDashboard() {
               icon={MessagesSquare}
               actions={
                 <DashboardButton asChild variant="ghost" size="sm">
-                  <Link href="/staff/team-chat">
+                  <Link href="/staff/messages?channel=dm">
                     View all <ArrowRight className="size-3.5" aria-hidden />
                   </Link>
                 </DashboardButton>
@@ -679,7 +679,7 @@ export default function StaffDashboard() {
                   tone="neutral"
                   action={
                     <DashboardButton asChild variant="secondary" size="sm">
-                      <Link href="/staff/team-chat">Open team chat</Link>
+                      <Link href="/staff/messages?channel=dm">Open messages</Link>
                     </DashboardButton>
                   }
                 />

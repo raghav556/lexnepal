@@ -26,11 +26,10 @@ export class CommunicationService {
   async listMessages(principal: AuthPrincipal, input: MessageListInput) {
     const { firmId } = requireFirmContext(principal);
     await requireCaseAccess(principal, input.caseId, security);
-    const page = await repository.listMessages(firmId, {
+    return repository.listMessages(firmId, {
       ...input,
       includeInternal: principal.user.role !== "client",
     });
-    return { page, isDone: true, continueCursor: "" };
   }
 
   async unreadCounts(principal: AuthPrincipal, input: MessageUnreadInput) {

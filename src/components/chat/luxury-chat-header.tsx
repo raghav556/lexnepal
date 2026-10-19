@@ -89,14 +89,14 @@ export function LuxuryChatHeader({
               />
             )}
           </div>
-          {type === "dm" && !isClient && (
+          {type === "dm" && !isClient && presence ? (
             <span
               className={cn(
                 "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-slate-900",
                 isOnline ? "bg-emerald-500 shadow-[0_0_6px_#10b981]" : "bg-slate-600",
               )}
             />
-          )}
+          ) : null}
         </div>
 
         <div className="min-w-0 flex-1">
