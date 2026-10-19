@@ -45,6 +45,10 @@ function getInitialFocus(root: HTMLElement): HTMLElement {
 export function Dialog({ open, onOpenChange, children }: any) {
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const previouslyFocused = React.useRef<HTMLElement | null>(null);
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
 
   React.useEffect(() => {
     if (!open) return;
@@ -64,7 +68,7 @@ export function Dialog({ open, onOpenChange, children }: any) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
       if (event.key !== "Tab") return;
@@ -98,7 +102,7 @@ export function Dialog({ open, onOpenChange, children }: any) {
       document.body.style.overflow = previousOverflow;
       previouslyFocused.current?.focus?.();
     };
-  }, [open, onOpenChange]);
+  }, [open]);
 
   if (!open) return null;
   return (
