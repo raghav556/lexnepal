@@ -174,7 +174,9 @@ describe("CUI-03 client shell contract", () => {
     const staff = readSrc("src/app/(staff)/layout.tsx");
     expect(mobile).toMatch(/PortalMobileNavControls/);
     expect(mobile).toMatch(/typeof bottomBar === "function"/);
-    expect(staff).toMatch(/bottomBar=\{bottomBar\}/);
+    // Session 17 retires only the Staff bottom bar; the Client More engine above stays intact.
+    expect(staff).not.toMatch(/bottomBar=\{bottomBar\}/);
+    expect(staff).not.toMatch(/staff-mobile-primary/);
     expect(staff).not.toMatch(/openMenu/);
   });
 

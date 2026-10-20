@@ -4045,23 +4045,6 @@
   }
 }
 
-@media screen and (width < 48rem) {
-  .dashboard-theme.dashboard-staff .staff-mobile-primary {
-    height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-    padding: 0.25rem 0.25rem calc(0.25rem + env(safe-area-inset-bottom, 0px));
-    gap: 0.125rem;
-  }
-
-  .dashboard-theme.dashboard-staff .staff-mobile-primary span {
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    text-align: center;
-  }
-
-  .dashboard-theme.dashboard-staff .staff-shell-content {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-  }
-}
 
 /* ── Staff Sidebar Navigation Refinements ── */
 .staff-nav-item {
@@ -5689,7 +5672,6 @@
 
 /* Staff Home: approved premium direction. Client and other page bodies are unchanged. */
 .dashboard-theme.dashboard-staff:has(.staff-dashboard-home) {
-  --staff-home-nav-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .dashboard-theme.dashboard-staff:has(.staff-dashboard-home) .staff-home-footer {
@@ -5748,16 +5730,6 @@
   }
 }
 
-@media screen and (width < 48rem) {
-  .dashboard-theme.dashboard-staff:has(.staff-dashboard-home) .staff-mobile-primary {
-    height: calc(4rem + var(--staff-home-nav-safe-bottom));
-    padding-bottom: calc(0.25rem + var(--staff-home-nav-safe-bottom));
-  }
-
-  .dashboard-theme.dashboard-staff:has(.staff-dashboard-home) .staff-shell-content {
-    padding-bottom: calc(4rem + var(--staff-home-nav-safe-bottom));
-  }
-}
 
 /* The inherited desktop search flex item clips controls at 768px. Restrict its
  * shrink fix and removal of the decorative live chip to the mounted Staff Home. */
@@ -9218,7 +9190,7 @@ html:has(.dashboard-staff .staff-tasks-workspace) .staff-task-select-menu [role=
 }
 @media (max-width: 89.999rem) {
   .dashboard-staff .staff-clients-backdrop { display: block; position: fixed; z-index: 40; top: var(--dashboard-topbar-height); right: 0; bottom: 0; left: 0; border: 0; background: rgb(0 0 0 / 40%); }
-  .dashboard-staff .staff-clients-profile { position: fixed; z-index: 45; top: var(--dashboard-topbar-height); right: 0; bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); width: min(100%, 28rem); overflow: auto; border-radius: 0; }
+  .dashboard-staff .staff-clients-profile { position: fixed; z-index: 45; top: var(--dashboard-topbar-height); right: 0; bottom: 0; width: min(100%, 28rem); overflow: auto; border-radius: 0; }
 }
 @media (max-width: 79.999rem) {
   .dashboard-staff .staff-clients-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -9770,7 +9742,7 @@ html:has(.dashboard-staff .staff-tasks-workspace) .staff-task-select-menu [role=
 .dashboard-staff .staff-shell-content:has(.staff-messages-stage[data-chat='open']) .staff-scroll-top,
 body:has([role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='true']) .dashboard-staff .staff-scroll-top { visibility: hidden; pointer-events: none; }
 @media (max-width: 767px) {
-  /* The shell already reserves the bottom nav; do not reserve it again in each page. */
+  /* Keep a compact page gutter; mobile navigation has no bottom-bar reservation. */
   .dashboard-theme.dashboard-staff .staff-shell-canvas #staff-main-canvas > [data-slot='portal-page-shell'] { padding-bottom: var(--dashboard-content-gutter-compact); }
   .dashboard-staff .staff-shell-canvas .staff-research-stage { padding-bottom: 0; }
   .dashboard-staff .staff-scroll-top { right: .75rem; bottom: .75rem; }
@@ -9902,4 +9874,63 @@ body:has([role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='tr
 .dashboard-staff .staff-hr-panel, .dashboard-staff .staff-hr-metrics [data-slot='metric-card'], .dashboard-staff .staff-hr-week > div { border-color: color-mix(in srgb, var(--dashboard-border) 48%, var(--dashboard-panel)); }
 @media (min-width: 1400px) {
  .dashboard-staff .staff-hr-attendance-overview .staff-hr-today-grid { grid-template-columns: minmax(0, 1fr) 7.5rem; }
+}
+
+/* Session 17: one Staff navigation source; fixed sidebar/rail and docked drawer. */
+.dashboard-staff { --staff-navigation-offset: 0px; }
+.dashboard-staff .staff-shell-content { margin-left: var(--staff-navigation-offset); }
+.dashboard-staff .staff-navigation-sidebar { position: fixed; inset: 0 auto 0 0; height: 100dvh; width: var(--staff-navigation-offset); z-index: 40; }
+.dashboard-staff .staff-navigation-sidebar > :first-child,
+.dashboard-staff .staff-navigation-account { flex-shrink: 0; }
+.dashboard-staff .staff-navigation-sidebar > nav { min-height: 0; overscroll-behavior: contain; }
+.dashboard-staff .staff-navigation-sidebar nav > div:first-child > .staff-navigation-group-label { margin-top: 0; border-top: 0; padding-top: 0; }
+.dashboard-staff .staff-navigation-tooltip { display: none; }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer { position: fixed; inset: 0 auto 0 0; width: min(20rem, calc(100vw - 2.75rem)); max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-right: 1px solid var(--dashboard-sidebar-border); border-radius: 0; animation: none; box-shadow: 8px 0 30px #0004; }
+.dashboard-staff div:has(> .staff-navigation-drawer) { padding: 0; justify-content: flex-start; align-items: stretch; animation: none; }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer > * { margin: 0; }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer-brand { flex-shrink: 0; padding: calc(1rem + env(safe-area-inset-top, 0px)) 3.5rem 1rem 1rem; border-bottom: 1px solid var(--dashboard-sidebar-border); }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer .portal-operational-drawer-scroll { display: flex; flex-direction: column; overflow: hidden; }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer nav { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: .5rem .75rem; }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer nav > div:first-child { margin-top: .5rem; }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer .portal-operational-drawer-scroll > div:last-child { flex-shrink: 0; padding: .65rem .75rem max(.65rem, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--dashboard-sidebar-border); }
+.dashboard-theme.dashboard-staff .staff-navigation-drawer > button[aria-label='Close dialog'] { top: max(.5rem, env(safe-area-inset-top, 0px)); }
+.dashboard-staff:has(.staff-navigation-drawer) .staff-shell-footer { pointer-events: none; }
+.dashboard-staff .staff-shell-footer { padding-bottom: max(.5rem, env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 768px) {
+ .dashboard-staff { --staff-navigation-offset: 4.75rem; }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+ .dashboard-staff .staff-navigation-sidebar > :first-child { padding: 1rem .5rem; justify-content: center; }
+ .dashboard-staff .staff-navigation-sidebar > :first-child a { justify-content: center; flex: none; }
+ .dashboard-staff .staff-navigation-sidebar > :first-child a > span:last-child,
+ .dashboard-staff .staff-navigation-sidebar .staff-nav-item > span > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+ .dashboard-staff .staff-navigation-sidebar > nav { padding: .5rem; }
+ .dashboard-staff .staff-navigation-sidebar .staff-navigation-group-label { position: relative; height: 1rem; margin: .5rem 0; padding: 0; font-size: 0; border-top: 1px solid var(--dashboard-sidebar-border); }
+ .dashboard-staff .staff-navigation-group-label > span { display: none; }
+ .dashboard-staff .staff-navigation-sidebar .staff-nav-item { min-height: 2.75rem; padding: .6rem; justify-content: center; transform: none; }
+ .dashboard-staff .staff-navigation-sidebar .staff-nav-item > span { overflow: visible; }
+ .dashboard-staff .staff-navigation-account { padding: .5rem; }
+ .dashboard-staff .staff-sidebar-account button[aria-label='Open account menu'] { min-height: 2.75rem; padding: .5rem 0; justify-content: center; gap: 0; }
+ .dashboard-staff .staff-sidebar-account button[aria-label='Open account menu'] > svg,
+ .dashboard-staff .staff-sidebar-account button[aria-label='Open account menu'] > div > div:last-child { display: none; }
+ .dashboard-staff .staff-sidebar-account button[aria-label='Open account menu'] > div { justify-content: center; flex: none; }
+ .dashboard-staff .staff-navigation-tooltip { display: block; position: fixed; left: calc(var(--staff-navigation-offset) + .5rem); transform: translateY(-50%); z-index: 70; max-width: min(16rem, calc(100vw - 6rem)); padding: .5rem .75rem; border: 1px solid var(--dashboard-sidebar-border); border-radius: .5rem; background: var(--dashboard-sidebar); color: var(--dashboard-sidebar-foreground); box-shadow: 0 4px 12px #0003; font-size: .8125rem; }
+}
+@media (min-width: 1200px) {
+ .dashboard-staff { --staff-navigation-offset: var(--dashboard-sidebar-width); }
+}
+@media (max-width: 767px) {
+ .dashboard-staff .portal-operational-header { height: calc(var(--dashboard-topbar-height) + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+ .dashboard-staff .staff-shell-content { padding-bottom: 0; }
+ .dashboard-staff .staff-clients-profile { padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 1023px) {
+ .dashboard-staff .staff-messages-stage[data-chat='open'] { left: var(--staff-navigation-offset); bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+.dashboard-staff .staff-messages-stage[data-details='open'] .staff-messages-context { bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+@media (prefers-reduced-motion: reduce) {
+ .dashboard-staff .staff-nav-item, .dashboard-staff .staff-navigation-sidebar * { transition: none; animation: none; }
+}
+@media print {
+ .dashboard-staff .staff-shell-content { margin-left: 0; }
 }

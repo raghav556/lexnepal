@@ -49,6 +49,8 @@ export interface PortalMobileNavProps {
   clientModalDrawer?: boolean;
   /** Staff/Admin opt-in; leaves the frozen Client drawer path unchanged. */
   operationalDrawer?: boolean;
+  /** Staff-only docked presentation; omitted by Admin and the frozen Client portal. */
+  operationalDrawerBrand?: React.ReactNode;
   /** Role-owned hierarchy rendered inside the existing navigation region. */
   renderNavigation?: (close: () => void) => React.ReactNode;
 }
@@ -74,11 +76,27 @@ export function PortalMobileNav({
   drawerId = "portal-mobile-drawer",
   clientModalDrawer = false,
   operationalDrawer = false,
+  operationalDrawerBrand,
   renderNavigation,
 }: PortalMobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { language, setLanguage } = useI18n();
+  const docked = Boolean(operationalDrawerBrand);
+
+  useEffect(() => {
+    if (!docked || !open) return;
+    const canvas = document.querySelector<HTMLElement>(".dashboard-staff #staff-main-canvas");
+    if (!canvas) return;
+    const previousOverflow = canvas.style.overflowY;
+    const previousInert = canvas.inert;
+    canvas.style.overflowY = "hidden";
+    canvas.inert = true;
+    return () => {
+      canvas.style.overflowY = previousOverflow;
+      canvas.inert = previousInert;
+    };
+  }, [docked, open]);
 
   // Collapse the drawer whenever the route changes, including browser back/forward.
   const [drawerPathname, setDrawerPathname] = useState(pathname);
@@ -246,9 +264,12 @@ export function PortalMobileNav({
             aria-labelledby={`${drawerId}-title`}
             className={cn("portal-operational-drawer", drawerClassName)}
           >
-            <DialogTitle id={`${drawerId}-title`} className="portal-operational-drawer-title">
+            <DialogTitle id={`${drawerId}-title`} className={docked ? "sr-only" : "portal-operational-drawer-title"}>
               {navAriaLabel}
             </DialogTitle>
+            {docked ? <div className="staff-navigation-drawer-brand" onClickCapture={(event) => {
+              if (event.target instanceof Element && event.target.closest("a")) close();
+            }}>{operationalDrawerBrand}</div> : null}
             <div className="portal-operational-drawer-scroll">{drawerContent}</div>
           </DialogContent>
         </Dialog>

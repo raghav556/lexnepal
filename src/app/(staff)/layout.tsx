@@ -1,9 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { PortalRoleGuard } from "@/components/auth/PortalRoleGuard";
 import { PortalAccountMenu } from "@/components/auth/PortalAccountMenu";
@@ -19,7 +19,6 @@ import {
   ScrollToTop,
   PORTAL_SIDEBAR_ACTIVE_SHADOW,
   splitPortalNavGroups,
-  isPortalNavLink,
 } from "@/components/dashboard";
 import { PortalFirmBrand } from "@/components/branding/firm-brand";
 import { StaffCaseTopbar } from "@/components/cases/staff-case-topbar";
@@ -32,17 +31,42 @@ const GlobalSearchPalette = dynamic(
   { ssr: false },
 );
 
-import { STAFF_NAV as NAV } from "@/lib/operational-navigation";
+import { STAFF_NAV as NAV, isStaffNavActive } from "@/lib/operational-navigation";
 
 function useIsActive() {
   const pathname = usePathname();
-  return (href: string) =>
-    href === "/staff"
-      ? pathname === "/staff"
-      : pathname === href || pathname.startsWith(`${href}/`);
+  return (href: string) => isStaffNavActive(pathname, href);
 }
 
 const navGroups = splitPortalNavGroups(NAV);
+
+// A portaled hint stays outside the independently scrolling rail. The link's
+// existing translated text remains its accessible name in every responsive mode.
+function StaffRailHint({ label, children }: { label: string; children: React.ReactNode }) {
+  const [top, setTop] = useState<number | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancel = () => { if (timer.current) clearTimeout(timer.current); };
+  const close = () => { cancel(); timer.current = setTimeout(() => setTop(null), 150); };
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(() => {
+    if (top === null) return;
+    const dismiss = (event: KeyboardEvent) => { if (event.key === "Escape") setTop(null); };
+    document.addEventListener("keydown", dismiss);
+    return () => document.removeEventListener("keydown", dismiss);
+  }, [top]);
+  const show = (element: HTMLElement) => {
+    cancel();
+    const rect = element.getBoundingClientRect();
+    setTop(Math.min(window.innerHeight - 24, Math.max(24, rect.top + rect.height / 2)));
+  };
+  const root = top === null ? null : document.querySelector(".dashboard-staff");
+  return <div className="staff-navigation-hint" onPointerEnter={(event) => show(event.currentTarget)}
+    onPointerLeave={close} onFocusCapture={(event) => show(event.currentTarget)} onBlurCapture={close}>
+    {children}
+    {root && createPortal(<span role="tooltip" className="staff-navigation-tooltip" style={{ top: top! }}
+      onPointerEnter={cancel} onPointerLeave={close}>{label}</span>, root)}
+  </div>;
+}
 
 const desktopItemClassName = (active: boolean) =>
   cn(
@@ -62,9 +86,9 @@ const desktopIconClassName = (active: boolean) =>
 
 const mobileItemClassName = (active: boolean) =>
   cn(
-    "flex min-h-11 items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
+    "staff-nav-item flex min-h-11 items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
     active
-      ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground border border-dashboard-sidebar-active-border"
+      ? "staff-nav-item-active bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground border border-dashboard-sidebar-active-border"
       : "text-dashboard-sidebar-muted hover:bg-dashboard-sidebar-hover hover:text-dashboard-sidebar-foreground",
   );
 
@@ -75,7 +99,7 @@ function StaffDesktopSidebar() {
   return (
     <PortalSidebar
       navAriaLabel="Portal navigation"
-      className="md:w-[var(--dashboard-sidebar-width)] h-screen sticky top-0 bg-dashboard-sidebar text-dashboard-sidebar-foreground border-r border-dashboard-sidebar-border shrink-0 print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.15)]"
+      className="staff-navigation-sidebar md:w-[var(--dashboard-sidebar-width)] h-screen sticky top-0 bg-dashboard-sidebar text-dashboard-sidebar-foreground border-r border-dashboard-sidebar-border shrink-0 print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.15)]"
       brandClassName="px-4 py-5 border-b border-dashboard-sidebar-border flex items-center justify-between"
       brand={
         <PortalFirmBrand
@@ -93,7 +117,8 @@ function StaffDesktopSidebar() {
       navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto sidebar-scroll-fade"
       footer={
         <>
-          <div className="px-3 pb-4 pt-2 border-t border-dashboard-sidebar-border">
+          <div className="staff-navigation-account px-3 pb-4 pt-2 border-t border-dashboard-sidebar-border">
+            <StaffRailHint label="Account">
             <PortalAccountMenu
               profileHref="/staff/profile"
               variant="dropdown"
@@ -102,6 +127,7 @@ function StaffDesktopSidebar() {
               darkTrigger
               className="staff-sidebar-account"
             />
+            </StaffRailHint>
           </div>
         </>
       }
@@ -111,9 +137,10 @@ function StaffDesktopSidebar() {
           key={group.label ?? `group-${groupIndex}`}
           label={group.label}
           variant="divided"
-          labelClassName="text-[11px] font-bold tracking-[0.14em] text-dashboard-sidebar-heading"
+          labelClassName="staff-navigation-group-label text-[11px] font-bold tracking-[0.14em] text-dashboard-sidebar-heading"
         >
           {group.items.map(({ href, icon: Icon, label, i18nKey }) => (
+            <StaffRailHint key={href} label={i18nKey && t(i18nKey) !== i18nKey ? t(i18nKey) : label ?? ""}>
             <PortalSidebarItem
               key={href}
               href={href}
@@ -125,6 +152,7 @@ function StaffDesktopSidebar() {
               iconClassName={desktopIconClassName(isActive(href))}
               style={isActive(href) ? PORTAL_SIDEBAR_ACTIVE_SHADOW : undefined}
             />
+            </StaffRailHint>
           ))}
         </PortalSidebarGroup>
       ))}
@@ -136,38 +164,12 @@ function StaffMobileChrome() {
   const { t } = useI18n();
   const isActive = useIsActive();
 
-  const bottomBar = (
-    <nav
-      aria-label="Staff primary navigation"
-      className="staff-mobile-primary md:hidden fixed bottom-0 left-0 right-0 bg-dashboard-sidebar/95 backdrop-blur border-t border-dashboard-sidebar-border flex justify-around z-30 print:hidden text-dashboard-sidebar-foreground"
-    >
-      {NAV.filter(isPortalNavLink)
-        .slice(0, 5)
-        .map(({ href, icon: Icon, label, i18nKey }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-xs leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar-focus",
-              isActive(href)
-                ? "bg-dashboard-sidebar-active text-dashboard-sidebar-active-foreground border border-dashboard-sidebar-active-border"
-                : "text-dashboard-sidebar-muted hover:text-dashboard-sidebar-foreground",
-            )}
-            aria-label={i18nKey ? t(i18nKey) : label}
-            aria-current={isActive(href) ? "page" : undefined}
-          >
-            <Icon className="size-5 shrink-0" aria-hidden />
-            <span>{i18nKey && t(i18nKey) !== i18nKey ? t(i18nKey) : label}</span>
-          </Link>
-        ))}
-    </nav>
-  );
-
   return (
     <PortalMobileNav
       navAriaLabel="Staff navigation"
       drawerId="staff-mobile-drawer"
       operationalDrawer
+      operationalDrawerBrand={<PortalFirmBrand href="/staff" subtitle={t("nav.staff_portal")} className="min-w-0 gap-2" logoClassName="size-9" fallbackClassName="size-9" nameClassName="text-base text-dashboard-sidebar-foreground" subtitleClassName="text-[10px] text-dashboard-sidebar-muted" />}
       items={NAV}
       isActive={isActive}
       brand={
@@ -186,7 +188,7 @@ function StaffMobileChrome() {
       headerClassName="bg-dashboard-sidebar/95 border-dashboard-sidebar-border print:hidden text-dashboard-sidebar-foreground"
       langButtonClassName="focus-visible:ring-dashboard-sidebar-focus"
       menuButtonClassName="text-dashboard-sidebar-foreground focus-visible:ring-dashboard-sidebar-focus"
-      drawerClassName="bg-dashboard-sidebar text-dashboard-sidebar-foreground"
+      drawerClassName="staff-navigation-drawer bg-dashboard-sidebar text-dashboard-sidebar-foreground"
       headingClassName="text-xs font-semibold text-dashboard-sidebar-heading mt-4 mb-1 px-3 uppercase tracking-wider"
       itemClassName={mobileItemClassName}
       accountMenu={(close) => (
@@ -199,7 +201,6 @@ function StaffMobileChrome() {
           onAction={close}
         />
       )}
-      bottomBar={bottomBar}
     />
   );
 }

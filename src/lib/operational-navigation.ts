@@ -29,16 +29,15 @@ import type { PortalNavItemData } from "@/components/dashboard/portal-sidebar";
 
 // Shared source for the existing Staff/Admin shell and its search destinations.
 export const STAFF_NAV: PortalNavItemData[] = [
+  { heading: "Overview" },
   { label: "Dashboard", i18nKey: "nav.dashboard", href: "/staff", icon: LayoutDashboard },
   { label: "Tasks", i18nKey: "nav.tasks", href: "/staff/tasks", icon: CheckSquare },
-  { label: "HR", i18nKey: "nav.hr", href: "/staff/hr", icon: UserCog },
 
   { heading: "Legal Practice" },
   { label: "Cases", i18nKey: "nav.cases", href: "/staff/cases", icon: FolderOpen },
   { label: "Hearings", i18nKey: "nav.hearings", href: "/staff/hearings", icon: CalendarDays },
   { label: "Documents", i18nKey: "nav.documents", href: "/staff/documents", icon: FileText },
   { label: "Research Vault", i18nKey: "nav.research", href: "/staff/research", icon: BookOpen },
-  { label: "Content", href: "/staff/content", icon: PenTool },
 
   { heading: "Client Relations" },
   { label: "CRM", i18nKey: "nav.crm", href: "/staff/crm", icon: KanbanSquare },
@@ -50,7 +49,15 @@ export const STAFF_NAV: PortalNavItemData[] = [
     href: "/staff/appointments",
     icon: Calendar,
   },
+  { heading: "Firm Workspace" },
+  { label: "Content", href: "/staff/content", icon: PenTool },
+  { label: "HR", i18nKey: "nav.hr", href: "/staff/hr", icon: UserCog },
 ];
+
+/** The home link matches exactly; module links also own their nested pages. */
+export function isStaffNavActive(pathname: string, href: string): boolean {
+  return href === "/staff" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export interface NavItemLink {
   type: "link";
