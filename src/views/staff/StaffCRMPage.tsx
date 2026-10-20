@@ -7,7 +7,7 @@ import { apiClient } from "@/client/api/client";
 import { ApiClientError } from "@/client/api/errors";
 import { usePracticeAreas } from "@/client/queries/cms";
 import { useStaffDirectory } from "@/client/queries/identity";
-import { useAppointmentCommands, useAvailableSlots, useLeadCommands } from "@/client/queries/crm";
+import { useStaffAppointmentCreate, useAvailableSlots, useLeadCommands } from "@/client/queries/crm";
 import { queryKeys } from "@/client/queries/query-keys";
 import {
   DashboardButton,
@@ -207,7 +207,7 @@ export default function StaffCRMPage() {
     scheduleLawyerId,
   );
   const { createLead, updateLead, convertToClient, generateIntakeLink } = useLeadCommands();
-  const { createAppointment } = useAppointmentCommands();
+  const createAppointment = useStaffAppointmentCreate();
 
   const staffName = (id?: string | null) => {
     if (!id) return "Unassigned";

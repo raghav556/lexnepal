@@ -73,7 +73,7 @@ export function MeetingLinkDialog({ target, onOpenChange, onSave }: MeetingLinkD
 
   return (
     <Dialog open={!!target} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm bg-background border-border">
+      <DialogContent className="max-w-sm bg-background border-border" aria-label="Add meeting link">
         <DialogHeader>
           <DialogTitle>Add meeting link</DialogTitle>
           <DialogDescription>
