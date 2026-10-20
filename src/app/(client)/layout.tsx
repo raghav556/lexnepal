@@ -158,7 +158,19 @@ function ClientDesktopSidebar() {
         />
       }
       navClassName="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [scrollbar-width:thin] [-ms-overflow-style:auto]"
-      footer={<ClientSupportModule />}
+      footer={
+        <div className="client-sidebar-account-footer shrink-0">
+          <ClientSupportModule />
+          <div className="px-3 pb-3">
+            <PortalAccountMenu
+              profileHref="/client/profile"
+              variant="dropdown"
+              fallbackName="Client"
+              profileLabel="Profile & Settings"
+            />
+          </div>
+        </div>
+      }
     >
       <PortalSidebarGroup>
         {CLIENT_DESKTOP_PRIMARY.map(({ href, label, i18nKey }) => {
@@ -238,7 +250,6 @@ function ClientMobileChrome() {
           profileHref="/client/profile"
           variant="drawer"
           fallbackName="Client"
-          showLanguageToggle
           darkTrigger={false}
           profileLabel={t("nav.client_profile")}
           identityCaption="Client"
@@ -335,18 +346,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   portal="client"
                   className="client-desktop-topbar hidden md:flex"
                   onOpenSearch={() => setSearchOpen(true)}
-                  accountSlot={
-                    <PortalAccountMenu
-                      profileHref="/client/profile"
-                      variant="dropdown"
-                      placement="topbar"
-                      fallbackName="Client"
-                      showLanguageToggle
-                      darkTrigger={false}
-                      profileLabel="Profile"
-                      identityCaption="Client"
-                    />
-                  }
                 />
                 <main
                   id="client-main-content"

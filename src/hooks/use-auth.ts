@@ -1,6 +1,6 @@
 /** Unified auth hook — Better Auth session + /api/v1/users/me via AuthProvider. */
 
-import { useAuthContext } from "@/client/auth/auth-provider";
+import { useAuthContext, type AuthContextValue } from "@/client/auth/auth-provider";
 import type { UserDto } from "@/shared/contracts/identity";
 
 export interface AuthUser {
@@ -17,7 +17,7 @@ interface AuthState {
   identityUser: UserDto | null | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signout: () => Promise<void>;
+  signout: AuthContextValue["signout"];
 }
 
 export function useAuth(): AuthState {

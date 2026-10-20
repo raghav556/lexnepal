@@ -123,7 +123,6 @@ function StaffDesktopSidebar() {
               profileHref="/staff/profile"
               variant="dropdown"
               fallbackName="Staff"
-              showLanguageToggle
               darkTrigger
               className="staff-sidebar-account"
             />
@@ -196,7 +195,6 @@ function StaffMobileChrome() {
           profileHref="/staff/profile"
           variant="drawer"
           fallbackName="Staff"
-          showLanguageToggle
           darkTrigger
           onAction={close}
         />

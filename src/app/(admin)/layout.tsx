@@ -151,7 +151,6 @@ function AdminDesktopSidebar() {
             profileHref="/admin/profile"
             variant="dropdown"
             fallbackName="Admin"
-            showLanguageToggle
             darkTrigger
             className="admin-sidebar-account"
           />
@@ -299,7 +298,6 @@ function AdminMobileChrome() {
           profileHref="/admin/profile"
           variant="drawer"
           fallbackName="Admin"
-          showLanguageToggle
           darkTrigger
           onAction={close}
         />
