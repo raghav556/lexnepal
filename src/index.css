@@ -9756,3 +9756,26 @@ html:has(.dashboard-staff .staff-tasks-workspace) .staff-task-select-menu [role=
   .staff-appointments-form-pair { grid-template-columns: 1fr; }
   .staff-appointments-booking-dialog { padding: 1.1rem; }
 }
+
+/* Staff shell scroll affordance: outside the canvas flow and above its footer. */
+.dashboard-staff .staff-shell-footer { margin: 0; padding-block: .5rem; }
+.dashboard-staff .staff-shell-footer > div { gap: .5rem; }
+.dashboard-staff .staff-scroll-top { position: absolute; inset: auto 1rem 1rem auto; z-index: 20; width: 2.75rem; height: 2.75rem; min-height: 2.75rem; margin: 0; padding: 0; gap: 0; justify-content: center; border-radius: 999px; background: var(--dashboard-panel); border-color: var(--dashboard-control-border); color: var(--foreground); box-shadow: 0 2px 8px color-mix(in srgb, var(--dashboard-sidebar) 18%, transparent); backdrop-filter: none; animation: none; }
+.dashboard-staff .staff-scroll-top > span { display: none; }
+.dashboard-staff .staff-scroll-top svg { overflow: visible; }
+.dashboard-staff .staff-scroll-top :is(svg, circle:last-child) { color: var(--dashboard-control-selected-foreground); stroke: var(--dashboard-control-selected-foreground); }
+.dashboard-staff .staff-scroll-top:hover { background: var(--dashboard-panel-hover); border-color: var(--dashboard-primary); }
+.dashboard-staff .staff-scroll-top:focus-visible { outline: 2px solid var(--dashboard-focus); outline-offset: 2px; box-shadow: none; }
+/* History owns its own scrolling while a conversation/composer is open. */
+.dashboard-staff .staff-shell-content:has(.staff-messages-stage[data-chat='open']) .staff-scroll-top,
+body:has([role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='true']) .dashboard-staff .staff-scroll-top { visibility: hidden; pointer-events: none; }
+@media (max-width: 767px) {
+  /* The shell already reserves the bottom nav; do not reserve it again in each page. */
+  .dashboard-theme.dashboard-staff .staff-shell-canvas #staff-main-canvas > [data-slot='portal-page-shell'] { padding-bottom: var(--dashboard-content-gutter-compact); }
+  .dashboard-staff .staff-shell-canvas .staff-research-stage { padding-bottom: 0; }
+  .dashboard-staff .staff-scroll-top { right: .75rem; bottom: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-staff .staff-shell-canvas #staff-main-canvas { scroll-behavior: auto; }
+  .dashboard-staff .staff-scroll-top, .dashboard-staff .staff-scroll-top * { transition: none; animation: none; }
+}

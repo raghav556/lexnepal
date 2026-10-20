@@ -206,28 +206,9 @@ function StaffMobileChrome() {
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isStaffHome = pathname === "/staff";
-  const isCaseDetail = /^\/staff\/cases\/[^/]+$/.test(pathname);
-  const isStaffTasks = pathname === "/staff/tasks";
-  const useFlowFooter = isStaffHome || pathname === "/staff/cases" || isCaseDetail || isStaffTasks;
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
-  const scrollTopControl = (
-    <ScrollToTop
-      containerRef={mainRef}
-      className={
-        isStaffHome
-          ? "staff-home-scroll-top"
-          : isStaffTasks
-            ? "staff-tasks-scroll-top"
-            : isCaseDetail
-              ? "staff-detail-scroll-top"
-              : "staff-cases-scroll-top"
-      }
-      behavior="auto"
-    />
-  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -258,43 +239,33 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 onOpenChat={() => router.push("/staff/messages")}
                 className="staff-admin-topbar hidden md:flex"
               />
-              <main
-                ref={mainRef}
-                id="staff-main-canvas"
-                tabIndex={-1}
-                className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
+              <div
+                className="staff-shell-canvas relative flex-1 min-h-0 min-w-0"
+                onClickCapture={(event) => {
+                  if (
+                    event.target instanceof Element &&
+                    event.target.closest(".staff-scroll-top")
+                  ) {
+                    mainRef.current?.focus({ preventScroll: true });
+                  }
+                }}
               >
-                {children}
-                {useFlowFooter ? (
-                  <PortalFooter
-                    portal="staff"
-                    className={
-                      isStaffHome
-                        ? "staff-home-footer"
-                        : isStaffTasks
-                          ? "staff-tasks-footer"
-                          : isCaseDetail
-                            ? "staff-detail-footer"
-                            : "staff-cases-footer"
-                    }
-                  />
-                ) : null}
-                {useFlowFooter ? (
-                  isCaseDetail || isStaffTasks ? (
-                    <div
-                      className={
-                        isStaffTasks ? "staff-tasks-scroll-slot" : "staff-detail-scroll-slot"
-                      }
-                    >
-                      {scrollTopControl}
-                    </div>
-                  ) : (
-                    scrollTopControl
-                  )
-                ) : null}
-              </main>
-              {useFlowFooter ? null : <PortalFooter portal="staff" />}
-              {useFlowFooter ? null : <ScrollToTop containerRef={mainRef} />}
+                <main
+                  ref={mainRef}
+                  id="staff-main-canvas"
+                  tabIndex={-1}
+                  className="relative h-full min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-dashboard-canvas text-foreground dashboard-main-scroll scroll-smooth"
+                >
+                  {children}
+                </main>
+                <ScrollToTop
+                  key={pathname}
+                  containerRef={mainRef}
+                  className="staff-scroll-top"
+                  behavior="auto"
+                />
+              </div>
+              <PortalFooter portal="staff" className="staff-shell-footer" />
             </div>
           </div>
           {searchOpen ? (
