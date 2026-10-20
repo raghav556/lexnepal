@@ -246,7 +246,7 @@ export function MetricCard({
           <span
             data-slot="metric-card-icon"
             className={cn(
-              "flex items-center justify-center transition-transform duration-200 group-hover:scale-105",
+              "dashboard-metric-icon flex items-center justify-center transition-transform duration-200 group-hover:scale-105",
               densityClasses.icon,
               metricIconToneClasses[tone],
             )}
