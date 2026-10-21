@@ -301,6 +301,9 @@ export default function StaffHRPage() {
     leavePage,
     Math.max(1, Math.ceil(filteredLeaves.length / PAGE_SIZE)),
   );
+  // Persist the displayed page after a refresh shrinks either history.
+  if (attendancePage !== selectedAttendancePage) setAttendancePage(selectedAttendancePage);
+  if (leavePage !== selectedLeavePage) setLeavePage(selectedLeavePage);
   const upcoming = upcomingHrLeaves(leaves, today).slice(0, 4);
   const annual = balances.find((row) => row.type === "annual");
 

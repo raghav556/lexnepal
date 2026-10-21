@@ -15,14 +15,17 @@ import {
 import { getBSDate } from "@/lib/bs-calendar.ts";
 import { isTaskOverdue } from "@/lib/task-constants.ts";
 import { cn } from "@/lib/utils.ts";
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 
 type Props = {
   tasks: any[];
   onOpen: (task: any) => void;
+  staffPaging?: boolean;
 };
 
-export function TaskCalendarView({ tasks, onOpen }: Props) {
+export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -118,16 +121,37 @@ export function TaskCalendarView({ tasks, onOpen }: Props) {
                     {t.title}
                   </button>
                 ))}
-                {dayTasks.length > 3 && (
+                {dayTasks.length > 3 && (staffPaging ? (
+                  <Button type="button" variant="ghost" size="sm" className="min-h-8 h-auto px-1 text-[10px]"
+                    aria-label={`View all ${dayTasks.length} tasks on ${format(day, "yyyy-MM-dd")}`}
+                    onClick={() => setSelectedDay(day)}>
+                    +{dayTasks.length - 3} more
+                  </Button>
+                ) : (
                   <p className="text-[9px] text-muted-foreground px-1">
                     +{dayTasks.length - 3} more
                   </p>
-                )}
+                ))}
               </div>
             </div>
           );
         })}
       </div>
+      {staffPaging && selectedDay && (
+        <section aria-label={`Tasks on ${format(selectedDay, "yyyy-MM-dd")}`} className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-semibold">Tasks on {format(selectedDay, "dd MMM yyyy")}</h3>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSelectedDay(null)}>Close day list</Button>
+          </div>
+          <StaffPagedCollection label="Calendar day tasks" resetKey={format(selectedDay, "yyyy-MM-dd")}>
+            {tasksByDay(selectedDay).map((task) => (
+              <Button type="button" variant="outline" key={task._id} className="block max-w-full whitespace-normal text-left h-auto min-h-10" onClick={() => onOpen(task)}>
+                {task.title}
+              </Button>
+            ))}
+          </StaffPagedCollection>
+        </section>
+      )}
     </div>
   );
 }

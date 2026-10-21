@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -693,7 +694,7 @@ export default function StaffCRMPage() {
                   <p className="staff-crm-hint">No consultation is linked to this lead.</p>
                 ) : (
                   <ul className="staff-crm-appointments">
-                    {(appointmentsQuery.data ?? []).map((appointment) => {
+                    {<StaffPagedCollection label="Lead appointments" resetKey={detailId} footerAs="li">{(appointmentsQuery.data ?? []).map((appointment) => {
                       const id = appointment.id ?? appointment._id ?? appointment.date;
                       return (
                         <li key={String(id)}>
@@ -709,7 +710,7 @@ export default function StaffCRMPage() {
                           </Button>
                         </li>
                       );
-                    })}
+                    })}</StaffPagedCollection>}
                   </ul>
                 )}
               </div>

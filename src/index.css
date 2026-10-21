@@ -9927,3 +9927,26 @@ body:has([role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='tr
   .dashboard-admin .staff-admin-topbar { gap: .5rem; padding-inline: 1rem; }
   .dashboard-admin .staff-admin-topbar > div:first-child { flex: 1; min-width: 0; padding-right: 0; }
 }
+
+/* Session 17C: Staff collection controls; other portals retain their layouts. */
+.dashboard-theme.dashboard-staff .staff-collection-pagination[data-collection] {
+  display: block; grid-column: 1 / -1; min-width: 0; max-width: 100%; list-style: none;
+  margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--dashboard-border);
+}
+.dashboard-staff .staff-collection-pagination > p,
+.dashboard-staff .staff-collection-limit {
+  font-size: .75rem; line-height: 1.5; color: var(--muted-foreground); overflow-wrap: anywhere;
+}
+.dashboard-staff [data-slot="pagination"] {
+  flex-wrap: wrap; gap: .5rem; min-width: 0; max-width: 100%;
+}
+.dashboard-staff [data-slot="pagination"] > div {
+  flex-wrap: wrap; justify-content: center; gap: .25rem; min-width: 0; max-width: 100%;
+}
+.dashboard-staff [data-slot="pagination"] > *,
+.dashboard-staff [data-slot="pagination"] > div > * { margin: 0; }
+.dashboard-staff [data-slot="pagination"] button { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .dashboard-staff [data-slot="pagination"] > div { order: -1; flex-basis: 100%; }
+  .dashboard-staff [data-slot="pagination"] button { min-height: 2.75rem; }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -289,7 +290,7 @@ export default function StaffMessagesPage() {
             ) : (
               <ul className="staff-messages-rows">
                 {channel !== "dm"
-                  ? visibleMatters.map((matter) => {
+                  ? <StaffPagedCollection label="Matter conversations" resetKey={`${channel}|${query}`} footerAs="li">{visibleMatters.map((matter) => {
                       const unread = Number(unreadByCase[matter._id] || 0);
                       return (
                         <li key={matter._id}>
@@ -319,8 +320,8 @@ export default function StaffMessagesPage() {
                           </button>
                         </li>
                       );
-                    })
-                  : visibleThreads.map((thread) => (
+                    })}</StaffPagedCollection>
+                  : <StaffPagedCollection label="Direct conversations" resetKey={query} footerAs="li">{visibleThreads.map((thread) => (
                       <li key={thread._id}>
                         <button
                           type="button"
@@ -343,7 +344,7 @@ export default function StaffMessagesPage() {
                           ) : null}
                         </button>
                       </li>
-                    ))}
+                    ))}</StaffPagedCollection>}
               </ul>
             )}
             {channel === "dm" ? (
@@ -357,7 +358,7 @@ export default function StaffMessagesPage() {
                 </p>
                 {peers.length > 0 ? (
                   <div className="staff-messages-peers">
-                    {peers.slice(0, 8).map((user) => (
+                    {<StaffPagedCollection label="Colleagues" resetKey={query} pageSize={8} incremental>{peers.map((user) => (
                       <button
                         key={user.id}
                         type="button"
@@ -366,7 +367,7 @@ export default function StaffMessagesPage() {
                       >
                         {user.name || user.email || "Staff"}
                       </button>
-                    ))}
+                    ))}</StaffPagedCollection>}
                   </div>
                 ) : (
                   <p className="staff-messages-new-dm-empty">

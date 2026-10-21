@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/client/navigation";
@@ -551,7 +552,7 @@ export default function StaffAppointmentsPage() {
                     }
                   />
                 ) : (
-                  visible.map((a) => (
+                  <StaffPagedCollection label="Appointment results" resetKey={JSON.stringify([tab, date, search, status])} revealKey={highlight} revealIndex={visible.findIndex((a) => appointmentKey(a) === highlight)}>{visible.map((a) => (
                     <button
                       type="button"
                       key={appointmentKey(a)}
@@ -586,7 +587,7 @@ export default function StaffAppointmentsPage() {
                       </span>
                       <ChevronRight size={15} aria-hidden />
                     </button>
-                  ))
+                  ))}</StaffPagedCollection>
                 )}
               </div>
             </DashboardSection>

@@ -92,7 +92,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
   it("renders healthy activity and count without raw audit details", () => {
     const html = profile();
     expect(html).toContain(event.action);
-    expect(html).toContain("1 total events");
+    expect(html).toContain("1 loaded event");
     expect(html).not.toContain(event.details);
     expect(html).not.toContain(event.ipAddress);
   });
@@ -101,14 +101,14 @@ describe("S17-CACHE-01 Client Profile activity", () => {
     const html = profile();
     expect(html).toContain("Loading...");
     expect(html).not.toContain("No activity recorded");
-    expect(html).not.toContain("total events");
+    expect(html).not.toContain("loaded event");
   });
   it("renders successful empty activity without an error or count", () => {
     state.audit = query([]);
     const html = profile();
     expect(html).toContain("No activity recorded");
     expect(html).not.toContain("Activity unavailable");
-    expect(html).not.toContain("total events");
+    expect(html).not.toContain("loaded event");
   });
   it("retains valid cached activity alongside recoverable error/retry feedback", () => {
     state.audit = query([event], "error", 500);
@@ -116,7 +116,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
     expect(html).toContain("Activity unavailable");
     expect(html).toContain("Try again");
     expect(html).toContain(event.action);
-    expect(html).toContain("1 total events");
+    expect(html).toContain("1 loaded event");
     expect(html).not.toContain("PRIVATE_SERVER_DETAIL");
   });
   it.each([401, 403, 404])("withholds cached activity and count after HTTP %s", (http) => {
@@ -126,7 +126,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
     expect(html).toContain("Try again");
     expect(html).not.toContain(event.action);
     expect(html).not.toContain(event.details);
-    expect(html).not.toContain("total events");
+    expect(html).not.toContain("loaded event");
     expect(html).not.toContain("Loading...");
     expect(html).not.toContain("No activity recorded");
   });
@@ -136,7 +136,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
       const html = profile(variant);
       expect(html).toContain(event.action);
       expect(html).toContain(event.details);
-      expect(html).toContain("1 total events");
+      expect(html).toContain("1 loaded event");
       expect(html).not.toContain("Activity unavailable");
     });
   });

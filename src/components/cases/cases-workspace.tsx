@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, CircleCheck, FolderOpen, Plus, Scale, Search } from "lucide-react";
 import { Link, useNavigate } from "@/client/navigation";
@@ -455,7 +456,7 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                     </StatusBadge>
                   </div>
                   <div className="p-3 overflow-y-auto space-y-3 flex-1 min-h-[150px] scrollbar-thin scrollbar-thumb-border">
-                    {columnCases.map((matter) => {
+                    {<StaffPagedCollection label={`${CASE_LIFECYCLE_LABELS[statusKey]} cases`} resetKey={JSON.stringify([statusKey, search, statusFilter, staffFilters])} pageSize={10} incremental enabled={portal === "staff"}>{columnCases.map((matter) => {
                       const client = clients.find((entry) => entry._id === matter.clientId);
                       return (
                         <div
@@ -487,7 +488,7 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                           </div>
                         </div>
                       );
-                    })}
+                    })}</StaffPagedCollection>}
                     {columnCases.length === 0 && (
                       <EmptyState
                         title="No cases"

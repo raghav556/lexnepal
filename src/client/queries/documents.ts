@@ -178,13 +178,17 @@ export function useRecentDocuments(limit: number): DocumentDto[] | undefined {
 }
 
 export function useDocumentVersions(documentId: string | null): DocumentDto[] {
-  const next = useTanstackQuery({
+  return useDocumentVersionsQuery(documentId).data ?? [];
+}
+
+/** Same query; expose read state to paged views without changing legacy callers. */
+export function useDocumentVersionsQuery(documentId: string | null) {
+  return useTanstackQuery({
     queryKey: queryKeys.documents.versions(documentId || "none"),
     queryFn: ({ signal }) =>
       apiClient.request<DocumentDto[]>(`/api/v1/documents/${documentId}/versions`, { signal }),
     enabled: !!documentId,
   });
-  return next.data ?? [];
 }
 
 /**

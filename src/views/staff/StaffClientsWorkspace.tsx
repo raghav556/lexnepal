@@ -1,12 +1,13 @@
 "use client";
 
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { ApiClientError } from "@/client/api/errors";
-import { useClientCommands, useKycFiles } from "@/client/queries/clients";
+import { useClientCommands, useKycFilesQuery } from "@/client/queries/clients";
 import { useCasesQuery } from "@/client/queries/cases";
 import { queryKeys } from "@/client/queries/query-keys";
 import {
@@ -198,7 +199,8 @@ export default function StaffClientsWorkspace() {
   });
   const upcoming = nextClientAppointment(appointmentsQuery.data ?? [], todayIso());
   const reviewClient = clients.find((client) => clientKey(client) === reviewClientId) ?? null;
-  const kycFiles = useKycFiles(canReviewKyc ? reviewClientId : null);
+  const kycQuery = useKycFilesQuery(canReviewKyc ? reviewClientId : null);
+  const kycFiles = kycQuery.data;
 
   useEffect(() => {
     const linked = searchParams.get("client");
@@ -793,7 +795,7 @@ export default function StaffClientsWorkspace() {
                     <p className="staff-clients-message">No matters linked to this client.</p>
                   ) : (
                     <ul className="staff-clients-matters">
-                      {profileMatters.map((matter) => {
+                      {<StaffPagedCollection label="Client matters" resetKey={profileId ?? ""} footerAs="li">{profileMatters.map((matter) => {
                         const id = matterKey(matter);
                         return (
                           <li key={id || matter.title}>
@@ -807,7 +809,7 @@ export default function StaffClientsWorkspace() {
                             ) : null}
                           </li>
                         );
-                      })}
+                      })}</StaffPagedCollection>}
                     </ul>
                   )}
                   <Button variant="outline" size="sm" asChild>
@@ -869,13 +871,18 @@ export default function StaffClientsWorkspace() {
             <DialogTitle>KYC — {reviewClient?.fullName ?? "Client"}</DialogTitle>
           </DialogHeader>
           <p className="staff-clients-hint">Status: {reviewClient ? clientKycLabel(reviewClient.kycStatus) : "—"}</p>
-          {kycFiles === undefined ? (
+          {kycQuery.isError ? (
+            <div role="alert">
+              <p className="staff-clients-hint">KYC files could not be loaded.</p>
+              <Button type="button" variant="outline" onClick={() => void kycQuery.refetch()}>Retry KYC files</Button>
+            </div>
+          ) : kycFiles === undefined ? (
             <p className="staff-clients-hint">Loading KYC files…</p>
           ) : kycFiles.length === 0 ? (
             <p className="staff-clients-hint">No KYC files on record.</p>
           ) : (
             <ul className="staff-clients-matters">
-              {kycFiles.map((file: { _id?: string; docType?: string; fileName?: string; url?: string }) => (
+              {<StaffPagedCollection label="KYC files" resetKey={reviewClientId ?? ""} footerAs="li">{kycFiles.map((file: { _id?: string; docType?: string; fileName?: string; url?: string }) => (
                 <li key={file._id ?? file.fileName}>
                   <strong>{String(file.docType ?? "file").replaceAll("_", " ")}</strong>
                   <small>{file.fileName || "Unnamed file"}</small>
@@ -885,7 +892,7 @@ export default function StaffClientsWorkspace() {
                     </a>
                   ) : null}
                 </li>
-              ))}
+              ))}</StaffPagedCollection>}
             </ul>
           )}
           {reviewClient?.kycStatus === "submitted" ? (

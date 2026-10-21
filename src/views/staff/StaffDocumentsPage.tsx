@@ -1,3 +1,4 @@
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useCallback, useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 
@@ -71,7 +72,7 @@ import {
   useExtractDocumentText,
   useDownloadDocument,
   useDownloadDocumentArchive,
-  useDocumentVersions,
+  useDocumentVersionsQuery,
   useRestoreDocumentVersion,
 } from "@/client/queries/documents";
 import {
@@ -184,7 +185,8 @@ export default function StaffDocumentsPage() {
   const [filterType, setFilterType] = useState("all");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [activeSidebarDoc, setActiveSidebarDoc] = useState<any | null>(null);
-  const versionHistory = useDocumentVersions(activeSidebarDoc?._id ?? null);
+  const versionsQuery = useDocumentVersionsQuery(activeSidebarDoc?._id ?? null);
+  const versionHistory = versionsQuery.data ?? [];
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null);
@@ -256,8 +258,12 @@ export default function StaffDocumentsPage() {
   };
 
   const selectAll = () => {
-    if (selectedDocs.length === paginatedItems.length) setSelectedDocs([]);
-    else setSelectedDocs(paginatedItems.map((d: any) => d._id));
+    const pageIds = paginatedItems.map((doc: any) => doc._id);
+    setSelectedDocs((selected) =>
+      pageIds.every((id) => selected.includes(id))
+        ? selected.filter((id) => !pageIds.includes(id))
+        : [...new Set([...selected, ...pageIds])],
+    );
   };
 
   const openNewUpload = () => {
@@ -554,7 +560,7 @@ export default function StaffDocumentsPage() {
   const onLegalHold = docList.filter((d) => Boolean(d.isOnLegalHold)).length;
   const pendingScan = docList.filter((d) => d.uploadStatus && d.uploadStatus !== "clean").length;
   const showLibrary = !(viewMode === "folders" && (!selectedFolder || !selectedSubFolder));
-  const pageSelected = paginatedItems.length > 0 && selectedDocs.length === paginatedItems.length;
+  const pageSelected = paginatedItems.length > 0 && paginatedItems.every((doc: any) => selectedDocs.includes(doc._id));
   const detailsDialogOpen =
     !isWide &&
     !!activeSidebarDoc &&
@@ -729,11 +735,18 @@ export default function StaffDocumentsPage() {
             <h3>
               <History className="size-3.5" aria-hidden /> Version History
             </h3>
-            {versionHistory.length === 0 ? (
+            {versionsQuery.isLoading ? (
               <p className="staff-docs-note">Loading version history…</p>
+            ) : versionsQuery.isError ? (
+              <div role="alert">
+                <p className="staff-docs-note">Version history could not be loaded.</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void versionsQuery.refetch()}>Retry versions</Button>
+              </div>
+            ) : versionHistory.length === 0 ? (
+              <p className="staff-docs-note">No version history is available.</p>
             ) : (
               <ol className="staff-docs-version-list">
-                {versionHistory.map((version: any, index) => {
+                {<StaffPagedCollection label="Document versions" resetKey={String(activeSidebarDoc?._id ?? "")} pageSize={6} footerAs="li">{versionHistory.map((version: any, index) => {
                   const isCurrent = index === 0;
                   const createdAt =
                     version.createdAt || new Date(version._creationTime).toISOString();
@@ -769,7 +782,7 @@ export default function StaffDocumentsPage() {
                       )}
                     </li>
                   );
-                })}
+                })}</StaffPagedCollection>}
               </ol>
             )}
           </section>
@@ -1056,9 +1069,14 @@ export default function StaffDocumentsPage() {
                     <span>Select all on this page ({paginatedItems.length})</span>
                   </label>
                   <span className="staff-docs-count">
-                    {filteredDocs.length} document{filteredDocs.length === 1 ? "" : "s"}
+                    {filteredDocs.length} loaded document{filteredDocs.length === 1 ? "" : "s"}
                   </span>
                 </div>
+                {allDocs.length >= (searchFilters.query ? 100 : 50) && (
+                  <p className="staff-collection-limit" role="status">
+                    Showing a limited set of loaded documents. More records may exist; narrow your search or case filter. A full-library total is unavailable.
+                  </p>
+                )}
                 <div className="staff-docs-cols" aria-hidden>
                   <span />
                   <span>Document</span>

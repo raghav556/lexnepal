@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Users } from "lucide-react";
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 
 type WorkloadRow = {
   assignedTo: string;
@@ -13,9 +14,10 @@ type Props = {
   workload: WorkloadRow[];
   users: any[];
   onFilterAssignee: (userId: string) => void;
+  staffPaging?: boolean;
 };
 
-export function TaskWorkloadView({ workload, users, onFilterAssignee }: Props) {
+export function TaskWorkloadView({ workload, users, onFilterAssignee, staffPaging = false }: Props) {
   if (workload.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-12">
@@ -33,6 +35,7 @@ export function TaskWorkloadView({ workload, users, onFilterAssignee }: Props) {
         <h3 className="font-serif text-lg font-bold">Team Workload</h3>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <StaffPagedCollection label="Team workload" resetKey="workload" enabled={staffPaging}>
         {workload.map((row) => {
           const user = users.find((u: any) => u._id === row.assignedTo);
           const pct = Math.round((row.total / max) * 100);
@@ -76,6 +79,7 @@ export function TaskWorkloadView({ workload, users, onFilterAssignee }: Props) {
             </Card>
           );
         })}
+        </StaffPagedCollection>
       </div>
     </div>
   );

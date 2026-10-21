@@ -1,3 +1,4 @@
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -517,7 +518,7 @@ export default function StaffHearingsPage() {
               />
             ) : (
               <ul className="staff-hearings-list">
-                {filteredUpcoming.map((h: any) => {
+                {<StaffPagedCollection label="Upcoming hearings" resetKey={`${search}|${courtFilter}`} footerAs="li">{filteredUpcoming.map((h: any) => {
                   const matchedCase = cases.find((c: any) => c._id === h.caseId);
                   const lawyer = matchedCase
                     ? users.find((u: any) => u._id === matchedCase.assignedLawyerId)
@@ -621,7 +622,7 @@ export default function StaffHearingsPage() {
                           </div>
                         ) : (
                           <div className="staff-hearings-prep-list">
-                            {prepTasks.map((task: any) => (
+                            {<StaffPagedCollection label="Hearing prep tasks" navigationLabel={`Prep tasks for ${h.purpose || matchedCase?.caseNumber || "hearing"} on ${h.dateGregorian}`} resetKey={String(h._id)} pageSize={6}>{prepTasks.map((task: any) => (
                               <label key={task._id} className="staff-hearings-prep-item">
                                 <input
                                   type="checkbox"
@@ -637,7 +638,7 @@ export default function StaffHearingsPage() {
                                   {task.title}
                                 </span>
                               </label>
-                            ))}
+                            ))}</StaffPagedCollection>}
                             <Button
                               type="button"
                               size="sm"
@@ -664,7 +665,7 @@ export default function StaffHearingsPage() {
                       </div>
                     </li>
                   );
-                })}
+                })}</StaffPagedCollection>}
               </ul>
             )}
           </DashboardSection>
@@ -694,7 +695,7 @@ export default function StaffHearingsPage() {
                 />
               ) : (
                 <ul className="staff-hearings-archive-list">
-                  {past.map((h: any) => {
+                  {<StaffPagedCollection label="Past hearings" resetKey="past" footerAs="li">{past.map((h: any) => {
                     const matchedCase = cases.find((c: any) => c._id === h.caseId);
                     return (
                       <li key={h._id}>
@@ -723,7 +724,7 @@ export default function StaffHearingsPage() {
                         </button>
                       </li>
                     );
-                  })}
+                  })}</StaffPagedCollection>}
                 </ul>
               )}
             </DashboardSection>

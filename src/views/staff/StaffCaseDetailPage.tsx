@@ -1,3 +1,4 @@
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, usePathname } from "@/client/navigation";
@@ -762,7 +763,7 @@ export default function StaffCaseDetailPage() {
                   <p className="text-sm text-muted-foreground">No team members assigned.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {teamRoster.map((member: any) => {
+                    {<StaffPagedCollection label="Case team" resetKey={String(caseId)} enabled={portal === "staff"} footerAs="li">{teamRoster.map((member: any) => {
                       const isLead =
                         member._id === caseData.assignedLawyerId ||
                         member.id === caseData.assignedLawyerId;
@@ -783,7 +784,7 @@ export default function StaffCaseDetailPage() {
                           )}
                         </li>
                       );
-                    })}
+                    })}</StaffPagedCollection>}
                   </ul>
                 )}
               </DashboardSection>
@@ -808,7 +809,7 @@ export default function StaffCaseDetailPage() {
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {parties.map((party) => (
+                    {<StaffPagedCollection label="Case parties" resetKey={String(caseId)} enabled={portal === "staff"} footerAs="li">{parties.map((party) => (
                       <li
                         key={party.id}
                         className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
@@ -824,7 +825,7 @@ export default function StaffCaseDetailPage() {
                           {party.clientVisible ? "Visible to client" : "Staff only"}
                         </span>
                       </li>
-                    ))}
+                    ))}</StaffPagedCollection>}
                   </ul>
                 )}
               </DashboardSection>
@@ -877,7 +878,7 @@ export default function StaffCaseDetailPage() {
                         No tasks assigned.
                       </p>
                     ) : (
-                      tasks.map((task: any) => {
+                      <StaffPagedCollection label="Case tasks" resetKey={String(caseId)} enabled={portal === "staff"}>{tasks.map((task: any) => {
                         const assignee = users.find((u: any) => u._id === task.assignedTo);
                         const dueLabel = formatTaskDue(task);
                         return (
@@ -933,7 +934,7 @@ export default function StaffCaseDetailPage() {
                             </div>
                           </div>
                         );
-                      })
+                      })}</StaffPagedCollection>
                     )}
                   </div>
                 </DashboardSection>
@@ -950,7 +951,7 @@ export default function StaffCaseDetailPage() {
                   {practiceSops.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No SOP templates configured.</p>
                   ) : (
-                    practiceSops.map((sop: any) => (
+                    <StaffPagedCollection label="Case SOP templates" resetKey={String(caseId)} enabled={portal === "staff"}>{practiceSops.map((sop: any) => (
                       <Button
                         key={sop._id}
                         variant="outline"
@@ -967,7 +968,7 @@ export default function StaffCaseDetailPage() {
                           </div>
                         </div>
                       </Button>
-                    ))
+                    ))}</StaffPagedCollection>
                   )}
                 </DashboardSection>
               </div>
@@ -995,7 +996,7 @@ export default function StaffCaseDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {(hearings as any[]).map((hearing) => (
+                  {<StaffPagedCollection label="Case hearings" resetKey={String(caseId)} enabled={portal === "staff"}>{(hearings as any[]).map((hearing) => (
                     <div
                       key={hearing._id || hearing.id}
                       data-detail-hearing={portal === "staff" ? "" : undefined}
@@ -1011,7 +1012,7 @@ export default function StaffCaseDetailPage() {
                         <DualDateDisplay isoDate={hearing.dateGregorian || hearing.dateBs} />
                       ) : null}
                     </div>
-                  ))}
+                  ))}</StaffPagedCollection>}
                 </div>
               )}
             </DashboardSection>
@@ -1073,6 +1074,9 @@ export default function StaffCaseDetailPage() {
                 </Button>
               }
             >
+              {portal === "staff" && mislDocuments.length >= 50 && (
+                <p className="staff-collection-limit" role="status">This Misl shows up to 50 loaded documents. Additional files may exist; a complete total is unavailable.</p>
+              )}
               {documents === undefined && pendingMisl.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
                   <Loader2 className="w-8 h-8 mb-3 animate-spin opacity-40" />
@@ -1260,6 +1264,9 @@ export default function StaffCaseDetailPage() {
           {/* 4. Timeline */}
           <TabsContent value="timeline" className="mt-6">
             <DashboardSection title="Case history" icon={Clock}>
+              {portal === "staff" && mislDocuments.length >= 50 && (
+                <p className="staff-collection-limit" role="status">History includes loaded documents only; additional document events may exist.</p>
+              )}
               {timeline.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center">
                   No timeline events recorded.

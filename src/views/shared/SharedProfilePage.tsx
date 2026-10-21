@@ -719,7 +719,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               actions={
                 auditLog && auditLog.length > 0 ? (
                   <span className="text-[11px] font-mono font-medium text-muted-foreground bg-dashboard-neutral-soft px-2 py-0.5 rounded border border-dashboard-border">
-                    {auditLog.length} total events
+                    {auditLog.length} loaded event{auditLog.length === 1 ? "" : "s"}
                   </span>
                 ) : null
               }

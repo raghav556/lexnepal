@@ -1,3 +1,4 @@
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
@@ -906,7 +907,7 @@ export default function StaffTasksPage() {
                             </p>
                           </div>
                         ) : (
-                          colTasks.map((task: any) => (
+                          <StaffPagedCollection label={`${col.label} tasks`} resetKey={JSON.stringify([col.key, scope, filterAssignee, filterPriority, filterCase, filterStatus, filterOverdue, searchQuery, showArchivedOnly])} pageSize={12} incremental>{colTasks.map((task: any) => (
                             <TaskCard
                               key={task._id}
                               task={task}
@@ -917,7 +918,7 @@ export default function StaffTasksPage() {
                               onToggleComplete={handleToggleComplete}
                               onDragStart={handleDragStart}
                             />
-                          ))
+                          ))}</StaffPagedCollection>
                         )}
                       </div>
                     </div>
@@ -996,10 +997,11 @@ export default function StaffTasksPage() {
             </div>
           )}
 
-          {view === "calendar" && <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} />}
+          {view === "calendar" && <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} staffPaging />}
 
           {view === "workload" && canViewTeamWorkload && (
             <TaskWorkloadView
+              staffPaging
               workload={workload as any[]}
               users={users}
               onFilterAssignee={(id) => {
@@ -1504,7 +1506,7 @@ export default function StaffTasksPage() {
                   {subtasks.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No subtasks.</p>
                   ) : (
-                    subtasks.map((st: any) => (
+                    <StaffPagedCollection label="Subtasks" resetKey={String(selectedTask?._id ?? "")} pageSize={6}>{subtasks.map((st: any) => (
                       <label key={st._id} className="flex items-center gap-2 text-xs">
                         <input
                           type="checkbox"
@@ -1525,7 +1527,7 @@ export default function StaffTasksPage() {
                           {st.title}
                         </span>
                       </label>
-                    ))
+                    ))}</StaffPagedCollection>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -1563,7 +1565,7 @@ export default function StaffTasksPage() {
                   {comments.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No comments yet.</p>
                   ) : (
-                    comments.map((c: any) => {
+                    <StaffPagedCollection label="Task comments" resetKey={String(selectedTask?._id ?? "")} pageSize={6}>{comments.map((c: any) => {
                       const author = users.find((u: any) => u._id === c.authorId);
                       return (
                         <div key={c._id} className="text-xs bg-secondary/30 rounded px-2 py-1.5">
@@ -1574,7 +1576,7 @@ export default function StaffTasksPage() {
                           <p className="mt-0.5 text-foreground">{c.content}</p>
                         </div>
                       );
-                    })
+                    })}</StaffPagedCollection>
                   )}
                 </div>
                 <div className="flex gap-2">
