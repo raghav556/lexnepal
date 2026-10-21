@@ -1,4 +1,5 @@
 "use client";
+import { formatNepalClock } from "@/lib/nepali-calendar";
 
 import React from "react";
 import {
@@ -89,8 +90,8 @@ export function LuxuryChatBubble({
   const roleBadge = getRoleBadge(senderRole, appearance);
   const timeStr =
     createdAt instanceof Date
-      ? createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      ? formatNepalClock(createdAt)
+      : formatNepalClock(new Date(createdAt));
 
   return (
     <div

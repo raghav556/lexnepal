@@ -1,5 +1,7 @@
 "use client";
 
+import { formatOperationalDate } from "@/lib/nepali-calendar";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -379,7 +381,7 @@ export default function AdminDashboard() {
         title: matter.title,
         clientId: matter.clientId,
         practiceArea: matter.practiceArea,
-        hearingDate: hearing.dateBs || hearing.dateGregorian,
+        hearingDate: hearing.dateGregorian,
         court: hearing.court ?? "Court",
       });
     }
@@ -518,7 +520,7 @@ export default function AdminDashboard() {
           title="Firm Operations Overview"
           description={
             operationsView === "trend"
-              ? "Scheduled hearings by month"
+              ? "Scheduled hearings by A.D. month"
               : "Active matters with hearings in next 14 days"
           }
           actions={
@@ -719,7 +721,7 @@ export default function AdminDashboard() {
                       <span className="text-sm text-muted-foreground">{row.practiceArea}</span>
                     </DashboardTableCell>
                     <DashboardTableCell>
-                      <span className="text-sm font-medium text-foreground">{row.hearingDate}</span>
+                      <span className="text-sm font-medium text-foreground">{formatOperationalDate(row.hearingDate)}</span>
                       <span className="block text-xs text-muted-foreground">{row.court}</span>
                     </DashboardTableCell>
                   </DashboardTableRow>

@@ -1,3 +1,4 @@
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -226,13 +227,13 @@ export default function StaffCaseDetailPage() {
     for (const h of hearings as any[]) {
       events.push({
         key: `h-${h._id}`,
-        date: h.dateGregorian || h.dateBs || "",
+        date: h.dateGregorian || "",
         label: h.purpose || "Hearing",
-        detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}`,
+        detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}${!h.dateGregorian && h.dateBs ? ` · Recorded B.S.: ${h.dateBs}; A.D. unavailable` : ""}`,
       });
     }
     for (const task of tasks as any[]) {
-      const due = task.dueDate ? String(task.dueDate).slice(0, 10) : "";
+      const due = task.dueDate ? nepalDateOnly(task.dueDate) : "";
       if (!due) continue;
       events.push({
         key: `t-${task._id}`,
@@ -244,7 +245,7 @@ export default function StaffCaseDetailPage() {
     for (const d of mislDocuments as any[]) {
       events.push({
         key: `d-${d._id}`,
-        date: d._creationTime ? new Date(d._creationTime).toISOString().slice(0, 10) : "",
+        date: d._creationTime ? nepalDateOnly(new Date(d._creationTime)) : "",
         label: `Document: ${d.title}`,
         detail: d.type || "Document",
       });
@@ -1009,7 +1010,7 @@ export default function StaffCaseDetailPage() {
                         </p>
                       </div>
                       {hearing.dateGregorian || hearing.dateBs ? (
-                        <DualDateDisplay isoDate={hearing.dateGregorian || hearing.dateBs} />
+                        <DualDateDisplay isoDate={hearing.dateGregorian} recordedBs={hearing.dateBs} />
                       ) : null}
                     </div>
                   ))}</StaffPagedCollection>}
@@ -1194,8 +1195,7 @@ export default function StaffCaseDetailPage() {
                                       {category.id.substring(0, 2).toUpperCase()}-{idx + 1} •{" "}
                                       <DualDateDisplay
                                         isoDate={new Date(doc._creationTime)
-                                          .toISOString()
-                                          .slice(0, 10)}
+                                          .toISOString()}
                                       />
                                     </p>
                                   </div>

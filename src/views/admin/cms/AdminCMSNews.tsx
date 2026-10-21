@@ -1,5 +1,10 @@
 "use client";
 
+import { nepalDateOnly } from "@/lib/nepali-calendar";
+
+
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button.tsx";
@@ -65,7 +70,7 @@ export default function AdminCMSNews() {
     slug: "",
     excerpt: "",
     content: "",
-    date: new Date().toISOString().slice(0, 10),
+    date: nepalDateOnly(),
     type: "firm_news" as NewsType,
     status: "draft" as NewsStatus,
     linkUrl: "",
@@ -112,7 +117,7 @@ export default function AdminCMSNews() {
         slug: item.slug || "",
         excerpt: item.excerpt || "",
         content: item.content || "",
-        date: item.date?.slice?.(0, 10) || item.date || new Date().toISOString().slice(0, 10),
+        date: item.date?.slice?.(0, 10) || item.date || "",
         type: item.type || "firm_news",
         status: item.status || "published",
         linkUrl: item.linkUrl || "",
@@ -130,7 +135,7 @@ export default function AdminCMSNews() {
         slug: "",
         excerpt: "",
         content: "",
-        date: new Date().toISOString().slice(0, 10),
+        date: nepalDateOnly(),
         type: "firm_news",
         status: "draft",
         linkUrl: "",
@@ -153,6 +158,7 @@ export default function AdminCMSNews() {
   };
 
   const handleSave = async () => {
+    if (!reportBsDateValidity()) return;
     if (!formData.title.trim() || !formData.excerpt.trim() || !formData.content.trim()) {
       toast.error("Title, excerpt, and content are required.");
       return;
@@ -589,12 +595,13 @@ export default function AdminCMSNews() {
                   {formData.status === "rejected" && <option value="rejected">Rejected</option>}
                 </select>
               </div>
-              <div className="space-y-2 min-w-0">
+              <div className="space-y-2 min-w-0 locale-date-full-row">
                 <label className="text-sm font-semibold">Date</label>
-                <Input
-                  type="date"
+                <BsDateField
+                  aria-label="Publication date"
+                  required
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onDateChange={(e) => setFormData({ ...formData, date: e })}
                   className="min-w-0"
                 />
               </div>

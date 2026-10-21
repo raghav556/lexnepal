@@ -1,4 +1,5 @@
 "use client";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 
 import { useState } from "react";
 import { Pagination } from "@/components/ui/pagination";
@@ -102,7 +103,7 @@ export function SessionListPanel({
                     <span>
                       {display.isCurrent
                         ? "Active now"
-                        : `Last active ${new Date(display.lastActive).toLocaleString()}`}
+                        : `Last active ${formatNepalTimestamp(display.lastActive)}`}
                     </span>
                   </div>
                 </div>

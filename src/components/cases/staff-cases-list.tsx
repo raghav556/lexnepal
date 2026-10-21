@@ -59,7 +59,7 @@ export function StaffCasesList({
             (entry) => entry.caseId === matter._id && entry.status === "scheduled",
           );
           // Preserve the workspace's stored date / first scheduled hearing fallback.
-          const nextHearingDate = matter.nextHearing || hearing?.dateGregorian || hearing?.dateBs;
+          const nextHearingDate = matter.nextHearing || hearing?.dateGregorian;
           const lifecycle = toLifecycleStatus(matter.status);
           const outcome = inferredClosureOutcome(matter.status, matter.closureOutcome);
 
@@ -101,7 +101,7 @@ export function StaffCasesList({
                 </div>
               </DashboardTableCell>
               <DashboardTableCell data-label="Next hearing">
-                {nextHearingDate ? <DualDateDisplay isoDate={nextHearingDate} /> : "—"}
+                {nextHearingDate || hearing?.dateBs ? <DualDateDisplay isoDate={nextHearingDate} recordedBs={hearing?.dateBs} /> : "—"}
               </DashboardTableCell>
               <DashboardTableCell data-label="Assigned lawyer">
                 <div className="staff-case-person">

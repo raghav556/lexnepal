@@ -101,7 +101,6 @@ export function TaskCard({
         <div className="staff-task-due">
           <span className="staff-task-mobile-label">Due date</span>
           {due || "Not set"}
-          {task.dueDateBs && task.dueDate ? <small>{task.dueDate.slice(0, 10)} AD</small> : null}
           {overdue ? <strong>Overdue</strong> : null}
         </div>
         {variant === "list" ? (

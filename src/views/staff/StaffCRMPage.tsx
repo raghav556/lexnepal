@@ -1,5 +1,7 @@
 "use client";
 
+import { BsDateField } from "@/components/ui/bs-date-field";
+
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -766,7 +768,7 @@ export default function StaffCRMPage() {
             <Label htmlFor="staff-crm-area">Practice area</Label>
             <Input id="staff-crm-area" value={scheduleForm.practiceArea} onChange={(event) => setScheduleForm((form) => ({ ...form, practiceArea: event.target.value }))} />
             <Label htmlFor="staff-crm-date">Date</Label>
-            <Input id="staff-crm-date" type="date" required value={scheduleForm.date} onChange={(event) => setScheduleForm((form) => ({ ...form, date: event.target.value, timeSlot: "" }))} />
+            <BsDateField id="staff-crm-date" required value={scheduleForm.date} onDateChange={(event) => setScheduleForm((form) => ({ ...form, date: event, timeSlot: "" }))} />
             <Label>Time</Label>
             <Select value={scheduleForm.timeSlot || undefined} onValueChange={(timeSlot) => setScheduleForm((form) => ({ ...form, timeSlot }))} disabled={!scheduleForm.date || slotsQuery.isLoading}>
               <SelectTrigger aria-label="Available time"><SelectValue placeholder={slotsQuery.isLoading ? "Loading times…" : "Choose a time"} /></SelectTrigger>

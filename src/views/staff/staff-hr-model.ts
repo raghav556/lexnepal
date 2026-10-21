@@ -4,8 +4,8 @@ import {
   type LeaveCreateInput,
   type LeaveRequestDto,
 } from "@/shared/contracts/hr";
-import { HR_TIMEZONE, formatHrClock, parseHrClock } from "@/shared/hr/timezone";
-import { bsToGregorian } from "@/lib/nepali-calendar";
+import { formatHrClock, parseHrClock } from "@/shared/hr/timezone";
+import { supportsBsConversion, nepalDateOnly } from "@/lib/nepali-calendar";
 
 export const HR_LEAVE_TYPES = {
   annual: "Annual leave",
@@ -27,14 +27,7 @@ export const HR_LEAVE_STATUSES = {
 } as const;
 
 export function kathmanduDate(now = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: HR_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const part = (key: string) => parts.find((p) => p.type === key)!.value;
-  return `${part("year")}-${part("month")}-${part("day")}`;
+  return nepalDateOnly(now);
 }
 
 export function validHrDate(date: string): boolean {
@@ -51,11 +44,7 @@ export function shiftHrDate(date: string, days: number): string {
 
 export function supportsHrDualDate(date: string): boolean {
   if (!validHrDate(date)) return false;
-  const localDate = new Date(`${date}T12:00:00`);
-  // The shared table covers BS 2000–2090; conversion outside it is unsupported.
-  const start = bsToGregorian({ year: 2000, month: 1, day: 1 });
-  const end = bsToGregorian({ year: 2091, month: 1, day: 1 });
-  return localDate >= start && localDate < end;
+  return supportsBsConversion(date);
 }
 
 function recordedClock(date: string, value?: string | null): Date | null {

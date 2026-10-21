@@ -1,4 +1,6 @@
 "use client";
+import { useI18n } from "@/lib/i18n-context";
+import { bsDateParts, formatOperationalDate } from "@/lib/nepali-calendar";
 
 import {
   ClientQueryBoundary,
@@ -79,16 +81,7 @@ function downloadHearingIcs(input: {
   URL.revokeObjectURL(url);
 }
 
-function hearingDateParts(dateGregorian?: string | null) {
-  if (!dateGregorian) return null;
-  const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return {
-    day: String(date.getDate()),
-    month: date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
-    year: String(date.getFullYear()),
-  };
-}
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") { return bsDateParts(dateGregorian, language); }
 
 function formatHearingTime(time?: string | null): string | undefined {
   if (!time) return undefined;
@@ -138,6 +131,8 @@ function matchesSearch(
     hearing.court,
     hearing.purpose,
     hearing.dateBs,
+    formatOperationalDate(hearing.dateGregorian, hearing.dateBs),
+    formatOperationalDate(hearing.dateGregorian, hearing.dateBs, "ne"),
     hearing.dateGregorian,
   ]
     .filter(Boolean)
@@ -159,6 +154,7 @@ function openClientActions(tasks: TaskDto[] | undefined, caseId?: string): TaskD
 }
 
 export default function ClientHearingsPage() {
+  const { language } = useI18n();
   const clientQuery = useMyClientQuery();
   const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
@@ -204,7 +200,7 @@ export default function ClientHearingsPage() {
 
   const nextHearing = upcoming[0] ?? null;
   const nextMatter = nextHearing ? matterOf(cases, nextHearing.caseId) : undefined;
-  const nextParts = hearingDateParts(nextHearing?.dateGregorian);
+  const nextParts = hearingDateParts(nextHearing?.dateGregorian, language);
   const preparationActions = openClientActions(tasks, nextHearing?.caseId).slice(0, 4);
 
   const shellProps = {
@@ -290,7 +286,7 @@ export default function ClientHearingsPage() {
       <ul className="client-hearings-list">
         {items.map((hearing) => {
           const matter = matterOf(cases, hearing.caseId);
-          const parts = hearingDateParts(hearing.dateGregorian);
+          const parts = hearingDateParts(hearing.dateGregorian, language);
           return (
             <li key={hearing._id} className="client-hearings-row">
               {parts ? (
@@ -321,7 +317,7 @@ export default function ClientHearingsPage() {
                 </div>
                 <p className="client-hearings-row-meta">
                   {[
-                    hearing.dateBs || hearing.dateGregorian,
+                    formatOperationalDate(hearing.dateGregorian, hearing.dateBs, language),
                     formatHearingTime(hearing.time),
                     hearing.court?.trim() || "Court not specified",
                     hearing.purpose || null,
@@ -484,7 +480,7 @@ export default function ClientHearingsPage() {
                       {nextHearing.dateBs ? (
                         <li>
                           <CalendarDays className="size-3.5 shrink-0" aria-hidden />
-                          <span>{nextHearing.dateBs} (BS)</span>
+                          <span>{formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs, language)}</span>
                         </li>
                       ) : null}
                       {nextMatter?.caseNumber ? (

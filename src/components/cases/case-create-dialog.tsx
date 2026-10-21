@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { BsDateField } from "@/components/ui/bs-date-field";
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import {
@@ -68,6 +70,7 @@ export function CaseCreateDialog({
   onCreated,
 }: CaseCreateDialogProps) {
   const createCase = useCreateCase();
+  const [filingDate, setFilingDate] = useState(() => nepalDateOnly());
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +81,7 @@ export function CaseCreateDialog({
     return () => window.clearTimeout(id);
   }, [open]);
 
-  const reset = useCallback(() => setForm(emptyForm), []);
+  const reset = useCallback(() => { setForm(emptyForm); setFilingDate(nepalDateOnly()); }, []);
 
   // Keep Dialog's focus effect stable while a field edit re-renders this form.
   const handleOpenChange = useCallback(
@@ -111,7 +114,7 @@ export function CaseCreateDialog({
         closureOutcome: statusWrite.closureOutcome,
         court: form.court || undefined,
         opposingCounsel: form.opposingCounsel || undefined,
-        filingDate: new Date().toISOString().split("T")[0],
+        filingDate,
       })) as { id?: string; _id?: string };
       toast.success("Case created successfully!");
       handleOpenChange(false);
@@ -141,6 +144,10 @@ export function CaseCreateDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="case-filing-date-bs">Filing date</Label>
+            <BsDateField id="case-filing-date-bs" value={filingDate} onDateChange={setFilingDate} required />
+          </div>
           <div className="space-y-1">
             <Label htmlFor="case-number">
               Case Number <span className="text-destructive">*</span>

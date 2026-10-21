@@ -1,3 +1,4 @@
+import { formatDualDate } from "@/lib/nepali-calendar";
 import { useState } from "react";
 import {
   Dialog,
@@ -212,7 +213,7 @@ export function DocumentShareModal({
                 >
                   <span>
                     {share.expiresAt
-                      ? `Expires ${new Date(share.expiresAt).toLocaleDateString()}`
+                      ? `Expires ${formatDualDate(share.expiresAt)}`
                       : "Never expires"}{" "}
                     · {share.downloadsCount} downloads
                   </span>

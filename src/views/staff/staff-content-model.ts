@@ -1,3 +1,4 @@
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { staffCanEditBlogStatus, slugifyBlogTitle } from "@/shared/blog-visibility";
 import { slugifyNewsTitle } from "@/shared/news-visibility";
 
@@ -103,7 +104,7 @@ export function emptyNewsForm(): NewsForm {
     excerpt: "",
     content: "",
     type: "firm_news",
-    date: new Date().toISOString().slice(0, 10),
+    date: nepalDateOnly(),
     imageUrl: "",
     seoTitle: "",
     seoDescription: "",
@@ -130,7 +131,7 @@ export function newsFormFromItem(item: NewsItem): NewsForm {
     excerpt: item.excerpt || "",
     content: item.content || "",
     type: item.type || "firm_news",
-    date: item.date?.slice?.(0, 10) || item.date || new Date().toISOString().slice(0, 10),
+    date: item.date?.slice?.(0, 10) || item.date || "",
     imageUrl: item.imageUrl || "",
     seoTitle: item.seoTitle || "",
     seoDescription: item.seoDescription || "",

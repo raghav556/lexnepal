@@ -1,5 +1,7 @@
 "use client";
 
+import { BsDateField } from "@/components/ui/bs-date-field";
+
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
@@ -299,15 +301,14 @@ export function StaffAppointmentBookingDialog({
               </>
             )}
             <div className="staff-appointments-form-pair">
-              <div className="staff-appointments-field">
+              <div className="staff-appointments-field locale-date-full-row">
                 <Label htmlFor="appointment-date">Date *</Label>
-                <Input
+                <BsDateField
                   id="appointment-date"
-                  type="date"
                   required
                   min={today}
                   value={form.date}
-                  onChange={(e) => update("date", e.target.value)}
+                  onDateChange={(e) => update("date", e)}
                 />
               </div>
               <div className="staff-appointments-field">

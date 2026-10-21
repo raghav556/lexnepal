@@ -1,4 +1,5 @@
 "use client";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 
 /**
  * Shared CRM clients directory — used by `/admin/clients` and `/staff/clients`.
@@ -955,7 +956,7 @@ export default function StaffClientsPage() {
                   {reviewClient.kycConsentVersion
                     ? `${reviewClient.kycConsentVersion} at ${
                         reviewClient.kycConsentAt
-                          ? new Date(String(reviewClient.kycConsentAt)).toLocaleString()
+                          ? formatNepalTimestamp(String(reviewClient.kycConsentAt))
                           : "—"
                       }`
                     : "—"}

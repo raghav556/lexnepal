@@ -342,8 +342,7 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                   const nextHearingDate =
                     matter.nextHearing ||
                     (hearing as { dateGregorian?: string; dateBs?: string } | undefined)
-                      ?.dateGregorian ||
-                    (hearing as { dateBs?: string } | undefined)?.dateBs;
+                      ?.dateGregorian;
 
                   return (
                     <DashboardListRow key={matter._id} className="group p-4 sm:p-5">
@@ -382,14 +381,14 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                         </div>
                       </div>
 
-                      {nextHearingDate ? (
+                      {nextHearingDate || hearing?.dateBs ? (
                         <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-dashboard-border pt-3 sm:pt-0 sm:pl-5 shrink-0 gap-1.5">
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                             Next hearing
                           </span>
                           <div className="flex items-center gap-1.5 text-sm font-semibold text-dashboard-warning-foreground bg-dashboard-warning-soft border border-dashboard-warning/35 px-3 py-1.5 rounded-lg">
                             <CalendarDays className="w-4 h-4" aria-hidden />
-                            <DualDateDisplay isoDate={nextHearingDate} />
+                            <DualDateDisplay isoDate={nextHearingDate} recordedBs={hearing?.dateBs} />
                           </div>
                         </div>
                       ) : null}

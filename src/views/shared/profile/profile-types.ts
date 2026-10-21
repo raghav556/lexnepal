@@ -1,3 +1,4 @@
+import { formatDualDate, formatNepalTimestamp } from "@/lib/nepali-calendar";
 export type ProfileVariant = "client" | "staff" | "admin";
 
 export const PROFILE_COPY: Record<ProfileVariant, { title: string; subtitle: string }> = {
@@ -17,16 +18,10 @@ export const PROFILE_COPY: Record<ProfileVariant, { title: string; subtitle: str
 
 export function formatMemberSince(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "long",
-    year: "numeric",
-  });
+  return formatDualDate(iso);
 }
 
 export function formatLastLogin(iso: string | null | undefined): string {
   if (!iso) return "No recent login recorded";
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatNepalTimestamp(iso);
 }

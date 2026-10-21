@@ -4,7 +4,7 @@ import { useClients } from "@/client/queries/clients";
 import { useDocuments, useUploadDocument } from "@/client/queries/documents";
 import { useDocumentTemplates } from "@/client/queries/templates";
 import { useCurrentFirm, useUsers } from "@/client/queries/identity";
-import { formatBs, gregorianToBs } from "@/lib/nepali-calendar";
+import { formatBs, gregorianToBs, nepalDateOnly } from "@/lib/nepali-calendar";
 import { FileText, Loader2, Download, Settings, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { FadeInUp } from "@/components/ui/animations";
@@ -74,8 +74,8 @@ export default function AdminDocumentGenerator() {
         return;
       }
       const lawyer = users.find((user) => user.id === matter.assignedLawyerId);
-      const today = new Date();
-      const date = today.toLocaleDateString("en-GB");
+      const today = nepalDateOnly();
+      const date = new Date(`${today}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC" });
       const vars = {
         "client.name": client.fullName,
         "client.phone": client.phone || "",

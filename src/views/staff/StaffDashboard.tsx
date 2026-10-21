@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate, formatOperationalDate, nepalDateOnly, bsDateParts } from "@/lib/nepali-calendar";
 
 import { useMemo } from "react";
 import {
@@ -54,7 +55,7 @@ type WorkloadRow = {
 };
 
 function localDateIso(date: Date): string {
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  return nepalDateOnly(date);
 }
 
 function parseClockTime(value?: string | null): number {
@@ -76,7 +77,7 @@ function relativeTime(iso?: string | null): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.round(diffHours / 24);
   if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  return formatDualDate(timestamp);
 }
 
 function documentTypeLabel(mimeType: string): string {
@@ -188,10 +189,10 @@ export default function StaffDashboard() {
   }, [users]);
 
   const nextHearingByCase = useMemo(() => {
-    const map = new Map<string, { dateBs: string; court: string }>();
+    const map = new Map<string, { dateBs: string; dateGregorian?: string | null; court: string }>();
     for (const hearing of scheduledHearings) {
       if (!map.has(hearing.caseId)) {
-        map.set(hearing.caseId, { dateBs: hearing.dateBs, court: hearing.court ?? "Court" });
+        map.set(hearing.caseId, { dateBs: hearing.dateBs, dateGregorian: hearing.dateGregorian, court: hearing.court ?? "Court" });
       }
     }
     return map;
@@ -574,7 +575,7 @@ export default function StaffDashboard() {
                           <DashboardTableCell data-label="Next hearing">
                             {nextHearing ? (
                               <span className="text-xs text-muted-foreground">
-                                {nextHearing.dateBs}
+                                {formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs)}
                                 <span className="block">{nextHearing.court}</span>
                               </span>
                             ) : (
@@ -618,7 +619,7 @@ export default function StaffDashboard() {
                 <div className="space-y-3">
                   {upcomingHearings.map((hearing) => {
                     const urgent = hearing.purpose?.toLowerCase().includes("final") || false;
-                    const dateParts = hearing.dateBs.split(" ");
+                    const dateParts = bsDateParts(hearing.dateGregorian);
                     return (
                       <div
                         key={hearing._id}
@@ -626,15 +627,18 @@ export default function StaffDashboard() {
                       >
                         <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl border border-dashboard-primary/30 bg-dashboard-primary-soft text-dashboard-primary">
                           <span className="text-xs font-bold leading-none">
-                            {dateParts[0] || "Court"}
+                            {dateParts?.day || "—"}
                           </span>
                           <span className="mt-1 text-[10px] leading-none opacity-80">
-                            {dateParts.slice(1).join(" ") || ""}
+                            {dateParts?.month || "Date unavailable"}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-foreground">
                             {caseTitleById.get(hearing.caseId) ?? "Matter hearing"}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {formatOperationalDate(hearing.dateGregorian, hearing.dateBs)}
                           </p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
                             {hearing.court}

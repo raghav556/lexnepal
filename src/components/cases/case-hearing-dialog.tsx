@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { BsDateField } from "@/components/ui/bs-date-field";
 import { useHearingCommands } from "@/client/queries/hearings";
 import { COURTS } from "@/lib/lex-constants.ts";
 import { formatBs, gregorianToBs } from "@/lib/nepali-calendar.ts";
@@ -63,9 +64,7 @@ export function CaseHearingDialog({
       return;
     }
     try {
-      const parts = value.split("-").map(Number);
-      const date = new Date(parts[0], parts[1] - 1, parts[2]);
-      setDateBs(formatBs(gregorianToBs(date)));
+      setDateBs(formatBs(gregorianToBs(value)));
     } catch {
       setDateBs("");
     }
@@ -127,25 +126,16 @@ export function CaseHearingDialog({
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="case-hearing-ad" className="text-xs font-medium">
-                Date (AD)
-              </label>
-              <Input
-                id="case-hearing-ad"
-                required
-                type="date"
-                value={dateGregorian}
-                onChange={(event) => handleGregorianChange(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
+          <div className="space-y-1">
               <label htmlFor="case-hearing-bs" className="text-xs font-medium">
-                Date (BS)
+                Hearing date
               </label>
-              <Input id="case-hearing-bs" readOnly className="bg-muted/40" value={dateBs} />
-            </div>
+              <BsDateField
+                id="case-hearing-bs"
+                required
+                value={dateGregorian}
+                onDateChange={handleGregorianChange}
+              />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">

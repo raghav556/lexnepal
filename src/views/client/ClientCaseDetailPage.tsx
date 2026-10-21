@@ -1,4 +1,6 @@
 "use client";
+import { useI18n } from "@/lib/i18n-context";
+import { bsDateParts, formatNepalTimestamp, formatOperationalDate } from "@/lib/nepali-calendar";
 
 import {
   ClientQueryBoundary,
@@ -134,16 +136,7 @@ function downloadHearingIcs(input: {
   URL.revokeObjectURL(url);
 }
 
-function hearingDateParts(dateGregorian?: string | null) {
-  if (!dateGregorian) return null;
-  const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return {
-    day: String(date.getDate()),
-    month: date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
-    year: String(date.getFullYear()),
-  };
-}
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") { return bsDateParts(dateGregorian, language); }
 
 function notificationBelongsToMatter(notification: ClientNotification, matterId: string): boolean {
   const related = String(notification.relatedId ?? "").trim();
@@ -193,6 +186,7 @@ function TeamAvatar({ name, avatar }: { name: string; avatar?: string | null }) 
 }
 
 export default function ClientCaseDetailPage() {
+  const { language } = useI18n();
   const params = useParams<{ id: string }>();
   const caseId = params?.id || "";
   const caseQuery = useClientCaseQuery(caseId || null);
@@ -307,9 +301,9 @@ export default function ClientCaseDetailPage() {
   const courtLabel = caseData.court?.trim() ? caseData.court : "Not specified";
   const visibleParties = caseData.parties ?? [];
   const opposingParties = visibleParties.filter((party) => party.side === "opposing");
-  const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian);
+  const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian, language);
   const hearingLabel = nextHearing
-    ? String(nextHearing.dateBs || nextHearing.dateGregorian || "Scheduled")
+    ? formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs, language)
     : clientQuerySummary(
         hearingsQuery,
         "None scheduled",
@@ -652,7 +646,7 @@ export default function ClientCaseDetailPage() {
                           {nextHearing.dateBs ? (
                             <li>
                               <CalendarDays className="size-3.5" aria-hidden />
-                              <span>{nextHearing.dateBs} (BS)</span>
+                              <span>{formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs, language)}</span>
                             </li>
                           ) : null}
                         </ul>
@@ -817,7 +811,7 @@ export default function ClientCaseDetailPage() {
                           <div className="min-w-0 space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm font-semibold">
-                                {h.dateBs || h.dateGregorian}
+                                {formatOperationalDate(h.dateGregorian, h.dateBs, language)}
                                 {h.time ? ` · ${h.time}` : ""}
                               </p>
                               <DashboardStatusLabel status={h.status} className="text-xs" />
@@ -1139,7 +1133,7 @@ export default function ClientCaseDetailPage() {
                               </span>
                               <span>
                                 {msg._creationTime
-                                  ? new Date(msg._creationTime).toLocaleString()
+                                  ? formatNepalTimestamp(msg._creationTime)
                                   : ""}
                               </span>
                             </div>

@@ -1,4 +1,5 @@
 import { isLifecycleClosed } from "@/shared/contracts/case-status";
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 
 /** Lifecycle values Staff/Admin Case views write and filter. API still accepts closed_won/lost aliases. */
 export const CASE_LIFECYCLE_STATUSES = ["inquiry", "active", "on_hold", "closed"] as const;
@@ -152,7 +153,7 @@ export function nextScheduledHearingIso(
   hearings: ReadonlyArray<{ status?: string; dateGregorian?: string | null }>,
   fallback?: string | null,
 ): string | null {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = nepalDateOnly();
   const upcoming = hearings
     .filter(
       (hearing) =>

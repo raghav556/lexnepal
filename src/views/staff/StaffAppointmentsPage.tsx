@@ -1,11 +1,14 @@
 "use client";
 
+import { BsDateField } from "@/components/ui/bs-date-field";
+
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/client/navigation";
 import { useAppointments, useAppointmentCommands } from "@/client/queries/crm";
 import {
+  DualDateDisplay,
   DashboardButton,
   DashboardSection,
   EmptyState,
@@ -206,7 +209,7 @@ export default function StaffAppointmentsPage() {
               <Calendar size={15} aria-hidden />
               Date
             </dt>
-            <dd>{appointment.date ? formatAppointmentDate(appointment.date) : "Not recorded"}</dd>
+            <dd>{appointment.date ? <DualDateDisplay isoDate={appointment.date} /> : "Not recorded"}</dd>
           </div>
           <div>
             <dt>
@@ -508,12 +511,11 @@ export default function StaffAppointmentsPage() {
                 <label className="staff-appointments-sr-only" htmlFor="appointment-list-date">
                   Choose calendar date
                 </label>
-                <Input
-                  type="date"
+                <BsDateField
                   id="appointment-list-date"
                   value={date}
-                  onChange={(e) => {
-                    if (e.target.value) selectDate(e.target.value);
+                  onDateChange={(e) => {
+                    if (e) selectDate(e);
                   }}
                 />
                 <DashboardButton
@@ -563,17 +565,14 @@ export default function StaffAppointmentsPage() {
                     >
                       <span className="staff-appointments-row-time">
                         {a.timeSlot || "No time"}
-                        <small>
-                          {a.date
-                            ? formatAppointmentDate(a.date, { weekday: undefined, year: undefined })
-                            : "No date"}
-                        </small>
+
                       </span>
                       <span className="staff-appointments-avatar">
                         {appointmentInitials(a.clientName)}
                       </span>
                       <span className="staff-appointments-row-copy">
                         <strong>{a.clientName || "Client name not recorded"}</strong>
+                        <small>{a.date ? <DualDateDisplay isoDate={a.date} alwaysDual={false} /> : "No date"}</small>
                         <span>{a.practiceArea || "Practice area not recorded"}</span>
                         <StatusBadge tone={getDashboardStatusTone(a.status)}>
                           {a.status || "Not recorded"}

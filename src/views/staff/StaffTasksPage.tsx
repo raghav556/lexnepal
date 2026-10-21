@@ -1,3 +1,5 @@
+import { formatNepalTimestamp, nepalDateOnly, formatOperationalDate } from "@/lib/nepali-calendar";
+import { BsDateField } from "@/components/ui/bs-date-field";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePagination } from "@/hooks/use-pagination.ts";
@@ -80,7 +82,7 @@ type ScopeFilter = "mine" | "all";
 type ViewMode = "kanban" | "list" | "calendar" | "workload";
 
 export default function StaffTasksPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { heroImageUrl } = usePortalBranding();
   const currentUser = useCurrentUser();
   const capabilities = useSessionCapabilities();
@@ -179,15 +181,13 @@ export default function StaffTasksPage() {
   ]);
 
   const taskStats = useMemo(() => {
-    const todayIso = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60_000)
-      .toISOString()
-      .slice(0, 10);
+    const todayIso = nepalDateOnly();
     const open = tasks.filter(
       (t: any) => !t.archivedAt && t.status !== "done" && t.status !== "cancelled",
     );
     return {
       open: open.length,
-      dueToday: open.filter((t: any) => t.dueDate?.slice(0, 10) === todayIso).length,
+      dueToday: open.filter((t: any) => t.dueDate && nepalDateOnly(t.dueDate) === todayIso).length,
       overdue: open.filter((t: any) => isTaskOverdue(t)).length,
       inProgress: tasks.filter((t: any) => !t.archivedAt && t.status === "in_progress").length,
       done: tasks.filter((t: any) => !t.archivedAt && t.status === "done").length,
@@ -412,7 +412,7 @@ export default function StaffTasksPage() {
     setEditRecurring(!!task.isRecurring);
     setEditRecurrenceRule(task.recurrenceRule || "");
     setEditWatchers(Array.isArray(task.watchers) ? [...task.watchers] : []);
-    setEditReminderAt(task.reminderAt ? String(task.reminderAt).slice(0, 10) : "");
+    setEditReminderAt(task.reminderAt ? nepalDateOnly(task.reminderAt) : "");
     setCommentText("");
     setSubtaskTitle("");
     setShowDetailModal(true);
@@ -425,6 +425,9 @@ export default function StaffTasksPage() {
       return;
     }
     setIsSavingEdit(true);
+    // Editing another field must not turn the existing reminder instant into midnight.
+    const reminderAt = selectedTask.reminderAt && editReminderAt === nepalDateOnly(selectedTask.reminderAt)
+      ? selectedTask.reminderAt : editReminderAt || null;
     try {
       await updateTask({
         taskId: selectedTask._id,
@@ -443,7 +446,7 @@ export default function StaffTasksPage() {
         isRecurring: editRecurring,
         recurrenceRule: editRecurring && editRecurrenceRule ? editRecurrenceRule : null,
         watchers: editWatchers as any,
-        reminderAt: editReminderAt || null,
+        reminderAt,
       });
       toast.success("Task updated.");
       setSelectedTask((prev: any) =>
@@ -465,7 +468,7 @@ export default function StaffTasksPage() {
               isRecurring: editRecurring,
               recurrenceRule: editRecurring ? editRecurrenceRule || undefined : undefined,
               watchers: editWatchers,
-              reminderAt: editReminderAt || undefined,
+              reminderAt: reminderAt || undefined,
             }
           : prev,
       );
@@ -1237,9 +1240,6 @@ export default function StaffTasksPage() {
                   <dt>Due date</dt>
                   <dd>
                     {formatTaskDue(selectedTask) || "Not set"}
-                    {selectedTask.dueDateBs && selectedTask.dueDate ? (
-                      <small>{selectedTask.dueDate.slice(0, 10)} AD</small>
-                    ) : null}
                   </dd>
                 </div>
               </dl>
@@ -1327,7 +1327,7 @@ export default function StaffTasksPage() {
                         <option value="">None</option>
                         {caseHearings.map((h: any) => (
                           <option key={h._id} value={h._id}>
-                            {h.dateBs || h.dateGregorian} · {h.court}
+                            {formatOperationalDate(h.dateGregorian, h.dateBs, language)} · {h.court}
                           </option>
                         ))}
                       </select>
@@ -1453,13 +1453,12 @@ export default function StaffTasksPage() {
 
                   <div className="space-y-1">
                     <label htmlFor="edit-task-reminder" className="text-xs font-medium">
-                      Reminder (AD)
+                      Reminder date
                     </label>
-                    <Input
+                    <BsDateField
                       id="edit-task-reminder"
-                      type="date"
                       value={editReminderAt}
-                      onChange={(e) => setEditReminderAt(e.target.value)}
+                      onDateChange={(e) => setEditReminderAt(e)}
                     />
                   </div>
 
@@ -1571,7 +1570,7 @@ export default function StaffTasksPage() {
                         <div key={c._id} className="text-xs bg-secondary/30 rounded px-2 py-1.5">
                           <span className="font-semibold">{author?.name || "Staff"}</span>
                           <span className="text-muted-foreground ml-2">
-                            {new Date(c._creationTime).toLocaleString()}
+                            {formatNepalTimestamp(c._creationTime)}
                           </span>
                           <p className="mt-0.5 text-foreground">{c.content}</p>
                         </div>
@@ -1613,7 +1612,7 @@ export default function StaffTasksPage() {
                   {editPriority}
                 </StatusBadge>
                 {selectedTask.completedAt && (
-                  <span>Completed: {new Date(selectedTask.completedAt).toLocaleString()}</span>
+                  <span>Completed: {formatNepalTimestamp(selectedTask.completedAt)}</span>
                 )}
               </div>
               <footer className="staff-task-detail-actions">

@@ -1,5 +1,7 @@
 "use client";
 
+import { formatNepalClock, formatNepalTimestamp } from "@/lib/nepali-calendar";
+
 import {
   ClientQueryBoundary,
   clientQueryHasData,
@@ -80,13 +82,7 @@ const emptyFilterCopy: Record<NotificationCategory, string> = {
 function formatNotificationTime(value: string, group: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return "Date unavailable";
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Kathmandu",
-    ...(group === "Today" ? {} : { day: "numeric", month: "short", year: "numeric" }),
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
+  return group === "Today" ? formatNepalClock(date) : formatNepalTimestamp(date);
 }
 
 function formatHearingTime(value?: string | null): string | null {

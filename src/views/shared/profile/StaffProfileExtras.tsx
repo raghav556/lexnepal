@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import Link from "next/link";
 import { ExternalLink, IdCard, Scale } from "lucide-react";
@@ -29,7 +30,7 @@ export function StaffProfileExtras({ user }: StaffProfileExtrasProps) {
           </p>
           {user.barCouncilExpiry ? (
             <p className="text-xs text-muted-foreground">
-              Expires {new Date(user.barCouncilExpiry).toLocaleDateString()}
+              Expires {formatDualDate(user.barCouncilExpiry)}
             </p>
           ) : null}
         </div>

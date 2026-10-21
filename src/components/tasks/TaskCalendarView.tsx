@@ -1,18 +1,14 @@
+
+import { useI18n } from "@/lib/i18n-context";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { StatusBadge, getDashboardStatusTone } from "@/components/dashboard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
   eachDayOfInterval,
   format,
-  isSameDay,
-  isSameMonth,
 } from "date-fns";
-import { getBSDate } from "@/lib/bs-calendar.ts";
+import { calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth, nepalDateOnly, viewDateIso } from "@/lib/nepali-calendar";
 import { isTaskOverdue } from "@/lib/task-constants.ts";
 import { cn } from "@/lib/utils.ts";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
@@ -24,22 +20,23 @@ type Props = {
 };
 
 export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { language } = useI18n();
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(`${nepalDateOnly()}T12:00:00`));
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const days = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
+    const bounds = calendarMonthBounds(viewDateIso(currentMonth), language);
+    const start = new Date(`${bounds.start}T12:00:00`);
+    const end = new Date(`${bounds.end}T12:00:00`);
     return eachDayOfInterval({ start, end });
-  }, [currentMonth]);
+  }, [currentMonth, language]);
 
-  const startPad = startOfMonth(currentMonth).getDay(); // 0=Sun
+  const startPad = new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`).getDay(); // 0=Sun
 
   const tasksByDay = (day: Date) =>
     tasks.filter((t) => {
       if (!t.dueDate) return false;
-      const d = new Date(t.dueDate);
-      return !Number.isNaN(d.getTime()) && isSameDay(d, day);
+      try { return nepalDateOnly(t.dueDate) === viewDateIso(day); } catch { return false; }
     });
 
   return (
@@ -50,18 +47,19 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
       tabIndex={0}
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-serif text-lg font-bold">{format(currentMonth, "MMMM yyyy")}</h3>
+        <h3 className="font-serif text-lg font-bold">{calendarMonthLabel(viewDateIso(currentMonth), language)}</h3>
         <div className="flex gap-1">
           <Button
             size="icon"
             variant="secondary"
             className="h-8 w-8"
             aria-label="Previous month"
-            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
+            disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), -1, language)}
+            onClick={() => setCurrentMonth((m) => new Date(`${shiftCalendarMonth(viewDateIso(m), -1, language)}T12:00:00`))}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setCurrentMonth(new Date())}>
+          <Button size="sm" variant="ghost" onClick={() => setCurrentMonth(new Date(`${nepalDateOnly()}T12:00:00`))}>
             Today
           </Button>
           <Button
@@ -69,14 +67,15 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
             variant="secondary"
             className="h-8 w-8"
             aria-label="Next month"
-            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
+            disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), 1, language)}
+            onClick={() => setCurrentMonth((m) => new Date(`${shiftCalendarMonth(viewDateIso(m), 1, language)}T12:00:00`))}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted-foreground mb-1">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+        {calendarWeekdays(language).map((d) => (
           <div key={d}>{d}</div>
         ))}
       </div>
@@ -86,19 +85,18 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
         ))}
         {days.map((day) => {
           const dayTasks = tasksByDay(day);
-          const bs = getBSDate(format(day, "yyyy-MM-dd"));
+          const dayKey = viewDateIso(day);
           return (
             <div
-              key={day.toISOString()}
+              key={day.toISOString()} data-date={dayKey} data-calendar-system={language === "ne" ? "bs" : "ad"}
               className={cn(
                 "min-h-[100px] rounded-lg border border-border/50 p-1.5 bg-card/40",
-                isSameDay(day, new Date()) && "border-primary/50 bg-primary/5",
-                !isSameMonth(day, currentMonth) && "opacity-40",
+                viewDateIso(day) === nepalDateOnly() && "border-primary/50 bg-primary/5",
               )}
             >
               <div className="flex items-baseline justify-between gap-1 mb-1">
-                <span className="text-xs font-bold">{format(day, "d")}</span>
-                {bs && <span className="text-[9px] text-muted-foreground truncate">{bs}</span>}
+                <span className="text-xs font-bold">{calendarDayLabel(dayKey, language)}</span>
+
               </div>
               <div className="space-y-0.5">
                 {dayTasks.slice(0, 3).map((t) => (
@@ -140,7 +138,7 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
       {staffPaging && selectedDay && (
         <section aria-label={`Tasks on ${format(selectedDay, "yyyy-MM-dd")}`} className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-semibold">Tasks on {format(selectedDay, "dd MMM yyyy")}</h3>
+            <h3 className="font-semibold">Tasks on {calendarDateLabel(viewDateIso(selectedDay), language)}</h3>
             <Button type="button" variant="outline" size="sm" onClick={() => setSelectedDay(null)}>Close day list</Button>
           </div>
           <StaffPagedCollection label="Calendar day tasks" resetKey={format(selectedDay, "yyyy-MM-dd")}>

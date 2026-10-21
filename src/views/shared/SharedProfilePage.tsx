@@ -1,4 +1,5 @@
 "use client";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -775,7 +776,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                             </div>
                           </div>
                           <p className="text-[11px] font-mono text-muted-foreground shrink-0 lg:text-right">
-                            {new Date(log.createdAt).toLocaleString()}
+                            {formatNepalTimestamp(log.createdAt)}
                           </p>
                         </div>
                       ))}

@@ -24,7 +24,7 @@ function isPortaledOverlay(node: Element | null): boolean {
   if (!node) return false;
   return Boolean(
     node.closest(
-      '[role="listbox"], [role="menu"], [data-radix-popper-content-wrapper], [data-radix-select-content]',
+      '[role="listbox"], [role="menu"], [data-calendar-popover], [data-radix-popper-content-wrapper], [data-radix-select-content]',
     ),
   );
 }

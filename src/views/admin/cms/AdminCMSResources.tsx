@@ -1,3 +1,6 @@
+import { nepalDateOnly } from "@/lib/nepali-calendar";
+import { formatDualDate } from "@/lib/nepali-calendar";
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
 import React, { useEffect, useState } from "react";
 import { useCmsCommands, useCmsSettings, useResources } from "@/client/queries/cms";
 import { Input } from "@/components/ui/input";
@@ -43,7 +46,7 @@ const emptyForm = (): FormState => ({
   fileUrl: "",
   isGated: false,
   status: "draft",
-  publishedDate: new Date().toISOString().slice(0, 10),
+  publishedDate: nepalDateOnly(),
   seoTitle: "",
   seoDescription: "",
   displayOrder: "0",
@@ -95,7 +98,7 @@ export default function AdminCMSResources() {
         isGated: Boolean(res.isGated),
         status: res.status === "draft" ? "draft" : "published",
         publishedDate:
-          String(res.publishedDate || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
+          String(res.publishedDate || "").slice(0, 10),
         seoTitle: String(res.seoTitle || ""),
         seoDescription: String(res.seoDescription || ""),
         displayOrder: String(res.displayOrder ?? 0),
@@ -109,6 +112,7 @@ export default function AdminCMSResources() {
   };
 
   const handleSave = async () => {
+    if (!reportBsDateValidity()) return;
     if (!formData.title.trim() || !formData.description.trim() || !formData.fileUrl.trim()) {
       toast.error("Title, description, and file are required.");
       return;
@@ -227,7 +231,7 @@ export default function AdminCMSResources() {
                         <span>
                           Published:{" "}
                           {res.publishedDate
-                            ? format(new Date(String(res.publishedDate)), "MMM d, yyyy")
+                            ? formatDualDate(String(res.publishedDate))
                             : "—"}
                         </span>
                         <span className="hidden sm:inline">·</span>
@@ -385,13 +389,12 @@ export default function AdminCMSResources() {
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+              <div className="space-y-2 locale-date-full-row">
                 <Label htmlFor="res-date">Published date</Label>
-                <Input
+                <BsDateField
                   id="res-date"
-                  type="date"
                   value={formData.publishedDate}
-                  onChange={(e) => setFormData({ ...formData, publishedDate: e.target.value })}
+                  onDateChange={(e) => setFormData({ ...formData, publishedDate: e })}
                 />
               </div>
               <div className="space-y-2">

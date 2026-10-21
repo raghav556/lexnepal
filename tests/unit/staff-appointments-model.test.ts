@@ -100,14 +100,17 @@ describe("staff appointment model", () => {
       "2026-10-24",
       "2026-10-25",
     ]);
-    const month = calendarDays("2027-01-15", "month");
+    const month = calendarDays("2027-01-15", "month", "ne");
     expect(month).toHaveLength(42);
-    expect(month[0]).toBe("2026-12-28");
-    expect(month.at(-1)).toBe("2027-02-07");
-    expect(calendarDays("2026-06-15", "month")[0]).toBe("2026-06-01");
+    // Magh 2083 begins 15 January (official Embassy holiday fixture).
+    expect(month[0]).toBe("2027-01-11");
+    expect(month.at(-1)).toBe("2027-02-21");
+    expect(calendarDays("2026-06-15", "month", "ne")[0]).toBe("2026-06-15");
+    expect(calendarDays("2027-01-15", "month", "en")[0]).toBe("2026-12-28");
   });
-  it("clamps month-end navigation including leap years", () => {
-    expect(navigateCalendar("2026-01-31", "month", 1)).toBe("2026-02-28");
+  it("moves by the active calendar's months while preserving day/week navigation", () => {
+    expect(navigateCalendar("2026-01-31", "month", 1, "ne")).toBe("2026-03-01");
+    expect(navigateCalendar("2026-01-31", "month", 1, "en")).toBe("2026-02-28");
     expect(navigateCalendar("2028-01-31", "month", 1)).toBe("2028-02-29");
     expect(navigateCalendar("2027-01-01", "day", -1)).toBe("2026-12-31");
     expect(navigateCalendar(today, "week", 1)).toBe("2026-10-27");

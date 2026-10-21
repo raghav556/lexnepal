@@ -1,4 +1,5 @@
 "use client";
+import { relativeNepalDay } from "@/lib/nepali-calendar";
 
 import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { MessageSquare, Loader2 } from "lucide-react";
@@ -28,19 +29,7 @@ export interface LuxuryDmPanelProps {
   showTemplates?: boolean;
 }
 
-function formatDateSeparator(dateInput?: string | Date): string {
-  if (!dateInput) return "";
-  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  if (isNaN(d.getTime())) return "";
-
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
-}
+function formatDateSeparator(dateInput?: string | Date): string { return dateInput ? relativeNepalDay(dateInput) : ""; }
 
 export function LuxuryDmPanel({
   threadId,

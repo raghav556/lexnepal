@@ -1,10 +1,14 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n-context";
+import { toNepaliDigits } from "@/lib/nepali-calendar";
+
 import { useRef } from "react";
+import { calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, supportsBsConversion, canShiftCalendarMonth } from "@/lib/nepali-calendar";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardButton, DashboardSection } from "@/components/dashboard";
 import { DEFAULT_APPOINTMENT_SLOTS } from "@/shared/crm/appointment-slots";
-import { addCalendarDaysIso, formatAppointmentDate } from "@/shared/crm/appointment-dates";
+import { addCalendarDaysIso } from "@/shared/crm/appointment-dates";
 import {
   appointmentKey,
   calendarDays,
@@ -36,8 +40,9 @@ export function StaffAppointmentCalendar({
   onView,
   onSelect,
 }: Props) {
+  const { language } = useI18n();
   const grid = useRef<HTMLDivElement>(null);
-  const days = calendarDays(date, view);
+  const days = calendarDays(date, view, language);
   const daily = sortAppointments(records.filter((a) => a.date === date));
   const slots = [
     ...new Set<string>([
@@ -78,7 +83,8 @@ export function StaffAppointmentCalendar({
             variant="ghost"
             size="icon"
             aria-label={`Previous ${view}`}
-            onClick={() => onDate(navigateCalendar(date, view, -1))}
+            disabled={view === "month" && !canShiftCalendarMonth(date, -1, language)}
+            onClick={() => onDate(navigateCalendar(date, view, -1, language))}
           >
             <ChevronLeft size={16} />
           </DashboardButton>
@@ -86,18 +92,14 @@ export function StaffAppointmentCalendar({
             variant="ghost"
             size="icon"
             aria-label={`Next ${view}`}
-            onClick={() => onDate(navigateCalendar(date, view, 1))}
+            disabled={view === "month" && !canShiftCalendarMonth(date, 1, language)}
+            onClick={() => onDate(navigateCalendar(date, view, 1, language))}
           >
             <ChevronRight size={16} />
           </DashboardButton>
         </div>
         <strong aria-live="polite">
-          {formatAppointmentDate(date, {
-            weekday: undefined,
-            day: undefined,
-            month: "long",
-            year: "numeric",
-          })}
+          {calendarMonthLabel(date, language)}
         </strong>
         <div className="staff-appointments-segments" role="group" aria-label="Calendar view">
           {(["day", "week", "month"] as const).map((mode) => (
@@ -107,7 +109,7 @@ export function StaffAppointmentCalendar({
               aria-pressed={mode === view}
               onClick={() => onView(mode)}
             >
-              {mode[0].toUpperCase() + mode.slice(1)}
+              {language === "ne" ? { day: "दिन", week: "हप्ता", month: "महिना" }[mode] : mode[0].toUpperCase() + mode.slice(1)}
             </button>
           ))}
         </div>
@@ -115,9 +117,9 @@ export function StaffAppointmentCalendar({
       <div className="staff-appointments-calendar-caption">
         <CalendarDays size={15} aria-hidden />
         <span>
-          {view === "day"
-            ? formatAppointmentDate(date)
-            : `${formatAppointmentDate(days[0], { year: undefined })} – ${formatAppointmentDate(days.at(-1)!, { year: undefined })}`}
+          {view === "month" ? calendarMonthLabel(date, language) : view === "day"
+            ? calendarDateLabel(date, language)
+            : days.length ? `${calendarDateLabel(days[0], language)} – ${calendarDateLabel(days.at(-1)!, language)}` : calendarDateLabel(date, language)}
         </span>
       </div>
       <p className="staff-appointments-timezone">Asia/Kathmandu · start slots only</p>
@@ -149,13 +151,14 @@ export function StaffAppointmentCalendar({
               if (delta === undefined) return;
               event.preventDefault();
               const next = addCalendarDaysIso(active, delta);
+              if (!supportsBsConversion(next)) return;
               onDate(next);
               requestAnimationFrame(() =>
                 grid.current?.querySelector<HTMLButtonElement>(`[data-date="${next}"]`)?.focus(),
               );
             }}
           >
-            {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+            {calendarWeekdays(language, true).map((d, i) => (
               <span key={i} aria-hidden className="staff-appointments-weekday">
                 {d}
               </span>
@@ -168,21 +171,22 @@ export function StaffAppointmentCalendar({
                   key={day}
                   data-date={day}
                   tabIndex={day === date ? 0 : -1}
-                  aria-label={`${formatAppointmentDate(day)}, ${count} appointments`}
+                  aria-label={`${calendarDateLabel(day, language)}, ${count} appointments`}
                   aria-pressed={day === date}
                   aria-current={day === today ? "date" : undefined}
                   className={
-                    day.slice(0, 7) !== date.slice(0, 7) ? "staff-appointments-outside" : ""
+                    calendarMonthBounds(day, language).start !== calendarMonthBounds(date, language).start ? "staff-appointments-outside" : ""
                   }
+                  disabled={language === "ne" && !supportsBsConversion(day)}
                   onClick={() => onDate(day)}
                 >
-                  <span>{Number(day.slice(-2))}</span>
+                  <span className="staff-appointments-date-number">{supportsBsConversion(day) || language === "en" ? calendarDayLabel(day, language) : "—"}</span>
                   {count > 0 && (
                     <small>
-                      {count}
+                      {language === "ne" ? toNepaliDigits(count) : count}
                       <span className="staff-appointments-date-count">
                         {" "}
-                        appt{count > 1 ? "s" : ""}
+                        {language === "ne" ? "भेट" : `appt${count > 1 ? "s" : ""}`}
                       </span>
                     </small>
                   )}
@@ -191,7 +195,7 @@ export function StaffAppointmentCalendar({
             })}
           </div>
           <div className="staff-appointments-calendar-caption">
-            {formatAppointmentDate(date)} · {daily.length} appointments
+            {calendarDateLabel(date, language)} · {daily.length} {language === "ne" ? "भेट" : "appointments"}
           </div>
         </>
       )}
@@ -214,9 +218,9 @@ export function StaffAppointmentCalendar({
             {days.map((day) => {
               const appointments = sortAppointments(records.filter((a) => a.date === day));
               return (
-                <section key={day} aria-label={formatAppointmentDate(day)}>
+                <section key={day} aria-label={calendarDateLabel(day, language)}>
                   <h3>
-                    {formatAppointmentDate(day, { year: undefined })}{" "}
+                    {calendarDateLabel(day, language)}{" "}
                     <span>· {appointments.length}</span>
                   </h3>
                   {appointments.map(eventButton)}

@@ -1,5 +1,10 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n-context";
+
+import { BsDateField } from "@/components/ui/bs-date-field";
+import { nepalDateOnly, viewDateIso, calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth } from "@/lib/nepali-calendar";
+
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -85,13 +90,6 @@ function aptKey(a: AptRow) {
   return String(a.id || a._id || "");
 }
 
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function toIsoDate(y: number, m: number, day: number) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
 
 function downloadAppointmentsCsv(list: AptRow[], lawyerName: (id?: string | null) => string) {
   const headers = [
@@ -137,6 +135,7 @@ const emptyCreate = {
 };
 
 export default function AdminAppointmentsPage() {
+  const { language } = useI18n();
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("appointment")?.trim() || null;
 
@@ -171,7 +170,7 @@ export default function AdminAppointmentsPage() {
     useAppointmentCommands();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [calendarMonth, setCalendarMonth] = useState(() => monthStart(new Date()));
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(`${nepalDateOnly()}T12:00:00`));
   const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [meetingLinkTarget, setMeetingLinkTarget] = useState<MeetingLinkDialogTarget>(null);
@@ -298,7 +297,7 @@ export default function AdminAppointmentsPage() {
     const id = aptKey(apt);
     setConfirm({
       title: "Cancel appointment?",
-      description: `Cancel booking for ${apt.clientName || "this client"} on ${apt.date} at ${apt.timeSlot}? This cannot be undone from the list.`,
+      description: `Cancel booking for ${apt.clientName || "this client"} on ${apt.date ? formatAppointmentDate(apt.date) : "date not recorded"} at ${apt.timeSlot}? This cannot be undone from the list.`,
       confirmLabel: "Cancel appointment",
       destructive: true,
       onConfirm: async () => {
@@ -381,19 +380,19 @@ export default function AdminAppointmentsPage() {
     toast.success("Meeting link copied to clipboard!");
   };
 
-  const calYear = calendarMonth.getFullYear();
-  const calMonth = calendarMonth.getMonth();
-  const startDayOfWeek = calendarMonth.getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const monthBounds = calendarMonthBounds(viewDateIso(calendarMonth), language);
+  const calendarDate = (day: number) => new Date(Date.parse(`${monthBounds.start}T12:00:00Z`) + (day - 1) * 86400000).toISOString().slice(0, 10);
+  const startDayOfWeek = new Date(`${monthBounds.start}T12:00:00Z`).getUTCDay();
+  const daysInMonth = Math.round((Date.parse(monthBounds.end) - Date.parse(monthBounds.start)) / 86400000) + 1;
   const calendarCells = Math.ceil((startDayOfWeek + daysInMonth) / 7) * 7;
 
   const getAppointmentsForDay = (day: number) => {
-    const dateStr = toIsoDate(calYear, calMonth, day);
+    const dateStr = calendarDate(day);
     return filteredAppointments.filter((a) => a.date === dateStr);
   };
 
   const onCalendarDayClick = (day: number) => {
-    const dateStr = toIsoDate(calYear, calMonth, day);
+    const dateStr = calendarDate(day);
     setDateFrom(dateStr);
     setDateTo(dateStr);
     setViewMode("list");
@@ -401,7 +400,7 @@ export default function AdminAppointmentsPage() {
 
   const onCalendarDayBook = (e: React.MouseEvent, day: number) => {
     e.stopPropagation();
-    openCreate(toIsoDate(calYear, calMonth, day));
+    openCreate(calendarDate(day));
   };
 
   const applyKpiChip = (chip: "pendingToday" | "unassigned" | "confirmedUpcoming") => {
@@ -533,18 +532,16 @@ export default function AdminAppointmentsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Input
-            type="date"
+          <BsDateField
             className="h-9 w-full sm:w-[150px] text-xs"
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onDateChange={(e) => setDateFrom(e)}
             aria-label="From date"
           />
-          <Input
-            type="date"
+          <BsDateField
             className="h-9 w-full sm:w-[150px] text-xs"
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            onDateChange={(e) => setDateTo(e)}
             aria-label="To date"
           />
           {(search || statusFilter !== "all" || assigneeFilter !== "all" || dateFrom || dateTo) && (
@@ -575,7 +572,7 @@ export default function AdminAppointmentsPage() {
         />
       ) : viewMode === "calendar" ? (
         <DashboardSection
-          title={calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
+          title={calendarMonthLabel(viewDateIso(calendarMonth), language)}
           icon={CalendarDays}
           className="overflow-hidden"
           actions={
@@ -585,7 +582,8 @@ export default function AdminAppointmentsPage() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setCalendarMonth(new Date(calYear, calMonth - 1, 1))}
+                onClick={() => setCalendarMonth(new Date(`${shiftCalendarMonth(viewDateIso(calendarMonth), -1, language)}T12:00:00`))}
+                disabled={!canShiftCalendarMonth(viewDateIso(calendarMonth), -1, language)}
                 aria-label="Previous month"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -595,7 +593,8 @@ export default function AdminAppointmentsPage() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setCalendarMonth(new Date(calYear, calMonth + 1, 1))}
+                onClick={() => setCalendarMonth(new Date(`${shiftCalendarMonth(viewDateIso(calendarMonth), 1, language)}T12:00:00`))}
+                disabled={!canShiftCalendarMonth(viewDateIso(calendarMonth), 1, language)}
                 aria-label="Next month"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -604,7 +603,7 @@ export default function AdminAppointmentsPage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setCalendarMonth(monthStart(new Date()))}
+                onClick={() => setCalendarMonth(new Date(`${nepalDateOnly()}T12:00:00`))}
               >
                 Today
               </Button>
@@ -614,7 +613,7 @@ export default function AdminAppointmentsPage() {
           <div className="overflow-x-auto -mx-5 px-0">
             <div className="min-w-[720px]">
               <div className="grid grid-cols-7 border-b border-border text-sm font-medium text-center">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                {calendarWeekdays(language).map((day) => (
                   <div
                     key={day}
                     className="py-3 border-r border-border last:border-0 bg-muted/20 text-muted-foreground"
@@ -631,22 +630,13 @@ export default function AdminAppointmentsPage() {
                   const dayNumber = i - startDayOfWeek + 1;
                   const isCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;
                   const dayApts = isCurrentMonth ? getAppointmentsForDay(dayNumber) : [];
-                  const dateStr = isCurrentMonth ? toIsoDate(calYear, calMonth, dayNumber) : "";
+                  const dateStr = isCurrentMonth ? calendarDate(dayNumber) : "";
                   const isToday = isCurrentMonth && dateStr === today;
 
                   return (
                     <div
-                      key={i}
-                      role={isCurrentMonth ? "button" : undefined}
-                      tabIndex={isCurrentMonth ? 0 : undefined}
+                      key={i} data-date={dateStr || undefined} data-calendar-system={language === "ne" ? "bs" : "ad"}
                       onClick={() => isCurrentMonth && onCalendarDayClick(dayNumber)}
-                      onKeyDown={(e) => {
-                        if (!isCurrentMonth) return;
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onCalendarDayClick(dayNumber);
-                        }
-                      }}
                       className={`min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-border relative text-left ${
                         !isCurrentMonth
                           ? "bg-muted/10 text-muted-foreground/30"
@@ -656,18 +646,21 @@ export default function AdminAppointmentsPage() {
                       {isCurrentMonth && (
                         <>
                           <div className="flex items-center justify-between mb-1 gap-1">
-                            <div
-                              className={`text-sm font-medium ${
+                            <button type="button"
+                              aria-label={language === "ne" ? `${calendarDateLabel(dateStr, language)} को भेट हेर्नुहोस्` : `Show appointments on ${calendarDateLabel(dateStr, language)}`}
+                              onClick={e => { e.stopPropagation(); onCalendarDayClick(dayNumber); }}
+                              className={`text-sm font-medium min-h-11 min-w-11 focus-visible:outline-2 focus-visible:outline-primary ${
                                 isToday
-                                  ? "bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
+                                  ? "bg-primary text-primary-foreground rounded-full flex items-center justify-center"
                                   : ""
                               }`}
                             >
-                              {dayNumber}
-                            </div>
+                              {calendarDayLabel(dateStr, language)}
+
+                            </button>
                             <button
                               type="button"
-                              className="opacity-60 hover:opacity-100 p-0.5 rounded hover:bg-muted"
+                              className="min-h-11 min-w-11 grid place-items-center rounded hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
                               aria-label={`Book on ${dateStr}`}
                               onClick={(e) => onCalendarDayBook(e, dayNumber)}
                             >
@@ -957,9 +950,9 @@ export default function AdminAppointmentsPage() {
       )}
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md bg-background border-border">
+        <DialogContent className="max-w-md bg-background border-border" aria-labelledby="admin-book-appointment-title">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Book New Appointment</DialogTitle>
+            <DialogTitle id="admin-book-appointment-title" className="text-foreground">Book New Appointment</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
@@ -992,14 +985,14 @@ export default function AdminAppointmentsPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 locale-date-full-row">
                 <Label>Date</Label>
-                <Input
-                  type="date"
+                <BsDateField
+                  aria-label="Appointment date"
                   required
                   value={createData.date}
-                  onChange={(e) =>
-                    setCreateData({ ...createData, date: e.target.value, timeSlot: "" })
+                  onDateChange={(e) =>
+                    setCreateData({ ...createData, date: e, timeSlot: "" })
                   }
                 />
               </div>
@@ -1097,20 +1090,20 @@ export default function AdminAppointmentsPage() {
           }
         }}
       >
-        <DialogContent className="max-w-sm bg-background border-border">
+        <DialogContent className="max-w-sm bg-background border-border" aria-labelledby="admin-reschedule-appointment-title">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Reschedule Appointment</DialogTitle>
+            <DialogTitle id="admin-reschedule-appointment-title" className="text-foreground">Reschedule Appointment</DialogTitle>
           </DialogHeader>
           {rescheduleData && (
             <form onSubmit={handleRescheduleSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>New Date</Label>
-                <Input
-                  type="date"
+                <BsDateField
+                  aria-label="New appointment date"
                   required
                   value={rescheduleData.date}
-                  onChange={(e) =>
-                    setRescheduleData({ ...rescheduleData, date: e.target.value, timeSlot: "" })
+                  onDateChange={(e) =>
+                    setRescheduleData({ ...rescheduleData, date: e, timeSlot: "" })
                   }
                 />
               </div>

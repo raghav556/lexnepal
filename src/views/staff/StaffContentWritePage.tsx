@@ -1,5 +1,7 @@
 "use client";
 
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -162,6 +164,7 @@ export default function StaffContentWritePage() {
   const updateNews = (patch: Partial<NewsForm>) => setNewsForm((current) => ({ ...current, ...patch }));
 
   const save = async (submitAfter: boolean) => {
+    if (!reportBsDateValidity()) return;
     if (!kind || readOnly) return;
     const liveContent = contentEditorRef.current?.getMarkdown();
     const form: BlogForm | NewsForm =
@@ -390,14 +393,14 @@ export default function StaffContentWritePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="locale-date-full-row">
                 <Label htmlFor="content-date">Date</Label>
-                <Input
+                <BsDateField
                   id="content-date"
-                  type="date"
+                  required
                   value={newsForm.date}
                   disabled={readOnly}
-                  onChange={(event) => updateNews({ date: event.target.value })}
+                  onDateChange={(event) => updateNews({ date: event })}
                 />
               </div>
             </div>

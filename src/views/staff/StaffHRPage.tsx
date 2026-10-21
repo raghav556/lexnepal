@@ -1,5 +1,9 @@
 "use client";
 
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
+import { bsDateParts } from "@/lib/nepali-calendar";
+import { useI18n } from "@/lib/i18n-context";
+
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   CalendarDays,
@@ -72,7 +76,7 @@ import { useStaffHrData } from "./use-staff-hr-data";
 
 const PAGE_SIZE = 8;
 const displayDate = (date: string) => supportsHrDualDate(date)
-  ? <DualDateDisplay isoDate={`${date}T12:00:00`} alwaysDual />
+  ? <DualDateDisplay isoDate={date} alwaysDual />
   : <span>{date} AD (BS unavailable)</span>;
 function errorText(error: unknown) {
   if (error instanceof ApiClientError && error.status === 401)
@@ -198,6 +202,7 @@ function HistoryPages({
 }
 
 export default function StaffHRPage() {
+  const { language } = useI18n();
   const user = useCurrentUser();
   const userId = user?.id ?? user?._id;
   const authorized = Boolean(userId && user && STAFF_ROLES.includes(user.role));
@@ -382,6 +387,7 @@ export default function StaffHRPage() {
 
   async function submitLeave(event: FormEvent) {
     event.preventDefault();
+    if (!reportBsDateValidity(event.currentTarget as HTMLFormElement)) return;
     if (locked.current || !canRequest) return;
     const result = validateHrLeave({
       type: leaveType,
@@ -506,7 +512,7 @@ export default function StaffHRPage() {
         <MetricCard
           label="Days Recorded"
           value={a.loading ? "…" : a.ready ? daysRecorded(attendance, today) : "—"}
-          helperText="Recorded dates this month"
+          helperText="Recorded dates this A.D. month"
           icon={CalendarDays}
           tone="warning"
           density="compact"
@@ -640,7 +646,8 @@ export default function StaffHRPage() {
                               timeZone: "Asia/Kathmandu",
                             })}
                           </span>
-                          <strong>{date.slice(8)}</strong>
+                          <strong>{bsDateParts(date, language)?.day} {language === "ne" ? "वि.सं." : "A.D."}</strong>
+                          <small>{date.slice(8)} A.D.</small>
                           <small>{row ? HR_ATTENDANCE_STATUSES[row.status] : "No record"}</small>
                           <b>{minutes !== null ? hrDuration(minutes) : "—"}</b>
                         </div>
@@ -776,28 +783,26 @@ export default function StaffHRPage() {
                   </Select>
                 </div>
                 <div className="staff-hr-form-dates">
-                  <div>
-                    <Label htmlFor="staff-hr-from">From (AD)</Label>
-                    <Input
+                  <div className="locale-date-full-row">
+                    <Label htmlFor="staff-hr-from">From</Label>
+                    <BsDateField
                       id="staff-hr-from"
-                      type="date"
                       required
                       value={fromDate}
                       disabled={busy}
-                      onChange={(e) => setFromDate(e.target.value)}
+                      onDateChange={(e) => setFromDate(e)}
                       aria-invalid={!!formError}
                       aria-describedby={formError ? "staff-hr-form-error" : undefined}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="staff-hr-to">To (AD)</Label>
-                    <Input
+                  <div className="locale-date-full-row">
+                    <Label htmlFor="staff-hr-to">To</Label>
+                    <BsDateField
                       id="staff-hr-to"
-                      type="date"
                       required
                       value={toDate}
                       disabled={busy}
-                      onChange={(e) => setToDate(e.target.value)}
+                      onDateChange={(e) => setToDate(e)}
                       aria-invalid={!!formError}
                       aria-describedby={formError ? "staff-hr-form-error" : undefined}
                     />

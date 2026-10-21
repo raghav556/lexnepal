@@ -1,4 +1,7 @@
 "use client";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
+
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -95,7 +98,7 @@ function exportUsersCsv(list: any[]) {
     u.phone ?? "",
     u.barCouncilNumber ?? "",
     u.isPending ? "Pending" : u.isActive ? "Active" : "Suspended",
-    u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "",
+    u.lastLoginAt ? formatNepalTimestamp(u.lastLoginAt) : "",
   ]);
   downloadCsv(`users-export-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
 }
@@ -244,6 +247,7 @@ export default function AdminUsersPage() {
   };
 
   const handleSaveProfile = async () => {
+    if (!reportBsDateValidity()) return;
     if (!selectedUser) return;
     setSavingProfile(true);
     try {
@@ -702,7 +706,7 @@ export default function AdminUsersPage() {
                         )}
                       </DashboardTableCell>
                       <DashboardTableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "—"}
+                        {u.lastLoginAt ? formatNepalTimestamp(u.lastLoginAt) : "—"}
                       </DashboardTableCell>
                       <DashboardTableCell
                         className="text-right"
@@ -882,11 +886,11 @@ export default function AdminUsersPage() {
                       </div>
                       <div className="grid gap-1">
                         <Label className="text-xs">Bar council expiry</Label>
-                        <Input
-                          type="date"
+                        <BsDateField
+                          aria-label="Bar council expiry"
                           value={editForm.barCouncilExpiry}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, barCouncilExpiry: e.target.value })
+                          onDateChange={(e) =>
+                            setEditForm({ ...editForm, barCouncilExpiry: e })
                           }
                         />
                       </div>
@@ -938,7 +942,7 @@ export default function AdminUsersPage() {
               {selectedUser.lastLoginAt && (
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  Last login {new Date(selectedUser.lastLoginAt).toLocaleString()}
+                  Last login {formatNepalTimestamp(selectedUser.lastLoginAt)}
                 </p>
               )}
 
@@ -1005,7 +1009,7 @@ export default function AdminUsersPage() {
                       <History className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                       <div>
                         <span className="text-muted-foreground">
-                          {new Date(log.createdAt).toLocaleString()}:
+                          {formatNepalTimestamp(log.createdAt)}:
                         </span>{" "}
                         {log.action}
                         {log.details ? ` — ${log.details}` : ""}

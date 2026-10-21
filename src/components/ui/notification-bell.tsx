@@ -1,3 +1,4 @@
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { useNotifications, useNotificationCommands } from "@/client/queries/communication";
@@ -143,7 +144,7 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
                     suppressHydrationWarning
                     className="text-[10px] text-muted-foreground/60 mt-1"
                   >
-                    {new Date(notif._creationTime || notif.createdAt).toLocaleString()}
+                    {formatNepalTimestamp(notif._creationTime || notif.createdAt)}
                   </span>
                 </DropdownMenuItem>
               ))}

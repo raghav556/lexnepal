@@ -1,4 +1,5 @@
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
+import { BsDateField } from "@/components/ui/bs-date-field";
 import { useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -30,20 +31,15 @@ import {
   Server,
 } from "lucide-react";
 import { toast } from "sonner";
-import { gregorianToBs, formatBs } from "@/lib/nepali-calendar.ts";
+import { bsDateParts, gregorianToBs, formatBs, nepalDateOnly, viewDateIso, calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth } from "@/lib/nepali-calendar.ts";
 import { COURTS } from "@/lib/lex-constants.ts";
 import { useI18n } from "@/lib/i18n-context.tsx";
-import { getBSDate } from "@/lib/bs-calendar.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
 import { useHearings, useHearingCommands } from "@/client/queries/hearings";
 import { useTasks, useTaskCommands, useUpdateTask } from "@/client/queries/tasks";
 import {
   format,
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
   eachDayOfInterval,
   getDay,
 } from "date-fns";
@@ -59,19 +55,10 @@ import {
   usePortalBranding,
 } from "@/components/dashboard";
 
-const NEPAL_TIME_ZONE = "Asia/Kathmandu";
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** Today's calendar date (YYYY-MM-DD) in Nepal time, independent of the browser/UTC zone. */
 function nepalTodayKey(now: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: NEPAL_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${pick("year")}-${pick("month")}-${pick("day")}`;
+  return nepalDateOnly(now);
 }
 
 /** Splits a stored BS date ("24 Ashwin 2083") for the date tile; null when missing/invalid. */
@@ -109,7 +96,7 @@ export default function StaffHearingsPage() {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [search, setSearch] = useState("");
   const [courtFilter, setCourtFilter] = useState("all");
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(`${nepalDateOnly()}T12:00:00`));
 
   // Scheduling Form State
   const [caseId, setCaseId] = useState("");
@@ -136,22 +123,18 @@ export default function StaffHearingsPage() {
     setDateGregorian(val);
     if (val) {
       try {
-        const parts = val.split("-").map(Number);
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        setDateBs(formatBs(gregorianToBs(d)));
-      } catch (e) {}
-    }
+        setDateBs(formatBs(gregorianToBs(val)));
+      } catch { setDateBs(""); }
+    } else setDateBs("");
   };
 
   const handleNextGregorianChange = (val: string) => {
     setNextDateGregorian(val);
     if (val) {
       try {
-        const parts = val.split("-").map(Number);
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        setNextDateBs(formatBs(gregorianToBs(d)));
-      } catch (e) {}
-    }
+        setNextDateBs(formatBs(gregorianToBs(val)));
+      } catch { setNextDateBs(""); }
+    } else setNextDateBs("");
   };
 
   const handleGeneratePrepTasks = async (hearingId: string) => {
@@ -271,10 +254,10 @@ export default function StaffHearingsPage() {
 
   // Calendar Logic
   const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
+    start: new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`),
+    end: new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).end}T12:00:00`),
   });
-  const leadingBlanks = getDay(startOfMonth(currentMonth));
+  const leadingBlanks = getDay(new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`));
   const trailingBlanks = (7 - ((leadingBlanks + daysInMonth.length) % 7)) % 7;
 
   // Context for the Update Result dialog
@@ -399,7 +382,7 @@ export default function StaffHearingsPage() {
       {viewMode === "calendar" && (
         <DashboardSection
           className="staff-hearings-calendar-section"
-          title={format(currentMonth, "MMMM yyyy")}
+          title={calendarMonthLabel(viewDateIso(currentMonth), language)}
           icon={CalendarIcon}
           actions={
             <div className="staff-hearings-month-nav">
@@ -408,7 +391,8 @@ export default function StaffHearingsPage() {
                 variant="outline"
                 size="icon"
                 aria-label="Previous month"
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), -1, language)}
+                onClick={() => setCurrentMonth(new Date(`${shiftCalendarMonth(viewDateIso(currentMonth), -1, language)}T12:00:00`))}
               >
                 <ChevronLeft className="size-4" aria-hidden />
               </Button>
@@ -417,12 +401,13 @@ export default function StaffHearingsPage() {
                 variant="outline"
                 size="icon"
                 aria-label="Next month"
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), 1, language)}
+                onClick={() => setCurrentMonth(new Date(`${shiftCalendarMonth(viewDateIso(currentMonth), 1, language)}T12:00:00`))}
               >
                 <ChevronRight className="size-4" aria-hidden />
               </Button>
               <StatusBadge tone="neutral" className="font-mono">
-                {getBSDate(format(currentMonth, "yyyy-MM-dd"), language === "ne")}
+                {calendarDateLabel(viewDateIso(currentMonth), language)}
               </StatusBadge>
             </div>
           }
@@ -434,7 +419,7 @@ export default function StaffHearingsPage() {
             tabIndex={0}
           >
             <div className="staff-hearings-calendar">
-              {WEEKDAYS.map((d) => (
+              {calendarWeekdays(language).map((d) => (
                 <div key={d} className="staff-hearings-weekday">
                   {d}
                 </div>
@@ -454,12 +439,13 @@ export default function StaffHearingsPage() {
                 return (
                   <div
                     key={day.toISOString()}
-                    className="staff-hearings-day"
+                    className="staff-hearings-day" data-date={dateStr} data-calendar-system={language === "ne" ? "bs" : "ad"}
                     data-today={isToday ? "true" : undefined}
                   >
                     <div className="staff-hearings-day-head">
                       <span className="staff-hearings-day-number">
-                        {format(day, "d")}
+                        {calendarDayLabel(dateStr, language)}
+
                         {isToday ? <span className="sr-only"> (today)</span> : null}
                       </span>
                       {dayHearings.length > 0 && (
@@ -526,7 +512,8 @@ export default function StaffHearingsPage() {
                   const hasConflict = conflictIds.has(h._id);
                   const prepTasks = allTasks.filter((t: any) => t.hearingId === h._id);
                   const prepDone = prepTasks.filter((t: any) => t.status === "done").length;
-                  const bs = parseBsDate(h.dateBs);
+                  const primaryDate = bsDateParts(h.dateGregorian, language);
+                  const bs = primaryDate ? { day: primaryDate.day, rest: `${primaryDate.month} ${primaryDate.year}` } : parseBsDate(h.dateBs);
                   const ad = adParts(h.dateGregorian);
 
                   return (
@@ -714,7 +701,7 @@ export default function StaffHearingsPage() {
                             />
                           </span>
                           <span className="staff-hearings-archive-sub">
-                            <DualDateDisplay isoDate={h.dateGregorian || h.dateBs} /> — {h.court}
+                            <DualDateDisplay isoDate={h.dateGregorian} recordedBs={h.dateBs} /> — {h.court}
                           </span>
                           {h.outcome && (
                             <span className="staff-hearings-archive-outcome">
@@ -792,26 +779,15 @@ export default function StaffHearingsPage() {
                 </select>
               </div>
               <div className="staff-hearings-field-row">
-                <div className="staff-hearings-field">
+                <div className="staff-hearings-field locale-date-full-row">
                   <label htmlFor="hearing-create-date">
-                    Gregorian Date <span aria-hidden>*</span>
+                    Date <span aria-hidden>*</span>
                   </label>
-                  <Input
+                  <BsDateField
                     id="hearing-create-date"
                     required
-                    type="date"
                     value={dateGregorian}
-                    onChange={(e) => handleGregorianChange(e.target.value)}
-                  />
-                </div>
-                <div className="staff-hearings-field">
-                  <label htmlFor="hearing-create-date-bs">Nepali Date (B.S.)</label>
-                  <Input
-                    id="hearing-create-date-bs"
-                    readOnly
-                    placeholder="Auto-calculated"
-                    className="font-bold"
-                    value={dateBs}
+                    onDateChange={handleGregorianChange}
                   />
                 </div>
               </div>
@@ -951,23 +927,12 @@ export default function StaffHearingsPage() {
                     <Clock className="size-3.5" aria-hidden /> Next Adjourned Date
                   </legend>
                   <div className="staff-hearings-field-row">
-                    <div className="staff-hearings-field">
-                      <label htmlFor="hearing-update-next-date">Gregorian Date</label>
-                      <Input
+                    <div className="staff-hearings-field locale-date-full-row">
+                      <label htmlFor="hearing-update-next-date">Date</label>
+                      <BsDateField
                         id="hearing-update-next-date"
-                        type="date"
                         value={nextDateGregorian}
-                        onChange={(e) => handleNextGregorianChange(e.target.value)}
-                      />
-                    </div>
-                    <div className="staff-hearings-field">
-                      <label htmlFor="hearing-update-next-date-bs">Nepali Date</label>
-                      <Input
-                        id="hearing-update-next-date-bs"
-                        readOnly
-                        placeholder="Auto"
-                        className="font-bold"
-                        value={nextDateBs}
+                        onDateChange={handleNextGregorianChange}
                       />
                     </div>
                   </div>

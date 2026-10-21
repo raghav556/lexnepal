@@ -1,3 +1,4 @@
+import { formatDualDate } from "@/lib/nepali-calendar";
 import React, { useState } from "react";
 import { useCareers, useCmsCommands, useJobApplications } from "@/client/queries/cms";
 import { Button } from "@/components/ui/button.tsx";
@@ -239,7 +240,7 @@ export default function AdminCMSCareers() {
                         <p className="text-xs text-muted-foreground break-words">{job.location}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3 shrink-0" />
-                          Posted {new Date(job.postedDate).toLocaleDateString()}
+                          Posted {formatDualDate(job.postedDate)}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashboard-border">
@@ -297,7 +298,7 @@ export default function AdminCMSCareers() {
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" /> Posted{" "}
-                              {new Date(job.postedDate).toLocaleDateString()}
+                              {formatDualDate(job.postedDate)}
                             </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4">
@@ -373,7 +374,7 @@ export default function AdminCMSCareers() {
                           Applied for <span className="font-medium">{app.jobTitle}</span>
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(app.appliedDate).toLocaleDateString()}
+                          {formatDualDate(app.appliedDate)}
                         </p>
                         <div className="flex flex-wrap gap-2 pt-1">
                           {app.resumeUrl && (
@@ -455,7 +456,7 @@ export default function AdminCMSCareers() {
                             {app.jobTitle}
                           </td>
                           <td className="px-4 lg:px-6 py-4 text-muted-foreground whitespace-nowrap">
-                            {new Date(app.appliedDate).toLocaleDateString()}
+                            {formatDualDate(app.appliedDate)}
                           </td>
                           <td className="px-4 lg:px-6 py-4">
                             <div className="flex flex-col gap-2 items-start">

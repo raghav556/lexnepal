@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate, nepalDateOnly } from "@/lib/nepali-calendar";
 
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
@@ -99,17 +100,14 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 function todayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
+  return nepalDateOnly();
 }
 
 function formatAdded(value?: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return formatDualDate(value);
 }
 
 export default function StaffClientsWorkspace() {

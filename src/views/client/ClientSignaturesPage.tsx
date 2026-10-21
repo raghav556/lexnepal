@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import {
   ClientQueryBoundary,
@@ -780,7 +781,7 @@ export default function ClientSignaturesPage() {
                               )}
                             {action.kind === "envelope" && action.expiresAt && (
                               <span>
-                                Expires {format(new Date(action.expiresAt), "d MMM yyyy")}
+                                Expires {formatDualDate(action.expiresAt)}
                               </span>
                             )}
                           </div>
@@ -845,7 +846,7 @@ export default function ClientSignaturesPage() {
                             <DashboardStatusLabel status="signed" label="Signed" />
                             {action.document.signedAt && (
                               <span>
-                                Signed {format(new Date(action.document.signedAt), "d MMM yyyy")}
+                                Signed {formatDualDate(action.document.signedAt)}
                               </span>
                             )}
                             {action.kind === "direct" && action.document.signatureMethod && (

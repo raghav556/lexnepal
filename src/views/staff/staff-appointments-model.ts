@@ -1,3 +1,4 @@
+import { calendarMonthBounds, shiftCalendarMonth, type DateLanguage } from "@/lib/nepali-calendar";
 import type { AppointmentCreateInput } from "@/shared/contracts/crm";
 import { addCalendarDaysIso } from "@/shared/crm/appointment-dates";
 
@@ -83,25 +84,20 @@ export function filterAppointments(
   );
 }
 
-export function calendarDays(date: string, view: CalendarView): string[] {
+export function calendarDays(date: string, view: CalendarView, language: DateLanguage = "en"): string[] {
   if (view === "day") return [date];
-  const first = view === "month" ? `${date.slice(0, 7)}-01` : date;
+  let first = date;
+  if (view === "month") {
+    try { first = calendarMonthBounds(date, language).start; } catch { return []; }
+  }
   const weekday = new Date(`${first}T12:00:00Z`).getUTCDay();
   const monday = addCalendarDaysIso(first, -(weekday + 6) % 7);
   return Array.from({ length: view === "month" ? 42 : 7 }, (_, i) => addCalendarDaysIso(monday, i));
 }
 
-export function navigateCalendar(date: string, view: CalendarView, direction: number) {
+export function navigateCalendar(date: string, view: CalendarView, direction: number, language: DateLanguage = "en") {
   if (view !== "month") return addCalendarDaysIso(date, direction * (view === "week" ? 7 : 1));
-  const current = new Date(`${date}T12:00:00Z`);
-  const day = current.getUTCDate();
-  current.setUTCDate(1);
-  current.setUTCMonth(current.getUTCMonth() + direction);
-  const last = new Date(
-    Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  current.setUTCDate(Math.min(day, last));
-  return current.toISOString().slice(0, 10);
+  return shiftCalendarMonth(date, direction, language);
 }
 
 export function appointmentInitials(name = "") {

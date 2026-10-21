@@ -1,4 +1,6 @@
 "use client";
+import { useI18n } from "@/lib/i18n-context";
+import { bsDateParts } from "@/lib/nepali-calendar";
 
 import {
   ClientQueryBoundary,
@@ -157,16 +159,7 @@ function formatHearingTime(time?: string | null): string | undefined {
   return `${hour12}:${minute} ${suffix}`;
 }
 
-function hearingDateParts(dateGregorian?: string | null) {
-  if (!dateGregorian) return null;
-  const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return {
-    day: String(date.getDate()),
-    month: date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
-    year: String(date.getFullYear()),
-  };
-}
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") { return bsDateParts(dateGregorian, language); }
 
 function notificationMatterId(
   notification: ClientNotification,
@@ -232,6 +225,7 @@ function isOpenChecklistTask(task: TaskDto): boolean {
 }
 
 export default function ClientCasesPage() {
+  const { language } = useI18n();
   const currentUser = useCurrentUser();
   const clientQuery = useMyClientQuery();
   const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
@@ -474,7 +468,7 @@ export default function ClientCasesPage() {
     { key: "closed" as const, label: "Completed", value: closedCount, icon: CheckCircle2 },
   ];
 
-  const nextHearingParts = hearingDateParts(nextImportantHearing?.dateGregorian);
+  const nextHearingParts = hearingDateParts(nextImportantHearing?.dateGregorian, language);
 
   return (
     <PortalPageShell portal="client" {...shellProps} metricsClassName="max-sm:hidden" showTodayDate>
@@ -710,7 +704,7 @@ export default function ClientCasesPage() {
                               nextHearing ? (
                                 <span className="client-matters-inline-fact">
                                   <DualDateDisplay
-                                    isoDate={`${String(nextHearing.dateGregorian).slice(0, 10)}T00:00:00`}
+                                    isoDate={String(nextHearing.dateGregorian).slice(0, 10)}
                                     alwaysDual
                                   />
                                   {formatHearingTime(nextHearing.time)

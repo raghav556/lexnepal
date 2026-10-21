@@ -1,5 +1,6 @@
 import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
+import { formatDualDate, nepalDateOnly } from "@/lib/nepali-calendar";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { writeAuditLog } from "@/server/audit/write-audit";
 import { getDatabase } from "@/server/db/client";
@@ -691,8 +692,7 @@ export class MySqlWorkManagementRepository {
 
   async scanOverdueReminders(firmId: string, audit: AuditContext) {
     const now = audit.occurredAt;
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
+    const todayKey = nepalDateOnly(now);
     const due = await database
       .select()
       .from(tasks)
@@ -708,20 +708,18 @@ export class MySqlWorkManagementRepository {
     let sent = 0;
     for (const task of due) {
       if (!task.dueDate) continue;
-      const dueDateIso = task.dueDate.toISOString().slice(0, 10);
-      const dueDate = new Date(task.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
-      if (dueDate.getTime() > todayStart.getTime()) continue;
+      const dueDateIso = nepalDateOnly(task.dueDate);
+      if (dueDateIso > todayKey) continue;
       if (task.lastDueReminderAt) {
         const last = new Date(task.lastDueReminderAt);
-        if (!Number.isNaN(last.valueOf()) && last.toDateString() === now.toDateString()) continue;
+        if (!Number.isNaN(last.valueOf()) && nepalDateOnly(last) === todayKey) continue;
       }
       await database.transaction(async (tx) => {
         await tx.insert(notifications).values({
           firmId,
           userId: task.assignedTo,
           title: "Task due / overdue",
-          body: `"${task.title}" is due or overdue (${task.dueDateBs || dueDateIso}).`,
+          body: `"${task.title}" is due or overdue (${formatDualDate(dueDateIso)}).`,
           type: "task_due",
           relatedId: task.id,
           link: `/staff/tasks?task=${task.id}`,

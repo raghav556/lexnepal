@@ -1,3 +1,4 @@
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button.tsx";
@@ -138,6 +139,7 @@ export default function AdminCMSTeam() {
   };
 
   const handleSave = async (e: React.FormEvent) => {
+    if (!reportBsDateValidity()) return;
     e.preventDefault();
     if (!editingId) return;
     setIsSaving(true);
@@ -671,15 +673,15 @@ export default function AdminCMSTeam() {
                       placeholder="e.g. 12345"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 locale-date-full-row">
                     <label className="text-sm font-medium text-foreground">
                       Bar Council Expiry
                     </label>
-                    <Input
-                      type="date"
+                    <BsDateField
+                      aria-label="Bar council expiry"
                       value={formData.barCouncilExpiry}
-                      onChange={(e) =>
-                        setFormData({ ...formData, barCouncilExpiry: e.target.value })
+                      onDateChange={(e) =>
+                        setFormData({ ...formData, barCouncilExpiry: e })
                       }
                     />
                   </div>

@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -216,11 +217,7 @@ export default function AdminCMSBlog() {
   const formatDate = (dateString: string) => {
     if (!dateString) return "Not Published";
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      return formatDualDate(dateString);
     } catch {
       return "Invalid Date";
     }

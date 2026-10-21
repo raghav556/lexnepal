@@ -1,3 +1,6 @@
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
+import { useI18n } from "@/lib/i18n-context";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useCallback, useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
@@ -145,6 +148,7 @@ function fileKind(doc: any): { kind: string; label: string } {
 }
 
 export default function StaffDocumentsPage() {
+  const { language } = useI18n();
   const { heroImageUrl } = usePortalBranding();
   const [searchFilters, setSearchFilters] = useState<{
     query: string;
@@ -198,6 +202,11 @@ export default function StaffDocumentsPage() {
   const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [envelopeDoc, setEnvelopeDoc] = useState<any>(null);
+  const [retentionDoc, setRetentionDoc] = useState<any>(null);
+  const [retentionPolicy, setRetentionPolicy] = useState("");
+  const [retentionBusy, setRetentionBusy] = useState(false);
+  const [retentionError, setRetentionError] = useState("");
+  const retentionLock = useRef(false);
 
   // Upload Form
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -342,6 +351,7 @@ export default function StaffDocumentsPage() {
   };
 
   const handleCreateAndSendEnvelope = async () => {
+    if (!reportBsDateValidity()) return;
     if (!envelopeDoc) return;
     if (selectedSignerIds.length === 0) return toast.error("Select at least one signer.");
     setIsEnvelopeBusy(true);
@@ -483,26 +493,26 @@ export default function StaffDocumentsPage() {
     }
   };
 
-  const handleRetention = async (doc: any) => {
-    const policy = window.prompt(
-      "Retention policy name:",
-      doc.retentionPolicy || "Corporate legal record",
-    );
-    if (!policy?.trim()) return;
-    const retentionUntil = window.prompt(
-      "Retain until (YYYY-MM-DD):",
-      doc.retentionUntil?.slice(0, 10) || "",
-    );
-    if (!retentionUntil) return;
+  const handleRetention = (doc: any) => {
+    setRetentionDoc(doc);
+    setRetentionPolicy(doc.retentionPolicy || "Corporate legal record");
+    setRetentionError("");
+  };
+  const saveRetentionPolicy = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!retentionDoc || !retentionPolicy.trim() || retentionLock.current) return;
+    retentionLock.current = true; setRetentionBusy(true); setRetentionError("");
     try {
       await setRetention({
-        documentId: doc._id,
-        policy: policy.trim(),
-        retentionUntil: new Date(retentionUntil).toISOString(),
+        documentId: retentionDoc._id,
+        policy: retentionPolicy.trim(),
       });
+      setRetentionDoc(null);
       toast.success("Retention policy applied.");
     } catch (err: any) {
-      toast.error(err?.message || "Could not set retention.");
+      setRetentionError(err?.message || "Could not set retention.");
+    } finally {
+      retentionLock.current = false; setRetentionBusy(false);
     }
   };
 
@@ -564,6 +574,7 @@ export default function StaffDocumentsPage() {
   const detailsDialogOpen =
     !isWide &&
     !!activeSidebarDoc &&
+    !retentionDoc &&
     !isPreviewOpen &&
     !isShareModalOpen &&
     !envelopeDoc &&
@@ -603,7 +614,7 @@ export default function StaffDocumentsPage() {
               )}
               {doc.retentionUntil && (
                 <StatusBadge tone="neutral" className="text-[10px]">
-                  Retain until <DualDateDisplay isoDate={doc.retentionUntil.slice(0, 10)} />
+                  Retain until <DualDateDisplay isoDate={doc.retentionUntil} />
                 </StatusBadge>
               )}
             </div>
@@ -625,7 +636,7 @@ export default function StaffDocumentsPage() {
             <div>
               <dt>Uploaded on</dt>
               <dd>
-                <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString().slice(0, 10)} />
+                <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString()} />
               </dd>
             </div>
             <div>
@@ -1161,7 +1172,7 @@ export default function StaffDocumentsPage() {
                           <div className="staff-docs-cell staff-docs-cell-date">
                             <span className="staff-docs-label">Modified</span>
                             <DualDateDisplay
-                              isoDate={new Date(doc._creationTime).toISOString().slice(0, 10)}
+                              isoDate={new Date(doc._creationTime).toISOString()}
                             />
                           </div>
                           <div className="staff-docs-cell staff-docs-cell-size">
@@ -1261,6 +1272,33 @@ export default function StaffDocumentsPage() {
           </aside>
         ) : null}
       </div>
+
+      <Dialog open={!!retentionDoc} onOpenChange={(open: boolean) => { if (!open && !retentionBusy) setRetentionDoc(null); }}>
+        <DialogContent className="staff-docs-dialog max-w-lg" aria-labelledby="staff-docs-retention-title" aria-describedby="staff-docs-retention-description">
+          <DialogHeader>
+            <DialogTitle id="staff-docs-retention-title">Document retention</DialogTitle>
+            <DialogDescription id="staff-docs-retention-description">This form updates the policy name. The recorded retention date is read-only.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={saveRetentionPolicy} className="staff-docs-dialog-body">
+            <div className="space-y-1">
+              <label htmlFor="staff-docs-retention-policy">Policy name</label>
+              <Input id="staff-docs-retention-policy" value={retentionPolicy} onChange={event => setRetentionPolicy(event.target.value)} required maxLength={200} disabled={retentionBusy} />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="staff-docs-retention-date">Recorded retention date (read-only)</label>
+              {retentionDoc?.retentionUntil ? <>
+                <BsDateField id="staff-docs-retention-date" value={retentionDoc.retentionUntil} readOnly onDateChange={() => {}} />
+                <p className="text-xs text-muted-foreground">{formatNepalTimestamp(retentionDoc.retentionUntil, language)}</p>
+              </> : <p className="text-sm text-muted-foreground">No retention date was returned.</p>}
+            </div>
+            {retentionError ? <p role="alert" className="text-sm text-destructive">{retentionError}</p> : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" disabled={retentionBusy} onClick={() => setRetentionDoc(null)}>Cancel</Button>
+              <Button type="submit" disabled={retentionBusy}>{retentionBusy ? "Saving…" : "Save policy"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Details dialog (narrower than 1280px) */}
       <Dialog open={detailsDialogOpen} onOpenChange={closeDetails}>
@@ -1478,13 +1516,12 @@ export default function StaffDocumentsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="staff-docs-field">
+              <div className="staff-docs-field locale-date-full-row">
                 <label htmlFor="staff-docs-envelope-expires">Expiration Date</label>
-                <Input
+                <BsDateField
                   id="staff-docs-envelope-expires"
-                  type="date"
                   value={envelopeExpires}
-                  onChange={(e) => setEnvelopeExpires(e.target.value)}
+                  onDateChange={(e) => setEnvelopeExpires(e)}
                 />
               </div>
             </div>

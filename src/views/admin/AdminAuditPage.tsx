@@ -1,3 +1,4 @@
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 import { useState } from "react";
 import {
   Select,
@@ -37,13 +38,7 @@ const RESOURCE_ICONS: Record<string, ElementType> = {
 const RESOURCE_OPTIONS = ["all", "cases", "documents", "users", "leads"];
 
 function formatTime(ts: number) {
-  return new Date(ts).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatNepalTimestamp(ts);
 }
 
 export default function AdminAuditPage() {

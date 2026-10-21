@@ -1,3 +1,4 @@
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -227,7 +228,7 @@ export default function AdminCMSGovernance() {
                       <div>
                         <p className="font-medium">{subscriber.email}</p>
                         <p className="text-xs text-muted-foreground">
-                          Subscribed {new Date(subscriber.subscribedAt).toLocaleString()}
+                          Subscribed {formatNepalTimestamp(subscriber.subscribedAt)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

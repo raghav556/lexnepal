@@ -1,4 +1,5 @@
 import "server-only";
+import { formatDualDate } from "@/lib/nepali-calendar";
 import { createHash } from "node:crypto";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { resolveCapabilities } from "@/server/auth/capabilities";
@@ -391,7 +392,7 @@ export async function notifyAppointmentClientStatus(input: {
     const to = input.appointment.clientEmail?.trim();
     if (!to) return;
 
-    const when = `${input.appointment.date} at ${input.appointment.timeSlot}`;
+    const when = `${formatDualDate(input.appointment.date)} at ${input.appointment.timeSlot} NPT`;
     if (input.status === "confirmed") {
       const linkLine = input.appointment.meetingLink?.trim()
         ? `\n\nMeeting link: ${input.appointment.meetingLink.trim()}`
@@ -445,7 +446,7 @@ export async function notifyAppointmentRescheduled(input: {
       actorUserId: input.actorUserId,
       to,
       subject: "Consultation rescheduled",
-      body: `Your consultation has been moved from ${input.previousDate} at ${input.previousTimeSlot} to ${input.appointment.date} at ${input.appointment.timeSlot}.\n\n— Srimar Law`,
+      body: `Your consultation has been moved from ${formatDualDate(input.previousDate)} at ${input.previousTimeSlot} to ${formatDualDate(input.appointment.date)} at ${input.appointment.timeSlot} NPT.\n\n— Srimar Law`,
       relatedId: input.appointment.id,
       purpose: "appointment_rescheduled",
     });
