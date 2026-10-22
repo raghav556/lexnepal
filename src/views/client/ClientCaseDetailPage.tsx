@@ -1,4 +1,5 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import { useI18n } from "@/lib/i18n-context";
 import { formatCourtName } from "@/lib/nepal-courts";
 import { bsDateParts, formatNepalTimestamp, formatOperationalDate } from "@/lib/nepali-calendar";
@@ -976,6 +977,7 @@ export default function ClientCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="documents" className="mt-3 space-y-3">
+          <CollectionContinuation query={documentsQuery} noun="documents" />
           <DashboardSection
             title="Case Documents"
             description="Files filed or shared by your legal team"
@@ -1051,6 +1053,7 @@ export default function ClientCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="updates" className="mt-3 space-y-3">
+          <CollectionContinuation query={notificationsQuery} noun="notifications" />
           <DashboardSection
             title="Recent Matter Activity"
             description="Notifications related to this matter"

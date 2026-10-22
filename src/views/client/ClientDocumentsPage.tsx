@@ -1,4 +1,5 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 
 import {
   ClientQueryBoundary,
@@ -519,6 +520,7 @@ export default function ClientDocumentsPage() {
           <section className="client-documents-library" aria-label="Document library">
             <div className="client-documents-library-head">
               <h2>Document Library</h2>
+              <CollectionContinuation query={docsQuery} noun="documents" />
               <p>
                 {!clientQueryHasData(docsQuery) ? (
                   docsQuery.isError ? (
@@ -528,7 +530,7 @@ export default function ClientDocumentsPage() {
                   )
                 ) : (
                   <>
-                    {filteredDocs.length} document{filteredDocs.length === 1 ? "" : "s"}
+                    {filteredDocs.length} loaded document{filteredDocs.length === 1 ? "" : "s"}
                     {totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ""}
                   </>
                 )}

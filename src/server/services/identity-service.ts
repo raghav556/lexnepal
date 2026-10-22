@@ -18,6 +18,7 @@ import type {
 import { rolePermissionMatrixSchema, type RolePermissionMatrix } from "@/shared/contracts/identity";
 import { AppError } from "@/shared/errors/api-error";
 import { projectClientOwnAuditEvent } from "@/server/services/client-audit-projection";
+import { collectionPage, type CollectionPageRequest } from "@/shared/collection-page";
 import {
   provisionLocalIdentity,
   requestLocalPasswordResetForLexUser,
@@ -279,6 +280,14 @@ export class IdentityService {
       limit,
     });
     return principal.user.role === "client" ? rows.map(projectClientOwnAuditEvent) : rows;
+  }
+  async listOwnAuditPage(principal: AuthPrincipal, input: CollectionPageRequest) {
+    const limit = input.limit ?? 30;
+    const rows = await this.repository.listAudit(requireFirmContext(principal).firmId, {
+      userId: principal.user.id, limit: limit + 1, cursor: input.cursor,
+    });
+    const page = collectionPage(rows, limit, row => ({ createdAt: row.createdAt, id: row.id }));
+    return { ...page, items: principal.user.role === "client" ? page.items.map(projectClientOwnAuditEvent) : page.items };
   }
   listAudit(
     principal: AuthPrincipal,

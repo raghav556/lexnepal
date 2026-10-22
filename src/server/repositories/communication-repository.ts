@@ -17,6 +17,7 @@ import {
 import type { MessageCreateInput, MessageListInput } from "@/shared/contracts/communication";
 import { decodeMessageCursor, encodeMessageCursor } from "@/shared/message-cursor";
 import { AppError } from "@/shared/errors/api-error";
+import { collectionBefore } from "./collection-continuation";
 
 const database = getDatabase();
 
@@ -306,12 +307,12 @@ export class CommunicationRepository {
     return { success: true as const, marked: caseMessages.length };
   }
 
-  async listNotifications(firmId: string, userId: string, limit = 50) {
+  async listNotifications(firmId: string, userId: string, limit = 50, cursor?: string) {
     const rows = await database
       .select()
       .from(notifications)
-      .where(and(eq(notifications.firmId, firmId), eq(notifications.userId, userId)))
-      .orderBy(desc(notifications.createdAt))
+      .where(and(eq(notifications.firmId, firmId), eq(notifications.userId, userId), collectionBefore(notifications.createdAt, notifications.id, cursor)))
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit);
     return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
   }

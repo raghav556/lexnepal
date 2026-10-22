@@ -7,7 +7,7 @@ const cursorPayloadSchema = z.object({
 
 function toBase64Url(value: string): string {
   if (typeof Buffer !== "undefined") {
-    return Buffer.from(value, "utf8").toString("base64url");
+    return Buffer.from(value, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
   const bytes = new TextEncoder().encode(value);
   let binary = "";
@@ -17,7 +17,7 @@ function toBase64Url(value: string): string {
 
 function fromBase64Url(value: string): string {
   if (typeof Buffer !== "undefined") {
-    return Buffer.from(value, "base64url").toString("utf8");
+    return Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
   }
   const padded = value.replace(/-/g, "+").replace(/_/g, "/");
   const pad = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));

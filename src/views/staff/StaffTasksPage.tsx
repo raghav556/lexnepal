@@ -1,3 +1,4 @@
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import { formatNepalTimestamp, nepalDateOnly, formatOperationalDate } from "@/lib/nepali-calendar";
 import { BsDateField } from "@/components/ui/bs-date-field";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
@@ -47,7 +48,7 @@ import { TaskCard } from "@/components/tasks/TaskCard.tsx";
 import { DueDateFields } from "@/components/tasks/DueDateFields.tsx";
 import { TaskCalendarView } from "@/components/tasks/TaskCalendarView.tsx";
 import { useSessionCapabilities, useStaffDirectory } from "@/client/queries/identity";
-import { useDocuments } from "@/client/queries/documents";
+import { useDocumentsQuery } from "@/client/queries/documents";
 import { TaskWorkloadView } from "@/components/tasks/TaskWorkloadView.tsx";
 import {
   DashboardButton,
@@ -105,7 +106,8 @@ export default function StaffTasksPage() {
   const cases = useCases({}) || [];
   const users = useStaffDirectory() || [];
   const hearings = useHearings({}) || [];
-  const documents = useDocuments({}) || [];
+  const documentsQuery = useDocumentsQuery({});
+  const documents = documentsQuery.data || [];
 
   const { createTask, archiveTask, restoreTask, deleteTask, addComment, scanOverdueReminders } =
     useTaskCommands();
@@ -1333,6 +1335,7 @@ export default function StaffTasksPage() {
                       </select>
                     </div>
                     <div className="space-y-1">
+                      <CollectionContinuation query={documentsQuery} noun="documents" />
                       <label htmlFor="edit-task-document" className="text-xs font-medium">
                         Linked Document
                       </label>
@@ -1343,6 +1346,7 @@ export default function StaffTasksPage() {
                         onChange={(e) => setEditDocumentId(e.target.value)}
                       >
                         <option value="">None</option>
+                        {editDocumentId && !caseDocs.some((document: any) => document._id === editDocumentId) ? <option value={editDocumentId}>Current linked document (not in loaded results)</option> : null}
                         {caseDocs.map((d: any) => (
                           <option key={d._id} value={d._id}>
                             {d.title}

@@ -1,4 +1,5 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import { useI18n } from "@/lib/i18n-context";
 import { courtMatchesSearch, formatCourtName } from "@/lib/nepal-courts";
 import { bsDateParts } from "@/lib/nepali-calendar";
@@ -871,6 +872,7 @@ export default function ClientCasesPage() {
 
           <section className="client-matters-rail-card" aria-labelledby="client-matters-activity">
             <h2 id="client-matters-activity">Recent Matter Activity</h2>
+            <CollectionContinuation query={notificationsQuery} noun="notifications" />
             <ClientQueryBoundary
               query={notificationsQuery}
               title="Unable to load recent activity"

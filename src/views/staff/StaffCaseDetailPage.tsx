@@ -1,3 +1,4 @@
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { CourtSelect } from "@/components/ui/court-select";
 import { formatCourtName } from "@/lib/nepal-courts";
@@ -78,7 +79,7 @@ import { useStaffDirectory } from "@/client/queries/identity";
 import { useHearings } from "@/client/queries/hearings";
 import {
   SCANNING_INTENT_STATUSES,
-  useDocuments,
+  useDocumentsQuery,
   useDownloadDocument,
   useWatchDocumentUploadIntents,
 } from "@/client/queries/documents";
@@ -126,7 +127,8 @@ export default function StaffCaseDetailPage() {
   const clients = useClients() || [];
   const users = useStaffDirectory() || [];
   const hearings = useHearings(caseId ? { caseId } : "skip") || [];
-  const documents = useDocuments(caseId ? { caseId } : "skip");
+  const documentsQuery = useDocumentsQuery(caseId ? { caseId } : "skip");
+  const documents = documentsQuery.data;
   const mislDocuments = documents ?? [];
   const downloadDocument = useDownloadDocument();
   const queryClient = useQueryClient();
@@ -452,14 +454,14 @@ export default function StaffCaseDetailPage() {
             <StaffHeroChipRow>
               <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
               <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
-              <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents" />
+              <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents loaded" />
             </StaffHeroChipRow>
           </div>
         ) : (
           <StaffHeroChipRow>
             <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
             <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
-            <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents" />
+            <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents loaded" />
           </StaffHeroChipRow>
         )
       }
@@ -1074,13 +1076,11 @@ export default function StaffCaseDetailPage() {
                 </Button>
               }
             >
-              {portal === "staff" && mislDocuments.length >= 50 && (
-                <p className="staff-collection-limit" role="status">This Misl shows up to 50 loaded documents. Additional files may exist; a complete total is unavailable.</p>
-              )}
+              <CollectionContinuation query={documentsQuery} noun="documents" />
               {documents === undefined && pendingMisl.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
                   <Loader2 className="w-8 h-8 mb-3 animate-spin opacity-40" />
-                  <p>Loading this case Misl…</p>
+                  <p>{documentsQuery.isError ? "Misl unavailable. Retry the document request above." : "Loading this case Misl…"}</p>
                 </div>
               ) : mislDocuments.length === 0 && pendingMisl.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
@@ -1263,9 +1263,9 @@ export default function StaffCaseDetailPage() {
           {/* 4. Timeline */}
           <TabsContent value="timeline" className="mt-6">
             <DashboardSection title="Case history" icon={Clock}>
-              {portal === "staff" && mislDocuments.length >= 50 && (
-                <p className="staff-collection-limit" role="status">History includes loaded documents only; additional document events may exist.</p>
-              )}
+              <CollectionContinuation query={documentsQuery} noun="documents" />
+              {documentsQuery.hasMore ? <p className="text-sm text-muted-foreground">History includes loaded document events. Load more documents to continue the history.</p> : null}
+              {documentsQuery.isError ? <p className="text-sm text-muted-foreground">Document history is incomplete until retrieval succeeds.</p> : null}
               {timeline.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center">
                   No timeline events recorded.

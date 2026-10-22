@@ -1,3 +1,4 @@
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
 import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 import { useI18n } from "@/lib/i18n-context";
@@ -63,8 +64,8 @@ import {
 import { toast } from "sonner";
 import { useCases } from "@/client/queries/cases";
 import {
-  useDocuments,
-  useDocumentSearch,
+  useDocumentsQuery,
+  useDocumentSearchQuery,
   useRecentDocuments,
   useUploadDocument,
   useTrashDocument,
@@ -159,8 +160,11 @@ export default function StaffDocumentsPage() {
   }>({ query: "" });
   const [viewMode, setViewMode] = useState<"list" | "folders" | "trash">("list");
 
-  const searchResults = useDocumentSearch(searchFilters.query ? searchFilters : null) || [];
-  const listResults = useDocuments({ isTemplate: false, inTrash: viewMode === "trash" }) || [];
+  const searchQuery = useDocumentSearchQuery(searchFilters.query ? { ...searchFilters, inTrash: viewMode === "trash" } : null);
+  const searchResults = searchQuery.data || [];
+  const listQuery = useDocumentsQuery({ caseId: searchFilters.query ? undefined : searchFilters.caseId, isTemplate: false, inTrash: viewMode === "trash" });
+  const listResults = listQuery.data || [];
+  const documentQuery = searchFilters.query ? searchQuery : listQuery;
   const cases = useCases({}) || [];
 
   const allDocs = searchFilters.query ? searchResults : listResults;
@@ -225,7 +229,7 @@ export default function StaffDocumentsPage() {
   const [isEnvelopeBusy, setIsEnvelopeBusy] = useState(false);
   const [requestingId, setRequestingId] = useState<string | null>(null);
 
-  const isLoading = allDocs === undefined || cases === undefined;
+  const isLoading = documentQuery.isLoading || cases === undefined;
 
   // Filter & Pagination
   const docsToDisplay = allDocs;
@@ -238,7 +242,7 @@ export default function StaffDocumentsPage() {
     if (d.isDeleted) return false;
 
     if (viewMode === "folders") {
-      if (selectedFolder !== null && d.caseId !== selectedFolder) return false;
+      if (selectedFolder !== null && (d.caseId || "general") !== selectedFolder) return false;
       if (selectedSubFolder !== null && d.type !== selectedSubFolder) return false;
     }
     if (filterType !== "all" && d.type !== filterType) return false;
@@ -550,7 +554,8 @@ export default function StaffDocumentsPage() {
     return () => query.removeEventListener("change", sync);
   }, []);
 
-  if (isLoading) {
+  // Keep search/filter controls mounted while a new document query loads.
+  if (cases === undefined) {
     return (
       <PortalPageShell
         portal="staff"
@@ -875,7 +880,8 @@ export default function StaffDocumentsPage() {
         data-details={isWide && activeSidebarDoc ? "open" : "closed"}
       >
         <div className="staff-docs-main">
-          <div className="staff-docs-toolbar" role="region" aria-label="Document views and filters">
+          <CollectionContinuation query={documentQuery} noun="documents" />
+            <div className="staff-docs-toolbar" role="region" aria-label="Document views and filters">
             <div className="staff-docs-toolbar-row">
               <div role="group" aria-label="Document view" className="staff-docs-view-toggle">
                 <button
@@ -1067,8 +1073,8 @@ export default function StaffDocumentsPage() {
               />
             ) : paginatedItems.length === 0 ? (
               <EmptyState
-                title="Vault is empty"
-                description="No documents match your search or filter."
+                title={documentQuery.isError && documentQuery.data === undefined ? "Documents unavailable" : isLoading ? "Loading documents…" : "Vault is empty"}
+                description={documentQuery.isError && documentQuery.data === undefined ? "Retry the document request above." : isLoading ? "Retrieving documents." : "No loaded documents match your search or filter."}
                 icon={FileText}
                 className="py-12"
               />
@@ -1083,11 +1089,6 @@ export default function StaffDocumentsPage() {
                     {filteredDocs.length} loaded document{filteredDocs.length === 1 ? "" : "s"}
                   </span>
                 </div>
-                {allDocs.length >= (searchFilters.query ? 100 : 50) && (
-                  <p className="staff-collection-limit" role="status">
-                    Showing a limited set of loaded documents. More records may exist; narrow your search or case filter. A full-library total is unavailable.
-                  </p>
-                )}
                 <div className="staff-docs-cols" aria-hidden>
                   <span />
                   <span>Document</span>

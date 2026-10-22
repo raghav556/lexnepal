@@ -1,7 +1,8 @@
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import React, { useMemo, useState } from "react";
 import { useCases } from "@/client/queries/cases";
 import { useClients } from "@/client/queries/clients";
-import { useDocuments, useUploadDocument } from "@/client/queries/documents";
+import { useDocumentsQuery, useUploadDocument } from "@/client/queries/documents";
 import { useDocumentTemplates } from "@/client/queries/templates";
 import { useCurrentFirm, useUsers } from "@/client/queries/identity";
 import { formatBs, gregorianToBs, nepalDateOnly } from "@/lib/nepali-calendar";
@@ -28,7 +29,8 @@ function mergeTemplate(content: string, vars: Record<string, string>, isHtml: bo
 
 export default function AdminDocumentGenerator() {
   const docTemplates = useDocumentTemplates();
-  const fileTemplates = (useDocuments({ isTemplate: true }) || []) as any[];
+  const templatesQuery = useDocumentsQuery({ isTemplate: true });
+  const fileTemplates = (templatesQuery.data || []) as any[];
   const clients = useClients() || [];
   const cases = useCases({}) || [];
   const users = useUsers() || [];
@@ -155,6 +157,7 @@ export default function AdminDocumentGenerator() {
           title="Select template"
           icon={FileText}
         >
+          <CollectionContinuation query={templatesQuery} noun="documents" />
           {templates.length === 0 ? (
             <EmptyState
               title="No templates found"

@@ -7,5 +7,5 @@ import { documentSearchSchema } from "@/shared/contracts/documents";
 export const GET = withApiHandler("/api/v1/documents/search", async ({ request }) => {
   const principal = await requireSession(request);
   const input = documentSearchSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-  return jsonResponse({ data: await getDocumentService().search(principal, input) });
+  return jsonResponse({ data: await getDocumentService()[input.page === "true" ? "searchPage" : "search"](principal, input) });
 });

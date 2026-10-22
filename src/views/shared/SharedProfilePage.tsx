@@ -1,4 +1,5 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 
 import { useEffect, useRef, useState } from "react";
@@ -735,6 +736,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                     retrying={auditQuery.isFetching}
                   />
                 ) : null}
+                <CollectionContinuation query={auditQuery} noun="events" />
                 {auditLog === undefined ? (
                   variant === "client" && auditQuery.isError ? null : (
                     <p className="text-xs text-muted-foreground">Loading...</p>

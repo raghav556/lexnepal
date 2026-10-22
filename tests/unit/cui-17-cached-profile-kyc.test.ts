@@ -1,3 +1,5 @@
+// Match the application locale provider added by Session17E; assertions are unchanged.
+vi.mock("@/lib/i18n-context", () => ({ useI18n: () => ({ language: "en", t: (key: string) => key }) }));
 /* eslint-disable @typescript-eslint/no-explicit-any -- synthetic query and presentation fixtures */
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";

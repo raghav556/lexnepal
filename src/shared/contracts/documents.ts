@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_DOCUMENT_BYTES } from "@/shared/documents/limits";
+import { collectionPageQuerySchema } from "@/shared/collection-page";
 
 export { MAX_DOCUMENT_BYTES };
 
@@ -47,7 +48,7 @@ export function documentTypeLabel(type?: string | null): string {
 }
 export const confidentialitySchema = z.enum(["public", "internal", "confidential", "privileged"]);
 
-export const documentListSchema = z.object({
+export const documentListSchema = collectionPageQuerySchema.extend({
   caseId: uuidSchema.optional(),
   isTemplate: z
     .enum(["true", "false"])
@@ -59,11 +60,12 @@ export const documentListSchema = z.object({
     .transform((value) => (value === undefined ? undefined : value === "true")),
 });
 
-export const documentSearchSchema = z.object({
+export const documentSearchSchema = collectionPageQuerySchema.extend({
   query: z.string().trim().min(1).max(200),
   caseId: uuidSchema.optional(),
   type: documentTypeSchema.optional(),
   tag: optionalText(100),
+  inTrash: documentListSchema.shape.inTrash,
   generalOnly: z
     .enum(["true", "false"])
     .optional()

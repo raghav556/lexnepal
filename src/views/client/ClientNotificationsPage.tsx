@@ -1,4 +1,5 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
 
 import { formatNepalClock, formatNepalTimestamp } from "@/lib/nepali-calendar";
 
@@ -351,6 +352,7 @@ export default function ClientNotificationsPage() {
               </section>
             )}
           </ClientQueryBoundary>
+          <div className="px-4"><CollectionContinuation query={notificationQuery} noun="notifications" /></div>
         </ClientPanel>
 
         <aside className="min-w-0 space-y-4" aria-label="Notification context">

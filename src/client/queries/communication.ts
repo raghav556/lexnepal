@@ -1,3 +1,4 @@
+import { useCollectionQuery } from "@/client/queries/collection";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -224,13 +225,12 @@ export function useMessageCommands() {
 
 export function useNotifications() {
   const currentUser = useCurrentIdentityUser();
-  const next = useQuery({
-    queryKey: ["notifications", currentUser?.id],
-    queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/notifications", { signal }),
-    enabled: !!currentUser?.id,
-    refetchInterval: 10_000,
+  const next = useCollectionQuery<any>({
+    queryKey: ["notifications", currentUser?.id], path: "/api/v1/notifications",
+    enabled: !!currentUser?.id, refetchInterval: 10_000,
   });
   return {
+    ...next,
     data: next.data ?? [],
     hasData: next.data !== undefined,
     isLoading: next.isLoading,
