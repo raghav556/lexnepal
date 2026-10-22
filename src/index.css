@@ -10006,3 +10006,13 @@ body:has([role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='tr
 .dashboard-staff .staff-cases-workspace [aria-labelledby='case-create-title'] form { overflow: visible; padding-inline: min(1.25rem, 20px); }
 .dashboard-staff .staff-cases-workspace [aria-labelledby='case-create-title'] form > div:last-child { position: static; }
 .dashboard-admin [aria-labelledby='case-create-title'] { padding-inline: min(1.5rem, 24px); }
+
+/* Shared registry combobox; canonical values stay independent of typed search. */
+.court-select-input { min-height: 44px; padding-right: 46px; }
+.court-select-trigger { position: absolute; right: 0; top: 0; height: 100%; width: 44px; padding: 0; }
+.court-select-popup { position: fixed; z-index: 160; max-height: min(24rem, calc(100dvh - 1rem)); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: .625rem; background: var(--popover); color: var(--popover-foreground); box-shadow: 0 12px 32px rgb(0 0 0 / .2); }
+.court-select-category { padding: .5rem .75rem; font-size: .75rem; font-weight: 600; color: var(--muted-foreground); }
+.court-select-option { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .625rem .75rem; min-height: 44px; font-size: .875rem; cursor: pointer; overflow-wrap: anywhere; }
+.court-select-option[data-active='true'] { background: var(--accent); color: var(--accent-foreground); }
+.court-select-context { display: block; margin-top: .125rem; font-size: .75rem; color: var(--muted-foreground); }
+.court-select-option[data-active='true'] .court-select-context { color: inherit; }

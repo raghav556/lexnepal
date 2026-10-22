@@ -33,6 +33,8 @@ import {
 import { toast } from "sonner";
 import { bsDateParts, gregorianToBs, formatBs, nepalDateOnly, viewDateIso, calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth } from "@/lib/nepali-calendar.ts";
 import { COURTS } from "@/lib/lex-constants.ts";
+import { CourtSelect } from "@/components/ui/court-select";
+import { courtMatchesSearch, formatCourtName, officialCourtValue, sameCourt } from "@/lib/nepal-courts";
 import { useI18n } from "@/lib/i18n-context.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
@@ -153,13 +155,13 @@ export default function StaffHearingsPage() {
 
   const handleScheduleHearing = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!caseId || !court || !dateGregorian || !dateBs)
+    if (!caseId || !officialCourtValue(court) || !dateGregorian || !dateBs)
       return toast.error("Please fill in all required fields.");
     setIsSubmitting(true);
     try {
       await createHearing({
         caseId: caseId as any,
-        court,
+        court: officialCourtValue(court)!,
         judge: judge || undefined,
         dateGregorian,
         dateBs,
@@ -243,8 +245,9 @@ export default function StaffHearingsPage() {
     const searchMatch =
       !search ||
       matchedCase?.title.toLowerCase().includes(search.toLowerCase()) ||
-      matchedCase?.caseNumber.toLowerCase().includes(search.toLowerCase());
-    const courtMatch = courtFilter === "all" || h.court === courtFilter;
+      matchedCase?.caseNumber.toLowerCase().includes(search.toLowerCase()) ||
+      courtMatchesSearch(h.court, search);
+    const courtMatch = courtFilter === "all" || sameCourt(h.court, courtFilter);
     return searchMatch && courtMatch;
   });
 
@@ -361,19 +364,10 @@ export default function StaffHearingsPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <select
+            <CourtSelect id="hearing-court-filter"
               aria-label="Filter by court"
-              className="staff-hearings-select"
-              value={courtFilter}
-              onChange={(e) => setCourtFilter(e.target.value)}
-            >
-              <option value="all">All Courts</option>
-              {COURTS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              value={courtFilter === "all" ? "" : courtFilter} filter
+              onValueChange={(court) => setCourtFilter(court || "all")} />
           </div>
         ) : null}
       </div>
@@ -561,7 +555,7 @@ export default function StaffHearingsPage() {
 
                       <div className="staff-hearings-meta">
                         <div>
-                          <MapPin aria-hidden /> <span title={h.court}>{h.court}</span>
+                          <MapPin aria-hidden /> <span title={h.court}>{formatCourtName(h.court, language)}</span>
                         </div>
                         <div>
                           <Clock aria-hidden /> <span>{h.time || "Time TBD"}</span>
@@ -701,7 +695,7 @@ export default function StaffHearingsPage() {
                             />
                           </span>
                           <span className="staff-hearings-archive-sub">
-                            <DualDateDisplay isoDate={h.dateGregorian} recordedBs={h.dateBs} /> — {h.court}
+                            <DualDateDisplay isoDate={h.dateGregorian} recordedBs={h.dateBs} /> — {formatCourtName(h.court, language)}
                           </span>
                           {h.outcome && (
                             <span className="staff-hearings-archive-outcome">
@@ -762,21 +756,9 @@ export default function StaffHearingsPage() {
               </div>
               <div className="staff-hearings-field">
                 <label htmlFor="hearing-create-court">
-                  Court Room <span aria-hidden>*</span>
+                  Court <span aria-hidden>*</span>
                 </label>
-                <select
-                  id="hearing-create-court"
-                  required
-                  className="staff-hearings-select"
-                  value={court}
-                  onChange={(e) => setCourt(e.target.value)}
-                >
-                  {COURTS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                <CourtSelect id="hearing-create-court" required value={court} onValueChange={setCourt} />
               </div>
               <div className="staff-hearings-field-row">
                 <div className="staff-hearings-field locale-date-full-row">
@@ -872,7 +854,7 @@ export default function StaffHearingsPage() {
                   <dd>
                     {selectedAd ? `${selectedAd.label} · ${selectedAd.weekday}` : "Date unavailable"}
                     <small>
-                      {[selectedHearing?.time, selectedHearing?.court].filter(Boolean).join(" · ") ||
+                      {[selectedHearing?.time, selectedHearing?.court ? formatCourtName(selectedHearing.court, language) : null].filter(Boolean).join(" · ") ||
                         "Court and time not recorded"}
                     </small>
                   </dd>

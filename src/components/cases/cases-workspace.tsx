@@ -14,6 +14,7 @@ import { CaseCreateDialog } from "@/components/cases/case-create-dialog";
 import { CaseIdentity } from "@/components/cases/case-identity";
 import { CaseQueryState } from "@/components/cases/case-query-state";
 import { CaseStatusFilters } from "@/components/cases/case-status-filters";
+import { courtMatchesSearch } from "@/lib/nepal-courts";
 import { StaffCasesList } from "@/components/cases/staff-cases-list";
 import { StaffCasesFilters } from "@/components/cases/staff-cases-filters";
 import {
@@ -90,7 +91,8 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
         matter.title.toLowerCase().includes(queryStr) ||
         matter.caseNumber.toLowerCase().includes(queryStr) ||
         Boolean(client && client.fullName.toLowerCase().includes(queryStr)) ||
-        Boolean(lawyer && lawyer.name?.toLowerCase().includes(queryStr))
+        Boolean(lawyer && lawyer.name?.toLowerCase().includes(queryStr)) ||
+        courtMatchesSearch(matter.court, search)
       );
     });
   }, [cases, clients, search, statusFilter, users, portal, staffFilters]);

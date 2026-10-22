@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/lib/i18n-context";
+import { courtMatchesSearch, formatCourtName } from "@/lib/nepal-courts";
 import { bsDateParts, formatOperationalDate } from "@/lib/nepali-calendar";
 
 import {
@@ -138,7 +139,7 @@ function matchesSearch(
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
-  return haystack.includes(query);
+  return haystack.includes(query) || courtMatchesSearch(hearing.court, query);
 }
 
 function openClientActions(tasks: TaskDto[] | undefined, caseId?: string): TaskDto[] {
@@ -319,7 +320,7 @@ export default function ClientHearingsPage() {
                   {[
                     formatOperationalDate(hearing.dateGregorian, hearing.dateBs, language),
                     formatHearingTime(hearing.time),
-                    hearing.court?.trim() || "Court not specified",
+                    formatCourtName(hearing.court, language),
                     hearing.purpose || null,
                   ]
                     .filter(Boolean)
@@ -475,7 +476,7 @@ export default function ClientHearingsPage() {
                       ) : null}
                       <li>
                         <MapPin className="size-3.5 shrink-0" aria-hidden />
-                        <span>{nextHearing.court?.trim() || "Court not specified"}</span>
+                        <span>{formatCourtName(nextHearing.court, language)}</span>
                       </li>
                       {nextHearing.dateBs ? (
                         <li>

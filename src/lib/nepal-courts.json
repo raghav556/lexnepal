@@ -1,0 +1,4058 @@
+[
+  {
+    "id": "supreme-nepal",
+    "name": {
+      "en": "Supreme Court of Nepal",
+      "ne": "सर्वोच्च अदालत नेपाल"
+    },
+    "englishNameKind": "official",
+    "category": "supreme",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "Supreme Court",
+      "सर्वोच्च अदालत",
+      "नेपालको सर्वोच्च अदालत"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/web/",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-biratnagar",
+    "name": {
+      "en": "High Court Biratnagar",
+      "ne": "उच्च अदालत विराटनगर"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 112,
+      "en": "Morang",
+      "ne": "मोरङ"
+    },
+    "location": {
+      "en": "Biratnagar",
+      "ne": "विराटनगर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Biratnagar"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/biratnagarhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-dipayal",
+    "name": {
+      "en": "High Court Dipayal",
+      "ne": "उच्च अदालत दिपायल"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 706,
+      "en": "Doti",
+      "ne": "डोटी"
+    },
+    "location": {
+      "en": "Dipayal",
+      "ne": "दिपायल"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Dipayal"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dipayalhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-janakpur",
+    "name": {
+      "en": "High Court Janakpur",
+      "ne": "उच्च अदालत जनकपुर"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 203,
+      "en": "Dhanusa",
+      "ne": "धनुषा"
+    },
+    "location": {
+      "en": "Janakpur",
+      "ne": "जनकपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Janakpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/janakpurhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-patan",
+    "name": {
+      "en": "High Court Patan",
+      "ne": "उच्च अदालत पाटन"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 308,
+      "en": "Lalitpur",
+      "ne": "ललितपुर"
+    },
+    "location": {
+      "en": "Patan",
+      "ne": "पाटन"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Patan"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/patanhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-pokhara",
+    "name": {
+      "en": "High Court Pokhara",
+      "ne": "उच्च अदालत पोखरा"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 405,
+      "en": "Kaski",
+      "ne": "कास्की"
+    },
+    "location": {
+      "en": "Pokhara",
+      "ne": "पोखरा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Pokhara"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/pokharahc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-surkhet",
+    "name": {
+      "en": "High Court Surkhet",
+      "ne": "उच्च अदालत सुर्खेत"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 610,
+      "en": "Surkhet",
+      "ne": "सुर्खेत"
+    },
+    "location": {
+      "en": "Surkhet",
+      "ne": "सुर्खेत"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Surkhet"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/surkhethc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-tulsipur",
+    "name": {
+      "en": "High Court Tulsipur",
+      "ne": "उच्च अदालत तुलसीपुर"
+    },
+    "englishNameKind": "official",
+    "category": "high",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 510,
+      "en": "Dang",
+      "ne": "दाङ"
+    },
+    "location": {
+      "en": "Tulsipur",
+      "ne": "तुलसीपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "High Court — Tulsipur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/tulsipurhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Dang Deukhuri",
+      "Dang"
+    ]
+  },
+  {
+    "id": "high-dhankuta",
+    "name": {
+      "en": "High Court Biratnagar, Dhankuta Bench",
+      "ne": "उच्च अदालत विराटनगर, धनकुटा इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 107,
+      "en": "Dhankuta",
+      "ne": "धनकुटा"
+    },
+    "location": {
+      "en": "Dhankuta",
+      "ne": "धनकुटा"
+    },
+    "parentId": "high-biratnagar",
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dhankutahc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-illam",
+    "name": {
+      "en": "High Court Biratnagar, Ilam Bench",
+      "ne": "उच्च अदालत विराटनगर, इलाम इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 110,
+      "en": "Ilam",
+      "ne": "इलाम"
+    },
+    "location": {
+      "en": "Ilam",
+      "ne": "इलाम"
+    },
+    "parentId": "high-biratnagar",
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/illamhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-okhaldhunga",
+    "name": {
+      "en": "High Court Biratnagar, Temporary Bench Okhaldhunga",
+      "ne": "उच्च अदालत विराटनगर, अस्थायी इजलास ओखलढुंगा"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 104,
+      "en": "Okhaldhunga",
+      "ne": "ओखलढुङ्गा"
+    },
+    "location": {
+      "en": "Okhaldhunga",
+      "ne": "ओखलढुंगा"
+    },
+    "parentId": "high-biratnagar",
+    "temporary": true,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/okhaldhungahc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-mahendranagar",
+    "name": {
+      "en": "High Court Dipayal, Mahendranagar Bench",
+      "ne": "उच्च अदालत दिपायल, महेन्द्रनगर इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 709,
+      "en": "Kanchanpur",
+      "ne": "कञ्चनपुर"
+    },
+    "location": {
+      "en": "Mahendranagar",
+      "ne": "महेन्द्रनगर"
+    },
+    "parentId": "high-dipayal",
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/mahendranagarhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-rajbiraj",
+    "name": {
+      "en": "High Court Janakpur, Rajbiraj Bench",
+      "ne": "उच्च अदालत जनकपुर, राजविराज इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 201,
+      "en": "Saptari",
+      "ne": "सप्तरी"
+    },
+    "location": {
+      "en": "Rajbiraj",
+      "ne": "राजविराज"
+    },
+    "parentId": "high-janakpur",
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rajbirajhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-birganj",
+    "name": {
+      "en": "High Court Janakpur, Temporary Bench Birganj",
+      "ne": "उच्च अदालत जनकपुर, अस्थायी इजलास वीरगन्ज"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 208,
+      "en": "Parsa",
+      "ne": "पर्सा"
+    },
+    "location": {
+      "en": "Birganj",
+      "ne": "वीरगन्ज"
+    },
+    "parentId": "high-janakpur",
+    "temporary": true,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/birganjhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Birgunj Metropolitan City",
+      "बिरगन्ज महानगरपालिका"
+    ]
+  },
+  {
+    "id": "high-hetauda",
+    "name": {
+      "en": "High Court Patan, Hetauda Bench",
+      "ne": "उच्च अदालत पाटन, हेटौंडा इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 312,
+      "en": "Makwanpur",
+      "ne": "मकवानपुर"
+    },
+    "location": {
+      "en": "Hetauda",
+      "ne": "हेटौंडा"
+    },
+    "parentId": "high-patan",
+    "temporary": false,
+    "aliases": [
+      "High Court — Hetauda"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/hetaudahc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Makawanpur"
+    ]
+  },
+  {
+    "id": "high-baglung",
+    "name": {
+      "en": "High Court Pokhara, Baglung Bench",
+      "ne": "उच्च अदालत पोखरा, बाग्लुङ्ग इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 411,
+      "en": "Baglung",
+      "ne": "बाग्लुङ"
+    },
+    "location": {
+      "en": "Baglung",
+      "ne": "बाग्लुङ्ग"
+    },
+    "parentId": "high-pokhara",
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/baglunghc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-jumla",
+    "name": {
+      "en": "High Court Surkhet, Jumla Bench",
+      "ne": "उच्च अदालत सुर्खेत, जुम्ला इजलास"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "bench",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 604,
+      "en": "Jumla",
+      "ne": "जुम्ला"
+    },
+    "location": {
+      "en": "Jumla",
+      "ne": "जुम्ला"
+    },
+    "parentId": "high-surkhet",
+    "temporary": false,
+    "aliases": [
+      "High court surkhet jumla bench"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/jumlahc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-butwal",
+    "name": {
+      "en": "High Court Tulsipur, Butwal Bench",
+      "ne": "उच्च अदालत तुलसीपुर, बुटवल इजलास"
+    },
+    "englishNameKind": "official",
+    "category": "bench",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 508,
+      "en": "Rupandehi",
+      "ne": "रुपन्देही"
+    },
+    "location": {
+      "en": "Butwal",
+      "ne": "बुटवल"
+    },
+    "parentId": "high-tulsipur",
+    "temporary": false,
+    "aliases": [
+      "High Court — Butwal"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/butwalhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "high-nepalgunj",
+    "name": {
+      "en": "High Court Tulsipur, Nepalgunj Bench",
+      "ne": "उच्च अदालत तुलसीपुर, नेपालगंज इजलास"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "bench",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 511,
+      "en": "Banke",
+      "ne": "बाँके"
+    },
+    "location": {
+      "en": "Nepalgunj",
+      "ne": "नेपालगंज"
+    },
+    "parentId": "high-tulsipur",
+    "temporary": false,
+    "aliases": [
+      "Hig Court Tulsipur, Nepalgunj Bench"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/nepalgunjhc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Nepalganj Sub-Metropolitan City",
+      "नेपालगञ्ज उपमहानगरपालिका"
+    ]
+  },
+  {
+    "id": "district-baitadi",
+    "name": {
+      "en": "Baitadi District Court",
+      "ne": "बैतडी जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 704,
+      "en": "Baitadi",
+      "ne": "बैतडी"
+    },
+    "location": {
+      "en": "Baitadi",
+      "ne": "बैतडी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Baitadi District Court Gadi Baitadi",
+      "Baitadi District Court Gadi Baitadi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/baitadidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Baitadi District Court Gadi Baitadi",
+      "Baitadi"
+    ],
+    "submissionValue": "Baitadi District Court Gadi Baitadi",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-dang",
+    "name": {
+      "en": "Dang Deukhuri District Court",
+      "ne": "दाङ  जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 510,
+      "en": "Dang",
+      "ne": "दाङ"
+    },
+    "location": {
+      "en": "Dang",
+      "ne": "दाङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "दाङ जिल्ला अदालत",
+      "District Court — Dang Deukhuri"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dangdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Dang Deukhuri",
+      "Dang"
+    ]
+  },
+  {
+    "id": "district-achham",
+    "name": {
+      "en": "District Court Achham",
+      "ne": "अछाम जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 707,
+      "en": "Achham",
+      "ne": "अछाम"
+    },
+    "location": {
+      "en": "Achham",
+      "ne": "अछाम"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Aacham",
+      "District Court Aacham"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/achhamdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Aacham",
+      "Achham"
+    ],
+    "submissionValue": "District Court Aacham",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-argakhanchi",
+    "name": {
+      "en": "District Court Arghakhanchi",
+      "ne": "अर्घाखाँची जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 505,
+      "en": "Arghakhanchi",
+      "ne": "अर्घाखाँची"
+    },
+    "location": {
+      "en": "Arghakhanchi",
+      "ne": "अर्घाखाँची"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Argakhanchi",
+      "District Court Argakhanchi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/argakhanchidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Argakhanchi",
+      "Arghakhanchi"
+    ],
+    "submissionValue": "District Court Argakhanchi",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-baglung",
+    "name": {
+      "en": "District Court Baglung",
+      "ne": "बागलुङ जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 411,
+      "en": "Baglung",
+      "ne": "बाग्लुङ"
+    },
+    "location": {
+      "en": "Baglung",
+      "ne": "बाग्लुङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Baglung"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/baglungdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-bajhang",
+    "name": {
+      "en": "District Court Bajhang",
+      "ne": "बझाँग जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 702,
+      "en": "Bajhang",
+      "ne": "बझाङ"
+    },
+    "location": {
+      "en": "Bajhang",
+      "ne": "बझाङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "बझाँङ जिल्ला अदालत",
+      "District Court — Bajhang"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/bajhangdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-bajura",
+    "name": {
+      "en": "District Court Bajura",
+      "ne": "बाजुरा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 701,
+      "en": "Bajura",
+      "ne": "बाजुरा"
+    },
+    "location": {
+      "en": "Bajura",
+      "ne": "बाजुरा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Bajura"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/bajuradc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-banke",
+    "name": {
+      "en": "District Court Banke",
+      "ne": "बाँके जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 511,
+      "en": "Banke",
+      "ne": "बाँके"
+    },
+    "location": {
+      "en": "Banke",
+      "ne": "बाँके"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Banke"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/bankedc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-bara",
+    "name": {
+      "en": "District Court Bara",
+      "ne": "बारा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 207,
+      "en": "Bara",
+      "ne": "बारा"
+    },
+    "location": {
+      "en": "Bara",
+      "ne": "बारा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Bara"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/baradc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-bardiya",
+    "name": {
+      "en": "District Court Bardiya",
+      "ne": "बर्दिया जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 512,
+      "en": "Bardiya",
+      "ne": "बर्दिया"
+    },
+    "location": {
+      "en": "Bardiya",
+      "ne": "बर्दिया"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Bardiya"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/bardiyadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-bhaktapur",
+    "name": {
+      "en": "District Court Bhaktapur",
+      "ne": "भक्तपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 307,
+      "en": "Bhaktapur",
+      "ne": "भक्तपुर"
+    },
+    "location": {
+      "en": "Bhaktapur",
+      "ne": "भक्तपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Bhaktpur",
+      "District Court Bhaktpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/bhaktapurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Bhaktpur",
+      "Bhaktapur"
+    ],
+    "submissionValue": "District Court Bhaktpur",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-bhojpur",
+    "name": {
+      "en": "District Court Bhojpur",
+      "ne": "भोजपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 106,
+      "en": "Bhojpur",
+      "ne": "भोजपुर"
+    },
+    "location": {
+      "en": "Bhojpur",
+      "ne": "भोजपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Bhojpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/bhojpurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-chitwan",
+    "name": {
+      "en": "District Court Chitwan",
+      "ne": "चितवन जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 313,
+      "en": "Chitwan",
+      "ne": "चितवन"
+    },
+    "location": {
+      "en": "Chitwan",
+      "ne": "चितवन"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Chitwan"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/chitwandc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Chitawan"
+    ]
+  },
+  {
+    "id": "district-dadeldhura",
+    "name": {
+      "en": "District Court Dadeldhura",
+      "ne": "डडेलधुरा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 705,
+      "en": "Dadeldhura",
+      "ne": "डँडेलधुरा"
+    },
+    "location": {
+      "en": "Dadeldhura",
+      "ne": "डँडेलधुरा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Dadeldhura"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dadeldhuradc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-dailekh",
+    "name": {
+      "en": "District Court Dailekh",
+      "ne": "दैलेख जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 606,
+      "en": "Dailekh",
+      "ne": "दैलेख"
+    },
+    "location": {
+      "en": "Dailekh",
+      "ne": "दैलेख"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Dailekh"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dailekhdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-darchula",
+    "name": {
+      "en": "District Court Darchula",
+      "ne": "दार्चुला जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 703,
+      "en": "Darchula",
+      "ne": "दार्चुला"
+    },
+    "location": {
+      "en": "Darchula",
+      "ne": "दार्चुला"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Darchula"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/darchuladc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-dhadhing",
+    "name": {
+      "en": "District Court Dhading",
+      "ne": "धादिङ जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 304,
+      "en": "Dhading",
+      "ne": "धादिङ"
+    },
+    "location": {
+      "en": "Dhading",
+      "ne": "धादिङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "धादिंङ जिल्ला अदालत",
+      "District Court — Dhadhing",
+      "District Court Dhadhing"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dhadhingdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Dhadhing",
+      "Dhading"
+    ],
+    "submissionValue": "District Court Dhadhing",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-dhankuta",
+    "name": {
+      "en": "District Court Dhankuta",
+      "ne": "धनकुटा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 107,
+      "en": "Dhankuta",
+      "ne": "धनकुटा"
+    },
+    "location": {
+      "en": "Dhankuta",
+      "ne": "धनकुटा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Dhankuta"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dhankutadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-dhanusa",
+    "name": {
+      "en": "District Court Dhanusa",
+      "ne": "धनुषा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 203,
+      "en": "Dhanusa",
+      "ne": "धनुषा"
+    },
+    "location": {
+      "en": "Dhanusa",
+      "ne": "धनुषा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Dhanusa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dhanusadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-dolakha",
+    "name": {
+      "en": "District Court Dolakha",
+      "ne": "दोलखा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 301,
+      "en": "Dolakha",
+      "ne": "दोलखा"
+    },
+    "location": {
+      "en": "Dolakha",
+      "ne": "दोलखा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Dolakha"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dolakhadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-dolpa",
+    "name": {
+      "en": "District Court Dolpa",
+      "ne": "डोल्पा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 601,
+      "en": "Dolpa",
+      "ne": "डोल्पा"
+    },
+    "location": {
+      "en": "Dolpa",
+      "ne": "डोल्पा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Dolpa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dolpadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-doti",
+    "name": {
+      "en": "District Court Doti",
+      "ne": "डोटी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 706,
+      "en": "Doti",
+      "ne": "डोटी"
+    },
+    "location": {
+      "en": "Doti",
+      "ne": "डोटी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Doti"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/dotidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-gorkha",
+    "name": {
+      "en": "District Court Gorkha",
+      "ne": "गोरखा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 401,
+      "en": "Gorkha",
+      "ne": "गोरखा"
+    },
+    "location": {
+      "en": "Gorkha",
+      "ne": "गोरखा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Gorkha"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/gorkhadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-humla",
+    "name": {
+      "en": "District Court Humla",
+      "ne": "हुम्ला जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 603,
+      "en": "Humla",
+      "ne": "हुम्ला"
+    },
+    "location": {
+      "en": "Humla",
+      "ne": "हुम्ला"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Humla"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/humladc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-ilam",
+    "name": {
+      "en": "District Court Ilam",
+      "ne": "इलाम  जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 110,
+      "en": "Ilam",
+      "ne": "इलाम"
+    },
+    "location": {
+      "en": "Ilam",
+      "ne": "इलाम"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "इलाम जिल्ला अदालत",
+      "District Court — Ilam"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/ilamdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-jajarkot",
+    "name": {
+      "en": "District Court Jajarkot",
+      "ne": "जाजरकोट जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 607,
+      "en": "Jajarkot",
+      "ne": "जाजरकोट"
+    },
+    "location": {
+      "en": "Jajarkot",
+      "ne": "जाजरकोट"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Jajarkot"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/jajarkotdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-jhapa",
+    "name": {
+      "en": "District Court Jhapa",
+      "ne": "झापा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 111,
+      "en": "Jhapa",
+      "ne": "झापा"
+    },
+    "location": {
+      "en": "Jhapa",
+      "ne": "झापा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Jhapa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/jhapadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-jumla",
+    "name": {
+      "en": "District Court Jumla",
+      "ne": "जुम्ला जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 604,
+      "en": "Jumla",
+      "ne": "जुम्ला"
+    },
+    "location": {
+      "en": "Jumla",
+      "ne": "जुम्ला"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Jumla"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/jumladc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kailali",
+    "name": {
+      "en": "District Court Kailali",
+      "ne": "कैलाली जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 708,
+      "en": "Kailali",
+      "ne": "कैलाली"
+    },
+    "location": {
+      "en": "Kailali",
+      "ne": "कैलाली"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kailali"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kailalidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kalikot",
+    "name": {
+      "en": "District Court Kalikot",
+      "ne": "कालिकोट जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 605,
+      "en": "Kalikot",
+      "ne": "कालिकोट"
+    },
+    "location": {
+      "en": "Kalikot",
+      "ne": "कालिकोट"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kalikot"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kalikotdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kanchanpur",
+    "name": {
+      "en": "District Court Kanchanpur",
+      "ne": "कन्चनपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 7,
+      "en": "Sudurpashchim",
+      "ne": "सुदूरपश्चिम"
+    },
+    "district": {
+      "code": 709,
+      "en": "Kanchanpur",
+      "ne": "कञ्चनपुर"
+    },
+    "location": {
+      "en": "Kanchanpur",
+      "ne": "कञ्चनपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kanchanpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kanchanpurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kapilbastu",
+    "name": {
+      "en": "District Court Kapilbastu",
+      "ne": "कपिलवस्तु जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 509,
+      "en": "Kapilbastu",
+      "ne": "कपिलवस्तु"
+    },
+    "location": {
+      "en": "Kapilbastu",
+      "ne": "कपिलवस्तु"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kapilbastu"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kapilbastudc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kaski",
+    "name": {
+      "en": "District Court Kaski",
+      "ne": "कास्की जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 405,
+      "en": "Kaski",
+      "ne": "कास्की"
+    },
+    "location": {
+      "en": "Kaski",
+      "ne": "कास्की"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kaski"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kaskidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kavrepalanchowk",
+    "name": {
+      "en": "District Court Kavrepalanchowk",
+      "ne": "काभ्रेपलान्चोक जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 309,
+      "en": "Kavrepalanchowk",
+      "ne": "काभ्रेपलाञ्चोक"
+    },
+    "location": {
+      "en": "Kavrepalanchowk",
+      "ne": "काभ्रेपलाञ्चोक"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kavrepalanchowk"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kavrepalanchowkdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Kavrepalanchok"
+    ]
+  },
+  {
+    "id": "district-khotang",
+    "name": {
+      "en": "District Court Khotang",
+      "ne": "खोटांग जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 105,
+      "en": "Khotang",
+      "ne": "खोटाङ"
+    },
+    "location": {
+      "en": "Khotang",
+      "ne": "खोटाङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "खोटाङ जिल्ला अदालत",
+      "District Court — Khotang"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/khotangdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-lamjung",
+    "name": {
+      "en": "District Court Lamjung",
+      "ne": "लमजुंग जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 406,
+      "en": "Lamjung",
+      "ne": "लम्जुङ"
+    },
+    "location": {
+      "en": "Lamjung",
+      "ne": "लम्जुङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "लमजुङ जिल्ला अदालत",
+      "District Court — Lamjung"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/lamjungdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-mahottari",
+    "name": {
+      "en": "District Court Mahottari",
+      "ne": "महोत्तरी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 204,
+      "en": "Mahottari",
+      "ne": "महोत्तरी"
+    },
+    "location": {
+      "en": "Mahottari",
+      "ne": "महोत्तरी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Mahottari"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/mahottaridc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-makwanpur",
+    "name": {
+      "en": "District Court Makwanpur",
+      "ne": "मकवानपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 312,
+      "en": "Makwanpur",
+      "ne": "मकवानपुर"
+    },
+    "location": {
+      "en": "Makwanpur",
+      "ne": "मकवानपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Makwanpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/makwanpurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Makawanpur"
+    ]
+  },
+  {
+    "id": "district-manang",
+    "name": {
+      "en": "District Court Manang",
+      "ne": "मनांग जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 402,
+      "en": "Manang",
+      "ne": "मनाङ"
+    },
+    "location": {
+      "en": "Manang",
+      "ne": "मनाङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "मनांङ जिल्ला अदालत",
+      "District Court — Manang"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/manangdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-morang",
+    "name": {
+      "en": "District Court Morang",
+      "ne": "मोरंग जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 112,
+      "en": "Morang",
+      "ne": "मोरङ"
+    },
+    "location": {
+      "en": "Morang",
+      "ne": "मोरङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "मोरङ जिल्ला अदालत",
+      "District Court — Morang"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/morangdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-mugu",
+    "name": {
+      "en": "District Court Mugu",
+      "ne": "मुगु जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 602,
+      "en": "Mugu",
+      "ne": "मुगु"
+    },
+    "location": {
+      "en": "Mugu",
+      "ne": "मुगु"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Mugu"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/mugudc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-mustang",
+    "name": {
+      "en": "District Court Mustang",
+      "ne": "मुस्तांग जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 403,
+      "en": "Mustang",
+      "ne": "मुस्ताङ"
+    },
+    "location": {
+      "en": "Mustang",
+      "ne": "मुस्ताङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "मुस्तांङ जिल्ला अदालत",
+      "District Court — Mustang"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/mustangdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-myagdi",
+    "name": {
+      "en": "District Court Myagdi",
+      "ne": "म्याग्दी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 404,
+      "en": "Myagdi",
+      "ne": "म्याग्दी"
+    },
+    "location": {
+      "en": "Myagdi",
+      "ne": "म्याग्दी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Myagdi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/myagdidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-nawalparasi",
+    "name": {
+      "en": "District Court Nawalparasi",
+      "ne": "नवलपरासी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 507,
+      "en": "Nawalparasi (Bardaghat Susta West)",
+      "ne": "नवलपरासी (बर्दघाट सुस्ता पश्चिम)"
+    },
+    "location": {
+      "en": "Nawalparasi (Bardaghat Susta West)",
+      "ne": "नवलपरासी (बर्दघाट सुस्ता पश्चिम)"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Nawalparasi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/nawalparasidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Nawalparasi West"
+    ]
+  },
+  {
+    "id": "district-nuwakot",
+    "name": {
+      "en": "District Court Nuwakot",
+      "ne": "नुवाकोट जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 305,
+      "en": "Nuwakot",
+      "ne": "नुवाकोट"
+    },
+    "location": {
+      "en": "Nuwakot",
+      "ne": "नुवाकोट"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Nuwakot"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/nuwakotdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-okhaldhunga",
+    "name": {
+      "en": "District Court Okhaldhunga",
+      "ne": "ओखलढुंगा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 104,
+      "en": "Okhaldhunga",
+      "ne": "ओखलढुङ्गा"
+    },
+    "location": {
+      "en": "Okhaldhunga",
+      "ne": "ओखलढुङ्गा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Okhaldhunga"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/okhaldhungadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-palpa",
+    "name": {
+      "en": "District Court Palpa",
+      "ne": "पाल्पा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 506,
+      "en": "Palpa",
+      "ne": "पाल्पा"
+    },
+    "location": {
+      "en": "Palpa",
+      "ne": "पाल्पा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Palpa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/palpadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-panchthar",
+    "name": {
+      "en": "District Court Panchthar",
+      "ne": "पाँचथर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 109,
+      "en": "Panchthar",
+      "ne": "पाँचथर"
+    },
+    "location": {
+      "en": "Panchthar",
+      "ne": "पाँचथर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Panchthar"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/panchthardc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-parbat",
+    "name": {
+      "en": "District Court Parbat",
+      "ne": "पर्वत जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 410,
+      "en": "Parbat",
+      "ne": "पर्वत"
+    },
+    "location": {
+      "en": "Parbat",
+      "ne": "पर्वत"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Parbat"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/parbatdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-pyuthan",
+    "name": {
+      "en": "District Court Pyuthan",
+      "ne": "प्युठान जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 503,
+      "en": "Pyuthan",
+      "ne": "प्यूठान"
+    },
+    "location": {
+      "en": "Pyuthan",
+      "ne": "प्यूठान"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Pyuthan"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/pyuthandc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-ramechap",
+    "name": {
+      "en": "District Court Ramechhap",
+      "ne": "रामेछाप जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 310,
+      "en": "Ramechhap",
+      "ne": "रामेछाप"
+    },
+    "location": {
+      "en": "Ramechhap",
+      "ne": "रामेछाप"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — ramechap",
+      "District Court ramechap"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/ramechapdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "ramechap",
+      "Ramechhap"
+    ],
+    "submissionValue": "District Court ramechap",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-rasuwa",
+    "name": {
+      "en": "District Court Rasuwa",
+      "ne": "रसुवा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 303,
+      "en": "Rasuwa",
+      "ne": "रसुवा"
+    },
+    "location": {
+      "en": "Rasuwa",
+      "ne": "रसुवा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Rasuwa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rasuwadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-rautahat",
+    "name": {
+      "en": "District Court Rautahat",
+      "ne": "रौतहट जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 206,
+      "en": "Rautahat",
+      "ne": "रौतहट"
+    },
+    "location": {
+      "en": "Rautahat",
+      "ne": "रौतहट"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Rautahat"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rautahatdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-rolpa",
+    "name": {
+      "en": "District Court Rolpa",
+      "ne": "रोल्पा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 502,
+      "en": "Rolpa",
+      "ne": "रोल्पा"
+    },
+    "location": {
+      "en": "Rolpa",
+      "ne": "रोल्पा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Rolpa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rolpadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-rukum",
+    "name": {
+      "en": "District Court Rukum",
+      "ne": "रुकुम जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 608,
+      "en": "Rukum (West)",
+      "ne": "रुकुम (पश्चिम भाग)"
+    },
+    "location": {
+      "en": "Rukum (West)",
+      "ne": "रुकुम (पश्चिम भाग)"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Rukum"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rukumdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Rukum West"
+    ]
+  },
+  {
+    "id": "district-rupandehi",
+    "name": {
+      "en": "District Court Rupandehi",
+      "ne": "रूपन्देही जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 508,
+      "en": "Rupandehi",
+      "ne": "रुपन्देही"
+    },
+    "location": {
+      "en": "Rupandehi",
+      "ne": "रुपन्देही"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Rupandehi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rupandehidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-salyan",
+    "name": {
+      "en": "District Court Salyan",
+      "ne": "सल्यान जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 609,
+      "en": "Salyan",
+      "ne": "सल्यान"
+    },
+    "location": {
+      "en": "Salyan",
+      "ne": "सल्यान"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Salyan"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/salyandc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-sankhuwasabha",
+    "name": {
+      "en": "District Court Sankhuwasabha",
+      "ne": "संखुवासभा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 102,
+      "en": "Sankhuwasabha",
+      "ne": "संखुवासभा"
+    },
+    "location": {
+      "en": "Sankhuwasabha",
+      "ne": "संखुवासभा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Sankhuwasabha"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/sankhuwasabhadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-saptari",
+    "name": {
+      "en": "District Court Saptari",
+      "ne": "सप्तरी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 201,
+      "en": "Saptari",
+      "ne": "सप्तरी"
+    },
+    "location": {
+      "en": "Saptari",
+      "ne": "सप्तरी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Saptari"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/saptaridc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-sarlahi",
+    "name": {
+      "en": "District Court Sarlahi",
+      "ne": "सर्लाही जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 205,
+      "en": "Sarlahi",
+      "ne": "सर्लाही"
+    },
+    "location": {
+      "en": "Sarlahi",
+      "ne": "सर्लाही"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Sarlahi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/sarlahidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-sindhuli",
+    "name": {
+      "en": "District Court Sindhuli",
+      "ne": "सिन्धुली जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 311,
+      "en": "Sindhuli",
+      "ne": "सिन्धुली"
+    },
+    "location": {
+      "en": "Sindhuli",
+      "ne": "सिन्धुली"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Sindhuli"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/sindhulidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-sindhupalchowk",
+    "name": {
+      "en": "District Court Sindhupalchowk",
+      "ne": "सिन्धुपाल्चोक जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 302,
+      "en": "Sindhupalchowk",
+      "ne": "सिन्धुपाल्चोक"
+    },
+    "location": {
+      "en": "Sindhupalchowk",
+      "ne": "सिन्धुपाल्चोक"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Sindhupalchowk"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/sindhupalchowkdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Sindhupalchok"
+    ]
+  },
+  {
+    "id": "district-siraha",
+    "name": {
+      "en": "District Court Siraha",
+      "ne": "सिराहा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 202,
+      "en": "Siraha",
+      "ne": "सिरहा"
+    },
+    "location": {
+      "en": "Siraha",
+      "ne": "सिरहा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Siraha"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/sirahadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-solukhumbu",
+    "name": {
+      "en": "District Court Solukhumbu",
+      "ne": "सोलुखुम्बु जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 103,
+      "en": "Solukhumbu",
+      "ne": "सोलुखुम्बु"
+    },
+    "location": {
+      "en": "Solukhumbu",
+      "ne": "सोलुखुम्बु"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Solukhumbu"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/solukhumbudc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-sunsari",
+    "name": {
+      "en": "District Court Sunsari",
+      "ne": "सुनसरी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 113,
+      "en": "Sunsari",
+      "ne": "सुनसरी"
+    },
+    "location": {
+      "en": "Sunsari",
+      "ne": "सुनसरी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Sunsari"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/sunsaridc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-surkhet",
+    "name": {
+      "en": "District Court Surkhet",
+      "ne": "सुर्खेत जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 6,
+      "en": "Karnali",
+      "ne": "कर्णाली"
+    },
+    "district": {
+      "code": 610,
+      "en": "Surkhet",
+      "ne": "सुर्खेत"
+    },
+    "location": {
+      "en": "Surkhet",
+      "ne": "सुर्खेत"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Surkhet"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/surkhetdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-syangjya",
+    "name": {
+      "en": "District Court Syangja",
+      "ne": "स्याङ्जा जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 409,
+      "en": "Syangja",
+      "ne": "स्याङ्जा"
+    },
+    "location": {
+      "en": "Syangja",
+      "ne": "स्याङ्जा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "स्याङजा जिल्ला अदालत",
+      "District Court — Syangjya",
+      "District Court Syangjya"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/syangjyadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Syangjya",
+      "Syangja"
+    ],
+    "submissionValue": "District Court Syangjya",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-tanahun",
+    "name": {
+      "en": "District Court Tanahun",
+      "ne": "तनहूँ जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 407,
+      "en": "Tanahun",
+      "ne": "तनहुँ"
+    },
+    "location": {
+      "en": "Tanahun",
+      "ne": "तनहुँ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "तनहुँ जिल्ला अदालत",
+      "District Court — Tanahun"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/tanahundc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Tanahu"
+    ]
+  },
+  {
+    "id": "district-taplejung",
+    "name": {
+      "en": "District Court Taplejung",
+      "ne": "ताप्लेजुङ जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 101,
+      "en": "Taplejung",
+      "ne": "ताप्लेजुङ"
+    },
+    "location": {
+      "en": "Taplejung",
+      "ne": "ताप्लेजुङ"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Taplejuung",
+      "District Court Taplejuung"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/taplejungdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Taplejuung",
+      "Taplejung"
+    ],
+    "submissionValue": "District Court Taplejuung",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-therathum",
+    "name": {
+      "en": "District Court Terhathum",
+      "ne": "तेह्रथुम जिल्ला अदालत"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 108,
+      "en": "Terhathum",
+      "ne": "तेह्रथुम"
+    },
+    "location": {
+      "en": "Terhathum",
+      "ne": "तेह्रथुम"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Therathum",
+      "District Court Therathum"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/therathumdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Therathum",
+      "Terhathum"
+    ],
+    "submissionValue": "District Court Therathum",
+    "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
+  },
+  {
+    "id": "district-udayapur",
+    "name": {
+      "en": "District Court Udayapur",
+      "ne": "उदयपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 114,
+      "en": "Udayapur",
+      "ne": "उदयपुर"
+    },
+    "location": {
+      "en": "Udayapur",
+      "ne": "उदयपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Udayapur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/udayapurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-gulmi",
+    "name": {
+      "en": "Gulmi District Court",
+      "ne": "गुल्मी जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 504,
+      "en": "Gulmi",
+      "ne": "गुल्मी"
+    },
+    "location": {
+      "en": "Gulmi",
+      "ne": "गुल्मी"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Gulmi"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/gulmidc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-kathmandu",
+    "name": {
+      "en": "Kathmandu District Court",
+      "ne": "काठमाडौं जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Kathmandu"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/kathmandudc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-lalitpur",
+    "name": {
+      "en": "Lalitpur District Court",
+      "ne": "ललितपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 308,
+      "en": "Lalitpur",
+      "ne": "ललितपुर"
+    },
+    "location": {
+      "en": "Lalitpur",
+      "ne": "ललितपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Lalitpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/lalitpurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-nawalpur",
+    "name": {
+      "en": "Nawalpur District Court",
+      "ne": "नवलपुर जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 408,
+      "en": "Nawalparasi (Bardaghat Susta East)",
+      "ne": "नवलपरासी (बर्दघाट सुस्ता पूर्व)"
+    },
+    "location": {
+      "en": "Nawalparasi (Bardaghat Susta East)",
+      "ne": "नवलपरासी (बर्दघाट सुस्ता पूर्व)"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Nawalpur"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/nawalpurdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Nawalparasi East"
+    ]
+  },
+  {
+    "id": "district-parsa",
+    "name": {
+      "en": "Parsa District Court",
+      "ne": "पर्सा जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 2,
+      "en": "Madhesh",
+      "ne": "मधेश"
+    },
+    "district": {
+      "code": 208,
+      "en": "Parsa",
+      "ne": "पर्सा"
+    },
+    "location": {
+      "en": "Parsa",
+      "ne": "पर्सा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "District Court — Parsa"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/parsadc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "district-rukumkot",
+    "name": {
+      "en": "Rukumkot District Court",
+      "ne": "रुकुमकोट जिल्ला अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "district",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 501,
+      "en": "Rukum (East)",
+      "ne": "रुकुम (पूर्वी भाग)"
+    },
+    "location": {
+      "en": "Rukum (East)",
+      "ne": "रुकुम (पूर्वी भाग)"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "श्री रुकुमकोट जिल्ला अदालत",
+      "District Court — Rukumkot"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/rukumkotdc",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Rukum East"
+    ]
+  },
+  {
+    "id": "administrative-nepal",
+    "name": {
+      "en": "Administrative Court",
+      "ne": "प्रशासकीय अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "specialized",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://admincourt.gov.np/",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "juvenile-bhaktapur",
+    "name": {
+      "en": "Bal Adalat, Bhaktapur (Juvenile Court)",
+      "ne": "बाल अदालत, भक्तपुर"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "specialized",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 307,
+      "en": "Bhaktapur",
+      "ne": "भक्तपुर"
+    },
+    "location": {
+      "en": "Bhaktapur",
+      "ne": "भक्तपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://nijamati.pis.gov.np/pages/organization-structure-list-with-code-1102813616/",
+      "https://hr.parliament.gov.np/uploads/attachments/oykb6ouslr1ouu2p.pdf",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Bhaktpur",
+      "Bhaktapur"
+    ]
+  },
+  {
+    "id": "consumer-nepal",
+    "name": {
+      "en": "Consumer Court",
+      "ne": "उपभोक्ता अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "specialized",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/consumercourt/",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "labour-nepal",
+    "name": {
+      "en": "Labour Court",
+      "ne": "श्रम अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "specialized",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 307,
+      "en": "Bhaktapur",
+      "ne": "भक्तपुर"
+    },
+    "location": {
+      "en": "Bhaktapur",
+      "ne": "भक्तपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://labourcourt.gov.np/",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html",
+      "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": [
+      "Bhaktpur",
+      "Bhaktapur"
+    ]
+  },
+  {
+    "id": "military-special-nepal",
+    "name": {
+      "en": "Military Special Court",
+      "ne": "सैनिक विशेष अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "specialized",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://www.jcs.gov.np/faq/",
+      "https://supremecourt.gov.np/web/assets/downloads/annual/barsik-pratibedan-208182.pdf#page=130",
+      "https://nkp.gov.np/full_detail/9384",
+      "https://supremecourt.gov.np/web/assets/downloads/judgements/Some%20Landmark%20Decision%20-%20Vol.%204.pdf",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "special-nepal",
+    "name": {
+      "en": "Special Court",
+      "ne": "विशेष अदालत"
+    },
+    "englishNameKind": "official",
+    "category": "specialized",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "बिशेष अदालत"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://supremecourt.gov.np/court/specialcourt",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "debt-recovery-appeal-nepal",
+    "name": {
+      "en": "Debt Recovery Appellate Tribunal",
+      "ne": "ऋण असुली पुनरावेदन न्यायाधिकरण"
+    },
+    "englishNameKind": "official",
+    "category": "tribunal",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "ऋृण असुली पुनरावेदन न्यायाधिकरण"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://drat.gov.np/page/about_us",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "debt-recovery-nepal",
+    "name": {
+      "en": "Debt Recovery Tribunal",
+      "ne": "ऋण असुली न्यायाधिकरण"
+    },
+    "englishNameKind": "official",
+    "category": "tribunal",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://drt.drtribunal.gov.np/",
+      "https://www.drtribunal.gov.np/content/9/our-service/",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "foreign-employment-nepal",
+    "name": {
+      "en": "Foreign Employment Tribunal",
+      "ne": "वैदेशिक रोजगार न्यायाधिकरण"
+    },
+    "englishNameKind": "official",
+    "category": "tribunal",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "बैदेशिक रोजगार न्यायाधिकरण"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://fet.gov.np/",
+      "https://supremecourt.gov.np/web/yentemp",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "cooperative-loan-recovery-nepal",
+    "name": {
+      "en": "Loan Recovery Tribunal",
+      "ne": "कर्जा असुली न्यायाधिकरण"
+    },
+    "englishNameKind": "official",
+    "category": "tribunal",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 306,
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "location": {
+      "en": "Kathmandu",
+      "ne": "काठमाडौं"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://lrt.gov.np/",
+      "https://lrt.gov.np/pages/introduction/",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "revenue-biratnagar",
+    "name": {
+      "en": "Revenue Tribunal Biratnagar",
+      "ne": "राजस्व न्यायाधिकरण विराटनगर"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "tribunal",
+    "province": {
+      "code": 1,
+      "en": "Koshi",
+      "ne": "कोशी"
+    },
+    "district": {
+      "code": 112,
+      "en": "Morang",
+      "ne": "मोरङ"
+    },
+    "location": {
+      "en": "Biratnagar",
+      "ne": "विराटनगर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://revenuetribunal.gov.np/pages/view/about_us",
+      "https://ird.gov.np/faq/?gid=97",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "revenue-kathmandu",
+    "name": {
+      "en": "Revenue Tribunal Kathmandu",
+      "ne": "राजस्व न्यायाधिकरण काठमाडौं"
+    },
+    "englishNameKind": "official",
+    "category": "tribunal",
+    "province": {
+      "code": 3,
+      "en": "Bagmati",
+      "ne": "बागमती"
+    },
+    "district": {
+      "code": 308,
+      "en": "Lalitpur",
+      "ne": "ललितपुर"
+    },
+    "location": {
+      "en": "Lalitpur",
+      "ne": "ललितपुर"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [
+      "राजश्व न्यायाधिकरण काठमाडौं"
+    ],
+    "status": "operational",
+    "sources": [
+      "https://revenuetribunal.gov.np/pages/view/about_us",
+      "https://ird.gov.np/faq/?gid=97",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "revenue-nepalgunj",
+    "name": {
+      "en": "Revenue Tribunal Nepalgunj",
+      "ne": "राजस्व न्यायाधिकरण नेपालगञ्ज"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "tribunal",
+    "province": {
+      "code": 5,
+      "en": "Lumbini",
+      "ne": "लुम्बिनी"
+    },
+    "district": {
+      "code": 511,
+      "en": "Banke",
+      "ne": "बाँके"
+    },
+    "location": {
+      "en": "Nepalgunj",
+      "ne": "नेपालगञ्ज"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://revenuetribunal.gov.np/pages/view/about_us",
+      "https://ird.gov.np/faq/?gid=97",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  },
+  {
+    "id": "revenue-pokhara",
+    "name": {
+      "en": "Revenue Tribunal Pokhara",
+      "ne": "राजस्व न्यायाधिकरण पोखरा"
+    },
+    "englishNameKind": "identified-transliteration",
+    "category": "tribunal",
+    "province": {
+      "code": 4,
+      "en": "Gandaki",
+      "ne": "गण्डकी"
+    },
+    "district": {
+      "code": 405,
+      "en": "Kaski",
+      "ne": "कास्की"
+    },
+    "location": {
+      "en": "Pokhara",
+      "ne": "पोखरा"
+    },
+    "parentId": null,
+    "temporary": false,
+    "aliases": [],
+    "status": "operational",
+    "sources": [
+      "https://revenuetribunal.gov.np/pages/view/about_us",
+      "https://ird.gov.np/faq/?gid=97",
+      "https://ec.nsonepal.gov.np/html/admin_code.html"
+    ],
+    "checkedOn": "2026-10-22",
+    "searchAliases": []
+  }
+]

@@ -1,4 +1,6 @@
 "use client";
+import { useI18n } from "@/lib/i18n-context";
+import { formatCourtName } from "@/lib/nepal-courts";
 
 import { formatOperationalDate } from "@/lib/nepali-calendar";
 
@@ -150,6 +152,7 @@ const QUICK_ACTIONS = [
 ] as const;
 
 export default function AdminDashboard() {
+  const { language } = useI18n();
   const [operationsView, setOperationsView] = useState<"trend" | "cases">("trend");
   const currentUser = useCurrentUser();
   const casesResult = useCases({});
@@ -308,7 +311,7 @@ export default function AdminDashboard() {
         id: `hearing-${item._id}`,
         icon: CalendarDays,
         title: caseTitleById.get(item.caseId) ?? "Court hearing",
-        subtitle: item.court,
+        subtitle: formatCourtName(item.court, language),
         meta: item.time ?? "Today",
         href: `/admin/cases/${item.caseId}?tab=hearings`,
       }));
@@ -356,7 +359,7 @@ export default function AdminDashboard() {
       });
     }
     return [...hearingEntries, ...appointmentEntries, ...queueEntries].slice(0, 5);
-  }, [scheduledHearings, appointments, todayIso, caseTitleById, kycQueue, blogQueue]);
+  }, [scheduledHearings, appointments, todayIso, caseTitleById, kycQueue, blogQueue, language]);
 
   // Cases Requiring Attention: active matters with a hearing in the next 14 days,
   // soonest first (documented deterministic rule — no invented risk scoring).
@@ -722,7 +725,7 @@ export default function AdminDashboard() {
                     </DashboardTableCell>
                     <DashboardTableCell>
                       <span className="text-sm font-medium text-foreground">{formatOperationalDate(row.hearingDate)}</span>
-                      <span className="block text-xs text-muted-foreground">{row.court}</span>
+                      <span className="block text-xs text-muted-foreground">{formatCourtName(row.court, language)}</span>
                     </DashboardTableCell>
                   </DashboardTableRow>
                 ))}

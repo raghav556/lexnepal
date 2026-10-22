@@ -15,7 +15,8 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { BsDateField } from "@/components/ui/bs-date-field";
 import { useHearingCommands } from "@/client/queries/hearings";
-import { COURTS } from "@/lib/lex-constants.ts";
+import { CourtSelect } from "@/components/ui/court-select";
+import { officialCourtValue } from "@/lib/nepal-courts";
 import { formatBs, gregorianToBs } from "@/lib/nepali-calendar.ts";
 
 type CaseHearingDialogProps = {
@@ -44,8 +45,6 @@ export function CaseHearingDialog({
   const [purpose, setPurpose] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const courtOptions =
-    defaultCourt && !COURTS.includes(defaultCourt) ? [defaultCourt, ...COURTS] : COURTS;
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +71,8 @@ export function CaseHearingDialog({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!court.trim() || !dateGregorian || !dateBs) {
+    const verifiedCourt = officialCourtValue(court);
+    if (!verifiedCourt || !dateGregorian || !dateBs) {
       toast.error("Court and hearing date are required.");
       return;
     }
@@ -80,7 +80,7 @@ export function CaseHearingDialog({
     try {
       await createHearing({
         caseId,
-        court: court.trim(),
+        court: verifiedCourt,
         judge: judge.trim() || undefined,
         dateGregorian,
         dateBs,
@@ -111,20 +111,7 @@ export function CaseHearingDialog({
             <label htmlFor="case-hearing-court" className="text-xs font-medium">
               Court
             </label>
-            <select
-              id="case-hearing-court"
-              required
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={court}
-              onChange={(event) => setCourt(event.target.value)}
-            >
-              <option value="">Select court</option>
-              {courtOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <CourtSelect id="case-hearing-court" required value={court} onValueChange={setCourt} />
           </div>
           <div className="space-y-1">
               <label htmlFor="case-hearing-bs" className="text-xs font-medium">

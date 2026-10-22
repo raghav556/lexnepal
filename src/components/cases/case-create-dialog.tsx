@@ -26,6 +26,7 @@ import { useCreateCase } from "@/client/queries/cases";
 import { CaseLifecycleSelect } from "@/components/cases/case-status-filters";
 import { CaseTeamFields } from "@/components/cases/case-team-fields";
 import { COURTS, PRACTICE_AREAS } from "@/lib/lex-constants.ts";
+import { CourtSelect } from "@/components/ui/court-select";
 import { caseStatusWritePayload, type CaseLifecycleStatus } from "@/shared/contracts/case-ui";
 
 export interface CaseCreateLawyer {
@@ -283,21 +284,8 @@ export function CaseCreateDialog({
 
             <div className="space-y-1">
               <Label htmlFor="case-court">Court Name</Label>
-              <Select
-                value={form.court}
-                onValueChange={(court) => setForm((current) => ({ ...current, court }))}
-              >
-                <SelectTrigger id="case-court" className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COURTS.map((court) => (
-                    <SelectItem key={court} value={court}>
-                      {court}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CourtSelect id="case-court" value={form.court}
+                onValueChange={(court) => setForm((current) => ({ ...current, court }))} />
             </div>
           </div>
 

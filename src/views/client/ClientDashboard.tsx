@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/lib/i18n-context";
+import { formatCourtName } from "@/lib/nepal-courts";
 import { bsDateParts, formatDualDate } from "@/lib/nepali-calendar";
 
 import {
@@ -760,7 +761,7 @@ export default function ClientDashboard() {
                       {nextHearing.court ? (
                         <p className="client-home-hearing-line">
                           <Building2 aria-hidden />
-                          <span>{nextHearing.court}</span>
+                          <span>{formatCourtName(nextHearing.court, language)}</span>
                         </p>
                       ) : null}
                       {nextHearing.time ? (

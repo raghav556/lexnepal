@@ -1,3 +1,5 @@
+import { NEPAL_COURTS, officialCourtValue } from "./nepal-courts";
+
 export const ROLE_LABELS: Record<string, string> = {
   partner: "Partner",
   senior_associate: "Senior Associate",
@@ -23,20 +25,8 @@ export const PRACTICE_AREAS = [
   "Arbitration & ADR",
 ];
 
-export const COURTS = [
-  "Supreme Court of Nepal",
-  "High Court — Patan",
-  "High Court — Butwal",
-  "High Court — Biratnagar",
-  "High Court — Pokhara",
-  "High Court — Hetauda",
-  "District Court — Kathmandu",
-  "District Court — Lalitpur",
-  "Labour Court",
-  "Revenue Tribunal",
-  "Administrative Court",
-  "Other",
-];
+/** Compatibility projection; the verified registry is the only court list. */
+export const COURTS = NEPAL_COURTS.map(court => officialCourtValue(court.id)!);
 
 export const VAT_RATE = 0.13;
 

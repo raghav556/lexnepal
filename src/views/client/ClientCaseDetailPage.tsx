@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/lib/i18n-context";
+import { formatCourtName } from "@/lib/nepal-courts";
 import { bsDateParts, formatNepalTimestamp, formatOperationalDate } from "@/lib/nepali-calendar";
 
 import {
@@ -298,7 +299,7 @@ export default function ClientCaseDetailPage() {
   const advocateName = advocate?.name?.trim() ? advocate.name : "Unassigned";
   const lifecycle = toLifecycleStatus(caseData.status);
   const statusLabel = CASE_LIFECYCLE_LABELS[lifecycle];
-  const courtLabel = caseData.court?.trim() ? caseData.court : "Not specified";
+  const courtLabel = caseData.court?.trim() ? formatCourtName(caseData.court, language) : "Not specified";
   const visibleParties = caseData.parties ?? [];
   const opposingParties = visibleParties.filter((party) => party.side === "opposing");
   const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian, language);
@@ -629,7 +630,7 @@ export default function ClientCaseDetailPage() {
                         <ul className="client-matter-detail-hearing-lines">
                           <li>
                             <MapPin className="size-3.5" aria-hidden />
-                            <span>{nextHearing.court || "Court TBD"}</span>
+                            <span>{formatCourtName(nextHearing.court, language)}</span>
                           </li>
                           {nextHearing.time ? (
                             <li>
@@ -817,7 +818,7 @@ export default function ClientCaseDetailPage() {
                               <DashboardStatusLabel status={h.status} className="text-xs" />
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {h.court || "Court TBD"}
+                              {formatCourtName(h.court, language)}
                               {h.purpose ? ` · ${h.purpose}` : ""}
                             </p>
                           </div>

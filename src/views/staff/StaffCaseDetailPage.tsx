@@ -1,4 +1,7 @@
 import { nepalDateOnly } from "@/lib/nepali-calendar";
+import { CourtSelect } from "@/components/ui/court-select";
+import { formatCourtName } from "@/lib/nepal-courts";
+import { useI18n } from "@/lib/i18n-context";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -101,6 +104,7 @@ function actorUserId(user: { id?: string; _id?: string } | null | undefined): st
 }
 
 export default function StaffCaseDetailPage() {
+  const { language } = useI18n();
   const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const pathname = usePathname();
@@ -229,7 +233,7 @@ export default function StaffCaseDetailPage() {
         key: `h-${h._id}`,
         date: h.dateGregorian || "",
         label: h.purpose || "Hearing",
-        detail: `${h.court || ""} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}${!h.dateGregorian && h.dateBs ? ` · Recorded B.S.: ${h.dateBs}; A.D. unavailable` : ""}`,
+        detail: `${formatCourtName(h.court, language)} · ${h.status}${h.outcome ? ` · ${h.outcome}` : ""}${!h.dateGregorian && h.dateBs ? ` · Recorded B.S.: ${h.dateBs}; A.D. unavailable` : ""}`,
       });
     }
     for (const task of tasks as any[]) {
@@ -251,7 +255,7 @@ export default function StaffCaseDetailPage() {
       });
     }
     return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [caseData, hearings, mislDocuments, tasks]);
+  }, [caseData, hearings, mislDocuments, tasks, language]);
 
   const startEditing = () => {
     if (caseData) {
@@ -498,12 +502,7 @@ export default function StaffCaseDetailPage() {
                   >
                     Court
                   </label>
-                  <Input
-                    id={portal === "staff" ? "detail-court" : undefined}
-                    className="bg-background text-xs"
-                    value={court}
-                    onChange={(e) => setCourt(e.target.value)}
-                  />
+                  <CourtSelect id="detail-court" aria-label="Court" preserveLegacy value={court} onValueChange={setCourt} />
                 </div>
                 <div className="space-y-1">
                   <label
@@ -581,7 +580,7 @@ export default function StaffCaseDetailPage() {
                 },
                 {
                   label: "Jurisdiction",
-                  value: caseData.court || "Not Specified",
+                  value: formatCourtName(caseData.court, language),
                   icon: CalendarDays,
                 },
                 { label: "Presiding Judge", value: caseData.judge || "Not Assigned", icon: User },
@@ -713,7 +712,7 @@ export default function StaffCaseDetailPage() {
               <StaffCaseSummary
                 client={client ? client.fullName : "Unknown"}
                 lawyer={lawyer ? lawyer.name : "Unassigned"}
-                court={caseData.court || "Not Specified"}
+                court={formatCourtName(caseData.court, language)}
                 judge={caseData.judge || "Not Assigned"}
                 opposingCounsel={caseData.opposingCounsel || "Not Specified"}
                 nextAction={
@@ -1006,7 +1005,7 @@ export default function StaffCaseDetailPage() {
                       <div>
                         <p className="text-sm font-semibold">{hearing.purpose || "Hearing"}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {hearing.court || caseData.court || "Court not set"} · {hearing.status}
+                          {formatCourtName(hearing.court || caseData.court, language)} · {hearing.status}
                         </p>
                       </div>
                       {hearing.dateGregorian || hearing.dateBs ? (

@@ -1,4 +1,6 @@
 "use client";
+import { useI18n } from "@/lib/i18n-context";
+import { formatCourtName } from "@/lib/nepal-courts";
 import { formatDualDate, formatOperationalDate, nepalDateOnly, bsDateParts } from "@/lib/nepali-calendar";
 
 import { useMemo } from "react";
@@ -132,6 +134,7 @@ function DashboardLoadingSkeleton() {
 }
 
 export default function StaffDashboard() {
+  const { language } = useI18n();
   const { heroImageUrl } = usePortalBranding();
   const currentUser = useCurrentUser();
   const casesResult = useCases({});
@@ -285,7 +288,7 @@ export default function StaffDashboard() {
         time: item.time ?? "",
         sortKey: parseClockTime(item.time),
         title: item.purpose || "Court hearing",
-        subtitle: `${caseTitleById.get(item.caseId) ?? "Matter"} · ${item.court}`,
+        subtitle: `${caseTitleById.get(item.caseId) ?? "Matter"} · ${formatCourtName(item.court, language)}`,
         badge: <StatusBadge tone="warning">Hearing</StatusBadge>,
         href: "/staff/hearings" as const,
       }));
@@ -308,7 +311,7 @@ export default function StaffDashboard() {
         };
       });
     return [...hearingEntries, ...appointmentEntries].sort((a, b) => a.sortKey - b.sortKey);
-  }, [hearings, appointments, todayIso, caseTitleById]);
+  }, [hearings, appointments, todayIso, caseTitleById, language]);
 
   const priorityTasks = pendingTasks
     .slice()
@@ -576,7 +579,7 @@ export default function StaffDashboard() {
                             {nextHearing ? (
                               <span className="text-xs text-muted-foreground">
                                 {formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs)}
-                                <span className="block">{nextHearing.court}</span>
+                                <span className="block">{formatCourtName(nextHearing.court, language)}</span>
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
@@ -641,7 +644,7 @@ export default function StaffDashboard() {
                             {formatOperationalDate(hearing.dateGregorian, hearing.dateBs)}
                           </p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {hearing.court}
+                            {formatCourtName(hearing.court, language)}
                             {hearing.time ? ` · ${hearing.time}` : ""}
                           </p>
                         </div>
