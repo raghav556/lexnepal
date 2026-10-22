@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "@/client/navigation";
 import { localAuthClient } from "@/client/auth/local-auth-client";
 import {
@@ -67,9 +67,12 @@ function destinationForRole(role: UserRole, next: string | null): string {
   return home;
 }
 
+const subscribeHydration = () => () => {};
+
 export default function SignInPage() {
   const navigate = useNavigate();
-  const publicSettings = usePublicCmsSettings();
+  const settings = usePublicCmsSettings();
+  const publicSettings = useSyncExternalStore(subscribeHydration, () => settings, () => undefined);
   const branding = pickPortalBranding(publicSettings);
   const firmName = branding.firmName || "Law Firm";
   const brandSubtitle = String(publicSettings?.tagline || "Legal practice platform");

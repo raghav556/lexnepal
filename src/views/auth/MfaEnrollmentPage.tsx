@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "@/client/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { localAuthClient } from "@/client/auth/local-auth-client";
@@ -21,7 +21,12 @@ function safeNextPath(raw: string | null): string | null {
   return raw;
 }
 
+const subscribeHydration = () => () => {};
+const clientHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
+
 export default function MfaEnrollmentPage() {
+  const hydrated = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
@@ -97,7 +102,7 @@ export default function MfaEnrollmentPage() {
     }
   };
 
-  if (session.isPending) {
+  if (!hydrated || session.isPending) {
     return (
       <main className="grid min-h-screen place-items-center bg-muted/30 p-4">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />

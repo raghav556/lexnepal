@@ -77,7 +77,13 @@ const nextConfig: NextConfig = {
     root: turbopackRoot,
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/contact",
+        headers: [{ key: "Content-Security-Policy", value: `${contentSecurityPolicy}; frame-src https://maps.google.com` }],
+      },
+    ];
   },
 };
 

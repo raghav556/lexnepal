@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
   Dialog,
@@ -517,7 +517,7 @@ export default function AdminUsersPage() {
         </div>
         <div className="w-full sm:w-48 shrink-0">
           <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger aria-label="Filter users by status" className="h-9 w-full">
               <SelectValue placeholder="Filter status" />
             </SelectTrigger>
             <SelectContent>
@@ -572,6 +572,7 @@ export default function AdminUsersPage() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value={activeTab}>
           {paginatedItems.length === 0 ? (
             <EmptyState
               title="No users found"
@@ -653,7 +654,7 @@ export default function AdminUsersPage() {
                               value={draftRole}
                               onValueChange={(v) => setDraftRole(v as UserRole)}
                             >
-                              <SelectTrigger className="h-8 text-xs w-36">
+                              <SelectTrigger aria-label={`Role for ${u.name || u.email || u.id}`} className="h-8 text-xs w-36">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -736,6 +737,7 @@ export default function AdminUsersPage() {
             onPrevPage={prevPage}
             className="mt-4"
           />
+          </TabsContent>
         </Tabs>
       )}
 
@@ -776,7 +778,7 @@ export default function AdminUsersPage() {
                 value={createForm.role}
                 onValueChange={(v: any) => setCreateForm({ ...createForm, role: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Invited user role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

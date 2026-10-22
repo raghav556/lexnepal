@@ -28,7 +28,7 @@ const stateClasses: Record<DashboardState, string> = {
   pressed: "bg-dashboard-panel-pressed translate-y-px",
   focus: "ring-2 ring-dashboard-focus ring-offset-2 ring-offset-dashboard-canvas",
   selected: "border-dashboard-primary bg-dashboard-primary-soft",
-  loading: "animate-pulse cursor-wait",
+  loading: "cursor-wait",
   empty: "border-dashed bg-dashboard-neutral-soft",
   disabled: "pointer-events-none opacity-50 grayscale-[20%]",
   warning: "border-dashboard-warning bg-dashboard-warning-soft",

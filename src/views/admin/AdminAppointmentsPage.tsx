@@ -507,7 +507,7 @@ export default function AdminAppointmentsPage() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 w-full sm:w-[150px] text-xs">
+            <SelectTrigger aria-label={language === "ne" ? "भेटघाटको स्थिति छान्नुहोस्" : "Filter appointments by status"} className="h-9 w-full sm:w-[150px] text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -519,7 +519,7 @@ export default function AdminAppointmentsPage() {
             </SelectContent>
           </Select>
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 w-full sm:w-[180px] text-xs">
+            <SelectTrigger aria-label={language === "ne" ? "कानुन व्यवसायी छान्नुहोस्" : "Filter appointments by lawyer"} className="h-9 w-full sm:w-[180px] text-xs">
               <SelectValue placeholder="Assignee" />
             </SelectTrigger>
             <SelectContent>
@@ -839,7 +839,7 @@ export default function AdminAppointmentsPage() {
                           onValueChange={(val) => handleAssign(id, val)}
                           disabled={apt.status === "cancelled" || apt.status === "completed"}
                         >
-                          <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
+                          <SelectTrigger aria-label={`${language === "ne" ? "कानुन व्यवसायी तोक्नुहोस्" : "Assign lawyer"}: ${apt.clientName || apt.id}`} className="w-full sm:w-[200px] h-9 bg-background">
                             <SelectValue placeholder="Assign Lawyer..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -1003,7 +1003,7 @@ export default function AdminAppointmentsPage() {
                   onValueChange={(val) => setCreateData({ ...createData, timeSlot: val })}
                   disabled={!createData.date || createSlotsLoading || createSlots.length === 0}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label={language === "ne" ? "भेटघाटको समय" : "Appointment time slot"}>
                     <SelectValue
                       placeholder={
                         !createData.date
@@ -1047,7 +1047,7 @@ export default function AdminAppointmentsPage() {
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label={language === "ne" ? "भेटघाटका कानुन व्यवसायी" : "Appointment lawyer"}>
                   <SelectValue placeholder="Do not assign yet" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1114,7 +1114,7 @@ export default function AdminAppointmentsPage() {
                   onValueChange={(val) => setRescheduleData({ ...rescheduleData, timeSlot: val })}
                   disabled={!rescheduleData.date || rescheduleSlotsLoading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label={language === "ne" ? "नयाँ भेटघाटको समय" : "Rescheduled time slot"}>
                     <SelectValue
                       placeholder={rescheduleSlotsLoading ? "Loading slots…" : "Select Time"}
                     />

@@ -1,4 +1,5 @@
 import { formatNepalTimestamp } from "@/lib/nepali-calendar";
+import { useI18n } from "@/lib/i18n-context";
 import { useState } from "react";
 import {
   Select,
@@ -37,11 +38,8 @@ const RESOURCE_ICONS: Record<string, ElementType> = {
 
 const RESOURCE_OPTIONS = ["all", "cases", "documents", "users", "leads"];
 
-function formatTime(ts: number) {
-  return formatNepalTimestamp(ts);
-}
-
 export default function AdminAuditPage() {
+  const { language } = useI18n();
   const [resourceFilter, setResourceFilter] = useState<string>("all");
 
   const auditEvents = useAuditEvents(resourceFilter !== "all" ? { resource: resourceFilter } : {});
@@ -51,7 +49,7 @@ export default function AdminAuditPage() {
   const isLoading = auditEvents === undefined;
 
   const getUserName = (userId: string) =>
-    users.find((u: any) => u._id === userId)?.name || "Unknown User";
+    users.find((u) => u.id === userId)?.name || "Unknown User";
 
   return (
     <PortalPageShell
@@ -64,7 +62,7 @@ export default function AdminAuditPage() {
       icon={Shield}
       actions={
         <Select value={resourceFilter} onValueChange={setResourceFilter}>
-          <SelectTrigger className="w-44 h-8 text-xs">
+          <SelectTrigger aria-label={language === "ne" ? "अडिट अभिलेखको स्रोत छान्नुहोस्" : "Filter audit records by resource"} className="w-44 h-8 text-xs">
             <SelectValue placeholder="Filter by resource" />
           </SelectTrigger>
           <SelectContent>
@@ -78,32 +76,34 @@ export default function AdminAuditPage() {
       }
       metrics={[
         {
-          label: "Total events",
+          label: "Events loaded",
           value: auditLog.length,
           icon: Activity,
           tone: DASHBOARD_METRIC_TONES.cases,
         },
         {
-          label: "Create / updates",
-          value: auditLog.filter((e: any) => ["CREATE", "UPDATE"].includes(e.action)).length,
+          label: "CREATE / UPDATE entries",
+          value: auditLog.filter((e) => ["CREATE", "UPDATE"].includes(e.action)).length,
+          helperText: "Exact action codes in loaded events",
           icon: FileText,
           tone: "information",
         },
         {
-          label: "Sensitive deletes",
-          value: auditLog.filter((e: any) => e.action === "DELETE").length,
+          label: "DELETE entries",
+          value: auditLog.filter((e) => e.action === "DELETE").length,
+          helperText: "Exact action code in loaded events",
           icon: Shield,
           tone: "danger",
         },
         {
-          label: "Unique users",
-          value: new Set(auditLog.map((e: any) => e.userId)).size,
+          label: "Actors loaded",
+          value: new Set(auditLog.map((e) => e.userId)).size,
           icon: User,
           tone: DASHBOARD_METRIC_TONES.people,
         },
       ]}
     >
-      <DashboardSection title="Audit entries" icon={Activity}>
+      <DashboardSection title="Audit entries" description="Recent events for the selected filter. Counts describe the loaded records." icon={Activity}>
         {auditLog.length === 0 ? (
           <EmptyState
             title="No audit events"
@@ -112,12 +112,12 @@ export default function AdminAuditPage() {
           />
         ) : (
           <div className="space-y-2">
-            {auditLog.map((entry: any) => {
+            {auditLog.map((entry) => {
               const ResourceIcon = RESOURCE_ICONS[entry.resource] ?? Shield;
               const actionTone = ACTION_TONES[entry.action] ?? "neutral";
               return (
                 <div
-                  key={entry._id}
+                  key={entry.id}
                   className="flex items-start gap-3 rounded-lg border border-dashboard-border bg-dashboard-panel p-4"
                 >
                   <div className="w-9 h-9 rounded-lg bg-dashboard-neutral-soft flex items-center justify-center flex-shrink-0">
@@ -131,7 +131,7 @@ export default function AdminAuditPage() {
                         className="font-mono text-[10px]"
                       />
                       <span className="text-xs font-medium text-foreground">
-                        {getUserName(entry.userId)}
+                        {entry.actorName || getUserName(entry.userId)}
                       </span>
                       <span className="text-xs text-muted-foreground capitalize">
                         on {entry.resource}
@@ -139,7 +139,7 @@ export default function AdminAuditPage() {
                     </div>
                     {entry.details && <p className="text-sm text-foreground">{entry.details}</p>}
                     <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>{formatTime(entry._creationTime)}</span>
+                      <span>{formatNepalTimestamp(entry.createdAt, language)}</span>
                       {entry.ipAddress && <span className="font-mono">IP: {entry.ipAddress}</span>}
                       {entry.resourceId && <span className="font-mono">{entry.resourceId}</span>}
                     </div>

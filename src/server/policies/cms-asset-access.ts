@@ -1,3 +1,4 @@
+import "server-only";
 import { AppError } from "@/shared/errors/api-error";
 import type { CmsAssetPurpose } from "@/shared/cms-assets";
 import type { AuthPrincipal } from "@/server/auth/types";
