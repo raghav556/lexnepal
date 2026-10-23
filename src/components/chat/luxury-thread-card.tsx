@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import React from "react";
 import { Briefcase, User, Lock, Globe } from "lucide-react";
@@ -35,7 +36,7 @@ function formatRelativeTime(dateInput?: string | Date | null): string {
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays === 1) return "yesterday";
   if (diffDays < 7) return `${diffDays}d`;
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return formatDualDate(d);
 }
 
 function getInitials(name?: string) {

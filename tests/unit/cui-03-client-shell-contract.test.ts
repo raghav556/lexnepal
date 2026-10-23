@@ -147,10 +147,14 @@ describe("CUI-03 client shell contract", () => {
     expect(topbar).not.toMatch(/Upload Document/);
     expect(topbar).toMatch(/Search your matters, documents or messages/);
     expect(topbar).toMatch(/Create/);
-    expect(staff).toMatch(/onOpenCommandCenter/);
+    expect(staff).toContain("onOpenSearch={() => setSearchOpen(true)}");
+    expect(staff).toContain(
+      '<GlobalSearchPalette isOpen onClose={() => setSearchOpen(false)} portal="staff"',
+    );
+    expect(staff).toContain('onOpenChat={() => router.push("/staff/messages")}');
   });
 
-  it("removes unsupported Client footer claims while leaving Staff/Admin copy", () => {
+  it("preserves Client legal copy and excludes unsupported operational footer claims", () => {
     const footer = readSrc("src/components/dashboard/portal-footer.tsx");
     const clientStart = footer.indexOf("if (isClient)");
     const staffStart = footer.lastIndexOf("return (");
@@ -158,7 +162,12 @@ describe("CUI-03 client shell contract", () => {
     for (const claim of CLIENT_UNSUPPORTED_FOOTER_CLAIMS) {
       expect(clientBranch).not.toMatch(new RegExp(claim, "i"));
     }
-    expect(footer).toMatch(/256-bit AES Encrypted/);
+    // Staff/Admin claims were subsequently verified as unsupported static copy.
+    // Keep the frozen Client guarantees and prevent these claims in either branch.
+    const operationalBranch = footer.slice(staffStart);
+    for (const claim of CLIENT_UNSUPPORTED_FOOTER_CLAIMS) {
+      expect(operationalBranch).not.toMatch(new RegExp(claim, "i"));
+    }
     expect(footer).toMatch(/Privacy Policy/);
     expect(footer).toMatch(/Terms of Service/);
     expect(footer).toMatch(/Contact Us/);
@@ -169,7 +178,9 @@ describe("CUI-03 client shell contract", () => {
     const staff = readSrc("src/app/(staff)/layout.tsx");
     expect(mobile).toMatch(/PortalMobileNavControls/);
     expect(mobile).toMatch(/typeof bottomBar === "function"/);
-    expect(staff).toMatch(/bottomBar=\{bottomBar\}/);
+    // Session 17 retires only the Staff bottom bar; the Client More engine above stays intact.
+    expect(staff).not.toMatch(/bottomBar=\{bottomBar\}/);
+    expect(staff).not.toMatch(/staff-mobile-primary/);
     expect(staff).not.toMatch(/openMenu/);
   });
 
@@ -179,7 +190,8 @@ describe("CUI-03 client shell contract", () => {
     expect(search).toMatch(/portal === "client"/);
     expect(search).toMatch(/useClients\(\{ enabled: !isClientPortal \}\)/);
     expect(search).not.toMatch(/\/client\/billing/);
-    expect(search).toMatch(/Conflict Checker/);
+    // The old assertion required an unsupported Admin module in a Client contract.
+    expect(search).not.toMatch(/\/admin\/conflict-checker/);
     expect(search).toMatch(/portal === "admin" \? "\/admin\/cases" : "\/staff\/cases"/);
   });
 });

@@ -21,6 +21,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: vi.fn(),
 }));
 vi.mock("@/client/queries/identity", () => ({ useCurrentIdentityUser: () => ({ id: "user-1" }) }));
+vi.mock("@/client/queries/collection", () => ({ useCollectionQuery: () => state.result }));
 import { useNotifications, useUnreadMessageCounts } from "@/client/queries/communication";
 import { useAppointments } from "@/client/queries/crm";
 

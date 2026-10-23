@@ -111,12 +111,22 @@ describe("real message command hooks with a mocked API", () => {
 describe("notifications retain account-scoped reads and cache keys", () => {
   it("the notifications query key includes the signed-in identity", () => {
     capture(useNotifications);
-    expect(client.getQueryCache().getAll()[0].queryKey).toEqual(["notifications", mocks.user.id]);
+    expect(client.getQueryCache().getAll()[0].queryKey).toEqual([
+      "notifications",
+      mocks.user.id,
+      "continued",
+      { firmId: undefined, userId: mocks.user.id, role: mocks.user.role },
+    ]);
   });
   for (const name of ["markRead", "markAllRead"] as const) {
     it(`${name} invalidates only the current account feed`, async () => {
-      const current = ["notifications", mocks.user.id];
-      const other = ["notifications", "another-client"];
+      const current = [
+        "notifications",
+        mocks.user.id,
+        "continued",
+        { firmId: undefined, userId: mocks.user.id, role: mocks.user.role },
+      ];
+      const other = ["notifications", "another-client", "continued"];
       client.setQueryData(current, []);
       client.setQueryData(other, ["private"]);
       const cmds = capture(useNotificationCommands);

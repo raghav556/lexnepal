@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createPool } from "mysql2/promise";
+import { withMigrationSession } from "./migration-session.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = fs.existsSync(path.join(scriptDirectory, "../drizzle"))
@@ -24,7 +25,14 @@ const pool = createPool({
 });
 
 try {
-  await migrate(drizzle(pool), { migrationsFolder: path.join(root, "drizzle") });
+  const connection = await pool.getConnection();
+  try {
+    await withMigrationSession(connection, () =>
+      migrate(drizzle(connection), { migrationsFolder: path.join(root, "drizzle") }),
+    );
+  } finally {
+    connection.release();
+  }
 } finally {
   await pool.end();
 }

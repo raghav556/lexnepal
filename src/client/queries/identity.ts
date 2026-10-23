@@ -1,3 +1,4 @@
+import { useCollectionQuery } from "@/client/queries/collection";
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
@@ -97,13 +98,9 @@ export function useOwnAuditEvents(): Array<AuditEventDto | ClientOwnAuditEventDt
 }
 
 export function useOwnAuditEventsQuery() {
-  return useQuery({
+  return useCollectionQuery<AuditEventDto | ClientOwnAuditEventDto>({
     queryKey: [...queryKeys.identity.all, "my-audit"],
-    queryFn: ({ signal }) =>
-      apiClient.request<Array<AuditEventDto | ClientOwnAuditEventDto>>(
-        "/api/v1/users/me/audit-events",
-        { signal },
-      ),
+    path: "/api/v1/users/me/audit-events",
   });
 }
 

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -14,7 +14,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -49,6 +48,10 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
   const [caseId, setCaseId] = useState<string>("all");
   const [type, setType] = useState<string>("all");
   const [tag, setTag] = useState<string>("");
+  const [isOpen, setIsOpen] = useState(false);
+  const closeFilters = useCallback((nextOpen = false) => {
+    setIsOpen(Boolean(nextOpen));
+  }, []);
 
   const handleSearch = () => {
     onSearch({
@@ -58,6 +61,7 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
       type: type === "all" ? undefined : type,
       tag: tag.trim() || undefined,
     });
+    setIsOpen(false);
   };
 
   const handleClear = () => {
@@ -80,24 +84,29 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            // Optional: debounced search could go here
           }}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
       </div>
 
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="outline" className="gap-2 shrink-0">
-            <Filter className="w-4 h-4" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-1 px-1.5 py-0 min-w-[20px] h-5">
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
-        </DialogTrigger>
+      <Button
+        type="button"
+        variant="outline"
+        className="gap-2 shrink-0"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(true)}
+      >
+        <Filter className="w-4 h-4" />
+        Filters
+        {activeFiltersCount > 0 && (
+          <Badge variant="secondary" className="ml-1 px-1.5 py-0 min-w-[20px] h-5">
+            {activeFiltersCount}
+          </Badge>
+        )}
+      </Button>
+
+      <Dialog open={isOpen} onOpenChange={closeFilters}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Advanced Search</DialogTitle>
@@ -105,9 +114,14 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
 
           <div className="grid gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-700">Case</label>
+              <label
+                className="text-xs font-medium text-slate-700"
+                htmlFor="staff-docs-filter-case"
+              >
+                Case
+              </label>
               <Select value={caseId} onValueChange={setCaseId}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger id="staff-docs-filter-case" className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -123,9 +137,14 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-700">Document Type</label>
+              <label
+                className="text-xs font-medium text-slate-700"
+                htmlFor="staff-docs-filter-type"
+              >
+                Document Type
+              </label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="h-8 capitalize">
+                <SelectTrigger id="staff-docs-filter-type" className="h-8 capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,8 +159,11 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-700">Tag</label>
+              <label className="text-xs font-medium text-slate-700" htmlFor="staff-docs-filter-tag">
+                Tag
+              </label>
               <Input
+                id="staff-docs-filter-tag"
                 placeholder="e.g. urgent, draft"
                 className="h-8"
                 value={tag}
@@ -151,10 +173,10 @@ export function AdvancedSearch({ cases, onSearch }: AdvancedSearchProps) {
           </div>
 
           <DialogFooter className="pt-2 mt-4">
-            <Button variant="ghost" className="h-8 text-xs" onClick={handleClear}>
+            <Button type="button" variant="ghost" className="h-8 text-xs" onClick={handleClear}>
               Clear
             </Button>
-            <Button className="h-8 text-xs" onClick={handleSearch}>
+            <Button type="button" className="h-8 text-xs" onClick={handleSearch}>
               Apply Filters
             </Button>
           </DialogFooter>

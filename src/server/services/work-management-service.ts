@@ -97,7 +97,9 @@ export class WorkManagementService {
       const caseIds = new Set(await security.listCaseIdsForClient(firmId, clientRecord.id));
       return rows.filter((r) => r.clientVisible && r.caseId && caseIds.has(String(r.caseId)));
     }
-    const accessibleCaseIds = new Set(await security.listCaseIdsForStaff(firmId, principal.user.id));
+    const accessibleCaseIds = new Set(
+      await security.listCaseIdsForStaff(firmId, principal.user.id),
+    );
     return rows.filter((r) =>
       staffMayAccessTask(
         {
@@ -128,7 +130,9 @@ export class WorkManagementService {
       }
       return row;
     }
-    const accessibleCaseIds = new Set(await security.listCaseIdsForStaff(firmId, principal.user.id));
+    const accessibleCaseIds = new Set(
+      await security.listCaseIdsForStaff(firmId, principal.user.id),
+    );
     if (
       staffMayAccessTask(
         {

@@ -42,7 +42,7 @@ import {
   shouldShowTrustedOrganizations,
 } from "@/shared/trusted-organizations";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { format } from "date-fns";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 function formatPostDate(post: {
   publishDate?: string | null;
@@ -53,7 +53,7 @@ function formatPostDate(post: {
   if (raw == null || raw === "") return null;
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return null;
-  return format(date, "MMM d, yyyy");
+  return formatDualDate(raw);
 }
 
 const STATS = [

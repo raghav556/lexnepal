@@ -1,0 +1,1368 @@
+{
+  "baseline": "eba60f7694bd1744fb62eb34f5e6d9bba51d775c",
+  "inheritedLedger": {
+    "path": "SESSION-18C-COVERAGE.json",
+    "sha256": "f56a43bd27d0b62b7c41ddeba4d88967de5db9454c7920e10dc3fc6f3fe2050f",
+    "baseWorkflowPath": "SESSION-18B-COVERAGE.json",
+    "baseWorkflowSha256": "d5582cf04fd5ce150bef47b6421f914b21878408ad0444257aed2934ba125bc2"
+  },
+  "interpretation": "Apply C updates to B workflow, then this single D update. Inherit every other status/scope unchanged. Untested declarations are not automatically known defects or certified noncritical.",
+  "stats": {
+    "handlers": 164,
+    "methods": 219,
+    "methodContractsPassed": 219,
+    "directSessionMethods": 184,
+    "actualPublicAnonymousMethods": 35,
+    "workflowDeclarations": 276,
+    "declarationsWithSpecificOrInheritedEvidence": 43,
+    "declarationsWithoutSpecificExecutionProof": 233
+  },
+  "workflowUpdates": [
+    {
+      "file": "src/views/admin/AdminUsersPage.tsx",
+      "line": 653,
+      "component": "Select",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Inline role only: named Save/Cancel/options; keyboard open/Home/ArrowDown/Enter and focus return; cancel without mutation;403 retained choice and identical role-only retry; EN1440/light and NE390/dark; stable-editor scans, not full popup-state certification",
+      "evidence": ".local/qa/session-18d/critical-roles.json"
+    }
+  ],
+  "notTestedDeclarationReferences": [
+    {
+      "file": "src/app/(public)/public-layout-shell.tsx",
+      "line": 1073,
+      "component": "form"
+    },
+    {
+      "file": "src/components/ui/ChatbotWidget.tsx",
+      "line": 222,
+      "component": "form"
+    },
+    {
+      "file": "src/components/ui/ChatbotWidget.tsx",
+      "line": 277,
+      "component": "form"
+    },
+    {
+      "file": "src/components/dashboard/portal-mobile-nav.tsx",
+      "line": 261,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/dashboard/client-mobile-drawer.tsx",
+      "line": 21,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/auth/PortalAccountMenu.tsx",
+      "line": 342,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/auth/IdleSessionGuard.tsx",
+      "line": 88,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 509,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 521,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 837,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 952,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 957,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 1001,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 1040,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 1084,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 1098,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminAppointmentsPage.tsx",
+      "line": 1112,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/crm/MeetingLinkDialog.tsx",
+      "line": 75,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/AdminAuditPage.tsx",
+      "line": 64,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-create-dialog.tsx",
+      "line": 134,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/cases/case-create-dialog.tsx",
+      "line": 147,
+      "component": "form"
+    },
+    {
+      "file": "src/components/cases/case-create-dialog.tsx",
+      "line": 188,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-create-dialog.tsx",
+      "line": 209,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-create-dialog.tsx",
+      "line": 266,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-status-filters.tsx",
+      "line": 78,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-status-filters.tsx",
+      "line": 107,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-team-fields.tsx",
+      "line": 62,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/staff-cases-filters.tsx",
+      "line": 37,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/staff-cases-filters.tsx",
+      "line": 210,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 649,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 706,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 838,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 842,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 980,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 1023,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 1064,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 1236,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffCaseDetailPage.tsx",
+      "line": 1264,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/components/cases/case-hearing-dialog.tsx",
+      "line": 100,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/cases/case-hearing-dialog.tsx",
+      "line": 109,
+      "component": "form"
+    },
+    {
+      "file": "src/components/cases/case-misl-upload-dialog.tsx",
+      "line": 87,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/cases/case-misl-upload-dialog.tsx",
+      "line": 96,
+      "component": "form"
+    },
+    {
+      "file": "src/components/cases/case-parties-editor.tsx",
+      "line": 208,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/cases/case-parties-editor.tsx",
+      "line": 215,
+      "component": "form"
+    },
+    {
+      "file": "src/components/cases/case-parties-editor.tsx",
+      "line": 232,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-parties-editor.tsx",
+      "line": 252,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/cases/case-parties-editor.tsx",
+      "line": 284,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 513,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 525,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 535,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 545,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 687,
+      "component": "Sheet"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 742,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 1049,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffClientsPage.tsx",
+      "line": 1054,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 251,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 272,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 274,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 339,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 451,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 551,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 598,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 676,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSDashboard.tsx",
+      "line": 794,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSBlog.tsx",
+      "line": 508,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSBlog.tsx",
+      "line": 682,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "line": 192,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "line": 213,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "line": 350,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "line": 511,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "line": 651,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSGovernance.tsx",
+      "line": 198,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSGovernance.tsx",
+      "line": 205,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSGovernance.tsx",
+      "line": 208,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSGovernance.tsx",
+      "line": 211,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSGovernance.tsx",
+      "line": 254,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSNavigation.tsx",
+      "line": 466,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSNavigation.tsx",
+      "line": 468,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSNews.tsx",
+      "line": 536,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSPracticeAreas.tsx",
+      "line": 422,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSPracticeAreas.tsx",
+      "line": 459,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSResources.tsx",
+      "line": 291,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSTeam.tsx",
+      "line": 460,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSTeam.tsx",
+      "line": 891,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/cms/AdminCMSTestimonials.tsx",
+      "line": 387,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 667,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 817,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 831,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 846,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1134,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1157,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1243,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1299,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1326,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1379,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1428,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1449,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1470,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminCRMPage.tsx",
+      "line": 1558,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminDocumentGenerator.tsx",
+      "line": 214,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminHRPage.tsx",
+      "line": 283,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/AdminHRPage.tsx",
+      "line": 295,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/AdminHRPage.tsx",
+      "line": 461,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/AdminHRPage.tsx",
+      "line": 668,
+      "component": "form"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 361,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 398,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 453,
+      "component": "form"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 562,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 572,
+      "component": "form"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 675,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 713,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 824,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/shared/SharedProfilePage.tsx",
+      "line": 885,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/shared/profile/ClientProfileOverview.tsx",
+      "line": 178,
+      "component": "form"
+    },
+    {
+      "file": "src/components/auth/PasswordConfirmDialog.tsx",
+      "line": 53,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/auth/PasswordConfirmDialog.tsx",
+      "line": 55,
+      "component": "form"
+    },
+    {
+      "file": "src/components/auth/TotpEnrollmentPanel.tsx",
+      "line": 35,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminSettingsPage.tsx",
+      "line": 111,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/AdminSettingsPage.tsx",
+      "line": 124,
+      "component": "form"
+    },
+    {
+      "file": "src/views/admin/AdminSettingsPage.tsx",
+      "line": 125,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/AdminSettingsPage.tsx",
+      "line": 190,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/AdminSettingsPage.tsx",
+      "line": 258,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/admin/AdminTemplatesPage.tsx",
+      "line": 234,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/admin/AdminTemplatesPage.tsx",
+      "line": 251,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminUsersPage.tsx",
+      "line": 519,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/admin/AdminUsersPage.tsx",
+      "line": 562,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/admin/AdminUsersPage.tsx",
+      "line": 575,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/public/BlogPostPage.tsx",
+      "line": 368,
+      "component": "form"
+    },
+    {
+      "file": "src/views/public/CareersPage.tsx",
+      "line": 150,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/public/CareersPage.tsx",
+      "line": 194,
+      "component": "form"
+    },
+    {
+      "file": "src/views/client/ClientBookingPage.tsx",
+      "line": 387,
+      "component": "form"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 399,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 412,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 779,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 836,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 883,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 979,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/client/ClientCaseDetailPage.tsx",
+      "line": 1055,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/client/ClientDocumentsPage.tsx",
+      "line": 769,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/client/ClientDocumentsPage.tsx",
+      "line": 912,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/public/ConsultationPage.tsx",
+      "line": 487,
+      "component": "form"
+    },
+    {
+      "file": "src/views/public/ConsultationPage.tsx",
+      "line": 551,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/public/ConsultationPage.tsx",
+      "line": 608,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/public/ContactPage.tsx",
+      "line": 364,
+      "component": "form"
+    },
+    {
+      "file": "src/views/public/IntakeFormPage.tsx",
+      "line": 262,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/auth/ResetPasswordPage.tsx",
+      "line": 102,
+      "component": "form"
+    },
+    {
+      "file": "src/views/auth/ResetPasswordPage.tsx",
+      "line": 131,
+      "component": "form"
+    },
+    {
+      "file": "src/views/public/ResourcesPage.tsx",
+      "line": 417,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/public/ResourcesPage.tsx",
+      "line": 435,
+      "component": "form"
+    },
+    {
+      "file": "src/views/public/ResourceDetailPage.tsx",
+      "line": 252,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/public/ResourceDetailPage.tsx",
+      "line": 260,
+      "component": "form"
+    },
+    {
+      "file": "src/views/auth/AccountSetupPage.tsx",
+      "line": 80,
+      "component": "form"
+    },
+    {
+      "file": "src/views/public/SharedDocumentPage.tsx",
+      "line": 74,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentsPage.tsx",
+      "line": 497,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentsPage.tsx",
+      "line": 640,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentsPage.tsx",
+      "line": 687,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentBookingDialog.tsx",
+      "line": 181,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentBookingDialog.tsx",
+      "line": 203,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentBookingDialog.tsx",
+      "line": 209,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffAppointmentBookingDialog.tsx",
+      "line": 316,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 481,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 491,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 504,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 514,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 674,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 679,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 789,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 823,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 833,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffClientsWorkspace.tsx",
+      "line": 861,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffContentPage.tsx",
+      "line": 218,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/staff/StaffContentPage.tsx",
+      "line": 244,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffContentPage.tsx",
+      "line": 263,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffContentWritePage.tsx",
+      "line": 318,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffContentWritePage.tsx",
+      "line": 358,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffContentWritePage.tsx",
+      "line": 379,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 487,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 511,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 525,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 540,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 618,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 638,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 651,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 732,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 739,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 759,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 765,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 773,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 787,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 808,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 814,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 822,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 831,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffCRMPage.tsx",
+      "line": 843,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 982,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1283,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1314,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1400,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1422,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1441,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1507,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/documents/AdvancedSearch.tsx",
+      "line": 109,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/documents/AdvancedSearch.tsx",
+      "line": 123,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/documents/AdvancedSearch.tsx",
+      "line": 146,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/documents/TagManagementModal.tsx",
+      "line": 48,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/documents/TemplateGeneratorModal.tsx",
+      "line": 125,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/components/documents/TemplateGeneratorModal.tsx",
+      "line": 173,
+      "component": "Select"
+    },
+    {
+      "file": "src/components/documents/DocumentShareModal.tsx",
+      "line": 121,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffHearingsPage.tsx",
+      "line": 717,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffHearingsPage.tsx",
+      "line": 730,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffHearingsPage.tsx",
+      "line": 827,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffHearingsPage.tsx",
+      "line": 840,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 566,
+      "component": "Tabs"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 583,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 743,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 760,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 768,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 847,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 914,
+      "component": "TabsContent"
+    },
+    {
+      "file": "src/views/staff/StaffHRPage.tsx",
+      "line": 1027,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffResearchPage.tsx",
+      "line": 396,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffResearchPage.tsx",
+      "line": 472,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffResearchPage.tsx",
+      "line": 499,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffResearchPage.tsx",
+      "line": 517,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 741,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 757,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 773,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 788,
+      "component": "Select"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 1022,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 1084,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 1096,
+      "component": "form"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 1202,
+      "component": "Dialog"
+    },
+    {
+      "file": "src/views/staff/StaffTasksPage.tsx",
+      "line": 1248,
+      "component": "form"
+    }
+  ],
+  "additionalMethodBranchEvidence": [
+    {
+      "route": "/api/v1/documents/:id",
+      "method": "GET",
+      "scope": "Foreign-firm404; source row remains unchanged. Not a new positive GET certification.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/documents/:id",
+      "method": "PATCH",
+      "scope": "Retention policy/unchanged instant,hold/release; foreign/Client/session/invalid-ID denials.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/documents/:id",
+      "method": "DELETE",
+      "scope": "Held409,Client403,foreign404; successful deletion only of the disposable fixture row.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/documents/:id/share",
+      "method": "POST",
+      "scope": "Scoped create,password hash,download flag/limit; privileged/held/Client/foreign denial.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/documents/:id/share",
+      "method": "DELETE",
+      "scope": "Wrong-document404; authorized revocation and subsequent public denial.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/public/document-shares/:token",
+      "method": "POST",
+      "scope": "Wrong password,valid password and revoked token branches; public-token authorization.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/users/:userId",
+      "method": "PATCH",
+      "scope": "Role/audit,MFA policy persistence; Client/foreign/self-suspension denial.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/users/:userId",
+      "method": "DELETE",
+      "scope": "Self-archive409 only; no new positive archive certification.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/users/:userId/mfa",
+      "method": "DELETE",
+      "scope": "Self/foreign denial; authorized reset deletes active credentials/sessions and retired secret.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    },
+    {
+      "route": "/api/v1/hr/payroll/runs/:id/finalize",
+      "method": "POST",
+      "scope": "Foreign404,Client403,authorized200,audit/actor and repeat400.",
+      "evidence": ".local/qa/session-18d/security-final.json",
+      "execution": "Real exported handler/service/SQL; supplied authenticated identity, not a new HTTP cookie/login certification"
+    }
+  ],
+  "realLocalSessionGateEvidence": {
+    "source": "src/server/auth/better-auth-session-service.ts",
+    "scope": "Actual session service and restricted SQL identities with controlled Better Auth responses; historical Admin/Partner MFA denial,enrolled Admin,authoritative Client role and capabilities. Cookie cryptography/external provider HTTP not certified.",
+    "evidence": ".local/qa/session-18d/security-final.json"
+  },
+  "criticalTests": [
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL foreign firm cannot read a document or alter its original row",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL foreign firm cannot edit a document or alter its original row",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL foreign firm cannot delete a document or alter its original row",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL foreign firm cannot share a document or alter its original row",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL Client cannot edit an internal document",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL Client cannot delete an internal document",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL Client cannot share an internal document",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL preserves returned retention instant while accepting policy-only edits",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL legal hold blocks permanent deletion and public sharing until explicit authorized release",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL share password, download policy, revocation and document association are enforced by real routes",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL privileged document refuses an external share even for Admin",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL expired session and invalid UUID fail before document mutation",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL authorized role change is audited while foreign-firm and Client role changes are denied",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL self-suspension/archive/MFA reset and cross-firm reset are denied; target MFA reset clears secrets",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL payroll finalization enforces firm/capability, persists audit and rejects repeat finalization",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL promotion to admin preserves mandatory MFA in persisted identity",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL promotion to partner preserves mandatory MFA in persisted identity",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL historical admin identity with a missing required flag cannot bypass session MFA enrollment",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL historical partner identity with a missing required flag cannot bypass session MFA enrollment",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL enrolled Admin and ordinary unenrolled Client retain their actual role-scoped access",
+      "status": "passed"
+    },
+    {
+      "name": "real authenticated mutation routes on restricted disposable SQL role demotion cannot silently clear an existing stronger MFA policy",
+      "status": "passed"
+    }
+  ],
+  "remainingCriticalCertification": [
+    "Positive storage upload/quarantine/scanner/promotion and KYC completion",
+    "Every signature UI method/conditional branch and external delivery",
+    "All authenticated HTTP/cross-tenant branches beyond explicit evidence",
+    "Bulk/destructive action variants and non-executed dialogs",
+    "Cross-browser and deployment/environment certification"
+  ]
+}

@@ -24,7 +24,7 @@ function isPortaledOverlay(node: Element | null): boolean {
   if (!node) return false;
   return Boolean(
     node.closest(
-      '[role="listbox"], [role="menu"], [data-radix-popper-content-wrapper], [data-radix-select-content]',
+      '[role="listbox"], [role="menu"], [data-calendar-popover], [data-radix-popper-content-wrapper], [data-radix-select-content]',
     ),
   );
 }
@@ -45,6 +45,10 @@ function getInitialFocus(root: HTMLElement): HTMLElement {
 export function Dialog({ open, onOpenChange, children }: any) {
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const previouslyFocused = React.useRef<HTMLElement | null>(null);
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
 
   React.useEffect(() => {
     if (!open) return;
@@ -62,9 +66,12 @@ export function Dialog({ open, onOpenChange, children }: any) {
     const id = window.setTimeout(focusInitial, 0);
 
     const onKeyDown = (event: KeyboardEvent) => {
+      // A child confirmation owns keyboard interaction while both modals exist.
+      const modals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (contentRef.current !== modals[modals.length - 1]) return;
       if (event.key === "Escape") {
         event.preventDefault();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
       if (event.key !== "Tab") return;
@@ -98,7 +105,7 @@ export function Dialog({ open, onOpenChange, children }: any) {
       document.body.style.overflow = previousOverflow;
       previouslyFocused.current?.focus?.();
     };
-  }, [open, onOpenChange]);
+  }, [open]);
 
   if (!open) return null;
   return (

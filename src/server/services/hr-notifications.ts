@@ -1,4 +1,5 @@
 import "server-only";
+import { formatDualDate } from "@/lib/nepali-calendar";
 import { createHash } from "node:crypto";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { resolveCapabilities } from "@/server/auth/capabilities";
@@ -81,7 +82,9 @@ async function enqueueLeaveEmail(input: {
 
 function leaveSummary(leave: LeaveRequestDto): string {
   const range =
-    leave.toDate !== leave.fromDate ? `${leave.fromDate} → ${leave.toDate}` : leave.fromDate;
+    leave.toDate !== leave.fromDate
+      ? `${formatDualDate(leave.fromDate)} → ${formatDualDate(leave.toDate)}`
+      : formatDualDate(leave.fromDate);
   return `${leave.type} (${range})`;
 }
 

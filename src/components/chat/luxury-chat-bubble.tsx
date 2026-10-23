@@ -1,4 +1,5 @@
 "use client";
+import { formatNepalClock } from "@/lib/nepali-calendar";
 
 import React from "react";
 import {
@@ -88,9 +89,7 @@ export function LuxuryChatBubble({
 
   const roleBadge = getRoleBadge(senderRole, appearance);
   const timeStr =
-    createdAt instanceof Date
-      ? createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    createdAt instanceof Date ? formatNepalClock(createdAt) : formatNepalClock(new Date(createdAt));
 
   return (
     <div
@@ -112,9 +111,7 @@ export function LuxuryChatBubble({
           >
             {getInitials(senderName)}
           </div>
-          {!isClient && (
-            <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
-          )}
+          {/* Online presence is not backed by a live API — omit decorative dots. */}
         </div>
       )}
 
@@ -150,6 +147,7 @@ export function LuxuryChatBubble({
         <div
           className={cn(
             "relative text-[13px] leading-relaxed break-words shadow-sm",
+            isInternal && "staff-chat-bubble-confidential",
             isInternal
               ? isClient
                 ? "bg-dashboard-warning-soft border border-dashboard-border text-foreground rounded-xl px-3.5 py-2.5"

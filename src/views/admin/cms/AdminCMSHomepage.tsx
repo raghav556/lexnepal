@@ -68,8 +68,7 @@ export default function AdminCMSHomepage() {
   );
 
   const hasUnsavedChanges = JSON.stringify(form) !== JSON.stringify(initialForm);
-  const hasUnsavedTrusted =
-    JSON.stringify(trustedForm) !== JSON.stringify(initialTrustedForm);
+  const hasUnsavedTrusted = JSON.stringify(trustedForm) !== JSON.stringify(initialTrustedForm);
 
   const handleTeamChange = (teamMemberId: string) => {
     const member = leadershipTeam.find(
@@ -144,9 +143,9 @@ export default function AdminCMSHomepage() {
       title="Homepage"
       description={
         <>
-          Public homepage blocks for <code className="text-xs">/</code>. Hide the trusted-by
-          marquee when client relationships are confidential. Hero, tagline, and mobile-app banner
-          are managed under{" "}
+          Public homepage blocks for <code className="text-xs">/</code>. Hide the trusted-by marquee
+          when client relationships are confidential. Hero, tagline, and mobile-app banner are
+          managed under{" "}
           <a
             href="/admin/cms"
             className="text-white underline underline-offset-2 hover:text-white/80"

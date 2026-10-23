@@ -1,5 +1,8 @@
 "use client";
 
+import { nepalDateOnly } from "@/lib/nepali-calendar";
+import { addCalendarDaysIso } from "@/shared/crm/appointment-dates";
+
 import {
   ClientQueryBoundary,
   clientQueryHasData,
@@ -68,17 +71,15 @@ function matterOf(cases: ClientCaseDto[], caseId: string | undefined): ClientCas
 
 function dueDayIso(dueDate?: string | null): string | null {
   if (!dueDate) return null;
-  const day = String(dueDate).slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
-  const parsed = new Date(dueDate);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return localDateIso(parsed);
+  try {
+    return nepalDateOnly(dueDate);
+  } catch {
+    return null;
+  }
 }
 
 function addDaysIso(iso: string, days: number): string {
-  const date = new Date(`${iso}T00:00:00`);
-  date.setDate(date.getDate() + days);
-  return localDateIso(date);
+  return addCalendarDaysIso(iso, days);
 }
 
 /**

@@ -101,6 +101,7 @@ export interface SearchDocumentsInput {
   type?: string;
   tag?: string;
   generalOnly?: boolean;
+  inTrash?: boolean;
 }
 
 export interface ListCasesInput {

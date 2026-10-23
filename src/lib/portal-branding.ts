@@ -37,14 +37,24 @@ export function buildPortalBrandingCssVars(
   const primarySoft = dark
     ? ensureHexContrast(mixHex(primary, "#0c1222", 0.82), primary, "#000000")
     : mixHex(primary, "#ffffff", 0.86);
+  // Layouts currently pin their branding appearance. Keep focus usable on both
+  // light and dark control surfaces without adding a second theme mechanism.
+  const lightFocus = ensureHexContrast(mixHex(primary, "#c99523", 0.35), "#eef2f6", "#000000", 3);
+  const focus = ensureHexContrast(lightFocus, "#263247", "#ffffff", 3);
   return {
     "--dashboard-primary": primary,
     "--dashboard-primary-hover": ensureHexContrast(hover, primaryForeground, contrastTarget),
     "--dashboard-primary-pressed": ensureHexContrast(pressed, primaryForeground, contrastTarget),
     "--dashboard-primary-foreground": primaryForeground,
     "--dashboard-primary-soft": primarySoft,
-    "--dashboard-focus": mixHex(primary, "#c99523", 0.35),
-    "--dashboard-hero-end": mixHex(primary, "#0c1222", 0.55),
+    "--dashboard-focus": focus,
+    // Hero supporting copy is 80% white; 7:1 opaque white retains AA after compositing.
+    "--dashboard-hero-end": ensureHexContrast(
+      mixHex(primary, "#0c1222", 0.55),
+      "#ffffff",
+      "#000000",
+      7,
+    ),
     "--dashboard-hero-border": mixHex(primary, "#c99523", 0.25),
   } as CSSProperties;
 }

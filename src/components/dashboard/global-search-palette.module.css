@@ -1,0 +1,112 @@
+.operational {
+  background: var(--dashboard-panel);
+  color: var(--dashboard-neutral-foreground);
+  border-color: var(--dashboard-control-border);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.dialog {
+  max-width: 42rem;
+  padding: 0;
+  gap: 0;
+}
+
+.operational > * {
+  margin: 0;
+}
+
+.operational [data-search-part="bar"] {
+  padding-right: 4rem;
+  border-color: var(--dashboard-border);
+}
+
+.operational input {
+  min-width: 0;
+  color: var(--dashboard-neutral-foreground);
+}
+
+.operational input::placeholder,
+.operational kbd,
+.operational [data-search-part="subtitle"],
+.operational [data-search-part="footer"],
+.operational [data-search-part="footer"] * {
+  color: var(--dashboard-neutral-foreground);
+}
+
+.operational svg {
+  color: var(--dashboard-control-selected-foreground);
+}
+
+.operational [data-search-part="filters"],
+.operational [data-search-part="footer"],
+.operational kbd {
+  background: var(--dashboard-neutral-soft);
+  border-color: var(--dashboard-border);
+}
+
+.operational button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  flex-shrink: 0;
+  color: var(--dashboard-neutral-foreground);
+}
+
+.operational button:hover {
+  background: var(--dashboard-panel-hover);
+}
+
+.operational button[aria-pressed="true"] {
+  background: var(--dashboard-primary);
+  color: var(--dashboard-primary-foreground);
+  box-shadow: none;
+}
+
+.operational :is(button, input):focus-visible {
+  outline: 2px solid var(--dashboard-focus);
+  outline-offset: -2px;
+}
+
+.operational button[aria-pressed="true"]:focus-visible {
+  outline-color: var(--dashboard-primary-foreground);
+}
+
+.operational [role="option"] {
+  border-color: transparent;
+  color: var(--dashboard-neutral-foreground);
+}
+
+.operational [role="option"][aria-selected="true"] {
+  background: var(--dashboard-panel-hover);
+  border-color: var(--dashboard-focus);
+}
+
+.operational [data-search-part="icon"],
+.operational [data-search-part="badge"] {
+  color: var(--dashboard-neutral-foreground);
+  background: var(--dashboard-neutral-soft);
+  border-color: var(--dashboard-border);
+}
+
+.operational [data-search-part="title"] {
+  color: var(--dashboard-neutral-foreground);
+}
+
+.operational [data-search-part="empty"],
+.operational [data-search-part="empty"] p {
+  color: var(--dashboard-neutral-foreground);
+}
+
+@media (width < 40rem) {
+  .operational [data-search-part="footer"] {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operational,
+  .operational * {
+    animation: none;
+    transition: none;
+  }
+}

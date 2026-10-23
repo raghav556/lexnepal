@@ -1,7 +1,8 @@
 /** Shared view-model formatting helpers for dashboard composition (pure functions). */
+import { formatDualDate, nepalDateOnly, NEPAL_TIMEZONE } from "@/lib/nepali-calendar";
 
 export function localDateIso(date: Date): string {
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  return nepalDateOnly(date);
 }
 
 /** Parse a "H:MM AM/PM" clock string into minutes-since-midnight for sorting. */
@@ -24,11 +25,17 @@ export function relativeTime(iso?: string | null): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.round(diffHours / 24);
   if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  return formatDualDate(timestamp);
 }
 
 export function dayPartGreeting(date: Date): string {
-  const hour = date.getHours();
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: NEPAL_TIMEZONE,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(date),
+  );
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";

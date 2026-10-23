@@ -1,4 +1,6 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -7,7 +9,6 @@ import {
   useProfileCommands,
   useSessionsQuery,
 } from "@/client/queries/identity";
-import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -24,7 +25,6 @@ import {
   ShieldAlert,
   Download,
   ActivitySquare,
-  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/lex-constants.ts";
@@ -43,6 +43,7 @@ import { clientQueryHasData } from "@/components/dashboard/client-query-boundary
 import { NepalDecoratedHero } from "@/components/dashboard/nepal-decorated-hero";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import { Pagination } from "@/components/ui/pagination.tsx";
+import { updateOwnProfileSchema } from "@/shared/contracts/identity";
 import type { TotpEnrollmentPayload } from "@/shared/auth/totp";
 
 type SharedProfilePageProps = {
@@ -53,7 +54,6 @@ type MfaPasswordMode = "enable" | "disable" | null;
 
 export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
   const user = useCurrentIdentityUser();
-  const { signout } = useAuth();
   const sessionsQuery = useSessionsQuery(user?.id);
   const auditQuery = useOwnAuditEventsQuery();
   const sessions = sessionsQuery.data;
@@ -71,6 +71,14 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
     disableTotp,
   } = useProfileCommands();
 
+  const [profileBusy, setProfileBusy] = useState(false);
+  const profileLock = useRef(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const avatarLock = useRef(false);
+  const [profileError, setProfileError] = useState("");
+  const [sessionConfirm, setSessionConfirm] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState("");
+  const sessionLock = useRef(false);
   const [profileForm, setProfileForm] = useState({ name: "", phone: "", bio: "" });
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
@@ -104,22 +112,39 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
     }
   }, [user, isProfileLoaded]);
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (profileLock.current) return;
+    const input = updateOwnProfileSchema.safeParse({
+      name: profileForm.name,
+      phone: profileForm.phone || null,
+      ...(variant === "staff" &&
+      user &&
+      ["partner", "senior_associate", "associate", "paralegal"].includes(user.role)
+        ? { bio: profileForm.bio || null }
+        : {}),
+    });
+    if (!input.success) {
+      setProfileError(input.error.issues[0]?.message || "Check your profile fields.");
+      return;
+    }
+    profileLock.current = true;
+    setProfileBusy(true);
+    setProfileError("");
     try {
-      await updateProfile({
-        name: profileForm.name,
-        phone: profileForm.phone || undefined,
-        bio: profileForm.bio || undefined,
-      });
+      await updateProfile(input.data);
       toast.success("Profile updated successfully!");
     } catch {
-      toast.error("Failed to update profile");
+      setProfileError("Could not save your profile. Your changes are retained; please retry.");
+    } finally {
+      profileLock.current = false;
+      setProfileBusy(false);
     }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (variant === "client" && clientPasswordRequest.current) return;
+    if (clientPasswordRequest.current) return;
     if (passwordForm.newPass !== passwordForm.confirm) {
       toast.error("New passwords do not match!");
       return;
@@ -128,10 +153,8 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    if (variant === "client") {
-      clientPasswordRequest.current = true;
-      setClientPasswordBusy(true);
-    }
+    clientPasswordRequest.current = true;
+    setClientPasswordBusy(true);
     try {
       await changePassword(passwordForm.current, passwordForm.newPass);
       toast.success("Password changed successfully!");
@@ -139,10 +162,8 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to change password");
     } finally {
-      if (variant === "client") {
-        clientPasswordRequest.current = false;
-        setClientPasswordBusy(false);
-      }
+      clientPasswordRequest.current = false;
+      setClientPasswordBusy(false);
     }
   };
 
@@ -182,49 +203,79 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || avatarLock.current) return;
+    if (
+      !["image/jpeg", "image/png"].includes(file.type) ||
+      file.size < 1 ||
+      file.size > 5 * 1024 * 1024
+    ) {
+      toast.error("Choose a JPG or PNG image up to 5 MB.");
+      e.target.value = "";
+      return;
+    }
+    avatarLock.current = true;
+    setAvatarBusy(true);
     try {
       await uploadAvatar(file);
       toast.success("Avatar uploaded and queued for malware scanning");
     } catch {
       toast.error("Failed to upload avatar");
+    } finally {
+      avatarLock.current = false;
+      setAvatarBusy(false);
+      e.target.value = "";
     }
   };
 
   const handleRemoveAvatar = async () => {
+    if (avatarLock.current) return;
+    avatarLock.current = true;
+    setAvatarBusy(true);
     try {
       await removeAvatar();
       toast.success("Avatar removed");
     } catch {
       toast.error("Failed to remove avatar");
+    } finally {
+      avatarLock.current = false;
+      setAvatarBusy(false);
     }
   };
 
   const handleRevokeSession = async (sessionId: string) => {
+    if (sessionLock.current) return;
+    sessionLock.current = true;
     setSessionsBusy(true);
+    setSessionError("");
     try {
       await revokeSession(sessionId);
       toast.success("Session revoked successfully");
+      setSessionConfirm(null);
     } catch {
-      toast.error("Failed to revoke session");
+      setSessionError("Could not revoke this session. Please retry.");
     } finally {
+      sessionLock.current = false;
       setSessionsBusy(false);
     }
   };
 
   const handleRevokeAllOtherSessions = async () => {
-    if (!user) return;
+    if (!user || sessionLock.current) return;
+    sessionLock.current = true;
+    setSessionError("");
     setSessionsBusy(true);
     try {
       const result = await revokeAllOtherSessions(user.id);
+      setSessionConfirm(null);
       toast.success(
         result.revoked > 0
           ? `Signed out of ${result.revoked} other device${result.revoked === 1 ? "" : "s"}`
           : "No other active sessions to revoke",
       );
     } catch {
-      toast.error("Failed to revoke other sessions");
+      setSessionError("Could not revoke other sessions. Please retry.");
     } finally {
+      sessionLock.current = false;
       setSessionsBusy(false);
     }
   };
@@ -275,7 +326,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
       className={
         variant === "client"
           ? "mx-auto w-full max-w-7xl space-y-5 p-4 pb-24 sm:p-6 lg:p-8"
-          : "p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6"
+          : "premium-profile-page p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6"
       }
     >
       {variant === "client" ? (
@@ -285,11 +336,6 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
             title="Profile"
             description="Manage your personal information and account security."
             className="client-profile-hero"
-            actions={
-              <DashboardButton variant="outline" size="sm" onClick={() => void signout()}>
-                <LogOut className="mr-2 size-4" aria-hidden /> Sign out
-              </DashboardButton>
-            }
           />
           <ClientProfileOverview
             user={user}
@@ -307,7 +353,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
         </>
       ) : (
         <>
-          <ProfileHero user={user} variant={variant} onSignOut={signout} />
+          <ProfileHero user={user} variant={variant} />
           {portalExtras}
         </>
       )}
@@ -324,7 +370,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
         }
       >
         <TabsList
-          aria-label={variant === "client" ? "Account security and privacy" : undefined}
+          aria-label={variant === "client" ? "Account security and privacy" : "Profile settings"}
           className={
             variant === "client"
               ? "flex h-auto w-full min-w-0 justify-start gap-2 overflow-x-auto rounded-none border-b border-dashboard-border bg-transparent p-0 pb-2 [scrollbar-width:thin] [&_[data-slot=tabs-trigger]]:shrink-0"
@@ -354,120 +400,160 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2"
             >
               <DashboardSection
-                title="Avatar"
-                description="This will be displayed on your profile and across the system."
+                title="General Information"
+                description="Manage your personal details and how you appear across the workspace."
+                icon={User}
               >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                  <div className="w-24 h-24 rounded-2xl bg-dashboard-neutral-soft flex flex-col items-center justify-center border-2 border-dashed border-dashboard-border overflow-hidden relative group shrink-0">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-10 h-10 text-dashboard-neutral" />
+                <div className="profile-general-grid">
+                  <div className="profile-photo-workspace">
+                    <div className="w-24 h-24 rounded-2xl bg-dashboard-neutral-soft flex flex-col items-center justify-center border-2 border-dashed border-dashboard-border overflow-hidden relative group shrink-0">
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-10 h-10 text-dashboard-neutral" />
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <DashboardButton
+                          variant="outline"
+                          size="sm"
+                          disabled={avatarBusy}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-1.5" /> Upload new
+                        </DashboardButton>
+                        <DashboardButton
+                          variant="ghost"
+                          size="sm"
+                          className="text-dashboard-danger hover:bg-dashboard-danger-soft"
+                          disabled={avatarBusy || !user.avatar}
+                          onClick={handleRemoveAvatar}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1.5" /> Remove
+                        </DashboardButton>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        JPG or PNG, up to 5 MB. Uploads are scanned before appearing on your
+                        profile.
+                      </p>
+                    </div>
+                  </div>
+                  <form className="space-y-4 min-w-0" onSubmit={handleSaveProfile}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="profile-name"
+                          className="text-xs font-semibold text-foreground"
+                        >
+                          Full Name
+                        </Label>
+                        <Input
+                          id="profile-name"
+                          required
+                          maxLength={200}
+                          value={profileForm.name}
+                          onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                          className="border-dashboard-border bg-dashboard-panel"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="profile-phone"
+                          className="text-xs font-semibold text-foreground"
+                        >
+                          Phone Number
+                        </Label>
+                        <Input
+                          id="profile-phone"
+                          type="tel"
+                          maxLength={50}
+                          value={profileForm.phone}
+                          onChange={(e) =>
+                            setProfileForm({ ...profileForm, phone: e.target.value })
+                          }
+                          placeholder="+977..."
+                          className="border-dashboard-border bg-dashboard-panel"
+                        />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Label
+                          htmlFor="profile-email"
+                          className="text-xs font-semibold text-foreground"
+                        >
+                          Email Address
+                        </Label>
+                        <Input
+                          id="profile-email"
+                          value={user.email ?? ""}
+                          disabled
+                          className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Contact an administrator to change your email address.
+                        </p>
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Label
+                          htmlFor="profile-role"
+                          className="text-xs font-semibold text-foreground"
+                        >
+                          System Role
+                        </Label>
+                        <Input
+                          id="profile-role"
+                          value={ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role}
+                          disabled
+                          className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    {isLawyer && variant === "staff" && (
+                      <div className="space-y-1.5 pt-4 border-t border-dashboard-border mt-4">
+                        <Label
+                          htmlFor="profile-bio"
+                          className="text-xs font-semibold text-foreground"
+                        >
+                          Professional Biography
+                        </Label>
+                        <Textarea
+                          id="profile-bio"
+                          maxLength={2000}
+                          rows={4}
+                          placeholder="Enter a professional bio..."
+                          value={profileForm.bio}
+                          onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                          className="border-dashboard-border bg-dashboard-panel"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          This biography may be visible on the firm&apos;s public-facing website.
+                        </p>
+                      </div>
                     )}
-                    <div
-                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      <DashboardButton
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Upload className="w-4 h-4 mr-1.5" /> Upload new
-                      </DashboardButton>
-                      <DashboardButton
-                        variant="ghost"
-                        size="sm"
-                        className="text-dashboard-danger hover:bg-dashboard-danger-soft"
-                        onClick={handleRemoveAvatar}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1.5" /> Remove
+
+                    {profileError ? (
+                      <p role="alert" className="text-sm text-destructive">
+                        {profileError}
+                      </p>
+                    ) : null}
+                    <div className="flex justify-start pt-2">
+                      <DashboardButton type="submit" disabled={profileBusy} aria-busy={profileBusy}>
+                        {profileBusy ? "Saving..." : "Save Changes"}
                       </DashboardButton>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Recommended: Square JPG, PNG, or GIF, at least 400x400px.
-                    </p>
-                  </div>
-                </div>
-              </DashboardSection>
-
-              <DashboardSection
-                title="Personal Information"
-                description="Update your basic contact details."
-              >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-foreground">Full Name</Label>
-                      <Input
-                        value={profileForm.name}
-                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                        className="border-dashboard-border bg-dashboard-panel"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-foreground">Phone Number</Label>
-                      <Input
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        placeholder="+977..."
-                        className="border-dashboard-border bg-dashboard-panel"
-                      />
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                      <Label className="text-xs font-semibold text-foreground">Email Address</Label>
-                      <Input
-                        value={user.email ?? ""}
-                        disabled
-                        className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        Contact an administrator to change your email address.
-                      </p>
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                      <Label className="text-xs font-semibold text-foreground">System Role</Label>
-                      <Input
-                        value={ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role}
-                        disabled
-                        className="border-dashboard-border bg-dashboard-neutral-soft/50 text-muted-foreground"
-                      />
-                    </div>
-                  </div>
-
-                  {isLawyer && variant === "staff" && (
-                    <div className="space-y-1.5 pt-4 border-t border-dashboard-border mt-4">
-                      <Label className="text-xs font-semibold text-foreground">
-                        Professional Biography
-                      </Label>
-                      <Textarea
-                        rows={4}
-                        placeholder="Enter a professional bio..."
-                        value={profileForm.bio}
-                        onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                        className="border-dashboard-border bg-dashboard-panel"
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        This biography may be visible on the firm&apos;s public-facing website.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end pt-2">
-                    <DashboardButton onClick={handleSaveProfile}>Save Changes</DashboardButton>
-                  </div>
+                  </form>
                 </div>
               </DashboardSection>
             </TabsContent>
@@ -543,13 +629,11 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                 </div>
                 <DashboardButton
                   type="submit"
-                  disabled={variant === "client" ? clientPasswordBusy : undefined}
-                  aria-busy={variant === "client" ? clientPasswordBusy : undefined}
+                  disabled={clientPasswordBusy}
+                  aria-busy={clientPasswordBusy}
                   className={variant === "client" ? "md:self-end md:justify-self-start" : undefined}
                 >
-                  {variant === "client" && clientPasswordBusy
-                    ? "Updating password…"
-                    : "Update Password"}
+                  {clientPasswordBusy ? "Updating password…" : "Update Password"}
                 </DashboardButton>
               </form>
             </DashboardSection>
@@ -597,7 +681,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               description="These are the devices that have logged into your account. Revoke any sessions that you do not recognize."
               icon={MonitorSmartphone}
             >
-              {variant === "client" && sessionsQuery.isError ? (
+              {sessionsQuery.isError ? (
                 <ClientQueryError
                   title="Sessions unavailable"
                   onRetry={() => {
@@ -605,7 +689,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                   }}
                   retrying={sessionsQuery.isFetching}
                 />
-              ) : variant === "client" && sessionsQuery.isPending ? (
+              ) : sessionsQuery.isPending ? (
                 <p className="text-sm text-muted-foreground" role="status">
                   Loading sessions…
                 </p>
@@ -613,8 +697,14 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                 <SessionListPanel
                   sessions={sessions}
                   busy={sessionsBusy}
-                  onRevokeSession={handleRevokeSession}
-                  onRevokeAllOther={handleRevokeAllOtherSessions}
+                  onRevokeSession={(id) => {
+                    setSessionError("");
+                    setSessionConfirm(id);
+                  }}
+                  onRevokeAllOther={() => {
+                    setSessionError("");
+                    setSessionConfirm("all");
+                  }}
                 />
               )}
             </DashboardSection>
@@ -631,7 +721,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
               actions={
                 auditLog && auditLog.length > 0 ? (
                   <span className="text-[11px] font-mono font-medium text-muted-foreground bg-dashboard-neutral-soft px-2 py-0.5 rounded border border-dashboard-border">
-                    {auditLog.length} total events
+                    {auditLog.length} loaded event{auditLog.length === 1 ? "" : "s"}
                   </span>
                 ) : null
               }
@@ -646,6 +736,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                     retrying={auditQuery.isFetching}
                   />
                 ) : null}
+                <CollectionContinuation query={auditQuery} noun="events" />
                 {auditLog === undefined ? (
                   variant === "client" && auditQuery.isError ? null : (
                     <p className="text-xs text-muted-foreground">Loading...</p>
@@ -660,7 +751,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                       {paginatedAuditLogs.map((log) => (
                         <div
                           key={log.id}
-                          className="flex flex-col sm:flex-row justify-between sm:items-center p-3 rounded-xl border border-dashboard-border bg-dashboard-neutral-soft/30 hover:bg-dashboard-panel-hover transition-colors gap-2"
+                          className="flex flex-col lg:flex-row justify-between lg:items-center p-3 rounded-xl border border-dashboard-border bg-dashboard-neutral-soft/30 hover:bg-dashboard-panel-hover transition-colors gap-2"
                         >
                           <div className="flex items-start gap-2.5 min-w-0">
                             <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg bg-dashboard-panel border border-dashboard-border text-dashboard-primary shadow-xs">
@@ -668,18 +759,26 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
                             </span>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-foreground truncate">
-                                {log.action}
-                                {variant !== "client" && log.details ? `: ${log.details}` : ""}
+                                {variant === "client"
+                                  ? log.action
+                                  : log.action
+                                      .replace(/[._:-]+/g, " ")
+                                      .replace(/\b\w/g, (letter) => letter.toUpperCase())}
                               </p>
-                              {variant !== "client" && log.ipAddress ? (
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  IP: {log.ipAddress}
-                                </p>
+                              {variant !== "client" ? (
+                                <details className="text-xs text-muted-foreground">
+                                  <summary>Technical event details</summary>
+                                  <p className="break-all">
+                                    {log.action}
+                                    {log.details ? `: ${log.details}` : ""}
+                                  </p>
+                                  {log.ipAddress ? <p>IP: {log.ipAddress}</p> : null}
+                                </details>
                               ) : null}
                             </div>
                           </div>
-                          <p className="text-[11px] font-mono text-muted-foreground shrink-0 sm:text-right">
-                            {new Date(log.createdAt).toLocaleString()}
+                          <p className="text-[11px] font-mono text-muted-foreground shrink-0 lg:text-right">
+                            {formatNepalTimestamp(log.createdAt)}
                           </p>
                         </div>
                       ))}
@@ -701,11 +800,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
 
             <DashboardSection
               title={variant === "client" ? "Download Profile Information" : "Export Data"}
-              description={
-                variant === "client"
-                  ? "Download a small JSON copy of your account profile fields."
-                  : "Download a copy of your personal data for your own records or GDPR compliance."
-              }
+              description="Download a JSON copy of the profile fields shown here. This does not include matters, documents or a full account archive."
               icon={Download}
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-dashboard-neutral-soft/50 rounded-xl border border-dashboard-border">
@@ -726,13 +821,51 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
         </div>
       </Tabs>
 
+      <Dialog
+        open={sessionConfirm !== null}
+        onOpenChange={(open: boolean) => {
+          if (!open && !sessionsBusy) setSessionConfirm(null);
+        }}
+      >
+        <DialogContent aria-label="Confirm session revocation">
+          <DialogHeader>
+            <DialogTitle>
+              {sessionConfirm === "all" ? "Sign out other sessions?" : "Revoke this session?"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm">
+            Your current session stays active. The selected other device sessions will need to sign
+            in again.
+          </p>
+          {sessionError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {sessionError}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <DashboardButton
+              variant="outline"
+              disabled={sessionsBusy}
+              onClick={() => setSessionConfirm(null)}
+            >
+              Cancel
+            </DashboardButton>
+            <DashboardButton
+              disabled={sessionsBusy}
+              onClick={() =>
+                void (sessionConfirm === "all"
+                  ? handleRevokeAllOtherSessions()
+                  : handleRevokeSession(sessionConfirm!))
+              }
+            >
+              {sessionsBusy ? "Revoking..." : "Confirm revocation"}
+            </DashboardButton>
+          </div>
+        </DialogContent>
+      </Dialog>
       <PasswordConfirmDialog
         dialogLabel={
-          variant === "client"
-            ? mfaPasswordMode === "disable"
-              ? "Disable two-factor authentication"
-              : "Enable two-factor authentication"
-            : undefined
+          mfaPasswordMode === "enable" ? "Enable authenticator" : "Disable authenticator"
         }
         open={mfaPasswordMode !== null}
         onOpenChange={(open) => {
@@ -751,7 +884,7 @@ export default function SharedProfilePage({ variant }: SharedProfilePageProps) {
 
       <Dialog open={totpDialogOpen} onOpenChange={setTotpDialogOpen}>
         <DialogContent
-          aria-label={variant === "client" ? "Set up authenticator" : undefined}
+          aria-label="Set up authenticator"
           className="sm:max-w-lg bg-dashboard-panel border-dashboard-border"
         >
           <DialogHeader>

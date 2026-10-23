@@ -1,6 +1,6 @@
 import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
-import { and, desc, eq, inArray, ne, notExists, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
 import type { AuditContext } from "@/server/audit/context";
 import { getDatabase } from "@/server/db/client";
 import {
@@ -15,7 +15,9 @@ import {
   users,
 } from "@/server/db/schema";
 import type { MessageCreateInput, MessageListInput } from "@/shared/contracts/communication";
+import { decodeMessageCursor, encodeMessageCursor } from "@/shared/message-cursor";
 import { AppError } from "@/shared/errors/api-error";
+import { collectionBefore } from "./collection-continuation";
 
 const database = getDatabase();
 
@@ -32,6 +34,7 @@ function toDto<T extends Record<string, unknown>>(row: T): T & { _id: string } {
 
 export class CommunicationRepository {
   async listMessages(firmId: string, input: MessageListInput & { includeInternal: boolean }) {
+    const limit = input.limit ?? 50;
     const conditions = [eq(messages.firmId, firmId), eq(messages.caseId, input.caseId)];
     if (!input.includeInternal) {
       conditions.push(eq(messages.isInternal, false));
@@ -39,6 +42,19 @@ export class CommunicationRepository {
       conditions.push(eq(messages.isInternal, true));
     } else if (input.isInternal === false) {
       conditions.push(eq(messages.isInternal, false));
+    }
+
+    if (input.cursor) {
+      const decoded = decodeMessageCursor(input.cursor);
+      if (!decoded) {
+        throw new AppError("BAD_REQUEST", "Message history cursor is invalid", 400);
+      }
+      conditions.push(
+        or(
+          lt(messages.createdAt, decoded.createdAt),
+          and(eq(messages.createdAt, decoded.createdAt), lt(messages.id, decoded.id)),
+        )!,
+      );
     }
 
     const rows = await database
@@ -50,10 +66,12 @@ export class CommunicationRepository {
       .from(messages)
       .leftJoin(users, eq(messages.senderId, users.id))
       .where(and(...conditions))
-      .orderBy(desc(messages.createdAt))
-      .limit(input.limit ?? 50);
+      .orderBy(desc(messages.createdAt), desc(messages.id))
+      .limit(limit + 1);
 
-    const messageIds = rows.map((row) => row.message.id);
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const messageIds = pageRows.map((row) => row.message.id);
     const readByMap: Record<string, string[]> = {};
     const attachmentMap: Record<string, string[]> = {};
 
@@ -88,7 +106,7 @@ export class CommunicationRepository {
       }
     }
 
-    return rows
+    const page = pageRows
       .map((row) =>
         toDto({
           ...(row.message as unknown as Record<string, unknown>),
@@ -98,6 +116,12 @@ export class CommunicationRepository {
         }),
       )
       .reverse();
+
+    const oldestRow = pageRows[pageRows.length - 1]?.message;
+    const continueCursor =
+      hasMore && oldestRow ? encodeMessageCursor(oldestRow.createdAt, oldestRow.id) : "";
+
+    return { page, isDone: !hasMore, continueCursor };
   }
 
   async unreadCountsByCase(
@@ -281,12 +305,18 @@ export class CommunicationRepository {
     return { success: true as const, marked: caseMessages.length };
   }
 
-  async listNotifications(firmId: string, userId: string, limit = 50) {
+  async listNotifications(firmId: string, userId: string, limit = 50, cursor?: string) {
     const rows = await database
       .select()
       .from(notifications)
-      .where(and(eq(notifications.firmId, firmId), eq(notifications.userId, userId)))
-      .orderBy(desc(notifications.createdAt))
+      .where(
+        and(
+          eq(notifications.firmId, firmId),
+          eq(notifications.userId, userId),
+          collectionBefore(notifications.createdAt, notifications.id, cursor),
+        ),
+      )
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit);
     return rows.map((row) => toDto(row as unknown as Record<string, unknown>));
   }

@@ -1,3 +1,4 @@
+import { useCollectionQuery, useCollectionScope } from "@/client/queries/collection";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect } from "react";
 import {
@@ -96,18 +97,14 @@ export function useDocuments(filters: ListDocumentsInput | "skip" = {}): Documen
 
 export function useDocumentsQuery(filters: ListDocumentsInput | "skip" = {}) {
   const activeFilters = filters === "skip" ? {} : filters;
-  return useTanstackQuery({
+  return useCollectionQuery<DocumentDto>({
     queryKey: queryKeys.documents.list(activeFilters),
-    queryFn: ({ signal }) =>
-      apiClient.request<DocumentDto[]>("/api/v1/documents", {
-        query: {
-          caseId: activeFilters.caseId,
-          isTemplate:
-            activeFilters.isTemplate === undefined ? undefined : String(activeFilters.isTemplate),
-          inTrash: activeFilters.inTrash === undefined ? undefined : String(activeFilters.inTrash),
-        },
-        signal,
-      }),
+    path: "/api/v1/documents",
+    query: {
+      caseId: activeFilters.caseId,
+      isTemplate: activeFilters.isTemplate,
+      inTrash: activeFilters.inTrash,
+    },
     enabled: filters !== "skip",
   });
 }
@@ -149,42 +146,46 @@ export function useWatchDocumentUploadIntents(
 export { SCANNING_INTENT_STATUSES };
 
 export function useDocumentSearch(filters: SearchDocumentsInput | null): DocumentDto[] | undefined {
-  const next = useTanstackQuery({
+  return useDocumentSearchQuery(filters).data;
+}
+export function useDocumentSearchQuery(filters: SearchDocumentsInput | null) {
+  return useCollectionQuery<DocumentDto>({
     queryKey: queryKeys.documents.search(filters),
-    queryFn: ({ signal }) =>
-      apiClient.request<DocumentDto[]>("/api/v1/documents/search", {
-        query: {
-          query: filters!.query,
-          caseId: filters!.caseId,
-          type: filters!.type,
-          tag: filters!.tag,
-          generalOnly:
-            filters!.generalOnly === undefined ? undefined : String(filters!.generalOnly),
-        },
-        signal,
-      }),
+    path: "/api/v1/documents/search",
+    query: filters ? { ...filters } : {},
     enabled: filters !== null,
   });
-  return filters === null ? undefined : next.data;
 }
 
 export function useRecentDocuments(limit: number): DocumentDto[] | undefined {
+  const { scope, enabled, requestScope } = useCollectionScope();
   const next = useTanstackQuery({
-    queryKey: queryKeys.documents.recent(limit),
+    queryKey: [...queryKeys.documents.recent(limit), "scope", scope],
     queryFn: ({ signal }) =>
-      apiClient.request<DocumentDto[]>("/api/v1/documents/recent", { query: { limit }, signal }),
+      apiClient.request<DocumentDto[]>("/api/v1/documents/recent", {
+        query: { limit },
+        signal,
+        deduplicationKey: requestScope,
+      }),
+    enabled,
   });
-  return next.data;
+  const denied =
+    next.error instanceof ApiClientError && [401, 403, 404].includes(next.error.status);
+  return enabled && !denied ? next.data : undefined;
 }
 
 export function useDocumentVersions(documentId: string | null): DocumentDto[] {
-  const next = useTanstackQuery({
+  return useDocumentVersionsQuery(documentId).data ?? [];
+}
+
+/** Same query; expose read state to paged views without changing legacy callers. */
+export function useDocumentVersionsQuery(documentId: string | null) {
+  return useTanstackQuery({
     queryKey: queryKeys.documents.versions(documentId || "none"),
     queryFn: ({ signal }) =>
       apiClient.request<DocumentDto[]>(`/api/v1/documents/${documentId}/versions`, { signal }),
     enabled: !!documentId,
   });
-  return next.data ?? [];
 }
 
 /**

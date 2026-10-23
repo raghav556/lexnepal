@@ -1,3 +1,4 @@
+import { BsDateField } from "@/components/ui/bs-date-field";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -1281,17 +1282,14 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="locale-date-full-row">
                   <Label htmlFor="crm-sched-date">Date</Label>
-                  <Input
+                  <BsDateField
                     id="crm-sched-date"
-                    type="date"
                     className="mt-1"
                     required
                     value={scheduleForm.date}
-                    onChange={(e) =>
-                      setScheduleForm((f) => ({ ...f, date: e.target.value, timeSlot: "" }))
-                    }
+                    onDateChange={(e) => setScheduleForm((f) => ({ ...f, date: e, timeSlot: "" }))}
                   />
                 </div>
                 <div>

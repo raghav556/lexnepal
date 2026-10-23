@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { normalizeApiError } from "@/client/api/errors";
+import { mergeMessagePages } from "@/shared/message-cursor";
 
 export type DmThreadDto = {
   _id: string;
@@ -13,6 +15,29 @@ export type DmThreadDto = {
   lastMessageAt?: string | null;
 };
 
+export type DmMessageListPage = {
+  page: any[];
+  isDone: boolean;
+  continueCursor: string;
+};
+
+const DEFAULT_DM_PAGE = 30;
+
+export async function fetchDmMessagePage(args: {
+  threadId: string;
+  cursor?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<DmMessageListPage> {
+  return apiClient.request<DmMessageListPage>(`/api/v1/dm/threads/${args.threadId}/messages`, {
+    query: {
+      cursor: args.cursor,
+      limit: args.limit ?? DEFAULT_DM_PAGE,
+    },
+    signal: args.signal,
+  });
+}
+
 export function useDmThreads() {
   const next = useQuery({
     queryKey: ["dm", "threads"],
@@ -22,15 +47,103 @@ export function useDmThreads() {
   return { data: next.data ?? [], isLoading: next.isLoading };
 }
 
-export function useDmMessages(threadId: string | null) {
+export function useDmMessages(threadId: string | null, limit = DEFAULT_DM_PAGE) {
   const next = useQuery({
-    queryKey: ["dm", "threads", threadId, "messages"],
-    queryFn: ({ signal }) =>
-      apiClient.request<{ page: any[] }>(`/api/v1/dm/threads/${threadId}/messages`, { signal }),
+    queryKey: ["dm", "threads", threadId, "messages", limit],
+    queryFn: ({ signal }) => fetchDmMessagePage({ threadId: threadId!, limit, signal }),
     enabled: !!threadId,
     refetchInterval: 4_000,
   });
-  return { data: next.data?.page ?? [], isLoading: next.isLoading };
+  return {
+    data: next.data?.page ?? [],
+    page: next.data,
+    isLoading: next.isLoading,
+    isError: next.isError,
+    error: next.error,
+    isFetching: next.isFetching,
+    refetch: next.refetch,
+  };
+}
+
+type HistoryBucket = {
+  key: string;
+  older: any[];
+  continueCursor: string;
+  hasMore: boolean | null;
+};
+
+export function useDmMessageHistory(threadId: string | null, limit = DEFAULT_DM_PAGE) {
+  const latest = useDmMessages(threadId, limit);
+  const streamKey = `${threadId ?? ""}:${limit}`;
+  const [bucket, setBucket] = useState<HistoryBucket>({
+    key: streamKey,
+    older: [],
+    continueCursor: "",
+    hasMore: null,
+  });
+
+  if (bucket.key !== streamKey) {
+    setBucket({ key: streamKey, older: [], continueCursor: "", hasMore: null });
+  }
+
+  const active =
+    bucket.key === streamKey
+      ? bucket
+      : { key: streamKey, older: [], continueCursor: "", hasMore: null };
+
+  const messages = useMemo(
+    () => mergeMessagePages(active.older, latest.data),
+    [active.older, latest.data],
+  );
+
+  const continueCursor =
+    active.older.length === 0 ? latest.page?.continueCursor || "" : active.continueCursor;
+  const hasMore =
+    active.older.length === 0
+      ? latest.page
+        ? !latest.page.isDone
+        : false
+      : Boolean(active.hasMore);
+
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [earlierError, setEarlierError] = useState<string | null>(null);
+
+  const loadEarlier = useCallback(async () => {
+    if (!threadId || !continueCursor || loadingEarlier) return;
+    setLoadingEarlier(true);
+    setEarlierError(null);
+    try {
+      const page = await fetchDmMessagePage({
+        threadId,
+        cursor: continueCursor,
+        limit,
+      });
+      setBucket({
+        key: streamKey,
+        older: mergeMessagePages(page.page, active.older),
+        continueCursor: page.continueCursor || "",
+        hasMore: !page.isDone,
+      });
+    } catch (error) {
+      setEarlierError(error instanceof Error ? error.message : "Could not load earlier messages.");
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }, [active.older, continueCursor, limit, loadingEarlier, streamKey, threadId]);
+
+  return {
+    messages,
+    isLoading: latest.isLoading && messages.length === 0,
+    isError: latest.isError,
+    error: latest.error,
+    isFetching: latest.isFetching,
+    refetch: latest.refetch,
+    hasMore,
+    continueCursor,
+    loadingEarlier,
+    earlierError,
+    loadEarlier,
+  };
 }
 
 export function useDmCommands() {

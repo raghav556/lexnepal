@@ -9,11 +9,14 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { resolveCapabilities } from "@/server/auth/capabilities";
 import type { AuthPrincipal, AuthUser } from "@/server/auth/types";
 import { requireCaseAccess, type AuthorizationDataSource } from "@/server/policies/authorization";
 import { caseStatusSchema, caseUpdateSchema } from "@/shared/contracts/matters";
+import { DocumentService } from "@/server/services/document-service";
+import { DocumentRepository } from "@/server/repositories/document-repository";
+import { MySqlSecurityRepository } from "@/server/repositories/security-repository";
 
 const repoRoot = path.resolve(".");
 
@@ -115,7 +118,8 @@ describe("R0 Cases baseline — current contracts (must keep)", () => {
     expect(list).toMatch(/basePath="\/admin\/cases"/);
     expect(detail).toMatch(/StaffCaseDetailPage/);
     expect(create).toMatch(/redirect\("\/admin\/cases\?create=1"\)/);
-    expect(readSrc("src/app/(admin)/layout.tsx")).toMatch(/href: "\/admin\/cases"/);
+    expect(readSrc("src/app/(admin)/layout.tsx")).toMatch(/ADMIN_NAV_TREE/);
+    expect(readSrc("src/lib/operational-navigation.ts")).toMatch(/href: "\/admin\/cases"/);
   });
 });
 
@@ -166,13 +170,39 @@ describe("R0 Cases baseline — known product bugs (expected fail until later re
     expect(method).toMatch(/listCaseIdsForStaff/);
   });
 
-  it("documents: client list excludes internal/privileged via clientUserId", () => {
-    const source = readSrc("src/server/services/document-service.ts");
-    const start = source.indexOf("async list(");
-    const end = source.indexOf("async search(");
-    const method = source.slice(start, end);
-    expect(method).toMatch(/clientUserId: principal\.user\.id/);
-    expect(method).toMatch(/listCaseIdsForClient/);
+  it("documents: every Client retrieval passes authenticated visibility scope before limiting", async () => {
+    const client = principal("client", "client-user");
+    const lookup = vi
+      .spyOn(MySqlSecurityRepository.prototype, "getClientByUser")
+      .mockResolvedValue({ id: "client-1", firmId: "firm-1", userId: "client-user" });
+    const cases = vi
+      .spyOn(MySqlSecurityRepository.prototype, "listCaseIdsForClient")
+      .mockResolvedValue(["case-1"]);
+    const list = vi.spyOn(DocumentRepository, "listDocuments").mockResolvedValue([]);
+    const search = vi.spyOn(DocumentRepository, "searchDocuments").mockResolvedValue([]);
+    try {
+      const service = new DocumentService();
+      await service.list(client, {});
+      await service.listPage(client, { limit: 2 });
+      await service.search(client, { query: "file" });
+      await service.searchPage(client, { query: "file", limit: 2 });
+      expect(cases).toHaveBeenCalledWith("firm-1", "client-1");
+      expect(list.mock.calls.map((call) => [call[0], call[1], call[2]])).toEqual([
+        ["firm-1", { inTrash: false, clientUserId: "client-user", caseIds: ["case-1"] }, 200],
+        ["firm-1", { inTrash: false, clientUserId: "client-user", caseIds: ["case-1"] }, 3],
+      ]);
+      for (const call of search.mock.calls) {
+        expect(call[0]).toBe("firm-1");
+        expect(call[2]).toEqual({ clientUserId: "client-user", caseIds: ["case-1"] });
+      }
+      expect(search.mock.calls.map((call) => call[3])).toEqual([100, 3]);
+      lookup.mockResolvedValue({ id: "client-1", firmId: "foreign-firm", userId: "client-user" });
+      expect(await service.list(client, {})).toEqual([]);
+      expect(list).toHaveBeenCalledTimes(2);
+      expect(search).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it("messages: client stream sets includeInternal false", () => {

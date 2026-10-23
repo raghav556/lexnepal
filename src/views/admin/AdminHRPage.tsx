@@ -1,5 +1,8 @@
 "use client";
 
+import { BsDateField } from "@/components/ui/bs-date-field";
+import { nepalDateOnly, formatDualDate } from "@/lib/nepali-calendar";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
@@ -47,7 +50,7 @@ function formatLabel(value: string) {
 }
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return nepalDateOnly();
 }
 
 function clockNow() {
@@ -62,7 +65,7 @@ export default function AdminHRPage() {
   const [leaveSearch, setLeaveSearch] = useState("");
   const [leaveStatus, setLeaveStatus] = useState<LeaveStatusFilter>("all");
   const [leaveType, setLeaveType] = useState<LeaveTypeFilter>("all");
-  const [leaveBalanceYear, setLeaveBalanceYear] = useState(new Date().getUTCFullYear());
+  const [leaveBalanceYear, setLeaveBalanceYear] = useState(Number(today.slice(0, 4)));
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -175,7 +178,7 @@ export default function AdminHRPage() {
     const lid = leave.id ?? leave._id;
     setConfirm({
       title: status === "approved" ? "Approve leave?" : "Reject leave?",
-      description: `${getUserName(leave.userId)} — ${formatLabel(leave.type)} (${leave.fromDate} → ${leave.toDate}).`,
+      description: `${getUserName(leave.userId)} — ${formatLabel(leave.type)} (${formatDualDate(leave.fromDate)} → ${formatDualDate(leave.toDate)}).`,
       confirmLabel: status === "approved" ? "Approve" : "Reject",
       destructive: status === "rejected",
       onConfirm: async () => {
@@ -292,13 +295,12 @@ export default function AdminHRPage() {
         <TabsContent value="attendance" className="mt-0 space-y-3 min-w-0">
           <DashboardSection title="Daily attendance" icon={Clock}>
             <DashboardFilterBar className="mb-4">
-              <div className="space-y-1.5 w-full sm:w-auto">
+              <div className="space-y-1.5 w-full sm:flex-1 sm:min-w-80">
                 <Label htmlFor="hr-date">Date</Label>
-                <Input
+                <BsDateField
                   id="hr-date"
-                  type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value || today)}
+                  onDateChange={(e) => setSelectedDate(e || today)}
                   className="h-9 w-full sm:w-44"
                 />
               </div>
@@ -602,7 +604,7 @@ export default function AdminHRPage() {
             icon={CalendarOff}
             actions={
               <div className="space-y-1.5 w-full sm:w-32">
-                <Label htmlFor="hr-balance-year">Year</Label>
+                <Label htmlFor="hr-balance-year">Balance year (A.D.)</Label>
                 <Input
                   id="hr-balance-year"
                   type="number"

@@ -32,7 +32,7 @@ export type AuthContextValue = {
   identityUser: UserDto | null | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signout: () => Promise<void>;
+  signout: (options?: { reportErrors?: boolean }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -129,11 +129,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = identityUser != null;
 
-  const signout = useCallback(async () => {
-    await localAuthClient.signOut();
-    queryClient.removeQueries({ queryKey: queryKeys.identity.me });
-    navigate("/sign-in", { replace: true });
-  }, [navigate, queryClient]);
+  const signout = useCallback(
+    async (options?: { reportErrors?: boolean }) => {
+      const result = await localAuthClient.signOut();
+      // Interactive account controls report failures. Preserve existing idle/expiry callers.
+      if (result.error && options?.reportErrors) {
+        throw new Error(result.error.message || "Could not sign out. Please retry.");
+      }
+      queryClient.removeQueries({ queryKey: queryKeys.identity.me });
+      navigate("/sign-in", { replace: true });
+    },
+    [navigate, queryClient],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({

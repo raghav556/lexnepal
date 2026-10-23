@@ -1,3 +1,7 @@
+// Match the application locale provider added by Session17E; assertions are unchanged.
+vi.mock("@/lib/i18n-context", () => ({
+  useI18n: () => ({ language: "en", t: (key: string) => key }),
+}));
 /* eslint-disable @typescript-eslint/no-explicit-any -- deterministic component mocks */
 import React from "react";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
@@ -231,14 +235,14 @@ const hearing = {
   _id: "hearing-1",
   caseId: "matter-1",
   status: "scheduled",
-  dateGregorian: "2099-12-20",
+  dateGregorian: "2026-12-20",
   time: "10:00",
   court: "Healthy court",
 };
 const appointment = {
   id: "appointment-1",
   status: "confirmed",
-  date: "2099-12-21",
+  date: "2026-12-21",
   timeSlot: "11:00",
   practiceArea: "Healthy consultation",
 };
@@ -256,7 +260,7 @@ const task = {
   title: "Healthy action",
   clientVisible: true,
   status: "done",
-  dueDate: "2099-12-19",
+  dueDate: "2026-12-19",
 };
 const notification = {
   _id: "notice-1",

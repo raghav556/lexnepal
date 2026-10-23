@@ -10,6 +10,8 @@ export interface PaginationProps {
   onNextPage: () => void;
   onPrevPage: () => void;
   className?: string;
+  /** Optional named navigation and current-page semantics for scoped consumers. */
+  ariaLabel?: string;
 }
 
 export function Pagination({
@@ -19,6 +21,7 @@ export function Pagination({
   onNextPage,
   onPrevPage,
   className,
+  ariaLabel = "Pagination",
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -44,8 +47,14 @@ export function Pagination({
   };
 
   return (
-    <div className={cn("flex items-center justify-center space-x-2 py-4", className)}>
+    <div
+      data-slot="pagination"
+      role={ariaLabel ? "navigation" : undefined}
+      aria-label={ariaLabel}
+      className={cn("flex items-center justify-center space-x-2 py-4", className)}
+    >
       <Button
+        type="button"
         variant="outline"
         size="icon"
         className="h-8 w-8"
@@ -72,6 +81,7 @@ export function Pagination({
           const isCurrentPage = page === currentPage;
           return (
             <Button
+              type="button"
               key={page}
               variant={isCurrentPage ? "default" : "outline"}
               size="icon"
@@ -80,6 +90,7 @@ export function Pagination({
                 isCurrentPage ? "" : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => onPageChange(page as number)}
+              aria-current={ariaLabel && isCurrentPage ? "page" : undefined}
             >
               {page}
             </Button>
@@ -88,6 +99,7 @@ export function Pagination({
       </div>
 
       <Button
+        type="button"
         variant="outline"
         size="icon"
         className="h-8 w-8"

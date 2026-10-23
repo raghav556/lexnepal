@@ -1,4 +1,7 @@
 "use client";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
+
+import { formatNepalClock, formatNepalTimestamp } from "@/lib/nepali-calendar";
 
 import {
   ClientQueryBoundary,
@@ -80,13 +83,7 @@ const emptyFilterCopy: Record<NotificationCategory, string> = {
 function formatNotificationTime(value: string, group: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return "Date unavailable";
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Kathmandu",
-    ...(group === "Today" ? {} : { day: "numeric", month: "short", year: "numeric" }),
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
+  return group === "Today" ? formatNepalClock(date) : formatNepalTimestamp(date);
 }
 
 function formatHearingTime(value?: string | null): string | null {
@@ -355,6 +352,9 @@ export default function ClientNotificationsPage() {
               </section>
             )}
           </ClientQueryBoundary>
+          <div className="px-4">
+            <CollectionContinuation query={notificationQuery} noun="notifications" />
+          </div>
         </ClientPanel>
 
         <aside className="min-w-0 space-y-4" aria-label="Notification context">

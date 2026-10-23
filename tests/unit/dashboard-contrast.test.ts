@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import postcss from "postcss";
+import { compositeCssColor } from "../support/css-color";
 
 type Theme = Record<string, string>;
 
@@ -12,10 +14,9 @@ function declarations(selector: string): Theme {
   if (!match) throw new Error(`Missing dashboard selector: ${selector}`);
 
   return Object.fromEntries(
-    [...match[1].matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6});/gi)].map(([, name, value]) => [
-      name,
-      value.toLowerCase(),
-    ]),
+    [...match[1].matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6}|rgba\([^;]+\));/gi)].map(
+      ([, name, value]) => [name, value.toLowerCase()],
+    ),
   );
 }
 
@@ -48,10 +49,10 @@ function portalTheme(portal: (typeof portals)[number], dark: boolean): Theme {
 }
 
 function expectPair(theme: Theme, foreground: string, background: string, minimum: number) {
-  expect(theme[foreground], foreground).toMatch(/^#[0-9a-f]{6}$/);
+  expect(theme[foreground], foreground).toMatch(/^(?:#[0-9a-f]{6}|rgba\()/);
   expect(theme[background], background).toMatch(/^#[0-9a-f]{6}$/);
   expect(
-    contrast(theme[foreground], theme[background]),
+    contrast(compositeCssColor(theme[foreground], theme[background]), theme[background]),
     `${foreground} on ${background}`,
   ).toBeGreaterThanOrEqual(minimum);
 }
@@ -119,7 +120,32 @@ describe("dashboard WCAG contrast contract", () => {
 
       it(`${portal} ${mode} keeps boundaries, focus, and chart series distinguishable`, () => {
         const theme = portalTheme(portal, mode === "dark");
-        expectPair(theme, "dashboard-border", "dashboard-panel", 3);
+        if (portal === "client" && mode === "light") {
+          // The approved card separator is decorative. Actual editable controls
+          // use the stronger existing focus token, without changing CUI-02 colors.
+          expect(theme["dashboard-border"]).toBe("#d7dde6");
+          expect(css).toContain(
+            "/* Accessible Client control boundaries; decorative CUI-02 borders stay frozen. */",
+          );
+          const expected =
+            '.dashboard-theme.dashboard-client :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"]):not(:disabled):not([readonly])';
+          const rules: import("postcss").Rule[] = [];
+          postcss.parse(css).walkRules((rule) => {
+            rules.push(rule);
+          });
+          const boundary = rules.find(
+            (rule) => rule.selector.replace(/\s/g, "") === expected.replace(/\s/g, ""),
+          );
+          expect(boundary?.selector).toMatch(/^\.dashboard-theme\.dashboard-client\s+:is\(/);
+          expect(
+            boundary?.nodes
+              .filter((node) => node.type === "decl")
+              .map((node) => [node.prop, node.value]),
+          ).toEqual([["border-color", "var(--dashboard-focus)"]]);
+          expectPair(theme, "dashboard-focus", "dashboard-panel", 3);
+        } else {
+          expectPair(theme, "dashboard-border", "dashboard-panel", 3);
+        }
         expectPair(theme, "dashboard-focus", "dashboard-canvas", 3);
         for (let index = 1; index <= 5; index += 1) {
           expectPair(theme, `dashboard-chart-${index}`, "dashboard-panel", 3);

@@ -466,7 +466,9 @@ try {
     trusted.sectionTitle !== "CMS Verify Trusted By" ||
     trusted.names?.[0] !== "CMS Verify Org"
   ) {
-    throw new Error(`Homepage trusted_organizations public read failed: ${JSON.stringify(trusted)}`);
+    throw new Error(
+      `Homepage trusted_organizations public read failed: ${JSON.stringify(trusted)}`,
+    );
   }
 
   // Brand assets: upload logo/favicon/hero → settings → public settings + asset redirects.

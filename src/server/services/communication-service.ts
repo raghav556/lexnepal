@@ -1,4 +1,5 @@
 import "server-only";
+import { collectionPage, type CollectionPageRequest } from "@/shared/collection-page";
 import { createHash } from "node:crypto";
 import type { AuditContext } from "@/server/audit/context";
 import type { AuthPrincipal } from "@/server/auth/types";
@@ -26,11 +27,10 @@ export class CommunicationService {
   async listMessages(principal: AuthPrincipal, input: MessageListInput) {
     const { firmId } = requireFirmContext(principal);
     await requireCaseAccess(principal, input.caseId, security);
-    const page = await repository.listMessages(firmId, {
+    return repository.listMessages(firmId, {
       ...input,
       includeInternal: principal.user.role !== "client",
     });
-    return { page, isDone: true, continueCursor: "" };
   }
 
   async unreadCounts(principal: AuthPrincipal, input: MessageUnreadInput) {
@@ -80,6 +80,27 @@ export class CommunicationService {
       ...row,
       link: safeNotificationPath(row.link, principal.user.role),
     }));
+  }
+  async listNotificationsPage(principal: AuthPrincipal, input: CollectionPageRequest) {
+    const { firmId } = requireFirmContext(principal);
+    const limit = input.limit ?? 50;
+    const rows = await repository.listNotifications(
+      firmId,
+      principal.user.id,
+      limit + 1,
+      input.cursor,
+    );
+    const page = collectionPage(rows, limit, (row) => ({
+      createdAt: row.createdAt as string,
+      id: row._id,
+    }));
+    return {
+      ...page,
+      items: page.items.map((row) => ({
+        ...row,
+        link: safeNotificationPath(row.link, principal.user.role),
+      })),
+    };
   }
 
   async markNotificationRead(principal: AuthPrincipal, notificationId: string) {

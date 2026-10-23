@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 export interface UsePaginationOptions<T> {
   items?: T[];
   itemsPerPage?: number;
+  /** Optional collection/filter identity. A change returns to the first page. */
+  resetKey?: string;
 }
 
 export interface UsePaginationResult<T> {
@@ -21,9 +23,12 @@ export interface UsePaginationResult<T> {
 export function calculatePagination<T>(rawItems: T[] | undefined, page: number, limit: number) {
   const safeItems = Array.isArray(rawItems) ? rawItems : [];
   const totalItems = safeItems.length;
-  const safeLimit = Math.max(1, limit || 10);
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit) || 10) : 10;
   const totalPages = Math.max(1, Math.ceil(totalItems / safeLimit));
-  const safeCurrentPage = Math.min(Math.max(1, page), totalPages);
+  const safeCurrentPage = Math.min(
+    Math.max(1, Number.isFinite(page) ? Math.floor(page) : 1),
+    totalPages,
+  );
   const startIndex = (safeCurrentPage - 1) * safeLimit;
   const paginatedItems = safeItems.slice(startIndex, startIndex + safeLimit);
 
@@ -61,27 +66,45 @@ export function usePagination<T>(
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(initialLimit);
+  const resetKey = isOptionsObject
+    ? (itemsOrOptions as UsePaginationOptions<T>).resetKey
+    : undefined;
+  const [seenResetKey, setSeenResetKey] = useState(resetKey);
 
   const { totalItems, totalPages, safeCurrentPage, paginatedItems } = useMemo(() => {
     return calculatePagination(rawItems, currentPage, itemsPerPage);
   }, [rawItems, currentPage, itemsPerPage]);
 
-  const goToPage = (page: number) => {
-    const pageNumber = Math.max(1, Math.min(page, totalPages));
-    setCurrentPage(pageNumber);
-  };
-
-  const nextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
-
-  const prevPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
-
-  const resetPagination = () => {
+  // Persist the clamp. Otherwise Previous can appear inert after deletion, and
+  // a later refresh can resurrect a page that was no longer valid.
+  if (currentPage !== safeCurrentPage) setCurrentPage(safeCurrentPage);
+  if (seenResetKey !== resetKey) {
+    setSeenResetKey(resetKey);
     setCurrentPage(1);
-  };
+  }
+
+  const goToPage = useCallback(
+    (page: number) => {
+      const pageNumber = Math.max(
+        1,
+        Math.min(Number.isFinite(page) ? Math.floor(page) : 1, totalPages),
+      );
+      setCurrentPage(pageNumber);
+    },
+    [totalPages],
+  );
+
+  const nextPage = useCallback(() => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  }, [totalPages]);
+
+  const prevPage = useCallback(() => {
+    setCurrentPage((prev) => Math.max(Math.min(prev, totalPages) - 1, 1));
+  }, [totalPages]);
+
+  const resetPagination = useCallback(() => {
+    setCurrentPage(1);
+  }, []);
 
   return {
     currentPage: safeCurrentPage,

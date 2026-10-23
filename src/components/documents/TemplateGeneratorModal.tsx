@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { bsToString, gregorianToBs, nepalDateOnly, toNepaliDigits } from "@/lib/nepali-calendar";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,12 @@ export function TemplateGeneratorModal({
       for (const template of selected) {
         // 1. Map Variables
         let htmlContent = template.htmlContent;
+        const today = nepalDateOnly();
+        htmlContent = htmlContent.replace(/{{today_gregorian}}/g, today);
+        htmlContent = htmlContent.replace(
+          /{{today_bs}}/g,
+          toNepaliDigits(bsToString(gregorianToBs(today))),
+        );
         if (selectedCaseData) {
           htmlContent = htmlContent.replace(
             /{{client\.name}}/g,
@@ -89,11 +96,6 @@ export function TemplateGeneratorModal({
           // If no case is selected, replace variables with blanks for manual filling
           htmlContent = htmlContent.replace(/{{.*?}}/g, "________________");
         }
-
-        // General Variables
-        const d = new Date();
-        htmlContent = htmlContent.replace(/{{today_gregorian}}/g, d.toLocaleDateString());
-        htmlContent = htmlContent.replace(/{{today_bs}}/g, "२०८०-०१-०१"); // Mock BS date
 
         // 2. Generate PDF
         toast.info(`Generating ${template.title}...`);

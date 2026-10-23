@@ -1,4 +1,5 @@
 import type { HearingDto } from "@/shared/contracts/domains";
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { addCalendarDaysIso, todayIsoInFirmTz } from "@/shared/crm/appointment-dates";
 
 export type NotificationCategory = "all" | "unread" | "documents" | "messages" | "hearings";
@@ -43,14 +44,7 @@ export function filterClientNotifications(
 
 /** A calendar day in Nepal, independent of the viewer's browser timezone. */
 export function kathmanduDay(date: Date): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Kathmandu",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const value = (kind: string) => parts.find((part) => part.type === kind)?.value ?? "";
-  return `${value("year")}-${value("month")}-${value("day")}`;
+  return nepalDateOnly(date);
 }
 
 export function mondayOfKathmanduWeek(now: Date): string {

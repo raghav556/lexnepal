@@ -1,9 +1,17 @@
+// Match the application locale provider added by Session17E; assertions are unchanged.
+vi.mock("@/lib/i18n-context", () => ({
+  useI18n: () => ({ language: "en", t: (key: string) => key }),
+}));
 /* eslint-disable @typescript-eslint/no-explicit-any -- synthetic query and presentation fixtures */
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ audit: {} as any, files: {} as any }));
+const state = vi.hoisted(() => ({
+  audit: {} as any,
+  files: {} as any,
+  sessions: undefined as any,
+}));
 vi.stubGlobal("React", React);
 const user = {
   id: "synthetic-user",
@@ -36,7 +44,7 @@ const query = (data: unknown, status: "success" | "pending" | "error" = "success
 });
 vi.mock("@/client/queries/identity", () => ({
   useCurrentIdentityUser: () => user,
-  useSessionsQuery: () => query([]),
+  useSessionsQuery: () => state.sessions ?? query([]),
   useOwnAuditEventsQuery: () => state.audit,
   useProfileCommands: () => ({}),
 }));
@@ -82,6 +90,7 @@ import KYC from "@/views/client/ClientKYCOnboarding";
 beforeEach(() => {
   state.audit = query([event]);
   state.files = query([file]);
+  state.sessions = undefined;
 });
 
 const profile = (variant: "client" | "staff" | "admin" = "client") =>
@@ -89,10 +98,23 @@ const profile = (variant: "client" | "staff" | "admin" = "client") =>
 const kyc = () => renderToStaticMarkup(React.createElement(KYC));
 
 describe("S17-CACHE-01 Client Profile activity", () => {
+  it.each(["client", "staff", "admin"] as const)(
+    "%s sessions expose safe retry feedback",
+    (variant) => {
+      state.sessions = query(undefined, "error", 500);
+      const html = profile(variant);
+      expect(html).toContain("Sessions unavailable");
+      expect(html).toContain("Try again");
+      expect(html).not.toContain("PRIVATE_SERVER_DETAIL");
+      expect(html.includes("Technical event details")).toBe(variant !== "client");
+      expect(html.includes(event.details)).toBe(variant !== "client");
+      expect(html.includes(event.ipAddress)).toBe(variant !== "client");
+    },
+  );
   it("renders healthy activity and count without raw audit details", () => {
     const html = profile();
     expect(html).toContain(event.action);
-    expect(html).toContain("1 total events");
+    expect(html).toContain("1 loaded event");
     expect(html).not.toContain(event.details);
     expect(html).not.toContain(event.ipAddress);
   });
@@ -101,14 +123,14 @@ describe("S17-CACHE-01 Client Profile activity", () => {
     const html = profile();
     expect(html).toContain("Loading...");
     expect(html).not.toContain("No activity recorded");
-    expect(html).not.toContain("total events");
+    expect(html).not.toContain("loaded event");
   });
   it("renders successful empty activity without an error or count", () => {
     state.audit = query([]);
     const html = profile();
     expect(html).toContain("No activity recorded");
     expect(html).not.toContain("Activity unavailable");
-    expect(html).not.toContain("total events");
+    expect(html).not.toContain("loaded event");
   });
   it("retains valid cached activity alongside recoverable error/retry feedback", () => {
     state.audit = query([event], "error", 500);
@@ -116,7 +138,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
     expect(html).toContain("Activity unavailable");
     expect(html).toContain("Try again");
     expect(html).toContain(event.action);
-    expect(html).toContain("1 total events");
+    expect(html).toContain("1 loaded event");
     expect(html).not.toContain("PRIVATE_SERVER_DETAIL");
   });
   it.each([401, 403, 404])("withholds cached activity and count after HTTP %s", (http) => {
@@ -126,7 +148,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
     expect(html).toContain("Try again");
     expect(html).not.toContain(event.action);
     expect(html).not.toContain(event.details);
-    expect(html).not.toContain("total events");
+    expect(html).not.toContain("loaded event");
     expect(html).not.toContain("Loading...");
     expect(html).not.toContain("No activity recorded");
   });
@@ -136,7 +158,7 @@ describe("S17-CACHE-01 Client Profile activity", () => {
       const html = profile(variant);
       expect(html).toContain(event.action);
       expect(html).toContain(event.details);
-      expect(html).toContain("1 total events");
+      expect(html).toContain("1 loaded event");
       expect(html).not.toContain("Activity unavailable");
     });
   });

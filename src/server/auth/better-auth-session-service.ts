@@ -20,7 +20,8 @@ export class BetterAuthSessionService {
     const betterAuthUser = session.user as typeof session.user & { twoFactorEnabled?: boolean };
     if (user.twoFactorEnabled !== (betterAuthUser.twoFactorEnabled === true))
       await this.repository.setTwoFactorEnabled(user.id, betterAuthUser.twoFactorEnabled === true);
-    if (user.twoFactorRequired && betterAuthUser.twoFactorEnabled !== true)
+    const requiresMfa = user.twoFactorRequired || ["admin", "partner"].includes(user.role);
+    if (requiresMfa && betterAuthUser.twoFactorEnabled !== true)
       throw new AppError("FORBIDDEN", "Multi-factor authentication enrollment is required", 403, {
         reason: "MFA_ENROLLMENT_REQUIRED",
       });

@@ -10,6 +10,8 @@ export interface ApiRequestOptions<TBody = unknown> {
   query?: Record<string, string | number | boolean | undefined>;
   body?: TBody;
   signal?: AbortSignal;
+  /** In-memory request sharing boundary; never serialized onto the HTTP request. */
+  deduplicationKey?: string;
 }
 
 export class ApiClient {
@@ -32,7 +34,7 @@ export class ApiClient {
     }
 
     if (method === "GET") {
-      const requestKey = url.toString();
+      const requestKey = `${url.toString()}|${request.deduplicationKey ?? ""}`;
       const existing = this.inFlightGetRequests.get(requestKey);
       if (existing) return existing as Promise<TResponse>;
 

@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 /** Public header auth — single unified auth source, skeleton while hydrating. */
 export function PublicHeaderAuth({ mobile = false }: { mobile?: boolean }) {
   const { identityUser, isLoading, isAuthenticated, signout } = useAuth();
+  const [signoutBusy, setSignoutBusy] = useState(false);
+  const [signoutError, setSignoutError] = useState("");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -34,40 +36,66 @@ export function PublicHeaderAuth({ mobile = false }: { mobile?: boolean }) {
   if (isAuthenticated && identityUser) {
     const portalHref = getPortalForRole(identityUser.role);
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              "font-medium text-foreground shrink-0 gap-1.5",
-              mobile && "w-full justify-between",
-            )}
+      <div>
+        <DropdownMenu keyboardNavigation>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "font-medium text-foreground shrink-0 gap-1.5",
+                mobile && "w-full justify-between",
+              )}
+            >
+              <span className="truncate">My Portal</span>
+              <ChevronDown className="size-4 shrink-0 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            collisionAware
+            align="end"
+            className="public-account-menu"
+            aria-label="My Portal"
           >
-            <span className="truncate">My Portal</span>
-            <ChevronDown className="size-4 shrink-0 opacity-60" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel className="truncate">{identityUser.name}</DropdownMenuLabel>
-          <p className="px-2 pb-1.5 text-xs text-muted-foreground truncate">{identityUser.email}</p>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href={portalHref} className="cursor-pointer flex items-center gap-2">
-              <LayoutDashboard className="size-4" />
-              Open portal
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => void signout()}
-            className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
-          >
-            <LogOut className="size-4 mr-2" />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuLabel className="truncate">{identityUser.name}</DropdownMenuLabel>
+            <p className="px-2 pb-1.5 text-xs text-muted-foreground truncate">
+              {identityUser.email}
+            </p>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href={portalHref} className="cursor-pointer flex items-center gap-2">
+                <LayoutDashboard className="size-4" />
+                Open portal
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              aria-disabled={signoutBusy}
+              onClick={async () => {
+                if (signoutBusy) return;
+                setSignoutBusy(true);
+                setSignoutError("");
+                try {
+                  await signout({ reportErrors: true });
+                } catch {
+                  setSignoutError("Could not sign out. Please retry.");
+                } finally {
+                  setSignoutBusy(false);
+                }
+              }}
+              className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+            >
+              <LogOut className="size-4 mr-2" />
+              {signoutBusy ? "Signing out..." : "Sign out"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {signoutError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {signoutError}
+          </p>
+        ) : null}
+      </div>
     );
   }
 

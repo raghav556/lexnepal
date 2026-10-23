@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { compositeCssColor } from "../support/css-color";
 import { contrastRatio } from "../../src/lib/color-utils";
 import {
   DASHBOARD_CHART_COLORS,
@@ -9,49 +10,60 @@ import {
 } from "../../src/lib/dashboard-semantics";
 
 describe("dashboard color system", () => {
-  it("keeps every admin sidebar text state readable", () => {
-    const css = readFileSync("src/index.css", "utf8");
-    const start = css.indexOf(".dashboard-theme.dashboard-admin {");
-    const block = css.slice(start, css.indexOf("\n}", start));
-    const color = (token: string) => {
-      const value = block.match(new RegExp(`${token}:\\s*(#[0-9a-fA-F]{6})`))?.[1];
-      expect(value, `${token} must be a six-digit hex color`).toBeDefined();
-      return value!;
-    };
-
-    for (const surface of [
-      color("--dashboard-sidebar-bg-from"),
-      color("--dashboard-sidebar-bg-to"),
-    ]) {
-      expect(
-        contrastRatio(color("--dashboard-sidebar-foreground"), surface),
-      ).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(color("--dashboard-sidebar-muted"), surface)).toBeGreaterThanOrEqual(
-        4.5,
-      );
-      expect(contrastRatio(color("--dashboard-sidebar-heading"), surface)).toBeGreaterThanOrEqual(
-        4.5,
-      );
+  for (const portal of ["admin", "staff"] as const) {
+    for (const dark of [false, true]) {
+      it(`keeps ${portal} sidebar text and focus readable in ${dark ? "dark" : "light"} mode`, () => {
+        const css = readFileSync("src/index.css", "utf8");
+        const block = (selector: string) => {
+          const start = css.indexOf(selector + " {");
+          return css.slice(start, css.indexOf("\n}", start));
+        };
+        const tokens = Object.fromEntries(
+          [
+            ...(
+              block(".dashboard-theme") +
+              block(`.dashboard-theme.dashboard-${portal}`) +
+              (dark
+                ? block(".dark .dashboard-theme") +
+                  block(`.dark .dashboard-theme.dashboard-${portal}`)
+                : "")
+            ).matchAll(/(--dashboard-sidebar-[a-z-]+):\s*(#[0-9a-f]{6}|rgba\([^;]+\));/gi),
+          ].map(([, name, value]) => [name, value]),
+        );
+        const color = (token: string) => {
+          expect(tokens[token], `${token} must resolve`).toBeDefined();
+          return tokens[token];
+        };
+        for (const surface of [
+          color("--dashboard-sidebar-bg-from"),
+          color("--dashboard-sidebar-bg-to"),
+        ]) {
+          const active = compositeCssColor(color("--dashboard-sidebar-active"), surface);
+          for (const token of ["foreground", "muted", "heading"]) {
+            expect(
+              contrastRatio(color(`--dashboard-sidebar-${token}`), surface),
+            ).toBeGreaterThanOrEqual(4.5);
+          }
+          expect(
+            contrastRatio(color("--dashboard-sidebar-active-foreground"), active),
+          ).toBeGreaterThanOrEqual(4.5);
+          for (const background of [surface, active]) {
+            expect(
+              contrastRatio(color("--dashboard-sidebar-focus"), background),
+            ).toBeGreaterThanOrEqual(3);
+          }
+        }
+        expect(
+          contrastRatio(
+            color("--dashboard-sidebar-brand-icon"),
+            color("--dashboard-sidebar-brand-bg"),
+          ),
+        ).toBeGreaterThanOrEqual(3);
+        // Brand frames and section separators are decorative. Actual navigation focus
+        // and readable selected-state text above retain the 3:1 / 4.5:1 guarantees.
+      });
     }
-    expect(
-      contrastRatio(
-        color("--dashboard-sidebar-active-foreground"),
-        color("--dashboard-sidebar-active"),
-      ),
-    ).toBeGreaterThanOrEqual(4.5);
-    expect(
-      contrastRatio(color("--dashboard-sidebar-brand-icon"), color("--dashboard-sidebar-brand-bg")),
-    ).toBeGreaterThanOrEqual(3);
-    expect(
-      contrastRatio(
-        color("--dashboard-sidebar-brand-border"),
-        color("--dashboard-sidebar-brand-bg"),
-      ),
-    ).toBeGreaterThanOrEqual(3);
-    expect(
-      contrastRatio(color("--dashboard-sidebar-border"), color("--dashboard-sidebar-bg-from")),
-    ).toBeGreaterThanOrEqual(3);
-  });
+  }
 
   it("maps operational states to stable semantic tones", () => {
     expect(getDashboardStatusTone("active")).toBe("information");

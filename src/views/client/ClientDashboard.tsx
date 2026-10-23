@@ -1,4 +1,7 @@
 "use client";
+import { useI18n } from "@/lib/i18n-context";
+import { formatCourtName } from "@/lib/nepal-courts";
+import { bsDateParts, formatDualDate } from "@/lib/nepali-calendar";
 
 import {
   ClientQueryBoundary,
@@ -67,7 +70,7 @@ function formatHearingDate(dateGregorian?: string | null): string | undefined {
   if (!dateGregorian) return undefined;
   const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateGregorian;
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return formatDualDate(dateGregorian.slice(0, 10));
 }
 
 function formatHearingTime(time?: string | null): string | undefined {
@@ -81,15 +84,8 @@ function formatHearingTime(time?: string | null): string | undefined {
   return `${hour12}:${minute} ${suffix}`;
 }
 
-function hearingDateParts(dateGregorian?: string | null) {
-  if (!dateGregorian) return null;
-  const date = new Date(`${dateGregorian.slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return {
-    day: String(date.getDate()),
-    month: date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
-    year: String(date.getFullYear()),
-  };
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") {
+  return bsDateParts(dateGregorian, language);
 }
 
 function downloadHearingIcs(input: {
@@ -174,6 +170,7 @@ function fileKind(type?: string | null, mimeType?: string | null): "pdf" | "doc"
 }
 
 export default function ClientDashboard() {
+  const { language } = useI18n();
   const clientQuery = useMyClientQuery();
   const clientRecord = clientQuery.isPending ? undefined : (clientQuery.data ?? null);
   const clientId = clientRecord?._id;
@@ -213,7 +210,7 @@ export default function ClientDashboard() {
   const nextHearingMatter = nextHearing
     ? caseList.find((item) => item._id === nextHearing.caseId)
     : undefined;
-  const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian);
+  const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian, language);
 
   const activeCases = caseList.filter((item) => item.status === "active");
   const visibleDocuments = documentList.filter((item) => !item.caseId || caseIds.has(item.caseId));
@@ -551,7 +548,7 @@ export default function ClientDashboard() {
                         <dd>
                           {homeMatterHearing?.dateGregorian ? (
                             <DualDateDisplay
-                              isoDate={`${homeMatterHearing.dateGregorian.slice(0, 10)}T00:00:00`}
+                              isoDate={homeMatterHearing.dateGregorian.slice(0, 10)}
                               alwaysDual
                             />
                           ) : hearingsQuery.isError ? (
@@ -766,7 +763,7 @@ export default function ClientDashboard() {
                       {nextHearing.court ? (
                         <p className="client-home-hearing-line">
                           <Building2 aria-hidden />
-                          <span>{nextHearing.court}</span>
+                          <span>{formatCourtName(nextHearing.court, language)}</span>
                         </p>
                       ) : null}
                       {nextHearing.time ? (

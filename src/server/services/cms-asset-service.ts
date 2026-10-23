@@ -7,7 +7,10 @@ import { auditLog, cmsAssetUploadIntents, durableJobs } from "@/server/db/schema
 import { getServerEnvironment } from "@/server/env";
 import type { AuthPrincipal } from "@/server/auth/types";
 import type { AuditContext } from "@/server/audit/context";
-import { requireCapability, requireFirmContext } from "@/server/policies/authorization";
+import {
+  assertOwnCmsAssetIntent,
+  authorizeCmsAssetAccess,
+} from "@/server/policies/cms-asset-access";
 import { getDocumentStorageRuntime } from "@/server/storage/runtime";
 import { validateUploadedFile, FileValidationError } from "@/server/storage/file-validation";
 import { AppError } from "@/shared/errors/api-error";
@@ -31,11 +34,6 @@ function extensionForMime(mimeType: string) {
 }
 
 export class CmsAssetService {
-  private requireManager(principal: AuthPrincipal) {
-    requireCapability(principal, "cms.manage");
-    return requireFirmContext(principal);
-  }
-
   async createIntent(
     principal: AuthPrincipal,
     input: {
@@ -47,7 +45,7 @@ export class CmsAssetService {
     },
     audit: AuditContext,
   ) {
-    const { firmId, actorId } = this.requireManager(principal);
+    const { firmId, actorId } = authorizeCmsAssetAccess(principal, input.purpose);
     const mimeType = input.mimeType.toLowerCase();
     const allowPdf = isResourceFilePurpose(input.purpose);
     const allowed = allowPdf ? RESOURCE_FILE_MIME_TYPES : IMAGE_MIME_TYPES;
@@ -102,7 +100,8 @@ export class CmsAssetService {
   }
 
   async completeIntent(principal: AuthPrincipal, intentId: string, audit: AuditContext) {
-    const { firmId, actorId } = this.requireManager(principal);
+    const access = authorizeCmsAssetAccess(principal);
+    const { firmId, actorId } = access;
     const [intent] = await database
       .select()
       .from(cmsAssetUploadIntents)
@@ -115,6 +114,8 @@ export class CmsAssetService {
       )
       .limit(1);
     if (!intent) throw new AppError("NOT_FOUND", "CMS asset upload was not found", 404);
+    authorizeCmsAssetAccess(principal, intent.purpose as CmsAssetPurpose);
+    assertOwnCmsAssetIntent(access, intent.createdBy);
     if (intent.status !== "pending" || intent.expiresAt <= new Date())
       throw new AppError("CONFLICT", "CMS asset upload is not completable", 409);
     const object = await getDocumentStorageRuntime().storage.headObject(intent.quarantineKey);
@@ -152,7 +153,8 @@ export class CmsAssetService {
   }
 
   async getIntentStatus(principal: AuthPrincipal, intentId: string) {
-    const { firmId } = this.requireManager(principal);
+    const access = authorizeCmsAssetAccess(principal);
+    const { firmId } = access;
     const [intent] = await database
       .select()
       .from(cmsAssetUploadIntents)
@@ -165,6 +167,8 @@ export class CmsAssetService {
       )
       .limit(1);
     if (!intent) throw new AppError("NOT_FOUND", "CMS asset upload was not found", 404);
+    authorizeCmsAssetAccess(principal, intent.purpose as CmsAssetPurpose);
+    assertOwnCmsAssetIntent(access, intent.createdBy);
     return {
       intentId: intent.id,
       status: intent.status,

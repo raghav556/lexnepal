@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { useI18n } from "@/lib/i18n-context";
 import { ClientMobileDrawer } from "@/components/dashboard/client-mobile-drawer";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   isPortalNavLink,
   PortalNavItemData,
@@ -30,8 +31,8 @@ export interface PortalMobileNavProps {
   /** Render-prop receiving close(), for the drawer account menu. */
   accountMenu?: (close: () => void) => React.ReactNode;
   /**
-   * Optional fixed bottom bar. A node keeps Staff/Admin behavior identical.
-   * A render-prop is opt-in and exposes drawer controls (Client More).
+   * Optional role-owned bottom bar. A render-prop exposes drawer controls
+   * for the existing Client More action.
    */
   bottomBar?: React.ReactNode | ((controls: PortalMobileNavControls) => React.ReactNode);
   /** Portal-specific class prescriptions. */
@@ -44,13 +45,19 @@ export interface PortalMobileNavProps {
   itemClassName?: (active: boolean) => string;
   navAriaLabel?: string;
   drawerId?: string;
-  /** Client-only opt-in. Staff/Admin retain the existing non-modal drawer. */
+  /** Client-only opt-in for the frozen Client drawer. */
   clientModalDrawer?: boolean;
+  /** Staff/Admin opt-in; leaves the frozen Client drawer path unchanged. */
+  operationalDrawer?: boolean;
+  /** Staff-only docked presentation; omitted by Admin and the frozen Client portal. */
+  operationalDrawerBrand?: React.ReactNode;
+  /** Role-owned hierarchy rendered inside the existing navigation region. */
+  renderNavigation?: (close: () => void) => React.ReactNode;
 }
 
 /**
  * Mobile shell chrome: sticky header (brand, language toggle, notifications,
- * hamburger), full-screen drawer navigation, and an optional bottom bar.
+ * hamburger), drawer navigation, and an optional bottom bar.
  * Open state and route-change collapse live here; visuals arrive via props.
  */
 export function PortalMobileNav({
@@ -68,10 +75,28 @@ export function PortalMobileNav({
   navAriaLabel = "Mobile navigation",
   drawerId = "portal-mobile-drawer",
   clientModalDrawer = false,
+  operationalDrawer = false,
+  operationalDrawerBrand,
+  renderNavigation,
 }: PortalMobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { language, setLanguage } = useI18n();
+  const docked = Boolean(operationalDrawerBrand);
+
+  useEffect(() => {
+    if (!docked || !open) return;
+    const canvas = document.querySelector<HTMLElement>(".dashboard-staff #staff-main-canvas");
+    if (!canvas) return;
+    const previousOverflow = canvas.style.overflowY;
+    const previousInert = canvas.inert;
+    canvas.style.overflowY = "hidden";
+    canvas.inert = true;
+    return () => {
+      canvas.style.overflowY = previousOverflow;
+      canvas.inert = previousInert;
+    };
+  }, [docked, open]);
 
   // Collapse the drawer whenever the route changes, including browser back/forward.
   const [drawerPathname, setDrawerPathname] = useState(pathname);
@@ -85,7 +110,7 @@ export function PortalMobileNav({
   const controls: PortalMobileNavControls = { open, openMenu, closeMenu: close };
 
   useEffect(() => {
-    if (!open || clientModalDrawer) return;
+    if (!open || clientModalDrawer || operationalDrawer) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -94,7 +119,7 @@ export function PortalMobileNav({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, clientModalDrawer]);
+  }, [open, clientModalDrawer, operationalDrawer]);
 
   useEffect(() => {
     if (!clientModalDrawer) return;
@@ -107,32 +132,65 @@ export function PortalMobileNav({
     return () => desktop.removeEventListener("change", closeOnDesktop);
   }, [clientModalDrawer]);
 
+  useEffect(() => {
+    if (!operationalDrawer) return;
+    const desktop = window.matchMedia("(min-width: 48rem)");
+    const closeOnDesktop = () => {
+      if (!desktop.matches) return;
+      setOpen(false);
+      if (open) {
+        window.requestAnimationFrame(() => {
+          document
+            .querySelector<HTMLElement>(
+              ".dashboard-theme:is(.dashboard-staff, .dashboard-admin) main",
+            )
+            ?.focus();
+        });
+      }
+    };
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [operationalDrawer, open]);
+
+  // Let the existing shell search shortcut take over without two focus owners.
+  useEffect(() => {
+    if (!operationalDrawer || !open) return;
+    const onSearchShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") setOpen(false);
+    };
+    document.addEventListener("keydown", onSearchShortcut);
+    return () => document.removeEventListener("keydown", onSearchShortcut);
+  }, [operationalDrawer, open]);
+
   const drawerContent = open ? (
     <>
       <nav aria-label={navAriaLabel} className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
-        {items.map((item, idx) => {
-          if (item.heading !== undefined) {
-            return (
-              <div key={`heading-${idx}`} className={headingClassName}>
-                {item.heading}
-              </div>
-            );
-          }
-          if (!isPortalNavLink(item)) return null;
-          const { href, icon, label, i18nKey } = item;
-          return (
-            <PortalSidebarItem
-              key={href}
-              href={href}
-              icon={icon}
-              label={label}
-              i18nKey={i18nKey}
-              active={isActive(href)}
-              onNavigate={close}
-              className={itemClassName?.(isActive(href))}
-            />
-          );
-        })}
+        {renderNavigation
+          ? renderNavigation(close)
+          : items.map((item, idx) => {
+              if (item.heading !== undefined) {
+                return (
+                  <div key={`heading-${idx}`} className={headingClassName}>
+                    {item.heading}
+                  </div>
+                );
+              }
+              if (!isPortalNavLink(item)) return null;
+              const { href, icon, label, i18nKey } = item;
+              return (
+                <PortalSidebarItem
+                  key={href}
+                  href={href}
+                  icon={icon}
+                  label={label}
+                  i18nKey={i18nKey}
+                  active={isActive(href)}
+                  onNavigate={close}
+                  className={itemClassName?.(isActive(href))}
+                />
+              );
+            })}
       </nav>
       {accountMenu?.(close)}
     </>
@@ -144,6 +202,7 @@ export function PortalMobileNav({
         className={cn(
           "md:hidden sticky top-0 z-50 flex h-[var(--dashboard-topbar-height)] w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur",
           headerClassName,
+          operationalDrawer && "portal-operational-header",
         )}
       >
         {brand}
@@ -154,20 +213,35 @@ export function PortalMobileNav({
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-full bg-dashboard-primary text-[10px] font-bold text-dashboard-primary-foreground focus-visible:ring-2",
               langButtonClassName,
+              operationalDrawer &&
+                "size-11 shrink-0 bg-dashboard-neutral-soft text-xs text-dashboard-neutral-foreground focus-visible:ring-dashboard-focus",
             )}
             aria-label={`Switch language to ${language === "en" ? "Nepali" : "English"}`}
           >
             {language === "en" ? "ने" : "EN"}
           </button>
-          <NotificationBell />
+          <NotificationBell
+            triggerClassName={
+              operationalDrawer
+                ? "size-11 shrink-0 text-inherit focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+                : undefined
+            }
+            iconClassName={operationalDrawer ? "text-current group-hover:text-current" : undefined}
+          />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className={cn("p-1 focus-visible:ring-2", menuButtonClassName)}
-            aria-label="Toggle menu"
+            className={cn(
+              "p-1 focus-visible:ring-2",
+              menuButtonClassName,
+              operationalDrawer && "size-11 shrink-0",
+            )}
+            aria-label={
+              operationalDrawer ? `${open ? "Close" : "Open"} ${navAriaLabel}` : "Toggle menu"
+            }
             aria-expanded={open}
             aria-controls={drawerId}
-            aria-haspopup={clientModalDrawer ? "dialog" : undefined}
+            aria-haspopup={clientModalDrawer || operationalDrawer ? "dialog" : undefined}
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -183,6 +257,32 @@ export function PortalMobileNav({
         >
           {drawerContent}
         </ClientMobileDrawer>
+      ) : operationalDrawer ? (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent
+            id={drawerId}
+            aria-labelledby={`${drawerId}-title`}
+            className={cn("portal-operational-drawer", drawerClassName)}
+          >
+            <DialogTitle
+              id={`${drawerId}-title`}
+              className={docked ? "sr-only" : "portal-operational-drawer-title"}
+            >
+              {navAriaLabel}
+            </DialogTitle>
+            {docked ? (
+              <div
+                className="staff-navigation-drawer-brand"
+                onClickCapture={(event) => {
+                  if (event.target instanceof Element && event.target.closest("a")) close();
+                }}
+              >
+                {operationalDrawerBrand}
+              </div>
+            ) : null}
+            <div className="portal-operational-drawer-scroll">{drawerContent}</div>
+          </DialogContent>
+        </Dialog>
       ) : open ? (
         <div
           id={drawerId}

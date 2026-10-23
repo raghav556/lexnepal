@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import { useMemo, useState, type FormEvent } from "react";
 import { motion, useScroll, useSpring } from "motion/react";
@@ -213,7 +214,7 @@ export default function BlogPostPage({ slug }: { slug: string }) {
                 {publishRaw && (
                   <span className="inline-flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
-                    {format(new Date(String(publishRaw)), "MMMM d, yyyy")}
+                    {formatDualDate(publishRaw)}
                   </span>
                 )}
               </div>

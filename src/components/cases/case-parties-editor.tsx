@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCasePartyCommands } from "@/client/queries/cases";
@@ -68,10 +68,13 @@ export function CasePartiesEditor({
   caseId,
   parties,
   clients,
+  accessibleControls = false,
 }: {
   caseId: string;
   parties: StaffCasePartyDto[];
   clients: Array<{ _id: string; fullName: string }>;
+  /** Staff detail opts in without changing other consumers' interaction contract. */
+  accessibleControls?: boolean;
 }) {
   const commands = useCasePartyCommands();
   const [open, setOpen] = useState(false);
@@ -79,6 +82,7 @@ export function CasePartiesEditor({
   const [form, setForm] = useState<PartyFormState>(emptyForm);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
+  const addPartyRef = useRef<HTMLButtonElement>(null);
 
   const openCreate = () => {
     setEditingId(null);
@@ -129,7 +133,7 @@ export function CasePartiesEditor({
       title="Parties"
       description="People and organisations on the file. Not created from the CRM client automatically."
       actions={
-        <Button size="sm" variant="outline" type="button" onClick={openCreate}>
+        <Button ref={addPartyRef} size="sm" variant="outline" type="button" onClick={openCreate}>
           <Plus className="w-3.5 h-3.5 mr-1" /> Add Party
         </Button>
       }
@@ -187,6 +191,8 @@ export function CasePartiesEditor({
                         await commands.remove(caseId, party.id);
                         toast.success("Party removed");
                         setConfirm(null);
+                        if (accessibleControls)
+                          window.setTimeout(() => addPartyRef.current?.focus(), 0);
                       },
                     })
                   }
@@ -320,7 +326,11 @@ export function CasePartiesEditor({
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog state={confirm} onOpenChange={(next) => !next && setConfirm(null)} />
+      <ConfirmDialog
+        state={confirm}
+        onOpenChange={(next) => !next && setConfirm(null)}
+        ariaLabel={accessibleControls ? confirm?.title : undefined}
+      />
     </DashboardSection>
   );
 }

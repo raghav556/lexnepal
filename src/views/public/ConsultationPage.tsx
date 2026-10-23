@@ -1,3 +1,4 @@
+import { BsDateField } from "@/components/ui/bs-date-field";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -580,16 +581,15 @@ export default function ConsultationPage() {
                         control={form.control}
                         name="date"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="locale-date-full-row">
                             <FormLabel className="text-foreground/80">Preferred Date</FormLabel>
                             <FormControl>
-                              <Input
-                                type="date"
+                              <BsDateField
                                 aria-label="Preferred Date"
                                 className="h-12 bg-muted/20"
                                 min={firmToday}
                                 {...field}
-                                onChange={(e) => {
+                                onDateChange={(e) => {
                                   field.onChange(e);
                                   form.setValue("timeSlot", "");
                                 }}

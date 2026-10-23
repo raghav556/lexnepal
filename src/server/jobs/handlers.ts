@@ -2,6 +2,7 @@ import { returningInsert } from "@/server/db/mysql-returning";
 import { sql } from "drizzle-orm";
 import { returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { and, count, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { z } from "zod";
 import nodemailer from "nodemailer";
@@ -149,8 +150,9 @@ async function handleTaskReminders({ job, signal }: JobExecutionContext) {
 
 async function handleHearingReminders({ job, signal }: JobExecutionContext) {
   throwIfAborted(signal);
-  const today = new Date().toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const now = new Date();
+  const today = nepalDateOnly(now);
+  const tomorrow = nepalDateOnly(new Date(now.getTime() + 24 * 60 * 60 * 1000));
   const due = await database
     .select({ id: hearings.id, userId: cases.assignedLawyerId, court: hearings.court })
     .from(hearings)
@@ -172,7 +174,7 @@ async function handleHearingReminders({ job, signal }: JobExecutionContext) {
       await createNotificationEffect(job, `hearing-reminder:${hearing.id}`, {
         userId: hearing.userId,
         title: "Upcoming hearing",
-        body: `A hearing at ${hearing.court} is scheduled within 24 hours.`,
+        body: `A hearing at ${hearing.court} is scheduled today or tomorrow (Nepal time).`,
         type: "hearing_reminder",
         relatedId: hearing.id,
         link: `/staff/hearings?hearing=${hearing.id}`,

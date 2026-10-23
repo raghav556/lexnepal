@@ -142,7 +142,7 @@ function usePublicNav(
 
 function FooterNavList({ links }: { links: PublicNavLink[] }) {
   if (!links.length) {
-    return <li className="text-sm text-primary-foreground/50">No links yet</li>;
+    return <li className="text-sm text-primary-foreground">No links yet</li>;
   }
   return (
     <>
@@ -153,14 +153,14 @@ function FooterNavList({ links }: { links: PublicNavLink[] }) {
               href={l.href}
               target="_blank"
               rel="noreferrer"
-              className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
+              className="text-sm text-primary-foreground hover:text-accent transition-colors"
             >
               {l.label}
             </a>
           ) : (
             <Link
               href={l.href}
-              className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
+              className="text-sm text-primary-foreground hover:text-accent transition-colors"
             >
               {l.label}
             </Link>
@@ -962,7 +962,7 @@ function PublicLayoutShellInner({
                 fallbackIconClassName="size-4 text-accent-foreground"
                 nameClassName="text-xl text-primary-foreground"
               />
-              <p className="text-sm text-primary-foreground/70 max-w-xs mb-4 break-words [overflow-wrap:anywhere]">
+              <p className="text-sm text-primary-foreground max-w-xs mb-4 break-words [overflow-wrap:anywhere]">
                 {tagline}
               </p>
               <div className="flex gap-3 flex-wrap">
@@ -1036,7 +1036,7 @@ function PublicLayoutShellInner({
             <div className="min-w-0 space-y-6">
               <div>
                 <h3 className="font-serif text-lg font-semibold mb-4">Contact</h3>
-                <ul className="space-y-2 text-sm text-primary-foreground/70">
+                <ul className="space-y-2 text-sm text-primary-foreground">
                   {settings?.address && (
                     <li className="flex items-start gap-2 break-words [overflow-wrap:anywhere]">
                       <MapPin className="w-4 h-4 shrink-0 mt-0.5" /> {String(settings.address)}
@@ -1067,7 +1067,7 @@ function PublicLayoutShellInner({
               </div>
               <div>
                 <h3 className="font-serif text-lg font-semibold mb-3">Newsletter</h3>
-                <p className="text-sm text-primary-foreground/70 mb-3">
+                <p className="text-sm text-primary-foreground mb-3">
                   Legal updates from our practice, a few times a year.
                 </p>
                 <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-2">
@@ -1092,7 +1092,7 @@ function PublicLayoutShellInner({
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-primary-foreground/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-primary-foreground/60">
+          <div className="mt-8 pt-6 border-t border-primary-foreground/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-primary-foreground">
             <span>
               © {new Date().getFullYear()} {firmName || "Law Firm"}. All rights reserved.
             </span>

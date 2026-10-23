@@ -1,10 +1,14 @@
-import { useState, useMemo, useEffect } from "react";
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
+import { BsDateField } from "@/components/ui/bs-date-field";
+import { useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog.tsx";
 import {
   CalendarDays,
+  CalendarCheck,
+  Archive,
   Plus,
-  X,
   Loader2,
   Edit2,
   Search,
@@ -22,43 +26,70 @@ import {
   Server,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDualDate, gregorianToBs, formatBs } from "@/lib/nepali-calendar.ts";
+import {
+  bsDateParts,
+  gregorianToBs,
+  formatBs,
+  nepalDateOnly,
+  viewDateIso,
+  calendarMonthBounds,
+  calendarMonthLabel,
+  calendarDayLabel,
+  calendarDateLabel,
+  calendarWeekdays,
+  shiftCalendarMonth,
+  canShiftCalendarMonth,
+} from "@/lib/nepali-calendar.ts";
 import { COURTS } from "@/lib/lex-constants.ts";
+import { CourtSelect } from "@/components/ui/court-select";
+import {
+  courtMatchesSearch,
+  formatCourtName,
+  officialCourtValue,
+  sameCourt,
+} from "@/lib/nepal-courts";
 import { useI18n } from "@/lib/i18n-context.tsx";
-import { getBSDate } from "@/lib/bs-calendar.ts";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
 import { useHearings, useHearingCommands } from "@/client/queries/hearings";
 import { useTasks, useTaskCommands, useUpdateTask } from "@/client/queries/tasks";
-import {
-  format,
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameDay,
-} from "date-fns";
+import { format, eachDayOfInterval, getDay } from "date-fns";
 
 import {
   DashboardButton,
-  DashboardFilterBar,
-  DashboardListRow,
   DashboardSection,
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
-  HeroHealthChip,
-  HeroStatChip,
   PortalPageShell,
-  STAFF_HERO_OUTLINE_BUTTON_CLASS,
-  StaffHeroChipRow,
   StatusBadge,
+  usePortalBranding,
 } from "@/components/dashboard";
-import { DASHBOARD_METRIC_TONES, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
+
+/** Today's calendar date (YYYY-MM-DD) in Nepal time, independent of the browser/UTC zone. */
+function nepalTodayKey(now: Date = new Date()): string {
+  return nepalDateOnly(now);
+}
+
+/** Splits a stored BS date ("24 Ashwin 2083") for the date tile; null when missing/invalid. */
+function parseBsDate(raw: unknown): { day: string; rest: string } | null {
+  if (typeof raw !== "string") return null;
+  const tokens = raw.trim().split(/\s+/);
+  if (tokens.length < 2 || !/^[\d\u0966-\u096F]{1,2}$/.test(tokens[0])) return null;
+  return { day: tokens[0], rest: tokens.slice(1).join(" ") };
+}
+
+function adParts(iso: unknown): { label: string; weekday: string } | null {
+  if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return null;
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) return null;
+  return { label: format(date, "dd MMM yyyy"), weekday: format(date, "EEE") };
+}
 
 export default function StaffHearingsPage() {
-  const { t, language } = useI18n();
+  const { language } = useI18n();
+  const { heroImageUrl } = usePortalBranding();
   const hearings = useHearings({}) || [];
   const cases = useCases({}) || [];
   const users = useStaffDirectory() || [];
@@ -75,7 +106,7 @@ export default function StaffHearingsPage() {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [search, setSearch] = useState("");
   const [courtFilter, setCourtFilter] = useState("all");
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(`${nepalDateOnly()}T12:00:00`));
 
   // Scheduling Form State
   const [caseId, setCaseId] = useState("");
@@ -102,22 +133,22 @@ export default function StaffHearingsPage() {
     setDateGregorian(val);
     if (val) {
       try {
-        const parts = val.split("-").map(Number);
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        setDateBs(formatBs(gregorianToBs(d)));
-      } catch (e) {}
-    }
+        setDateBs(formatBs(gregorianToBs(val)));
+      } catch {
+        setDateBs("");
+      }
+    } else setDateBs("");
   };
 
   const handleNextGregorianChange = (val: string) => {
     setNextDateGregorian(val);
     if (val) {
       try {
-        const parts = val.split("-").map(Number);
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        setNextDateBs(formatBs(gregorianToBs(d)));
-      } catch (e) {}
-    }
+        setNextDateBs(formatBs(gregorianToBs(val)));
+      } catch {
+        setNextDateBs("");
+      }
+    } else setNextDateBs("");
   };
 
   const handleGeneratePrepTasks = async (hearingId: string) => {
@@ -136,13 +167,13 @@ export default function StaffHearingsPage() {
 
   const handleScheduleHearing = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!caseId || !court || !dateGregorian || !dateBs)
+    if (!caseId || !officialCourtValue(court) || !dateGregorian || !dateBs)
       return toast.error("Please fill in all required fields.");
     setIsSubmitting(true);
     try {
       await createHearing({
         caseId: caseId as any,
-        court,
+        court: officialCourtValue(court)!,
         judge: judge || undefined,
         dateGregorian,
         dateBs,
@@ -226,20 +257,32 @@ export default function StaffHearingsPage() {
     const searchMatch =
       !search ||
       matchedCase?.title.toLowerCase().includes(search.toLowerCase()) ||
-      matchedCase?.caseNumber.toLowerCase().includes(search.toLowerCase());
-    const courtMatch = courtFilter === "all" || h.court === courtFilter;
+      matchedCase?.caseNumber.toLowerCase().includes(search.toLowerCase()) ||
+      courtMatchesSearch(h.court, search);
+    const courtMatch = courtFilter === "all" || sameCourt(h.court, courtFilter);
     return searchMatch && courtMatch;
   });
 
   const past = hearings.filter((h: any) => h.status !== "scheduled");
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = nepalTodayKey();
   const hearingsToday = upcoming.filter((h: any) => h.dateGregorian === todayKey).length;
 
   // Calendar Logic
   const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
+    start: new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`),
+    end: new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).end}T12:00:00`),
   });
+  const leadingBlanks = getDay(
+    new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`),
+  );
+  const trailingBlanks = (7 - ((leadingBlanks + daysInMonth.length) % 7)) % 7;
+
+  // Context for the Update Result dialog
+  const selectedHearing: any = hearings.find((h: any) => h._id === selectedHearingId);
+  const selectedCase: any = selectedHearing
+    ? cases.find((c: any) => c._id === selectedHearing.caseId)
+    : undefined;
+  const selectedAd = adParts(selectedHearing?.dateGregorian);
 
   return (
     <PortalPageShell
@@ -247,193 +290,234 @@ export default function StaffHearingsPage() {
       titleKey="portal.hearings.title"
       descriptionKey="portal.hearings.description"
       icon={CalendarDays}
+      className="staff-hearings-workspace"
+      heroClassName="staff-hearings-hero"
+      metricsClassName="staff-hearings-metrics"
       metrics={[
+        {
+          label: "Today's hearings",
+          value: String(hearingsToday),
+          icon: CalendarCheck,
+          tone: "information",
+          helperText: hearingsToday === 0 ? "No hearings today" : "On today's docket",
+        },
         {
           label: "Scheduled",
           value: String(upcoming.length),
           icon: CalendarDays,
-          tone: DASHBOARD_METRIC_TONES.hearings,
+          tone: "warning",
           helperText: "Upcoming hearings",
         },
         {
           label: "Conflicts",
           value: String(conflictIds.size),
+          icon: AlertTriangle,
           tone: conflictIds.size > 0 ? "danger" : "success",
-          helperText: "Lawyer double-bookings",
+          helperText: conflictIds.size > 0 ? "Lawyer double-bookings" : "No conflicts",
         },
         {
           label: "Past archive",
           value: String(past.length),
+          icon: Archive,
           tone: "neutral",
           helperText: "Recorded outcomes",
         },
       ]}
-      actions={
-        <>
-          <DashboardButton size="sm" onClick={() => setShowCreateModal(true)}>
-            <Plus className="size-3.5" aria-hidden /> Add hearing
-          </DashboardButton>
-          <DashboardButton
-            size="sm"
-            variant="outline"
-            className={STAFF_HERO_OUTLINE_BUTTON_CLASS}
-            onClick={() => setViewMode(viewMode === "list" ? "calendar" : "list")}
-          >
-            {viewMode === "list" ? "Calendar" : "List view"}
-          </DashboardButton>
-        </>
-      }
       heroChildren={
-        <StaffHeroChipRow>
-          <HeroHealthChip
-            healthy={conflictIds.size === 0}
-            overdueCount={conflictIds.size}
-            healthyLabel="No conflicts"
-            unhealthyLabel={`${conflictIds.size} conflict${conflictIds.size === 1 ? "" : "s"}`}
-          />
-          <HeroStatChip icon={CalendarDays} value={hearingsToday} label="hearings today" />
-          <HeroStatChip icon={CalendarDays} value={upcoming.length} label="scheduled" />
-          <HeroStatChip icon={Clock} value={past.length} label="past archive" />
-        </StaffHeroChipRow>
+        <div
+          aria-hidden
+          className="staff-hearings-hero-art"
+          style={
+            heroImageUrl
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
+              : undefined
+          }
+        />
+      }
+      actions={
+        <DashboardButton size="sm" variant="primary" onClick={() => setShowCreateModal(true)}>
+          <Plus className="size-3.5" aria-hidden /> Add hearing
+        </DashboardButton>
       }
     >
-      <DashboardSection title="View & filters">
-        <DashboardFilterBar className="justify-between">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-            >
-              <ListIcon className="w-4 h-4 mr-2" /> List View
-            </Button>
-            <Button
-              variant={viewMode === "calendar" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("calendar")}
-            >
-              <CalendarIcon className="w-4 h-4 mr-2" /> Calendar Grid
-            </Button>
-          </div>
+      <div className="staff-hearings-toolbar" role="region" aria-label="View and filters">
+        <div className="staff-hearings-toolbar-title">
+          <Filter className="size-4" aria-hidden /> View &amp; filters
+        </div>
+        <div role="group" aria-label="Hearings view" className="staff-hearings-view-toggle">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-pressed={viewMode === "list"}
+            onClick={() => setViewMode("list")}
+          >
+            <ListIcon className="size-4" aria-hidden /> List View
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-pressed={viewMode === "calendar"}
+            onClick={() => setViewMode("calendar")}
+          >
+            <CalendarIcon className="size-4" aria-hidden /> Calendar Grid
+          </Button>
+        </div>
 
-          {viewMode === "list" ? (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:flex-none">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  className="pl-8 h-9 text-xs w-full sm:w-[220px] bg-dashboard-panel"
-                  placeholder="Search cases..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <select
-                className="h-9 rounded-md border border-dashboard-border bg-dashboard-panel px-3 py-1 text-xs outline-hidden"
-                value={courtFilter}
-                onChange={(e) => setCourtFilter(e.target.value)}
-              >
-                <option value="all">All Courts</option>
-                {COURTS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+        {viewMode === "list" ? (
+          <div className="staff-hearings-filter-fields">
+            <div className="staff-hearings-search">
+              <Search className="staff-hearings-search-icon" aria-hidden />
+              <Input
+                aria-label="Search hearings by case title or number"
+                placeholder="Search cases..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-          ) : null}
-        </DashboardFilterBar>
-      </DashboardSection>
+            <CourtSelect
+              id="hearing-court-filter"
+              aria-label="Filter by court"
+              value={courtFilter === "all" ? "" : courtFilter}
+              filter
+              onValueChange={(court) => setCourtFilter(court || "all")}
+            />
+          </div>
+        ) : null}
+      </div>
 
       {/* Calendar View */}
       {viewMode === "calendar" && (
         <DashboardSection
-          title={format(currentMonth, "MMMM yyyy")}
+          className="staff-hearings-calendar-section"
+          title={calendarMonthLabel(viewDateIso(currentMonth), language)}
           icon={CalendarIcon}
           actions={
-            <div className="flex items-center gap-2">
+            <div className="staff-hearings-month-nav">
               <Button
+                type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                aria-label="Previous month"
+                disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), -1, language)}
+                onClick={() =>
+                  setCurrentMonth(
+                    new Date(
+                      `${shiftCalendarMonth(viewDateIso(currentMonth), -1, language)}T12:00:00`,
+                    ),
+                  )
+                }
               >
-                <ChevronLeft className="w-4 h-4" aria-hidden />
+                <ChevronLeft className="size-4" aria-hidden />
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                aria-label="Next month"
+                disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), 1, language)}
+                onClick={() =>
+                  setCurrentMonth(
+                    new Date(
+                      `${shiftCalendarMonth(viewDateIso(currentMonth), 1, language)}T12:00:00`,
+                    ),
+                  )
+                }
               >
-                <ChevronRight className="w-4 h-4" aria-hidden />
+                <ChevronRight className="size-4" aria-hidden />
               </Button>
               <StatusBadge tone="neutral" className="font-mono">
-                {getBSDate(format(currentMonth, "yyyy-MM-dd"), language === "ne")}
+                {calendarDateLabel(viewDateIso(currentMonth), language)}
               </StatusBadge>
             </div>
           }
         >
-          <div className="grid grid-cols-7 border-b border-border bg-muted/30">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div
-                key={d}
-                className="p-2 text-center text-xs font-bold text-muted-foreground uppercase"
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 bg-border gap-[1px]">
-            {daysInMonth.map((day) => {
-              const dateStr = format(day, "yyyy-MM-dd");
-              const dayHearings = upcoming.filter((h: any) => h.dateGregorian === dateStr);
-              const isToday = isSameDay(day, new Date());
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={`bg-card min-h-[120px] p-2 ${isToday ? "bg-primary/5" : ""}`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <span
-                      className={`text-sm font-bold ${isToday ? "text-primary" : "text-muted-foreground"}`}
-                    >
-                      {format(day, "d")}
-                    </span>
-                    {dayHearings.length > 0 && (
-                      <StatusBadge tone="information" className="text-[10px] h-4 px-1">
-                        {dayHearings.length}
-                      </StatusBadge>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    {dayHearings.map((h: any) => {
-                      const c = cases.find((c: any) => c._id === h.caseId);
-                      const hasConflict = conflictIds.has(h._id);
-                      return (
-                        <div
-                          key={h._id}
-                          className={`text-[10px] p-1.5 rounded truncate border cursor-pointer hover:shadow-sm ${
-                            hasConflict
-                              ? DASHBOARD_TONE_PANEL_CLASSES.danger
-                              : "bg-dashboard-neutral-soft border-dashboard-border"
-                          }`}
-                          onClick={() => openUpdateModal(h)}
-                        >
-                          <span className="font-bold">{h.time || "TBD"}</span> • {c?.caseNumber}
-                        </div>
-                      );
-                    })}
-                  </div>
+          <div
+            className="staff-hearings-calendar-scroll"
+            role="region"
+            aria-label="Hearing calendar (scroll horizontally on small screens)"
+            tabIndex={0}
+          >
+            <div className="staff-hearings-calendar">
+              {calendarWeekdays(language).map((d) => (
+                <div key={d} className="staff-hearings-weekday">
+                  {d}
                 </div>
-              );
-            })}
+              ))}
+              {Array.from({ length: leadingBlanks }).map((_, i) => (
+                <div
+                  key={`lead-${i}`}
+                  aria-hidden
+                  className="staff-hearings-day"
+                  data-blank="true"
+                />
+              ))}
+              {daysInMonth.map((day) => {
+                const dateStr = format(day, "yyyy-MM-dd");
+                const dayHearings = upcoming.filter((h: any) => h.dateGregorian === dateStr);
+                const isToday = dateStr === todayKey;
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className="staff-hearings-day"
+                    data-date={dateStr}
+                    data-calendar-system={language === "ne" ? "bs" : "ad"}
+                    data-today={isToday ? "true" : undefined}
+                  >
+                    <div className="staff-hearings-day-head">
+                      <span className="staff-hearings-day-number">
+                        {calendarDayLabel(dateStr, language)}
+
+                        {isToday ? <span className="sr-only"> (today)</span> : null}
+                      </span>
+                      {dayHearings.length > 0 && (
+                        <StatusBadge tone="information" className="text-[10px] h-4 px-1">
+                          {dayHearings.length}
+                        </StatusBadge>
+                      )}
+                    </div>
+                    <div className="staff-hearings-day-items">
+                      {dayHearings.map((h: any) => {
+                        const c = cases.find((c: any) => c._id === h.caseId);
+                        const hasConflict = conflictIds.has(h._id);
+                        return (
+                          <button
+                            key={h._id}
+                            type="button"
+                            className="staff-hearings-day-hearing"
+                            data-conflict={hasConflict ? "true" : undefined}
+                            aria-label={`Update result: ${c?.caseNumber || "hearing"} at ${h.time || "time to be decided"}${hasConflict ? ", conflict" : ""}`}
+                            onClick={() => openUpdateModal(h)}
+                          >
+                            <strong>{h.time || "TBD"}</strong> • {c?.caseNumber}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {Array.from({ length: trailingBlanks }).map((_, i) => (
+                <div
+                  key={`trail-${i}`}
+                  aria-hidden
+                  className="staff-hearings-day"
+                  data-blank="true"
+                />
+              ))}
+            </div>
           </div>
         </DashboardSection>
       )}
 
       {/* List View */}
       {viewMode === "list" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="staff-hearings-layout">
           <DashboardSection
-            className="lg:col-span-2"
+            className="staff-hearings-docket"
             title="Active hearing docket"
             icon={CalendarDays}
           >
@@ -444,147 +528,153 @@ export default function StaffHearingsPage() {
                 icon={CalendarDays}
               />
             ) : (
-              <div className="space-y-3">
-                {filteredUpcoming.map((h: any) => {
-                  const matchedCase = cases.find((c: any) => c._id === h.caseId);
-                  const lawyer = matchedCase
-                    ? users.find((u: any) => u._id === matchedCase.assignedLawyerId)
-                    : null;
-                  const hasConflict = conflictIds.has(h._id);
-                  const prepTasks = allTasks.filter((t: any) => t.hearingId === h._id);
-                  const prepDone = prepTasks.filter((t: any) => t.status === "done").length;
+              <ul className="staff-hearings-list">
+                {
+                  <StaffPagedCollection
+                    label="Upcoming hearings"
+                    resetKey={`${search}|${courtFilter}`}
+                    footerAs="li"
+                  >
+                    {filteredUpcoming.map((h: any) => {
+                      const matchedCase = cases.find((c: any) => c._id === h.caseId);
+                      const lawyer = matchedCase
+                        ? users.find((u: any) => u._id === matchedCase.assignedLawyerId)
+                        : null;
+                      const hasConflict = conflictIds.has(h._id);
+                      const prepTasks = allTasks.filter((t: any) => t.hearingId === h._id);
+                      const prepDone = prepTasks.filter((t: any) => t.status === "done").length;
+                      const primaryDate = bsDateParts(h.dateGregorian, language);
+                      const bs = primaryDate
+                        ? { day: primaryDate.day, rest: `${primaryDate.month} ${primaryDate.year}` }
+                        : parseBsDate(h.dateBs);
+                      const ad = adParts(h.dateGregorian);
 
-                  return (
-                    <DashboardListRow
-                      key={h._id}
-                      className={`p-4 sm:p-5 flex-col items-stretch ${hasConflict ? "border-dashboard-danger/40 bg-dashboard-danger-soft/30" : ""}`}
-                    >
-                      <div className="flex flex-col sm:flex-row gap-5 w-full">
-                        <div className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-2xl bg-dashboard-neutral-soft border border-dashboard-border">
-                          <span className="text-3xl font-serif font-bold text-dashboard-primary leading-none">
-                            {h.dateBs.split(" ")[0]}
-                          </span>
-                          <span className="text-xs font-medium text-muted-foreground mt-1 uppercase">
-                            {h.dateBs.split(" ").slice(1).join(" ")}
-                          </span>
-                          <StatusBadge tone="neutral" className="mt-2 text-[9px]">
-                            <DualDateDisplay isoDate={h.dateGregorian} />
-                          </StatusBadge>
-                        </div>
+                      return (
+                        <li
+                          key={h._id}
+                          className="staff-hearings-card"
+                          data-conflict={hasConflict ? "true" : undefined}
+                        >
+                          <div className="staff-hearings-date" data-bs={bs ? "valid" : "missing"}>
+                            <span className="staff-hearings-date-day">{bs ? bs.day : "—"}</span>
+                            <span className="staff-hearings-date-month">
+                              {bs ? bs.rest : "B.S. date unavailable"}
+                            </span>
+                            {ad ? (
+                              <span className="staff-hearings-date-ad">
+                                {ad.label} · {ad.weekday}
+                              </span>
+                            ) : (
+                              <span className="staff-hearings-date-ad">A.D. date unavailable</span>
+                            )}
+                          </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="staff-hearings-card-head">
                             <div className="min-w-0">
-                              <h4 className="font-bold text-foreground text-lg truncate flex items-center gap-2">
+                              <h3 className="staff-hearings-card-title">
                                 {matchedCase?.title || "Unknown"}
-                                {hasConflict && (
-                                  <StatusBadge
-                                    tone="danger"
-                                    icon={AlertTriangle}
-                                    className="animate-pulse"
-                                  >
-                                    Conflict
-                                  </StatusBadge>
-                                )}
-                              </h4>
-                              <p className="text-sm font-mono text-muted-foreground">
+                              </h3>
+                              <p className="staff-hearings-card-number">
                                 {matchedCase?.caseNumber}
                               </p>
                             </div>
-                            <DashboardStatusLabel
-                              status={h.status}
-                              className="text-[10px] uppercase font-bold tracking-wide shrink-0"
-                            />
+                            <div className="staff-hearings-card-badges">
+                              {hasConflict && (
+                                <StatusBadge tone="danger" icon={AlertTriangle}>
+                                  Conflict
+                                </StatusBadge>
+                              )}
+                              <DashboardStatusLabel
+                                status={h.status}
+                                className="text-[10px] uppercase font-bold tracking-wide shrink-0"
+                              />
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-y-2 mt-4 text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <MapPin className="w-4 h-4 text-dashboard-primary" />{" "}
-                              <span className="truncate">{h.court}</span>
+                          <div className="staff-hearings-meta">
+                            <div>
+                              <MapPin aria-hidden />{" "}
+                              <span title={h.court}>{formatCourtName(h.court, language)}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Clock className="w-4 h-4 text-dashboard-primary" />{" "}
-                              <span>{h.time || "Time TBD"}</span>
+                            <div>
+                              <Clock aria-hidden /> <span>{h.time || "Time TBD"}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Scale className="w-4 h-4 text-dashboard-primary" />{" "}
-                              <span className="truncate">{h.judge || "Judge Unassigned"}</span>
+                            <div>
+                              <Scale aria-hidden /> <span>{h.judge || "Judge Unassigned"}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <User className="w-4 h-4 text-dashboard-primary" />{" "}
-                              <span className="truncate font-medium">
-                                {lawyer?.name || "Unassigned"}
-                              </span>
+                            <div>
+                              <User aria-hidden /> <span>{lawyer?.name || "Unassigned"}</span>
                             </div>
                           </div>
 
                           {h.purpose && (
-                            <div className="mt-3 text-sm bg-dashboard-information-soft/50 p-2 rounded text-foreground border border-dashboard-information/20">
+                            <div className="staff-hearings-purpose">
                               <strong>Purpose:</strong> {h.purpose}
                             </div>
                           )}
 
-                          <div className="mt-4 pt-4 border-t border-dashboard-border">
-                            <div className="flex items-center justify-between mb-2 gap-2">
-                              <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Hearing prep tasks
-                              </h5>
-                              <span className="text-xs font-mono">
-                                {prepDone}/{Math.max(prepTasks.length, 3)} Done
-                              </span>
+                          <div className="staff-hearings-prep">
+                            <div className="staff-hearings-prep-head">
+                              <h4>Hearing prep tasks</h4>
+                              {prepTasks.length > 0 ? (
+                                <span>
+                                  {prepDone} of {prepTasks.length} completed
+                                </span>
+                              ) : null}
                             </div>
                             {prepTasks.length === 0 ? (
-                              <div className="space-y-2">
-                                <p className="text-xs text-muted-foreground">
-                                  No prep tasks linked yet. Generate the standard Bahas pack.
-                                </p>
+                              <div className="staff-hearings-prep-empty">
+                                <p>No prep tasks linked yet. Generate the standard Bahas pack.</p>
                                 <Button
+                                  type="button"
                                   size="sm"
                                   variant="secondary"
                                   disabled={prepLoadingId === h._id}
                                   onClick={() => handleGeneratePrepTasks(h._id)}
                                 >
                                   {prepLoadingId === h._id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
                                   ) : (
-                                    <CheckSquare className="w-3.5 h-3.5 mr-1" />
+                                    <CheckSquare className="size-3.5" aria-hidden />
                                   )}
                                   Generate prep pack
                                 </Button>
                               </div>
                             ) : (
-                              <div className="space-y-1.5">
-                                {prepTasks.map((task: any) => (
-                                  <label
-                                    key={task._id}
-                                    className="flex items-center gap-2 text-sm cursor-pointer hover:bg-dashboard-panel-hover p-1 rounded transition-colors"
+                              <div className="staff-hearings-prep-list">
+                                {
+                                  <StaffPagedCollection
+                                    label="Hearing prep tasks"
+                                    navigationLabel={`Prep tasks for ${h.purpose || matchedCase?.caseNumber || "hearing"} on ${h.dateGregorian}`}
+                                    resetKey={String(h._id)}
+                                    pageSize={6}
                                   >
-                                    <input
-                                      type="checkbox"
-                                      className="accent-primary w-4 h-4"
-                                      checked={task.status === "done"}
-                                      onChange={(e) => {
-                                        updateTask({
-                                          taskId: task._id,
-                                          status: e.target.checked ? "done" : "in_progress",
-                                        }).catch(() => toast.error("Failed to update task"));
-                                      }}
-                                    />
-                                    <span
-                                      className={
-                                        task.status === "done"
-                                          ? "line-through text-muted-foreground"
-                                          : "text-foreground"
-                                      }
-                                    >
-                                      {task.title}
-                                    </span>
-                                  </label>
-                                ))}
+                                    {prepTasks.map((task: any) => (
+                                      <label key={task._id} className="staff-hearings-prep-item">
+                                        <input
+                                          type="checkbox"
+                                          checked={task.status === "done"}
+                                          onChange={(e) => {
+                                            updateTask({
+                                              taskId: task._id,
+                                              status: e.target.checked ? "done" : "in_progress",
+                                            }).catch(() => toast.error("Failed to update task"));
+                                          }}
+                                        />
+                                        <span
+                                          data-done={task.status === "done" ? "true" : undefined}
+                                        >
+                                          {task.title}
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </StaffPagedCollection>
+                                }
                                 <Button
+                                  type="button"
                                   size="sm"
                                   variant="ghost"
-                                  className="h-7 text-xs px-1"
+                                  className="staff-hearings-sync"
                                   disabled={prepLoadingId === h._id}
                                   onClick={() => handleGeneratePrepTasks(h._id)}
                                 >
@@ -593,38 +683,42 @@ export default function StaffHearingsPage() {
                               </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                      <div className="w-full flex justify-end gap-2 pt-3 border-t border-dashboard-border mt-3">
-                        <Button variant="outline" size="sm" onClick={() => openUpdateModal(h)}>
-                          <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Update Result
-                        </Button>
-                      </div>
-                    </DashboardListRow>
-                  );
-                })}
-              </div>
+
+                          <div className="staff-hearings-card-foot">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openUpdateModal(h)}
+                            >
+                              <Edit2 className="size-3.5" aria-hidden /> Update Result
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </StaffPagedCollection>
+                }
+              </ul>
             )}
           </DashboardSection>
 
-          <div className="space-y-6">
+          <div className="staff-hearings-side">
             <DashboardSection
               title="Automated Pesi sync"
               icon={Server}
-              className="border-dashboard-warning/30"
+              className="staff-hearings-pesi"
             >
-              <div className="text-center py-6 space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Automated Pesi sync is not connected.
-                </p>
-                <p className="text-xs text-muted-foreground">
+              <div className="staff-hearings-pesi-body">
+                <p className="staff-hearings-pesi-title">Automated Pesi sync is not connected.</p>
+                <p>
                   No court cause-list integration is configured. Add hearings manually until an
                   official court API or import is available.
                 </p>
               </div>
             </DashboardSection>
 
-            <DashboardSection title="Past hearings archive" className="!p-0">
+            <DashboardSection title="Past hearings archive" className="staff-hearings-archive">
               {past.length === 0 ? (
                 <EmptyState
                   title="No past hearings"
@@ -633,64 +727,73 @@ export default function StaffHearingsPage() {
                   className="py-6 border-0"
                 />
               ) : (
-                <div className="divide-y divide-dashboard-border max-h-[400px] overflow-y-auto">
-                  {past.map((h: any) => {
-                    const matchedCase = cases.find((c: any) => c._id === h.caseId);
-                    return (
-                      <div
-                        key={h._id}
-                        className="p-3 opacity-75 hover:opacity-100 hover:bg-dashboard-panel-hover transition-all cursor-pointer"
-                        onClick={() => openUpdateModal(h)}
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <p className="text-sm font-semibold line-clamp-1">{matchedCase?.title}</p>
-                          <DashboardStatusLabel
-                            status={h.status}
-                            className="text-[9px] uppercase shrink-0"
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <DualDateDisplay isoDate={h.dateGregorian || h.dateBs} /> — {h.court}
-                        </p>
-                        {h.outcome && (
-                          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1 bg-dashboard-panel border border-dashboard-border p-1 rounded font-mono">
-                            Outcome: {h.outcome}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <ul className="staff-hearings-archive-list">
+                  {
+                    <StaffPagedCollection label="Past hearings" resetKey="past" footerAs="li">
+                      {past.map((h: any) => {
+                        const matchedCase = cases.find((c: any) => c._id === h.caseId);
+                        return (
+                          <li key={h._id}>
+                            <button
+                              type="button"
+                              className="staff-hearings-archive-row"
+                              onClick={() => openUpdateModal(h)}
+                            >
+                              <span className="staff-hearings-archive-top">
+                                <span className="staff-hearings-archive-title">
+                                  {matchedCase?.title}
+                                </span>
+                                <DashboardStatusLabel
+                                  status={h.status}
+                                  className="text-[9px] uppercase shrink-0"
+                                />
+                              </span>
+                              <span className="staff-hearings-archive-sub">
+                                <DualDateDisplay isoDate={h.dateGregorian} recordedBs={h.dateBs} />{" "}
+                                — {formatCourtName(h.court, language)}
+                              </span>
+                              {h.outcome && (
+                                <span className="staff-hearings-archive-outcome">
+                                  Outcome: {h.outcome}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </StaffPagedCollection>
+                  }
+                </ul>
               )}
             </DashboardSection>
           </div>
         </div>
       )}
 
-      {/* Modals omitted for brevity, keeping old ones as is */}
-      {/* ...Wait, I must include all modals to prevent breaking the code... */}
-
       {/* Schedule Hearing Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in-30 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-auto scale-in-95">
-            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
-              <h3 className="font-serif font-bold text-xl text-primary">Schedule Case Hearing</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded hover:bg-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleScheduleHearing} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Select Case <span className="text-destructive">*</span>
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent
+          className="staff-hearings-dialog"
+          aria-labelledby="hearing-create-title"
+          aria-describedby="hearing-create-description"
+        >
+          <DialogHeader>
+            <h2 id="hearing-create-title">Schedule Case Hearing</h2>
+            <DialogDescription id="hearing-create-description">
+              Choose an active case, then set the court, date and time. Fields marked * are
+              required.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleScheduleHearing} className="staff-hearings-form">
+            <div className="staff-hearings-dialog-body">
+              <div className="staff-hearings-field">
+                <label htmlFor="hearing-create-case">
+                  Select Case <span aria-hidden>*</span>
                 </label>
                 <select
+                  id="hearing-create-case"
                   required
-                  className="w-full h-10 rounded-md border border-input bg-secondary/30 text-foreground px-3 py-1 text-sm shadow-xs focus-visible:outline-hidden"
+                  className="staff-hearings-select"
                   value={caseId}
                   onChange={(e) => {
                     setCaseId(e.target.value);
@@ -708,125 +811,124 @@ export default function StaffHearingsPage() {
                     ))}
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Court Room <span className="text-destructive">*</span>
+              <div className="staff-hearings-field">
+                <label htmlFor="hearing-create-court">
+                  Court <span aria-hidden>*</span>
                 </label>
-                <select
+                <CourtSelect
+                  id="hearing-create-court"
                   required
-                  className="w-full h-10 rounded-md border border-input bg-secondary/30 text-foreground px-3 py-1 text-sm shadow-xs focus-visible:outline-hidden"
                   value={court}
-                  onChange={(e) => setCourt(e.target.value)}
-                >
-                  {COURTS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={setCourt}
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Gregorian Date <span className="text-destructive">*</span>
+              <div className="staff-hearings-field-row">
+                <div className="staff-hearings-field locale-date-full-row">
+                  <label htmlFor="hearing-create-date">
+                    Date <span aria-hidden>*</span>
                   </label>
-                  <Input
+                  <BsDateField
+                    id="hearing-create-date"
                     required
-                    type="date"
-                    className="bg-secondary/30"
                     value={dateGregorian}
-                    onChange={(e) => handleGregorianChange(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Nepali Date (B.S.)
-                  </label>
-                  <Input
-                    readOnly
-                    placeholder="Auto-calculated"
-                    className="bg-muted font-bold"
-                    value={dateBs}
+                    onDateChange={handleGregorianChange}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Time
-                  </label>
+              <div className="staff-hearings-field-row">
+                <div className="staff-hearings-field">
+                  <label htmlFor="hearing-create-time">Time</label>
                   <Input
+                    id="hearing-create-time"
                     type="time"
-                    className="bg-secondary/30"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Judge Name
-                  </label>
+                <div className="staff-hearings-field">
+                  <label htmlFor="hearing-create-judge">Judge Name</label>
                   <Input
+                    id="hearing-create-judge"
                     placeholder="Hon. Justice ..."
-                    className="bg-secondary/30"
                     value={judge}
                     onChange={(e) => setJudge(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Hearing Purpose
-                </label>
+              <div className="staff-hearings-field">
+                <label htmlFor="hearing-create-purpose">Hearing Purpose</label>
                 <Input
+                  id="hearing-create-purpose"
                   placeholder="First hearing / Written statement / Bail debate"
-                  className="bg-secondary/30"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-border mt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 shadow-md shadow-primary/20"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Schedule Hearing"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <div className="staff-hearings-dialog-actions">
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="size-4 animate-spin" aria-label="Scheduling" />
+                ) : (
+                  "Schedule Hearing"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Update Hearing Status Modal */}
-      {showUpdateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in-30 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-auto scale-in-95">
-            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
-              <h3 className="font-serif font-bold text-xl text-primary">Update Hearing Results</h3>
-              <button
-                onClick={() => setShowUpdateModal(false)}
-                className="text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded hover:bg-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleUpdateHearing} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Hearing Status
-                </label>
+      <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
+        <DialogContent
+          className="staff-hearings-dialog"
+          aria-labelledby="hearing-update-title"
+          aria-describedby="hearing-update-description"
+        >
+          <DialogHeader>
+            <h2 id="hearing-update-title">Update Hearing Results</h2>
+            <DialogDescription id="hearing-update-description">
+              Record the status and outcome for{" "}
+              {selectedCase?.title ? `"${selectedCase.title}"` : "the selected hearing"}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateHearing} className="staff-hearings-form">
+            <div className="staff-hearings-dialog-body">
+              <dl className="staff-hearings-context" aria-label="Hearing being updated">
+                <div>
+                  <dt>Case</dt>
+                  <dd>
+                    {selectedCase?.title || "Unknown case"}
+                    {selectedCase?.caseNumber ? <small>{selectedCase.caseNumber}</small> : null}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Hearing</dt>
+                  <dd>
+                    {selectedAd
+                      ? `${selectedAd.label} · ${selectedAd.weekday}`
+                      : "Date unavailable"}
+                    <small>
+                      {[
+                        selectedHearing?.time,
+                        selectedHearing?.court
+                          ? formatCourtName(selectedHearing.court, language)
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Court and time not recorded"}
+                    </small>
+                  </dd>
+                </div>
+              </dl>
+              <div className="staff-hearings-field">
+                <label htmlFor="hearing-update-status">Hearing Status</label>
                 <select
-                  className="w-full h-10 rounded-md border border-input bg-secondary/30 text-foreground px-3 py-1 text-sm shadow-xs focus-visible:outline-hidden"
+                  id="hearing-update-status"
+                  className="staff-hearings-select"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
@@ -848,13 +950,15 @@ export default function StaffHearingsPage() {
                   <option value="on_hold">Put on Hold / Stayed</option>
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Outcome / Verdict Summary
+              <div className="staff-hearings-field">
+                <label htmlFor="hearing-update-outcome">
+                  Outcome / Verdict Summary{" "}
+                  {status === "completed" ? <span aria-hidden>*</span> : null}
                 </label>
                 <textarea
+                  id="hearing-update-outcome"
                   required={status === "completed"}
-                  className="w-full rounded-md border border-input bg-secondary/30 text-foreground px-3 py-2 text-sm shadow-xs focus-visible:outline-hidden min-h-[80px]"
+                  className="staff-hearings-textarea"
                   placeholder="Case outcome, court directions, verbal orders..."
                   value={outcome}
                   onChange={(e) => setOutcome(e.target.value)}
@@ -864,57 +968,38 @@ export default function StaffHearingsPage() {
                 status === "postponed" ||
                 status === "part_heard" ||
                 status === "continuous") && (
-                <div className="border border-amber-200 bg-amber-50 dark:bg-amber-900/10 p-4 rounded-xl space-y-3">
-                  <h4 className="text-[11px] font-bold text-amber-600 uppercase tracking-wide flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5" /> Next Adjourned Date
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-medium text-muted-foreground">
-                        Gregorian Date
-                      </label>
-                      <Input
-                        type="date"
-                        className="h-9 bg-background"
+                <fieldset className="staff-hearings-next-date">
+                  <legend>
+                    <Clock className="size-3.5" aria-hidden /> Next Adjourned Date
+                  </legend>
+                  <div className="staff-hearings-field-row">
+                    <div className="staff-hearings-field locale-date-full-row">
+                      <label htmlFor="hearing-update-next-date">Date</label>
+                      <BsDateField
+                        id="hearing-update-next-date"
                         value={nextDateGregorian}
-                        onChange={(e) => handleNextGregorianChange(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-medium text-muted-foreground">
-                        Nepali Date
-                      </label>
-                      <Input
-                        readOnly
-                        placeholder="Auto"
-                        className="h-9 bg-muted font-bold"
-                        value={nextDateBs}
+                        onDateChange={handleNextGregorianChange}
                       />
                     </div>
                   </div>
-                </div>
+                </fieldset>
               )}
-              <div className="flex justify-end gap-3 pt-4 border-t border-border mt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowUpdateModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 shadow-md shadow-primary/20"
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Outcome"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <div className="staff-hearings-dialog-actions">
+              <Button type="button" variant="outline" onClick={() => setShowUpdateModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? (
+                  <Loader2 className="size-4 animate-spin" aria-label="Saving" />
+                ) : (
+                  "Save Outcome"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </PortalPageShell>
   );
 }

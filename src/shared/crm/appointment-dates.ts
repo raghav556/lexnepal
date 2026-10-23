@@ -1,14 +1,16 @@
 /** Appointment calendar dates use Nepal Standard Time (Asia/Kathmandu). */
-export const APPOINTMENT_TIMEZONE = "Asia/Kathmandu";
+import {
+  NEPAL_TIMEZONE,
+  calendarMonthLabel,
+  formatDualDate,
+  nepalDateOnly,
+  type DateLanguage,
+} from "@/lib/nepali-calendar";
+export const APPOINTMENT_TIMEZONE: "Asia/Kathmandu" = NEPAL_TIMEZONE;
 
 /** Today's firm calendar date as YYYY-MM-DD. */
 export function todayIsoInFirmTz(now = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: APPOINTMENT_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
+  return nepalDateOnly(now);
 }
 
 /** Add/subtract whole calendar days on a YYYY-MM-DD wall date (no UTC day-shift). */
@@ -23,17 +25,16 @@ export function addCalendarDaysIso(dateIso: string, delta: number): string {
 export function formatAppointmentDate(
   dateIso: string,
   options?: Intl.DateTimeFormatOptions,
+  language: DateLanguage = "en",
 ): string {
-  const d = new Date(`${dateIso}T12:00:00+05:45`);
-  if (Number.isNaN(d.valueOf())) return dateIso;
-  return d.toLocaleDateString("en-US", {
-    timeZone: APPOINTMENT_TIMEZONE,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    ...options,
-  });
+  if (options && Object.hasOwn(options, "day") && options.day === undefined && options.month) {
+    try {
+      return calendarMonthLabel(dateIso, language);
+    } catch {
+      return formatDualDate(dateIso, language);
+    }
+  }
+  return formatDualDate(dateIso, language);
 }
 
 export function isValidMeetingUrl(value: string): boolean {

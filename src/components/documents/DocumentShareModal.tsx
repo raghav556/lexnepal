@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { formatDualDate } from "@/lib/nepali-calendar";
+import { useId, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ export function DocumentShareModal({
   onClose: () => void;
   document: any;
 }) {
+  const fieldId = useId();
   const [expiresIn, setExpiresIn] = useState<string>("7d");
   const [password, setPassword] = useState("");
   const [allowDownload, setAllowDownload] = useState(true);
@@ -95,7 +97,7 @@ export function DocumentShareModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-label="Secure File Share">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="w-5 h-5 text-primary" />
@@ -114,11 +116,14 @@ export function DocumentShareModal({
           {!shareLink ? (
             <>
               <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                <label
+                  htmlFor={`${fieldId}-expiration`}
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5"
+                >
                   Link Expiration
                 </label>
                 <Select value={expiresIn} onValueChange={setExpiresIn}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id={`${fieldId}-expiration`} className="h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -140,10 +145,14 @@ export function DocumentShareModal({
               </label>
 
               <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                <label
+                  htmlFor={`${fieldId}-maximum`}
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5"
+                >
                   Maximum Downloads (Optional)
                 </label>
                 <Input
+                  id={`${fieldId}-maximum`}
                   type="number"
                   min="1"
                   max="10000"
@@ -154,10 +163,14 @@ export function DocumentShareModal({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                <label
+                  htmlFor={`${fieldId}-password`}
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5"
+                >
                   Protect with Password (Optional)
                 </label>
                 <Input
+                  id={`${fieldId}-password`}
                   type="password"
                   placeholder="Leave blank for open access"
                   value={password}
@@ -181,10 +194,16 @@ export function DocumentShareModal({
               <div className="flex items-center gap-2">
                 <Input
                   readOnly
+                  aria-label="Generated share link"
                   value={shareLink}
                   className="h-10 bg-secondary/50 font-mono text-xs"
                 />
-                <Button variant="outline" className="shrink-0 h-10 px-3" onClick={copyToClipboard}>
+                <Button
+                  variant="outline"
+                  className="shrink-0 h-10 px-3"
+                  aria-label="Copy share link"
+                  onClick={copyToClipboard}
+                >
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
@@ -212,7 +231,7 @@ export function DocumentShareModal({
                 >
                   <span>
                     {share.expiresAt
-                      ? `Expires ${new Date(share.expiresAt).toLocaleDateString()}`
+                      ? `Expires ${formatDualDate(share.expiresAt)}`
                       : "Never expires"}{" "}
                     · {share.downloadsCount} downloads
                   </span>

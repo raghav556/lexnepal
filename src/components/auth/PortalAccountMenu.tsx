@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Globe, LogOut, ShieldOff, User as UserIcon } from "lucide-react";
+import { ChevronUp, LogOut, ShieldOff, User as UserIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { DashboardButton } from "@/components/dashboard";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useIdentityCommands } from "@/client/queries/identity";
 import { useI18n } from "@/lib/i18n-context";
+import { usePortalBranding } from "@/components/dashboard/portal-branding-context";
+import { ROLE_LABELS } from "@/lib/lex-constants";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +32,11 @@ export type PortalAccountMenuProps = {
   profileHref: string;
   variant: "dropdown" | "drawer";
   fallbackName?: string;
-  showLanguageToggle?: boolean;
   /** Render the trigger in light-on-dark mode (for dark sidebar backgrounds, default: true) */
   darkTrigger?: boolean;
   /** Close mobile drawer or run after navigation */
   onAction?: () => void;
   className?: string;
-  /** Compact topbar trigger; default remains the sidebar account control. */
-  placement?: "sidebar" | "topbar";
   profileLabel?: string;
   identityCaption?: string;
 };
@@ -115,218 +123,239 @@ export function PortalAccountMenu({
   profileHref,
   variant,
   fallbackName = "Account",
-  showLanguageToggle = false,
   darkTrigger = true,
   onAction,
   className,
-  placement = "sidebar",
   profileLabel,
   identityCaption,
 }: PortalAccountMenuProps) {
   const { signout } = useAuth();
-  const identityUser = useCurrentUser();
+  const user = useCurrentUser();
   const { revokeAllSessions } = useIdentityCommands();
-  const { t, language, setLanguage } = useI18n();
+  const { t } = useI18n();
+  const { heroImageUrl } = usePortalBranding();
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const lock = useRef(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const name = user?.name ?? fallbackName;
+  const email = user?.email;
+  const identityHeader = (
+    <div
+      className="portal-account-identity"
+      style={{
+        backgroundImage: `linear-gradient(100deg, var(--dashboard-sidebar) 35%, transparent), url(${heroImageUrl || "/images/staff-home-nepal.jpg"})`,
+      }}
+    >
+      <AccountIdentity name={name} email={email} avatarUrl={user?.avatar} />
+      {user?.role ? (
+        <span className="portal-account-role">
+          {ROLE_LABELS[user.role] ?? user.role.replaceAll("_", " ")}
+        </span>
+      ) : null}
+    </div>
+  );
+  const profile = (
+    <>
+      <UserIcon className="size-4" aria-hidden />
+      {profileLabel ?? t("nav.profile")}
+    </>
+  );
 
-  const displayName = identityUser?.name ?? fallbackName;
-  const email = identityUser?.email;
-  const avatarUrl = identityUser?.avatar ?? null;
-  const resolvedProfileLabel = profileLabel ?? "Profile & Settings";
-  const caption = identityCaption ?? email;
-  const isTopbar = placement === "topbar";
-
-  const handleSignOut = async () => {
-    onAction?.();
-    await signout();
-  };
-
-  const handleSignOutEverywhere = async () => {
-    if (!identityUser?.id) {
-      await handleSignOut();
-      return;
-    }
+  async function leave(everywhere: boolean) {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError("");
     try {
-      await revokeAllSessions(identityUser.id);
-      toast.success("Signed out of all other devices");
+      if (everywhere) {
+        if (!user?.id)
+          throw new Error("Your identity is unavailable. Please reload and try again.");
+        // The existing self-service endpoint preserves this session; signout ends it next.
+        await revokeAllSessions(user.id);
+      }
+      await signout({ reportErrors: true });
+      onAction?.();
     } catch {
-      toast.message("Could not revoke remote sessions — signing out here");
+      setError(
+        everywhere
+          ? "Could not complete sign out everywhere. Some sessions may remain active. Please retry."
+          : "Could not sign out. Please retry.",
+      );
+      toast.error("Sign out could not be completed");
+    } finally {
+      lock.current = false;
+      setBusy(false);
     }
-    onAction?.();
-    await signout();
-  };
+  }
+  function ask() {
+    setError("");
+    setConfirm(true);
+  }
+  const confirmation = (
+    <div className="space-y-4">
+      <p className="text-sm">
+        Sign out other active sessions, then sign out on this device. You will need to sign in
+        again.
+      </p>
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <DashboardButton
+          variant="outline"
+          disabled={busy}
+          onClick={() => {
+            setConfirm(false);
+            requestAnimationFrame(() => triggerRef.current?.focus());
+          }}
+        >
+          Cancel
+        </DashboardButton>
+        <DashboardButton disabled={busy} aria-busy={busy} onClick={() => void leave(true)}>
+          {busy ? "Signing out..." : "Sign out everywhere"}
+        </DashboardButton>
+      </div>
+    </div>
+  );
 
-  const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ne" : "en");
-  };
-
-  if (variant === "drawer") {
+  if (variant === "drawer")
     return (
       <div
         className={cn(
-          "shrink-0 border-t border-white/10 px-4 py-4",
-          darkTrigger ? "bg-sidebar/50" : "bg-sidebar",
+          "portal-account-drawer shrink-0 border-t border-white/10 px-4 py-3",
+          !darkTrigger && "portal-account-drawer-light",
           className,
         )}
       >
-        <AccountIdentity
-          name={displayName}
-          email={caption}
-          avatarUrl={avatarUrl}
-          compact
-          dark={darkTrigger}
-        />
-        <div className="mt-3 space-y-1">
-          <Link
-            href={profileHref}
-            onClick={onAction}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              darkTrigger
-                ? "text-slate-200 hover:bg-white/10 hover:text-white"
-                : "text-sidebar-foreground hover:bg-sidebar-accent",
-            )}
+        {identityHeader}
+        {confirm ? (
+          <div
+            className="portal-account-confirm mt-3"
+            role="group"
+            aria-label="Confirm sign out everywhere"
           >
-            <UserIcon
-              className={cn(
-                "size-4 shrink-0",
-                darkTrigger ? "text-slate-400" : "text-muted-foreground",
-              )}
-            />
-            {resolvedProfileLabel}
-          </Link>
-          {showLanguageToggle ? (
+            <h3 className="mb-2 font-semibold">Sign out everywhere?</h3>
+            {confirmation}
+          </div>
+        ) : (
+          <div className="mt-3 grid gap-1">
+            <Link className="portal-account-drawer-action" href={profileHref} onClick={onAction}>
+              {profile}
+            </Link>
+            <button
+              ref={triggerRef}
+              type="button"
+              className="portal-account-drawer-action portal-account-security"
+              disabled={busy}
+              onClick={ask}
+            >
+              <ShieldOff className="size-4" aria-hidden />
+              Sign out everywhere
+            </button>
             <button
               type="button"
-              onClick={toggleLanguage}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                darkTrigger
-                  ? "text-slate-200 hover:bg-white/10 hover:text-white"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent",
-              )}
+              className="portal-account-drawer-action portal-account-signout"
+              disabled={busy}
+              onClick={() => void leave(false)}
             >
-              <Globe
-                className={cn(
-                  "size-4 shrink-0",
-                  darkTrigger ? "text-slate-400" : "text-muted-foreground",
-                )}
-              />
-              Language ({language === "en" ? "नेपाली" : "English"})
+              <LogOut className="size-4" aria-hidden />
+              {busy ? "Signing out..." : t("nav.signout")}
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void handleSignOutEverywhere()}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              darkTrigger
-                ? "text-slate-300 hover:bg-white/10 hover:text-white"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
-            )}
-          >
-            <ShieldOff
-              className={cn(
-                "size-4 shrink-0",
-                darkTrigger ? "text-slate-400" : "text-muted-foreground",
-              )}
-            />
-            Sign out everywhere
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSignOut()}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              darkTrigger
-                ? "text-rose-400 hover:bg-rose-500/15 hover:text-rose-300"
-                : "text-destructive hover:bg-destructive/10",
-            )}
-          >
-            <LogOut className="size-4 shrink-0" />
-            {t("nav.signout")}
-          </button>
-        </div>
+            {error ? (
+              <p role="alert" className="text-sm text-rose-200">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        )}
       </div>
     );
-  }
 
   return (
     <div className={className}>
-      <DropdownMenu>
+      <DropdownMenu keyboardNavigation>
         <DropdownMenuTrigger asChild>
           <button
+            ref={triggerRef}
             type="button"
             aria-label="Open account menu"
             className={cn(
-              "group flex items-center justify-between gap-3 transition-all duration-200",
-              isTopbar
-                ? "rounded-full border border-dashboard-border bg-dashboard-panel px-2 py-1 hover:bg-dashboard-panel-hover focus-visible:ring-2 focus-visible:ring-dashboard-focus"
-                : "w-full rounded-xl p-2",
-              !isTopbar && darkTrigger
-                ? "border border-white/10 bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/20 focus-visible:ring-2 focus-visible:ring-blue-400/50"
-                : null,
-              !isTopbar && !darkTrigger
-                ? "border border-transparent hover:bg-sidebar-accent"
-                : null,
+              "portal-account-trigger group flex w-full items-center justify-between gap-3 rounded-xl border p-2",
+              darkTrigger
+                ? "border-white/15 bg-white/5 hover:bg-white/10"
+                : "border-dashboard-border bg-dashboard-panel",
             )}
           >
             <AccountIdentity
-              name={displayName}
-              email={caption}
-              avatarUrl={avatarUrl}
-              compact
+              name={name}
+              email={identityCaption ?? email}
+              avatarUrl={user?.avatar}
               dark={darkTrigger}
             />
-            {isTopbar ? (
-              <ChevronDown
-                className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
-                aria-hidden
-              />
-            ) : (
-              <ChevronUp
-                className={cn(
-                  "size-4 shrink-0 transition-transform duration-200",
-                  darkTrigger
-                    ? "text-slate-400 group-hover:text-white"
-                    : "text-muted-foreground group-hover:text-foreground",
-                )}
-              />
-            )}
+            <ChevronUp className="size-4 shrink-0 text-slate-400" aria-hidden />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          align={isTopbar ? "end" : "start"}
-          side={isTopbar ? "bottom" : "top"}
-          className={cn("w-[230px]", isTopbar ? "mt-2" : "mb-2")}
+          collisionAware
+          align="start"
+          side="top"
+          className="portal-account-menu"
+          aria-label="Account"
         >
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel className="portal-account-heading">{identityHeader}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href={profileHref} className="cursor-pointer">
-              <UserIcon className="mr-2 size-4" /> {resolvedProfileLabel}
+            <Link href={profileHref} onClick={onAction}>
+              {profile}
             </Link>
           </DropdownMenuItem>
-          {showLanguageToggle ? (
-            <DropdownMenuItem onClick={toggleLanguage} className="cursor-pointer">
-              <Globe className="mr-2 size-4" /> Language ({language === "en" ? "नेपाली" : "English"}
-              )
-            </DropdownMenuItem>
-          ) : null}
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => void handleSignOutEverywhere()}
-            className="cursor-pointer"
-          >
-            <ShieldOff className="mr-2 size-4" /> Sign out everywhere
+          <div className="portal-account-section-label">Security &amp; sessions</div>
+          <DropdownMenuItem onClick={ask}>
+            <ShieldOff className="size-4" aria-hidden />
+            Sign out everywhere
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => void handleSignOut()}
-            className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+            className="portal-account-signout"
+            aria-disabled={busy}
+            onClick={() => void leave(false)}
           >
-            <LogOut className="mr-2 size-4" /> {t("nav.signout")}
+            <LogOut className="size-4" aria-hidden />
+            {busy ? "Signing out..." : t("nav.signout")}
           </DropdownMenuItem>
+          {error ? (
+            <p role="alert" className="px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
+      {!confirm && error ? (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <Dialog
+        open={confirm}
+        onOpenChange={(open: boolean) => {
+          if (!busy) {
+            setConfirm(open);
+            if (!open) requestAnimationFrame(() => triggerRef.current?.focus());
+          }
+        }}
+      >
+        <DialogContent aria-label="Sign out everywhere" className="portal-account-confirm">
+          <DialogHeader>
+            <DialogTitle>Sign out everywhere?</DialogTitle>
+            <DialogDescription>End active account sessions.</DialogDescription>
+          </DialogHeader>
+          {confirmation}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

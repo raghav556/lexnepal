@@ -82,6 +82,12 @@ interface Manifest {
 }
 
 async function writeArchive(): Promise<Manifest> {
+  // After decommission only a few auxiliary files remain. Never overwrite the
+  // complete historical archive with that partial set if a CLI flag is lost.
+  const liveSource = await fs.stat(path.join(ROOT, "convex")).catch(() => null);
+  if (!liveSource?.isDirectory()) {
+    throw new Error("Live convex/ source is absent; refusing archive rewrite. Use --verify.");
+  }
   const files = await collectFiles();
   if (files.length === 0) throw new Error("Nothing to archive — Convex sources already removed");
 

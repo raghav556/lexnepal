@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import * as React from "react";
 import {
   ChevronRight,
+  Globe,
   Search,
   Plus,
   Command,
@@ -36,6 +37,8 @@ export interface PortalTopbarProps {
   onOpenChat?: () => void;
   className?: string;
   accountSlot?: React.ReactNode;
+  /** Staff may supply an already-resolved record label without fetching in the shared shell. */
+  currentPageLabel?: string;
 }
 
 const SEGMENT_LABELS: Record<string, { label: string; i18nKey?: string }> = {
@@ -87,9 +90,10 @@ export function PortalTopbar({
   onOpenChat,
   className,
   accountSlot,
+  currentPageLabel,
 }: PortalTopbarProps) {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, language, setLanguage } = useI18n();
 
   const pathSegments = pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
@@ -105,7 +109,12 @@ export function PortalTopbar({
           ? t(meta.i18nKey)
           : meta.label;
     const isLast = index === pathSegments.length - 1;
-    return { segment, href, label, isLast };
+    return {
+      segment,
+      href,
+      label: portal === "staff" && isLast && currentPageLabel ? currentPageLabel : label,
+      isLast,
+    };
   });
 
   const isStaff = portal === "staff";
@@ -145,7 +154,7 @@ export function PortalTopbar({
         <div className="flex min-w-0 items-center gap-2 pr-4">
           <nav
             aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-[13px] font-medium"
+            className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium"
           >
             {breadcrumbs.map((crumb, idx) => (
               <React.Fragment key={crumb.href}>
@@ -189,7 +198,15 @@ export function PortalTopbar({
       {isClient ? (
         <div className="min-w-0 flex-1" aria-hidden />
       ) : showCommandSearch ? (
-        <div className="mx-2 hidden max-w-md flex-1 sm:block">
+        <div
+          className={cn(
+            "mx-2 hidden max-w-md flex-1",
+            // Staff: the wide search field needs the sidebar + breadcrumb + actions to fit,
+            // so it only expands from lg; below that a compact icon button (next to the
+            // actions) opens the same search.
+            isStaff ? "min-w-0 lg:block" : "min-w-0 xl:block",
+          )}
+        >
           <button
             type="button"
             onClick={handleSearch}
@@ -219,16 +236,35 @@ export function PortalTopbar({
             className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-dashboard-border bg-dashboard-panel px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-dashboard-panel-hover hover:text-foreground"
           >
             <ExternalLink className="size-3 text-dashboard-primary" />
-            <span>Live Site</span>
+            <span className="sr-only xl:not-sr-only">Live Site</span>
           </Link>
         ) : null}
 
+        {!isClient && showCommandSearch ? (
+          <button
+            type="button"
+            onClick={handleSearch}
+            aria-label="Open search"
+            title="Search (Ctrl/⌘ K)"
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-lg border border-dashboard-border bg-dashboard-panel text-muted-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+              isStaff ? "lg:hidden" : "xl:hidden",
+            )}
+          >
+            <Search className="size-4" aria-hidden />
+          </button>
+        ) : null}
+
         {isClient ? null : (
-          <DropdownMenu>
+          <DropdownMenu keyboardNavigation={isStaff}>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-dashboard-primary px-2.5 py-1.5 text-xs font-semibold text-dashboard-primary-foreground shadow-sm transition-all hover:bg-dashboard-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus"
+                aria-label={isStaff ? "Create" : undefined}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg bg-dashboard-primary px-2.5 py-1.5 text-xs font-semibold text-dashboard-primary-foreground shadow-sm transition-all hover:bg-dashboard-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-focus",
+                  isStaff && "staff-header-create",
+                )}
               >
                 <Plus className="size-3.5" />
                 <span className="hidden sm:inline">Create</span>
@@ -308,6 +344,15 @@ export function PortalTopbar({
         <div className="flex items-center">
           <NotificationBell triggerClassName="size-8 rounded-lg border border-dashboard-border bg-dashboard-panel text-foreground shadow-sm transition-colors hover:bg-dashboard-panel-hover" />
         </div>
+        <button
+          type="button"
+          className="portal-header-language"
+          aria-label={`Switch language to ${language === "en" ? "Nepali" : "English"}`}
+          onClick={() => setLanguage(language === "en" ? "ne" : "en")}
+        >
+          <Globe className="size-4" aria-hidden />
+          <span>{language === "en" ? "EN" : "नेपाली"}</span>
+        </button>
         {accountSlot}
       </div>
     </header>

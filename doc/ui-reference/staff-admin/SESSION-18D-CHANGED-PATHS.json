@@ -1,0 +1,53 @@
+{
+  "baseline": "eba60f7694bd1744fb62eb34f5e6d9bba51d775c",
+  "total": 11,
+  "modified": 6,
+  "new": 5,
+  "excludedProtectedPath": "doc/ui-reference/staff-admin/SESSION-08-ENGINEERING-REPORT.md",
+  "paths": [
+    {
+      "state": " M",
+      "path": "package-lock.json"
+    },
+    {
+      "state": " M",
+      "path": "package.json"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-critical-actions.mjs"
+    },
+    {
+      "state": " M",
+      "path": "src/server/auth/better-auth-session-service.ts"
+    },
+    {
+      "state": " M",
+      "path": "src/server/repositories/identity-repository.ts"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/AdminUsersPage.tsx"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18D-CHANGED-PATHS.json"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18D-COVERAGE.json"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18D-FINAL-MERGE-READINESS-REPORT.md"
+    },
+    {
+      "state": "??",
+      "path": "tests/integration/final-critical-boundaries.test.ts"
+    },
+    {
+      "state": "??",
+      "path": "tests/unit/typography-parser-compatibility.test.ts"
+    }
+  ]
+}

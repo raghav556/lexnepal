@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -156,7 +157,7 @@ export default function ResourceDetailPage({ slug }: { slug: string }) {
               <h1 className="font-serif text-3xl sm:text-4xl font-bold text-foreground">{title}</h1>
               {resource.publishedDate && (
                 <p className="text-sm text-muted-foreground">
-                  Published {format(new Date(String(resource.publishedDate)), "MMMM d, yyyy")}
+                  Published {formatDualDate(String(resource.publishedDate))}
                 </p>
               )}
             </motion.div>

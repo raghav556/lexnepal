@@ -1,4 +1,5 @@
 "use client";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -52,6 +53,13 @@ function estimateReadTime(text?: string) {
 
 function authorLabel(post: BlogPostRow) {
   return String(post.author || "Editorial Team");
+}
+
+function postDate(post: BlogPostRow): string {
+  const value = post.publishDate || post._creationTime;
+  return value === undefined || value === null || value === ""
+    ? "Date not recorded"
+    : formatDualDate(value);
 }
 
 function postId(post: BlogPostRow) {
@@ -319,13 +327,7 @@ export default function BlogPage() {
                                 {authorLabel(featured)}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {new Date(
-                                  featured.publishDate || featured._creationTime || Date.now(),
-                                ).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {postDate(featured)}
                               </span>
                             </div>
                           </div>
@@ -407,14 +409,7 @@ export default function BlogPage() {
                               </div>
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                                 <Calendar className="w-3.5 h-3.5" />
-                                <span>
-                                  {new Date(
-                                    post.publishDate || post._creationTime || Date.now(),
-                                  ).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </span>
+                                <span>{postDate(post)}</span>
                               </div>
                             </div>
                           </CardContent>

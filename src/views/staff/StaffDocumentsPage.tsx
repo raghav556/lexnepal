@@ -1,4 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
+import { BsDateField, reportBsDateValidity } from "@/components/ui/bs-date-field";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
+import { useI18n } from "@/lib/i18n-context";
+import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
+import { useCallback, useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 
 import { usePagination } from "@/hooks/use-pagination.ts";
@@ -10,21 +15,18 @@ import {
   DashboardStatusLabel,
   DualDateDisplay,
   EmptyState,
-  HeroStatChip,
   PortalPageShell,
   STAFF_HERO_OUTLINE_BUTTON_CLASS,
-  StaffHeroChipRow,
   StatusBadge,
+  usePortalBranding,
 } from "@/components/dashboard";
-import { getDashboardStatusTone, DASHBOARD_TONE_PANEL_CLASSES } from "@/lib/dashboard-semantics";
 import {
   FileText,
   Upload,
-  Search,
   Filter,
   Download,
   Loader2,
-  Plus,
+  ShieldAlert,
   X,
   Lock,
   PenTool,
@@ -41,11 +43,15 @@ import {
 } from "lucide-react";
 import { AdvancedSearch } from "@/components/documents/AdvancedSearch.tsx";
 import {
+  classifyDocumentPreview,
+  previewKindLabel,
+} from "@/components/documents/staff-document-preview.ts";
+import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
@@ -58,8 +64,8 @@ import {
 import { toast } from "sonner";
 import { useCases } from "@/client/queries/cases";
 import {
-  useDocuments,
-  useDocumentSearch,
+  useDocumentsQuery,
+  useDocumentSearchQuery,
   useRecentDocuments,
   useUploadDocument,
   useTrashDocument,
@@ -70,7 +76,7 @@ import {
   useExtractDocumentText,
   useDownloadDocument,
   useDownloadDocumentArchive,
-  useDocumentVersions,
+  useDocumentVersionsQuery,
   useRestoreDocumentVersion,
 } from "@/client/queries/documents";
 import {
@@ -97,6 +103,13 @@ const DocumentShareModal = dynamic(
     import("@/components/documents/DocumentShareModal").then((module) => module.DocumentShareModal),
   { ssr: false },
 );
+const StaffDocumentViewer = dynamic(
+  () =>
+    import("@/components/documents/StaffDocumentViewer").then(
+      (module) => module.StaffDocumentViewer,
+    ),
+  { ssr: false },
+);
 
 const DOC_TYPES = [
   "pleading",
@@ -108,7 +121,36 @@ const DOC_TYPES = [
   "other",
 ];
 
+function formatSize(bytes: unknown): string {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n < 0) return "—";
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / 1024).toFixed(0)} KB`;
+}
+
+/** File-type chip derived from the real mime type / file extension. */
+function fileKind(doc: any): { kind: string; label: string } {
+  const mime = String(doc?.mimeType || "").toLowerCase();
+  const ext = String(doc?.title || "")
+    .split(".")
+    .pop()
+    ?.toLowerCase();
+  if (mime.includes("pdf") || ext === "pdf") return { kind: "pdf", label: "PDF" };
+  if (mime.includes("word") || ext === "doc" || ext === "docx")
+    return { kind: "doc", label: "DOC" };
+  if (mime.includes("sheet") || mime.includes("excel") || ext === "xls" || ext === "xlsx")
+    return { kind: "sheet", label: "XLS" };
+  if (mime.includes("presentation") || ext === "ppt" || ext === "pptx")
+    return { kind: "slides", label: "PPT" };
+  if (mime.startsWith("image/") || ["jpg", "jpeg", "png", "tif", "tiff"].includes(ext || ""))
+    return { kind: "image", label: "IMG" };
+  if (mime.startsWith("text/") || ext === "txt") return { kind: "text", label: "TXT" };
+  return { kind: "file", label: "FILE" };
+}
+
 export default function StaffDocumentsPage() {
+  const { language } = useI18n();
+  const { heroImageUrl } = usePortalBranding();
   const [searchFilters, setSearchFilters] = useState<{
     query: string;
     caseId?: string;
@@ -118,8 +160,17 @@ export default function StaffDocumentsPage() {
   }>({ query: "" });
   const [viewMode, setViewMode] = useState<"list" | "folders" | "trash">("list");
 
-  const searchResults = useDocumentSearch(searchFilters.query ? searchFilters : null) || [];
-  const listResults = useDocuments({ isTemplate: false, inTrash: viewMode === "trash" }) || [];
+  const searchQuery = useDocumentSearchQuery(
+    searchFilters.query ? { ...searchFilters, inTrash: viewMode === "trash" } : null,
+  );
+  const searchResults = searchQuery.data || [];
+  const listQuery = useDocumentsQuery({
+    caseId: searchFilters.query ? undefined : searchFilters.caseId,
+    isTemplate: false,
+    inTrash: viewMode === "trash",
+  });
+  const listResults = listQuery.data || [];
+  const documentQuery = searchFilters.query ? searchQuery : listQuery;
   const cases = useCases({}) || [];
 
   const allDocs = searchFilters.query ? searchResults : listResults;
@@ -148,7 +199,8 @@ export default function StaffDocumentsPage() {
   const [filterType, setFilterType] = useState("all");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [activeSidebarDoc, setActiveSidebarDoc] = useState<any | null>(null);
-  const versionHistory = useDocumentVersions(activeSidebarDoc?._id ?? null);
+  const versionsQuery = useDocumentVersionsQuery(activeSidebarDoc?._id ?? null);
+  const versionHistory = versionsQuery.data ?? [];
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null);
@@ -160,6 +212,12 @@ export default function StaffDocumentsPage() {
   const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [envelopeDoc, setEnvelopeDoc] = useState<any>(null);
+  const [createdEnvelopeId, setCreatedEnvelopeId] = useState<string | null>(null);
+  const [retentionDoc, setRetentionDoc] = useState<any>(null);
+  const [retentionPolicy, setRetentionPolicy] = useState("");
+  const [retentionBusy, setRetentionBusy] = useState(false);
+  const [retentionError, setRetentionError] = useState("");
+  const retentionLock = useRef(false);
 
   // Upload Form
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -178,7 +236,7 @@ export default function StaffDocumentsPage() {
   const [isEnvelopeBusy, setIsEnvelopeBusy] = useState(false);
   const [requestingId, setRequestingId] = useState<string | null>(null);
 
-  const isLoading = allDocs === undefined || cases === undefined;
+  const isLoading = documentQuery.isLoading || cases === undefined;
 
   // Filter & Pagination
   const docsToDisplay = allDocs;
@@ -191,7 +249,7 @@ export default function StaffDocumentsPage() {
     if (d.isDeleted) return false;
 
     if (viewMode === "folders") {
-      if (selectedFolder !== null && d.caseId !== selectedFolder) return false;
+      if (selectedFolder !== null && (d.caseId || "general") !== selectedFolder) return false;
       if (selectedSubFolder !== null && d.type !== selectedSubFolder) return false;
     }
     if (filterType !== "all" && d.type !== filterType) return false;
@@ -220,8 +278,12 @@ export default function StaffDocumentsPage() {
   };
 
   const selectAll = () => {
-    if (selectedDocs.length === paginatedItems.length) setSelectedDocs([]);
-    else setSelectedDocs(paginatedItems.map((d: any) => d._id));
+    const pageIds = paginatedItems.map((doc: any) => doc._id);
+    setSelectedDocs((selected) =>
+      pageIds.every((id) => selected.includes(id))
+        ? selected.filter((id) => !pageIds.includes(id))
+        : [...new Set([...selected, ...pageIds])],
+    );
   };
 
   const openNewUpload = () => {
@@ -281,7 +343,7 @@ export default function StaffDocumentsPage() {
     setRequestingId(doc._id);
     try {
       await requestSignature({ documentId: doc._id });
-      toast.success("Sent for signature — client notified.");
+      toast.success("Sent for signature â€” client notified.");
     } catch (err: any) {
       toast.error(err?.message || "Could not request signature.");
     } finally {
@@ -290,6 +352,7 @@ export default function StaffDocumentsPage() {
   };
 
   const openEnvelopeModal = (doc: any) => {
+    setCreatedEnvelopeId(null);
     setEnvelopeDoc(doc);
     setEnvelopeTitle(doc.title);
     setEnvelopeRouting("sequential");
@@ -300,20 +363,27 @@ export default function StaffDocumentsPage() {
   };
 
   const handleCreateAndSendEnvelope = async () => {
+    if (!reportBsDateValidity()) return;
     if (!envelopeDoc) return;
     if (selectedSignerIds.length === 0) return toast.error("Select at least one signer.");
     setIsEnvelopeBusy(true);
     try {
-      const { envelopeId } = await createEnvelope({
-        documentId: envelopeDoc._id,
-        title: envelopeTitle.trim() || envelopeDoc.title,
-        routing: envelopeRouting,
-        expiresAt: envelopeExpires ? new Date(envelopeExpires).toISOString() : undefined,
-        recipientUserIds: selectedSignerIds as any,
-      });
+      let envelopeId = createdEnvelopeId;
+      if (!envelopeId) {
+        const created = await createEnvelope({
+          documentId: envelopeDoc._id,
+          title: envelopeTitle.trim() || envelopeDoc.title,
+          routing: envelopeRouting,
+          expiresAt: envelopeExpires ? new Date(envelopeExpires).toISOString() : undefined,
+          recipientUserIds: selectedSignerIds as any,
+        });
+        envelopeId = created.envelopeId;
+        setCreatedEnvelopeId(envelopeId);
+      }
       await sendEnvelope({ envelopeId });
       toast.success("Envelope sent to signers.");
       setEnvelopeDoc(null);
+      setCreatedEnvelopeId(null);
     } catch (err: any) {
       toast.error(err?.message || "Could not create envelope.");
     } finally {
@@ -441,26 +511,29 @@ export default function StaffDocumentsPage() {
     }
   };
 
-  const handleRetention = async (doc: any) => {
-    const policy = window.prompt(
-      "Retention policy name:",
-      doc.retentionPolicy || "Corporate legal record",
-    );
-    if (!policy?.trim()) return;
-    const retentionUntil = window.prompt(
-      "Retain until (YYYY-MM-DD):",
-      doc.retentionUntil?.slice(0, 10) || "",
-    );
-    if (!retentionUntil) return;
+  const handleRetention = (doc: any) => {
+    setRetentionDoc(doc);
+    setRetentionPolicy(doc.retentionPolicy || "Corporate legal record");
+    setRetentionError("");
+  };
+  const saveRetentionPolicy = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!retentionDoc || !retentionPolicy.trim() || retentionLock.current) return;
+    retentionLock.current = true;
+    setRetentionBusy(true);
+    setRetentionError("");
     try {
       await setRetention({
-        documentId: doc._id,
-        policy: policy.trim(),
-        retentionUntil: new Date(retentionUntil).toISOString(),
+        documentId: retentionDoc._id,
+        policy: retentionPolicy.trim(),
       });
+      setRetentionDoc(null);
       toast.success("Retention policy applied.");
     } catch (err: any) {
-      toast.error(err?.message || "Could not set retention.");
+      setRetentionError(err?.message || "Could not set retention.");
+    } finally {
+      retentionLock.current = false;
+      setRetentionBusy(false);
     }
   };
 
@@ -481,7 +554,29 @@ export default function StaffDocumentsPage() {
     });
   };
 
-  if (isLoading) {
+  // Stable close callbacks: the shared Dialog re-runs its focus/scroll-lock effect whenever
+  // `onOpenChange` changes identity, so these must not be recreated on every render.
+  const closeDetails = useCallback(() => setActiveSidebarDoc(null), []);
+  const closeUpload = useCallback(() => setIsUploadOpen(false), []);
+  const closePreview = useCallback(() => setIsPreviewOpen(false), []);
+  const closeEnvelope = useCallback(() => {
+    if (isEnvelopeBusy) return;
+    setEnvelopeDoc(null);
+    setCreatedEnvelopeId(null);
+  }, [isEnvelopeBusy]);
+
+  // Wide screens show details as an inline panel; narrower screens use an accessible dialog.
+  const [isWide, setIsWide] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 80rem)");
+    const sync = () => setIsWide(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  // Keep search/filter controls mounted while a new document query loads.
+  if (cases === undefined) {
     return (
       <PortalPageShell
         portal="staff"
@@ -494,17 +589,317 @@ export default function StaffDocumentsPage() {
     );
   }
 
+  const docList = allDocs as any[];
+  const awaitingSignature = docList.filter(
+    (d) => Boolean(d.requiresSignature) && d.signatureStatus === "pending",
+  ).length;
+  const onLegalHold = docList.filter((d) => Boolean(d.isOnLegalHold)).length;
+  const pendingScan = docList.filter((d) => d.uploadStatus && d.uploadStatus !== "clean").length;
+  const showLibrary = !(viewMode === "folders" && (!selectedFolder || !selectedSubFolder));
+  const pageSelected =
+    paginatedItems.length > 0 && paginatedItems.every((doc: any) => selectedDocs.includes(doc._id));
+  const detailsDialogOpen =
+    !isWide &&
+    !!activeSidebarDoc &&
+    !retentionDoc &&
+    !isPreviewOpen &&
+    !isShareModalOpen &&
+    !envelopeDoc &&
+    !isUploadOpen;
+
+  const renderDetails = (doc: any, inDialog: boolean) => {
+    const matchedCase = cases.find((c: any) => c._id === doc.caseId);
+    const kind = fileKind(doc);
+    const canExtractText =
+      (doc.mimeType?.includes("pdf") || doc.mimeType?.includes("image")) && !doc.searchableText;
+    return (
+      <div className="staff-docs-details" data-in-dialog={inDialog ? "true" : undefined}>
+        <header className="staff-docs-details-head">
+          <span className="staff-docs-kind" data-kind={kind.kind} aria-hidden>
+            {kind.label}
+          </span>
+          <div className="min-w-0">
+            <h2 id="staff-docs-details-title" className="staff-docs-details-title">
+              {doc.title}
+            </h2>
+            <div className="staff-docs-badges">
+              <StatusBadge tone="neutral" className="capitalize text-[10px]">
+                {doc.type}
+              </StatusBadge>
+              <StatusBadge tone="information" className="text-[10px] uppercase">
+                Version {doc.version}
+              </StatusBadge>
+              {doc.isPrivileged && (
+                <StatusBadge tone="danger" className="text-[10px]">
+                  Internal Vault
+                </StatusBadge>
+              )}
+              {doc.isOnLegalHold && (
+                <StatusBadge tone="warning" className="text-[10px]">
+                  Legal Hold
+                </StatusBadge>
+              )}
+              {doc.retentionUntil && (
+                <StatusBadge tone="neutral" className="text-[10px]">
+                  Retain until <DualDateDisplay isoDate={doc.retentionUntil} />
+                </StatusBadge>
+              )}
+            </div>
+          </div>
+          {!inDialog ? (
+            <button
+              type="button"
+              className="staff-docs-close"
+              aria-label="Close details"
+              onClick={closeDetails}
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          ) : null}
+        </header>
+
+        <div className="staff-docs-details-body">
+          <dl className="staff-docs-meta">
+            <div>
+              <dt>Uploaded on</dt>
+              <dd>
+                <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString()} />
+              </dd>
+            </div>
+            <div>
+              <dt>File size</dt>
+              <dd>{formatSize(doc.sizeBytes)}</dd>
+            </div>
+            <div>
+              <dt>Visibility</dt>
+              <dd>{doc.isPrivileged ? "Internal vault only" : "Client viewable"}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd className="capitalize">{doc.uploadStatus || "clean"}</dd>
+            </div>
+            <div className="staff-docs-meta-wide">
+              <dt>Case link</dt>
+              <dd>
+                {matchedCase
+                  ? `[${matchedCase.caseNumber}] ${matchedCase.title}`
+                  : "Firm General File"}
+              </dd>
+            </div>
+          </dl>
+
+          <section className="staff-docs-action-group" aria-label="File actions">
+            <Button type="button" onClick={() => setIsPreviewOpen(true)}>
+              <Eye className="size-4" aria-hidden /> Open Previewer
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleDocumentDownload(doc)}
+              disabled={downloadingId === doc._id}
+            >
+              {downloadingId === doc._id ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Download className="size-4" aria-hidden />
+              )}
+              Download Document
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setIsShareModalOpen(true)}>
+              <Link2 className="size-4" aria-hidden /> Share External Link
+            </Button>
+            {canExtractText && (
+              <Button type="button" variant="outline" onClick={() => handleOCR(doc)}>
+                <ScanText className="size-4" aria-hidden /> Extract Text (OCR)
+              </Button>
+            )}
+            <Button type="button" variant="secondary" onClick={() => openVersionUpload(doc)}>
+              <Upload className="size-4" aria-hidden /> Upload New Version
+            </Button>
+          </section>
+
+          <section className="staff-docs-action-pair" aria-label="Retention and legal hold">
+            <Button type="button" variant="outline" onClick={() => handleLegalHold(doc)}>
+              <Lock className="size-3.5" aria-hidden />{" "}
+              {doc.isOnLegalHold ? "Release Hold" : "Legal Hold"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => handleRetention(doc)}>
+              <Clock className="size-3.5" aria-hidden /> Retention
+            </Button>
+          </section>
+
+          <section className="staff-docs-signature" aria-label="E-signature">
+            <h3>
+              <PenTool className="size-3.5" aria-hidden /> E-Signature Hub
+            </h3>
+            {doc.signatureStatus === "signed" ? (
+              <DashboardStatusLabel
+                label="Completed & secured"
+                tone="success"
+                className="w-full justify-center py-1.5"
+              />
+            ) : (
+              <>
+                <div className="staff-docs-action-pair">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRequestSignature(doc)}
+                    disabled={!!requestingId || doc.isPrivileged}
+                  >
+                    Quick Sign
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEnvelopeModal(doc)}
+                    disabled={doc.isPrivileged}
+                  >
+                    Create Envelope
+                  </Button>
+                </div>
+                {doc.isPrivileged ? (
+                  <p className="staff-docs-note">
+                    Internal vault files cannot be sent for signature.
+                  </p>
+                ) : null}
+              </>
+            )}
+          </section>
+
+          <section className="staff-docs-versions" aria-label="Version history">
+            <h3>
+              <History className="size-3.5" aria-hidden /> Version History
+            </h3>
+            {versionsQuery.isLoading ? (
+              <p className="staff-docs-note">Loading version history…</p>
+            ) : versionsQuery.isError ? (
+              <div role="alert">
+                <p className="staff-docs-note">Version history could not be loaded.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void versionsQuery.refetch()}
+                >
+                  Retry versions
+                </Button>
+              </div>
+            ) : versionHistory.length === 0 ? (
+              <p className="staff-docs-note">No version history is available.</p>
+            ) : (
+              <ol className="staff-docs-version-list">
+                {
+                  <StaffPagedCollection
+                    label="Document versions"
+                    resetKey={String(activeSidebarDoc?._id ?? "")}
+                    pageSize={6}
+                    footerAs="li"
+                  >
+                    {versionHistory.map((version: any, index) => {
+                      const isCurrent = index === 0;
+                      const createdAt =
+                        version.createdAt || new Date(version._creationTime).toISOString();
+                      return (
+                        <li key={version._id} data-current={isCurrent ? "true" : undefined}>
+                          <div className="min-w-0">
+                            <p className="staff-docs-version-name">
+                              Version {version.version} {isCurrent ? "(Current)" : ""}
+                            </p>
+                            <p className="staff-docs-note">
+                              <DualDateDisplay isoDate={createdAt} />
+                            </p>
+                          </div>
+                          {!isCurrent && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVersionRestore(version)}
+                              disabled={
+                                restoringVersionId !== null ||
+                                version.isDeleted ||
+                                version.uploadStatus !== "clean"
+                              }
+                              aria-label={`Restore version ${version.version}`}
+                            >
+                              {restoringVersionId === version._id ? (
+                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                              ) : (
+                                "Restore"
+                              )}
+                            </Button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </StaffPagedCollection>
+                }
+              </ol>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <PortalPageShell
       portal="staff"
       titleKey="portal.documents.title"
       descriptionKey="portal.documents.description"
       icon={FileText}
-      className="!p-0 sm:!p-0 h-[calc(100vh-4rem)] overflow-hidden"
-      contentClassName="!p-0"
+      className="staff-docs-workspace"
+      heroClassName="staff-docs-hero"
+      metricsClassName="staff-docs-metrics"
+      metrics={[
+        {
+          label: viewMode === "trash" ? "In trash" : "Documents",
+          value: String(docList.length),
+          icon: FileText,
+          tone: "information",
+          helperText: searchFilters.query ? "Matching your search" : "In this view",
+        },
+        {
+          label: "Awaiting signature",
+          value: String(awaitingSignature),
+          icon: PenTool,
+          tone: "warning",
+          helperText: "Signature pending",
+        },
+        {
+          label: "On legal hold",
+          value: String(onLegalHold),
+          icon: Lock,
+          tone: onLegalHold > 0 ? "danger" : "success",
+          helperText: onLegalHold > 0 ? "Protected from deletion" : "No holds applied",
+        },
+        {
+          label: "Pending scan",
+          value: String(pendingScan),
+          icon: ShieldAlert,
+          tone: pendingScan > 0 ? "warning" : "success",
+          helperText: pendingScan > 0 ? "Quarantined or scanning" : "All files clean",
+        },
+      ]}
+      heroChildren={
+        <div
+          aria-hidden
+          className="staff-docs-hero-art"
+          style={
+            heroImageUrl
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
+              : undefined
+          }
+        />
+      }
       actions={
         <>
-          <DashboardButton size="sm" onClick={openNewUpload}>
+          <DashboardButton size="sm" variant="primary" onClick={openNewUpload}>
             <Upload className="size-3.5" aria-hidden /> Upload file
           </DashboardButton>
           <DashboardButton
@@ -517,154 +912,115 @@ export default function StaffDocumentsPage() {
           </DashboardButton>
         </>
       }
-      heroChildren={
-        <StaffHeroChipRow>
-          <HeroStatChip icon={FileText} value={allDocs.length} label="files" />
-          <HeroStatChip icon={Clock} value={recentDocs.length} label="recent" />
-          <HeroStatChip
-            icon={Send}
-            value={
-              allDocs.filter(
-                (d) =>
-                  "requiresSignature" in d &&
-                  Boolean(d.requiresSignature) &&
-                  "signatureStatus" in d &&
-                  d.signatureStatus === "pending",
-              ).length
-            }
-            label="awaiting signature"
-          />
-          <HeroStatChip icon={Tags} value={selectedDocs.length} label="selected" />
-        </StaffHeroChipRow>
-      }
     >
-      <div className="flex h-full overflow-hidden font-sans bg-dashboard-canvas relative">
-        <div
-          className={`flex-1 flex flex-col transition-all duration-300 w-full ${activeSidebarDoc ? "mr-[350px] pr-[350px]" : ""}`}
-        >
-          <div className="p-4 sm:p-6 border-b border-dashboard-border bg-dashboard-panel z-10 flex flex-col gap-4 sticky top-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 w-fit shadow-2xs">
+      <div
+        className="staff-docs-layout"
+        data-details={isWide && activeSidebarDoc ? "open" : "closed"}
+      >
+        <div className="staff-docs-main">
+          <CollectionContinuation query={documentQuery} noun="documents" />
+          <div className="staff-docs-toolbar" role="region" aria-label="Document views and filters">
+            <div className="staff-docs-toolbar-row">
+              <div role="group" aria-label="Document view" className="staff-docs-view-toggle">
                 <button
-                  className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                    viewMode === "list"
-                      ? "bg-white text-purple-700 font-semibold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
+                  type="button"
+                  aria-pressed={viewMode === "list"}
                   onClick={() => {
                     setViewMode("list");
                     setSelectedFolder(null);
                     setSelectedSubFolder(null);
                   }}
                 >
-                  List View
+                  <FileText className="size-4" aria-hidden /> List View
                 </button>
                 <button
-                  className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                    viewMode === "folders"
-                      ? "bg-white text-purple-700 font-semibold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
+                  type="button"
+                  aria-pressed={viewMode === "folders"}
                   onClick={() => {
                     setViewMode("folders");
                     setSelectedSubFolder(null);
                   }}
                 >
-                  Folders
+                  <Folder className="size-4" aria-hidden /> Folders
                 </button>
                 <button
-                  className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                    viewMode === "trash"
-                      ? "bg-white text-rose-700 font-semibold shadow-xs"
-                      : "text-slate-600 hover:text-rose-700"
-                  }`}
+                  type="button"
+                  aria-pressed={viewMode === "trash"}
+                  data-variant="trash"
                   onClick={() => {
                     setViewMode("trash");
                     setSelectedFolder(null);
                     setSelectedSubFolder(null);
                   }}
                 >
-                  Trash
+                  <Trash2 className="size-4" aria-hidden /> Trash
                 </button>
               </div>
               <DashboardButton
                 size="sm"
                 variant="secondary"
+                className="staff-docs-tags-button"
                 onClick={() => setIsTagsModalOpen(true)}
               >
                 <Tags className="size-3.5" aria-hidden /> Tags
               </DashboardButton>
             </div>
 
-            <AdvancedSearch cases={cases} onSearch={setSearchFilters} />
+            <div className="staff-docs-search">
+              <AdvancedSearch cases={cases} onSearch={setSearchFilters} />
+            </div>
 
             {viewMode === "folders" && !selectedFolder && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-                <button
-                  onClick={() => setSelectedFolder("general")}
-                  className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
-                >
-                  <Folder className="w-8 h-8 text-primary/70 group-hover:text-primary transition-colors shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-sm">Firm General</h3>
-                    <p className="text-xs text-muted-foreground">Internal Documents</p>
-                  </div>
+              <div className="staff-docs-folders">
+                <button type="button" onClick={() => setSelectedFolder("general")}>
+                  <Folder aria-hidden />
+                  <span className="min-w-0">
+                    <strong>Firm General</strong>
+                    <small>Internal Documents</small>
+                  </span>
                 </button>
                 {cases.map((c: any) => (
-                  <button
-                    key={c._id}
-                    onClick={() => setSelectedFolder(c._id)}
-                    className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
-                  >
-                    <Folder className="w-8 h-8 text-primary/70 group-hover:text-primary transition-colors shrink-0" />
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-sm truncate" title={c.title}>
-                        {c.caseNumber}
-                      </h3>
-                      <p className="text-xs text-muted-foreground truncate" title={c.title}>
-                        {c.title}
-                      </p>
-                    </div>
+                  <button key={c._id} type="button" onClick={() => setSelectedFolder(c._id)}>
+                    <Folder aria-hidden />
+                    <span className="min-w-0">
+                      <strong title={c.title}>{c.caseNumber}</strong>
+                      <small title={c.title}>{c.title}</small>
+                    </span>
                   </button>
                 ))}
               </div>
             )}
 
             {viewMode === "folders" && selectedFolder && !selectedSubFolder && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-right-2">
+              <div className="staff-docs-folders">
                 {DOC_TYPES.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setSelectedSubFolder(t)}
-                    className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
-                  >
-                    <Folder className="w-8 h-8 group-hover:scale-110 transition-transform shrink-0 text-dashboard-primary" />
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-sm capitalize">{t}</h3>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-                        Sub-Folder
-                      </p>
-                    </div>
+                  <button key={t} type="button" onClick={() => setSelectedSubFolder(t)}>
+                    <Folder aria-hidden />
+                    <span className="min-w-0">
+                      <strong className="capitalize">{t}</strong>
+                      <small>Sub-Folder</small>
+                    </span>
                   </button>
                 ))}
               </div>
             )}
 
             {(viewMode !== "folders" || selectedSubFolder) && (
-              <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="staff-docs-filter-row">
                 {viewMode === "folders" && selectedFolder && (
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedSubFolder(null)}
-                    className="shrink-0 h-9 bg-secondary/50"
                   >
                     &larr; Back to {selectedFolder === "general" ? "Firm General" : "Case"}
                   </Button>
                 )}
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[160px] h-9 text-sm bg-secondary/50">
-                    <Filter className="w-3.5 h-3.5 mr-2" /> <SelectValue placeholder="All Types" />
+                  <SelectTrigger className="staff-docs-type-filter" aria-label="Filter by type">
+                    <Filter className="size-3.5" aria-hidden />{" "}
+                    <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
@@ -675,171 +1031,241 @@ export default function StaffDocumentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-
-                {selectedDocs.length > 0 && viewMode !== "trash" && (
-                  <div className="flex items-center gap-2 ml-auto animate-in fade-in zoom-in-95">
-                    <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-md">
-                      {selectedDocs.length} selected
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-3 bg-secondary/50"
-                      onClick={handleBulkDownload}
-                      disabled={isBulkDownloading}
-                    >
-                      {isBulkDownloading ? (
-                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                      ) : (
-                        <Download className="w-3.5 h-3.5 mr-1.5" />
-                      )}
-                      {isBulkDownloading ? "Preparing ZIP…" : "Download ZIP"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => handleArchive(selectedDocs)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Archive
-                    </Button>
-                  </div>
-                )}
-
-                {selectedDocs.length > 0 && viewMode === "trash" && (
-                  <div className="flex items-center gap-2 ml-auto animate-in fade-in zoom-in-95">
-                    <span className="text-xs font-semibold px-2 py-1 bg-destructive/10 text-destructive rounded-md">
-                      {selectedDocs.length} selected
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-3 text-emerald-600 border-emerald-600/30 hover:bg-emerald-600/10"
-                      onClick={() => handleRestore(selectedDocs)}
-                    >
-                      Restore
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => handleHardDelete(selectedDocs)}
-                    >
-                      Delete Permanently
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
           </div>
 
-          <div className="flex-1 overflow-auto p-4 sm:p-6 pb-24 flex gap-6">
-            <div className="flex-1 min-w-0">
-              {viewMode === "folders" && !selectedFolder ? (
-                <EmptyState
-                  title="Select a case folder"
-                  description="Choose a case folder above to view its document types."
-                  icon={Folder}
-                  className="py-12"
-                />
-              ) : viewMode === "folders" && selectedFolder && !selectedSubFolder ? (
-                <EmptyState
-                  title="Select a sub-folder"
-                  description="Choose a document type sub-folder to view its files."
-                  icon={Folder}
-                  className="py-12"
-                />
-              ) : paginatedItems.length === 0 ? (
-                <EmptyState
-                  title="Vault is empty"
-                  description="No documents match your search or filter."
-                  icon={FileText}
-                  className="py-12"
-                />
+          {selectedDocs.length > 0 && showLibrary && (
+            <div
+              className="staff-docs-bulk"
+              data-trash={viewMode === "trash" ? "true" : undefined}
+              role="region"
+              aria-label="Bulk actions"
+            >
+              <span className="staff-docs-bulk-count">{selectedDocs.length} selected</span>
+              {viewMode !== "trash" ? (
+                <div className="staff-docs-bulk-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkDownload}
+                    disabled={isBulkDownloading}
+                  >
+                    {isBulkDownloading ? (
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <Download className="size-3.5" aria-hidden />
+                    )}
+                    {isBulkDownloading ? "Preparing ZIP…" : "Download ZIP"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="staff-docs-danger"
+                    onClick={() => handleArchive(selectedDocs)}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden /> Archive
+                  </Button>
+                </div>
               ) : (
-                <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-sm text-left whitespace-nowrap">
-                    <thead className="text-[11px] font-semibold text-muted-foreground uppercase bg-secondary/80 border-b border-border tracking-wider">
-                      <tr>
-                        <th className="p-3 w-10 text-center">
-                          <input
-                            type="checkbox"
-                            className="accent-primary w-3.5 h-3.5"
-                            checked={
-                              selectedDocs.length > 0 &&
-                              selectedDocs.length === paginatedItems.length
-                            }
-                            onChange={selectAll}
-                          />
-                        </th>
-                        <th className="p-3">Document Name</th>
-                        <th className="p-3">Type</th>
-                        <th className="p-3">Case Reference</th>
-                        <th className="p-3">Date Modified</th>
-                        <th className="p-3 text-right">Size</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {paginatedItems.map((doc: any) => {
-                        const matchedCase = cases.find((c: any) => c._id === doc.caseId);
-                        const isSelected = selectedDocs.includes(doc._id);
-                        return (
-                          <tr
-                            key={doc._id}
-                            className={`hover:bg-secondary/40 transition-colors cursor-pointer group ${activeSidebarDoc?._id === doc._id ? "bg-primary/5 hover:bg-primary/10" : ""} ${isSelected ? "bg-secondary" : ""}`}
-                            onClick={() => setActiveSidebarDoc(doc)}
-                          >
-                            <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="checkbox"
-                                className="accent-primary w-3.5 h-3.5"
-                                checked={isSelected}
-                                onChange={() => toggleDocSelection(doc._id)}
-                              />
-                            </td>
-                            <td className="p-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                  <FileText className="w-4 h-4" />
-                                </div>
-                                <div className="font-medium text-foreground max-w-[200px] sm:max-w-[300px] lg:max-w-[400px] truncate flex items-center gap-2">
-                                  {doc.title}
-                                  {doc.isPrivileged && (
-                                    <Lock className="w-3 h-3 text-dashboard-danger shrink-0" />
-                                  )}
-                                  {doc.uploadStatus && doc.uploadStatus !== "clean" && (
-                                    <DashboardStatusLabel
-                                      status={doc.uploadStatus}
-                                      className="text-[9px] capitalize"
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              <StatusBadge tone="neutral" className="capitalize text-[10px]">
-                                {doc.type}
-                              </StatusBadge>
-                            </td>
-                            <td className="p-3 text-muted-foreground text-xs font-mono">
-                              {matchedCase?.caseNumber || "Firm General"}
-                            </td>
-                            <td className="p-3 text-muted-foreground text-xs">
-                              <DualDateDisplay
-                                isoDate={new Date(doc._creationTime).toISOString().slice(0, 10)}
-                              />
-                            </td>
-                            <td className="p-3 text-muted-foreground text-xs text-right">
-                              {(doc.sizeBytes / 1024).toFixed(0)} KB
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="staff-docs-bulk-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="staff-docs-restore"
+                    onClick={() => handleRestore(selectedDocs)}
+                  >
+                    Restore
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="staff-docs-danger"
+                    onClick={() => handleHardDelete(selectedDocs)}
+                  >
+                    Delete Permanently
+                  </Button>
                 </div>
               )}
-              {totalPages > 1 && (
+            </div>
+          )}
+
+          <div className="staff-docs-library">
+            {viewMode === "folders" && !selectedFolder ? (
+              <EmptyState
+                title="Select a case folder"
+                description="Choose a case folder above to view its document types."
+                icon={Folder}
+                className="py-12"
+              />
+            ) : viewMode === "folders" && selectedFolder && !selectedSubFolder ? (
+              <EmptyState
+                title="Select a sub-folder"
+                description="Choose a document type sub-folder to view its files."
+                icon={Folder}
+                className="py-12"
+              />
+            ) : paginatedItems.length === 0 ? (
+              <EmptyState
+                title={
+                  documentQuery.isError && documentQuery.data === undefined
+                    ? "Documents unavailable"
+                    : isLoading
+                      ? "Loading documents…"
+                      : "Vault is empty"
+                }
+                description={
+                  documentQuery.isError && documentQuery.data === undefined
+                    ? "Retry the document request above."
+                    : isLoading
+                      ? "Retrieving documents."
+                      : "No loaded documents match your search or filter."
+                }
+                icon={FileText}
+                className="py-12"
+              />
+            ) : (
+              <>
+                <div className="staff-docs-selectbar">
+                  <label>
+                    <input type="checkbox" checked={pageSelected} onChange={selectAll} />
+                    <span>Select all on this page ({paginatedItems.length})</span>
+                  </label>
+                  <span className="staff-docs-count">
+                    {filteredDocs.length} loaded document{filteredDocs.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="staff-docs-cols" aria-hidden>
+                  <span />
+                  <span>Document</span>
+                  <span>Type</span>
+                  <span>Case</span>
+                  <span>Modified</span>
+                  <span>Size</span>
+                  <span />
+                </div>
+                <ul className="staff-docs-list" aria-label="Documents">
+                  {paginatedItems.map((doc: any) => {
+                    const matchedCase = cases.find((c: any) => c._id === doc.caseId);
+                    const isSelected = selectedDocs.includes(doc._id);
+                    const isActive = activeSidebarDoc?._id === doc._id;
+                    const kind = fileKind(doc);
+                    return (
+                      <li
+                        key={doc._id}
+                        className="staff-docs-row"
+                        data-active={isActive ? "true" : undefined}
+                        data-selected={isSelected ? "true" : undefined}
+                        onClick={() => setActiveSidebarDoc(doc)}
+                      >
+                        <label className="staff-docs-check" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${doc.title}`}
+                            checked={isSelected}
+                            onChange={() => toggleDocSelection(doc._id)}
+                          />
+                        </label>
+                        <div className="staff-docs-doc">
+                          <span className="staff-docs-kind" data-kind={kind.kind} aria-hidden>
+                            {kind.label}
+                          </span>
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              className="staff-docs-name"
+                              aria-pressed={isActive}
+                              title={doc.title}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveSidebarDoc(doc);
+                              }}
+                            >
+                              <span className="staff-docs-name-text">{doc.title}</span>
+                            </button>
+                            <div className="staff-docs-flags">
+                              {doc.isPrivileged && (
+                                <span className="staff-docs-flag" data-tone="danger">
+                                  <Lock className="size-3" aria-hidden /> Internal
+                                </span>
+                              )}
+                              {doc.isOnLegalHold && (
+                                <span className="staff-docs-flag" data-tone="warning">
+                                  Legal hold
+                                </span>
+                              )}
+                              {doc.uploadStatus && doc.uploadStatus !== "clean" && (
+                                <DashboardStatusLabel
+                                  status={doc.uploadStatus}
+                                  className="text-[9px] capitalize"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="staff-docs-meta-row">
+                          <div className="staff-docs-cell staff-docs-cell-type">
+                            <span className="staff-docs-label">Type</span>
+                            <StatusBadge tone="neutral" className="capitalize text-[10px]">
+                              {doc.type}
+                            </StatusBadge>
+                          </div>
+                          <div className="staff-docs-cell staff-docs-cell-case">
+                            <span className="staff-docs-label">Case</span>
+                            <span className="staff-docs-case">
+                              {matchedCase?.caseNumber || "Firm General"}
+                            </span>
+                          </div>
+                          <div className="staff-docs-cell staff-docs-cell-date">
+                            <span className="staff-docs-label">Modified</span>
+                            <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString()} />
+                          </div>
+                          <div className="staff-docs-cell staff-docs-cell-size">
+                            <span className="staff-docs-label">Size</span>
+                            {formatSize(doc.sizeBytes)}
+                          </div>
+                        </div>
+                        <div className="staff-docs-actions" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={`View details for ${doc.title}`}
+                            onClick={() => setActiveSidebarDoc(doc)}
+                          >
+                            <Eye className="size-4" aria-hidden />
+                            <span className="staff-docs-action-text">Details</span>
+                          </Button>
+                          {viewMode !== "trash" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              aria-label={`Download ${doc.title}`}
+                              onClick={() => handleDocumentDownload(doc)}
+                              disabled={downloadingId === doc._id}
+                            >
+                              {downloadingId === doc._id ? (
+                                <Loader2 className="size-4 animate-spin" aria-hidden />
+                              ) : (
+                                <Download className="size-4" aria-hidden />
+                              )}
+                              <span className="staff-docs-action-text">Download</span>
+                            </Button>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+            {totalPages > 1 && (
+              <div className="staff-docs-pagination">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
@@ -848,630 +1274,447 @@ export default function StaffDocumentsPage() {
                   onPrevPage={prevPage}
                   className="mt-6"
                 />
-              )}
-            </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-            <div className="hidden xl:flex flex-col w-72 shrink-0 gap-4 mt-6">
-              <DashboardSection title="Recently viewed" icon={Clock} className="!p-0 sticky top-4">
-                <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto">
+        {isWide ? (
+          <aside className="staff-docs-aside" aria-label="Document details and recent files">
+            {activeSidebarDoc ? (
+              renderDetails(activeSidebarDoc, false)
+            ) : (
+              <DashboardSection title="Recent documents" icon={Clock} className="staff-docs-recent">
+                <div className="staff-docs-recent-list">
                   {recentDocs.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-4 text-center">
-                      No recent documents.
-                    </p>
+                    <p className="staff-docs-note staff-docs-empty">No recent documents.</p>
                   ) : (
-                    recentDocs.map((doc: any) => (
-                      <button
-                        key={doc._id}
-                        onClick={() => {
-                          setActiveSidebarDoc(doc);
-                          setIsPreviewOpen(true);
-                        }}
-                        className="w-full text-left p-2 rounded-lg hover:bg-dashboard-panel-hover transition-colors group flex gap-3 items-start"
-                      >
-                        <div className="p-1.5 rounded bg-dashboard-panel shadow-xs border border-dashboard-border shrink-0">
-                          <FileText className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate group-hover:text-dashboard-primary transition-colors">
-                            {doc.title}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString()} />
-                          </p>
-                        </div>
-                      </button>
-                    ))
+                    recentDocs.map((doc: any) => {
+                      const kind = fileKind(doc);
+                      return (
+                        <button
+                          key={doc._id}
+                          type="button"
+                          onClick={() => {
+                            setActiveSidebarDoc(doc);
+                            setIsPreviewOpen(true);
+                          }}
+                        >
+                          <span className="staff-docs-kind" data-kind={kind.kind} aria-hidden>
+                            {kind.label}
+                          </span>
+                          <span className="min-w-0">
+                            <strong title={doc.title}>{doc.title}</strong>
+                            <small>
+                              <DualDateDisplay
+                                isoDate={new Date(doc._creationTime).toISOString()}
+                              />
+                            </small>
+                          </span>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </DashboardSection>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={`fixed top-0 right-0 h-full w-[350px] bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-out z-20 overflow-y-auto ${activeSidebarDoc ? "translate-x-0" : "translate-x-full"}`}
-        >
-          {activeSidebarDoc &&
-            (() => {
-              const doc = activeSidebarDoc;
-              const matchedCase = cases.find((c: any) => c._id === doc.caseId);
-              const sizeStr = (doc.sizeBytes / 1024).toFixed(0) + " KB";
-              return (
-                <div className="p-6 space-y-6">
-                  <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-xs border border-primary/20">
-                      <FileText className="w-6 h-6" />
-                    </div>
-                    <button
-                      onClick={() => setActiveSidebarDoc(null)}
-                      className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-lg text-foreground break-words leading-tight">
-                      {doc.title}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      <StatusBadge tone="neutral" className="capitalize text-[10px]">
-                        {doc.type}
-                      </StatusBadge>
-                      <StatusBadge tone="information" className="text-[10px] uppercase">
-                        Version {doc.version}
-                      </StatusBadge>
-                      {doc.isPrivileged && (
-                        <StatusBadge tone="danger" className="text-[10px]">
-                          Internal Vault
-                        </StatusBadge>
-                      )}
-                      {doc.isOnLegalHold && (
-                        <StatusBadge tone="warning" className="text-[10px]">
-                          Legal Hold
-                        </StatusBadge>
-                      )}
-                      {doc.retentionUntil && (
-                        <StatusBadge tone="neutral" className="text-[10px]">
-                          Retain until <DualDateDisplay isoDate={doc.retentionUntil.slice(0, 10)} />
-                        </StatusBadge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm bg-secondary/30 p-4 rounded-xl border border-border/50">
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                        Uploaded On
-                      </p>
-                      <p className="font-medium text-foreground text-xs">
-                        <DualDateDisplay
-                          isoDate={new Date(doc._creationTime).toISOString().slice(0, 10)}
-                        />
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                        File Size
-                      </p>
-                      <p className="font-medium text-foreground text-xs">{sizeStr}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                        Case Link
-                      </p>
-                      <p className="font-medium text-primary text-xs hover:underline cursor-pointer">
-                        {matchedCase
-                          ? `[${matchedCase.caseNumber}] ${matchedCase.title}`
-                          : "Firm General File"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Button className="w-full shadow-xs" onClick={() => setIsPreviewOpen(true)}>
-                      <Eye className="w-4 h-4 mr-2" /> Open Previewer
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full bg-card"
-                      onClick={() => setIsShareModalOpen(true)}
-                    >
-                      <Link2 className="w-4 h-4 mr-2" /> Share External Link
-                    </Button>
-                    {(doc.mimeType?.includes("pdf") || doc.mimeType?.includes("image")) &&
-                      !doc.searchableText && (
-                        <Button
-                          variant="outline"
-                          className="w-full bg-card"
-                          onClick={() => handleOCR(doc)}
-                        >
-                          <ScanText className="w-4 h-4 mr-2" /> Extract Text (OCR)
-                        </Button>
-                      )}
-                    <Button
-                      variant="outline"
-                      className="w-full bg-card"
-                      onClick={() => handleDocumentDownload(doc)}
-                      disabled={downloadingId === doc._id}
-                    >
-                      {downloadingId === doc._id ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 mr-2" />
-                      )}
-                      Download Document
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      onClick={() => openVersionUpload(doc)}
-                    >
-                      <Upload className="w-4 h-4 mr-2" /> Upload New Version
-                    </Button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        className="bg-card text-xs"
-                        onClick={() => handleLegalHold(doc)}
-                      >
-                        <Lock className="w-3.5 h-3.5 mr-1.5" />{" "}
-                        {doc.isOnLegalHold ? "Release Hold" : "Legal Hold"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="bg-card text-xs"
-                        onClick={() => handleRetention(doc)}
-                      >
-                        <Clock className="w-3.5 h-3.5 mr-1.5" /> Retention
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="bg-secondary/20 rounded-xl p-4 border border-border space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                      <PenTool className="w-3.5 h-3.5" /> E-Signature Hub
-                    </h4>
-                    {doc.signatureStatus === "signed" ? (
-                      <DashboardStatusLabel
-                        label="Completed & secured"
-                        tone="success"
-                        className="w-full justify-center py-1.5"
-                      />
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 text-xs bg-card"
-                          onClick={() => handleRequestSignature(doc)}
-                          disabled={!!requestingId || doc.isPrivileged}
-                        >
-                          Quick Sign
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 text-xs bg-card"
-                          onClick={() => openEnvelopeModal(doc)}
-                          disabled={doc.isPrivileged}
-                        >
-                          Create Envelope
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2 mb-4">
-                      <History className="w-3.5 h-3.5 text-primary" /> Version History
-                    </h4>
-                    {versionHistory.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Loading version history…</p>
-                    ) : (
-                      <div className="space-y-4 relative before:absolute before:inset-0 before:ml-1.5 before:-translate-x-px before:h-full before:w-[2px] before:bg-border">
-                        {versionHistory.map((version: any, index) => {
-                          const isCurrent = index === 0;
-                          const createdAt =
-                            version.createdAt || new Date(version._creationTime).toISOString();
-                          return (
-                            <div
-                              key={version._id}
-                              className={`relative flex items-center justify-between gap-3 pl-6 before:absolute before:left-0 before:top-1.5 before:w-3.5 before:h-3.5 before:rounded-full before:border-2 ${
-                                isCurrent
-                                  ? "before:bg-primary before:border-background"
-                                  : "before:bg-secondary before:border-border"
-                              }`}
-                            >
-                              <div className="min-w-0">
-                                <p
-                                  className={
-                                    isCurrent
-                                      ? "text-sm font-semibold text-foreground"
-                                      : "text-sm font-medium text-foreground/70"
-                                  }
-                                >
-                                  Version {version.version} {isCurrent ? "(Current)" : ""}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  <DualDateDisplay isoDate={createdAt} />
-                                </p>
-                              </div>
-                              {!isCurrent && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 px-2 text-xs border border-border bg-card"
-                                  onClick={() => handleVersionRestore(version)}
-                                  disabled={
-                                    restoringVersionId !== null ||
-                                    version.isDeleted ||
-                                    version.uploadStatus !== "clean"
-                                  }
-                                >
-                                  {restoringVersionId === version._id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    "Restore"
-                                  )}
-                                </Button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-        </div>
-
-        {isPreviewOpen && activeSidebarDoc && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 sm:p-10 animate-in fade-in-20 backdrop-blur-sm">
-            <div className="bg-card w-full h-full max-w-6xl rounded-xl shadow-2xl flex flex-col overflow-hidden border border-border scale-in-95">
-              <div className="flex items-center justify-between p-4 bg-secondary/30 border-b border-border shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground">{activeSidebarDoc.title}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Previewing active version {activeSidebarDoc.version}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-card"
-                    onClick={() => handleDocumentDownload(activeSidebarDoc)}
-                    disabled={downloadingId === activeSidebarDoc._id}
-                  >
-                    {downloadingId === activeSidebarDoc._id ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    Download
-                  </Button>
-                  <button
-                    onClick={() => setIsPreviewOpen(false)}
-                    className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 bg-muted/40 flex items-center justify-center relative overflow-hidden p-6">
-                <div className="w-full max-w-[800px] h-full max-h-[1100px] bg-background shadow-xl border border-border p-12 overflow-y-auto rounded-lg">
-                  <div className="w-1/3 h-8 bg-secondary/50 rounded-md mb-8"></div>
-                  <div className="w-full h-4 bg-secondary/30 rounded-md mb-4"></div>
-                  <div className="w-full h-4 bg-secondary/30 rounded-md mb-4"></div>
-                  <div className="w-5/6 h-4 bg-secondary/30 rounded-md mb-10"></div>
-                  <div className="w-4/6 h-4 bg-secondary/30 rounded-md mb-4"></div>
-                  <div className="w-full h-4 bg-secondary/30 rounded-md mb-4"></div>
-                  <div className="w-full h-4 bg-secondary/30 rounded-md mb-4"></div>
-                  <div className="w-3/4 h-4 bg-secondary/30 rounded-md mb-10"></div>
-
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-md">
-                    <div className="bg-card p-8 rounded-2xl shadow-2xl border border-border/60 text-center max-w-sm">
-                      <div className="w-20 h-20 bg-primary/10 text-primary flex items-center justify-center rounded-full mx-auto mb-4 border border-primary/20">
-                        <Eye className="w-8 h-8" />
-                      </div>
-                      <h4 className="font-serif font-bold text-2xl text-foreground">
-                        Document Viewer
-                      </h4>
-                      <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-                        In a production environment, this frame natively renders PDFs, Word Docs,
-                        and images without requiring a download.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isUploadOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in-20">
-            <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4 scale-in-95">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="font-serif text-xl font-bold text-foreground">
-                  {parentDocumentId ? "Upload New Version" : "Upload Document"}
-                </h3>
-                <button
-                  onClick={() => setIsUploadOpen(false)}
-                  className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-secondary"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                    Select File
-                  </label>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xlsx,.pptx,.jpg,.jpeg,.png,.tif,.tiff,.txt"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  />
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-muted-foreground font-normal bg-secondary/30 h-12 border-dashed border-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-4 h-4 mr-3 text-primary" />
-                    <span className="truncate">
-                      {selectedFile ? selectedFile.name : "Click to browse files..."}
-                    </span>
-                  </Button>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                    Link to Case
-                  </label>
-                  <Select
-                    value={uploadCaseId}
-                    onValueChange={setUploadCaseId}
-                    disabled={!!parentDocumentId}
-                  >
-                    <SelectTrigger className="h-10 bg-secondary/20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">No Case (General Firm File)</SelectItem>
-                      {cases.map((c: any) => (
-                        <SelectItem key={c._id} value={c._id}>
-                          [{c.caseNumber}] {c.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                      Document Type
-                    </label>
-                    <Select
-                      value={uploadType}
-                      onValueChange={setUploadType}
-                      disabled={!!parentDocumentId}
-                    >
-                      <SelectTrigger className="capitalize h-10 bg-secondary/20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DOC_TYPES.map((t) => (
-                          <SelectItem key={t} value={t} className="capitalize">
-                            {t}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                      Visibility Status
-                    </label>
-                    <Select
-                      value={isPrivileged ? "private" : "shared"}
-                      onValueChange={(v) => setIsPrivileged(v === "private")}
-                      disabled={!!parentDocumentId}
-                    >
-                      <SelectTrigger className="h-10 bg-secondary/20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="shared">Client Viewable</SelectItem>
-                        <SelectItem value="private">Internal Vault Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-border mt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setIsUploadOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1 shadow-md shadow-primary/20"
-                  onClick={handleUploadSubmit}
-                  disabled={isUploading || !selectedFile}
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4 mr-2" />
-                  )}
-                  {isUploading ? "Uploading..." : "Save Document"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Dialog open={!!envelopeDoc} onOpenChange={() => setEnvelopeDoc(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Secure Signature Envelope</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="bg-secondary/30 p-3 rounded-lg flex items-center gap-3 border border-border/50">
-                <FileText className="w-8 h-8 text-primary" />
-                <div>
-                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                    Target Document
-                  </p>
-                  <p className="text-sm font-semibold">{envelopeDoc?.title}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                  Envelope Title
-                </label>
-                <Input
-                  className="h-10 bg-secondary/20"
-                  value={envelopeTitle}
-                  onChange={(e) => setEnvelopeTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                    Routing Rule
-                  </label>
-                  <Select
-                    value={envelopeRouting}
-                    onValueChange={(v) => setEnvelopeRouting(v as "sequential" | "parallel")}
-                  >
-                    <SelectTrigger className="h-10 bg-secondary/20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sequential">Sequential (In Order)</SelectItem>
-                      <SelectItem value="parallel">Parallel (All at Once)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                    Expiration Date
-                  </label>
-                  <Input
-                    type="date"
-                    className="h-10 bg-secondary/20"
-                    value={envelopeExpires}
-                    onChange={(e) => setEnvelopeExpires(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                  Select Signers (Order matters for Sequential)
-                </label>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto border border-border/50 rounded-lg p-2 bg-secondary/10">
-                  {signers.length === 0 && (
-                    <p className="text-xs text-muted-foreground p-2">No portal clients found.</p>
-                  )}
-                  {signers.map((s: any) => {
-                    const selected = selectedSignerIds.includes(s._id);
-                    const order = selectedSignerIds.indexOf(s._id);
-                    return (
-                      <div
-                        key={s._id}
-                        className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors ${selected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/40 border border-transparent"}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleSigner(s._id)}
-                          className="accent-primary w-4 h-4 cursor-pointer"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{s.name}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {s.role} · {s.email}
-                          </p>
-                        </div>
-                        {selected && (
-                          <div className="flex items-center gap-1 bg-background rounded-md px-1 py-0.5 shadow-xs border border-border">
-                            <span className="text-[10px] font-bold text-primary px-1">
-                              #{order + 1}
-                            </span>
-                            <div className="flex flex-col">
-                              <button
-                                type="button"
-                                className="text-[10px] text-muted-foreground hover:text-foreground leading-none px-1"
-                                onClick={() => moveSigner(s._id, -1)}
-                              >
-                                ▲
-                              </button>
-                              <button
-                                type="button"
-                                className="text-[10px] text-muted-foreground hover:text-foreground leading-none px-1"
-                                onClick={() => moveSigner(s._id, 1)}
-                              >
-                                ▼
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <DialogFooter className="pt-4 border-t border-border mt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setEnvelopeDoc(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1 shadow-md shadow-primary/20"
-                  onClick={handleCreateAndSendEnvelope}
-                  disabled={isEnvelopeBusy || selectedSignerIds.length === 0}
-                >
-                  {isEnvelopeBusy ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4 mr-2" />
-                  )}
-                  Send Envelope
-                </Button>
-              </DialogFooter>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {isTagsModalOpen ? (
-          <TagManagementModal isOpen onClose={() => setIsTagsModalOpen(false)} />
-        ) : null}
-        {isTemplateModalOpen ? (
-          <TemplateGeneratorModal isOpen onClose={() => setIsTemplateModalOpen(false)} />
-        ) : null}
-        {isShareModalOpen ? (
-          <DocumentShareModal
-            isOpen
-            onClose={() => setIsShareModalOpen(false)}
-            document={activeSidebarDoc}
-          />
+            )}
+          </aside>
         ) : null}
       </div>
+
+      <Dialog
+        open={!!retentionDoc}
+        onOpenChange={(open: boolean) => {
+          if (!open && !retentionBusy) setRetentionDoc(null);
+        }}
+      >
+        <DialogContent
+          className="staff-docs-dialog max-w-lg"
+          aria-labelledby="staff-docs-retention-title"
+          aria-describedby="staff-docs-retention-description"
+        >
+          <DialogHeader>
+            <DialogTitle id="staff-docs-retention-title">Document retention</DialogTitle>
+            <DialogDescription id="staff-docs-retention-description">
+              This form updates the policy name. The recorded retention date is read-only.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={saveRetentionPolicy} className="staff-docs-dialog-body">
+            <div className="space-y-1">
+              <label htmlFor="staff-docs-retention-policy">Policy name</label>
+              <Input
+                id="staff-docs-retention-policy"
+                value={retentionPolicy}
+                onChange={(event) => setRetentionPolicy(event.target.value)}
+                required
+                maxLength={200}
+                disabled={retentionBusy}
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="staff-docs-retention-date">Recorded retention date (read-only)</label>
+              {retentionDoc?.retentionUntil ? (
+                <>
+                  <BsDateField
+                    id="staff-docs-retention-date"
+                    value={retentionDoc.retentionUntil}
+                    readOnly
+                    onDateChange={() => {}}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formatNepalTimestamp(retentionDoc.retentionUntil, language)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No retention date was returned.</p>
+              )}
+            </div>
+            {retentionError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {retentionError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={retentionBusy}
+                onClick={() => setRetentionDoc(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={retentionBusy}>
+                {retentionBusy ? "Saving…" : "Save policy"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details dialog (narrower than 1280px) */}
+      <Dialog open={detailsDialogOpen} onOpenChange={closeDetails}>
+        <DialogContent
+          className="staff-docs-dialog staff-docs-details-dialog"
+          aria-labelledby="staff-docs-details-title"
+        >
+          {activeSidebarDoc ? renderDetails(activeSidebarDoc, true) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen && !!activeSidebarDoc} onOpenChange={closePreview}>
+        <DialogContent
+          className="staff-docs-dialog staff-docs-preview-dialog !bg-background"
+          aria-labelledby="staff-docs-preview-title"
+          aria-describedby="staff-docs-preview-description"
+        >
+          <DialogHeader>
+            <h2 id="staff-docs-preview-title">{activeSidebarDoc?.title}</h2>
+            <DialogDescription id="staff-docs-preview-description">
+              {activeSidebarDoc
+                ? previewKindLabel(classifyDocumentPreview(activeSidebarDoc))
+                : "File"}{" "}
+              · Version {activeSidebarDoc?.version}
+            </DialogDescription>
+          </DialogHeader>
+          {activeSidebarDoc ? (
+            <StaffDocumentViewer
+              document={activeSidebarDoc}
+              open={isPreviewOpen}
+              onDownload={() => handleDocumentDownload(activeSidebarDoc)}
+              downloading={downloadingId === activeSidebarDoc._id}
+            />
+          ) : null}
+          <div className="staff-docs-dialog-actions">
+            <Button type="button" variant="outline" onClick={closePreview}>
+              Close
+            </Button>
+            <Button
+              type="button"
+              onClick={() => activeSidebarDoc && handleDocumentDownload(activeSidebarDoc)}
+              disabled={!activeSidebarDoc || downloadingId === activeSidebarDoc._id}
+            >
+              {activeSidebarDoc && downloadingId === activeSidebarDoc._id ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Download className="size-4" aria-hidden />
+              )}
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload / new version */}
+      <Dialog open={isUploadOpen} onOpenChange={closeUpload}>
+        <DialogContent
+          className="staff-docs-dialog staff-docs-upload-dialog"
+          aria-labelledby="staff-docs-upload-title"
+          aria-describedby="staff-docs-upload-description"
+        >
+          <DialogHeader>
+            <h2 id="staff-docs-upload-title">
+              {parentDocumentId ? "Upload New Version" : "Upload Document"}
+            </h2>
+            <DialogDescription id="staff-docs-upload-description">
+              Files up to 50 MB. New uploads are scanned before they are put on file.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="staff-docs-dialog-body">
+            <div className="staff-docs-field">
+              <label htmlFor="staff-docs-upload-file-button">Select File</label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.xlsx,.pptx,.jpg,.jpeg,.png,.tif,.tiff,.txt"
+                ref={fileInputRef}
+                className="hidden"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+              <Button
+                id="staff-docs-upload-file-button"
+                type="button"
+                variant="outline"
+                className="staff-docs-dropzone"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="size-4" aria-hidden />
+                <span className="truncate">
+                  {selectedFile ? selectedFile.name : "Click to browse files..."}
+                </span>
+              </Button>
+            </div>
+
+            <div className="staff-docs-field">
+              <label htmlFor="staff-docs-upload-case">Link to Case</label>
+              <Select
+                value={uploadCaseId}
+                onValueChange={setUploadCaseId}
+                disabled={!!parentDocumentId}
+              >
+                <SelectTrigger id="staff-docs-upload-case">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">No Case (General Firm File)</SelectItem>
+                  {cases.map((c: any) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      [{c.caseNumber}] {c.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="staff-docs-field-row">
+              <div className="staff-docs-field">
+                <label htmlFor="staff-docs-upload-type">Document Type</label>
+                <Select
+                  value={uploadType}
+                  onValueChange={setUploadType}
+                  disabled={!!parentDocumentId}
+                >
+                  <SelectTrigger id="staff-docs-upload-type" className="capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DOC_TYPES.map((t) => (
+                      <SelectItem key={t} value={t} className="capitalize">
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="staff-docs-field">
+                <label htmlFor="staff-docs-upload-visibility">Visibility Status</label>
+                <Select
+                  value={isPrivileged ? "private" : "shared"}
+                  onValueChange={(v) => setIsPrivileged(v === "private")}
+                  disabled={!!parentDocumentId}
+                >
+                  <SelectTrigger id="staff-docs-upload-visibility">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="shared">Client Viewable</SelectItem>
+                    <SelectItem value="private">Internal Vault Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <div className="staff-docs-dialog-actions">
+            <Button type="button" variant="outline" onClick={closeUpload}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUploadSubmit}
+              disabled={isUploading || !selectedFile}
+            >
+              {isUploading ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Upload className="size-4" aria-hidden />
+              )}
+              {isUploading ? "Uploading..." : "Save Document"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Signature envelope */}
+      <Dialog open={!!envelopeDoc} onOpenChange={closeEnvelope}>
+        <DialogContent
+          className="staff-docs-dialog staff-docs-envelope-dialog"
+          aria-labelledby="staff-docs-envelope-title"
+        >
+          <DialogHeader>
+            <DialogTitle id="staff-docs-envelope-title">Secure Signature Envelope</DialogTitle>
+          </DialogHeader>
+          <div className="staff-docs-dialog-body">
+            <div className="staff-docs-target">
+              <FileText className="size-7" aria-hidden />
+              <div className="min-w-0">
+                <p>Target Document</p>
+                <strong>{envelopeDoc?.title}</strong>
+              </div>
+            </div>
+
+            <div className="staff-docs-field">
+              <label htmlFor="staff-docs-envelope-title-input">Envelope Title</label>
+              {createdEnvelopeId && (
+                <p className="staff-docs-note" role="status">
+                  Draft created. Retrying sends this same envelope.
+                </p>
+              )}
+              <Input
+                id="staff-docs-envelope-title-input"
+                disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
+                value={envelopeTitle}
+                onChange={(e) => setEnvelopeTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="staff-docs-field-row">
+              <div className="staff-docs-field">
+                <label htmlFor="staff-docs-envelope-routing">Routing Rule</label>
+                <Select
+                  value={envelopeRouting}
+                  disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
+                  onValueChange={(v) => setEnvelopeRouting(v as "sequential" | "parallel")}
+                >
+                  <SelectTrigger id="staff-docs-envelope-routing">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sequential">Sequential (In Order)</SelectItem>
+                    <SelectItem value="parallel">Parallel (All at Once)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="staff-docs-field locale-date-full-row">
+                <label htmlFor="staff-docs-envelope-expires">Expiration Date</label>
+                <BsDateField
+                  id="staff-docs-envelope-expires"
+                  disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
+                  value={envelopeExpires}
+                  onDateChange={(e) => setEnvelopeExpires(e)}
+                />
+              </div>
+            </div>
+
+            <fieldset
+              className="staff-docs-signers"
+              disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
+            >
+              <legend>Select Signers (Order matters for Sequential)</legend>
+              {signers.length === 0 && <p className="staff-docs-note">No portal clients found.</p>}
+              {signers.map((s: any) => {
+                const selected = selectedSignerIds.includes(s._id);
+                const order = selectedSignerIds.indexOf(s._id);
+                return (
+                  <div
+                    key={s._id}
+                    className="staff-docs-signer"
+                    data-selected={selected || undefined}
+                  >
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleSigner(s._id)}
+                      />
+                      <span className="min-w-0">
+                        <strong>{s.name}</strong>
+                        <small>
+                          {s.role} · {s.email}
+                        </small>
+                      </span>
+                    </label>
+                    {selected && (
+                      <div className="staff-docs-signer-order">
+                        <span>#{order + 1}</span>
+                        <button
+                          type="button"
+                          aria-label={`Move ${s.name} earlier`}
+                          onClick={() => moveSigner(s._id, -1)}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Move ${s.name} later`}
+                          onClick={() => moveSigner(s._id, 1)}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </fieldset>
+          </div>
+          <div className="staff-docs-dialog-actions">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeEnvelope}
+              disabled={isEnvelopeBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateAndSendEnvelope}
+              disabled={isEnvelopeBusy || selectedSignerIds.length === 0}
+            >
+              {isEnvelopeBusy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Send className="size-4" aria-hidden />
+              )}
+              {createdEnvelopeId ? "Retry Send Envelope" : "Send Envelope"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {isTagsModalOpen ? (
+        <TagManagementModal isOpen onClose={() => setIsTagsModalOpen(false)} />
+      ) : null}
+      {isTemplateModalOpen ? (
+        <TemplateGeneratorModal isOpen onClose={() => setIsTemplateModalOpen(false)} />
+      ) : null}
+      {isShareModalOpen ? (
+        <DocumentShareModal
+          isOpen
+          onClose={() => setIsShareModalOpen(false)}
+          document={activeSidebarDoc}
+        />
+      ) : null}
     </PortalPageShell>
   );
 }

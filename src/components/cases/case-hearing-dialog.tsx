@@ -13,8 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { BsDateField } from "@/components/ui/bs-date-field";
 import { useHearingCommands } from "@/client/queries/hearings";
-import { COURTS } from "@/lib/lex-constants.ts";
+import { CourtSelect } from "@/components/ui/court-select";
+import { officialCourtValue } from "@/lib/nepal-courts";
 import { formatBs, gregorianToBs } from "@/lib/nepali-calendar.ts";
 
 type CaseHearingDialogProps = {
@@ -23,6 +25,7 @@ type CaseHearingDialogProps = {
   caseId: string;
   defaultCourt?: string | null;
   defaultJudge?: string | null;
+  description?: string;
 };
 
 export function CaseHearingDialog({
@@ -31,6 +34,7 @@ export function CaseHearingDialog({
   caseId,
   defaultCourt,
   defaultJudge,
+  description,
 }: CaseHearingDialogProps) {
   const { createHearing } = useHearingCommands();
   const [court, setCourt] = useState("");
@@ -40,9 +44,6 @@ export function CaseHearingDialog({
   const [time, setTime] = useState("10:00");
   const [purpose, setPurpose] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const courtOptions =
-    defaultCourt && !COURTS.includes(defaultCourt) ? [defaultCourt, ...COURTS] : COURTS;
 
   useEffect(() => {
     if (!open) return;
@@ -61,9 +62,7 @@ export function CaseHearingDialog({
       return;
     }
     try {
-      const parts = value.split("-").map(Number);
-      const date = new Date(parts[0], parts[1] - 1, parts[2]);
-      setDateBs(formatBs(gregorianToBs(date)));
+      setDateBs(formatBs(gregorianToBs(value)));
     } catch {
       setDateBs("");
     }
@@ -71,7 +70,8 @@ export function CaseHearingDialog({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!court.trim() || !dateGregorian || !dateBs) {
+    const verifiedCourt = officialCourtValue(court);
+    if (!verifiedCourt || !dateGregorian || !dateBs) {
       toast.error("Court and hearing date are required.");
       return;
     }
@@ -79,7 +79,7 @@ export function CaseHearingDialog({
     try {
       await createHearing({
         caseId,
-        court: court.trim(),
+        court: verifiedCourt,
         judge: judge.trim() || undefined,
         dateGregorian,
         dateBs,
@@ -101,8 +101,8 @@ export function CaseHearingDialog({
         <DialogHeader>
           <DialogTitle id="case-hearing-title">Schedule hearing</DialogTitle>
           <DialogDescription>
-            Adds a hearing on this case file using the existing hearings API. No separate deadlines
-            table.
+            {description ??
+              "Adds a hearing on this case file using the existing hearings API. No separate deadlines table."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -110,40 +110,18 @@ export function CaseHearingDialog({
             <label htmlFor="case-hearing-court" className="text-xs font-medium">
               Court
             </label>
-            <select
-              id="case-hearing-court"
-              required
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={court}
-              onChange={(event) => setCourt(event.target.value)}
-            >
-              <option value="">Select court</option>
-              {courtOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <CourtSelect id="case-hearing-court" required value={court} onValueChange={setCourt} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="case-hearing-ad" className="text-xs font-medium">
-                Date (AD)
-              </label>
-              <Input
-                id="case-hearing-ad"
-                required
-                type="date"
-                value={dateGregorian}
-                onChange={(event) => handleGregorianChange(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="case-hearing-bs" className="text-xs font-medium">
-                Date (BS)
-              </label>
-              <Input id="case-hearing-bs" readOnly className="bg-muted/40" value={dateBs} />
-            </div>
+          <div className="space-y-1">
+            <label htmlFor="case-hearing-bs" className="text-xs font-medium">
+              Hearing date
+            </label>
+            <BsDateField
+              id="case-hearing-bs"
+              required
+              value={dateGregorian}
+              onDateChange={handleGregorianChange}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">

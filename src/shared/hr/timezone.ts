@@ -1,5 +1,6 @@
 /** Firm HR clock strings use Nepal Standard Time (UTC+05:45, no DST). */
-export const HR_TIMEZONE = "Asia/Kathmandu";
+import { NEPAL_TIMEZONE } from "@/lib/nepali-calendar";
+export const HR_TIMEZONE = NEPAL_TIMEZONE;
 export const HR_UTC_OFFSET = "+05:45";
 
 export function formatHrClock(value: Date): string {

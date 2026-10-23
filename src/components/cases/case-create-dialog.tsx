@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { BsDateField } from "@/components/ui/bs-date-field";
+import { nepalDateOnly } from "@/lib/nepali-calendar";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import {
@@ -24,6 +26,7 @@ import { useCreateCase } from "@/client/queries/cases";
 import { CaseLifecycleSelect } from "@/components/cases/case-status-filters";
 import { CaseTeamFields } from "@/components/cases/case-team-fields";
 import { COURTS, PRACTICE_AREAS } from "@/lib/lex-constants.ts";
+import { CourtSelect } from "@/components/ui/court-select";
 import { caseStatusWritePayload, type CaseLifecycleStatus } from "@/shared/contracts/case-ui";
 
 export interface CaseCreateLawyer {
@@ -68,6 +71,7 @@ export function CaseCreateDialog({
   onCreated,
 }: CaseCreateDialogProps) {
   const createCase = useCreateCase();
+  const [filingDate, setFilingDate] = useState(() => nepalDateOnly());
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,12 +82,19 @@ export function CaseCreateDialog({
     return () => window.clearTimeout(id);
   }, [open]);
 
-  const reset = () => setForm(emptyForm);
+  const reset = useCallback(() => {
+    setForm(emptyForm);
+    setFilingDate(nepalDateOnly());
+  }, []);
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next) reset();
-    onOpenChange(next);
-  };
+  // Keep Dialog's focus effect stable while a field edit re-renders this form.
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) reset();
+      onOpenChange(next);
+    },
+    [onOpenChange, reset],
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -107,7 +118,7 @@ export function CaseCreateDialog({
         closureOutcome: statusWrite.closureOutcome,
         court: form.court || undefined,
         opposingCounsel: form.opposingCounsel || undefined,
-        filingDate: new Date().toISOString().split("T")[0],
+        filingDate,
       })) as { id?: string; _id?: string };
       toast.success("Case created successfully!");
       handleOpenChange(false);
@@ -137,6 +148,15 @@ export function CaseCreateDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="case-filing-date-bs">Filing date</Label>
+            <BsDateField
+              id="case-filing-date-bs"
+              value={filingDate}
+              onDateChange={setFilingDate}
+              required
+            />
+          </div>
           <div className="space-y-1">
             <Label htmlFor="case-number">
               Case Number <span className="text-destructive">*</span>
@@ -272,21 +292,11 @@ export function CaseCreateDialog({
 
             <div className="space-y-1">
               <Label htmlFor="case-court">Court Name</Label>
-              <Select
+              <CourtSelect
+                id="case-court"
                 value={form.court}
                 onValueChange={(court) => setForm((current) => ({ ...current, court }))}
-              >
-                <SelectTrigger id="case-court" className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COURTS.map((court) => (
-                    <SelectItem key={court} value={court}>
-                      {court}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
           </div>
 

@@ -18,57 +18,71 @@ import type {
 } from "@/shared/contracts/documents";
 import { AppError } from "@/shared/errors/api-error";
 
+import { collectionPage, type CollectionPageRequest } from "@/shared/collection-page";
+
 const security = new MySqlSecurityRepository();
 
 export class DocumentService {
   async list(principal: AuthPrincipal, filters: DocumentListInput) {
+    return this.retrieve(principal, filters, false, principal.user.role === "client" ? 200 : 50);
+  }
+  async search(principal: AuthPrincipal, filters: DocumentSearchInput) {
+    return this.retrieve(principal, filters, true, 100);
+  }
+  async listPage(principal: AuthPrincipal, filters: DocumentListInput) {
+    return this.readPage(principal, filters, false);
+  }
+  async searchPage(principal: AuthPrincipal, filters: DocumentSearchInput) {
+    return this.readPage(principal, filters, true);
+  }
+  private async readPage(
+    principal: AuthPrincipal,
+    filters: DocumentListInput | DocumentSearchInput,
+    search: boolean,
+  ) {
+    const limit = filters.limit ?? 50;
+    const rows = await this.retrieve(principal, filters, search, limit + 1, filters.cursor);
+    return collectionPage(rows, limit, (row) => ({ createdAt: row.createdAt!, id: row._id }));
+  }
+  private async retrieve(
+    principal: AuthPrincipal,
+    filters: DocumentListInput | DocumentSearchInput,
+    search: boolean,
+    limit: number,
+    cursor?: CollectionPageRequest["cursor"],
+  ) {
     requireCapability(principal, "documents.read");
     const { firmId } = requireFirmContext(principal);
     if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
-
+    let clientScope: { clientUserId: string; caseIds: string[] } | undefined;
     if (principal.user.role === "client") {
       const client = await security.getClientByUser(principal.user.id);
       if (!client || client.firmId !== firmId) return [];
-      const caseIds = await security.listCaseIdsForClient(firmId, client.id);
-      return DocumentRepository.listDocuments(
-        firmId,
-        {
-          caseId: filters.caseId,
-          caseIds: filters.caseId ? undefined : caseIds,
-          isTemplate: filters.isTemplate ?? false,
-          inTrash: filters.inTrash ?? false,
-          clientUserId: principal.user.id,
-        },
-        200,
-      );
+      clientScope = {
+        clientUserId: principal.user.id,
+        caseIds: await security.listCaseIdsForClient(firmId, client.id),
+      };
     }
-
-    return DocumentRepository.listDocuments(firmId, {
-      caseId: filters.caseId,
-      isTemplate: filters.isTemplate,
-      inTrash: filters.inTrash ?? false,
-    });
-  }
-
-  async search(principal: AuthPrincipal, filters: DocumentSearchInput) {
-    requireCapability(principal, "documents.read");
-    const { firmId } = requireFirmContext(principal);
-    if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
-
-    const rows = await DocumentRepository.searchDocuments(firmId, filters);
-    if (principal.user.role !== "client") return rows;
-
-    const client = await security.getClientByUser(principal.user.id);
-    if (!client || client.firmId !== firmId) return [];
-    const caseIds = new Set(await security.listCaseIdsForClient(firmId, client.id));
-    return rows.filter((doc) => {
-      if (doc.isTemplate || doc.isPrivileged) return false;
-      const level = String(doc.confidentialityLevel || "");
-      if (level === "internal" || level === "privileged") return false;
-      if (doc.uploadedBy === principal.user.id) return true;
-      if (doc.caseId && caseIds.has(doc.caseId)) return true;
-      return false;
-    });
+    if (search)
+      return DocumentRepository.searchDocuments(
+        firmId,
+        filters as DocumentSearchInput,
+        clientScope,
+        limit,
+        cursor,
+      );
+    const list = filters as DocumentListInput;
+    return DocumentRepository.listDocuments(
+      firmId,
+      {
+        caseId: list.caseId,
+        isTemplate: list.isTemplate,
+        inTrash: list.inTrash ?? false,
+        ...clientScope,
+      },
+      limit,
+      cursor,
+    );
   }
 
   async recent(principal: AuthPrincipal, limit: number) {

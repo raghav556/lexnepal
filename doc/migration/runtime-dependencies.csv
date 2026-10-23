@@ -18,4 +18,3 @@ internal call,convex/documentSecurity.ts,145,runMutation,documentSecurity.comple
 internal call,convex/documentSecurity.ts,153,runMutation,documentSecurity.completeScan,replace,inventoried,Replace with internal domain-service call
 storage,convex/users.ts,644,generateUploadUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
 storage,convex/users.ts,652,getUrl,Convex managed storage,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant
-browser storage upload,src/views/client/ClientSignaturesPage.tsx,335,fetch POST,uploadUrl from documents.generateUploadUrl or users.generateUploadUrl,replace,inventoried,Replace with private object-storage adapter and quarantined upload grant

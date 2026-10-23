@@ -13,6 +13,21 @@ import type { AuditContext } from "@/server/audit/context";
 import { AppError } from "@/shared/errors/api-error";
 import type { DocumentDto } from "@/shared/contracts/domains";
 import type { DocumentSearchInput, DocumentShareCreateInput } from "@/shared/contracts/documents";
+import { collectionBefore } from "./collection-continuation";
+
+type ClientDocumentScope = { clientUserId: string; caseIds?: string[] };
+function clientDocumentVisibility(scope: ClientDocumentScope, includeSigner: boolean) {
+  return and(
+    eq(documents.isTemplate, false),
+    eq(documents.isPrivileged, false),
+    sql`${documents.confidentialityLevel} NOT IN ('internal', 'privileged')`,
+    or(
+      eq(documents.uploadedBy, scope.clientUserId),
+      includeSigner ? eq(documents.intendedSignerUserId, scope.clientUserId) : undefined,
+      scope.caseIds?.length ? inArray(documents.caseId, scope.caseIds) : undefined,
+    ),
+  );
+}
 
 function toDocumentDto(
   row: {
@@ -88,10 +103,11 @@ export class DocumentRepository {
       clientUserId?: string;
     },
     limit = 50,
+    cursor?: string,
   ) {
     const db = getDatabase();
     const conditions = [eq(documents.firmId, firmId)];
-    if (filters.caseId && !filters.clientUserId) {
+    if (filters.caseId) {
       conditions.push(eq(documents.caseId, filters.caseId));
     } else if (filters.caseIds && filters.caseIds.length > 0 && !filters.clientUserId) {
       conditions.push(inArray(documents.caseId, filters.caseIds));
@@ -110,28 +126,24 @@ export class DocumentRepository {
       )`);
     }
 
-    if (filters.clientUserId) {
-      conditions.push(eq(documents.isTemplate, false));
-      conditions.push(eq(documents.isPrivileged, false));
-      conditions.push(sql`${documents.confidentialityLevel} NOT IN ('internal', 'privileged')`);
-
-      const ownershipOrCase = [
-        eq(documents.uploadedBy, filters.clientUserId),
-        eq(documents.intendedSignerUserId, filters.clientUserId),
-      ];
-      if (filters.caseId) {
-        ownershipOrCase.push(eq(documents.caseId, filters.caseId));
-      } else if (filters.caseIds && filters.caseIds.length > 0) {
-        ownershipOrCase.push(inArray(documents.caseId, filters.caseIds));
-      }
-      conditions.push(or(...ownershipOrCase)!);
-    }
+    if (filters.clientUserId)
+      conditions.push(
+        clientDocumentVisibility(
+          {
+            clientUserId: filters.clientUserId,
+            caseIds: filters.caseId ? [filters.caseId] : filters.caseIds,
+          },
+          true,
+        )!,
+      );
+    const before = collectionBefore(documents.createdAt, documents.id, cursor);
+    if (before) conditions.push(before);
 
     const results = await db
       .select()
       .from(documents)
       .where(and(...conditions))
-      .orderBy(desc(documents.createdAt))
+      .orderBy(desc(documents.createdAt), desc(documents.id))
       .limit(limit);
 
     if (results.length === 0) return [];
@@ -143,39 +155,53 @@ export class DocumentRepository {
     return this.listDocuments(firmId, { isTemplate: false, inTrash: false }, limit);
   }
 
-  static async searchDocuments(firmId: string, filters: DocumentSearchInput) {
+  static async searchDocuments(
+    firmId: string,
+    filters: DocumentSearchInput,
+    clientScope?: ClientDocumentScope,
+    limit = 100,
+    cursor?: string,
+  ) {
     const db = getDatabase();
-    const conditions = [
-      eq(documents.firmId, firmId),
-      isNull(documents.deletedAt),
-      like(documents.title, `%${filters.query}%`),
-      sql`NOT EXISTS (
+    const conditions = [eq(documents.firmId, firmId), like(documents.title, `%${filters.query}%`)];
+    if (filters.inTrash) conditions.push(sql`${documents.deletedAt} IS NOT NULL`);
+    else
+      conditions.push(
+        isNull(documents.deletedAt),
+        sql`NOT EXISTS (
         SELECT 1 FROM documents AS child_version
         WHERE child_version.firm_id = ${firmId}
           AND child_version.parent_document_id = ${documents.id}
           AND child_version.deleted_at IS NULL
       )`,
-    ];
+      );
     if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
     if (filters.type) conditions.push(eq(documents.type, filters.type));
     if (filters.generalOnly) conditions.push(sql`${documents.caseId} IS NULL`);
+    if (clientScope) conditions.push(clientDocumentVisibility(clientScope, false)!);
+    if (filters.tag)
+      conditions.push(sql`EXISTS (
+      SELECT 1 FROM ${documentTagAssignments}
+      INNER JOIN ${documentTags} ON ${documentTags.id} = ${documentTagAssignments.tagId}
+        AND ${documentTags.firmId} = ${firmId}
+        AND ${documentTags.deletedAt} IS NULL
+      WHERE ${documentTagAssignments.firmId} = ${firmId}
+        AND ${documentTagAssignments.documentId} = ${documents.id}
+        AND ${documentTagAssignments.deletedAt} IS NULL
+        AND LOWER(${documentTags.name}) = ${filters.tag.toLowerCase()}
+    )`);
+    const before = collectionBefore(documents.createdAt, documents.id, cursor);
+    if (before) conditions.push(before);
 
     const results = await db
       .select()
       .from(documents)
       .where(and(...conditions))
-      .orderBy(desc(documents.createdAt))
-      .limit(100);
+      .orderBy(desc(documents.createdAt), desc(documents.id))
+      .limit(limit);
 
     const tagsByDoc = await this.loadTags(results.map((row) => row.id));
-    let rows = results;
-    if (filters.tag) {
-      const needle = filters.tag.toLowerCase();
-      rows = results.filter((row) =>
-        (tagsByDoc[row.id] || []).some((tag) => tag.toLowerCase() === needle),
-      );
-    }
-    return rows.map((row) => toDocumentDto(row, tagsByDoc[row.id] || []));
+    return results.map((row) => toDocumentDto(row, tagsByDoc[row.id] || []));
   }
 
   static async getDocumentById(firmId: string, id: string) {
@@ -530,8 +556,20 @@ export class DocumentRepository {
         tagName: documentTags.name,
       })
       .from(documentTagAssignments)
-      .innerJoin(documentTags, eq(documentTags.id, documentTagAssignments.tagId))
-      .where(inArray(documentTagAssignments.documentId, docIds));
+      .innerJoin(
+        documentTags,
+        and(
+          eq(documentTags.id, documentTagAssignments.tagId),
+          eq(documentTags.firmId, documentTagAssignments.firmId),
+        ),
+      )
+      .where(
+        and(
+          inArray(documentTagAssignments.documentId, docIds),
+          isNull(documentTagAssignments.deletedAt),
+          isNull(documentTags.deletedAt),
+        ),
+      );
     return tagsAssignments.reduce(
       (acc, row) => {
         if (!acc[row.documentId]) acc[row.documentId] = [];

@@ -44,8 +44,7 @@ export class DmService {
     requireStaff(principal);
     const { firmId } = requireFirmContext(principal);
     await repository.requireThreadAccess(firmId, threadId, principal.user.id);
-    const page = await repository.listMessages(firmId, threadId, input.limit ?? 50);
-    return { page, isDone: true, continueCursor: "" };
+    return repository.listMessages(firmId, threadId, input);
   }
 
   async sendMessage(

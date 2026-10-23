@@ -1,3 +1,5 @@
+import { CollectionContinuation } from "@/components/ui/collection-continuation";
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { useNotifications, useNotificationCommands } from "@/client/queries/communication";
@@ -29,7 +31,8 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
     setMounted(true);
   }, []);
 
-  const { data: notificationsResponse } = useNotifications();
+  const notificationQuery = useNotifications();
+  const notificationsResponse = notificationQuery.data;
   const notifications = notificationsResponse || [];
 
   const { markRead, markAllRead } = useNotificationCommands();
@@ -81,7 +84,9 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
           size="icon"
           className={cn("group relative", triggerClassName)}
           aria-label={
-            unreadCount > 0 ? `Open notifications (${unreadCount} unread)` : "Open notifications"
+            unreadCount > 0 || notificationQuery.hasMore
+              ? `Open notifications (${unreadCount} unread in loaded notifications${notificationQuery.hasMore ? "; more records available" : ""})`
+              : "Open notifications"
           }
         >
           <Bell
@@ -107,6 +112,7 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
           <DropdownMenuLabel className="p-0 font-serif">Notifications</DropdownMenuLabel>
           {unreadCount > 0 && (
             <Button
+              role="menuitem"
               variant="ghost"
               size="sm"
               onClick={handleMarkAllRead}
@@ -120,7 +126,11 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
         <div className="min-h-0 max-h-[300px] flex-1 overflow-y-auto overscroll-contain">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No notifications yet.
+              {notificationQuery.isError
+                ? "Notifications unavailable. Please retry."
+                : notificationQuery.isLoading
+                  ? "Loading notifications…"
+                  : "No notifications yet."}
             </div>
           ) : (
             <DropdownMenuGroup>
@@ -143,14 +153,22 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
                     suppressHydrationWarning
                     className="text-[10px] text-muted-foreground/60 mt-1"
                   >
-                    {new Date(notif._creationTime || notif.createdAt).toLocaleString()}
+                    {formatNepalTimestamp(notif._creationTime || notif.createdAt)}
                   </span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
           )}
         </div>
+        <div role="none" className="px-3">
+          <CollectionContinuation query={notificationQuery} noun="notifications" inMenu />
+        </div>
       </DropdownMenuContent>
+      <span role="status" className="sr-only">
+        {notificationQuery.isError
+          ? "Notifications unavailable. Please retry."
+          : `${notifications.length} notifications loaded.${notificationQuery.hasMore ? " More records available." : ""}`}
+      </span>
     </DropdownMenu>
   );
 }

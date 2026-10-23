@@ -51,9 +51,10 @@ describe("R5 Staff Cases workspace", () => {
     expect(detail).not.toMatch(/Client \/ Retainer/);
   });
 
-  it("C-STAFF-003: status board is labelled By status, not a drag-drop Kanban product", () => {
+  it("C-STAFF-003: Staff Board View and Admin By status remain read-only lifecycle views", () => {
     const workspace = readSrc("src/components/cases/cases-workspace.tsx");
     expect(workspace).toMatch(/>\s*By status\s*</);
+    expect(readSrc("src/components/cases/staff-cases-filters.tsx")).toMatch(/Board View/);
     expect(workspace).not.toMatch(/Kanban Board/);
     expect(workspace).not.toMatch(/onDragStart/);
     expect(workspace).not.toMatch(/dnd-kit/);

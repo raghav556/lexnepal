@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/client/api/client";
 import { ApiClientError, normalizeApiError } from "@/client/api/errors";
 import { queryKeys } from "@/client/queries/query-keys";
+import type { AppointmentCreateInput } from "@/shared/contracts/crm";
 
 export function useLeads(filters?: {
   status?: string;
@@ -153,17 +154,21 @@ export function useIntakeByToken(token: string | null) {
   return { data: next.data, isLoading: next.isLoading };
 }
 
-export function useAppointments(filters?: {
-  status?: string;
-  assignedLawyerId?: string;
-  leadId?: string;
-}) {
+export function useAppointments(
+  filters?: {
+    status?: string;
+    assignedLawyerId?: string;
+    leadId?: string;
+  },
+  options?: { enabled?: boolean },
+) {
   const query = Object.fromEntries(
     Object.entries(filters ?? {}).filter(([, value]) => value !== undefined && value !== ""),
   );
   const next = useQuery({
     queryKey: queryKeys.crm.appointments(query),
     queryFn: ({ signal }) => apiClient.request<any[]>("/api/v1/appointments", { query, signal }),
+    enabled: options?.enabled ?? true,
   });
   return {
     data: next.data ?? [],
@@ -174,6 +179,19 @@ export function useAppointments(filters?: {
     isFetching: next.isFetching,
     refetch: next.refetch,
   };
+}
+
+/** Staff must never retry an expired authenticated booking through the public API. */
+export function useStaffAppointmentCreate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AppointmentCreateInput) =>
+      apiClient.request<{ id?: string; _id?: string }>("/api/v1/appointments", {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.crm.all }),
+  });
 }
 
 export function useAvailableSlots(date?: string, assignedLawyerId?: string) {

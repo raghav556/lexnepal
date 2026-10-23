@@ -39,6 +39,10 @@ career_requirements,career_requirements_position_unique,yes,"firm_id,career_id,p
 careers,careers_firm_active_idx,no,"firm_id,is_active",Firm-scoped careers status queue or filter,drizzle/0000_initial_mysql_schema.sql
 careers,careers_firm_id_id_unique,yes,"firm_id, id",Enforce careers business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 careers,careers_legacy_convex_id_unique,yes,legacy_convex_id,Enforce careers business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+case_parties,case_parties_case_idx,no,"firm_id,case_id",Firm-scoped case_parties lookup by case,drizzle/0005_cases_domain_foundations.sql
+case_parties,case_parties_client_idx,no,"firm_id,client_id",Firm-scoped case_parties lookup by case,drizzle/0005_cases_domain_foundations.sql
+case_parties,case_parties_firm_id_id_unique,yes,"firm_id, id",Enforce case_parties business or tenant uniqueness,drizzle/0005_cases_domain_foundations.sql
+case_parties,case_parties_legacy_convex_id_unique,yes,legacy_convex_id,Enforce case_parties business or tenant uniqueness,drizzle/0005_cases_domain_foundations.sql
 case_team_members,case_team_members_firm_id_id_unique,yes,"firm_id, id",Enforce case_team_members business or tenant uniqueness,drizzle/0001_mysql_integrity.sql
 case_team_members,case_team_members_legacy_convex_id_unique,yes,legacy_convex_id,Enforce case_team_members business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 case_team_members,case_team_members_unique,yes,"firm_id,case_id,user_id",Enforce case_team_members business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
@@ -237,6 +241,7 @@ sessions,sessions_firm_id_id_unique,yes,"firm_id, id",Enforce sessions business 
 sessions,sessions_firm_user_active_idx,no,"firm_id,user_id,last_active",Firm-scoped sessions lookup by responsible user,drizzle/0000_initial_mysql_schema.sql
 sessions,sessions_legacy_convex_id_unique,yes,legacy_convex_id,Enforce sessions business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
 sessions,sessions_token_hash_unique,yes,token_hash,Enforce sessions business or tenant uniqueness,drizzle/0000_initial_mysql_schema.sql
+signature_artifact_upload_intents,signature_artifact_upload_intents_legacy_convex_id_unique,yes,legacy_convex_id,Enforce signature_artifact_upload_intents business or tenant uniqueness,drizzle/0007_signature_artifact_upload_intents.sql
 signature_envelopes,signature_envelopes_firm_case_idx,no,"firm_id,case_id",Firm-scoped signature_envelopes lookup by case,drizzle/0000_initial_mysql_schema.sql
 signature_envelopes,signature_envelopes_firm_document_idx,no,"firm_id,document_id",Firm-scoped signature_envelopes lookup by document,drizzle/0000_initial_mysql_schema.sql
 signature_envelopes,signature_envelopes_firm_id_id_unique,yes,"firm_id, id",Enforce signature_envelopes business or tenant uniqueness,drizzle/0001_mysql_integrity.sql

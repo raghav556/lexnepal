@@ -1,3 +1,4 @@
+import { formatNepalTimestamp } from "@/lib/nepali-calendar";
 import jsPDF from "jspdf";
 
 /** Browser-generated summary of the current signer's displayed history event. */
@@ -15,7 +16,7 @@ export function generateSignatureEventSummaryPDF(input: {
   pdf.text("Signature Event Summary", 14, 24);
 
   const rows: [string, string][] = [["Document", input.title]];
-  if (input.signedAt) rows.push(["Signed at", new Date(input.signedAt).toLocaleString()]);
+  if (input.signedAt) rows.push(["Signed at", formatNepalTimestamp(input.signedAt)]);
   if (input.signerName) rows.push(["Signer", input.signerName]);
   if (input.signatureMethod) rows.push(["Method", input.signatureMethod]);
   if (input.consentVersion) rows.push(["Consent version", input.consentVersion]);

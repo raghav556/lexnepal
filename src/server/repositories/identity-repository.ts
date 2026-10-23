@@ -1,6 +1,7 @@
 import { returningInsert, returningMutation } from "@/server/db/mysql-returning";
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { collectionBefore } from "./collection-continuation";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "@/server/db/client";
 import {
@@ -188,11 +189,13 @@ export class MySqlIdentityRepository {
         .limit(1);
       if (!current) return null;
       const now = audit.occurredAt;
+      const privilegedRole = ["admin", "partner"].includes(input.role ?? current.role);
       const [updated] = await returningMutation(
         tx
           .update(users)
           .set({
             ...input,
+            twoFactorRequired: current.twoFactorRequired || privilegedRole,
             deactivatedAt:
               input.isActive === false
                 ? now
@@ -410,7 +413,13 @@ export class MySqlIdentityRepository {
 
   async listAudit(
     firmId: string,
-    filters: { userId?: string; resource?: string; action?: string; limit: number },
+    filters: {
+      userId?: string;
+      resource?: string;
+      action?: string;
+      limit: number;
+      cursor?: string;
+    },
   ): Promise<AuditEventDto[]> {
     const rows = await this.database
       .select({ event: auditLog, actorName: users.name, actorRole: users.role })
@@ -423,9 +432,10 @@ export class MySqlIdentityRepository {
           filters.resource ? eq(auditLog.resource, filters.resource) : undefined,
           filters.action ? eq(auditLog.action, filters.action) : undefined,
           isNull(auditLog.deletedAt),
+          collectionBefore(auditLog.createdAt, auditLog.id, filters.cursor),
         ),
       )
-      .orderBy(desc(auditLog.createdAt))
+      .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
       .limit(filters.limit);
     return rows.map(({ event, actorName, actorRole }) => ({
       id: event.id,
@@ -469,7 +479,7 @@ export class MySqlIdentityRepository {
       }
       await tx
         .update(users)
-        .set({ twoFactorEnabled: false, updatedAt: audit.occurredAt })
+        .set({ twoFactorEnabled: false, totpSecret: null, updatedAt: audit.occurredAt })
         .where(and(eq(users.id, userId), eq(users.firmId, firmId)));
       await writeAudit(tx, audit, "users.mfa_reset", "users", userId, "sessions_revoked=true");
       return true;

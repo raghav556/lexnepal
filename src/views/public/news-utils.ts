@@ -1,3 +1,4 @@
+import { formatDualDate } from "@/lib/nepali-calendar";
 import { Megaphone, Newspaper, Trophy, type LucideIcon } from "lucide-react";
 
 export type NewsType = "award" | "press_release" | "firm_news";
@@ -46,7 +47,7 @@ export function formatNewsDate(value?: string): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return formatDualDate(value);
 }
 
 export const NEWS_PAD = "max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 min-w-0";

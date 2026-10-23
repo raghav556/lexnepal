@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Scale } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { usePublicCmsSettings } from "@/client/queries/public-cms-settings";
 import { usePortalBranding } from "@/components/dashboard/portal-branding-context";
 import { pickPortalBranding } from "@/lib/portal-branding";
@@ -80,6 +80,18 @@ export function FirmBrand({
   const resolvedName = firmName?.trim() || "Law Firm";
   const resolvedLogo = logoUrl?.trim() || undefined;
   const [failedLogoUrl, setFailedLogoUrl] = useState<string>();
+  const checkCachedLogo = useCallback(
+    (image: HTMLImageElement | null) => {
+      // SSR images can finish before hydration attaches load/error handlers.
+      if (
+        image?.complete &&
+        (image.naturalWidth === 0 || (image.naturalWidth <= 1 && image.naturalHeight <= 1))
+      ) {
+        setFailedLogoUrl(resolvedLogo);
+      }
+    },
+    [resolvedLogo],
+  );
   const showLogo = shouldDisplayFirmLogo(resolvedLogo, failedLogoUrl);
   const monogram =
     resolvedName
@@ -95,6 +107,7 @@ export function FirmBrand({
       {showLogo ? (
         // CMS assets are validated before publication; a regular img supports protected redirects.
         <img
+          ref={checkCachedLogo}
           src={resolvedLogo}
           alt={`${resolvedName} logo`}
           className={cn(
