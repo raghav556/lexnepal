@@ -189,11 +189,13 @@ export class MySqlIdentityRepository {
         .limit(1);
       if (!current) return null;
       const now = audit.occurredAt;
+      const privilegedRole = ["admin", "partner"].includes(input.role ?? current.role);
       const [updated] = await returningMutation(
         tx
           .update(users)
           .set({
             ...input,
+            twoFactorRequired: current.twoFactorRequired || privilegedRole,
             deactivatedAt:
               input.isActive === false
                 ? now
@@ -477,7 +479,7 @@ export class MySqlIdentityRepository {
       }
       await tx
         .update(users)
-        .set({ twoFactorEnabled: false, updatedAt: audit.occurredAt })
+        .set({ twoFactorEnabled: false, totpSecret: null, updatedAt: audit.occurredAt })
         .where(and(eq(users.id, userId), eq(users.firmId, firmId)));
       await writeAudit(tx, audit, "users.mfa_reset", "users", userId, "sessions_revoked=true");
       return true;

@@ -660,7 +660,9 @@ export default function AdminUsersPage() {
                                 >
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent
+                                  aria-label={`Role options for ${u.name || u.email || u.id}`}
+                                >
                                   {ALL_ROLES.map((r) => (
                                     <SelectItem key={r} value={r}>
                                       {ROLE_LABELS[r]}
@@ -672,6 +674,7 @@ export default function AdminUsersPage() {
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8 text-green-600"
+                                aria-label="Save role change"
                                 disabled={saving}
                                 onClick={(e) => saveRole(e, rowId)}
                               >
@@ -682,6 +685,7 @@ export default function AdminUsersPage() {
                                 variant="ghost"
                                 className="h-8 w-8"
                                 onClick={cancelEdit}
+                                aria-label="Cancel role change"
                               >
                                 <X className="w-4 h-4" />
                               </Button>

@@ -1,0 +1,120 @@
+﻿# Session18D — Final merge preparation
+
+2026-10-23, Asia/Kathmandu. **BLOCKED for merge; owner/TL review required.** Session18C is committed and independently verified on GitHub. New Session18D changes remain unstaged. No merge, deployment, remote setting change, application migration, production mutation or external delivery.
+
+## Phase A checkpoint
+
+`eba60f7694bd1744fb62eb34f5e6d9bba51d775c` — `fix(release): close CI gates and strengthen critical workflow safety`.
+
+Parent `a3e7975e30e758a77741fa2b0b2d1203096858d3`; **148/148 approved paths,138 modified and10 new**, including all117 pure-format paths. Explicit manifest arguments only; staged equality, new-file count, whitespace and Session08 exclusion verified before commit. Fresh remote-parent check, normal push, independent fetch/ls-remote, commit message/parent/path comparison and post-push status verified. Evidence: `.local/qa/session-18d/checkpoint-{preflight,commit,verified}.json`.
+
+Only protected Session08 remained dirty after Phase A. Local main `268e3d3d13defa380b912b7edc0597ef58e6e957` and remote main `319d7c682d13ed8833d3a1e917fc2049f59c2a02` were unchanged. The divergent local main was never checked out or altered. AGENTS.md,18C report/manifests/coverage and final evidence were read once; the completed inventories were reused.
+
+## Dependency advisory matrix
+
+| Finding                                             | Verified chain/exposure                                                                                                                                | Action and result                                                                                                                                                                                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GHSA-rj75-hqrm-r3gf, moderate parser CPU exhaustion | Typography0.5.20 pins parser6.0.10; build-time selector parsing. Fixed upstream in7.1.6.                                                               | Scoped typography override to7.1.7, installed through isolated npm ci. The actual plugin's62,156-byte output and33 variants are byte-identical; golden/output and large-flat-selector tests protect the consumed API. Both moderate audit entries removed. |
+| GHSA-vfj7-8cjw-p6xm, high stack exhaustion          | eslint-config-next → @next/eslint-plugin-next → fast-glob → micromatch → braces3.0.3. Five affected-package audit entries represent one root advisory. | **UNRESOLVED:** official advisory has no patched version; npm still lists3.0.3 as latest. No forced downgrade of Next lint to14.2.35, fabricated release, vendored patch or security waiver.                                                               |
+| Production dependency graph                         | npm audit --omit=dev                                                                                                                                   | **PASS:0 vulnerabilities.** Distinct from the full audit.                                                                                                                                                                                                  |
+| Full dependency graph                               | npm audit                                                                                                                                              | **FAIL:5 high,0 moderate,0 critical**, improved from5 high/2 moderate. Owner risk decision remains required.                                                                                                                                               |
+
+Sources: [parser advisory and patched versions](https://github.com/advisories/GHSA-rj75-hqrm-r3gf), [braces advisory/no patched version](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm). npm metadata, complete dependency explanations and actual audit JSON are saved under `.local/qa/session-18d/`; no advisory exclusion was added.
+
+The remaining chain is development-only in the lock graph; production source has no direct imports of those packages. The observed Next lint utility invokes fast-glob with repository-controlled `settings.next.rootDir`, rather than an application request parameter. This supports a build/CI denial-of-service risk assessment, **not** a universal claim of unreachability or an exploit waiver. Malicious/unreviewed lint configuration or dependency input remains relevant. Available controls are trusted/reviewed CI configuration, locked dependencies, resource/time limits and no production secrets in untrusted jobs; the tracked verification job already has a20-minute timeout and contents:read permission. No new remote control was applied. Affected versions still fail the full audit.
+
+Candidate dependencies were installed in an isolated ignored directory, tested, and then moved into the already physical worktree node_modules only after active tests ended. All resolved move paths were verified inside this worktree, with no junction mutation. Original-checkout dependencies remain unchanged. Package/lock hashes match the successful isolated npm-ci inputs. Only one lock package entry changes version, parser6.0.10→7.1.7; other packages are not blindly refreshed (`dependency-change-proof.json`).
+
+## Genuine defects found and corrected
+
+| Defect / baseline evidence                                                                                                                                                                                                                                   | Small correction / verification                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MFA reset retained retired users.totp_secret while disabling MFA. The first real-route fixture run observed the original secret still present.                                                                                                               | Clear that legacy field in the existing reset transaction. Tests also prove active auth secrets, backup-code row and sessions are removed; self-reset and foreign-firm reset remain denied. No historical-data backfill.                                                                                                                        |
+| Privileged role promotion did not persist mandatory MFA; the session gate trusted only a stored required flag. Baseline tests reproduced Admin and Partner promotion with false flags, and an unenrolled historical Admin receiving an authorized principal. | Enforce privileged roles directly at the existing local session gate, and persist the requirement on explicit identity updates. Keep any stronger existing requirement on demotion/unrelated edits. Historical privileged accounts fail closed without rewriting their stored records. Enrolled Admin and ordinary Client behavior is retained. |
+| Inline role Save/Cancel icons were unnamed; its option list lacked a reliable name. Genuine pre-fix axe evidence identifies the two buttons and list.                                                                                                        | Two action labels and a contextual list name only; same permissions, role strings and PATCH. Keyboard opening/navigation/selection, cancel,403 retained draft and identical retry are tested.                                                                                                                                                   |
+
+Mandatory privileged MFA is an existing written requirement: [Phase8.1 identity policy](../../migration/PHASE_8_1_IDENTITY.md), accepted architecture bullet “Administrators and partners must enroll MFA before application APIs authorize them.” The older document's database-platform wording is historical; fixture setup uses the actual current MySQL architecture. The new fix implements that established identity policy, not a new role or authentication design.
+
+The former privileged-session gate accepted a stale false flag; this is an enrollment-policy bypass for an already privileged account, not evidence that an arbitrary Client can assign itself an administrator role. Real-route tests explicitly deny Client/foreign-firm role writes. Retired-secret retention is separately distinguished from the active Better Auth credential store.
+
+Before-fix artifacts remain: `critical-routes-before.json`, `privileged-mfa-before.json`, `critical-roles-before.json`, `critical-roles-before-stable-popup.json`. The first test attempt also used wrong audit DTO field names; those fixture assertions were corrected to actual resourceId/userId without weakening production expectations. Keyboard QA now waits for Radix render/focus and complete close before scanning the settled editor; an earlier racing scan is retained, not relabelled green.
+
+## Critical coverage and preservation
+
+[Coverage overlay](SESSION-18D-COVERAGE.json) extends the existing164-handler/219-method and276-declaration ledger, rather than inventing another inventory. It identifies exact real-handler branch evidence and preserves every inherited unexecuted HTTP/authenticated branch. Handler tests supply authenticated identity at the authentication boundary; actual handlers, schema validation, services, authorization and MySQL repositories execute. The actual local session service is additionally exercised with controlled Better Auth session responses and real identity rows. This does not certify cookie cryptography, every HTTP branch or external identity providers.
+
+New restricted-SQL coverage includes:
+
+- Document read/edit/delete/share cross-firm denial with unchanged source rows; Client mutation denial; expired session and invalid UUID.
+- Retention policy editing preserves the authoritative returned instant and ignores an unsupported replacement-date input.
+- Legal hold set/actor/reason, permanent-delete/share prohibition, explicit release and fixture-only deletion.
+- Password hashing, download limit/flag, wrong-password response, correct-password access, wrong-document share revocation and revoked-link denial; privileged-document sharing prohibition.
+- Authorized role update/audit; Client/foreign-firm rejection; self-suspension/archive/MFA-reset protections; active-session/credential deletion.
+- Payroll finalization firm/capability checks, persisted actor/audit and repeat-finalization rejection.
+- Mandatory MFA after privileged promotion, historical flag mismatch, retained stronger policy and authoritative Client identity/capabilities despite stale provider role claims.
+
+The browser adds only the uncovered inline role branch, EN1440/light and NE390/dark, using keyboard interaction and intercepted mutations. No broad route/date/court replay. All110 court records,26 shared date declarations, retrieval contracts, pagination, legal dates, storage identifiers and accepted layouts retain their committed implementations. Current generated inventories are normalized-identical to HEAD; no SQL/schema or API input contract changed. The complete CSS assets and typography output are byte-identical to the prior build.
+
+Unverified declaration counts are evidence gaps, **not counts of known defects**. Positive storage scanning/promotion and KYC completion, all signature methods/conditional dialogs, every authenticated HTTP branch, external deliveries and cross-browser/deployment certification remain explicitly limited. Existing stronger signing/Client privacy/security evidence is retained where code is unchanged. No API mutation was exercised against application data.
+
+## CMS originals and database incident
+
+No repeat281-file asset search. Original files still required from the owner:
+
+| Original           | Existing ID                          |
+| ------------------ | ------------------------------------ |
+| Firm logo          | 4c93e918-c131-49b3-b91d-384ddbd15681 |
+| Director portrait  | b3275362-ffa2-438b-8d96-837aa71b0eb6 |
+| Director signature | b31f5f58-24a9-412a-bdc3-b6354143933d |
+
+No replacement binary, fake HTTP200, stored reference or storage object was manufactured. The fallback sources are unchanged; current branding tests and inherited18B genuine fallback/public-profile evidence remain applicable. This is missing content/restoration work, separate from application-code merge defects.
+
+Session18B's fixed-name database incident and18C's verified cleanup disclosure remain intact. Prior contents were not captured; no recovery is claimed. The historical fixed-name schema was never queried, recreated, reused, modified or dropped in18D. New tests use the existing fail-closed random-schema helper: explicit local admin provisioning, unique schema/user, exact-schema restricted grants and denied system-table access before fixture SQL. Actual fixture writes are confined to that schema. No email/signature dispatch, background delivery, application schema migration or stored-record rewrite. Final cleanup and global mode inspection are read-only; controlled fixture cleanup is recorded separately.
+
+## Absolute no-deployment gate
+
+Fresh read-only GitHub inspection still shows Pages enabled/built from main, active dynamic workflow349999843, no repository webhooks, no queued/running workflow runs and no feature-head check-runs or open PR. Empty hooks do not enumerate hosting Apps or external polling. Owner-known hosting inventory was requested and remains pending unless separately supplied. No settings were changed and no PR/CI dispatch was initiated while unknown preview/deployment triggers could exist.
+
+Required safe control sequence:
+
+1. Owner enumerates Pages, installed hosting Apps, external hosting webhooks and server polling/deploy jobs, including possible PR preview deployments. Snapshot current published URL/deployment SHA and availability.
+2. Obtain separate authorization to pause each verified deployment pathway. For Pages, verify that disabling dynamic workflow349999843 is supported before using the workflow-disable control. Preserve the existing published deployment; never delete/unpublish Pages or change its source as a shortcut. If unsupported, stop and agree a supported deployment-approval control with the owner.
+3. Pause external automatic deployments through their owner-controlled settings, preserving their current releases. Do not assume workflow controls pause an external server.
+4. Recheck queued/in-progress deployment runs and deployment history. Disabling future triggers does not cancel an already running job; resolving such a job needs separately authorized controls.
+5. After18D report acceptance, guarded complete commit/push and applicable remote CI PASS, independently verify every trigger is paused and reassess merge. No merge while active/unknown triggers remain.
+6. After any later separately authorized merge, verify main SHA, checks and unchanged deployment/site. Never automatically re-enable deployment.
+
+The tracked foundation CI has verification steps and no deployment step. This does not neutralize Pages or external integrations. Current checks are recorded locally; remote CI PASS is not invented. Official control semantics remain those linked in the18C report. No deployment permission is inferred from approval to save feature-branch work.
+
+## Final evidence, manifest and decision
+
+Measured final results and exact Git manifest follow below; ignored evidence is under `.local/qa/session-18d/`. New18D work requires owner/TL review before staging, commit, push or merge.
+
+| Final gate                       | Actual result / evidence                                                                                                                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh tests                      | **111 files,1,226 passed,0 failed/skipped**: all unit files and the targeted integration files (`security-final.json/.exit`). Includes21 restricted-SQL critical tests and5 typography tests; those26 are not added again.                                                   |
+| Reconciled prior full inventory  | **1,252 passes across116 distinct files**: fresh1,226 plus26 inherited tests in five unchanged integration files. This is explicitly **not** a fresh full-suite replay. Each inherited file/source is listed in evidence-summary.json; no test was weakened/deleted/skipped. |
+| Migration/characterization       | Retained18C **11 bootstrap/schema tests and4 characterization tests**; unchanged runner/helper/SQL. New restricted fixtures additionally bootstrap all8 immutable migrations through the real CLI. Current Drizzle/integrity gates exit0.                                    |
+| Browser/accessibility            | **2 groups,6 clean scans,4 intercepted requests,0 exceptions,0 live test mutations**, EN1440/light and NE390/dark. Actual keyboard focus/selection, named options/actions, cancellation and denied-write retry. `critical-roles.json`, `roles-final-pass.exit`0.             |
+| Dependency installation          | Isolated npm ci exit0; final package/lock hashes equal tested inputs. Original checkout remains untouched.                                                                                                                                                                   |
+| Audit                            | Production **0**; full audit **FAIL5 high**, all from the unpatched braces chain. No waiver. Final audit JSON and advisory metadata retained.                                                                                                                                |
+| Build / types / lint / format    | Final production build, TypeScript, full ESLint, final harness lint, full formatting and whitespace exit0. Final build covers both MFA fixes and all role accessibility labels.                                                                                              |
+| CSS / inventories / preservation | Both complete CSS assets remain byte-identical; all9 generated inventory outputs are normalized-identical to HEAD. Courts/date/retrieval/pagination protected-source comparisons pass.                                                                                       |
+| Remote CI / deployment           | Feature checkpoint has0 observed check-runs and no open PR; remote CI PASS is not claimed. Fresh queued/running queries empty; no GitHub deployments observed for the checkpoint SHA. Pages remains enabled on main; external owner inventory unresolved.                    |
+| Database cleanup                 | Read-only verification:0 remaining random fixture schemas/users; global strict/NO_ZERO modes retained. The historical fixed-name schema was not touched.                                                                                                                     |
+
+The five inherited integration files are Client own audit(4), Client signing(9), cross-firm security(3), notification links(3) and operational routes(7). Their26 passing results retain exact18C evidence and unchanged test bodies; the current targeted run is separately labelled. The authentication changes are directly exercised by the new real session/SQL regression tests, rather than inferred from those retained files.
+
+The current calculated lint configuration has no settings.next.rootDir override (`lint-reachability.json`); the inspected Next helper only calls fast-glob when that override exists. This further narrows observed reachability but does not erase the advisory or establish every transitive call unreachable. The scoped parser update is supported by actual output compatibility, not merely by its version string.
+
+Privileged accounts without MFA enrollment will now be denied application API access even when an old required flag is false. This is the intended established policy; enrollment/recovery readiness requires owner review before release. No automatic enrollment, weakened MFA guard or database backfill was introduced.
+
+The temporary immutable production preview used process-only random secrets and was stopped after QA; original environment files and full-stack infrastructure remain untouched. Its standard next-start/standalone warning is retained; packaged runtime and deployment certification are not claimed. Browser harness-only corrections include per-language request baselines and waiting for actual Radix option focus/close; failed attempts are retained, excluded and not relabelled passing.
+
+**43/276 declarations now have precise specific/inherited evidence;233 remain NOT TESTED.** The coverage overlay includes every remaining declaration reference and the10 newly exercised exported-method branch scopes. It does not equate a denied request with authenticated success, mark all branches of a shared component passing, or convert all233 gaps into proven defects. Critical positive upload/KYC/storage, delivery and unexecuted action branches remain certification limits requiring explicit risk review.
+
+**Exact18D scope:11 paths —6 modified,5 new.** [Complete allowlist](SESSION-18D-CHANGED-PATHS.json): package/lock; existing critical-action harness; local session gate; identity repository; Admin Users; two new tests; this report, coverage overlay and allowlist. No other nonignored changes except protected Session08. A separate owner-approved checkpoint must include all11 paths.
+
+Final local/fresh-origin feature HEAD remains **`eba60f7694bd1744fb62eb34f5e6d9bba51d775c`**. Index empty. Local main remains `268e3d3d13defa380b912b7edc0597ef58e6e957`; remote main remains `319d7c682d13ed8833d3a1e917fc2049f59c2a02`. Session08 raw SHA-256 remains **`1ACEB9535586A43197F561057EEC9DB9409CAB5F12994629C43F86F5FE7BC78E`**. Final status, manifest equality and hashes are recorded in `.local/qa/session-18d/final-safety.json`.
+
+**Decision:BLOCKED for merge.** No observed production defect found in this session remains unfixed. Required next decisions are: owner review of these authentication/accessibility corrections and the precise unpatched development-advisory risk; owner-supplied deployment inventory and separately authorized preservation-safe pause controls; complete18D guarded push after acceptance; applicable remote CI PASS; fresh deployment-trigger verification before any later merge. Missing CMS originals and unrecovered historical test data remain separate restoration issues. No18D staging, commit, push, merge or deployment before owner/TL review.
