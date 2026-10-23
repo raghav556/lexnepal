@@ -7,5 +7,7 @@ import { documentListSchema } from "@/shared/contracts/documents";
 export const GET = withApiHandler("/api/v1/documents", async ({ request }) => {
   const principal = await requireSession(request);
   const input = documentListSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-  return jsonResponse({ data: await getDocumentService()[input.page === "true" ? "listPage" : "list"](principal, input) });
+  return jsonResponse({
+    data: await getDocumentService()[input.page === "true" ? "listPage" : "list"](principal, input),
+  });
 });

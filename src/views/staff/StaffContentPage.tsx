@@ -80,7 +80,8 @@ export default function StaffContentPage() {
   });
   const newsQuery = useQuery({
     queryKey: [...queryKeys.cms.all, "staff", "news"],
-    queryFn: ({ signal }) => apiClient.request<NewsItem[]>("/api/v1/staff/content/news", { signal }),
+    queryFn: ({ signal }) =>
+      apiClient.request<NewsItem[]>("/api/v1/staff/content/news", { signal }),
   });
 
   const posts = postsQuery.data ?? [];
@@ -221,11 +222,7 @@ export default function StaffContentPage() {
             <TabsTrigger value="blog">Blog Articles</TabsTrigger>
             <TabsTrigger value="news">Firm News</TabsTrigger>
           </TabsList>
-          <DashboardButton
-            size="sm"
-            variant="primary"
-            onClick={() => router.push(writeHref(tab))}
-          >
+          <DashboardButton size="sm" variant="primary" onClick={() => router.push(writeHref(tab))}>
             <Plus className="size-3.5" aria-hidden />
             {tab === "blog" ? "New Blog Article" : "New News"}
           </DashboardButton>
@@ -374,7 +371,11 @@ function ContentList({
   }
 
   return (
-    <div className="staff-content-table" role="table" aria-label={kind === "blog" ? "Blog articles" : "Firm news"}>
+    <div
+      className="staff-content-table"
+      role="table"
+      aria-label={kind === "blog" ? "Blog articles" : "Firm news"}
+    >
       <div className="staff-content-table-head" role="row">
         <span role="columnheader">Title</span>
         <span role="columnheader">{kind === "blog" ? "Category" : "Type"}</span>
@@ -388,7 +389,8 @@ function ContentList({
           const image = isNewsItem(item) ? item.imageUrl : item.coverImageUrl;
           const meta = isNewsItem(item) ? newsTypeLabel(item.type) : item.category || "General";
           const dated =
-            recordDate(item.updatedAt) || recordDate(isNewsItem(item) ? item.date : item.publishDate);
+            recordDate(item.updatedAt) ||
+            recordDate(isNewsItem(item) ? item.date : item.publishDate);
           return (
             <li key={item._id} className="staff-content-row" role="row">
               <div className="staff-content-title" role="cell">
@@ -439,7 +441,8 @@ function ContentList({
       </ul>
       <div className="staff-content-pagination">
         <p className="staff-content-page-status" aria-live="polite">
-          Showing {rangeStart}–{rangeEnd} of {totalItems} {kind === "blog" ? "articles" : "news items"}
+          Showing {rangeStart}–{rangeEnd} of {totalItems}{" "}
+          {kind === "blog" ? "articles" : "news items"}
         </p>
         <Pagination
           currentPage={currentPage}

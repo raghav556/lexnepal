@@ -267,8 +267,8 @@ export default function ClientBookingPage() {
         >
           <div className="mx-auto max-w-xl space-y-5 py-2 text-center">
             <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-              Your request for {formatAppointmentDate(successAppointment.date, undefined, language)} at{" "}
-              {successAppointment.timeSlot} is
+              Your request for {formatAppointmentDate(successAppointment.date, undefined, language)}{" "}
+              at {successAppointment.timeSlot} is
               <strong className="ml-1 text-foreground">{successAppointment.status}</strong>.
             </p>
             {notes ? (
@@ -439,8 +439,18 @@ export default function ClientBookingPage() {
                 </legend>
                 <p className="mt-1 text-[11px] text-muted-foreground">Asia/Kathmandu (NPT)</p>
                 <div className="mt-2 space-y-1">
-                  <label htmlFor="client-booking-bs-date" className="text-xs font-medium">Appointment date</label>
-                  <BsDateField id="client-booking-bs-date" value={selectedDateIso} min={today} onDateChange={(ad) => { if (ad) selectDate(ad); }} required />
+                  <label htmlFor="client-booking-bs-date" className="text-xs font-medium">
+                    Appointment date
+                  </label>
+                  <BsDateField
+                    id="client-booking-bs-date"
+                    value={selectedDateIso}
+                    min={today}
+                    onDateChange={(ad) => {
+                      if (ad) selectDate(ad);
+                    }}
+                    required
+                  />
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-dashboard-border bg-dashboard-neutral-soft p-2">
                   <DashboardButton

@@ -94,9 +94,12 @@ function wordCount(value: string): number {
 function alignInCanvas(element: HTMLElement | null, clearance = 16) {
   const canvas = document.getElementById("staff-main-canvas");
   if (!element || !canvas) return;
-  const delta = element.getBoundingClientRect().top - (canvas.getBoundingClientRect().top + clearance);
+  const delta =
+    element.getBoundingClientRect().top - (canvas.getBoundingClientRect().top + clearance);
   if (Math.abs(delta) < 4) return;
-  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
   canvas.scrollTo({ top: Math.max(0, canvas.scrollTop + delta), behavior });
 }
 

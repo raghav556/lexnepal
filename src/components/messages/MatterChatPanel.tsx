@@ -81,7 +81,9 @@ async function uploadAttachmentStorageId(file: File, caseId: string): Promise<st
   );
 }
 
-function formatDateSeparator(dateInput?: string | Date): string { return dateInput ? relativeNepalDay(dateInput) : ""; }
+function formatDateSeparator(dateInput?: string | Date): string {
+  return dateInput ? relativeNepalDay(dateInput) : "";
+}
 
 export function MatterChatPanel({
   caseId,
@@ -318,7 +320,9 @@ export function MatterChatPanel({
             ) : null}
           </div>
         ) : messages.length > 0 ? (
-          <p className="text-[11px] text-muted-foreground text-center pb-2">Beginning of conversation</p>
+          <p className="text-[11px] text-muted-foreground text-center pb-2">
+            Beginning of conversation
+          </p>
         ) : null}
 
         {isError ? (

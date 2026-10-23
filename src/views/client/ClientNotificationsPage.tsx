@@ -352,7 +352,9 @@ export default function ClientNotificationsPage() {
               </section>
             )}
           </ClientQueryBoundary>
-          <div className="px-4"><CollectionContinuation query={notificationQuery} noun="notifications" /></div>
+          <div className="px-4">
+            <CollectionContinuation query={notificationQuery} noun="notifications" />
+          </div>
         </ClientPanel>
 
         <aside className="min-w-0 space-y-4" aria-label="Notification context">

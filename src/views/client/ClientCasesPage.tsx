@@ -161,7 +161,9 @@ function formatHearingTime(time?: string | null): string | undefined {
   return `${hour12}:${minute} ${suffix}`;
 }
 
-function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") { return bsDateParts(dateGregorian, language); }
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") {
+  return bsDateParts(dateGregorian, language);
+}
 
 function notificationMatterId(
   notification: ClientNotification,
@@ -813,7 +815,11 @@ export default function ClientCasesPage() {
                   }
                   time={formatHearingTime(nextImportantHearing.time)}
                   matter={nextImportantMatter?.title ?? "Your matter"}
-                  court={nextImportantHearing.court ? formatCourtName(nextImportantHearing.court, language) : undefined}
+                  court={
+                    nextImportantHearing.court
+                      ? formatCourtName(nextImportantHearing.court, language)
+                      : undefined
+                  }
                   purpose={nextImportantHearing.purpose || undefined}
                   action={
                     nextImportantMatter ? (

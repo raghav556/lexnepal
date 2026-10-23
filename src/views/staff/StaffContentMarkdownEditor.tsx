@@ -1,6 +1,13 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -66,7 +73,9 @@ function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolea
       {item("Heading 3", <Heading3 />, editor.isActive("heading", { level: 3 }), () =>
         editor.chain().focus().toggleHeading({ level: 3 }).run(),
       )}
-      {item("Bold", <Bold />, editor.isActive("bold"), () => editor.chain().focus().toggleBold().run())}
+      {item("Bold", <Bold />, editor.isActive("bold"), () =>
+        editor.chain().focus().toggleBold().run(),
+      )}
       {item("Italic", <Italic />, editor.isActive("italic"), () =>
         editor.chain().focus().toggleItalic().run(),
       )}
@@ -128,16 +137,20 @@ export const StaffContentMarkdownEditor = forwardRef<
     editor.setEditable(!disabled && rich);
   }, [disabled, editor, rich]);
 
-  useImperativeHandle(ref, () => ({
-    getMarkdown: () => {
-      if (!rich || !editor) return sourceValue.current;
-      const markdown = jsonToMarkdown(editor.getJSON());
-      const visible = editor.getText().trim();
-      if (markdown != null && markdown.trim()) return markdown;
-      if (visible) return markdown?.trim() ? markdown : visible;
-      return markdown ?? sourceValue.current;
-    },
-  }), [editor, rich]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      getMarkdown: () => {
+        if (!rich || !editor) return sourceValue.current;
+        const markdown = jsonToMarkdown(editor.getJSON());
+        const visible = editor.getText().trim();
+        if (markdown != null && markdown.trim()) return markdown;
+        if (visible) return markdown?.trim() ? markdown : visible;
+        return markdown ?? sourceValue.current;
+      },
+    }),
+    [editor, rich],
+  );
 
   useEffect(() => {
     if (!editor || !rich || value === emitted.current) return;

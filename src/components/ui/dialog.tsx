@@ -66,6 +66,9 @@ export function Dialog({ open, onOpenChange, children }: any) {
     const id = window.setTimeout(focusInitial, 0);
 
     const onKeyDown = (event: KeyboardEvent) => {
+      // A child confirmation owns keyboard interaction while both modals exist.
+      const modals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (contentRef.current !== modals[modals.length - 1]) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onOpenChangeRef.current(false);

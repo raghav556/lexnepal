@@ -81,7 +81,10 @@ export function useMatterMessageHistory(
     setBucket({ key: streamKey, older: [], continueCursor: "", hasMore: null });
   }
 
-  const active = bucket.key === streamKey ? bucket : { key: streamKey, older: [], continueCursor: "", hasMore: null };
+  const active =
+    bucket.key === streamKey
+      ? bucket
+      : { key: streamKey, older: [], continueCursor: "", hasMore: null };
 
   const messages = useMemo(
     () => mergeMessagePages(active.older, latest.data?.page ?? []),
@@ -89,9 +92,7 @@ export function useMatterMessageHistory(
   );
 
   const continueCursor =
-    active.older.length === 0
-      ? latest.data?.continueCursor || ""
-      : active.continueCursor;
+    active.older.length === 0 ? latest.data?.continueCursor || "" : active.continueCursor;
   const hasMore =
     active.older.length === 0
       ? latest.data
@@ -226,8 +227,10 @@ export function useMessageCommands() {
 export function useNotifications() {
   const currentUser = useCurrentIdentityUser();
   const next = useCollectionQuery<any>({
-    queryKey: ["notifications", currentUser?.id], path: "/api/v1/notifications",
-    enabled: !!currentUser?.id, refetchInterval: 10_000,
+    queryKey: ["notifications", currentUser?.id],
+    path: "/api/v1/notifications",
+    enabled: !!currentUser?.id,
+    refetchInterval: 10_000,
   });
   return {
     ...next,

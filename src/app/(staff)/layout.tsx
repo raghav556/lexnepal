@@ -45,12 +45,24 @@ const navGroups = splitPortalNavGroups(NAV);
 function StaffRailHint({ label, children }: { label: string; children: React.ReactNode }) {
   const [top, setTop] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancel = () => { if (timer.current) clearTimeout(timer.current); };
-  const close = () => { cancel(); timer.current = setTimeout(() => setTop(null), 150); };
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  const cancel = () => {
+    if (timer.current) clearTimeout(timer.current);
+  };
+  const close = () => {
+    cancel();
+    timer.current = setTimeout(() => setTop(null), 150);
+  };
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
   useEffect(() => {
     if (top === null) return;
-    const dismiss = (event: KeyboardEvent) => { if (event.key === "Escape") setTop(null); };
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTop(null);
+    };
     document.addEventListener("keydown", dismiss);
     return () => document.removeEventListener("keydown", dismiss);
   }, [top]);
@@ -60,12 +72,30 @@ function StaffRailHint({ label, children }: { label: string; children: React.Rea
     setTop(Math.min(window.innerHeight - 24, Math.max(24, rect.top + rect.height / 2)));
   };
   const root = top === null ? null : document.querySelector(".dashboard-staff");
-  return <div className="staff-navigation-hint" onPointerEnter={(event) => show(event.currentTarget)}
-    onPointerLeave={close} onFocusCapture={(event) => show(event.currentTarget)} onBlurCapture={close}>
-    {children}
-    {root && createPortal(<span role="tooltip" className="staff-navigation-tooltip" style={{ top: top! }}
-      onPointerEnter={cancel} onPointerLeave={close}>{label}</span>, root)}
-  </div>;
+  return (
+    <div
+      className="staff-navigation-hint"
+      onPointerEnter={(event) => show(event.currentTarget)}
+      onPointerLeave={close}
+      onFocusCapture={(event) => show(event.currentTarget)}
+      onBlurCapture={close}
+    >
+      {children}
+      {root &&
+        createPortal(
+          <span
+            role="tooltip"
+            className="staff-navigation-tooltip"
+            style={{ top: top! }}
+            onPointerEnter={cancel}
+            onPointerLeave={close}
+          >
+            {label}
+          </span>,
+          root,
+        )}
+    </div>
+  );
 }
 
 const desktopItemClassName = (active: boolean) =>
@@ -119,13 +149,13 @@ function StaffDesktopSidebar() {
         <>
           <div className="staff-navigation-account px-3 pb-4 pt-2 border-t border-dashboard-sidebar-border">
             <StaffRailHint label="Account">
-            <PortalAccountMenu
-              profileHref="/staff/profile"
-              variant="dropdown"
-              fallbackName="Staff"
-              darkTrigger
-              className="staff-sidebar-account"
-            />
+              <PortalAccountMenu
+                profileHref="/staff/profile"
+                variant="dropdown"
+                fallbackName="Staff"
+                darkTrigger
+                className="staff-sidebar-account"
+              />
             </StaffRailHint>
           </div>
         </>
@@ -139,18 +169,21 @@ function StaffDesktopSidebar() {
           labelClassName="staff-navigation-group-label text-[11px] font-bold tracking-[0.14em] text-dashboard-sidebar-heading"
         >
           {group.items.map(({ href, icon: Icon, label, i18nKey }) => (
-            <StaffRailHint key={href} label={i18nKey && t(i18nKey) !== i18nKey ? t(i18nKey) : label ?? ""}>
-            <PortalSidebarItem
+            <StaffRailHint
               key={href}
-              href={href}
-              icon={Icon}
-              label={label}
-              i18nKey={i18nKey}
-              active={isActive(href)}
-              className={desktopItemClassName(isActive(href))}
-              iconClassName={desktopIconClassName(isActive(href))}
-              style={isActive(href) ? PORTAL_SIDEBAR_ACTIVE_SHADOW : undefined}
-            />
+              label={i18nKey && t(i18nKey) !== i18nKey ? t(i18nKey) : (label ?? "")}
+            >
+              <PortalSidebarItem
+                key={href}
+                href={href}
+                icon={Icon}
+                label={label}
+                i18nKey={i18nKey}
+                active={isActive(href)}
+                className={desktopItemClassName(isActive(href))}
+                iconClassName={desktopIconClassName(isActive(href))}
+                style={isActive(href) ? PORTAL_SIDEBAR_ACTIVE_SHADOW : undefined}
+              />
             </StaffRailHint>
           ))}
         </PortalSidebarGroup>
@@ -168,7 +201,17 @@ function StaffMobileChrome() {
       navAriaLabel="Staff navigation"
       drawerId="staff-mobile-drawer"
       operationalDrawer
-      operationalDrawerBrand={<PortalFirmBrand href="/staff" subtitle={t("nav.staff_portal")} className="min-w-0 gap-2" logoClassName="size-9" fallbackClassName="size-9" nameClassName="text-base text-dashboard-sidebar-foreground" subtitleClassName="text-[10px] text-dashboard-sidebar-muted" />}
+      operationalDrawerBrand={
+        <PortalFirmBrand
+          href="/staff"
+          subtitle={t("nav.staff_portal")}
+          className="min-w-0 gap-2"
+          logoClassName="size-9"
+          fallbackClassName="size-9"
+          nameClassName="text-base text-dashboard-sidebar-foreground"
+          subtitleClassName="text-[10px] text-dashboard-sidebar-muted"
+        />
+      }
       items={NAV}
       isActive={isActive}
       brand={

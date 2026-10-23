@@ -72,7 +72,11 @@ const subscribeHydration = () => () => {};
 export default function SignInPage() {
   const navigate = useNavigate();
   const settings = usePublicCmsSettings();
-  const publicSettings = useSyncExternalStore(subscribeHydration, () => settings, () => undefined);
+  const publicSettings = useSyncExternalStore(
+    subscribeHydration,
+    () => settings,
+    () => undefined,
+  );
   const branding = pickPortalBranding(publicSettings);
   const firmName = branding.firmName || "Law Firm";
   const brandSubtitle = String(publicSettings?.tagline || "Legal practice platform");

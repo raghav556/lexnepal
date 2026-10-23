@@ -1,6 +1,10 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { STAFF_NAV, isStaffNavActive, getOperationalSearchPages } from "@/lib/operational-navigation";
+import {
+  STAFF_NAV,
+  isStaffNavActive,
+  getOperationalSearchPages,
+} from "@/lib/operational-navigation";
 
 const expected = [
   ["Overview", ["/staff", "/staff/tasks"]],
@@ -33,7 +37,9 @@ describe("Staff responsive navigation source", () => {
     ["/staff/messages", "/staff/messages"],
     ["/staff/hr", "/staff/hr"],
   ])("selects only the owning module for %s", (pathname, owner) => {
-    expect(STAFF_NAV.filter((p) => p.href && isStaffNavActive(pathname, p.href)).map((p) => p.href)).toEqual([owner]);
+    expect(
+      STAFF_NAV.filter((p) => p.href && isStaffNavActive(pathname, p.href)).map((p) => p.href),
+    ).toEqual([owner]);
   });
   it("does not select a prefix lookalike or a primary module for profile", () => {
     expect(isStaffNavActive("/staff/cases-archive", "/staff/cases")).toBe(false);

@@ -50,17 +50,11 @@ export function StaffPagedCollection({
       <Footer className="staff-collection-pagination" data-collection={label}>
         <p role="status" aria-live="polite" aria-atomic="true">
           {label}: {start}–{end} of {items.length}
-          {!incremental &&
-            ` · Page ${paging.currentPage} of ${paging.totalPages}`}
+          {!incremental && ` · Page ${paging.currentPage} of ${paging.totalPages}`}
         </p>
         {incremental ? (
           paging.currentPage < paging.totalPages && (
-            <DashboardButton
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={paging.nextPage}
-            >
+            <DashboardButton type="button" size="sm" variant="outline" onClick={paging.nextPage}>
               Show more {label.toLowerCase()} ({items.length - end} remaining)
             </DashboardButton>
           )

@@ -62,10 +62,18 @@ describe("staff content markdown round-trip", () => {
   });
 
   it("names the empty field and accepts formatted Markdown as content", () => {
-    expect(missingContentFields({ title: "Title", excerpt: "Excerpt", content: "**bold**" })).toEqual([]);
-    expect(missingContentFields({ title: "", excerpt: "Excerpt", content: "Body" })).toEqual(["Title"]);
-    expect(missingContentFields({ title: "Title", excerpt: " ", content: "Body" })).toEqual(["Excerpt"]);
-    expect(missingContentFields({ title: "Title", excerpt: "Excerpt", content: "   " })).toEqual(["Content"]);
+    expect(
+      missingContentFields({ title: "Title", excerpt: "Excerpt", content: "**bold**" }),
+    ).toEqual([]);
+    expect(missingContentFields({ title: "", excerpt: "Excerpt", content: "Body" })).toEqual([
+      "Title",
+    ]);
+    expect(missingContentFields({ title: "Title", excerpt: " ", content: "Body" })).toEqual([
+      "Excerpt",
+    ]);
+    expect(missingContentFields({ title: "Title", excerpt: "Excerpt", content: "   " })).toEqual([
+      "Content",
+    ]);
     expect(contentRequiredMessage(["Content"])).toBe("Content is required.");
     expect(contentRequiredMessage(["Title", "Excerpt", "Content"])).toBe(
       "Title, Excerpt, and Content are required.",

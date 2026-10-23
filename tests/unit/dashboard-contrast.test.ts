@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import postcss from "postcss";
 import { compositeCssColor } from "../support/css-color";
 
 type Theme = Record<string, string>;
@@ -126,9 +127,21 @@ describe("dashboard WCAG contrast contract", () => {
           expect(css).toContain(
             "/* Accessible Client control boundaries; decorative CUI-02 borders stay frozen. */",
           );
-          expect(css).toMatch(
-            /\.dashboard-theme\.dashboard-client :is\(input[^{}]+\{\s*border-color: var\(--dashboard-focus\);/,
+          const expected =
+            '.dashboard-theme.dashboard-client :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"]):not(:disabled):not([readonly])';
+          const rules: import("postcss").Rule[] = [];
+          postcss.parse(css).walkRules((rule) => {
+            rules.push(rule);
+          });
+          const boundary = rules.find(
+            (rule) => rule.selector.replace(/\s/g, "") === expected.replace(/\s/g, ""),
           );
+          expect(boundary?.selector).toMatch(/^\.dashboard-theme\.dashboard-client\s+:is\(/);
+          expect(
+            boundary?.nodes
+              .filter((node) => node.type === "decl")
+              .map((node) => [node.prop, node.value]),
+          ).toEqual([["border-color", "var(--dashboard-focus)"]]);
           expectPair(theme, "dashboard-focus", "dashboard-panel", 3);
         } else {
           expectPair(theme, "dashboard-border", "dashboard-panel", 3);

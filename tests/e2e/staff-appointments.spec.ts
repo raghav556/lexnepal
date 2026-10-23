@@ -16,7 +16,9 @@ test.describe("Staff appointments", () => {
     await signInStaff(page);
 
     await page.goto("/staff/appointments");
-    await expect(page.getByRole("heading", { name: "Appointments", exact: true }).first()).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: "Appointments", exact: true }).first(),
+    ).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText(/Asia\/Kathmandu|assigned to you/i).first()).toBeVisible();

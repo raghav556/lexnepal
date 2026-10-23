@@ -77,7 +77,8 @@ export default function StaffContentWritePage() {
   });
   const newsQuery = useQuery({
     queryKey: [...queryKeys.cms.all, "staff", "news"],
-    queryFn: ({ signal }) => apiClient.request<NewsItem[]>("/api/v1/staff/content/news", { signal }),
+    queryFn: ({ signal }) =>
+      apiClient.request<NewsItem[]>("/api/v1/staff/content/news", { signal }),
     enabled: kind === "news",
   });
 
@@ -97,7 +98,10 @@ export default function StaffContentWritePage() {
   const contentEditorRef = useRef<StaffContentMarkdownEditorHandle>(null);
 
   const activeForm = kind === "news" ? newsForm : blogForm;
-  const dirty = hydratedKey !== null && hydratedKey === (recordId ?? "new") && snapshot(activeForm) !== baseline;
+  const dirty =
+    hydratedKey !== null &&
+    hydratedKey === (recordId ?? "new") &&
+    snapshot(activeForm) !== baseline;
   const readOnly = Boolean(record && !staffCanEditContent(record.status));
   const loadingRecord =
     Boolean(recordId) && (kind === "blog" ? postsQuery.isLoading : newsQuery.isLoading);
@@ -139,7 +143,8 @@ export default function StaffContentWritePage() {
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("#")) return;
       const next = new URL(href, window.location.href);
-      if (next.pathname === window.location.pathname && next.search === window.location.search) return;
+      if (next.pathname === window.location.pathname && next.search === window.location.search)
+        return;
       if (!window.confirm("You have unsaved changes. Discard them?")) {
         event.preventDefault();
         event.stopPropagation();
@@ -160,8 +165,10 @@ export default function StaffContentWritePage() {
     router.push(libraryHref(kind));
   };
 
-  const updateBlog = (patch: Partial<BlogForm>) => setBlogForm((current) => ({ ...current, ...patch }));
-  const updateNews = (patch: Partial<NewsForm>) => setNewsForm((current) => ({ ...current, ...patch }));
+  const updateBlog = (patch: Partial<BlogForm>) =>
+    setBlogForm((current) => ({ ...current, ...patch }));
+  const updateNews = (patch: Partial<NewsForm>) =>
+    setNewsForm((current) => ({ ...current, ...patch }));
 
   const save = async (submitAfter: boolean) => {
     if (!reportBsDateValidity()) return;
@@ -171,7 +178,10 @@ export default function StaffContentWritePage() {
       kind === "blog"
         ? { ...blogForm, content: liveContent ?? blogForm.content }
         : { ...newsForm, content: liveContent ?? newsForm.content };
-    if (liveContent != null && liveContent !== (kind === "blog" ? blogForm.content : newsForm.content)) {
+    if (
+      liveContent != null &&
+      liveContent !== (kind === "blog" ? blogForm.content : newsForm.content)
+    ) {
       if (kind === "blog") updateBlog({ content: liveContent });
       else updateNews({ content: liveContent });
     }
@@ -198,7 +208,9 @@ export default function StaffContentWritePage() {
           id = created._id;
         }
         if (submitAfter && id) {
-          await apiClient.request(`/api/v1/staff/content/blog-posts/${id}/submit`, { method: "POST" });
+          await apiClient.request(`/api/v1/staff/content/blog-posts/${id}/submit`, {
+            method: "POST",
+          });
         }
       } else {
         const payload = buildNewsPayload(form as NewsForm);
@@ -222,7 +234,13 @@ export default function StaffContentWritePage() {
       hydrated.current = id ?? hydrated.current;
       if (id) setHydratedKey(id);
       await queryClient.invalidateQueries({ queryKey: queryKeys.cms.all });
-      toast.success(submitAfter ? "Submitted for review." : id && id === recordId ? "Draft saved." : "Draft created.");
+      toast.success(
+        submitAfter
+          ? "Submitted for review."
+          : id && id === recordId
+            ? "Draft saved."
+            : "Draft created.",
+      );
       if (id && id !== recordId) {
         router.replace(`/staff/content/write?type=${kind}&id=${id}`);
       }
@@ -245,7 +263,9 @@ export default function StaffContentWritePage() {
   if (!kind) {
     return (
       <section className="staff-content-writer">
-        <p className="staff-content-message">Choose a blog article or news item from Content Studio.</p>
+        <p className="staff-content-message">
+          Choose a blog article or news item from Content Studio.
+        </p>
         <Button type="button" variant="outline" onClick={() => router.push("/staff/content")}>
           Back to library
         </Button>
@@ -305,7 +325,9 @@ export default function StaffContentWritePage() {
           </p>
         </div>
         {readOnly && record ? (
-          <StatusBadge tone={contentStatusTone(record.status)}>{contentStatusLabel(record.status)}</StatusBadge>
+          <StatusBadge tone={contentStatusTone(record.status)}>
+            {contentStatusLabel(record.status)}
+          </StatusBadge>
         ) : null}
       </header>
 
@@ -322,173 +344,187 @@ export default function StaffContentWritePage() {
         }}
       >
         <fieldset className="staff-content-writer-layout" disabled={readOnly}>
-        <div className="staff-content-canvas-card">
-          <Label htmlFor="content-title">Title</Label>
-          <Input
-            id="content-title"
-            value={activeForm.title}
-            maxLength={300}
-            required
-            disabled={readOnly}
-            placeholder={kind === "blog" ? "Enter a compelling article title…" : "Enter the news headline…"}
-            onChange={(event) => {
-              const title = event.target.value;
-              if (kind === "blog") {
-                updateBlog({ title, slug: slugTouched ? blogForm.slug : slugifyBlogTitle(title) });
-              } else {
-                updateNews({ title, slug: slugTouched ? newsForm.slug : slugifyNewsTitle(title) });
+          <div className="staff-content-canvas-card">
+            <Label htmlFor="content-title">Title</Label>
+            <Input
+              id="content-title"
+              value={activeForm.title}
+              maxLength={300}
+              required
+              disabled={readOnly}
+              placeholder={
+                kind === "blog" ? "Enter a compelling article title…" : "Enter the news headline…"
               }
-            }}
-          />
-          <Label htmlFor="content-slug">Slug</Label>
-          <Input
-            id="content-slug"
-            value={activeForm.slug}
-            disabled={readOnly}
-            placeholder="url-slug"
-            onChange={(event) => {
-              setSlugTouched(true);
-              if (kind === "blog") updateBlog({ slug: event.target.value });
-              else updateNews({ slug: event.target.value });
-            }}
-          />
-          {kind === "blog" ? (
-            <>
-              <Label>Category</Label>
-              <Select
-                value={blogForm.category}
-                onValueChange={(category) => updateBlog({ category })}
-                disabled={readOnly}
-              >
-                <SelectTrigger aria-label="Category">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...new Set([blogForm.category, ...BLOG_CATEGORIES])].filter(Boolean).map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          ) : (
-            <div className="staff-content-field-row">
-              <div>
-                <Label>Type</Label>
+              onChange={(event) => {
+                const title = event.target.value;
+                if (kind === "blog") {
+                  updateBlog({
+                    title,
+                    slug: slugTouched ? blogForm.slug : slugifyBlogTitle(title),
+                  });
+                } else {
+                  updateNews({
+                    title,
+                    slug: slugTouched ? newsForm.slug : slugifyNewsTitle(title),
+                  });
+                }
+              }}
+            />
+            <Label htmlFor="content-slug">Slug</Label>
+            <Input
+              id="content-slug"
+              value={activeForm.slug}
+              disabled={readOnly}
+              placeholder="url-slug"
+              onChange={(event) => {
+                setSlugTouched(true);
+                if (kind === "blog") updateBlog({ slug: event.target.value });
+                else updateNews({ slug: event.target.value });
+              }}
+            />
+            {kind === "blog" ? (
+              <>
+                <Label>Category</Label>
                 <Select
-                  value={newsForm.type}
-                  onValueChange={(type) => updateNews({ type: type as NewsType })}
+                  value={blogForm.category}
+                  onValueChange={(category) => updateBlog({ category })}
                   disabled={readOnly}
                 >
-                  <SelectTrigger aria-label="News type">
+                  <SelectTrigger aria-label="Category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {NEWS_TYPES.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
+                    {[...new Set([blogForm.category, ...BLOG_CATEGORIES])]
+                      .filter(Boolean)
+                      .map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+              </>
+            ) : (
+              <div className="staff-content-field-row">
+                <div>
+                  <Label>Type</Label>
+                  <Select
+                    value={newsForm.type}
+                    onValueChange={(type) => updateNews({ type: type as NewsType })}
+                    disabled={readOnly}
+                  >
+                    <SelectTrigger aria-label="News type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NEWS_TYPES.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="locale-date-full-row">
+                  <Label htmlFor="content-date">Date</Label>
+                  <BsDateField
+                    id="content-date"
+                    required
+                    value={newsForm.date}
+                    disabled={readOnly}
+                    onDateChange={(event) => updateNews({ date: event })}
+                  />
+                </div>
               </div>
-              <div className="locale-date-full-row">
-                <Label htmlFor="content-date">Date</Label>
-                <BsDateField
-                  id="content-date"
-                  required
-                  value={newsForm.date}
-                  disabled={readOnly}
-                  onDateChange={(event) => updateNews({ date: event })}
-                />
-              </div>
-            </div>
-          )}
-          <Label htmlFor="content-body">Content</Label>
-          <StaffContentMarkdownEditor
-            ref={contentEditorRef}
-            id="content-body"
-            value={activeForm.content}
-            disabled={readOnly}
-            onChange={(content) =>
-              kind === "blog" ? updateBlog({ content }) : updateNews({ content })
-            }
-          />
-          <p className="staff-content-hint">Saved as Markdown</p>
-        </div>
-
-        <aside className="staff-content-aside" aria-label="Content details">
-          {kind === "blog" ? (
-            <CmsImageUploadField
-              label="Cover image"
-              purpose="blog_cover"
-              value={blogForm.coverImageUrl || undefined}
-              onChange={(url) => updateBlog({ coverImageUrl: url ?? "" })}
-              hint="JPEG or PNG. Save the draft after uploading."
-              previewClassName="mt-2 h-36 w-full rounded-md border object-cover"
+            )}
+            <Label htmlFor="content-body">Content</Label>
+            <StaffContentMarkdownEditor
+              ref={contentEditorRef}
+              id="content-body"
+              value={activeForm.content}
+              disabled={readOnly}
+              onChange={(content) =>
+                kind === "blog" ? updateBlog({ content }) : updateNews({ content })
+              }
             />
-          ) : (
-            <CmsImageUploadField
-              label="Image"
-              purpose="news_image"
-              value={newsForm.imageUrl || undefined}
-              onChange={(url) => updateNews({ imageUrl: url ?? "" })}
-              hint="JPEG or PNG. Save the draft after uploading."
-              previewClassName="mt-2 h-36 w-full rounded-md border object-cover"
-            />
-          )}
-          <Label htmlFor="content-excerpt">Excerpt</Label>
-          <Textarea
-            id="content-excerpt"
-            value={activeForm.excerpt}
-            maxLength={1000}
-            disabled={readOnly}
-            required
-            placeholder="Write a short summary…"
-            onChange={(event) =>
-              kind === "blog"
-                ? updateBlog({ excerpt: event.target.value })
-                : updateNews({ excerpt: event.target.value })
-            }
-          />
-          <p className="staff-content-hint">{activeForm.excerpt.length}/1000 characters</p>
-          <Label htmlFor="content-seo-title">SEO title</Label>
-          <Input
-            id="content-seo-title"
-            value={activeForm.seoTitle}
-            maxLength={300}
-            disabled={readOnly}
-            placeholder={kind === "blog" ? "Leave blank to use the article title" : "Leave blank to use the headline"}
-            onChange={(event) => {
-              const seoTitle = event.target.value;
-              if (kind === "blog") updateBlog({ seoTitle });
-              else updateNews({ seoTitle });
-            }}
-          />
-          <Label htmlFor="content-seo-description">SEO description</Label>
-          <Textarea
-            id="content-seo-description"
-            value={activeForm.seoDescription}
-            maxLength={1000}
-            disabled={readOnly}
-            placeholder="Enter a meta description…"
-            onChange={(event) => {
-              const seoDescription = event.target.value;
-              if (kind === "blog") updateBlog({ seoDescription });
-              else updateNews({ seoDescription });
-            }}
-          />
-          <p className="staff-content-hint">{activeForm.seoDescription.length}/1000 characters</p>
-          <div className="staff-content-status-note">
-            <strong>{readOnly ? contentStatusLabel(record?.status || "draft") : "Draft"}</strong>
-            <span>
-              {readOnly
-                ? "Staff cannot publish or approve this item."
-                : "Save a draft, or submit it for administrator review."}
-            </span>
+            <p className="staff-content-hint">Saved as Markdown</p>
           </div>
-        </aside>
+
+          <aside className="staff-content-aside" aria-label="Content details">
+            {kind === "blog" ? (
+              <CmsImageUploadField
+                label="Cover image"
+                purpose="blog_cover"
+                value={blogForm.coverImageUrl || undefined}
+                onChange={(url) => updateBlog({ coverImageUrl: url ?? "" })}
+                hint="JPEG or PNG. Save the draft after uploading."
+                previewClassName="mt-2 h-36 w-full rounded-md border object-cover"
+              />
+            ) : (
+              <CmsImageUploadField
+                label="Image"
+                purpose="news_image"
+                value={newsForm.imageUrl || undefined}
+                onChange={(url) => updateNews({ imageUrl: url ?? "" })}
+                hint="JPEG or PNG. Save the draft after uploading."
+                previewClassName="mt-2 h-36 w-full rounded-md border object-cover"
+              />
+            )}
+            <Label htmlFor="content-excerpt">Excerpt</Label>
+            <Textarea
+              id="content-excerpt"
+              value={activeForm.excerpt}
+              maxLength={1000}
+              disabled={readOnly}
+              required
+              placeholder="Write a short summary…"
+              onChange={(event) =>
+                kind === "blog"
+                  ? updateBlog({ excerpt: event.target.value })
+                  : updateNews({ excerpt: event.target.value })
+              }
+            />
+            <p className="staff-content-hint">{activeForm.excerpt.length}/1000 characters</p>
+            <Label htmlFor="content-seo-title">SEO title</Label>
+            <Input
+              id="content-seo-title"
+              value={activeForm.seoTitle}
+              maxLength={300}
+              disabled={readOnly}
+              placeholder={
+                kind === "blog"
+                  ? "Leave blank to use the article title"
+                  : "Leave blank to use the headline"
+              }
+              onChange={(event) => {
+                const seoTitle = event.target.value;
+                if (kind === "blog") updateBlog({ seoTitle });
+                else updateNews({ seoTitle });
+              }}
+            />
+            <Label htmlFor="content-seo-description">SEO description</Label>
+            <Textarea
+              id="content-seo-description"
+              value={activeForm.seoDescription}
+              maxLength={1000}
+              disabled={readOnly}
+              placeholder="Enter a meta description…"
+              onChange={(event) => {
+                const seoDescription = event.target.value;
+                if (kind === "blog") updateBlog({ seoDescription });
+                else updateNews({ seoDescription });
+              }}
+            />
+            <p className="staff-content-hint">{activeForm.seoDescription.length}/1000 characters</p>
+            <div className="staff-content-status-note">
+              <strong>{readOnly ? contentStatusLabel(record?.status || "draft") : "Draft"}</strong>
+              <span>
+                {readOnly
+                  ? "Staff cannot publish or approve this item."
+                  : "Save a draft, or submit it for administrator review."}
+              </span>
+            </div>
+          </aside>
         </fieldset>
         <div className="staff-content-writer-actions staff-content-writer-actions-foot">
           <Button type="button" variant="outline" onClick={leave} disabled={saving}>

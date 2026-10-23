@@ -8,5 +8,8 @@ export function collectionBefore(createdAt: AnyColumn, id: AnyColumn, cursor?: s
   if (!cursor) return undefined;
   const before = decodeMessageCursor(cursor);
   if (!before) throw new AppError("VALIDATION_FAILED", "Invalid continuation cursor", 422);
-  return or(lt(createdAt, before.createdAt), and(eq(createdAt, before.createdAt), lt(id, before.id)));
+  return or(
+    lt(createdAt, before.createdAt),
+    and(eq(createdAt, before.createdAt), lt(id, before.id)),
+  );
 }

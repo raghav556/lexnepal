@@ -23,11 +23,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "Supreme Court",
-      "सर्वोच्च अदालत",
-      "नेपालको सर्वोच्च अदालत"
-    ],
+    "aliases": ["Supreme Court", "सर्वोच्च अदालत", "नेपालको सर्वोच्च अदालत"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/web/",
@@ -60,9 +56,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Biratnagar"
-    ],
+    "aliases": ["High Court — Biratnagar"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/biratnagarhc",
@@ -96,9 +90,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Dipayal"
-    ],
+    "aliases": ["High Court — Dipayal"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dipayalhc",
@@ -132,9 +124,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Janakpur"
-    ],
+    "aliases": ["High Court — Janakpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/janakpurhc",
@@ -168,9 +158,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Patan"
-    ],
+    "aliases": ["High Court — Patan"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/patanhc",
@@ -204,9 +192,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Pokhara"
-    ],
+    "aliases": ["High Court — Pokhara"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/pokharahc",
@@ -240,9 +226,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Surkhet"
-    ],
+    "aliases": ["High Court — Surkhet"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/surkhethc",
@@ -276,9 +260,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "High Court — Tulsipur"
-    ],
+    "aliases": ["High Court — Tulsipur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/tulsipurhc",
@@ -287,10 +269,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Dang Deukhuri",
-      "Dang"
-    ]
+    "searchAliases": ["Dang Deukhuri", "Dang"]
   },
   {
     "id": "high-dhankuta",
@@ -494,10 +473,7 @@
       "https://ec.nsonepal.gov.np/html/admin_code.html"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Birgunj Metropolitan City",
-      "बिरगन्ज महानगरपालिका"
-    ]
+    "searchAliases": ["Birgunj Metropolitan City", "बिरगन्ज महानगरपालिका"]
   },
   {
     "id": "high-hetauda",
@@ -523,9 +499,7 @@
     },
     "parentId": "high-patan",
     "temporary": false,
-    "aliases": [
-      "High Court — Hetauda"
-    ],
+    "aliases": ["High Court — Hetauda"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/hetaudahc",
@@ -534,9 +508,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Makawanpur"
-    ]
+    "searchAliases": ["Makawanpur"]
   },
   {
     "id": "high-baglung",
@@ -596,9 +568,7 @@
     },
     "parentId": "high-surkhet",
     "temporary": false,
-    "aliases": [
-      "High court surkhet jumla bench"
-    ],
+    "aliases": ["High court surkhet jumla bench"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/jumlahc",
@@ -632,9 +602,7 @@
     },
     "parentId": "high-tulsipur",
     "temporary": false,
-    "aliases": [
-      "High Court — Butwal"
-    ],
+    "aliases": ["High Court — Butwal"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/butwalhc",
@@ -668,9 +636,7 @@
     },
     "parentId": "high-tulsipur",
     "temporary": false,
-    "aliases": [
-      "Hig Court Tulsipur, Nepalgunj Bench"
-    ],
+    "aliases": ["Hig Court Tulsipur, Nepalgunj Bench"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/nepalgunjhc",
@@ -678,10 +644,7 @@
       "https://ec.nsonepal.gov.np/html/admin_code.html"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Nepalganj Sub-Metropolitan City",
-      "नेपालगञ्ज उपमहानगरपालिका"
-    ]
+    "searchAliases": ["Nepalganj Sub-Metropolitan City", "नेपालगञ्ज उपमहानगरपालिका"]
   },
   {
     "id": "district-baitadi",
@@ -719,10 +682,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Baitadi District Court Gadi Baitadi",
-      "Baitadi"
-    ],
+    "searchAliases": ["Baitadi District Court Gadi Baitadi", "Baitadi"],
     "submissionValue": "Baitadi District Court Gadi Baitadi",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -750,10 +710,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "दाङ जिल्ला अदालत",
-      "District Court — Dang Deukhuri"
-    ],
+    "aliases": ["दाङ जिल्ला अदालत", "District Court — Dang Deukhuri"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dangdc",
@@ -762,10 +719,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Dang Deukhuri",
-      "Dang"
-    ]
+    "searchAliases": ["Dang Deukhuri", "Dang"]
   },
   {
     "id": "district-achham",
@@ -791,10 +745,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Aacham",
-      "District Court Aacham"
-    ],
+    "aliases": ["District Court — Aacham", "District Court Aacham"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/achhamdc",
@@ -803,10 +754,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Aacham",
-      "Achham"
-    ],
+    "searchAliases": ["Aacham", "Achham"],
     "submissionValue": "District Court Aacham",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -834,10 +782,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Argakhanchi",
-      "District Court Argakhanchi"
-    ],
+    "aliases": ["District Court — Argakhanchi", "District Court Argakhanchi"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/argakhanchidc",
@@ -846,10 +791,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Argakhanchi",
-      "Arghakhanchi"
-    ],
+    "searchAliases": ["Argakhanchi", "Arghakhanchi"],
     "submissionValue": "District Court Argakhanchi",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -877,9 +819,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Baglung"
-    ],
+    "aliases": ["District Court — Baglung"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/baglungdc",
@@ -913,10 +853,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "बझाँङ जिल्ला अदालत",
-      "District Court — Bajhang"
-    ],
+    "aliases": ["बझाँङ जिल्ला अदालत", "District Court — Bajhang"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/bajhangdc",
@@ -950,9 +887,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Bajura"
-    ],
+    "aliases": ["District Court — Bajura"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/bajuradc",
@@ -986,9 +921,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Banke"
-    ],
+    "aliases": ["District Court — Banke"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/bankedc",
@@ -1022,9 +955,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Bara"
-    ],
+    "aliases": ["District Court — Bara"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/baradc",
@@ -1058,9 +989,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Bardiya"
-    ],
+    "aliases": ["District Court — Bardiya"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/bardiyadc",
@@ -1094,10 +1023,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Bhaktpur",
-      "District Court Bhaktpur"
-    ],
+    "aliases": ["District Court — Bhaktpur", "District Court Bhaktpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/bhaktapurdc",
@@ -1106,10 +1032,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Bhaktpur",
-      "Bhaktapur"
-    ],
+    "searchAliases": ["Bhaktpur", "Bhaktapur"],
     "submissionValue": "District Court Bhaktpur",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -1137,9 +1060,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Bhojpur"
-    ],
+    "aliases": ["District Court — Bhojpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/bhojpurdc",
@@ -1173,9 +1094,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Chitwan"
-    ],
+    "aliases": ["District Court — Chitwan"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/chitwandc",
@@ -1184,9 +1103,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Chitawan"
-    ]
+    "searchAliases": ["Chitawan"]
   },
   {
     "id": "district-dadeldhura",
@@ -1212,9 +1129,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Dadeldhura"
-    ],
+    "aliases": ["District Court — Dadeldhura"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dadeldhuradc",
@@ -1248,9 +1163,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Dailekh"
-    ],
+    "aliases": ["District Court — Dailekh"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dailekhdc",
@@ -1284,9 +1197,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Darchula"
-    ],
+    "aliases": ["District Court — Darchula"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/darchuladc",
@@ -1320,11 +1231,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "धादिंङ जिल्ला अदालत",
-      "District Court — Dhadhing",
-      "District Court Dhadhing"
-    ],
+    "aliases": ["धादिंङ जिल्ला अदालत", "District Court — Dhadhing", "District Court Dhadhing"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dhadhingdc",
@@ -1333,10 +1240,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Dhadhing",
-      "Dhading"
-    ],
+    "searchAliases": ["Dhadhing", "Dhading"],
     "submissionValue": "District Court Dhadhing",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -1364,9 +1268,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Dhankuta"
-    ],
+    "aliases": ["District Court — Dhankuta"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dhankutadc",
@@ -1400,9 +1302,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Dhanusa"
-    ],
+    "aliases": ["District Court — Dhanusa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dhanusadc",
@@ -1436,9 +1336,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Dolakha"
-    ],
+    "aliases": ["District Court — Dolakha"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dolakhadc",
@@ -1472,9 +1370,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Dolpa"
-    ],
+    "aliases": ["District Court — Dolpa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dolpadc",
@@ -1508,9 +1404,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Doti"
-    ],
+    "aliases": ["District Court — Doti"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/dotidc",
@@ -1544,9 +1438,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Gorkha"
-    ],
+    "aliases": ["District Court — Gorkha"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/gorkhadc",
@@ -1580,9 +1472,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Humla"
-    ],
+    "aliases": ["District Court — Humla"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/humladc",
@@ -1616,10 +1506,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "इलाम जिल्ला अदालत",
-      "District Court — Ilam"
-    ],
+    "aliases": ["इलाम जिल्ला अदालत", "District Court — Ilam"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/ilamdc",
@@ -1653,9 +1540,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Jajarkot"
-    ],
+    "aliases": ["District Court — Jajarkot"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/jajarkotdc",
@@ -1689,9 +1574,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Jhapa"
-    ],
+    "aliases": ["District Court — Jhapa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/jhapadc",
@@ -1725,9 +1608,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Jumla"
-    ],
+    "aliases": ["District Court — Jumla"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/jumladc",
@@ -1761,9 +1642,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kailali"
-    ],
+    "aliases": ["District Court — Kailali"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kailalidc",
@@ -1797,9 +1676,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kalikot"
-    ],
+    "aliases": ["District Court — Kalikot"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kalikotdc",
@@ -1833,9 +1710,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kanchanpur"
-    ],
+    "aliases": ["District Court — Kanchanpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kanchanpurdc",
@@ -1869,9 +1744,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kapilbastu"
-    ],
+    "aliases": ["District Court — Kapilbastu"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kapilbastudc",
@@ -1905,9 +1778,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kaski"
-    ],
+    "aliases": ["District Court — Kaski"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kaskidc",
@@ -1941,9 +1812,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kavrepalanchowk"
-    ],
+    "aliases": ["District Court — Kavrepalanchowk"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kavrepalanchowkdc",
@@ -1952,9 +1821,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Kavrepalanchok"
-    ]
+    "searchAliases": ["Kavrepalanchok"]
   },
   {
     "id": "district-khotang",
@@ -1980,10 +1847,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "खोटाङ जिल्ला अदालत",
-      "District Court — Khotang"
-    ],
+    "aliases": ["खोटाङ जिल्ला अदालत", "District Court — Khotang"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/khotangdc",
@@ -2017,10 +1881,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "लमजुङ जिल्ला अदालत",
-      "District Court — Lamjung"
-    ],
+    "aliases": ["लमजुङ जिल्ला अदालत", "District Court — Lamjung"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/lamjungdc",
@@ -2054,9 +1915,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Mahottari"
-    ],
+    "aliases": ["District Court — Mahottari"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/mahottaridc",
@@ -2090,9 +1949,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Makwanpur"
-    ],
+    "aliases": ["District Court — Makwanpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/makwanpurdc",
@@ -2101,9 +1958,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Makawanpur"
-    ]
+    "searchAliases": ["Makawanpur"]
   },
   {
     "id": "district-manang",
@@ -2129,10 +1984,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "मनांङ जिल्ला अदालत",
-      "District Court — Manang"
-    ],
+    "aliases": ["मनांङ जिल्ला अदालत", "District Court — Manang"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/manangdc",
@@ -2166,10 +2018,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "मोरङ जिल्ला अदालत",
-      "District Court — Morang"
-    ],
+    "aliases": ["मोरङ जिल्ला अदालत", "District Court — Morang"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/morangdc",
@@ -2203,9 +2052,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Mugu"
-    ],
+    "aliases": ["District Court — Mugu"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/mugudc",
@@ -2239,10 +2086,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "मुस्तांङ जिल्ला अदालत",
-      "District Court — Mustang"
-    ],
+    "aliases": ["मुस्तांङ जिल्ला अदालत", "District Court — Mustang"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/mustangdc",
@@ -2276,9 +2120,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Myagdi"
-    ],
+    "aliases": ["District Court — Myagdi"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/myagdidc",
@@ -2312,9 +2154,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Nawalparasi"
-    ],
+    "aliases": ["District Court — Nawalparasi"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/nawalparasidc",
@@ -2323,9 +2163,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Nawalparasi West"
-    ]
+    "searchAliases": ["Nawalparasi West"]
   },
   {
     "id": "district-nuwakot",
@@ -2351,9 +2189,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Nuwakot"
-    ],
+    "aliases": ["District Court — Nuwakot"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/nuwakotdc",
@@ -2387,9 +2223,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Okhaldhunga"
-    ],
+    "aliases": ["District Court — Okhaldhunga"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/okhaldhungadc",
@@ -2423,9 +2257,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Palpa"
-    ],
+    "aliases": ["District Court — Palpa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/palpadc",
@@ -2459,9 +2291,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Panchthar"
-    ],
+    "aliases": ["District Court — Panchthar"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/panchthardc",
@@ -2495,9 +2325,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Parbat"
-    ],
+    "aliases": ["District Court — Parbat"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/parbatdc",
@@ -2531,9 +2359,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Pyuthan"
-    ],
+    "aliases": ["District Court — Pyuthan"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/pyuthandc",
@@ -2567,10 +2393,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — ramechap",
-      "District Court ramechap"
-    ],
+    "aliases": ["District Court — ramechap", "District Court ramechap"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/ramechapdc",
@@ -2579,10 +2402,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "ramechap",
-      "Ramechhap"
-    ],
+    "searchAliases": ["ramechap", "Ramechhap"],
     "submissionValue": "District Court ramechap",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -2610,9 +2430,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Rasuwa"
-    ],
+    "aliases": ["District Court — Rasuwa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/rasuwadc",
@@ -2646,9 +2464,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Rautahat"
-    ],
+    "aliases": ["District Court — Rautahat"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/rautahatdc",
@@ -2682,9 +2498,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Rolpa"
-    ],
+    "aliases": ["District Court — Rolpa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/rolpadc",
@@ -2718,9 +2532,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Rukum"
-    ],
+    "aliases": ["District Court — Rukum"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/rukumdc",
@@ -2729,9 +2541,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Rukum West"
-    ]
+    "searchAliases": ["Rukum West"]
   },
   {
     "id": "district-rupandehi",
@@ -2757,9 +2567,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Rupandehi"
-    ],
+    "aliases": ["District Court — Rupandehi"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/rupandehidc",
@@ -2793,9 +2601,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Salyan"
-    ],
+    "aliases": ["District Court — Salyan"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/salyandc",
@@ -2829,9 +2635,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Sankhuwasabha"
-    ],
+    "aliases": ["District Court — Sankhuwasabha"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/sankhuwasabhadc",
@@ -2865,9 +2669,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Saptari"
-    ],
+    "aliases": ["District Court — Saptari"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/saptaridc",
@@ -2901,9 +2703,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Sarlahi"
-    ],
+    "aliases": ["District Court — Sarlahi"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/sarlahidc",
@@ -2937,9 +2737,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Sindhuli"
-    ],
+    "aliases": ["District Court — Sindhuli"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/sindhulidc",
@@ -2973,9 +2771,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Sindhupalchowk"
-    ],
+    "aliases": ["District Court — Sindhupalchowk"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/sindhupalchowkdc",
@@ -2984,9 +2780,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Sindhupalchok"
-    ]
+    "searchAliases": ["Sindhupalchok"]
   },
   {
     "id": "district-siraha",
@@ -3012,9 +2806,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Siraha"
-    ],
+    "aliases": ["District Court — Siraha"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/sirahadc",
@@ -3048,9 +2840,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Solukhumbu"
-    ],
+    "aliases": ["District Court — Solukhumbu"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/solukhumbudc",
@@ -3084,9 +2874,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Sunsari"
-    ],
+    "aliases": ["District Court — Sunsari"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/sunsaridc",
@@ -3120,9 +2908,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Surkhet"
-    ],
+    "aliases": ["District Court — Surkhet"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/surkhetdc",
@@ -3156,11 +2942,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "स्याङजा जिल्ला अदालत",
-      "District Court — Syangjya",
-      "District Court Syangjya"
-    ],
+    "aliases": ["स्याङजा जिल्ला अदालत", "District Court — Syangjya", "District Court Syangjya"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/syangjyadc",
@@ -3169,10 +2951,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Syangjya",
-      "Syangja"
-    ],
+    "searchAliases": ["Syangjya", "Syangja"],
     "submissionValue": "District Court Syangjya",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -3200,10 +2979,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "तनहुँ जिल्ला अदालत",
-      "District Court — Tanahun"
-    ],
+    "aliases": ["तनहुँ जिल्ला अदालत", "District Court — Tanahun"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/tanahundc",
@@ -3212,9 +2988,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Tanahu"
-    ]
+    "searchAliases": ["Tanahu"]
   },
   {
     "id": "district-taplejung",
@@ -3240,10 +3014,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Taplejuung",
-      "District Court Taplejuung"
-    ],
+    "aliases": ["District Court — Taplejuung", "District Court Taplejuung"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/taplejungdc",
@@ -3252,10 +3023,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Taplejuung",
-      "Taplejung"
-    ],
+    "searchAliases": ["Taplejuung", "Taplejung"],
     "submissionValue": "District Court Taplejuung",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -3283,10 +3051,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Therathum",
-      "District Court Therathum"
-    ],
+    "aliases": ["District Court — Therathum", "District Court Therathum"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/therathumdc",
@@ -3295,10 +3060,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Therathum",
-      "Terhathum"
-    ],
+    "searchAliases": ["Therathum", "Terhathum"],
     "submissionValue": "District Court Therathum",
     "englishNameNote": "English display uses the CBS/NSO district spelling (Economic Census Atlas, printed p.19/PDF p.20) with the verified judiciary institution type. The original judiciary English variant is retained as an identity alias and unchanged submissionValue."
   },
@@ -3326,9 +3088,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Udayapur"
-    ],
+    "aliases": ["District Court — Udayapur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/udayapurdc",
@@ -3362,9 +3122,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Gulmi"
-    ],
+    "aliases": ["District Court — Gulmi"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/gulmidc",
@@ -3398,9 +3156,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Kathmandu"
-    ],
+    "aliases": ["District Court — Kathmandu"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/kathmandudc",
@@ -3434,9 +3190,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Lalitpur"
-    ],
+    "aliases": ["District Court — Lalitpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/lalitpurdc",
@@ -3470,9 +3224,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Nawalpur"
-    ],
+    "aliases": ["District Court — Nawalpur"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/nawalpurdc",
@@ -3481,9 +3233,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Nawalparasi East"
-    ]
+    "searchAliases": ["Nawalparasi East"]
   },
   {
     "id": "district-parsa",
@@ -3509,9 +3259,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "District Court — Parsa"
-    ],
+    "aliases": ["District Court — Parsa"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/parsadc",
@@ -3545,10 +3293,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "श्री रुकुमकोट जिल्ला अदालत",
-      "District Court — Rukumkot"
-    ],
+    "aliases": ["श्री रुकुमकोट जिल्ला अदालत", "District Court — Rukumkot"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/rukumkotdc",
@@ -3557,9 +3302,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Rukum East"
-    ]
+    "searchAliases": ["Rukum East"]
   },
   {
     "id": "administrative-nepal",
@@ -3628,10 +3371,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Bhaktpur",
-      "Bhaktapur"
-    ]
+    "searchAliases": ["Bhaktpur", "Bhaktapur"]
   },
   {
     "id": "consumer-nepal",
@@ -3700,10 +3440,7 @@
       "https://www.stat.go.jp/info/meetings/nepal/pdf/1-cover-contents.pdf"
     ],
     "checkedOn": "2026-10-22",
-    "searchAliases": [
-      "Bhaktpur",
-      "Bhaktapur"
-    ]
+    "searchAliases": ["Bhaktpur", "Bhaktapur"]
   },
   {
     "id": "military-special-nepal",
@@ -3765,9 +3502,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "बिशेष अदालत"
-    ],
+    "aliases": ["बिशेष अदालत"],
     "status": "operational",
     "sources": [
       "https://supremecourt.gov.np/court/specialcourt",
@@ -3801,9 +3536,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "ऋृण असुली पुनरावेदन न्यायाधिकरण"
-    ],
+    "aliases": ["ऋृण असुली पुनरावेदन न्यायाधिकरण"],
     "status": "operational",
     "sources": [
       "https://drat.gov.np/page/about_us",
@@ -3871,9 +3604,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "बैदेशिक रोजगार न्यायाधिकरण"
-    ],
+    "aliases": ["बैदेशिक रोजगार न्यायाधिकरण"],
     "status": "operational",
     "sources": [
       "https://fet.gov.np/",
@@ -3975,9 +3706,7 @@
     },
     "parentId": null,
     "temporary": false,
-    "aliases": [
-      "राजश्व न्यायाधिकरण काठमाडौं"
-    ],
+    "aliases": ["राजश्व न्यायाधिकरण काठमाडौं"],
     "status": "operational",
     "sources": [
       "https://revenuetribunal.gov.np/pages/view/about_us",

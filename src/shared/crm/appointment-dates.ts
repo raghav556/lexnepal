@@ -1,5 +1,11 @@
 /** Appointment calendar dates use Nepal Standard Time (Asia/Kathmandu). */
-import { NEPAL_TIMEZONE, calendarMonthLabel, formatDualDate, nepalDateOnly, type DateLanguage } from "@/lib/nepali-calendar";
+import {
+  NEPAL_TIMEZONE,
+  calendarMonthLabel,
+  formatDualDate,
+  nepalDateOnly,
+  type DateLanguage,
+} from "@/lib/nepali-calendar";
 export const APPOINTMENT_TIMEZONE: "Asia/Kathmandu" = NEPAL_TIMEZONE;
 
 /** Today's firm calendar date as YYYY-MM-DD. */
@@ -22,7 +28,11 @@ export function formatAppointmentDate(
   language: DateLanguage = "en",
 ): string {
   if (options && Object.hasOwn(options, "day") && options.day === undefined && options.month) {
-    try { return calendarMonthLabel(dateIso, language); } catch { return formatDualDate(dateIso, language); }
+    try {
+      return calendarMonthLabel(dateIso, language);
+    } catch {
+      return formatDualDate(dateIso, language);
+    }
   }
   return formatDualDate(dateIso, language);
 }

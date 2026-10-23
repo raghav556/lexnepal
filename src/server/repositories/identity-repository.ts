@@ -411,7 +411,13 @@ export class MySqlIdentityRepository {
 
   async listAudit(
     firmId: string,
-    filters: { userId?: string; resource?: string; action?: string; limit: number; cursor?: string },
+    filters: {
+      userId?: string;
+      resource?: string;
+      action?: string;
+      limit: number;
+      cursor?: string;
+    },
   ): Promise<AuditEventDto[]> {
     const rows = await this.database
       .select({ event: auditLog, actorName: users.name, actorRole: users.role })

@@ -35,12 +35,22 @@ export class DocumentService {
   async searchPage(principal: AuthPrincipal, filters: DocumentSearchInput) {
     return this.readPage(principal, filters, true);
   }
-  private async readPage(principal: AuthPrincipal, filters: DocumentListInput | DocumentSearchInput, search: boolean) {
+  private async readPage(
+    principal: AuthPrincipal,
+    filters: DocumentListInput | DocumentSearchInput,
+    search: boolean,
+  ) {
     const limit = filters.limit ?? 50;
     const rows = await this.retrieve(principal, filters, search, limit + 1, filters.cursor);
-    return collectionPage(rows, limit, row => ({ createdAt: row.createdAt!, id: row._id }));
+    return collectionPage(rows, limit, (row) => ({ createdAt: row.createdAt!, id: row._id }));
   }
-  private async retrieve(principal: AuthPrincipal, filters: DocumentListInput | DocumentSearchInput, search: boolean, limit: number, cursor?: CollectionPageRequest["cursor"]) {
+  private async retrieve(
+    principal: AuthPrincipal,
+    filters: DocumentListInput | DocumentSearchInput,
+    search: boolean,
+    limit: number,
+    cursor?: CollectionPageRequest["cursor"],
+  ) {
     requireCapability(principal, "documents.read");
     const { firmId } = requireFirmContext(principal);
     if (filters.caseId) await requireCaseAccess(principal, filters.caseId, security);
@@ -48,13 +58,31 @@ export class DocumentService {
     if (principal.user.role === "client") {
       const client = await security.getClientByUser(principal.user.id);
       if (!client || client.firmId !== firmId) return [];
-      clientScope = { clientUserId: principal.user.id, caseIds: await security.listCaseIdsForClient(firmId, client.id) };
+      clientScope = {
+        clientUserId: principal.user.id,
+        caseIds: await security.listCaseIdsForClient(firmId, client.id),
+      };
     }
-    if (search) return DocumentRepository.searchDocuments(firmId, filters as DocumentSearchInput, clientScope, limit, cursor);
+    if (search)
+      return DocumentRepository.searchDocuments(
+        firmId,
+        filters as DocumentSearchInput,
+        clientScope,
+        limit,
+        cursor,
+      );
     const list = filters as DocumentListInput;
-    return DocumentRepository.listDocuments(firmId, {
-      caseId: list.caseId, isTemplate: list.isTemplate, inTrash: list.inTrash ?? false, ...clientScope,
-    }, limit, cursor);
+    return DocumentRepository.listDocuments(
+      firmId,
+      {
+        caseId: list.caseId,
+        isTemplate: list.isTemplate,
+        inTrash: list.inTrash ?? false,
+        ...clientScope,
+      },
+      limit,
+      cursor,
+    );
   }
 
   async recent(principal: AuthPrincipal, limit: number) {

@@ -98,8 +98,13 @@ export function useDocuments(filters: ListDocumentsInput | "skip" = {}): Documen
 export function useDocumentsQuery(filters: ListDocumentsInput | "skip" = {}) {
   const activeFilters = filters === "skip" ? {} : filters;
   return useCollectionQuery<DocumentDto>({
-    queryKey: queryKeys.documents.list(activeFilters), path: "/api/v1/documents",
-    query: { caseId: activeFilters.caseId, isTemplate: activeFilters.isTemplate, inTrash: activeFilters.inTrash },
+    queryKey: queryKeys.documents.list(activeFilters),
+    path: "/api/v1/documents",
+    query: {
+      caseId: activeFilters.caseId,
+      isTemplate: activeFilters.isTemplate,
+      inTrash: activeFilters.inTrash,
+    },
     enabled: filters !== "skip",
   });
 }
@@ -144,8 +149,12 @@ export function useDocumentSearch(filters: SearchDocumentsInput | null): Documen
   return useDocumentSearchQuery(filters).data;
 }
 export function useDocumentSearchQuery(filters: SearchDocumentsInput | null) {
-  return useCollectionQuery<DocumentDto>({ queryKey: queryKeys.documents.search(filters), path: "/api/v1/documents/search",
-    query: filters ? { ...filters } : {}, enabled: filters !== null });
+  return useCollectionQuery<DocumentDto>({
+    queryKey: queryKeys.documents.search(filters),
+    path: "/api/v1/documents/search",
+    query: filters ? { ...filters } : {},
+    enabled: filters !== null,
+  });
 }
 
 export function useRecentDocuments(limit: number): DocumentDto[] | undefined {
@@ -153,10 +162,15 @@ export function useRecentDocuments(limit: number): DocumentDto[] | undefined {
   const next = useTanstackQuery({
     queryKey: [...queryKeys.documents.recent(limit), "scope", scope],
     queryFn: ({ signal }) =>
-      apiClient.request<DocumentDto[]>("/api/v1/documents/recent", { query: { limit }, signal, deduplicationKey: requestScope }),
+      apiClient.request<DocumentDto[]>("/api/v1/documents/recent", {
+        query: { limit },
+        signal,
+        deduplicationKey: requestScope,
+      }),
     enabled,
   });
-  const denied = next.error instanceof ApiClientError && [401, 403, 404].includes(next.error.status);
+  const denied =
+    next.error instanceof ApiClientError && [401, 403, 404].includes(next.error.status);
   return enabled && !denied ? next.data : undefined;
 }
 

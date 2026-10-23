@@ -160,9 +160,15 @@ export default function StaffDocumentsPage() {
   }>({ query: "" });
   const [viewMode, setViewMode] = useState<"list" | "folders" | "trash">("list");
 
-  const searchQuery = useDocumentSearchQuery(searchFilters.query ? { ...searchFilters, inTrash: viewMode === "trash" } : null);
+  const searchQuery = useDocumentSearchQuery(
+    searchFilters.query ? { ...searchFilters, inTrash: viewMode === "trash" } : null,
+  );
   const searchResults = searchQuery.data || [];
-  const listQuery = useDocumentsQuery({ caseId: searchFilters.query ? undefined : searchFilters.caseId, isTemplate: false, inTrash: viewMode === "trash" });
+  const listQuery = useDocumentsQuery({
+    caseId: searchFilters.query ? undefined : searchFilters.caseId,
+    isTemplate: false,
+    inTrash: viewMode === "trash",
+  });
   const listResults = listQuery.data || [];
   const documentQuery = searchFilters.query ? searchQuery : listQuery;
   const cases = useCases({}) || [];
@@ -206,6 +212,7 @@ export default function StaffDocumentsPage() {
   const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [envelopeDoc, setEnvelopeDoc] = useState<any>(null);
+  const [createdEnvelopeId, setCreatedEnvelopeId] = useState<string | null>(null);
   const [retentionDoc, setRetentionDoc] = useState<any>(null);
   const [retentionPolicy, setRetentionPolicy] = useState("");
   const [retentionBusy, setRetentionBusy] = useState(false);
@@ -345,6 +352,7 @@ export default function StaffDocumentsPage() {
   };
 
   const openEnvelopeModal = (doc: any) => {
+    setCreatedEnvelopeId(null);
     setEnvelopeDoc(doc);
     setEnvelopeTitle(doc.title);
     setEnvelopeRouting("sequential");
@@ -360,16 +368,22 @@ export default function StaffDocumentsPage() {
     if (selectedSignerIds.length === 0) return toast.error("Select at least one signer.");
     setIsEnvelopeBusy(true);
     try {
-      const { envelopeId } = await createEnvelope({
-        documentId: envelopeDoc._id,
-        title: envelopeTitle.trim() || envelopeDoc.title,
-        routing: envelopeRouting,
-        expiresAt: envelopeExpires ? new Date(envelopeExpires).toISOString() : undefined,
-        recipientUserIds: selectedSignerIds as any,
-      });
+      let envelopeId = createdEnvelopeId;
+      if (!envelopeId) {
+        const created = await createEnvelope({
+          documentId: envelopeDoc._id,
+          title: envelopeTitle.trim() || envelopeDoc.title,
+          routing: envelopeRouting,
+          expiresAt: envelopeExpires ? new Date(envelopeExpires).toISOString() : undefined,
+          recipientUserIds: selectedSignerIds as any,
+        });
+        envelopeId = created.envelopeId;
+        setCreatedEnvelopeId(envelopeId);
+      }
       await sendEnvelope({ envelopeId });
       toast.success("Envelope sent to signers.");
       setEnvelopeDoc(null);
+      setCreatedEnvelopeId(null);
     } catch (err: any) {
       toast.error(err?.message || "Could not create envelope.");
     } finally {
@@ -505,7 +519,9 @@ export default function StaffDocumentsPage() {
   const saveRetentionPolicy = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!retentionDoc || !retentionPolicy.trim() || retentionLock.current) return;
-    retentionLock.current = true; setRetentionBusy(true); setRetentionError("");
+    retentionLock.current = true;
+    setRetentionBusy(true);
+    setRetentionError("");
     try {
       await setRetention({
         documentId: retentionDoc._id,
@@ -516,7 +532,8 @@ export default function StaffDocumentsPage() {
     } catch (err: any) {
       setRetentionError(err?.message || "Could not set retention.");
     } finally {
-      retentionLock.current = false; setRetentionBusy(false);
+      retentionLock.current = false;
+      setRetentionBusy(false);
     }
   };
 
@@ -542,7 +559,11 @@ export default function StaffDocumentsPage() {
   const closeDetails = useCallback(() => setActiveSidebarDoc(null), []);
   const closeUpload = useCallback(() => setIsUploadOpen(false), []);
   const closePreview = useCallback(() => setIsPreviewOpen(false), []);
-  const closeEnvelope = useCallback(() => setEnvelopeDoc(null), []);
+  const closeEnvelope = useCallback(() => {
+    if (isEnvelopeBusy) return;
+    setEnvelopeDoc(null);
+    setCreatedEnvelopeId(null);
+  }, [isEnvelopeBusy]);
 
   // Wide screens show details as an inline panel; narrower screens use an accessible dialog.
   const [isWide, setIsWide] = useState(false);
@@ -575,7 +596,8 @@ export default function StaffDocumentsPage() {
   const onLegalHold = docList.filter((d) => Boolean(d.isOnLegalHold)).length;
   const pendingScan = docList.filter((d) => d.uploadStatus && d.uploadStatus !== "clean").length;
   const showLibrary = !(viewMode === "folders" && (!selectedFolder || !selectedSubFolder));
-  const pageSelected = paginatedItems.length > 0 && paginatedItems.every((doc: any) => selectedDocs.includes(doc._id));
+  const pageSelected =
+    paginatedItems.length > 0 && paginatedItems.every((doc: any) => selectedDocs.includes(doc._id));
   const detailsDialogOpen =
     !isWide &&
     !!activeSidebarDoc &&
@@ -756,49 +778,65 @@ export default function StaffDocumentsPage() {
             ) : versionsQuery.isError ? (
               <div role="alert">
                 <p className="staff-docs-note">Version history could not be loaded.</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => void versionsQuery.refetch()}>Retry versions</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void versionsQuery.refetch()}
+                >
+                  Retry versions
+                </Button>
               </div>
             ) : versionHistory.length === 0 ? (
               <p className="staff-docs-note">No version history is available.</p>
             ) : (
               <ol className="staff-docs-version-list">
-                {<StaffPagedCollection label="Document versions" resetKey={String(activeSidebarDoc?._id ?? "")} pageSize={6} footerAs="li">{versionHistory.map((version: any, index) => {
-                  const isCurrent = index === 0;
-                  const createdAt =
-                    version.createdAt || new Date(version._creationTime).toISOString();
-                  return (
-                    <li key={version._id} data-current={isCurrent ? "true" : undefined}>
-                      <div className="min-w-0">
-                        <p className="staff-docs-version-name">
-                          Version {version.version} {isCurrent ? "(Current)" : ""}
-                        </p>
-                        <p className="staff-docs-note">
-                          <DualDateDisplay isoDate={createdAt} />
-                        </p>
-                      </div>
-                      {!isCurrent && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleVersionRestore(version)}
-                          disabled={
-                            restoringVersionId !== null ||
-                            version.isDeleted ||
-                            version.uploadStatus !== "clean"
-                          }
-                          aria-label={`Restore version ${version.version}`}
-                        >
-                          {restoringVersionId === version._id ? (
-                            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                          ) : (
-                            "Restore"
+                {
+                  <StaffPagedCollection
+                    label="Document versions"
+                    resetKey={String(activeSidebarDoc?._id ?? "")}
+                    pageSize={6}
+                    footerAs="li"
+                  >
+                    {versionHistory.map((version: any, index) => {
+                      const isCurrent = index === 0;
+                      const createdAt =
+                        version.createdAt || new Date(version._creationTime).toISOString();
+                      return (
+                        <li key={version._id} data-current={isCurrent ? "true" : undefined}>
+                          <div className="min-w-0">
+                            <p className="staff-docs-version-name">
+                              Version {version.version} {isCurrent ? "(Current)" : ""}
+                            </p>
+                            <p className="staff-docs-note">
+                              <DualDateDisplay isoDate={createdAt} />
+                            </p>
+                          </div>
+                          {!isCurrent && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVersionRestore(version)}
+                              disabled={
+                                restoringVersionId !== null ||
+                                version.isDeleted ||
+                                version.uploadStatus !== "clean"
+                              }
+                              aria-label={`Restore version ${version.version}`}
+                            >
+                              {restoringVersionId === version._id ? (
+                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                              ) : (
+                                "Restore"
+                              )}
+                            </Button>
                           )}
-                        </Button>
-                      )}
-                    </li>
-                  );
-                })}</StaffPagedCollection>}
+                        </li>
+                      );
+                    })}
+                  </StaffPagedCollection>
+                }
               </ol>
             )}
           </section>
@@ -881,7 +919,7 @@ export default function StaffDocumentsPage() {
       >
         <div className="staff-docs-main">
           <CollectionContinuation query={documentQuery} noun="documents" />
-            <div className="staff-docs-toolbar" role="region" aria-label="Document views and filters">
+          <div className="staff-docs-toolbar" role="region" aria-label="Document views and filters">
             <div className="staff-docs-toolbar-row">
               <div role="group" aria-label="Document view" className="staff-docs-view-toggle">
                 <button
@@ -1073,8 +1111,20 @@ export default function StaffDocumentsPage() {
               />
             ) : paginatedItems.length === 0 ? (
               <EmptyState
-                title={documentQuery.isError && documentQuery.data === undefined ? "Documents unavailable" : isLoading ? "Loading documents…" : "Vault is empty"}
-                description={documentQuery.isError && documentQuery.data === undefined ? "Retry the document request above." : isLoading ? "Retrieving documents." : "No loaded documents match your search or filter."}
+                title={
+                  documentQuery.isError && documentQuery.data === undefined
+                    ? "Documents unavailable"
+                    : isLoading
+                      ? "Loading documents…"
+                      : "Vault is empty"
+                }
+                description={
+                  documentQuery.isError && documentQuery.data === undefined
+                    ? "Retry the document request above."
+                    : isLoading
+                      ? "Retrieving documents."
+                      : "No loaded documents match your search or filter."
+                }
                 icon={FileText}
                 className="py-12"
               />
@@ -1172,9 +1222,7 @@ export default function StaffDocumentsPage() {
                           </div>
                           <div className="staff-docs-cell staff-docs-cell-date">
                             <span className="staff-docs-label">Modified</span>
-                            <DualDateDisplay
-                              isoDate={new Date(doc._creationTime).toISOString()}
-                            />
+                            <DualDateDisplay isoDate={new Date(doc._creationTime).toISOString()} />
                           </div>
                           <div className="staff-docs-cell staff-docs-cell-size">
                             <span className="staff-docs-label">Size</span>
@@ -1274,28 +1322,70 @@ export default function StaffDocumentsPage() {
         ) : null}
       </div>
 
-      <Dialog open={!!retentionDoc} onOpenChange={(open: boolean) => { if (!open && !retentionBusy) setRetentionDoc(null); }}>
-        <DialogContent className="staff-docs-dialog max-w-lg" aria-labelledby="staff-docs-retention-title" aria-describedby="staff-docs-retention-description">
+      <Dialog
+        open={!!retentionDoc}
+        onOpenChange={(open: boolean) => {
+          if (!open && !retentionBusy) setRetentionDoc(null);
+        }}
+      >
+        <DialogContent
+          className="staff-docs-dialog max-w-lg"
+          aria-labelledby="staff-docs-retention-title"
+          aria-describedby="staff-docs-retention-description"
+        >
           <DialogHeader>
             <DialogTitle id="staff-docs-retention-title">Document retention</DialogTitle>
-            <DialogDescription id="staff-docs-retention-description">This form updates the policy name. The recorded retention date is read-only.</DialogDescription>
+            <DialogDescription id="staff-docs-retention-description">
+              This form updates the policy name. The recorded retention date is read-only.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={saveRetentionPolicy} className="staff-docs-dialog-body">
             <div className="space-y-1">
               <label htmlFor="staff-docs-retention-policy">Policy name</label>
-              <Input id="staff-docs-retention-policy" value={retentionPolicy} onChange={event => setRetentionPolicy(event.target.value)} required maxLength={200} disabled={retentionBusy} />
+              <Input
+                id="staff-docs-retention-policy"
+                value={retentionPolicy}
+                onChange={(event) => setRetentionPolicy(event.target.value)}
+                required
+                maxLength={200}
+                disabled={retentionBusy}
+              />
             </div>
             <div className="space-y-1">
               <label htmlFor="staff-docs-retention-date">Recorded retention date (read-only)</label>
-              {retentionDoc?.retentionUntil ? <>
-                <BsDateField id="staff-docs-retention-date" value={retentionDoc.retentionUntil} readOnly onDateChange={() => {}} />
-                <p className="text-xs text-muted-foreground">{formatNepalTimestamp(retentionDoc.retentionUntil, language)}</p>
-              </> : <p className="text-sm text-muted-foreground">No retention date was returned.</p>}
+              {retentionDoc?.retentionUntil ? (
+                <>
+                  <BsDateField
+                    id="staff-docs-retention-date"
+                    value={retentionDoc.retentionUntil}
+                    readOnly
+                    onDateChange={() => {}}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formatNepalTimestamp(retentionDoc.retentionUntil, language)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No retention date was returned.</p>
+              )}
             </div>
-            {retentionError ? <p role="alert" className="text-sm text-destructive">{retentionError}</p> : null}
+            {retentionError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {retentionError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" disabled={retentionBusy} onClick={() => setRetentionDoc(null)}>Cancel</Button>
-              <Button type="submit" disabled={retentionBusy}>{retentionBusy ? "Saving…" : "Save policy"}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={retentionBusy}
+                onClick={() => setRetentionDoc(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={retentionBusy}>
+                {retentionBusy ? "Saving…" : "Save policy"}
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -1494,8 +1584,14 @@ export default function StaffDocumentsPage() {
 
             <div className="staff-docs-field">
               <label htmlFor="staff-docs-envelope-title-input">Envelope Title</label>
+              {createdEnvelopeId && (
+                <p className="staff-docs-note" role="status">
+                  Draft created. Retrying sends this same envelope.
+                </p>
+              )}
               <Input
                 id="staff-docs-envelope-title-input"
+                disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
                 value={envelopeTitle}
                 onChange={(e) => setEnvelopeTitle(e.target.value)}
               />
@@ -1506,6 +1602,7 @@ export default function StaffDocumentsPage() {
                 <label htmlFor="staff-docs-envelope-routing">Routing Rule</label>
                 <Select
                   value={envelopeRouting}
+                  disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
                   onValueChange={(v) => setEnvelopeRouting(v as "sequential" | "parallel")}
                 >
                   <SelectTrigger id="staff-docs-envelope-routing">
@@ -1521,13 +1618,17 @@ export default function StaffDocumentsPage() {
                 <label htmlFor="staff-docs-envelope-expires">Expiration Date</label>
                 <BsDateField
                   id="staff-docs-envelope-expires"
+                  disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
                   value={envelopeExpires}
                   onDateChange={(e) => setEnvelopeExpires(e)}
                 />
               </div>
             </div>
 
-            <fieldset className="staff-docs-signers">
+            <fieldset
+              className="staff-docs-signers"
+              disabled={isEnvelopeBusy || Boolean(createdEnvelopeId)}
+            >
               <legend>Select Signers (Order matters for Sequential)</legend>
               {signers.length === 0 && <p className="staff-docs-note">No portal clients found.</p>}
               {signers.map((s: any) => {
@@ -1577,7 +1678,12 @@ export default function StaffDocumentsPage() {
             </fieldset>
           </div>
           <div className="staff-docs-dialog-actions">
-            <Button type="button" variant="outline" onClick={closeEnvelope}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeEnvelope}
+              disabled={isEnvelopeBusy}
+            >
               Cancel
             </Button>
             <Button
@@ -1590,7 +1696,7 @@ export default function StaffDocumentsPage() {
               ) : (
                 <Send className="size-4" aria-hidden />
               )}
-              Send Envelope
+              {createdEnvelopeId ? "Retry Send Envelope" : "Send Envelope"}
             </Button>
           </div>
         </DialogContent>

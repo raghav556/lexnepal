@@ -1,5 +1,7 @@
 // Match the application locale provider added by Session17E; assertions are unchanged.
-vi.mock("@/lib/i18n-context", () => ({ useI18n: () => ({ language: "en", t: (key: string) => key }) }));
+vi.mock("@/lib/i18n-context", () => ({
+  useI18n: () => ({ language: "en", t: (key: string) => key }),
+}));
 /* eslint-disable @typescript-eslint/no-explicit-any -- deterministic component mocks */
 import React from "react";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";

@@ -4,7 +4,15 @@ import { useI18n } from "@/lib/i18n-context";
 import { toNepaliDigits } from "@/lib/nepali-calendar";
 
 import { useRef } from "react";
-import { calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, supportsBsConversion, canShiftCalendarMonth } from "@/lib/nepali-calendar";
+import {
+  calendarMonthBounds,
+  calendarMonthLabel,
+  calendarDayLabel,
+  calendarDateLabel,
+  calendarWeekdays,
+  supportsBsConversion,
+  canShiftCalendarMonth,
+} from "@/lib/nepali-calendar";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardButton, DashboardSection } from "@/components/dashboard";
 import { DEFAULT_APPOINTMENT_SLOTS } from "@/shared/crm/appointment-slots";
@@ -98,9 +106,7 @@ export function StaffAppointmentCalendar({
             <ChevronRight size={16} />
           </DashboardButton>
         </div>
-        <strong aria-live="polite">
-          {calendarMonthLabel(date, language)}
-        </strong>
+        <strong aria-live="polite">{calendarMonthLabel(date, language)}</strong>
         <div className="staff-appointments-segments" role="group" aria-label="Calendar view">
           {(["day", "week", "month"] as const).map((mode) => (
             <button
@@ -109,7 +115,9 @@ export function StaffAppointmentCalendar({
               aria-pressed={mode === view}
               onClick={() => onView(mode)}
             >
-              {language === "ne" ? { day: "दिन", week: "हप्ता", month: "महिना" }[mode] : mode[0].toUpperCase() + mode.slice(1)}
+              {language === "ne"
+                ? { day: "दिन", week: "हप्ता", month: "महिना" }[mode]
+                : mode[0].toUpperCase() + mode.slice(1)}
             </button>
           ))}
         </div>
@@ -117,9 +125,13 @@ export function StaffAppointmentCalendar({
       <div className="staff-appointments-calendar-caption">
         <CalendarDays size={15} aria-hidden />
         <span>
-          {view === "month" ? calendarMonthLabel(date, language) : view === "day"
-            ? calendarDateLabel(date, language)
-            : days.length ? `${calendarDateLabel(days[0], language)} – ${calendarDateLabel(days.at(-1)!, language)}` : calendarDateLabel(date, language)}
+          {view === "month"
+            ? calendarMonthLabel(date, language)
+            : view === "day"
+              ? calendarDateLabel(date, language)
+              : days.length
+                ? `${calendarDateLabel(days[0], language)} – ${calendarDateLabel(days.at(-1)!, language)}`
+                : calendarDateLabel(date, language)}
         </span>
       </div>
       <p className="staff-appointments-timezone">Asia/Kathmandu · start slots only</p>
@@ -175,12 +187,19 @@ export function StaffAppointmentCalendar({
                   aria-pressed={day === date}
                   aria-current={day === today ? "date" : undefined}
                   className={
-                    calendarMonthBounds(day, language).start !== calendarMonthBounds(date, language).start ? "staff-appointments-outside" : ""
+                    calendarMonthBounds(day, language).start !==
+                    calendarMonthBounds(date, language).start
+                      ? "staff-appointments-outside"
+                      : ""
                   }
                   disabled={language === "ne" && !supportsBsConversion(day)}
                   onClick={() => onDate(day)}
                 >
-                  <span className="staff-appointments-date-number">{supportsBsConversion(day) || language === "en" ? calendarDayLabel(day, language) : "—"}</span>
+                  <span className="staff-appointments-date-number">
+                    {supportsBsConversion(day) || language === "en"
+                      ? calendarDayLabel(day, language)
+                      : "—"}
+                  </span>
                   {count > 0 && (
                     <small>
                       {language === "ne" ? toNepaliDigits(count) : count}
@@ -195,7 +214,8 @@ export function StaffAppointmentCalendar({
             })}
           </div>
           <div className="staff-appointments-calendar-caption">
-            {calendarDateLabel(date, language)} · {daily.length} {language === "ne" ? "भेट" : "appointments"}
+            {calendarDateLabel(date, language)} · {daily.length}{" "}
+            {language === "ne" ? "भेट" : "appointments"}
           </div>
         </>
       )}
@@ -220,8 +240,7 @@ export function StaffAppointmentCalendar({
               return (
                 <section key={day} aria-label={calendarDateLabel(day, language)}>
                   <h3>
-                    {calendarDateLabel(day, language)}{" "}
-                    <span>· {appointments.length}</span>
+                    {calendarDateLabel(day, language)} <span>· {appointments.length}</span>
                   </h3>
                   {appointments.map(eventButton)}
                   {appointments.length === 0 && <p>No appointments</p>}

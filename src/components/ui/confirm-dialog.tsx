@@ -32,7 +32,7 @@ export function ConfirmDialog({
 }) {
   return (
     <Dialog open={Boolean(state)} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" aria-label={ariaLabel}>
+      <DialogContent className="sm:max-w-md" aria-label={ariaLabel ?? state?.title}>
         {state && (
           <>
             <DialogHeader>

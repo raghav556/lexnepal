@@ -26,7 +26,11 @@ const clientHydrationSnapshot = () => true;
 const serverHydrationSnapshot = () => false;
 
 export default function MfaEnrollmentPage() {
-  const hydrated = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
+  const hydrated = useSyncExternalStore(
+    subscribeHydration,
+    clientHydrationSnapshot,
+    serverHydrationSnapshot,
+  );
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const queryClient = useQueryClient();

@@ -82,7 +82,8 @@ async function runKpiAudit() {
         await prepareKpiRoute(role, `/${role}`, 1440, "light");
         const links = page.locator('main a:has([data-slot="metric-card"])');
         assert((await links.count()) >= 2);
-        const first = links.first(), second = links.nth(1);
+        const first = links.first(),
+          second = links.nth(1);
         const href = await first.getAttribute("href");
         await first.focus();
         await page.keyboard.press("Tab");
@@ -96,26 +97,42 @@ async function runKpiAudit() {
         assert(focus.visible);
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(origin + href);
-        results.push({ role, check: "metric keyboard order / focus / existing link activation", href, focus });
+        results.push({
+          role,
+          check: "metric keyboard order / focus / existing link activation",
+          href,
+          focus,
+        });
       }
       assert.equal(errors.length, 0);
       assert(writes.every((w) => w.intercepted && !w.unexpected));
     } finally {
-      fs.writeFileSync(out + "/interaction-evidence.json", JSON.stringify({ results, errors, writes, liveMutations: 0 }, null, 2));
+      fs.writeFileSync(
+        out + "/interaction-evidence.json",
+        JSON.stringify({ results, errors, writes, liveMutations: 0 }, null, 2),
+      );
       await browser.close();
     }
-    console.log(JSON.stringify({ keyboardChecks: results.length, errors: errors.length, interceptedWrites: writes.length }));
+    console.log(
+      JSON.stringify({
+        keyboardChecks: results.length,
+        errors: errors.length,
+        interceptedWrites: writes.length,
+      }),
+    );
     return;
   }
   const before = process.argv.includes("--before");
   const baselinePath = out + "/before-evidence.json";
   const baseline = before ? null : JSON.parse(fs.readFileSync(baselinePath, "utf8"));
-  if(!before && process.argv.includes('--resume')) {
-    const prior=JSON.parse(fs.readFileSync(out+'/evidence.json','utf8'));
-    assert.equal(prior.errors.length,0);
-    assert(prior.scans.every(s=>s.violations.length===0));
-    assert(prior.writes.every(w=>w.intercepted&&!w.unexpected));
-    results.push(...prior.results);scans.push(...prior.scans);writes.push(...prior.writes);
+  if (!before && process.argv.includes("--resume")) {
+    const prior = JSON.parse(fs.readFileSync(out + "/evidence.json", "utf8"));
+    assert.equal(prior.errors.length, 0);
+    assert(prior.scans.every((s) => s.violations.length === 0));
+    assert(prior.writes.every((w) => w.intercepted && !w.unexpected));
+    results.push(...prior.results);
+    scans.push(...prior.scans);
+    writes.push(...prior.writes);
   }
   const staff = [
     "/staff",
@@ -174,7 +191,12 @@ async function runKpiAudit() {
   try {
     for (const item of cases) {
       const { role, path, width, theme } = item;
-      if(results.some(r=>r.role===role&&r.path===path&&r.width===width&&r.theme===theme))continue;
+      if (
+        results.some(
+          (r) => r.role === role && r.path === path && r.width === width && r.theme === theme,
+        )
+      )
+        continue;
       await prepareKpiRoute(role, path, width, theme);
       const cards = await measureKpis(),
         g = await geometry();

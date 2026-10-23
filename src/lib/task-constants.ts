@@ -24,7 +24,11 @@ export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
 export function isTaskOverdue(task: { status?: string; dueDate?: string | null }): boolean {
   if (!task.dueDate) return false;
   if (task.status === "done" || task.status === "cancelled") return false;
-  try { return nepalDateOnly(task.dueDate) < nepalDateOnly(); } catch { return false; }
+  try {
+    return nepalDateOnly(task.dueDate) < nepalDateOnly();
+  } catch {
+    return false;
+  }
 }
 
 export function formatTaskDue(task: {

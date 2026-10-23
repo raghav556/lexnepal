@@ -238,9 +238,7 @@ export class DmRepository {
 
     const oldestRow = pageRows[pageRows.length - 1];
     const continueCursor =
-      hasMore && oldestRow
-        ? encodeMessageCursor(oldestRow.createdAt, oldestRow.id)
-        : "";
+      hasMore && oldestRow ? encodeMessageCursor(oldestRow.createdAt, oldestRow.id) : "";
 
     return { page, isDone: !hasMore, continueCursor };
   }

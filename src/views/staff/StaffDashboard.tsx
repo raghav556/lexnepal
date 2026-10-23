@@ -1,7 +1,12 @@
 "use client";
 import { useI18n } from "@/lib/i18n-context";
 import { formatCourtName } from "@/lib/nepal-courts";
-import { formatDualDate, formatOperationalDate, nepalDateOnly, bsDateParts } from "@/lib/nepali-calendar";
+import {
+  formatDualDate,
+  formatOperationalDate,
+  nepalDateOnly,
+  bsDateParts,
+} from "@/lib/nepali-calendar";
 
 import { useMemo } from "react";
 import {
@@ -195,7 +200,11 @@ export default function StaffDashboard() {
     const map = new Map<string, { dateBs: string; dateGregorian?: string | null; court: string }>();
     for (const hearing of scheduledHearings) {
       if (!map.has(hearing.caseId)) {
-        map.set(hearing.caseId, { dateBs: hearing.dateBs, dateGregorian: hearing.dateGregorian, court: hearing.court ?? "Court" });
+        map.set(hearing.caseId, {
+          dateBs: hearing.dateBs,
+          dateGregorian: hearing.dateGregorian,
+          court: hearing.court ?? "Court",
+        });
       }
     }
     return map;
@@ -578,8 +587,13 @@ export default function StaffDashboard() {
                           <DashboardTableCell data-label="Next hearing">
                             {nextHearing ? (
                               <span className="text-xs text-muted-foreground">
-                                {formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs)}
-                                <span className="block">{formatCourtName(nextHearing.court, language)}</span>
+                                {formatOperationalDate(
+                                  nextHearing.dateGregorian,
+                                  nextHearing.dateBs,
+                                )}
+                                <span className="block">
+                                  {formatCourtName(nextHearing.court, language)}
+                                </span>
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>

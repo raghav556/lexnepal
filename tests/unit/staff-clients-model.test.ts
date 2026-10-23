@@ -48,9 +48,30 @@ const clients: StaffClient[] = [
 ];
 
 const matters: StaffClientMatter[] = [
-  { _id: "m1", clientId: "c1", title: "Boundary dispute", caseNumber: "C-1", status: "active", practiceArea: "Property" },
-  { _id: "m2", clientId: "c1", title: "Closed sale", caseNumber: "C-2", status: "closed", practiceArea: "Property" },
-  { _id: "m3", clientId: "c2", title: "Lease", caseNumber: "C-3", status: "active", practiceArea: "Real estate" },
+  {
+    _id: "m1",
+    clientId: "c1",
+    title: "Boundary dispute",
+    caseNumber: "C-1",
+    status: "active",
+    practiceArea: "Property",
+  },
+  {
+    _id: "m2",
+    clientId: "c1",
+    title: "Closed sale",
+    caseNumber: "C-2",
+    status: "closed",
+    practiceArea: "Property",
+  },
+  {
+    _id: "m3",
+    clientId: "c2",
+    title: "Lease",
+    caseNumber: "C-3",
+    status: "active",
+    practiceArea: "Real estate",
+  },
 ];
 
 describe("staff clients list model", () => {
@@ -73,12 +94,20 @@ describe("staff clients list model", () => {
       portal: "all" as const,
       practiceArea: "all",
     };
-    expect(filterStaffClients(clients, matters, { ...base, query: "sunita" }).map((client) => client._id)).toEqual(["c1"]);
+    expect(
+      filterStaffClients(clients, matters, { ...base, query: "sunita" }).map(
+        (client) => client._id,
+      ),
+    ).toEqual(["c1"]);
     expect(filterStaffClients(clients, matters, { ...base, type: "corporate" })).toHaveLength(1);
     expect(filterStaffClients(clients, matters, { ...base, status: "inactive" })).toHaveLength(1);
     expect(filterStaffClients(clients, matters, { ...base, kyc: "submitted" })).toHaveLength(1);
     expect(filterStaffClients(clients, matters, { ...base, portal: "linked" })).toHaveLength(1);
-    expect(filterStaffClients(clients, matters, { ...base, practiceArea: "Property" }).map((client) => client._id)).toEqual(["c1"]);
+    expect(
+      filterStaffClients(clients, matters, { ...base, practiceArea: "Property" }).map(
+        (client) => client._id,
+      ),
+    ).toEqual(["c1"]);
   });
 
   it("builds initials and a CSV without billing, owners, activity, or account ids", () => {

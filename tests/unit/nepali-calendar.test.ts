@@ -2,9 +2,35 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it, vi } from "vitest";
-import { AD_MAX_DATE, AD_MIN_DATE, BS_START_YEAR, BS_END_YEAR, bsMonthLength, bsToGregorian, bsToIsoDate, bsToString, formatBs, formatDualDate, gregorianToBs, isIsoDateOnly, nepalDateOnly, parseBsString, bsMonthBounds, shiftBsMonth, canShiftBsMonth } from "@/lib/nepali-calendar";
+import {
+  AD_MAX_DATE,
+  AD_MIN_DATE,
+  BS_START_YEAR,
+  BS_END_YEAR,
+  bsMonthLength,
+  bsToGregorian,
+  bsToIsoDate,
+  bsToString,
+  formatBs,
+  formatDualDate,
+  gregorianToBs,
+  isIsoDateOnly,
+  nepalDateOnly,
+  parseBsString,
+  bsMonthBounds,
+  shiftBsMonth,
+  canShiftBsMonth,
+} from "@/lib/nepali-calendar";
 import { BsDateField } from "@/components/ui/bs-date-field";
-import { bsDateParts, formatOperationalDate, calendarMonthBounds, calendarDayLabel, calendarWeekdays, shiftCalendarMonth, calendarMonthLabel } from "@/lib/nepali-calendar";
+import {
+  bsDateParts,
+  formatOperationalDate,
+  calendarMonthBounds,
+  calendarDayLabel,
+  calendarWeekdays,
+  shiftCalendarMonth,
+  calendarMonthLabel,
+} from "@/lib/nepali-calendar";
 import { emptyNewsForm, newsFormFromItem } from "@/views/staff/staff-content-model";
 
 const localeFixture = vi.hoisted(() => ({ language: "en" as "en" | "ne" }));
@@ -14,15 +40,24 @@ vi.mock("@/lib/i18n-context", () => ({ useI18n: () => ({ language: localeFixture
 // https://ctu.nepalconsulate.gov.np/pages/holidays-of-the-conscience-7/
 // https://uk.nepalembassy.gov.np/pages/embassy-holidays/
 const fixtures: [string, string][] = [
-  ["2025-04-14", "2082-01-01"], ["2025-05-01", "2082-01-18"],
-  ["2025-05-12", "2082-01-29"], ["2025-05-29", "2082-02-15"],
-  ["2025-09-19", "2082-06-03"], ["2025-10-23", "2082-07-06"],
-  ["2026-01-15", "2082-10-01"], ["2026-03-02", "2082-11-18"],
-  ["2026-03-27", "2082-12-13"], ["2026-04-14", "2083-01-01"],
-  ["2026-05-01", "2083-01-18"], ["2026-05-25", "2083-02-11"],
-  ["2026-05-29", "2083-02-15"], ["2026-08-28", "2083-05-12"],
-  ["2026-10-20", "2083-07-03"], ["2026-11-10", "2083-07-24"],
-  ["2026-12-25", "2083-09-10"], ["2027-01-15", "2083-10-01"],
+  ["2025-04-14", "2082-01-01"],
+  ["2025-05-01", "2082-01-18"],
+  ["2025-05-12", "2082-01-29"],
+  ["2025-05-29", "2082-02-15"],
+  ["2025-09-19", "2082-06-03"],
+  ["2025-10-23", "2082-07-06"],
+  ["2026-01-15", "2082-10-01"],
+  ["2026-03-02", "2082-11-18"],
+  ["2026-03-27", "2082-12-13"],
+  ["2026-04-14", "2083-01-01"],
+  ["2026-05-01", "2083-01-18"],
+  ["2026-05-25", "2083-02-11"],
+  ["2026-05-29", "2083-02-15"],
+  ["2026-08-28", "2083-05-12"],
+  ["2026-10-20", "2083-07-03"],
+  ["2026-11-10", "2083-07-24"],
+  ["2026-12-25", "2083-09-10"],
+  ["2027-01-15", "2083-10-01"],
   ["2027-02-19", "2083-11-07"],
 ];
 
@@ -58,7 +93,17 @@ describe("Canonical B.S. conversion", () => {
     expect(() => gregorianToBs("2034-04-14")).toThrow(RangeError);
     expect(() => bsToGregorian({ year: 2091, month: 1, day: 1 })).toThrow(RangeError);
   });
-  it.each(["2082-00-01", "2082-13-01", "2082-01-00", "2082-01-32", "1999-12-01", "2091-01-01", "2082-1", "abc", "2082-01-01 extra"])("rejects invalid or unsupported B.S. %s", (value) => {
+  it.each([
+    "2082-00-01",
+    "2082-13-01",
+    "2082-01-00",
+    "2082-01-32",
+    "1999-12-01",
+    "2091-01-01",
+    "2082-1",
+    "abc",
+    "2082-01-01 extra",
+  ])("rejects invalid or unsupported B.S. %s", (value) => {
     expect(() => parseBsString(value)).toThrow(RangeError);
   });
   it("accepts Nepali digits without duplicating calendar logic", () => {
@@ -66,15 +111,30 @@ describe("Canonical B.S. conversion", () => {
     expect(formatBs(parseBsString("2082-01-01"), "ne")).toBe("१ बैशाख २०८२");
   });
   it("uses the same Nepali month and digit map for existing date badges", () => {
-    expect(bsDateParts("2026-10-20", "ne")).toEqual({ day: "३", month: "कार्तिक", year: "२०८३ वि.सं." });
+    expect(bsDateParts("2026-10-20", "ne")).toEqual({
+      day: "३",
+      month: "कार्तिक",
+      year: "२०८३ वि.सं.",
+    });
   });
   it("prefers authoritative A.D. over an inconsistent recorded B.S. label", () => {
-    expect(formatOperationalDate("2026-10-20", "2 Kartik 2083")).toBe("20 Oct 2026 A.D. (3 Kartik 2083 B.S.)");
-    expect(formatOperationalDate(null, "2 Kartik 2083")).toBe("2 Kartik 2083 B.S. (A.D. unavailable)");
+    expect(formatOperationalDate("2026-10-20", "2 Kartik 2083")).toBe(
+      "20 Oct 2026 A.D. (3 Kartik 2083 B.S.)",
+    );
+    expect(formatOperationalDate(null, "2 Kartik 2083")).toBe(
+      "2 Kartik 2083 B.S. (A.D. unavailable)",
+    );
   });
   it("rejects Gregorian rollover and accepts real leap days", () => {
     expect(isIsoDateOnly("2024-02-29")).toBe(true);
-    for (const value of ["2025-02-29", "2025-02-30", "2025-13-01", "2025-00-10", "2025-04-31", "2025-4-1"]) {
+    for (const value of [
+      "2025-02-29",
+      "2025-02-30",
+      "2025-13-01",
+      "2025-00-10",
+      "2025-04-31",
+      "2025-4-1",
+    ]) {
       expect(isIsoDateOnly(value)).toBe(false);
       expect(() => gregorianToBs(value)).toThrow(RangeError);
     }
@@ -90,8 +150,15 @@ describe("Canonical B.S. conversion", () => {
     expect(formatDualDate("2025-04-14")).toBe("14 Apr 2025 A.D. (1 Baisakh 2082 B.S.)");
   });
   it("is identical in Nepal, UTC, Sydney and DST-observing New York", () => {
-    const code = "import { bsToIsoDate, parseBsString, gregorianToBs, nepalDateOnly } from './src/lib/nepali-calendar.ts'; console.log(JSON.stringify([bsToIsoDate(parseBsString('2082-01-01')), gregorianToBs('2025-04-14'), nepalDateOnly('2025-04-13T18:15:00Z'),gregorianToBs('2024-02-29')]));";
-    const results = ["UTC", "Asia/Kathmandu", "Australia/Sydney", "America/New_York"].map((TZ) => execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", code], { cwd: process.cwd(), env: { ...process.env, TZ }, encoding: "utf8" }).trim());
+    const code =
+      "import { bsToIsoDate, parseBsString, gregorianToBs, nepalDateOnly } from './src/lib/nepali-calendar.ts'; console.log(JSON.stringify([bsToIsoDate(parseBsString('2082-01-01')), gregorianToBs('2025-04-14'), nepalDateOnly('2025-04-13T18:15:00Z'),gregorianToBs('2024-02-29')]));";
+    const results = ["UTC", "Asia/Kathmandu", "Australia/Sydney", "America/New_York"].map((TZ) =>
+      execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", code], {
+        cwd: process.cwd(),
+        env: { ...process.env, TZ },
+        encoding: "utf8",
+      }).trim(),
+    );
     expect(new Set(results).size).toBe(1);
   }, 20_000);
 });
@@ -110,7 +177,13 @@ describe("B.S.-first form interoperability", () => {
     expect(canShiftBsMonth(AD_MAX_DATE, 1)).toBe(false);
   });
   it("shows English A.D. entry with a separate B.S. conversion and Gregorian form data", () => {
-    const html = renderToStaticMarkup(React.createElement(BsDateField, { value: "2025-04-14", name: "filingDate", onDateChange() {} }));
+    const html = renderToStaticMarkup(
+      React.createElement(BsDateField, {
+        value: "2025-04-14",
+        name: "filingDate",
+        onDateChange() {},
+      }),
+    );
     expect(html).toContain('value="2082-01-01"');
     expect(html).toContain('type="hidden" name="filingDate" value="2025-04-14"');
     expect(html).toContain("B.S. conversion");
@@ -124,20 +197,32 @@ describe("B.S.-first form interoperability", () => {
     expect(html).not.toContain('type="date"');
   });
   it("retains unsupported historical A.D. values instead of inventing B.S.", () => {
-    const html = renderToStaticMarkup(React.createElement(BsDateField, { value: "1800-01-01", name: "historicalDate", onDateChange() {} }));
+    const html = renderToStaticMarkup(
+      React.createElement(BsDateField, {
+        value: "1800-01-01",
+        name: "historicalDate",
+        onDateChange() {},
+      }),
+    );
     expect(html).toContain("B.S. unavailable; existing A.D. date retained.");
     expect(html).toContain('value="1800-01-01"');
   });
   it("uses the Nepal civil day for an existing timestamp without rewriting its named value", () => {
     const instant = "2026-10-19T19:10:00.000Z";
-    const html = renderToStaticMarkup(React.createElement(BsDateField, { value: instant, name: "dueDate", onDateChange() {} }));
+    const html = renderToStaticMarkup(
+      React.createElement(BsDateField, { value: instant, name: "dueDate", onDateChange() {} }),
+    );
     expect(html).toContain('value="2026-10-20"');
     expect(html).toContain('type="hidden" name="dueDate" value="2026-10-19T19:10:00.000Z"');
     expect(html).toContain('value="2083-07-03"');
   });
   it("uses identical server markup for either preference before client hydration adopts Nepali", () => {
     const onDateChange = vi.fn();
-    const element = React.createElement(BsDateField, { value: "2026-10-20", name: "hearingDate", onDateChange });
+    const element = React.createElement(BsDateField, {
+      value: "2026-10-20",
+      name: "hearingDate",
+      onDateChange,
+    });
     const englishServerHtml = renderToStaticMarkup(element);
     localeFixture.language = "ne";
     try {
@@ -150,14 +235,22 @@ describe("B.S.-first form interoperability", () => {
       expect(html).toContain('data-date-conversion="true"');
       expect(html).toMatch(/readOnly=""/i);
       expect(onDateChange).not.toHaveBeenCalled();
-    } finally { localeFixture.language = "en"; }
+    } finally {
+      localeFixture.language = "en";
+    }
   });
 });
 
 describe("locale month policy over one verified converter", () => {
   it("uses Gregorian months/days in EN and genuine B.S. months/days in NE", () => {
-    expect(calendarMonthBounds("2026-10-20", "en")).toEqual({ start: "2026-10-01", end: "2026-10-31" });
-    expect(calendarMonthBounds("2026-10-20", "ne")).toEqual({ start: "2026-10-18", end: "2026-11-16" });
+    expect(calendarMonthBounds("2026-10-20", "en")).toEqual({
+      start: "2026-10-01",
+      end: "2026-10-31",
+    });
+    expect(calendarMonthBounds("2026-10-20", "ne")).toEqual({
+      start: "2026-10-18",
+      end: "2026-11-16",
+    });
     expect(calendarDayLabel("2026-10-20", "en")).toBe("20");
     expect(calendarDayLabel("2026-10-20", "ne")).toBe("३");
     expect(calendarMonthLabel("2026-10-20", "en")).toBe("October 2026");

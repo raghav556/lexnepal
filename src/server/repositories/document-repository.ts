@@ -17,11 +17,16 @@ import { collectionBefore } from "./collection-continuation";
 
 type ClientDocumentScope = { clientUserId: string; caseIds?: string[] };
 function clientDocumentVisibility(scope: ClientDocumentScope, includeSigner: boolean) {
-  return and(eq(documents.isTemplate, false), eq(documents.isPrivileged, false),
+  return and(
+    eq(documents.isTemplate, false),
+    eq(documents.isPrivileged, false),
     sql`${documents.confidentialityLevel} NOT IN ('internal', 'privileged')`,
-    or(eq(documents.uploadedBy, scope.clientUserId),
+    or(
+      eq(documents.uploadedBy, scope.clientUserId),
       includeSigner ? eq(documents.intendedSignerUserId, scope.clientUserId) : undefined,
-      scope.caseIds?.length ? inArray(documents.caseId, scope.caseIds) : undefined));
+      scope.caseIds?.length ? inArray(documents.caseId, scope.caseIds) : undefined,
+    ),
+  );
 }
 
 function toDocumentDto(
@@ -121,8 +126,16 @@ export class DocumentRepository {
       )`);
     }
 
-    if (filters.clientUserId) conditions.push(clientDocumentVisibility({ clientUserId: filters.clientUserId,
-      caseIds: filters.caseId ? [filters.caseId] : filters.caseIds }, true)!);
+    if (filters.clientUserId)
+      conditions.push(
+        clientDocumentVisibility(
+          {
+            clientUserId: filters.clientUserId,
+            caseIds: filters.caseId ? [filters.caseId] : filters.caseIds,
+          },
+          true,
+        )!,
+      );
     const before = collectionBefore(documents.createdAt, documents.id, cursor);
     if (before) conditions.push(before);
 
@@ -142,24 +155,32 @@ export class DocumentRepository {
     return this.listDocuments(firmId, { isTemplate: false, inTrash: false }, limit);
   }
 
-  static async searchDocuments(firmId: string, filters: DocumentSearchInput, clientScope?: ClientDocumentScope, limit = 100, cursor?: string) {
+  static async searchDocuments(
+    firmId: string,
+    filters: DocumentSearchInput,
+    clientScope?: ClientDocumentScope,
+    limit = 100,
+    cursor?: string,
+  ) {
     const db = getDatabase();
-    const conditions = [
-      eq(documents.firmId, firmId),
-      like(documents.title, `%${filters.query}%`),
-    ];
+    const conditions = [eq(documents.firmId, firmId), like(documents.title, `%${filters.query}%`)];
     if (filters.inTrash) conditions.push(sql`${documents.deletedAt} IS NOT NULL`);
-    else conditions.push(isNull(documents.deletedAt), sql`NOT EXISTS (
+    else
+      conditions.push(
+        isNull(documents.deletedAt),
+        sql`NOT EXISTS (
         SELECT 1 FROM documents AS child_version
         WHERE child_version.firm_id = ${firmId}
           AND child_version.parent_document_id = ${documents.id}
           AND child_version.deleted_at IS NULL
-      )`);
+      )`,
+      );
     if (filters.caseId) conditions.push(eq(documents.caseId, filters.caseId));
     if (filters.type) conditions.push(eq(documents.type, filters.type));
     if (filters.generalOnly) conditions.push(sql`${documents.caseId} IS NULL`);
     if (clientScope) conditions.push(clientDocumentVisibility(clientScope, false)!);
-    if (filters.tag) conditions.push(sql`EXISTS (
+    if (filters.tag)
+      conditions.push(sql`EXISTS (
       SELECT 1 FROM ${documentTagAssignments}
       INNER JOIN ${documentTags} ON ${documentTags.id} = ${documentTagAssignments.tagId}
         AND ${documentTags.firmId} = ${firmId}
@@ -535,8 +556,20 @@ export class DocumentRepository {
         tagName: documentTags.name,
       })
       .from(documentTagAssignments)
-      .innerJoin(documentTags, and(eq(documentTags.id, documentTagAssignments.tagId), eq(documentTags.firmId, documentTagAssignments.firmId)))
-      .where(and(inArray(documentTagAssignments.documentId, docIds), isNull(documentTagAssignments.deletedAt), isNull(documentTags.deletedAt)));
+      .innerJoin(
+        documentTags,
+        and(
+          eq(documentTags.id, documentTagAssignments.tagId),
+          eq(documentTags.firmId, documentTagAssignments.firmId),
+        ),
+      )
+      .where(
+        and(
+          inArray(documentTagAssignments.documentId, docIds),
+          isNull(documentTagAssignments.deletedAt),
+          isNull(documentTags.deletedAt),
+        ),
+      );
     return tagsAssignments.reduce(
       (acc, row) => {
         if (!acc[row.documentId]) acc[row.documentId] = [];

@@ -861,23 +861,32 @@ export default function AdminUsersPage() {
                 </h4>
                 <div className="grid gap-3">
                   <div className="grid gap-1">
-                    <Label className="text-xs">Name</Label>
+                    <Label htmlFor="admin-user-profile-name" className="text-xs">
+                      Name
+                    </Label>
                     <Input
+                      id="admin-user-profile-name"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label className="text-xs">Email</Label>
+                    <Label htmlFor="admin-user-profile-email" className="text-xs">
+                      Email
+                    </Label>
                     <Input
+                      id="admin-user-profile-email"
                       type="email"
                       value={editForm.email}
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label className="text-xs">Phone</Label>
+                    <Label htmlFor="admin-user-profile-phone" className="text-xs">
+                      Phone
+                    </Label>
                     <Input
+                      id="admin-user-profile-phone"
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                     />
@@ -885,8 +894,11 @@ export default function AdminUsersPage() {
                   {selectedUser.role !== "client" && selectedUser.role !== "admin" && (
                     <>
                       <div className="grid gap-1">
-                        <Label className="text-xs">Bar council number</Label>
+                        <Label htmlFor="admin-user-profile-bar-number" className="text-xs">
+                          Bar council number
+                        </Label>
                         <Input
+                          id="admin-user-profile-bar-number"
                           value={editForm.barCouncilNumber}
                           onChange={(e) =>
                             setEditForm({ ...editForm, barCouncilNumber: e.target.value })

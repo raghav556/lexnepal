@@ -1,5 +1,7 @@
 // Match the application locale provider added by Session17E; assertions are unchanged.
-vi.mock("@/lib/i18n-context", () => ({ useI18n: () => ({ language: "en", t: (key: string) => key }) }));
+vi.mock("@/lib/i18n-context", () => ({
+  useI18n: () => ({ language: "en", t: (key: string) => key }),
+}));
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -12,7 +14,11 @@ import { Pagination } from "@/components/ui/pagination";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
 import { TaskCalendarView } from "@/components/tasks/TaskCalendarView";
 
-vi.mock("@tanstack/react-query", () => ({ useQuery: vi.fn(), useQueryClient: vi.fn(), useMutation: vi.fn() }));
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: vi.fn(),
+  useQueryClient: vi.fn(),
+  useMutation: vi.fn(),
+}));
 vi.mock("@/client/api/client", () => ({ apiClient: { request: vi.fn().mockResolvedValue([]) } }));
 vi.mock("@/lib/document-utils.ts", () => ({ computeSHA256: vi.fn() }));
 
@@ -24,35 +30,28 @@ const children = (count: number) =>
   );
 
 describe("Staff collection windows", () => {
-  it.each([0, 1, 8, 9, 53, 101])(
-    "bounds %i records without fabricating totals",
-    (count) => {
-      const html = renderToStaticMarkup(
-        React.createElement(
-          StaffPagedCollection,
-          {
-            label: "Synthetic records",
-            resetKey: "collection",
-            footerAs: "li",
-          },
-          children(count),
-        ),
-      );
-      expect((html.match(/data-record=/g) ?? []).length).toBe(
-        Math.min(count, 8),
-      );
-      expect(html.includes('role="navigation"')).toBe(count > 8);
-      expect(html.includes('data-collection="Synthetic records"')).toBe(
-        count > 8,
-      );
-      if (count > 8) {
-        expect(html).toContain(`of ${count}`);
-        expect(html).toContain('aria-current="page"');
-        expect(html).toContain('aria-live="polite"');
-        expect(html).toContain('<li class="staff-collection-pagination"');
-      }
-    },
-  );
+  it.each([0, 1, 8, 9, 53, 101])("bounds %i records without fabricating totals", (count) => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        StaffPagedCollection,
+        {
+          label: "Synthetic records",
+          resetKey: "collection",
+          footerAs: "li",
+        },
+        children(count),
+      ),
+    );
+    expect((html.match(/data-record=/g) ?? []).length).toBe(Math.min(count, 8));
+    expect(html.includes('role="navigation"')).toBe(count > 8);
+    expect(html.includes('data-collection="Synthetic records"')).toBe(count > 8);
+    if (count > 8) {
+      expect(html).toContain(`of ${count}`);
+      expect(html).toContain('aria-current="page"');
+      expect(html).toContain('aria-live="polite"');
+      expect(html).toContain('<li class="staff-collection-pagination"');
+    }
+  });
   it("does not change other portal consumers unless explicitly enabled", () => {
     const html = renderToStaticMarkup(
       React.createElement(
@@ -99,9 +98,7 @@ describe("Staff collection windows", () => {
     );
     const buttons = html.match(/<button[^>]*>/g) ?? [];
     expect(buttons.length).toBeGreaterThan(3);
-    expect(buttons.every((button) => button.includes('type="button"'))).toBe(
-      true,
-    );
+    expect(buttons.every((button) => button.includes('type="button"'))).toBe(true);
     expect(html).toContain('aria-label="Pagination"');
     expect(html).toContain('aria-current="page"');
   });
@@ -146,9 +143,7 @@ describe("Complete collection slicing", () => {
     expect(new Set(output).size).toBe(count);
   });
   it("clamps first/middle/last after deletion and returns surviving records", () => {
-    expect(calculatePagination(records(53), 4, 8).paginatedItems[0].id).toBe(
-      "record-25",
-    );
+    expect(calculatePagination(records(53), 4, 8).paginatedItems[0].id).toBe("record-25");
     const result = calculatePagination(records(9), 7, 8);
     expect(result.safeCurrentPage).toBe(2);
     expect(result.paginatedItems.map((row) => row.id)).toEqual(["record-9"]);
@@ -165,7 +160,12 @@ describe("Complete collection slicing", () => {
 
 describe("Version history read state without new query semantics", () => {
   it("keeps the legacy array return while exposing existing loading/error metadata", () => {
-    const state = { data: undefined, isLoading: true, isError: false, refetch: vi.fn() } as unknown as ReturnType<typeof useQuery>;
+    const state = {
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useQuery>;
     vi.mocked(useQuery).mockReturnValue(state);
     expect(useDocumentVersions(null)).toEqual([]);
     expect(useDocumentVersionsQuery(null)).toBe(state);
@@ -191,16 +191,20 @@ describe("Version history read state without new query semantics", () => {
 });
 
 describe("Capped profile activity windows", () => {
-  it.each([0, 1, 30])("paginates only the %i returned events from a 53-event history", (returned) => {
-    const loaded = records(53).slice(0, returned);
-    const first = calculatePagination(loaded, 1, 6);
-    expect(first.totalItems).toBe(returned);
-    expect(first.totalPages).toBe(Math.max(1, Math.ceil(returned / 6)));
-    const visible = Array.from({ length: first.totalPages }, (_, page) =>
-      calculatePagination(loaded, page + 1, 6).paginatedItems,
-    );
-    expect(visible.every((page) => page.length <= 6)).toBe(true);
-    expect(visible.flat()).toEqual(loaded);
-    expect(visible.flat()).not.toContainEqual({ id: "record-53" });
-  });
+  it.each([0, 1, 30])(
+    "paginates only the %i returned events from a 53-event history",
+    (returned) => {
+      const loaded = records(53).slice(0, returned);
+      const first = calculatePagination(loaded, 1, 6);
+      expect(first.totalItems).toBe(returned);
+      expect(first.totalPages).toBe(Math.max(1, Math.ceil(returned / 6)));
+      const visible = Array.from(
+        { length: first.totalPages },
+        (_, page) => calculatePagination(loaded, page + 1, 6).paginatedItems,
+      );
+      expect(visible.every((page) => page.length <= 6)).toBe(true);
+      expect(visible.flat()).toEqual(loaded);
+      expect(visible.flat()).not.toContainEqual({ id: "record-53" });
+    },
+  );
 });

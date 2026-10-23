@@ -8,10 +8,7 @@ export const LEAD_STATUS_OPTIONS = [
   { value: "lost", label: "Lost" },
 ] as const;
 
-export const LEAD_TABS = [
-  { value: "all", label: "All leads" },
-  ...LEAD_STATUS_OPTIONS,
-] as const;
+export const LEAD_TABS = [{ value: "all", label: "All leads" }, ...LEAD_STATUS_OPTIONS] as const;
 
 export const LEAD_SOURCE_OPTIONS: Array<{ value: LeadCreateInput["source"]; label: string }> = [
   { value: "website", label: "Website" },
@@ -84,7 +81,10 @@ export function filterStaffLeads(
 ): StaffLead[] {
   return leads.filter((lead) => {
     if (filters.tab !== "all" && lead.status !== filters.tab) return false;
-    if (filters.practiceArea !== "all" && (lead.practiceAreaInterest || "") !== filters.practiceArea) {
+    if (
+      filters.practiceArea !== "all" &&
+      (lead.practiceAreaInterest || "") !== filters.practiceArea
+    ) {
       return false;
     }
     if (filters.unassignedOnly && lead.assignedTo) return false;
@@ -140,10 +140,14 @@ export function buildStaffLeadCreatePayload(
     const issue = parsed.error.issues[0];
     const field = String(issue?.path[0] ?? "");
     const label = LEAD_FIELD_LABELS[field] ?? "Lead";
-    if (field === "assignedTo") return { ok: false, message: "Choose a staff member or Unassigned." };
+    if (field === "assignedTo")
+      return { ok: false, message: "Choose a staff member or Unassigned." };
     if (field === "source") return { ok: false, message: "Choose a valid lead source." };
     if (issue?.code === "too_big") {
-      return { ok: false, message: `${label} must be ${String(issue.maximum)} characters or fewer.` };
+      return {
+        ok: false,
+        message: `${label} must be ${String(issue.maximum)} characters or fewer.`,
+      };
     }
     if (issue?.code === "too_small") return { ok: false, message: `${label} is required.` };
     return { ok: false, message: `${label} is not valid.` };

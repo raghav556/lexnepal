@@ -46,8 +46,7 @@ function pageFrom(
   return {
     page,
     isDone: !hasMore,
-    continueCursor:
-      hasMore && oldest ? encode(oldest.createdAt, oldest._id) : "",
+    continueCursor: hasMore && oldest ? encode(oldest.createdAt, oldest._id) : "",
   };
 }
 

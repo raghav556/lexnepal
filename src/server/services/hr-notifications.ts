@@ -82,7 +82,9 @@ async function enqueueLeaveEmail(input: {
 
 function leaveSummary(leave: LeaveRequestDto): string {
   const range =
-    leave.toDate !== leave.fromDate ? `${formatDualDate(leave.fromDate)} → ${formatDualDate(leave.toDate)}` : formatDualDate(leave.fromDate);
+    leave.toDate !== leave.fromDate
+      ? `${formatDualDate(leave.fromDate)} → ${formatDualDate(leave.toDate)}`
+      : formatDualDate(leave.fromDate);
   return `${leave.type} (${range})`;
 }
 

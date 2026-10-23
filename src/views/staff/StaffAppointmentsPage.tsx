@@ -209,7 +209,9 @@ export default function StaffAppointmentsPage() {
               <Calendar size={15} aria-hidden />
               Date
             </dt>
-            <dd>{appointment.date ? <DualDateDisplay isoDate={appointment.date} /> : "Not recorded"}</dd>
+            <dd>
+              {appointment.date ? <DualDateDisplay isoDate={appointment.date} /> : "Not recorded"}
+            </dd>
           </div>
           <div>
             <dt>
@@ -554,39 +556,51 @@ export default function StaffAppointmentsPage() {
                     }
                   />
                 ) : (
-                  <StaffPagedCollection label="Appointment results" resetKey={JSON.stringify([tab, date, search, status])} revealKey={highlight} revealIndex={visible.findIndex((a) => appointmentKey(a) === highlight)}>{visible.map((a) => (
-                    <button
-                      type="button"
-                      key={appointmentKey(a)}
-                      id={`appointment-${appointmentKey(a)}`}
-                      className="staff-appointments-row"
-                      aria-pressed={appointmentKey(selected || {}) === appointmentKey(a)}
-                      onClick={() => select(a)}
-                    >
-                      <span className="staff-appointments-row-time">
-                        {a.timeSlot || "No time"}
-
-                      </span>
-                      <span className="staff-appointments-avatar">
-                        {appointmentInitials(a.clientName)}
-                      </span>
-                      <span className="staff-appointments-row-copy">
-                        <strong>{a.clientName || "Client name not recorded"}</strong>
-                        <small>{a.date ? <DualDateDisplay isoDate={a.date} alwaysDual={false} /> : "No date"}</small>
-                        <span>{a.practiceArea || "Practice area not recorded"}</span>
-                        <StatusBadge tone={getDashboardStatusTone(a.status)}>
-                          {a.status || "Not recorded"}
-                        </StatusBadge>
-                        {a.meetingLink && (
+                  <StaffPagedCollection
+                    label="Appointment results"
+                    resetKey={JSON.stringify([tab, date, search, status])}
+                    revealKey={highlight}
+                    revealIndex={visible.findIndex((a) => appointmentKey(a) === highlight)}
+                  >
+                    {visible.map((a) => (
+                      <button
+                        type="button"
+                        key={appointmentKey(a)}
+                        id={`appointment-${appointmentKey(a)}`}
+                        className="staff-appointments-row"
+                        aria-pressed={appointmentKey(selected || {}) === appointmentKey(a)}
+                        onClick={() => select(a)}
+                      >
+                        <span className="staff-appointments-row-time">
+                          {a.timeSlot || "No time"}
+                        </span>
+                        <span className="staff-appointments-avatar">
+                          {appointmentInitials(a.clientName)}
+                        </span>
+                        <span className="staff-appointments-row-copy">
+                          <strong>{a.clientName || "Client name not recorded"}</strong>
                           <small>
-                            <Video size={12} aria-hidden />
-                            Meeting link added
+                            {a.date ? (
+                              <DualDateDisplay isoDate={a.date} alwaysDual={false} />
+                            ) : (
+                              "No date"
+                            )}
                           </small>
-                        )}
-                      </span>
-                      <ChevronRight size={15} aria-hidden />
-                    </button>
-                  ))}</StaffPagedCollection>
+                          <span>{a.practiceArea || "Practice area not recorded"}</span>
+                          <StatusBadge tone={getDashboardStatusTone(a.status)}>
+                            {a.status || "Not recorded"}
+                          </StatusBadge>
+                          {a.meetingLink && (
+                            <small>
+                              <Video size={12} aria-hidden />
+                              Meeting link added
+                            </small>
+                          )}
+                        </span>
+                        <ChevronRight size={15} aria-hidden />
+                      </button>
+                    ))}
+                  </StaffPagedCollection>
                 )}
               </div>
             </DashboardSection>

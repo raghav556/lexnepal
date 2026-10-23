@@ -1,11 +1,14 @@
 "use client";
-
 import * as React from "react";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button.tsx";
+import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
 import { cn } from "@/lib/utils.ts";
-
-/** Right-side ops drawer (no new Radix dependency). */
+type SheetContentProps = {
+  className?: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  title?: React.ReactNode;
+};
+/** Right-side presentation of the existing modal primitive and its focus/scroll handling. */
 export function Sheet({
   open,
   onOpenChange,
@@ -15,57 +18,41 @@ export function Sheet({
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
 }) {
-  React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onOpenChange(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onOpenChange]);
-
-  if (!open) return null;
-
+  const titleId = React.useId();
+  const content = React.Children.toArray(children).find(
+    (child): child is React.ReactElement<SheetContentProps> =>
+      React.isValidElement(child) && child.type === SheetContent,
+  );
+  if (!content) return null;
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button
-        type="button"
-        aria-label="Close drawer"
-        className="absolute inset-0 bg-black/40"
-        onClick={() => onOpenChange(false)}
-      />
-      {children}
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        aria-labelledby={titleId}
+        className={cn("border-l border-border bg-card", content.props.className)}
+        style={{
+          position: "fixed",
+          inset: "0 0 0 auto",
+          height: "100dvh",
+          maxHeight: "100dvh",
+          maxWidth: "32rem",
+          borderRadius: 0,
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div id={titleId} className="shrink-0 border-b border-border py-4 pl-4 pr-14 sm:pl-5">
+          {content.props.title ?? "Details"}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-5">
+          {content.props.children}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
-
-export function SheetContent({
-  className,
-  children,
-  onClose,
-  title,
-}: {
-  className?: string;
-  children: React.ReactNode;
-  onClose: () => void;
-  title?: React.ReactNode;
-}) {
-  return (
-    <aside
-      role="dialog"
-      aria-modal="true"
-      className={cn(
-        "relative z-10 flex h-full w-full max-w-lg flex-col border-l border-border bg-card shadow-2xl animate-in slide-in-from-right-4",
-        className,
-      )}
-    >
-      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
-        <div className="min-w-0 flex-1">{title}</div>
-        <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">{children}</div>
-    </aside>
-  );
+/** Declarative content consumed by Sheet; only one existing caller uses this API. */
+export function SheetContent({ children }: SheetContentProps) {
+  return <>{children}</>;
 }

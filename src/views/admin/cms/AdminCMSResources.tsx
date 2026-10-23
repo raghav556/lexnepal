@@ -97,8 +97,7 @@ export default function AdminCMSResources() {
         fileUrl: String(res.fileUrl || ""),
         isGated: Boolean(res.isGated),
         status: res.status === "draft" ? "draft" : "published",
-        publishedDate:
-          String(res.publishedDate || "").slice(0, 10),
+        publishedDate: String(res.publishedDate || "").slice(0, 10),
         seoTitle: String(res.seoTitle || ""),
         seoDescription: String(res.seoDescription || ""),
         displayOrder: String(res.displayOrder ?? 0),
@@ -230,9 +229,7 @@ export default function AdminCMSResources() {
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         <span>
                           Published:{" "}
-                          {res.publishedDate
-                            ? formatDualDate(String(res.publishedDate))
-                            : "—"}
+                          {res.publishedDate ? formatDualDate(String(res.publishedDate)) : "—"}
                         </span>
                         <span className="hidden sm:inline">·</span>
                         <span className="flex items-center gap-1">

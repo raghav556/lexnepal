@@ -26,7 +26,7 @@ export const PRACTICE_AREAS = [
 ];
 
 /** Compatibility projection; the verified registry is the only court list. */
-export const COURTS = NEPAL_COURTS.map(court => officialCourtValue(court.id)!);
+export const COURTS = NEPAL_COURTS.map((court) => officialCourtValue(court.id)!);
 
 export const VAT_RATE = 0.13;
 

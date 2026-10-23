@@ -173,7 +173,11 @@ export function plainContent(markdown: string): string {
     .trim();
 }
 
-export function missingContentFields(input: { title: string; excerpt: string; content: string }): string[] {
+export function missingContentFields(input: {
+  title: string;
+  excerpt: string;
+  content: string;
+}): string[] {
   const missing: string[] = [];
   if (!input.title.trim()) missing.push("Title");
   if (!input.excerpt.trim()) missing.push("Excerpt");

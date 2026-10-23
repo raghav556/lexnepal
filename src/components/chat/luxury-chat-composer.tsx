@@ -245,7 +245,9 @@ export function LuxuryChatComposer({
           ) : (
             <div className="staff-chat-audience flex items-center gap-1.5">
               {audienceLabel ? (
-                <span className="inline-flex items-center gap-1 font-semibold">{audienceLabel}</span>
+                <span className="inline-flex items-center gap-1 font-semibold">
+                  {audienceLabel}
+                </span>
               ) : isInternal ? (
                 <span className="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-200">
                   <Lock className="size-3" /> Confidential Case Team Stream

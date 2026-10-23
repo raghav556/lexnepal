@@ -144,7 +144,10 @@ export function clientPracticeAreas(matters: StaffClientMatter[]): string[] {
   ].sort((left, right) => left.localeCompare(right));
 }
 
-export function mattersForClient(matters: StaffClientMatter[], clientId: string): StaffClientMatter[] {
+export function mattersForClient(
+  matters: StaffClientMatter[],
+  clientId: string,
+): StaffClientMatter[] {
   return matters.filter((matter) => String(matter.clientId ?? "") === clientId);
 }
 
@@ -168,7 +171,13 @@ export function filterStaffClients(
   return clients.filter((client) => {
     const id = clientKey(client);
     if (query) {
-      const haystack = [client.fullName, client.email, client.phone, client.address, client.companyName]
+      const haystack = [
+        client.fullName,
+        client.email,
+        client.phone,
+        client.address,
+        client.companyName,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -180,7 +189,8 @@ export function filterStaffClients(
     if (filters.kyc !== "all" && client.kycStatus !== filters.kyc) return false;
     if (filters.portal === "linked" && !client.userId) return false;
     if (filters.portal === "none" && client.userId) return false;
-    if (filters.practiceArea !== "all" && !practiceByClient.get(id)?.has(filters.practiceArea)) return false;
+    if (filters.practiceArea !== "all" && !practiceByClient.get(id)?.has(filters.practiceArea))
+      return false;
     return true;
   });
 }
@@ -218,7 +228,9 @@ export function nextClientAppointment(
       return item.status !== "cancelled" && item.status !== "completed";
     })
     .sort((left, right) =>
-      `${left.date ?? ""} ${left.timeSlot ?? ""}`.localeCompare(`${right.date ?? ""} ${right.timeSlot ?? ""}`),
+      `${left.date ?? ""} ${left.timeSlot ?? ""}`.localeCompare(
+        `${right.date ?? ""} ${right.timeSlot ?? ""}`,
+      ),
     );
   return upcoming[0] ?? null;
 }
@@ -259,7 +271,10 @@ function optionalText(value: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function validationMessage(field: string, issue: { code?: string; maximum?: unknown; message?: string }): string {
+function validationMessage(
+  field: string,
+  issue: { code?: string; maximum?: unknown; message?: string },
+): string {
   const label = FIELD_LABELS[field] ?? "Client";
   if (field === "companyName") return "Company name is required for a corporate client.";
   if (field === "email") return "Enter a valid email address.";
@@ -281,7 +296,8 @@ export function buildStaffClientCreatePayload(
     phone: optionalText(form.phone),
     address: optionalText(form.address),
     companyName: form.type === "corporate" ? optionalText(form.companyName) : undefined,
-    registrationNumber: form.type === "corporate" ? optionalText(form.registrationNumber) : undefined,
+    registrationNumber:
+      form.type === "corporate" ? optionalText(form.registrationNumber) : undefined,
     notes: optionalText(form.notes),
   });
   if (!parsed.success) {
@@ -296,7 +312,11 @@ export function buildStaffClientUpdatePayload(
   form: StaffClientForm,
 ): { ok: true; payload: Record<string, unknown> } | { ok: false; field: string; message: string } {
   if (form.type === "corporate" && !form.companyName.trim()) {
-    return { ok: false, field: "companyName", message: "Company name is required for a corporate client." };
+    return {
+      ok: false,
+      field: "companyName",
+      message: "Company name is required for a corporate client.",
+    };
   }
   const parsed = clientStaffUpdateSchema.safeParse({
     type: form.type,

@@ -264,12 +264,22 @@ export function PortalMobileNav({
             aria-labelledby={`${drawerId}-title`}
             className={cn("portal-operational-drawer", drawerClassName)}
           >
-            <DialogTitle id={`${drawerId}-title`} className={docked ? "sr-only" : "portal-operational-drawer-title"}>
+            <DialogTitle
+              id={`${drawerId}-title`}
+              className={docked ? "sr-only" : "portal-operational-drawer-title"}
+            >
               {navAriaLabel}
             </DialogTitle>
-            {docked ? <div className="staff-navigation-drawer-brand" onClickCapture={(event) => {
-              if (event.target instanceof Element && event.target.closest("a")) close();
-            }}>{operationalDrawerBrand}</div> : null}
+            {docked ? (
+              <div
+                className="staff-navigation-drawer-brand"
+                onClickCapture={(event) => {
+                  if (event.target instanceof Element && event.target.closest("a")) close();
+                }}
+              >
+                {operationalDrawerBrand}
+              </div>
+            ) : null}
             <div className="portal-operational-drawer-scroll">{drawerContent}</div>
           </DialogContent>
         </Dialog>

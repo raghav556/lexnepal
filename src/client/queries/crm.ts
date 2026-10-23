@@ -154,11 +154,14 @@ export function useIntakeByToken(token: string | null) {
   return { data: next.data, isLoading: next.isLoading };
 }
 
-export function useAppointments(filters?: {
-  status?: string;
-  assignedLawyerId?: string;
-  leadId?: string;
-}, options?: { enabled?: boolean }) {
+export function useAppointments(
+  filters?: {
+    status?: string;
+    assignedLawyerId?: string;
+    leadId?: string;
+  },
+  options?: { enabled?: boolean },
+) {
   const query = Object.fromEntries(
     Object.entries(filters ?? {}).filter(([, value]) => value !== undefined && value !== ""),
   );

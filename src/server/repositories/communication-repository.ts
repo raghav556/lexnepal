@@ -119,9 +119,7 @@ export class CommunicationRepository {
 
     const oldestRow = pageRows[pageRows.length - 1]?.message;
     const continueCursor =
-      hasMore && oldestRow
-        ? encodeMessageCursor(oldestRow.createdAt, oldestRow.id)
-        : "";
+      hasMore && oldestRow ? encodeMessageCursor(oldestRow.createdAt, oldestRow.id) : "";
 
     return { page, isDone: !hasMore, continueCursor };
   }
@@ -311,7 +309,13 @@ export class CommunicationRepository {
     const rows = await database
       .select()
       .from(notifications)
-      .where(and(eq(notifications.firmId, firmId), eq(notifications.userId, userId), collectionBefore(notifications.createdAt, notifications.id, cursor)))
+      .where(
+        and(
+          eq(notifications.firmId, firmId),
+          eq(notifications.userId, userId),
+          collectionBefore(notifications.createdAt, notifications.id, cursor),
+        ),
+      )
       .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit);
     return rows.map((row) => toDto(row as unknown as Record<string, unknown>));

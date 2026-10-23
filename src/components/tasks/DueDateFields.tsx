@@ -10,11 +10,7 @@ type DueDateFieldsProps = {
 };
 
 /** Locale-aware entry; the existing callback still receives Gregorian + B.S. values. */
-export function DueDateFields({
-  dueDate,
-  onDueDateChange,
-  idPrefix = "due",
-}: DueDateFieldsProps) {
+export function DueDateFields({ dueDate, onDueDateChange, idPrefix = "due" }: DueDateFieldsProps) {
   const handleGregorianChange = (val: string) => {
     if (!val) {
       onDueDateChange("", "");
@@ -33,11 +29,7 @@ export function DueDateFields({
         <label htmlFor={`${idPrefix}-bs`} className="text-xs font-medium text-foreground">
           Due Date
         </label>
-        <BsDateField
-          id={`${idPrefix}-bs`}
-          value={dueDate}
-          onDateChange={handleGregorianChange}
-        />
+        <BsDateField id={`${idPrefix}-bs`} value={dueDate} onDateChange={handleGregorianChange} />
       </div>
     </div>
   );

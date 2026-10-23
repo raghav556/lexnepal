@@ -25,7 +25,10 @@ export function calculatePagination<T>(rawItems: T[] | undefined, page: number, 
   const totalItems = safeItems.length;
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit) || 10) : 10;
   const totalPages = Math.max(1, Math.ceil(totalItems / safeLimit));
-  const safeCurrentPage = Math.min(Math.max(1, Number.isFinite(page) ? Math.floor(page) : 1), totalPages);
+  const safeCurrentPage = Math.min(
+    Math.max(1, Number.isFinite(page) ? Math.floor(page) : 1),
+    totalPages,
+  );
   const startIndex = (safeCurrentPage - 1) * safeLimit;
   const paginatedItems = safeItems.slice(startIndex, startIndex + safeLimit);
 
@@ -63,7 +66,9 @@ export function usePagination<T>(
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(initialLimit);
-  const resetKey = isOptionsObject ? (itemsOrOptions as UsePaginationOptions<T>).resetKey : undefined;
+  const resetKey = isOptionsObject
+    ? (itemsOrOptions as UsePaginationOptions<T>).resetKey
+    : undefined;
   const [seenResetKey, setSeenResetKey] = useState(resetKey);
 
   const { totalItems, totalPages, safeCurrentPage, paginatedItems } = useMemo(() => {
@@ -78,10 +83,16 @@ export function usePagination<T>(
     setCurrentPage(1);
   }
 
-  const goToPage = useCallback((page: number) => {
-    const pageNumber = Math.max(1, Math.min(Number.isFinite(page) ? Math.floor(page) : 1, totalPages));
-    setCurrentPage(pageNumber);
-  }, [totalPages]);
+  const goToPage = useCallback(
+    (page: number) => {
+      const pageNumber = Math.max(
+        1,
+        Math.min(Number.isFinite(page) ? Math.floor(page) : 1, totalPages),
+      );
+      setCurrentPage(pageNumber);
+    },
+    [totalPages],
+  );
 
   const nextPage = useCallback(() => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));

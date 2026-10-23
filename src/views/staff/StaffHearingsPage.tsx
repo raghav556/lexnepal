@@ -3,12 +3,7 @@ import { BsDateField } from "@/components/ui/bs-date-field";
 import { useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-} from "@/components/ui/dialog.tsx";
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog.tsx";
 import {
   CalendarDays,
   CalendarCheck,
@@ -31,20 +26,34 @@ import {
   Server,
 } from "lucide-react";
 import { toast } from "sonner";
-import { bsDateParts, gregorianToBs, formatBs, nepalDateOnly, viewDateIso, calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth } from "@/lib/nepali-calendar.ts";
+import {
+  bsDateParts,
+  gregorianToBs,
+  formatBs,
+  nepalDateOnly,
+  viewDateIso,
+  calendarMonthBounds,
+  calendarMonthLabel,
+  calendarDayLabel,
+  calendarDateLabel,
+  calendarWeekdays,
+  shiftCalendarMonth,
+  canShiftCalendarMonth,
+} from "@/lib/nepali-calendar.ts";
 import { COURTS } from "@/lib/lex-constants.ts";
 import { CourtSelect } from "@/components/ui/court-select";
-import { courtMatchesSearch, formatCourtName, officialCourtValue, sameCourt } from "@/lib/nepal-courts";
+import {
+  courtMatchesSearch,
+  formatCourtName,
+  officialCourtValue,
+  sameCourt,
+} from "@/lib/nepal-courts";
 import { useI18n } from "@/lib/i18n-context.tsx";
 import { useStaffDirectory } from "@/client/queries/identity";
 import { useCases } from "@/client/queries/cases";
 import { useHearings, useHearingCommands } from "@/client/queries/hearings";
 import { useTasks, useTaskCommands, useUpdateTask } from "@/client/queries/tasks";
-import {
-  format,
-  eachDayOfInterval,
-  getDay,
-} from "date-fns";
+import { format, eachDayOfInterval, getDay } from "date-fns";
 
 import {
   DashboardButton,
@@ -56,7 +65,6 @@ import {
   StatusBadge,
   usePortalBranding,
 } from "@/components/dashboard";
-
 
 /** Today's calendar date (YYYY-MM-DD) in Nepal time, independent of the browser/UTC zone. */
 function nepalTodayKey(now: Date = new Date()): string {
@@ -126,7 +134,9 @@ export default function StaffHearingsPage() {
     if (val) {
       try {
         setDateBs(formatBs(gregorianToBs(val)));
-      } catch { setDateBs(""); }
+      } catch {
+        setDateBs("");
+      }
     } else setDateBs("");
   };
 
@@ -135,7 +145,9 @@ export default function StaffHearingsPage() {
     if (val) {
       try {
         setNextDateBs(formatBs(gregorianToBs(val)));
-      } catch { setNextDateBs(""); }
+      } catch {
+        setNextDateBs("");
+      }
     } else setNextDateBs("");
   };
 
@@ -260,7 +272,9 @@ export default function StaffHearingsPage() {
     start: new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`),
     end: new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).end}T12:00:00`),
   });
-  const leadingBlanks = getDay(new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`));
+  const leadingBlanks = getDay(
+    new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`),
+  );
   const trailingBlanks = (7 - ((leadingBlanks + daysInMonth.length) % 7)) % 7;
 
   // Context for the Update Result dialog
@@ -364,10 +378,13 @@ export default function StaffHearingsPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <CourtSelect id="hearing-court-filter"
+            <CourtSelect
+              id="hearing-court-filter"
               aria-label="Filter by court"
-              value={courtFilter === "all" ? "" : courtFilter} filter
-              onValueChange={(court) => setCourtFilter(court || "all")} />
+              value={courtFilter === "all" ? "" : courtFilter}
+              filter
+              onValueChange={(court) => setCourtFilter(court || "all")}
+            />
           </div>
         ) : null}
       </div>
@@ -386,7 +403,13 @@ export default function StaffHearingsPage() {
                 size="icon"
                 aria-label="Previous month"
                 disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), -1, language)}
-                onClick={() => setCurrentMonth(new Date(`${shiftCalendarMonth(viewDateIso(currentMonth), -1, language)}T12:00:00`))}
+                onClick={() =>
+                  setCurrentMonth(
+                    new Date(
+                      `${shiftCalendarMonth(viewDateIso(currentMonth), -1, language)}T12:00:00`,
+                    ),
+                  )
+                }
               >
                 <ChevronLeft className="size-4" aria-hidden />
               </Button>
@@ -396,7 +419,13 @@ export default function StaffHearingsPage() {
                 size="icon"
                 aria-label="Next month"
                 disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), 1, language)}
-                onClick={() => setCurrentMonth(new Date(`${shiftCalendarMonth(viewDateIso(currentMonth), 1, language)}T12:00:00`))}
+                onClick={() =>
+                  setCurrentMonth(
+                    new Date(
+                      `${shiftCalendarMonth(viewDateIso(currentMonth), 1, language)}T12:00:00`,
+                    ),
+                  )
+                }
               >
                 <ChevronRight className="size-4" aria-hidden />
               </Button>
@@ -433,7 +462,9 @@ export default function StaffHearingsPage() {
                 return (
                   <div
                     key={day.toISOString()}
-                    className="staff-hearings-day" data-date={dateStr} data-calendar-system={language === "ne" ? "bs" : "ad"}
+                    className="staff-hearings-day"
+                    data-date={dateStr}
+                    data-calendar-system={language === "ne" ? "bs" : "ad"}
                     data-today={isToday ? "true" : undefined}
                   >
                     <div className="staff-hearings-day-head">
@@ -498,155 +529,176 @@ export default function StaffHearingsPage() {
               />
             ) : (
               <ul className="staff-hearings-list">
-                {<StaffPagedCollection label="Upcoming hearings" resetKey={`${search}|${courtFilter}`} footerAs="li">{filteredUpcoming.map((h: any) => {
-                  const matchedCase = cases.find((c: any) => c._id === h.caseId);
-                  const lawyer = matchedCase
-                    ? users.find((u: any) => u._id === matchedCase.assignedLawyerId)
-                    : null;
-                  const hasConflict = conflictIds.has(h._id);
-                  const prepTasks = allTasks.filter((t: any) => t.hearingId === h._id);
-                  const prepDone = prepTasks.filter((t: any) => t.status === "done").length;
-                  const primaryDate = bsDateParts(h.dateGregorian, language);
-                  const bs = primaryDate ? { day: primaryDate.day, rest: `${primaryDate.month} ${primaryDate.year}` } : parseBsDate(h.dateBs);
-                  const ad = adParts(h.dateGregorian);
+                {
+                  <StaffPagedCollection
+                    label="Upcoming hearings"
+                    resetKey={`${search}|${courtFilter}`}
+                    footerAs="li"
+                  >
+                    {filteredUpcoming.map((h: any) => {
+                      const matchedCase = cases.find((c: any) => c._id === h.caseId);
+                      const lawyer = matchedCase
+                        ? users.find((u: any) => u._id === matchedCase.assignedLawyerId)
+                        : null;
+                      const hasConflict = conflictIds.has(h._id);
+                      const prepTasks = allTasks.filter((t: any) => t.hearingId === h._id);
+                      const prepDone = prepTasks.filter((t: any) => t.status === "done").length;
+                      const primaryDate = bsDateParts(h.dateGregorian, language);
+                      const bs = primaryDate
+                        ? { day: primaryDate.day, rest: `${primaryDate.month} ${primaryDate.year}` }
+                        : parseBsDate(h.dateBs);
+                      const ad = adParts(h.dateGregorian);
 
-                  return (
-                    <li
-                      key={h._id}
-                      className="staff-hearings-card"
-                      data-conflict={hasConflict ? "true" : undefined}
-                    >
-                      <div
-                        className="staff-hearings-date"
-                        data-bs={bs ? "valid" : "missing"}
-                      >
-                        <span className="staff-hearings-date-day">{bs ? bs.day : "—"}</span>
-                        <span className="staff-hearings-date-month">
-                          {bs ? bs.rest : "B.S. date unavailable"}
-                        </span>
-                        {ad ? (
-                          <span className="staff-hearings-date-ad">
-                            {ad.label} · {ad.weekday}
-                          </span>
-                        ) : (
-                          <span className="staff-hearings-date-ad">A.D. date unavailable</span>
-                        )}
-                      </div>
-
-                      <div className="staff-hearings-card-head">
-                        <div className="min-w-0">
-                          <h3 className="staff-hearings-card-title">
-                            {matchedCase?.title || "Unknown"}
-                          </h3>
-                          <p className="staff-hearings-card-number">{matchedCase?.caseNumber}</p>
-                        </div>
-                        <div className="staff-hearings-card-badges">
-                          {hasConflict && (
-                            <StatusBadge tone="danger" icon={AlertTriangle}>
-                              Conflict
-                            </StatusBadge>
-                          )}
-                          <DashboardStatusLabel
-                            status={h.status}
-                            className="text-[10px] uppercase font-bold tracking-wide shrink-0"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="staff-hearings-meta">
-                        <div>
-                          <MapPin aria-hidden /> <span title={h.court}>{formatCourtName(h.court, language)}</span>
-                        </div>
-                        <div>
-                          <Clock aria-hidden /> <span>{h.time || "Time TBD"}</span>
-                        </div>
-                        <div>
-                          <Scale aria-hidden /> <span>{h.judge || "Judge Unassigned"}</span>
-                        </div>
-                        <div>
-                          <User aria-hidden /> <span>{lawyer?.name || "Unassigned"}</span>
-                        </div>
-                      </div>
-
-                      {h.purpose && (
-                        <div className="staff-hearings-purpose">
-                          <strong>Purpose:</strong> {h.purpose}
-                        </div>
-                      )}
-
-                      <div className="staff-hearings-prep">
-                        <div className="staff-hearings-prep-head">
-                          <h4>Hearing prep tasks</h4>
-                          {prepTasks.length > 0 ? (
-                            <span>
-                              {prepDone} of {prepTasks.length} completed
-                            </span>
-                          ) : null}
-                        </div>
-                        {prepTasks.length === 0 ? (
-                          <div className="staff-hearings-prep-empty">
-                            <p>No prep tasks linked yet. Generate the standard Bahas pack.</p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              disabled={prepLoadingId === h._id}
-                              onClick={() => handleGeneratePrepTasks(h._id)}
-                            >
-                              {prepLoadingId === h._id ? (
-                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                              ) : (
-                                <CheckSquare className="size-3.5" aria-hidden />
-                              )}
-                              Generate prep pack
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="staff-hearings-prep-list">
-                            {<StaffPagedCollection label="Hearing prep tasks" navigationLabel={`Prep tasks for ${h.purpose || matchedCase?.caseNumber || "hearing"} on ${h.dateGregorian}`} resetKey={String(h._id)} pageSize={6}>{prepTasks.map((task: any) => (
-                              <label key={task._id} className="staff-hearings-prep-item">
-                                <input
-                                  type="checkbox"
-                                  checked={task.status === "done"}
-                                  onChange={(e) => {
-                                    updateTask({
-                                      taskId: task._id,
-                                      status: e.target.checked ? "done" : "in_progress",
-                                    }).catch(() => toast.error("Failed to update task"));
-                                  }}
-                                />
-                                <span data-done={task.status === "done" ? "true" : undefined}>
-                                  {task.title}
-                                </span>
-                              </label>
-                            ))}</StaffPagedCollection>}
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="staff-hearings-sync"
-                              disabled={prepLoadingId === h._id}
-                              onClick={() => handleGeneratePrepTasks(h._id)}
-                            >
-                              Sync missing prep items
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="staff-hearings-card-foot">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openUpdateModal(h)}
+                      return (
+                        <li
+                          key={h._id}
+                          className="staff-hearings-card"
+                          data-conflict={hasConflict ? "true" : undefined}
                         >
-                          <Edit2 className="size-3.5" aria-hidden /> Update Result
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}</StaffPagedCollection>}
+                          <div className="staff-hearings-date" data-bs={bs ? "valid" : "missing"}>
+                            <span className="staff-hearings-date-day">{bs ? bs.day : "—"}</span>
+                            <span className="staff-hearings-date-month">
+                              {bs ? bs.rest : "B.S. date unavailable"}
+                            </span>
+                            {ad ? (
+                              <span className="staff-hearings-date-ad">
+                                {ad.label} · {ad.weekday}
+                              </span>
+                            ) : (
+                              <span className="staff-hearings-date-ad">A.D. date unavailable</span>
+                            )}
+                          </div>
+
+                          <div className="staff-hearings-card-head">
+                            <div className="min-w-0">
+                              <h3 className="staff-hearings-card-title">
+                                {matchedCase?.title || "Unknown"}
+                              </h3>
+                              <p className="staff-hearings-card-number">
+                                {matchedCase?.caseNumber}
+                              </p>
+                            </div>
+                            <div className="staff-hearings-card-badges">
+                              {hasConflict && (
+                                <StatusBadge tone="danger" icon={AlertTriangle}>
+                                  Conflict
+                                </StatusBadge>
+                              )}
+                              <DashboardStatusLabel
+                                status={h.status}
+                                className="text-[10px] uppercase font-bold tracking-wide shrink-0"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="staff-hearings-meta">
+                            <div>
+                              <MapPin aria-hidden />{" "}
+                              <span title={h.court}>{formatCourtName(h.court, language)}</span>
+                            </div>
+                            <div>
+                              <Clock aria-hidden /> <span>{h.time || "Time TBD"}</span>
+                            </div>
+                            <div>
+                              <Scale aria-hidden /> <span>{h.judge || "Judge Unassigned"}</span>
+                            </div>
+                            <div>
+                              <User aria-hidden /> <span>{lawyer?.name || "Unassigned"}</span>
+                            </div>
+                          </div>
+
+                          {h.purpose && (
+                            <div className="staff-hearings-purpose">
+                              <strong>Purpose:</strong> {h.purpose}
+                            </div>
+                          )}
+
+                          <div className="staff-hearings-prep">
+                            <div className="staff-hearings-prep-head">
+                              <h4>Hearing prep tasks</h4>
+                              {prepTasks.length > 0 ? (
+                                <span>
+                                  {prepDone} of {prepTasks.length} completed
+                                </span>
+                              ) : null}
+                            </div>
+                            {prepTasks.length === 0 ? (
+                              <div className="staff-hearings-prep-empty">
+                                <p>No prep tasks linked yet. Generate the standard Bahas pack.</p>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={prepLoadingId === h._id}
+                                  onClick={() => handleGeneratePrepTasks(h._id)}
+                                >
+                                  {prepLoadingId === h._id ? (
+                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                                  ) : (
+                                    <CheckSquare className="size-3.5" aria-hidden />
+                                  )}
+                                  Generate prep pack
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="staff-hearings-prep-list">
+                                {
+                                  <StaffPagedCollection
+                                    label="Hearing prep tasks"
+                                    navigationLabel={`Prep tasks for ${h.purpose || matchedCase?.caseNumber || "hearing"} on ${h.dateGregorian}`}
+                                    resetKey={String(h._id)}
+                                    pageSize={6}
+                                  >
+                                    {prepTasks.map((task: any) => (
+                                      <label key={task._id} className="staff-hearings-prep-item">
+                                        <input
+                                          type="checkbox"
+                                          checked={task.status === "done"}
+                                          onChange={(e) => {
+                                            updateTask({
+                                              taskId: task._id,
+                                              status: e.target.checked ? "done" : "in_progress",
+                                            }).catch(() => toast.error("Failed to update task"));
+                                          }}
+                                        />
+                                        <span
+                                          data-done={task.status === "done" ? "true" : undefined}
+                                        >
+                                          {task.title}
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </StaffPagedCollection>
+                                }
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="staff-hearings-sync"
+                                  disabled={prepLoadingId === h._id}
+                                  onClick={() => handleGeneratePrepTasks(h._id)}
+                                >
+                                  Sync missing prep items
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="staff-hearings-card-foot">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openUpdateModal(h)}
+                            >
+                              <Edit2 className="size-3.5" aria-hidden /> Update Result
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </StaffPagedCollection>
+                }
               </ul>
             )}
           </DashboardSection>
@@ -676,36 +728,41 @@ export default function StaffHearingsPage() {
                 />
               ) : (
                 <ul className="staff-hearings-archive-list">
-                  {<StaffPagedCollection label="Past hearings" resetKey="past" footerAs="li">{past.map((h: any) => {
-                    const matchedCase = cases.find((c: any) => c._id === h.caseId);
-                    return (
-                      <li key={h._id}>
-                        <button
-                          type="button"
-                          className="staff-hearings-archive-row"
-                          onClick={() => openUpdateModal(h)}
-                        >
-                          <span className="staff-hearings-archive-top">
-                            <span className="staff-hearings-archive-title">
-                              {matchedCase?.title}
-                            </span>
-                            <DashboardStatusLabel
-                              status={h.status}
-                              className="text-[9px] uppercase shrink-0"
-                            />
-                          </span>
-                          <span className="staff-hearings-archive-sub">
-                            <DualDateDisplay isoDate={h.dateGregorian} recordedBs={h.dateBs} /> — {formatCourtName(h.court, language)}
-                          </span>
-                          {h.outcome && (
-                            <span className="staff-hearings-archive-outcome">
-                              Outcome: {h.outcome}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}</StaffPagedCollection>}
+                  {
+                    <StaffPagedCollection label="Past hearings" resetKey="past" footerAs="li">
+                      {past.map((h: any) => {
+                        const matchedCase = cases.find((c: any) => c._id === h.caseId);
+                        return (
+                          <li key={h._id}>
+                            <button
+                              type="button"
+                              className="staff-hearings-archive-row"
+                              onClick={() => openUpdateModal(h)}
+                            >
+                              <span className="staff-hearings-archive-top">
+                                <span className="staff-hearings-archive-title">
+                                  {matchedCase?.title}
+                                </span>
+                                <DashboardStatusLabel
+                                  status={h.status}
+                                  className="text-[9px] uppercase shrink-0"
+                                />
+                              </span>
+                              <span className="staff-hearings-archive-sub">
+                                <DualDateDisplay isoDate={h.dateGregorian} recordedBs={h.dateBs} />{" "}
+                                — {formatCourtName(h.court, language)}
+                              </span>
+                              {h.outcome && (
+                                <span className="staff-hearings-archive-outcome">
+                                  Outcome: {h.outcome}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </StaffPagedCollection>
+                  }
                 </ul>
               )}
             </DashboardSection>
@@ -758,7 +815,12 @@ export default function StaffHearingsPage() {
                 <label htmlFor="hearing-create-court">
                   Court <span aria-hidden>*</span>
                 </label>
-                <CourtSelect id="hearing-create-court" required value={court} onValueChange={setCourt} />
+                <CourtSelect
+                  id="hearing-create-court"
+                  required
+                  value={court}
+                  onValueChange={setCourt}
+                />
               </div>
               <div className="staff-hearings-field-row">
                 <div className="staff-hearings-field locale-date-full-row">
@@ -804,11 +866,7 @@ export default function StaffHearingsPage() {
               </div>
             </div>
             <div className="staff-hearings-dialog-actions">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCreateModal(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
@@ -844,18 +902,24 @@ export default function StaffHearingsPage() {
                   <dt>Case</dt>
                   <dd>
                     {selectedCase?.title || "Unknown case"}
-                    {selectedCase?.caseNumber ? (
-                      <small>{selectedCase.caseNumber}</small>
-                    ) : null}
+                    {selectedCase?.caseNumber ? <small>{selectedCase.caseNumber}</small> : null}
                   </dd>
                 </div>
                 <div>
                   <dt>Hearing</dt>
                   <dd>
-                    {selectedAd ? `${selectedAd.label} · ${selectedAd.weekday}` : "Date unavailable"}
+                    {selectedAd
+                      ? `${selectedAd.label} · ${selectedAd.weekday}`
+                      : "Date unavailable"}
                     <small>
-                      {[selectedHearing?.time, selectedHearing?.court ? formatCourtName(selectedHearing.court, language) : null].filter(Boolean).join(" · ") ||
-                        "Court and time not recorded"}
+                      {[
+                        selectedHearing?.time,
+                        selectedHearing?.court
+                          ? formatCourtName(selectedHearing.court, language)
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Court and time not recorded"}
                     </small>
                   </dd>
                 </div>
@@ -922,11 +986,7 @@ export default function StaffHearingsPage() {
               )}
             </div>
             <div className="staff-hearings-dialog-actions">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowUpdateModal(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setShowUpdateModal(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isUpdating}>

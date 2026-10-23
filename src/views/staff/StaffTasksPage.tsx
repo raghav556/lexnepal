@@ -428,8 +428,10 @@ export default function StaffTasksPage() {
     }
     setIsSavingEdit(true);
     // Editing another field must not turn the existing reminder instant into midnight.
-    const reminderAt = selectedTask.reminderAt && editReminderAt === nepalDateOnly(selectedTask.reminderAt)
-      ? selectedTask.reminderAt : editReminderAt || null;
+    const reminderAt =
+      selectedTask.reminderAt && editReminderAt === nepalDateOnly(selectedTask.reminderAt)
+        ? selectedTask.reminderAt
+        : editReminderAt || null;
     try {
       await updateTask({
         taskId: selectedTask._id,
@@ -912,18 +914,35 @@ export default function StaffTasksPage() {
                             </p>
                           </div>
                         ) : (
-                          <StaffPagedCollection label={`${col.label} tasks`} resetKey={JSON.stringify([col.key, scope, filterAssignee, filterPriority, filterCase, filterStatus, filterOverdue, searchQuery, showArchivedOnly])} pageSize={12} incremental>{colTasks.map((task: any) => (
-                            <TaskCard
-                              key={task._id}
-                              task={task}
-                              caseLabel={caseLabel(task)}
-                              variant="kanban"
-                              draggable
-                              onOpen={openDetails}
-                              onToggleComplete={handleToggleComplete}
-                              onDragStart={handleDragStart}
-                            />
-                          ))}</StaffPagedCollection>
+                          <StaffPagedCollection
+                            label={`${col.label} tasks`}
+                            resetKey={JSON.stringify([
+                              col.key,
+                              scope,
+                              filterAssignee,
+                              filterPriority,
+                              filterCase,
+                              filterStatus,
+                              filterOverdue,
+                              searchQuery,
+                              showArchivedOnly,
+                            ])}
+                            pageSize={12}
+                            incremental
+                          >
+                            {colTasks.map((task: any) => (
+                              <TaskCard
+                                key={task._id}
+                                task={task}
+                                caseLabel={caseLabel(task)}
+                                variant="kanban"
+                                draggable
+                                onOpen={openDetails}
+                                onToggleComplete={handleToggleComplete}
+                                onDragStart={handleDragStart}
+                              />
+                            ))}
+                          </StaffPagedCollection>
                         )}
                       </div>
                     </div>
@@ -1002,7 +1021,9 @@ export default function StaffTasksPage() {
             </div>
           )}
 
-          {view === "calendar" && <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} staffPaging />}
+          {view === "calendar" && (
+            <TaskCalendarView tasks={filteredTasks} onOpen={openDetails} staffPaging />
+          )}
 
           {view === "workload" && canViewTeamWorkload && (
             <TaskWorkloadView
@@ -1240,9 +1261,7 @@ export default function StaffTasksPage() {
                 </div>
                 <div>
                   <dt>Due date</dt>
-                  <dd>
-                    {formatTaskDue(selectedTask) || "Not set"}
-                  </dd>
+                  <dd>{formatTaskDue(selectedTask) || "Not set"}</dd>
                 </div>
               </dl>
               <form
@@ -1346,7 +1365,12 @@ export default function StaffTasksPage() {
                         onChange={(e) => setEditDocumentId(e.target.value)}
                       >
                         <option value="">None</option>
-                        {editDocumentId && !caseDocs.some((document: any) => document._id === editDocumentId) ? <option value={editDocumentId}>Current linked document (not in loaded results)</option> : null}
+                        {editDocumentId &&
+                        !caseDocs.some((document: any) => document._id === editDocumentId) ? (
+                          <option value={editDocumentId}>
+                            Current linked document (not in loaded results)
+                          </option>
+                        ) : null}
                         {caseDocs.map((d: any) => (
                           <option key={d._id} value={d._id}>
                             {d.title}
@@ -1465,7 +1489,6 @@ export default function StaffTasksPage() {
                       onDateChange={(e) => setEditReminderAt(e)}
                     />
                   </div>
-
                 </fieldset>
                 <fieldset className="staff-task-fields">
                   <legend>Watchers</legend>
@@ -1494,9 +1517,7 @@ export default function StaffTasksPage() {
                         );
                       })}
                     {staffUsers.filter((u: any) => u._id !== editAssignedTo).length === 0 && (
-                      <p className="text-[10px] text-muted-foreground">
-                        No other staff to watch.
-                      </p>
+                      <p className="text-[10px] text-muted-foreground">No other staff to watch.</p>
                     )}
                   </div>
                 </fieldset>
@@ -1509,28 +1530,34 @@ export default function StaffTasksPage() {
                   {subtasks.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No subtasks.</p>
                   ) : (
-                    <StaffPagedCollection label="Subtasks" resetKey={String(selectedTask?._id ?? "")} pageSize={6}>{subtasks.map((st: any) => (
-                      <label key={st._id} className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          className="accent-primary"
-                          checked={st.status === "done"}
-                          onChange={(e) => {
-                            updateTask({
-                              taskId: st._id,
-                              status: e.target.checked ? "done" : "todo",
-                            }).catch(() => toast.error("Failed to update subtask"));
-                          }}
-                        />
-                        <span
-                          className={
-                            st.status === "done" ? "line-through text-muted-foreground" : ""
-                          }
-                        >
-                          {st.title}
-                        </span>
-                      </label>
-                    ))}</StaffPagedCollection>
+                    <StaffPagedCollection
+                      label="Subtasks"
+                      resetKey={String(selectedTask?._id ?? "")}
+                      pageSize={6}
+                    >
+                      {subtasks.map((st: any) => (
+                        <label key={st._id} className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={st.status === "done"}
+                            onChange={(e) => {
+                              updateTask({
+                                taskId: st._id,
+                                status: e.target.checked ? "done" : "todo",
+                              }).catch(() => toast.error("Failed to update subtask"));
+                            }}
+                          />
+                          <span
+                            className={
+                              st.status === "done" ? "line-through text-muted-foreground" : ""
+                            }
+                          >
+                            {st.title}
+                          </span>
+                        </label>
+                      ))}
+                    </StaffPagedCollection>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -1568,18 +1595,24 @@ export default function StaffTasksPage() {
                   {comments.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No comments yet.</p>
                   ) : (
-                    <StaffPagedCollection label="Task comments" resetKey={String(selectedTask?._id ?? "")} pageSize={6}>{comments.map((c: any) => {
-                      const author = users.find((u: any) => u._id === c.authorId);
-                      return (
-                        <div key={c._id} className="text-xs bg-secondary/30 rounded px-2 py-1.5">
-                          <span className="font-semibold">{author?.name || "Staff"}</span>
-                          <span className="text-muted-foreground ml-2">
-                            {formatNepalTimestamp(c._creationTime)}
-                          </span>
-                          <p className="mt-0.5 text-foreground">{c.content}</p>
-                        </div>
-                      );
-                    })}</StaffPagedCollection>
+                    <StaffPagedCollection
+                      label="Task comments"
+                      resetKey={String(selectedTask?._id ?? "")}
+                      pageSize={6}
+                    >
+                      {comments.map((c: any) => {
+                        const author = users.find((u: any) => u._id === c.authorId);
+                        return (
+                          <div key={c._id} className="text-xs bg-secondary/30 rounded px-2 py-1.5">
+                            <span className="font-semibold">{author?.name || "Staff"}</span>
+                            <span className="text-muted-foreground ml-2">
+                              {formatNepalTimestamp(c._creationTime)}
+                            </span>
+                            <p className="mt-0.5 text-foreground">{c.content}</p>
+                          </div>
+                        );
+                      })}
+                    </StaffPagedCollection>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -1661,7 +1694,11 @@ export default function StaffTasksPage() {
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </Button>
                   </div>
-                  <div className="staff-task-save-actions" role="group" aria-label="Task edit actions">
+                  <div
+                    className="staff-task-save-actions"
+                    role="group"
+                    aria-label="Task edit actions"
+                  >
                     <Button
                       type="button"
                       variant="secondary"

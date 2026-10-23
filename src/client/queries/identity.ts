@@ -99,7 +99,8 @@ export function useOwnAuditEvents(): Array<AuditEventDto | ClientOwnAuditEventDt
 
 export function useOwnAuditEventsQuery() {
   return useCollectionQuery<AuditEventDto | ClientOwnAuditEventDto>({
-    queryKey: [...queryKeys.identity.all, "my-audit"], path: "/api/v1/users/me/audit-events",
+    queryKey: [...queryKeys.identity.all, "my-audit"],
+    path: "/api/v1/users/me/audit-events",
   });
 }
 

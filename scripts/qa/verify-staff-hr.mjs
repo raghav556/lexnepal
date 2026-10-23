@@ -336,31 +336,60 @@ try {
         await expect(metric("Days Recorded")).toContainText("Recorded dates this month");
         for (const name of ["Clock In", "Clock Out"])
           await expect(page.getByRole("button", { name, exact: true })).toBeDisabled();
-        const control = await page.getByRole("button", { name: "Clock In", exact: true }).evaluate((el) => {
-          const s = getComputedStyle(el);
-          return { background: s.backgroundColor, color: s.color, opacity: s.opacity, cursor: s.cursor };
-        });
+        const control = await page
+          .getByRole("button", { name: "Clock In", exact: true })
+          .evaluate((el) => {
+            const s = getComputedStyle(el);
+            return {
+              background: s.backgroundColor,
+              color: s.color,
+              opacity: s.opacity,
+              cursor: s.cursor,
+            };
+          });
         assert.equal(control.opacity, "1");
         assert.equal(control.cursor, "not-allowed");
         await page.getByRole("tab", { name: "Attendance", exact: true }).focus();
         await page.keyboard.press("ArrowRight");
-        await expect(page.getByRole("tab", { name: "Leave & Requests", exact: true })).toBeFocused();
-        await expect(page.getByRole("tab", { name: "Leave & Requests", exact: true })).toHaveAttribute("aria-selected", "true");
+        await expect(
+          page.getByRole("tab", { name: "Leave & Requests", exact: true }),
+        ).toBeFocused();
+        await expect(
+          page.getByRole("tab", { name: "Leave & Requests", exact: true }),
+        ).toHaveAttribute("aria-selected", "true");
         await page.keyboard.press("ArrowRight");
         await expect(page.getByRole("tab", { name: "Leave Balance", exact: true })).toBeFocused();
         await tab("Attendance");
         const tabs = await page.getByRole("tablist", { name: "HR sections" }).evaluate((el) =>
           Array.from(el.querySelectorAll('[role="tab"]')).map((tab) => {
             const r = tab.getBoundingClientRect();
-            return { top: r.top, width: r.width, height: r.height, label: tab.textContent, clipped: tab.scrollWidth > tab.clientWidth };
-          }));
+            return {
+              top: r.top,
+              width: r.width,
+              height: r.height,
+              label: tab.textContent,
+              clipped: tab.scrollWidth > tab.clientWidth,
+            };
+          }),
+        );
         if (width <= 390) {
-          assert(tabs.every((t) => Math.abs(t.top - tabs[0].top) < 1 && t.height >= 44 && t.width >= 80 && !t.clipped));
+          assert(
+            tabs.every(
+              (t) =>
+                Math.abs(t.top - tabs[0].top) < 1 && t.height >= 44 && t.width >= 80 && !t.clipped,
+            ),
+          );
           await capture(`tabs-${width}-${theme}`);
         }
         await page.locator(".staff-hr-attendance-overview").scrollIntoViewIfNeeded();
         await capture(`day-closed-disabled-${width}-${theme}`);
-        checks.push({ name: "polish tabs, keyboard, helper and closed controls", width, theme, tabs, disabledControl: control });
+        checks.push({
+          name: "polish tabs, keyboard, helper and closed controls",
+          width,
+          theme,
+          tabs,
+          disabledControl: control,
+        });
         await main().evaluate((el) => el.scrollTo({ top: 0, behavior: "instant" }));
       }
       const g = await geometry(`${width}-${theme}`);

@@ -1,0 +1,488 @@
+{
+  "baseline": "a3e7975e30e758a77741fa2b0b2d1203096858d3",
+  "description": "Exact 120 prior failing paths; pureFormatting compares current bytes to Prettier applied to committed HEAD. False entries have separately documented purposeful corrections.",
+  "paths": [
+    {
+      "path": "src/app/(staff)/layout.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/app/api/v1/documents/route.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/app/api/v1/documents/search/route.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/app/api/v1/notifications/route.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/client/queries/collection.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/client/queries/communication.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/client/queries/crm.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/client/queries/documents.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/client/queries/identity.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/branding/firm-brand.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/cases/case-create-dialog.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/cases/case-hearing-dialog.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/cases/cases-workspace.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/cases/staff-cases-list.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/chat/luxury-chat-bubble.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/chat/luxury-chat-composer.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/chat/luxury-dm-panel.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/dashboard/dual-date-display.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/dashboard/portal-mobile-nav.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/dashboard/staff-paged-collection.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/documents/TemplateGeneratorModal.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/messages/MatterChatPanel.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/tasks/DueDateFields.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/tasks/TaskCalendarView.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/tasks/TaskWorkloadView.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/ui/bs-date-field.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/ui/collection-continuation.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/ui/court-select.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/components/ui/notification-bell.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/hooks/use-pagination.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/index.css",
+      "pureFormatting": true,
+      "formatterPasses": 2,
+      "evidence": ".local/qa/session-18c/css-second-format-proof.json"
+    },
+    {
+      "path": "src/lib/dashboard-format.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/lib/lex-constants.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/lib/nepal-courts.json",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/lib/nepal-courts.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/lib/nepali-calendar.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/lib/operational-navigation.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/lib/task-constants.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/repositories/collection-continuation.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/repositories/communication-repository.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/repositories/dm-repository.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/repositories/document-repository.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/repositories/identity-repository.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/services/communication-service.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/services/document-service.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/services/hr-notifications.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/services/identity-service.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/server/services/work-management-service.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/shared/collection-page.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/shared/crm/appointment-dates.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/shared/message-cursor.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/AdminAppointmentsPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/AdminAuditPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/AdminCRMPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/AdminUsersPage.tsx",
+      "pureFormatting": false
+    },
+    {
+      "path": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/cms/AdminCMSHomepage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/cms/AdminCMSNews.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/cms/AdminCMSResources.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/admin/cms/AdminCMSTeam.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/auth/MfaEnrollmentPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/auth/SignInPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientBookingPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientCaseDetailPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientCasesPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientChecklistPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientDashboard.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientHearingsPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientNotificationsPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/client/ClientSignaturesPage.tsx",
+      "pureFormatting": false
+    },
+    {
+      "path": "src/views/public/BlogPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/public/ResourcesPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/staff-appointments-model.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/staff-clients-model.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/staff-content-model.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/staff-crm-model.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffAppointmentCalendar.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffAppointmentsPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffCaseDetailPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffClientsWorkspace.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffContentMarkdownEditor.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffContentPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffContentWritePage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffCRMPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffDashboard.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffDocumentsPage.tsx",
+      "pureFormatting": false
+    },
+    {
+      "path": "src/views/staff/StaffHearingsPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffHRPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffMessagesPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffResearchPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "src/views/staff/StaffTasksPage.tsx",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/cms/verify-local.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/local/verify-auth-baseline.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-application-integration.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-court-registry.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-date-system.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-kpi-icons.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-retrieval-continuation.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-staff-hr.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-staff-navigation.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-staff-pagination.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "scripts/qa/verify-staff-tasks.mjs",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/e2e/staff-appointments.spec.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/integration/retrieval-continuation.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/collection-query.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/collection-request-isolation.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/contact-frame-policy.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/cui-17-b1-rendered-states.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/cui-20-query-workflows.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/message-cursor.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/message-pagination.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/nepal-courts.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/nepali-calendar.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/nepali-date-reminders.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/staff-clients-model.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/staff-content-markdown.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/staff-crm-model.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/staff-messages-nav.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/staff-pagination.test.ts",
+      "pureFormatting": true
+    },
+    {
+      "path": "tests/unit/staff-responsive-navigation.test.ts",
+      "pureFormatting": true
+    }
+  ]
+}

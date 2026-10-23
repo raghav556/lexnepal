@@ -1,14 +1,20 @@
-
 import { useI18n } from "@/lib/i18n-context";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { StatusBadge, getDashboardStatusTone } from "@/components/dashboard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { eachDayOfInterval, format } from "date-fns";
 import {
-  eachDayOfInterval,
-  format,
-} from "date-fns";
-import { calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth, nepalDateOnly, viewDateIso } from "@/lib/nepali-calendar";
+  calendarMonthBounds,
+  calendarMonthLabel,
+  calendarDayLabel,
+  calendarDateLabel,
+  calendarWeekdays,
+  shiftCalendarMonth,
+  canShiftCalendarMonth,
+  nepalDateOnly,
+  viewDateIso,
+} from "@/lib/nepali-calendar";
 import { isTaskOverdue } from "@/lib/task-constants.ts";
 import { cn } from "@/lib/utils.ts";
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
@@ -31,12 +37,18 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
     return eachDayOfInterval({ start, end });
   }, [currentMonth, language]);
 
-  const startPad = new Date(`${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`).getDay(); // 0=Sun
+  const startPad = new Date(
+    `${calendarMonthBounds(viewDateIso(currentMonth), language).start}T12:00:00`,
+  ).getDay(); // 0=Sun
 
   const tasksByDay = (day: Date) =>
     tasks.filter((t) => {
       if (!t.dueDate) return false;
-      try { return nepalDateOnly(t.dueDate) === viewDateIso(day); } catch { return false; }
+      try {
+        return nepalDateOnly(t.dueDate) === viewDateIso(day);
+      } catch {
+        return false;
+      }
     });
 
   return (
@@ -47,7 +59,9 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
       tabIndex={0}
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-serif text-lg font-bold">{calendarMonthLabel(viewDateIso(currentMonth), language)}</h3>
+        <h3 className="font-serif text-lg font-bold">
+          {calendarMonthLabel(viewDateIso(currentMonth), language)}
+        </h3>
         <div className="flex gap-1">
           <Button
             size="icon"
@@ -55,11 +69,19 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
             className="h-8 w-8"
             aria-label="Previous month"
             disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), -1, language)}
-            onClick={() => setCurrentMonth((m) => new Date(`${shiftCalendarMonth(viewDateIso(m), -1, language)}T12:00:00`))}
+            onClick={() =>
+              setCurrentMonth(
+                (m) => new Date(`${shiftCalendarMonth(viewDateIso(m), -1, language)}T12:00:00`),
+              )
+            }
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setCurrentMonth(new Date(`${nepalDateOnly()}T12:00:00`))}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setCurrentMonth(new Date(`${nepalDateOnly()}T12:00:00`))}
+          >
             Today
           </Button>
           <Button
@@ -68,7 +90,11 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
             className="h-8 w-8"
             aria-label="Next month"
             disabled={!canShiftCalendarMonth(viewDateIso(currentMonth), 1, language)}
-            onClick={() => setCurrentMonth((m) => new Date(`${shiftCalendarMonth(viewDateIso(m), 1, language)}T12:00:00`))}
+            onClick={() =>
+              setCurrentMonth(
+                (m) => new Date(`${shiftCalendarMonth(viewDateIso(m), 1, language)}T12:00:00`),
+              )
+            }
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -88,7 +114,9 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
           const dayKey = viewDateIso(day);
           return (
             <div
-              key={day.toISOString()} data-date={dayKey} data-calendar-system={language === "ne" ? "bs" : "ad"}
+              key={day.toISOString()}
+              data-date={dayKey}
+              data-calendar-system={language === "ne" ? "bs" : "ad"}
               className={cn(
                 "min-h-[100px] rounded-lg border border-border/50 p-1.5 bg-card/40",
                 viewDateIso(day) === nepalDateOnly() && "border-primary/50 bg-primary/5",
@@ -96,7 +124,6 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
             >
               <div className="flex items-baseline justify-between gap-1 mb-1">
                 <span className="text-xs font-bold">{calendarDayLabel(dayKey, language)}</span>
-
               </div>
               <div className="space-y-0.5">
                 {dayTasks.slice(0, 3).map((t) => (
@@ -119,17 +146,23 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
                     {t.title}
                   </button>
                 ))}
-                {dayTasks.length > 3 && (staffPaging ? (
-                  <Button type="button" variant="ghost" size="sm" className="min-h-8 h-auto px-1 text-[10px]"
-                    aria-label={`View all ${dayTasks.length} tasks on ${format(day, "yyyy-MM-dd")}`}
-                    onClick={() => setSelectedDay(day)}>
-                    +{dayTasks.length - 3} more
-                  </Button>
-                ) : (
-                  <p className="text-[9px] text-muted-foreground px-1">
-                    +{dayTasks.length - 3} more
-                  </p>
-                ))}
+                {dayTasks.length > 3 &&
+                  (staffPaging ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-8 h-auto px-1 text-[10px]"
+                      aria-label={`View all ${dayTasks.length} tasks on ${format(day, "yyyy-MM-dd")}`}
+                      onClick={() => setSelectedDay(day)}
+                    >
+                      +{dayTasks.length - 3} more
+                    </Button>
+                  ) : (
+                    <p className="text-[9px] text-muted-foreground px-1">
+                      +{dayTasks.length - 3} more
+                    </p>
+                  ))}
               </div>
             </div>
           );
@@ -138,12 +171,25 @@ export function TaskCalendarView({ tasks, onOpen, staffPaging = false }: Props) 
       {staffPaging && selectedDay && (
         <section aria-label={`Tasks on ${format(selectedDay, "yyyy-MM-dd")}`} className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-semibold">Tasks on {calendarDateLabel(viewDateIso(selectedDay), language)}</h3>
-            <Button type="button" variant="outline" size="sm" onClick={() => setSelectedDay(null)}>Close day list</Button>
+            <h3 className="font-semibold">
+              Tasks on {calendarDateLabel(viewDateIso(selectedDay), language)}
+            </h3>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSelectedDay(null)}>
+              Close day list
+            </Button>
           </div>
-          <StaffPagedCollection label="Calendar day tasks" resetKey={format(selectedDay, "yyyy-MM-dd")}>
+          <StaffPagedCollection
+            label="Calendar day tasks"
+            resetKey={format(selectedDay, "yyyy-MM-dd")}
+          >
             {tasksByDay(selectedDay).map((task) => (
-              <Button type="button" variant="outline" key={task._id} className="block max-w-full whitespace-normal text-left h-auto min-h-10" onClick={() => onOpen(task)}>
+              <Button
+                type="button"
+                variant="outline"
+                key={task._id}
+                className="block max-w-full whitespace-normal text-left h-auto min-h-10"
+                onClick={() => onOpen(task)}
+              >
                 {task.title}
               </Button>
             ))}

@@ -4,14 +4,25 @@ import { spawnSync } from "node:child_process";
 // Reuse existing role fixtures, real route navigation and complete write interception.
 const out = ".local/qa/session-17f";
 fs.mkdirSync(out, { recursive: true });
-const shared = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\r\n", "\n");
+const shared = fs
+  .readFileSync("scripts/qa/verify-account-profile.mjs", "utf8")
+  .replaceAll("\r\n", "\n");
 const boundary = shared.indexOf("if (publicContrastOnly) {\n  assert.equal(prior.results.length");
-const paging = fs.readFileSync("scripts/qa/verify-staff-pagination.mjs", "utf8").replaceAll("\r\n", "\n");
-const start = paging.indexOf("async function paginationAudit()"), end = paging.indexOf("  async function exercise(label)");
-if (boundary < 0 || start < 0 || end < 0) throw new Error("Review committed QA fixture boundaries.");
-const fixtures = paging.slice(start, end).replace("async function paginationAudit()", "async function courtAudit()")
-  .replace('description: "Synthetic matter.",', 'description: "Synthetic matter.", court: courtFixture,')
-  .replaceAll('court: "Supreme Court",', 'court: courtFixture,')
+const paging = fs
+  .readFileSync("scripts/qa/verify-staff-pagination.mjs", "utf8")
+  .replaceAll("\r\n", "\n");
+const start = paging.indexOf("async function paginationAudit()"),
+  end = paging.indexOf("  async function exercise(label)");
+if (boundary < 0 || start < 0 || end < 0)
+  throw new Error("Review committed QA fixture boundaries.");
+const fixtures = paging
+  .slice(start, end)
+  .replace("async function paginationAudit()", "async function courtAudit()")
+  .replace(
+    'description: "Synthetic matter.",',
+    'description: "Synthetic matter.", court: courtFixture,',
+  )
+  .replaceAll('court: "Supreme Court",', "court: courtFixture,")
   .replace('waitUntil: "domcontentloaded"', 'waitUntil: "commit", timeout: 90000');
 const checks = String.raw`
   async function languageChoice(language) {
@@ -265,5 +276,14 @@ const checks = String.raw`
 await courtAudit();
 `;
 const worker = out + "/court-worker.mjs";
-fs.writeFileSync(worker, shared.slice(0, boundary).replace('const out = ".local/qa/session-17a";', `const out = "${out}";`) + '\nlet courtFixture = "High Court — Butwal";\n' + fixtures + checks);
-process.exitCode = spawnSync(process.execPath, [worker, ...process.argv.slice(2)], { stdio: "inherit" }).status ?? 1;
+fs.writeFileSync(
+  worker,
+  shared
+    .slice(0, boundary)
+    .replace('const out = ".local/qa/session-17a";', `const out = "${out}";`) +
+    '\nlet courtFixture = "High Court — Butwal";\n' +
+    fixtures +
+    checks,
+);
+process.exitCode =
+  spawnSync(process.execPath, [worker, ...process.argv.slice(2)], { stdio: "inherit" }).status ?? 1;

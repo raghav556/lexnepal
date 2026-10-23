@@ -14,7 +14,17 @@ export function Providers({ children }: { children: ReactNode }) {
         <AuthProvider>
           {children}
           <ThemeEngine />
-          <Toaster richColors position="top-right" />
+          <Toaster
+            richColors
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "var(--card)",
+                color: "var(--card-foreground)",
+                borderColor: "var(--border)",
+              },
+            }}
+          />
         </AuthProvider>
       </DataProvider>
     </I18nProvider>

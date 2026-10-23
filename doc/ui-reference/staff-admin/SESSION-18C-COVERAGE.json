@@ -1,0 +1,145 @@
+{
+  "baseline": "a3e7975e30e758a77741fa2b0b2d1203096858d3",
+  "inheritedLedger": {
+    "path": "SESSION-18B-COVERAGE.json",
+    "sha256": "d5582cf04fd5ce150bef47b6421f914b21878408ad0444257aed2934ba125bc2",
+    "handlersPointer": "/handlers",
+    "workflowPointer": "/workflow"
+  },
+  "interpretation": "Apply only these seven declaration updates to the complete inherited ledger. All remaining rows/status/scopes remain unchanged. No anonymous or intercepted UI evidence certifies authenticated HTTP success, cross-tenant branches, upload storage or external delivery.",
+  "stats": {
+    "handlers": 164,
+    "methods": 219,
+    "methodContractsPassed": 219,
+    "directSessionMethods": 184,
+    "actualPublicAnonymousMethods": 35,
+    "workflowDeclarations": 276,
+    "declarationsWithSpecificOrInheritedEvidence": 42,
+    "declarationsWithoutSpecificExecutionProof": 234
+  },
+  "workflowUpdates": [
+    {
+      "file": "src/components/ui/confirm-dialog.tsx",
+      "line": 34,
+      "component": "Dialog",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Only Admin suspension/MFA reset/revoke confirmations: cancel,403 retained state,identical retry; not other callers",
+      "evidence": ".local/qa/session-18c/critical-users.json"
+    },
+    {
+      "file": "src/views/admin/AdminUsersPage.tsx",
+      "line": 815,
+      "component": "Sheet",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Drawer name/labels,Tab/reverse Tab wrap,child Escape/focus restoration; sensitive commands intercepted",
+      "evidence": ".local/qa/session-18c/critical-users.json"
+    },
+    {
+      "file": "src/views/client/ClientSignaturesPage.tsx",
+      "line": 931,
+      "component": "Dialog",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Real PDF viewing,OTP,explicit consent and typed-finalization denial/retry; no external signing delivery",
+      "evidence": ".local/qa/session-18c/critical-signing.json"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1305,
+      "component": "Dialog",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Populated document details,legal hold and version controls; mobile detail dialog",
+      "evidence": ".local/qa/session-18c/critical-documents.json"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1358,
+      "component": "Dialog",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "New-version dialog labels/open/Escape only; actual upload/scanning/promotion NOT TESTED",
+      "evidence": ".local/qa/session-18c/critical-documents.json"
+    },
+    {
+      "file": "src/views/staff/StaffDocumentsPage.tsx",
+      "line": 1478,
+      "component": "Dialog",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Envelope selected signer/routing/date; one draft across denied-send retry; dispatch intercepted",
+      "evidence": ".local/qa/session-18c/critical-documents.json"
+    },
+    {
+      "file": "src/components/documents/DocumentShareModal.tsx",
+      "line": 98,
+      "component": "Dialog",
+      "coordinateBaseline": "a228e1658df473044b37a92cf60b4eb6cb67661a",
+      "status": "PASS",
+      "scope": "Password validation,expiration control name,download limits/flag,403 preservation,retry and generated field/actions; no external delivery",
+      "evidence": ".local/qa/session-18c/critical-documents.json"
+    }
+  ],
+  "additionalExecution": [
+    {
+      "surface": "/client/kyc",
+      "scope": "MIME rejection and both upload-intent denials; retryable controls and SHA256/request identity. Positive upload/scan/KYC submission NOT TESTED",
+      "evidence": ".local/qa/session-18c/critical-kyc.json"
+    }
+  ],
+  "remainingAuthenticatedHttp": "NOT TESTED exhaustively; preserve every explicit per-method gap in the inherited ledger",
+  "browsers": [
+    {
+      "mode": "users",
+      "evidence": ".local/qa/session-18c/critical-users.json",
+      "exitEvidence": ".local/qa/session-18c/critical-users-production.exit",
+      "groups": 6,
+      "scans": 8,
+      "interceptedRequests": 12,
+      "browserExceptions": 0,
+      "liveTestMutations": 0
+    },
+    {
+      "mode": "signing",
+      "evidence": ".local/qa/session-18c/critical-signing.json",
+      "exitEvidence": ".local/qa/session-18c/critical-signing-production.exit",
+      "groups": 2,
+      "scans": 2,
+      "interceptedRequests": 10,
+      "browserExceptions": 0,
+      "liveTestMutations": 0
+    },
+    {
+      "mode": "documents",
+      "evidence": ".local/qa/session-18c/critical-documents.json",
+      "exitEvidence": ".local/qa/session-18c/critical-documents-verified.exit",
+      "groups": 10,
+      "scans": 10,
+      "interceptedRequests": 16,
+      "browserExceptions": 0,
+      "liveTestMutations": 0
+    },
+    {
+      "mode": "integration",
+      "evidence": ".local/qa/session-18c/critical-integration.json",
+      "exitEvidence": ".local/qa/session-18c/critical-integration-verified.exit",
+      "groups": 4,
+      "scans": 4,
+      "interceptedRequests": 0,
+      "browserExceptions": 0,
+      "liveTestMutations": 0
+    },
+    {
+      "mode": "kyc",
+      "evidence": ".local/qa/session-18c/critical-kyc.json",
+      "exitEvidence": ".local/qa/session-18c/critical-kyc-verified.exit",
+      "groups": 2,
+      "scans": 2,
+      "interceptedRequests": 4,
+      "browserExceptions": 0,
+      "liveTestMutations": 0
+    }
+  ]
+}

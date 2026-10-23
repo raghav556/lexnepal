@@ -12,7 +12,9 @@ describe("staff unified messages navigation", () => {
     const links = STAFF_NAV.filter((item) => item.href);
     expect(links.filter((item) => item.label === "Messages")).toHaveLength(1);
     expect(links.some((item) => item.href === "/staff/team-chat")).toBe(false);
-    expect(getOperationalSearchPages("staff").some((page) => page.href === "/staff/team-chat")).toBe(false);
+    expect(
+      getOperationalSearchPages("staff").some((page) => page.href === "/staff/team-chat"),
+    ).toBe(false);
   });
 
   it("removes the Staff command center and keeps the Admin one", () => {

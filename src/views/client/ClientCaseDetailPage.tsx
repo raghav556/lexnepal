@@ -138,7 +138,9 @@ function downloadHearingIcs(input: {
   URL.revokeObjectURL(url);
 }
 
-function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") { return bsDateParts(dateGregorian, language); }
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") {
+  return bsDateParts(dateGregorian, language);
+}
 
 function notificationBelongsToMatter(notification: ClientNotification, matterId: string): boolean {
   const related = String(notification.relatedId ?? "").trim();
@@ -300,7 +302,9 @@ export default function ClientCaseDetailPage() {
   const advocateName = advocate?.name?.trim() ? advocate.name : "Unassigned";
   const lifecycle = toLifecycleStatus(caseData.status);
   const statusLabel = CASE_LIFECYCLE_LABELS[lifecycle];
-  const courtLabel = caseData.court?.trim() ? formatCourtName(caseData.court, language) : "Not specified";
+  const courtLabel = caseData.court?.trim()
+    ? formatCourtName(caseData.court, language)
+    : "Not specified";
   const visibleParties = caseData.parties ?? [];
   const opposingParties = visibleParties.filter((party) => party.side === "opposing");
   const nextHearingParts = hearingDateParts(nextHearing?.dateGregorian, language);
@@ -648,7 +652,13 @@ export default function ClientCaseDetailPage() {
                           {nextHearing.dateBs ? (
                             <li>
                               <CalendarDays className="size-3.5" aria-hidden />
-                              <span>{formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs, language)}</span>
+                              <span>
+                                {formatOperationalDate(
+                                  nextHearing.dateGregorian,
+                                  nextHearing.dateBs,
+                                  language,
+                                )}
+                              </span>
                             </li>
                           ) : null}
                         </ul>
@@ -1136,9 +1146,7 @@ export default function ClientCaseDetailPage() {
                                 {sender?.name || "Legal Team"}
                               </span>
                               <span>
-                                {msg._creationTime
-                                  ? formatNepalTimestamp(msg._creationTime)
-                                  : ""}
+                                {msg._creationTime ? formatNepalTimestamp(msg._creationTime) : ""}
                               </span>
                             </div>
                             <p className="whitespace-pre-wrap text-sm leading-relaxed">

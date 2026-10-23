@@ -4,16 +4,33 @@ import { spawnSync } from "node:child_process";
 // Reuse the committed role/session fixtures and complete API interception.
 const out = ".local/qa/session-17e";
 fs.mkdirSync(out, { recursive: true });
-const shared = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\r\n", "\n").replace('localStorage.setItem("lexnepal_lang", "en");', 'if (!localStorage.getItem("lexnepal_lang")) localStorage.setItem("lexnepal_lang", "en");');
+const shared = fs
+  .readFileSync("scripts/qa/verify-account-profile.mjs", "utf8")
+  .replaceAll("\r\n", "\n")
+  .replace(
+    'localStorage.setItem("lexnepal_lang", "en");',
+    'if (!localStorage.getItem("lexnepal_lang")) localStorage.setItem("lexnepal_lang", "en");',
+  );
 const boundary = shared.indexOf("if (publicContrastOnly) {\n  assert.equal(prior.results.length");
-const paging = fs.readFileSync("scripts/qa/verify-staff-pagination.mjs", "utf8").replaceAll("\r\n", "\n");
+const paging = fs
+  .readFileSync("scripts/qa/verify-staff-pagination.mjs", "utf8")
+  .replaceAll("\r\n", "\n");
 const setupStart = paging.indexOf("async function paginationAudit()");
 const setupEnd = paging.indexOf("  async function exercise(label)");
-if (boundary < 0 || setupStart < 0 || setupEnd < 0) throw new Error("Review committed QA fixture boundaries.");
-const fixtures = paging.slice(setupStart, setupEnd).replace("async function paginationAudit()", "async function dateAudit()")
-  .replace('role === "staff" ? "#staff-main-canvas" : "main"', 'path.startsWith("/staff") ? "#staff-main-canvas" : "main"')
+if (boundary < 0 || setupStart < 0 || setupEnd < 0)
+  throw new Error("Review committed QA fixture boundaries.");
+const fixtures = paging
+  .slice(setupStart, setupEnd)
+  .replace("async function paginationAudit()", "async function dateAudit()")
+  .replace(
+    'role === "staff" ? "#staff-main-canvas" : "main"',
+    'path.startsWith("/staff") ? "#staff-main-canvas" : "main"',
+  )
   .replace('waitUntil: "domcontentloaded"', 'waitUntil: "commit", timeout: 90000')
-  .replace('await applyTheme();\n    await page.waitForTimeout(350);', 'await page.locator("h1").first().waitFor({ timeout: 45000 });\n    await applyTheme();\n    await page.waitForTimeout(350);');
+  .replace(
+    "await applyTheme();\n    await page.waitForTimeout(350);",
+    'await page.locator("h1").first().waitFor({ timeout: 45000 });\n    await applyTheme();\n    await page.waitForTimeout(350);',
+  );
 const checks = String.raw`
   async function scan(label, scope) {
     const result = await new AxeBuilder({ page }).include(scope).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
@@ -921,5 +938,17 @@ const checks = String.raw`
 await dateAudit();
 `;
 const worker = out + "/date-worker.mjs";
-fs.writeFileSync(worker, shared.slice(0, boundary).replace('const out = ".local/qa/session-17a";', `const out = "${out}";`).replace('timezoneId: "Asia/Kathmandu"', 'timezoneId: process.env.DATE_QA_TIMEZONE || "Asia/Kathmandu"') + fixtures + checks);
-process.exitCode = spawnSync(process.execPath, [worker, ...process.argv.slice(2)], { stdio: "inherit" }).status ?? 1;
+fs.writeFileSync(
+  worker,
+  shared
+    .slice(0, boundary)
+    .replace('const out = ".local/qa/session-17a";', `const out = "${out}";`)
+    .replace(
+      'timezoneId: "Asia/Kathmandu"',
+      'timezoneId: process.env.DATE_QA_TIMEZONE || "Asia/Kathmandu"',
+    ) +
+    fixtures +
+    checks,
+);
+process.exitCode =
+  spawnSync(process.execPath, [worker, ...process.argv.slice(2)], { stdio: "inherit" }).status ?? 1;

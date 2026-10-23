@@ -22,7 +22,9 @@ describe("message history cursors", () => {
     expect(decodeMessageCursor("")).toBeNull();
     expect(decodeMessageCursor("not-base64")).toBeNull();
     expect(() => encodeMessageCursor("2026-10-19T04:00:00.000Z", "nope")).toThrow();
-    expect(decodeMessageCursor(Buffer.from('{"t":"bad","i":"nope"}', "utf8").toString("base64url"))).toBeNull();
+    expect(
+      decodeMessageCursor(Buffer.from('{"t":"bad","i":"nope"}', "utf8").toString("base64url")),
+    ).toBeNull();
   });
 
   it("orders equal timestamps by id", () => {

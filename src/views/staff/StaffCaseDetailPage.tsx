@@ -454,14 +454,22 @@ export default function StaffCaseDetailPage() {
             <StaffHeroChipRow>
               <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
               <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
-              <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents loaded" />
+              <HeroStatChip
+                icon={FileArchive}
+                value={mislDocuments.length}
+                label="documents loaded"
+              />
             </StaffHeroChipRow>
           </div>
         ) : (
           <StaffHeroChipRow>
             <HeroStatChip icon={CalendarDays} value={hearings.length} label="hearings" />
             <HeroStatChip icon={CheckSquare} value={tasks.length} label="tasks" />
-            <HeroStatChip icon={FileArchive} value={mislDocuments.length} label="documents loaded" />
+            <HeroStatChip
+              icon={FileArchive}
+              value={mislDocuments.length}
+              label="documents loaded"
+            />
           </StaffHeroChipRow>
         )
       }
@@ -504,7 +512,13 @@ export default function StaffCaseDetailPage() {
                   >
                     Court
                   </label>
-                  <CourtSelect id="detail-court" aria-label="Court" preserveLegacy value={court} onValueChange={setCourt} />
+                  <CourtSelect
+                    id="detail-court"
+                    aria-label="Court"
+                    preserveLegacy
+                    value={court}
+                    onValueChange={setCourt}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label
@@ -765,28 +779,37 @@ export default function StaffCaseDetailPage() {
                   <p className="text-sm text-muted-foreground">No team members assigned.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {<StaffPagedCollection label="Case team" resetKey={String(caseId)} enabled={portal === "staff"} footerAs="li">{teamRoster.map((member: any) => {
-                      const isLead =
-                        member._id === caseData.assignedLawyerId ||
-                        member.id === caseData.assignedLawyerId;
-                      return (
-                        <li
-                          key={member._id || member.id}
-                          className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
-                        >
-                          <span>{member.name || member.email}</span>
-                          {isLead ? (
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                              Responsible Lawyer
-                            </span>
-                          ) : (
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                              Team
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}</StaffPagedCollection>}
+                    {
+                      <StaffPagedCollection
+                        label="Case team"
+                        resetKey={String(caseId)}
+                        enabled={portal === "staff"}
+                        footerAs="li"
+                      >
+                        {teamRoster.map((member: any) => {
+                          const isLead =
+                            member._id === caseData.assignedLawyerId ||
+                            member.id === caseData.assignedLawyerId;
+                          return (
+                            <li
+                              key={member._id || member.id}
+                              className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
+                            >
+                              <span>{member.name || member.email}</span>
+                              {isLead ? (
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  Responsible Lawyer
+                                </span>
+                              ) : (
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  Team
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </StaffPagedCollection>
+                    }
                   </ul>
                 )}
               </DashboardSection>
@@ -811,23 +834,32 @@ export default function StaffCaseDetailPage() {
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {<StaffPagedCollection label="Case parties" resetKey={String(caseId)} enabled={portal === "staff"} footerAs="li">{parties.map((party) => (
-                      <li
-                        key={party.id}
-                        className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
+                    {
+                      <StaffPagedCollection
+                        label="Case parties"
+                        resetKey={String(caseId)}
+                        enabled={portal === "staff"}
+                        footerAs="li"
                       >
-                        <span>
-                          {party.name}
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {CASE_PARTY_SIDE_LABELS[party.side]}
-                            {party.roleLabel ? ` · ${party.roleLabel}` : ""}
-                          </span>
-                        </span>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {party.clientVisible ? "Visible to client" : "Staff only"}
-                        </span>
-                      </li>
-                    ))}</StaffPagedCollection>}
+                        {parties.map((party) => (
+                          <li
+                            key={party.id}
+                            className="flex items-center justify-between rounded-md border border-dashboard-border px-3 py-2 text-sm"
+                          >
+                            <span>
+                              {party.name}
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {CASE_PARTY_SIDE_LABELS[party.side]}
+                                {party.roleLabel ? ` · ${party.roleLabel}` : ""}
+                              </span>
+                            </span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              {party.clientVisible ? "Visible to client" : "Staff only"}
+                            </span>
+                          </li>
+                        ))}
+                      </StaffPagedCollection>
+                    }
                   </ul>
                 )}
               </DashboardSection>
@@ -880,63 +912,69 @@ export default function StaffCaseDetailPage() {
                         No tasks assigned.
                       </p>
                     ) : (
-                      <StaffPagedCollection label="Case tasks" resetKey={String(caseId)} enabled={portal === "staff"}>{tasks.map((task: any) => {
-                        const assignee = users.find((u: any) => u._id === task.assignedTo);
-                        const dueLabel = formatTaskDue(task);
-                        return (
-                          <div
-                            key={task._id}
-                            data-detail-task={portal === "staff" ? task.status : undefined}
-                            className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${task.status === "done" || task.status === "cancelled" ? "bg-secondary/40 border-border/50 opacity-60" : "bg-card hover:border-primary/30"}`}
-                          >
-                            <div className="flex items-start gap-3 w-full">
-                              <input
-                                type="checkbox"
-                                aria-label={
-                                  portal === "staff" ? `Completion: ${task.title}` : undefined
-                                }
-                                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                                checked={task.status === "done"}
-                                disabled={task.status === "cancelled"}
-                                onChange={(e) => {
-                                  updateTask({
-                                    taskId: task._id,
-                                    status: e.target.checked ? "done" : "in_progress",
-                                  }).catch(() => toast.error("Failed to update"));
-                                }}
-                              />
-                              <div className="flex-1">
-                                <p
-                                  className={cn(
-                                    "text-sm font-semibold",
-                                    (task.status === "done" || task.status === "cancelled") &&
-                                      "line-through text-muted-foreground",
-                                  )}
-                                >
-                                  {task.title}
-                                </p>
-                                <div className="flex flex-wrap gap-2 items-center mt-1.5">
-                                  {dueLabel && (
-                                    <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">
-                                      Due: {dueLabel}
-                                    </span>
-                                  )}
-                                  <StatusBadge tone="neutral" className="text-[10px] h-4 py-0">
-                                    {assignee?.name || "Unassigned"}
-                                  </StatusBadge>
-                                  <DashboardStatusLabel
-                                    status={task.priority}
-                                    className="text-[9px] h-4 py-0 uppercase tracking-wider"
-                                  />
-                                  {portal === "staff" ? (
-                                    <DashboardStatusLabel status={task.status} />
-                                  ) : null}
+                      <StaffPagedCollection
+                        label="Case tasks"
+                        resetKey={String(caseId)}
+                        enabled={portal === "staff"}
+                      >
+                        {tasks.map((task: any) => {
+                          const assignee = users.find((u: any) => u._id === task.assignedTo);
+                          const dueLabel = formatTaskDue(task);
+                          return (
+                            <div
+                              key={task._id}
+                              data-detail-task={portal === "staff" ? task.status : undefined}
+                              className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${task.status === "done" || task.status === "cancelled" ? "bg-secondary/40 border-border/50 opacity-60" : "bg-card hover:border-primary/30"}`}
+                            >
+                              <div className="flex items-start gap-3 w-full">
+                                <input
+                                  type="checkbox"
+                                  aria-label={
+                                    portal === "staff" ? `Completion: ${task.title}` : undefined
+                                  }
+                                  className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                  checked={task.status === "done"}
+                                  disabled={task.status === "cancelled"}
+                                  onChange={(e) => {
+                                    updateTask({
+                                      taskId: task._id,
+                                      status: e.target.checked ? "done" : "in_progress",
+                                    }).catch(() => toast.error("Failed to update"));
+                                  }}
+                                />
+                                <div className="flex-1">
+                                  <p
+                                    className={cn(
+                                      "text-sm font-semibold",
+                                      (task.status === "done" || task.status === "cancelled") &&
+                                        "line-through text-muted-foreground",
+                                    )}
+                                  >
+                                    {task.title}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 items-center mt-1.5">
+                                    {dueLabel && (
+                                      <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">
+                                        Due: {dueLabel}
+                                      </span>
+                                    )}
+                                    <StatusBadge tone="neutral" className="text-[10px] h-4 py-0">
+                                      {assignee?.name || "Unassigned"}
+                                    </StatusBadge>
+                                    <DashboardStatusLabel
+                                      status={task.priority}
+                                      className="text-[9px] h-4 py-0 uppercase tracking-wider"
+                                    />
+                                    {portal === "staff" ? (
+                                      <DashboardStatusLabel status={task.status} />
+                                    ) : null}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}</StaffPagedCollection>
+                          );
+                        })}
+                      </StaffPagedCollection>
                     )}
                   </div>
                 </DashboardSection>
@@ -953,24 +991,30 @@ export default function StaffCaseDetailPage() {
                   {practiceSops.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No SOP templates configured.</p>
                   ) : (
-                    <StaffPagedCollection label="Case SOP templates" resetKey={String(caseId)} enabled={portal === "staff"}>{practiceSops.map((sop: any) => (
-                      <Button
-                        key={sop._id}
-                        variant="outline"
-                        className="w-full justify-start text-left h-auto py-3 bg-background hover:bg-primary/5 hover:text-primary transition-all group border-border"
-                        onClick={() => triggerSOP(sop.key)}
-                        disabled={isAddingTask}
-                      >
-                        <div>
-                          <div className="font-semibold text-sm group-hover:underline">
-                            {sop.label}
+                    <StaffPagedCollection
+                      label="Case SOP templates"
+                      resetKey={String(caseId)}
+                      enabled={portal === "staff"}
+                    >
+                      {practiceSops.map((sop: any) => (
+                        <Button
+                          key={sop._id}
+                          variant="outline"
+                          className="w-full justify-start text-left h-auto py-3 bg-background hover:bg-primary/5 hover:text-primary transition-all group border-border"
+                          onClick={() => triggerSOP(sop.key)}
+                          disabled={isAddingTask}
+                        >
+                          <div>
+                            <div className="font-semibold text-sm group-hover:underline">
+                              {sop.label}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                              {sop.taskTitles?.length || 0} tasks · {sop.practiceArea || "general"}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                            {sop.taskTitles?.length || 0} tasks · {sop.practiceArea || "general"}
-                          </div>
-                        </div>
-                      </Button>
-                    ))}</StaffPagedCollection>
+                        </Button>
+                      ))}
+                    </StaffPagedCollection>
                   )}
                 </DashboardSection>
               </div>
@@ -998,23 +1042,35 @@ export default function StaffCaseDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {<StaffPagedCollection label="Case hearings" resetKey={String(caseId)} enabled={portal === "staff"}>{(hearings as any[]).map((hearing) => (
-                    <div
-                      key={hearing._id || hearing.id}
-                      data-detail-hearing={portal === "staff" ? "" : undefined}
-                      className="flex items-center justify-between rounded-lg border border-dashboard-border p-3"
+                  {
+                    <StaffPagedCollection
+                      label="Case hearings"
+                      resetKey={String(caseId)}
+                      enabled={portal === "staff"}
                     >
-                      <div>
-                        <p className="text-sm font-semibold">{hearing.purpose || "Hearing"}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatCourtName(hearing.court || caseData.court, language)} · {hearing.status}
-                        </p>
-                      </div>
-                      {hearing.dateGregorian || hearing.dateBs ? (
-                        <DualDateDisplay isoDate={hearing.dateGregorian} recordedBs={hearing.dateBs} />
-                      ) : null}
-                    </div>
-                  ))}</StaffPagedCollection>}
+                      {(hearings as any[]).map((hearing) => (
+                        <div
+                          key={hearing._id || hearing.id}
+                          data-detail-hearing={portal === "staff" ? "" : undefined}
+                          className="flex items-center justify-between rounded-lg border border-dashboard-border p-3"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold">{hearing.purpose || "Hearing"}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatCourtName(hearing.court || caseData.court, language)} ·{" "}
+                              {hearing.status}
+                            </p>
+                          </div>
+                          {hearing.dateGregorian || hearing.dateBs ? (
+                            <DualDateDisplay
+                              isoDate={hearing.dateGregorian}
+                              recordedBs={hearing.dateBs}
+                            />
+                          ) : null}
+                        </div>
+                      ))}
+                    </StaffPagedCollection>
+                  }
                 </div>
               )}
             </DashboardSection>
@@ -1080,7 +1136,11 @@ export default function StaffCaseDetailPage() {
               {documents === undefined && pendingMisl.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
                   <Loader2 className="w-8 h-8 mb-3 animate-spin opacity-40" />
-                  <p>{documentsQuery.isError ? "Misl unavailable. Retry the document request above." : "Loading this case Misl…"}</p>
+                  <p>
+                    {documentsQuery.isError
+                      ? "Misl unavailable. Retry the document request above."
+                      : "Loading this case Misl…"}
+                  </p>
                 </div>
               ) : mislDocuments.length === 0 && pendingMisl.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
@@ -1193,8 +1253,7 @@ export default function StaffCaseDetailPage() {
                                       {portal === "staff" ? `${category.label} · ` : null}Index:{" "}
                                       {category.id.substring(0, 2).toUpperCase()}-{idx + 1} •{" "}
                                       <DualDateDisplay
-                                        isoDate={new Date(doc._creationTime)
-                                          .toISOString()}
+                                        isoDate={new Date(doc._creationTime).toISOString()}
                                       />
                                     </p>
                                   </div>
@@ -1264,8 +1323,17 @@ export default function StaffCaseDetailPage() {
           <TabsContent value="timeline" className="mt-6">
             <DashboardSection title="Case history" icon={Clock}>
               <CollectionContinuation query={documentsQuery} noun="documents" />
-              {documentsQuery.hasMore ? <p className="text-sm text-muted-foreground">History includes loaded document events. Load more documents to continue the history.</p> : null}
-              {documentsQuery.isError ? <p className="text-sm text-muted-foreground">Document history is incomplete until retrieval succeeds.</p> : null}
+              {documentsQuery.hasMore ? (
+                <p className="text-sm text-muted-foreground">
+                  History includes loaded document events. Load more documents to continue the
+                  history.
+                </p>
+              ) : null}
+              {documentsQuery.isError ? (
+                <p className="text-sm text-muted-foreground">
+                  Document history is incomplete until retrieval succeeds.
+                </p>
+              ) : null}
               {timeline.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center">
                   No timeline events recorded.

@@ -84,18 +84,31 @@ export function filterAppointments(
   );
 }
 
-export function calendarDays(date: string, view: CalendarView, language: DateLanguage = "en"): string[] {
+export function calendarDays(
+  date: string,
+  view: CalendarView,
+  language: DateLanguage = "en",
+): string[] {
   if (view === "day") return [date];
   let first = date;
   if (view === "month") {
-    try { first = calendarMonthBounds(date, language).start; } catch { return []; }
+    try {
+      first = calendarMonthBounds(date, language).start;
+    } catch {
+      return [];
+    }
   }
   const weekday = new Date(`${first}T12:00:00Z`).getUTCDay();
   const monday = addCalendarDaysIso(first, -(weekday + 6) % 7);
   return Array.from({ length: view === "month" ? 42 : 7 }, (_, i) => addCalendarDaysIso(monday, i));
 }
 
-export function navigateCalendar(date: string, view: CalendarView, direction: number, language: DateLanguage = "en") {
+export function navigateCalendar(
+  date: string,
+  view: CalendarView,
+  direction: number,
+  language: DateLanguage = "en",
+) {
   if (view !== "month") return addCalendarDaysIso(date, direction * (view === "week" ? 7 : 1));
   return shiftCalendarMonth(date, direction, language);
 }

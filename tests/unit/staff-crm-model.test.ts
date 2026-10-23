@@ -10,10 +10,29 @@ import {
 } from "@/views/staff/staff-crm-model";
 
 const leads: StaffLead[] = [
-  { _id: "1", fullName: "Sunita Maharjan", email: "sunita@example.com", status: "new", practiceAreaInterest: "Property", assignedTo: null },
-  { _id: "2", fullName: "Dipen Shah", status: "consultation_scheduled", practiceAreaInterest: "Trade", assignedTo: "user-1" },
+  {
+    _id: "1",
+    fullName: "Sunita Maharjan",
+    email: "sunita@example.com",
+    status: "new",
+    practiceAreaInterest: "Property",
+    assignedTo: null,
+  },
+  {
+    _id: "2",
+    fullName: "Dipen Shah",
+    status: "consultation_scheduled",
+    practiceAreaInterest: "Trade",
+    assignedTo: "user-1",
+  },
   { _id: "3", fullName: "Roja Basnet", status: "converted", assignedTo: "user-2" },
-  { _id: "4", fullName: "Lost Lead", status: "lost", practiceAreaInterest: "Property", assignedTo: "user-1" },
+  {
+    _id: "4",
+    fullName: "Lost Lead",
+    status: "lost",
+    practiceAreaInterest: "Property",
+    assignedTo: "user-1",
+  },
 ];
 
 describe("staff CRM list model", () => {
@@ -22,12 +41,21 @@ describe("staff CRM list model", () => {
   });
 
   it("filters by stage, practice area, and unassigned leads", () => {
-    expect(filterStaffLeads(leads, { tab: "consultation_scheduled", practiceArea: "all", unassignedOnly: false })).toHaveLength(1);
-    expect(filterStaffLeads(leads, { tab: "all", practiceArea: "Property", unassignedOnly: false }).map((lead) => lead.fullName)).toEqual([
-      "Sunita Maharjan",
-      "Lost Lead",
-    ]);
-    expect(filterStaffLeads(leads, { tab: "all", practiceArea: "all", unassignedOnly: true })).toHaveLength(1);
+    expect(
+      filterStaffLeads(leads, {
+        tab: "consultation_scheduled",
+        practiceArea: "all",
+        unassignedOnly: false,
+      }),
+    ).toHaveLength(1);
+    expect(
+      filterStaffLeads(leads, { tab: "all", practiceArea: "Property", unassignedOnly: false }).map(
+        (lead) => lead.fullName,
+      ),
+    ).toEqual(["Sunita Maharjan", "Lost Lead"]);
+    expect(
+      filterStaffLeads(leads, { tab: "all", practiceArea: "all", unassignedOnly: true }),
+    ).toHaveLength(1);
   });
 
   it("builds initials and a CSV without invented company or follow-up columns", () => {
@@ -72,9 +100,9 @@ describe("staff CRM list model", () => {
       { canAssign: false },
     );
     expect(scoped.ok && scoped.payload.assignedTo).toBeUndefined();
-    expect(
-      leadCreateSchema.safeParse({ ...built.payload, assignedTo: "unassigned" }).success,
-    ).toBe(false);
+    expect(leadCreateSchema.safeParse({ ...built.payload, assignedTo: "unassigned" }).success).toBe(
+      false,
+    );
     const unnamed = buildStaffLeadCreatePayload(
       {
         fullName: "   ",

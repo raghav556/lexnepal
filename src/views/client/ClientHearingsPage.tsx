@@ -82,7 +82,9 @@ function downloadHearingIcs(input: {
   URL.revokeObjectURL(url);
 }
 
-function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") { return bsDateParts(dateGregorian, language); }
+function hearingDateParts(dateGregorian?: string | null, language: "en" | "ne" = "en") {
+  return bsDateParts(dateGregorian, language);
+}
 
 function formatHearingTime(time?: string | null): string | undefined {
   if (!time) return undefined;
@@ -481,7 +483,13 @@ export default function ClientHearingsPage() {
                       {nextHearing.dateBs ? (
                         <li>
                           <CalendarDays className="size-3.5 shrink-0" aria-hidden />
-                          <span>{formatOperationalDate(nextHearing.dateGregorian, nextHearing.dateBs, language)}</span>
+                          <span>
+                            {formatOperationalDate(
+                              nextHearing.dateGregorian,
+                              nextHearing.dateBs,
+                              language,
+                            )}
+                          </span>
                         </li>
                       ) : null}
                       {nextMatter?.caseNumber ? (

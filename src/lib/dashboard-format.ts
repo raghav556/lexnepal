@@ -29,7 +29,13 @@ export function relativeTime(iso?: string | null): string {
 }
 
 export function dayPartGreeting(date: Date): string {
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: NEPAL_TIMEZONE, hour: "2-digit", hourCycle: "h23" }).format(date));
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: NEPAL_TIMEZONE,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(date),
+  );
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";

@@ -3,7 +3,17 @@
 import { useI18n } from "@/lib/i18n-context";
 
 import { BsDateField } from "@/components/ui/bs-date-field";
-import { nepalDateOnly, viewDateIso, calendarMonthBounds, calendarMonthLabel, calendarDayLabel, calendarDateLabel, calendarWeekdays, shiftCalendarMonth, canShiftCalendarMonth } from "@/lib/nepali-calendar";
+import {
+  nepalDateOnly,
+  viewDateIso,
+  calendarMonthBounds,
+  calendarMonthLabel,
+  calendarDayLabel,
+  calendarDateLabel,
+  calendarWeekdays,
+  shiftCalendarMonth,
+  canShiftCalendarMonth,
+} from "@/lib/nepali-calendar";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -89,7 +99,6 @@ type AptRow = {
 function aptKey(a: AptRow) {
   return String(a.id || a._id || "");
 }
-
 
 function downloadAppointmentsCsv(list: AptRow[], lawyerName: (id?: string | null) => string) {
   const headers = [
@@ -381,9 +390,13 @@ export default function AdminAppointmentsPage() {
   };
 
   const monthBounds = calendarMonthBounds(viewDateIso(calendarMonth), language);
-  const calendarDate = (day: number) => new Date(Date.parse(`${monthBounds.start}T12:00:00Z`) + (day - 1) * 86400000).toISOString().slice(0, 10);
+  const calendarDate = (day: number) =>
+    new Date(Date.parse(`${monthBounds.start}T12:00:00Z`) + (day - 1) * 86400000)
+      .toISOString()
+      .slice(0, 10);
   const startDayOfWeek = new Date(`${monthBounds.start}T12:00:00Z`).getUTCDay();
-  const daysInMonth = Math.round((Date.parse(monthBounds.end) - Date.parse(monthBounds.start)) / 86400000) + 1;
+  const daysInMonth =
+    Math.round((Date.parse(monthBounds.end) - Date.parse(monthBounds.start)) / 86400000) + 1;
   const calendarCells = Math.ceil((startDayOfWeek + daysInMonth) / 7) * 7;
 
   const getAppointmentsForDay = (day: number) => {
@@ -507,7 +520,12 @@ export default function AdminAppointmentsPage() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger aria-label={language === "ne" ? "भेटघाटको स्थिति छान्नुहोस्" : "Filter appointments by status"} className="h-9 w-full sm:w-[150px] text-xs">
+            <SelectTrigger
+              aria-label={
+                language === "ne" ? "भेटघाटको स्थिति छान्नुहोस्" : "Filter appointments by status"
+              }
+              className="h-9 w-full sm:w-[150px] text-xs"
+            >
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -519,7 +537,12 @@ export default function AdminAppointmentsPage() {
             </SelectContent>
           </Select>
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger aria-label={language === "ne" ? "कानुन व्यवसायी छान्नुहोस्" : "Filter appointments by lawyer"} className="h-9 w-full sm:w-[180px] text-xs">
+            <SelectTrigger
+              aria-label={
+                language === "ne" ? "कानुन व्यवसायी छान्नुहोस्" : "Filter appointments by lawyer"
+              }
+              className="h-9 w-full sm:w-[180px] text-xs"
+            >
               <SelectValue placeholder="Assignee" />
             </SelectTrigger>
             <SelectContent>
@@ -582,7 +605,13 @@ export default function AdminAppointmentsPage() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setCalendarMonth(new Date(`${shiftCalendarMonth(viewDateIso(calendarMonth), -1, language)}T12:00:00`))}
+                onClick={() =>
+                  setCalendarMonth(
+                    new Date(
+                      `${shiftCalendarMonth(viewDateIso(calendarMonth), -1, language)}T12:00:00`,
+                    ),
+                  )
+                }
                 disabled={!canShiftCalendarMonth(viewDateIso(calendarMonth), -1, language)}
                 aria-label="Previous month"
               >
@@ -593,7 +622,13 @@ export default function AdminAppointmentsPage() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setCalendarMonth(new Date(`${shiftCalendarMonth(viewDateIso(calendarMonth), 1, language)}T12:00:00`))}
+                onClick={() =>
+                  setCalendarMonth(
+                    new Date(
+                      `${shiftCalendarMonth(viewDateIso(calendarMonth), 1, language)}T12:00:00`,
+                    ),
+                  )
+                }
                 disabled={!canShiftCalendarMonth(viewDateIso(calendarMonth), 1, language)}
                 aria-label="Next month"
               >
@@ -635,7 +670,9 @@ export default function AdminAppointmentsPage() {
 
                   return (
                     <div
-                      key={i} data-date={dateStr || undefined} data-calendar-system={language === "ne" ? "bs" : "ad"}
+                      key={i}
+                      data-date={dateStr || undefined}
+                      data-calendar-system={language === "ne" ? "bs" : "ad"}
                       onClick={() => isCurrentMonth && onCalendarDayClick(dayNumber)}
                       className={`min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-border relative text-left ${
                         !isCurrentMonth
@@ -646,9 +683,17 @@ export default function AdminAppointmentsPage() {
                       {isCurrentMonth && (
                         <>
                           <div className="flex items-center justify-between mb-1 gap-1">
-                            <button type="button"
-                              aria-label={language === "ne" ? `${calendarDateLabel(dateStr, language)} को भेट हेर्नुहोस्` : `Show appointments on ${calendarDateLabel(dateStr, language)}`}
-                              onClick={e => { e.stopPropagation(); onCalendarDayClick(dayNumber); }}
+                            <button
+                              type="button"
+                              aria-label={
+                                language === "ne"
+                                  ? `${calendarDateLabel(dateStr, language)} को भेट हेर्नुहोस्`
+                                  : `Show appointments on ${calendarDateLabel(dateStr, language)}`
+                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onCalendarDayClick(dayNumber);
+                              }}
                               className={`text-sm font-medium min-h-11 min-w-11 focus-visible:outline-2 focus-visible:outline-primary ${
                                 isToday
                                   ? "bg-primary text-primary-foreground rounded-full flex items-center justify-center"
@@ -656,7 +701,6 @@ export default function AdminAppointmentsPage() {
                               }`}
                             >
                               {calendarDayLabel(dateStr, language)}
-
                             </button>
                             <button
                               type="button"
@@ -839,7 +883,10 @@ export default function AdminAppointmentsPage() {
                           onValueChange={(val) => handleAssign(id, val)}
                           disabled={apt.status === "cancelled" || apt.status === "completed"}
                         >
-                          <SelectTrigger aria-label={`${language === "ne" ? "कानुन व्यवसायी तोक्नुहोस्" : "Assign lawyer"}: ${apt.clientName || apt.id}`} className="w-full sm:w-[200px] h-9 bg-background">
+                          <SelectTrigger
+                            aria-label={`${language === "ne" ? "कानुन व्यवसायी तोक्नुहोस्" : "Assign lawyer"}: ${apt.clientName || apt.id}`}
+                            className="w-full sm:w-[200px] h-9 bg-background"
+                          >
                             <SelectValue placeholder="Assign Lawyer..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -950,9 +997,14 @@ export default function AdminAppointmentsPage() {
       )}
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md bg-background border-border" aria-labelledby="admin-book-appointment-title">
+        <DialogContent
+          className="max-w-md bg-background border-border"
+          aria-labelledby="admin-book-appointment-title"
+        >
           <DialogHeader>
-            <DialogTitle id="admin-book-appointment-title" className="text-foreground">Book New Appointment</DialogTitle>
+            <DialogTitle id="admin-book-appointment-title" className="text-foreground">
+              Book New Appointment
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
@@ -991,9 +1043,7 @@ export default function AdminAppointmentsPage() {
                   aria-label="Appointment date"
                   required
                   value={createData.date}
-                  onDateChange={(e) =>
-                    setCreateData({ ...createData, date: e, timeSlot: "" })
-                  }
+                  onDateChange={(e) => setCreateData({ ...createData, date: e, timeSlot: "" })}
                 />
               </div>
               <div className="space-y-2">
@@ -1003,7 +1053,9 @@ export default function AdminAppointmentsPage() {
                   onValueChange={(val) => setCreateData({ ...createData, timeSlot: val })}
                   disabled={!createData.date || createSlotsLoading || createSlots.length === 0}
                 >
-                  <SelectTrigger aria-label={language === "ne" ? "भेटघाटको समय" : "Appointment time slot"}>
+                  <SelectTrigger
+                    aria-label={language === "ne" ? "भेटघाटको समय" : "Appointment time slot"}
+                  >
                     <SelectValue
                       placeholder={
                         !createData.date
@@ -1047,7 +1099,9 @@ export default function AdminAppointmentsPage() {
                   })
                 }
               >
-                <SelectTrigger aria-label={language === "ne" ? "भेटघाटका कानुन व्यवसायी" : "Appointment lawyer"}>
+                <SelectTrigger
+                  aria-label={language === "ne" ? "भेटघाटका कानुन व्यवसायी" : "Appointment lawyer"}
+                >
                   <SelectValue placeholder="Do not assign yet" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1090,9 +1144,14 @@ export default function AdminAppointmentsPage() {
           }
         }}
       >
-        <DialogContent className="max-w-sm bg-background border-border" aria-labelledby="admin-reschedule-appointment-title">
+        <DialogContent
+          className="max-w-sm bg-background border-border"
+          aria-labelledby="admin-reschedule-appointment-title"
+        >
           <DialogHeader>
-            <DialogTitle id="admin-reschedule-appointment-title" className="text-foreground">Reschedule Appointment</DialogTitle>
+            <DialogTitle id="admin-reschedule-appointment-title" className="text-foreground">
+              Reschedule Appointment
+            </DialogTitle>
           </DialogHeader>
           {rescheduleData && (
             <form onSubmit={handleRescheduleSubmit} className="space-y-4 py-4">
@@ -1114,7 +1173,9 @@ export default function AdminAppointmentsPage() {
                   onValueChange={(val) => setRescheduleData({ ...rescheduleData, timeSlot: val })}
                   disabled={!rescheduleData.date || rescheduleSlotsLoading}
                 >
-                  <SelectTrigger aria-label={language === "ne" ? "नयाँ भेटघाटको समय" : "Rescheduled time slot"}>
+                  <SelectTrigger
+                    aria-label={language === "ne" ? "नयाँ भेटघाटको समय" : "Rescheduled time slot"}
+                  >
                     <SelectValue
                       placeholder={rescheduleSlotsLoading ? "Loading slots…" : "Select Time"}
                     />

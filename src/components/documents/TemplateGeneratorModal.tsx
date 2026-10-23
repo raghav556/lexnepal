@@ -59,7 +59,10 @@ export function TemplateGeneratorModal({
         let htmlContent = template.htmlContent;
         const today = nepalDateOnly();
         htmlContent = htmlContent.replace(/{{today_gregorian}}/g, today);
-        htmlContent = htmlContent.replace(/{{today_bs}}/g, toNepaliDigits(bsToString(gregorianToBs(today))));
+        htmlContent = htmlContent.replace(
+          /{{today_bs}}/g,
+          toNepaliDigits(bsToString(gregorianToBs(today))),
+        );
         if (selectedCaseData) {
           htmlContent = htmlContent.replace(
             /{{client\.name}}/g,

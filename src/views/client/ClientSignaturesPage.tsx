@@ -220,6 +220,8 @@ function PdfDocumentPreview({
   return (
     <div
       aria-label={`Document preview: ${title}`}
+      role="region"
+      tabIndex={0}
       data-testid="signing-pdf-preview"
       className="h-full overflow-y-auto overscroll-contain bg-white p-2"
     >
@@ -780,9 +782,7 @@ export default function ClientSignaturesPage() {
                                 <span className="break-words">{action.envelopeTitle}</span>
                               )}
                             {action.kind === "envelope" && action.expiresAt && (
-                              <span>
-                                Expires {formatDualDate(action.expiresAt)}
-                              </span>
+                              <span>Expires {formatDualDate(action.expiresAt)}</span>
                             )}
                           </div>
                         </div>
@@ -845,9 +845,7 @@ export default function ClientSignaturesPage() {
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dashboard-neutral">
                             <DashboardStatusLabel status="signed" label="Signed" />
                             {action.document.signedAt && (
-                              <span>
-                                Signed {formatDualDate(action.document.signedAt)}
-                              </span>
+                              <span>Signed {formatDualDate(action.document.signedAt)}</span>
                             )}
                             {action.kind === "direct" && action.document.signatureMethod && (
                               <span>By {action.document.signatureMethod}</span>

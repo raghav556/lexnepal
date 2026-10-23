@@ -75,9 +75,12 @@ import {
 import { useStaffHrData } from "./use-staff-hr-data";
 
 const PAGE_SIZE = 8;
-const displayDate = (date: string) => supportsHrDualDate(date)
-  ? <DualDateDisplay isoDate={date} alwaysDual />
-  : <span>{date} AD (BS unavailable)</span>;
+const displayDate = (date: string) =>
+  supportsHrDualDate(date) ? (
+    <DualDateDisplay isoDate={date} alwaysDual />
+  ) : (
+    <span>{date} AD (BS unavailable)</span>
+  );
 function errorText(error: unknown) {
   if (error instanceof ApiClientError && error.status === 401)
     return "Your session expired. Sign in again, then retry.";
@@ -572,12 +575,16 @@ export default function StaffHRPage() {
             <TabsTrigger value="leave" aria-label="Leave & Requests">
               <CalendarOff aria-hidden />
               <span className="staff-hr-tab-full">Leave &amp; Requests</span>
-              <span className="staff-hr-tab-compact" aria-hidden>Leave</span>
+              <span className="staff-hr-tab-compact" aria-hidden>
+                Leave
+              </span>
             </TabsTrigger>
             <TabsTrigger value="balances" aria-label="Leave Balance">
               <Database aria-hidden />
               <span className="staff-hr-tab-full">Leave Balance</span>
-              <span className="staff-hr-tab-compact" aria-hidden>Balances</span>
+              <span className="staff-hr-tab-compact" aria-hidden>
+                Balances
+              </span>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="attendance" className="staff-hr-tab-panel">
@@ -646,7 +653,10 @@ export default function StaffHRPage() {
                               timeZone: "Asia/Kathmandu",
                             })}
                           </span>
-                          <strong>{bsDateParts(date, language)?.day} {language === "ne" ? "वि.सं." : "A.D."}</strong>
+                          <strong>
+                            {bsDateParts(date, language)?.day}{" "}
+                            {language === "ne" ? "वि.सं." : "A.D."}
+                          </strong>
                           <small>{date.slice(8)} A.D.</small>
                           <small>{row ? HR_ATTENDANCE_STATUSES[row.status] : "No record"}</small>
                           <b>{minutes !== null ? hrDuration(minutes) : "—"}</b>

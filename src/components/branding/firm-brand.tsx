@@ -80,12 +80,18 @@ export function FirmBrand({
   const resolvedName = firmName?.trim() || "Law Firm";
   const resolvedLogo = logoUrl?.trim() || undefined;
   const [failedLogoUrl, setFailedLogoUrl] = useState<string>();
-  const checkCachedLogo = useCallback((image: HTMLImageElement | null) => {
-    // SSR images can finish before hydration attaches load/error handlers.
-    if (image?.complete && (image.naturalWidth === 0 || (image.naturalWidth <= 1 && image.naturalHeight <= 1))) {
-      setFailedLogoUrl(resolvedLogo);
-    }
-  }, [resolvedLogo]);
+  const checkCachedLogo = useCallback(
+    (image: HTMLImageElement | null) => {
+      // SSR images can finish before hydration attaches load/error handlers.
+      if (
+        image?.complete &&
+        (image.naturalWidth === 0 || (image.naturalWidth <= 1 && image.naturalHeight <= 1))
+      ) {
+        setFailedLogoUrl(resolvedLogo);
+      }
+    },
+    [resolvedLogo],
+  );
   const showLogo = shouldDisplayFirmLogo(resolvedLogo, failedLogoUrl);
   const monogram =
     resolvedName

@@ -297,8 +297,7 @@ export default function AdminCMSCareers() {
                               {job.title}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> Posted{" "}
-                              {formatDualDate(job.postedDate)}
+                              <Clock className="w-3 h-3" /> Posted {formatDualDate(job.postedDate)}
                             </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4">

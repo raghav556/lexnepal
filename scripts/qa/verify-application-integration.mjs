@@ -6,125 +6,300 @@ import ts from "typescript";
 
 const out = ".local/qa/session-18";
 fs.mkdirSync(out, { recursive: true });
-const files = execFileSync("rg", ["--files", "src"], { encoding: "utf8" }).trim().split(/\r?\n/).map(p => p.replaceAll("\\", "/"));
+const files = execFileSync("rg", ["--files", "src"], { encoding: "utf8" })
+  .trim()
+  .split(/\r?\n/)
+  .map((p) => p.replaceAll("\\", "/"));
 const known = new Set(files);
 const resolve = (from, spec) => {
-  const base = spec.startsWith("@/") ? "src/" + spec.slice(2) : spec.startsWith(".") ? path.posix.normalize(path.posix.join(path.posix.dirname(from), spec)) : "";
-  return [base, base.replace(/\.(tsx?|jsx?)$/, ""), ...[".ts", ".tsx", "/index.ts", "/index.tsx"].map(ext => base + ext)].find(p => known.has(p));
+  const base = spec.startsWith("@/")
+    ? "src/" + spec.slice(2)
+    : spec.startsWith(".")
+      ? path.posix.normalize(path.posix.join(path.posix.dirname(from), spec))
+      : "";
+  return [
+    base,
+    base.replace(/\.(tsx?|jsx?)$/, ""),
+    ...[".ts", ".tsx", "/index.ts", "/index.tsx"].map((ext) => base + ext),
+  ].find((p) => known.has(p));
 };
 const graph = new Map();
-for (const file of files.filter(p => /\.[cm]?[jt]sx?$/.test(p))) {
-  const text = fs.readFileSync(file, "utf8"), ast = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
-  const imports = [], surfaces = [];
-  const visit = node => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) imports.push(node.moduleSpecifier.text);
-    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && ts.isStringLiteral(node.arguments[0])) imports.push(node.arguments[0].text);
+for (const file of files.filter((p) => /\.[cm]?[jt]sx?$/.test(p))) {
+  const text = fs.readFileSync(file, "utf8"),
+    ast = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+  const imports = [],
+    surfaces = [];
+  const visit = (node) => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    )
+      imports.push(node.moduleSpecifier.text);
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      ts.isStringLiteral(node.arguments[0])
+    )
+      imports.push(node.arguments[0].text);
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const component = node.tagName.getText(ast);
-      if (/^(Dialog|AlertDialog|Sheet|Drawer|form|Tabs|TabsContent|CourtSelect|BsDateField|Select)$/.test(component)) {
-        const label = node.attributes.properties.find(p => ts.isJsxAttribute(p) && p.name.getText(ast) === "aria-label");
-        surfaces.push({ file, line: ast.getLineAndCharacterOfPosition(node.getStart()).line + 1, component,
-          label: label?.initializer && ts.isStringLiteral(label.initializer) ? label.initializer.text : null,
-          status: "NOT TESTED", scope: "Source-reachable declaration; conditional execution needs workflow evidence" });
+      if (
+        /^(Dialog|AlertDialog|Sheet|Drawer|form|Tabs|TabsContent|CourtSelect|BsDateField|Select)$/.test(
+          component,
+        )
+      ) {
+        const label = node.attributes.properties.find(
+          (p) => ts.isJsxAttribute(p) && p.name.getText(ast) === "aria-label",
+        );
+        surfaces.push({
+          file,
+          line: ast.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+          component,
+          label:
+            label?.initializer && ts.isStringLiteral(label.initializer)
+              ? label.initializer.text
+              : null,
+          status: "NOT TESTED",
+          scope: "Source-reachable declaration; conditional execution needs workflow evidence",
+        });
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(ast);
-  graph.set(file, { imports: imports.map(spec => resolve(file, spec)).filter(Boolean), text, surfaces });
+  graph.set(file, {
+    imports: imports.map((spec) => resolve(file, spec)).filter(Boolean),
+    text,
+    surfaces,
+  });
 }
-const tree = file => {
+const tree = (file) => {
   const seen = new Set();
-  const visit = p => { if (seen.has(p)) return; seen.add(p); for (const next of graph.get(p)?.imports ?? []) visit(next); };
-  visit(file); return [...seen];
+  const visit = (p) => {
+    if (seen.has(p)) return;
+    seen.add(p);
+    for (const next of graph.get(p)?.imports ?? []) visit(next);
+  };
+  visit(file);
+  return [...seen];
 };
-const route = file => "/" + file.replace(/^src\/app\//, "").replace(/\/(page\.tsx|route\.ts)$/, "").replace(/^page\.tsx$/, "").split("/").filter(p => !/^\(.+\)$/.test(p)).join("/");
-const navSources = ["src/lib/operational-navigation.ts", "src/lib/client-shell-nav.ts", "src/shared/public-routes.ts"];
-const nav = navSources.flatMap(file => [...fs.readFileSync(file, "utf8").matchAll(/(?:href:\s*|^\s*)["'](\/[^"']*)["']/gm)].map(m => ({ href: m[1], file })));
-const role = url => url.startsWith("/staff") ? "staff" : url.startsWith("/admin") ? "admin" : url.startsWith("/client") ? "client" : "public";
-const pages = files.filter(p => p.startsWith("src/app/") && p.endsWith("/page.tsx")).map(file => {
-  const url = route(file), text = graph.get(file).text;
-  const ancestors = file.split("/").slice(0, -1);
-  const layouts = ancestors.map((_,i) => ancestors.slice(0,i+1).join("/") + "/layout.tsx").filter(p => known.has(p));
-  const dependencies = [...new Set([file, ...layouts].flatMap(tree))];
-  return { file, route: url, role: role(url), dynamic: url.includes("["),
-    permission: role(url) === "public" ? "Public/token/account contract; token validity where applicable" : "Inherited PortalRoleGuard allowed=" + role(url) + "; API permissions enforced separately",
-    navigation: nav.filter(n => n.href === url).map(n => n.file), layouts, dependencies,
-    redirect: /\bredirect\(/.test(text),
-    nested: dependencies.filter(p => /(?:dialog|modal|drawer|panel|calendar|selector|court-select|date-field)/i.test(p)),
-    workflowDeclarations: dependencies.flatMap(p => graph.get(p)?.surfaces ?? []),
-    status: "NOT TESTED", evidence: null };
-}).sort((a,b) => a.route.localeCompare(b.route));
-assert.equal(new Set(pages.map(p => p.route)).size, pages.length);
-const apis = files.filter(p => p.startsWith("src/app/") && p.endsWith("/route.ts")).map(file => {
-  const text = graph.get(file).text, dependencies = tree(file);
-  const methods = [...text.matchAll(/export\s+(?:async\s+)?(?:const|function)\s+(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)\b/g)].map(m => m[1]);
-  for (const binding of text.matchAll(/export\s+const\s*\{([^}]+)\}/g)) methods.push(...binding[1].split(",").map(s => s.trim()).filter(s => /^(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)$/.test(s)));
-  return { file, route: route(file), methods: [...new Set(methods)],
-    directSessionGuard: /requireSession/.test(text),
-    capabilitiesInDependencies: [...new Set(dependencies.flatMap(p => [...graph.get(p)?.text.matchAll(/requireCapability\([^,]+,\s*["']([^"']+)/g) ?? []].map(m => m[1])))],
-    status: "NOT TESTED", evidence: null };
-});
-const inventory = { baseline: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), pages, apis, navigation: nav,
-  interpretation: "Import closure lists shared potential nested surfaces, not proof of execution. Capability names in service dependencies are not per-method grants. Route rendering, anonymous API denial, workflow, security and accessibility certification are separate gates." };
+const route = (file) =>
+  "/" +
+  file
+    .replace(/^src\/app\//, "")
+    .replace(/\/(page\.tsx|route\.ts)$/, "")
+    .replace(/^page\.tsx$/, "")
+    .split("/")
+    .filter((p) => !/^\(.+\)$/.test(p))
+    .join("/");
+const navSources = [
+  "src/lib/operational-navigation.ts",
+  "src/lib/client-shell-nav.ts",
+  "src/shared/public-routes.ts",
+];
+const nav = navSources.flatMap((file) =>
+  [...fs.readFileSync(file, "utf8").matchAll(/(?:href:\s*|^\s*)["'](\/[^"']*)["']/gm)].map((m) => ({
+    href: m[1],
+    file,
+  })),
+);
+const role = (url) =>
+  url.startsWith("/staff")
+    ? "staff"
+    : url.startsWith("/admin")
+      ? "admin"
+      : url.startsWith("/client")
+        ? "client"
+        : "public";
+const pages = files
+  .filter((p) => p.startsWith("src/app/") && p.endsWith("/page.tsx"))
+  .map((file) => {
+    const url = route(file),
+      text = graph.get(file).text;
+    const ancestors = file.split("/").slice(0, -1);
+    const layouts = ancestors
+      .map((_, i) => ancestors.slice(0, i + 1).join("/") + "/layout.tsx")
+      .filter((p) => known.has(p));
+    const dependencies = [...new Set([file, ...layouts].flatMap(tree))];
+    return {
+      file,
+      route: url,
+      role: role(url),
+      dynamic: url.includes("["),
+      permission:
+        role(url) === "public"
+          ? "Public/token/account contract; token validity where applicable"
+          : "Inherited PortalRoleGuard allowed=" +
+            role(url) +
+            "; API permissions enforced separately",
+      navigation: nav.filter((n) => n.href === url).map((n) => n.file),
+      layouts,
+      dependencies,
+      redirect: /\bredirect\(/.test(text),
+      nested: dependencies.filter((p) =>
+        /(?:dialog|modal|drawer|panel|calendar|selector|court-select|date-field)/i.test(p),
+      ),
+      workflowDeclarations: dependencies.flatMap((p) => graph.get(p)?.surfaces ?? []),
+      status: "NOT TESTED",
+      evidence: null,
+    };
+  })
+  .sort((a, b) => a.route.localeCompare(b.route));
+assert.equal(new Set(pages.map((p) => p.route)).size, pages.length);
+const apis = files
+  .filter((p) => p.startsWith("src/app/") && p.endsWith("/route.ts"))
+  .map((file) => {
+    const text = graph.get(file).text,
+      dependencies = tree(file);
+    const methods = [
+      ...text.matchAll(
+        /export\s+(?:async\s+)?(?:const|function)\s+(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)\b/g,
+      ),
+    ].map((m) => m[1]);
+    for (const binding of text.matchAll(/export\s+const\s*\{([^}]+)\}/g))
+      methods.push(
+        ...binding[1]
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => /^(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS)$/.test(s)),
+      );
+    return {
+      file,
+      route: route(file),
+      methods: [...new Set(methods)],
+      directSessionGuard: /requireSession/.test(text),
+      capabilitiesInDependencies: [
+        ...new Set(
+          dependencies.flatMap((p) =>
+            [
+              ...(graph.get(p)?.text.matchAll(/requireCapability\([^,]+,\s*["']([^"']+)/g) ?? []),
+            ].map((m) => m[1]),
+          ),
+        ),
+      ],
+      status: "NOT TESTED",
+      evidence: null,
+    };
+  });
+const inventory = {
+  baseline: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+  pages,
+  apis,
+  navigation: nav,
+  interpretation:
+    "Import closure lists shared potential nested surfaces, not proof of execution. Capability names in service dependencies are not per-method grants. Route rendering, anonymous API denial, workflow, security and accessibility certification are separate gates.",
+};
 if (fs.existsSync(out + "/browser-routes.json")) {
   const evidence = JSON.parse(fs.readFileSync(out + "/browser-routes.json"));
   assert.equal(evidence.baseline, inventory.baseline);
   for (const page of pages) {
-    const observed = evidence.results.find(r => r.route === page.route);
+    const observed = evidence.results.find((r) => r.route === page.route);
     if (observed) {
       page.status = observed.status;
       page.evidence = "browser-routes.json: " + page.route;
-      page.accessibility = observed.violations == null ? "NOT TESTED" : observed.violations.length ? "FAIL" : "PASS";
-      page.workflowScope = "Render/navigation evidence only; primary visible controls recorded; execution requires critical/prior evidence.";
+      page.accessibility =
+        observed.violations == null ? "NOT TESTED" : observed.violations.length ? "FAIL" : "PASS";
+      page.workflowScope =
+        "Render/navigation evidence only; primary visible controls recorded; execution requires critical/prior evidence.";
     }
   }
 }
 if (fs.existsSync(out + "/security-anonymous.json")) {
   const evidence = JSON.parse(fs.readFileSync(out + "/security-anonymous.json"));
   for (const api of apis) {
-    const observed = evidence.results.find(r => r.route === api.route);
-    if (observed) { api.status = observed.status; api.evidence = "security-anonymous.json: " + api.route; api.scope = "Anonymous GET only; authenticated/action coverage is separate."; }
+    const observed = evidence.results.find((r) => r.route === api.route);
+    if (observed) {
+      api.status = observed.status;
+      api.evidence = "security-anonymous.json: " + api.route;
+      api.scope = "Anonymous GET only; authenticated/action coverage is separate.";
+    }
   }
 }
 fs.writeFileSync(out + "/route-inventory.json", JSON.stringify(inventory, null, 2) + "\n");
-console.log(JSON.stringify({ pages: pages.length, apis: apis.length, roles: pages.reduce((counts,p) => ({ ...counts, [p.role]: (counts[p.role] ?? 0) + 1 }), {}) }));
+console.log(
+  JSON.stringify({
+    pages: pages.length,
+    apis: apis.length,
+    roles: pages.reduce((counts, p) => ({ ...counts, [p.role]: (counts[p.role] ?? 0) + 1 }), {}),
+  }),
+);
 
 if (process.argv.includes("--security")) {
   const origin = process.env.PORTAL_QA_ORIGIN || "http://localhost:3001";
   assert(["localhost", "127.0.0.1"].includes(new URL(origin).hostname));
-  const targets = apis.filter(p => p.methods.includes("GET") && p.directSessionGuard && !p.route.includes("..."));
+  const targets = apis.filter(
+    (p) => p.methods.includes("GET") && p.directSessionGuard && !p.route.includes("..."),
+  );
   const evidenceFile = out + "/security-anonymous.json";
-  const results = fs.existsSync(evidenceFile) ? JSON.parse(fs.readFileSync(evidenceFile)).results.filter(r => r.status === "PASS") : [];
+  const results = fs.existsSync(evidenceFile)
+    ? JSON.parse(fs.readFileSync(evidenceFile)).results.filter((r) => r.status === "PASS")
+    : [];
   for (const entry of targets) {
-    if (results.some(r => r.route === entry.route)) continue;
+    if (results.some((r) => r.route === entry.route)) continue;
     const actual = entry.route.replace(/\[[^\]]+\]/g, "00000000-0000-4000-8000-000000000099");
     try {
-      const response = await fetch(origin + actual + "?page=true&limit=1&cursor=tampered", { redirect: "manual", signal: AbortSignal.timeout(60000) });
+      const response = await fetch(origin + actual + "?page=true&limit=1&cursor=tampered", {
+        redirect: "manual",
+        signal: AbortSignal.timeout(60000),
+      });
       const text = await response.text();
       const expected = entry.route === "/api/v1/users/[userId]/avatar" ? 404 : 401;
-      results.push({ route: entry.route, actual, status: response.status === expected ? "PASS" : "FAIL", httpStatus: response.status,
-        expectation: expected === 404 ? "Missing public avatar; private-avatar fallback requires session" : "Unauthenticated access denied",
-        responseBytes: Buffer.byteLength(text), requestId: response.headers.get("x-request-id"),
-        contentType: response.headers.get("content-type") });
-    } catch(error) { results.push({ route: entry.route, status: "BLOCKED", error: String(error) }); }
-    fs.writeFileSync(out + "/security-anonymous.json", JSON.stringify({ results, authenticatedFixtureEvidence: "full-baseline.json integration suites", liveMutations: 0 }, null, 2) + "\n");
+      results.push({
+        route: entry.route,
+        actual,
+        status: response.status === expected ? "PASS" : "FAIL",
+        httpStatus: response.status,
+        expectation:
+          expected === 404
+            ? "Missing public avatar; private-avatar fallback requires session"
+            : "Unauthenticated access denied",
+        responseBytes: Buffer.byteLength(text),
+        requestId: response.headers.get("x-request-id"),
+        contentType: response.headers.get("content-type"),
+      });
+    } catch (error) {
+      results.push({ route: entry.route, status: "BLOCKED", error: String(error) });
+    }
+    fs.writeFileSync(
+      out + "/security-anonymous.json",
+      JSON.stringify(
+        {
+          results,
+          authenticatedFixtureEvidence: "full-baseline.json integration suites",
+          liveMutations: 0,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
   }
-  console.log(JSON.stringify({ anonymousAPI: results.length, statuses: results.reduce((o,r) => ({ ...o, [r.status]: (o[r.status] ?? 0) + 1 }), {}) }));
+  console.log(
+    JSON.stringify({
+      anonymousAPI: results.length,
+      statuses: results.reduce((o, r) => ({ ...o, [r.status]: (o[r.status] ?? 0) + 1 }), {}),
+    }),
+  );
 }
 
 if (process.argv.includes("--branding")) {
   const { chromium, expect: baseExpect } = await import("@playwright/test");
   const expect = baseExpect.configure({ timeout: 30000 });
-  const browser = await chromium.launch(), results = [], errors = [], writes = [];
+  const browser = await chromium.launch(),
+    results = [],
+    errors = [],
+    writes = [];
   try {
     for (const replacement of [false, true]) {
       const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
       const page = await context.newPage();
-      page.on("pageerror", error => errors.push(error.message));
-      await page.route("**/*", async route => {
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.route("**/*", async (route) => {
         const request = route.request();
-        if (!["GET", "HEAD"].includes(request.method())) { writes.push({ method: request.method(), url: request.url(), intercepted: true }); return route.abort(); }
+        if (!["GET", "HEAD"].includes(request.method())) {
+          writes.push({ method: request.method(), url: request.url(), intercepted: true });
+          return route.abort();
+        }
         if (replacement && new URL(request.url()).pathname === "/api/v1/public/cms/settings") {
           const response = await route.fetch();
           const payload = await response.json();
@@ -133,48 +308,113 @@ if (process.argv.includes("--branding")) {
         }
         return route.continue();
       });
-      await page.goto("http://localhost:3001/consultation", { waitUntil: "domcontentloaded", timeout: 90000 });
+      await page.goto("http://localhost:3001/consultation", {
+        waitUntil: "domcontentloaded",
+        timeout: 90000,
+      });
       const brand = page.locator('header a[title="Srimar Law"]');
       await expect(brand).toBeVisible();
-      if (replacement) { await expect(brand.locator("img")).toHaveCount(0); await page.waitForTimeout(250); await page.evaluate(() => window.dispatchEvent(new Event("lexnepal:cms-settings-updated"))); }
-      if (!replacement) { await expect(brand.locator("img")).toHaveCount(0); await expect(brand.locator("svg")).toBeVisible(); }
-      else { await expect(brand.locator("img")).toHaveAttribute("src", "/images/staff-home-nepal.jpg"); await expect.poll(() => brand.locator("img").evaluate(e => e.naturalWidth)).toBeGreaterThan(1); }
-      await page.screenshot({ path: out + "/branding-" + (replacement ? "replacement" : "fallback") + ".png" });
-      results.push({ check: replacement ? "New valid URL replaces failed SSR logo" : "SSR pre-hydration failure displays existing emblem", status: "PASS" });
+      if (replacement) {
+        await expect(brand.locator("img")).toHaveCount(0);
+        await page.waitForTimeout(250);
+        await page.evaluate(() => window.dispatchEvent(new Event("lexnepal:cms-settings-updated")));
+      }
+      if (!replacement) {
+        await expect(brand.locator("img")).toHaveCount(0);
+        await expect(brand.locator("svg")).toBeVisible();
+      } else {
+        await expect(brand.locator("img")).toHaveAttribute("src", "/images/staff-home-nepal.jpg");
+        await expect
+          .poll(() => brand.locator("img").evaluate((e) => e.naturalWidth))
+          .toBeGreaterThan(1);
+      }
+      await page.screenshot({
+        path: out + "/branding-" + (replacement ? "replacement" : "fallback") + ".png",
+      });
+      results.push({
+        check: replacement
+          ? "New valid URL replaces failed SSR logo"
+          : "SSR pre-hydration failure displays existing emblem",
+        status: "PASS",
+      });
       await context.close();
     }
-  } finally { fs.writeFileSync(out + "/branding-evidence.json", JSON.stringify({ results, errors, writes, liveMutations: 0 }, null, 2) + "\n"); await browser.close(); }
-  assert.equal(errors.length, 0); assert.equal(writes.length, 0);
+  } finally {
+    fs.writeFileSync(
+      out + "/branding-evidence.json",
+      JSON.stringify({ results, errors, writes, liveMutations: 0 }, null, 2) + "\n",
+    );
+    await browser.close();
+  }
+  assert.equal(errors.length, 0);
+  assert.equal(writes.length, 0);
 }
 
 if (process.argv.includes("--policy")) {
   const { chromium, expect } = await import("@playwright/test");
   const headers = [];
   for (const url of ["/contact", "/consultation", "/client/documents"]) {
-    const response = await fetch("http://localhost:3001" + url, { signal: AbortSignal.timeout(90000) });
+    const response = await fetch("http://localhost:3001" + url, {
+      signal: AbortSignal.timeout(90000),
+    });
     const policy = response.headers.get("content-security-policy");
     assert(policy?.includes("frame-ancestors 'none'"));
     assert.equal(policy.includes("frame-src https://maps.google.com"), url === "/contact");
     headers.push({ url, status: response.status, policy });
   }
-  const browser = await chromium.launch(), page = await browser.newPage(), errors = [];
+  const browser = await chromium.launch(),
+    page = await browser.newPage(),
+    errors = [];
   const messages = [];
-  page.on("pageerror", error => errors.push(error.message));
-  page.on("console", message => { if (message.type() === "error") messages.push(message.text()); });
-  await page.route("**/*", route => ["GET", "HEAD"].includes(route.request().method()) ? route.continue() : route.abort());
-  await page.route("https://maps.google.com/**", route => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Fixture map</title><p>Synthetic map</p>" }));
-  await page.goto("http://localhost:3001/contact", { waitUntil: "domcontentloaded", timeout: 90000 });
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") messages.push(message.text());
+  });
+  await page.route("**/*", (route) =>
+    ["GET", "HEAD"].includes(route.request().method()) ? route.continue() : route.abort(),
+  );
+  await page.route("https://maps.google.com/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><title>Fixture map</title><p>Synthetic map</p>",
+    }),
+  );
+  await page.goto("http://localhost:3001/contact", {
+    waitUntil: "domcontentloaded",
+    timeout: 90000,
+  });
   await page.locator('iframe[title="Office location"]').scrollIntoViewIfNeeded();
-  await expect(page.frameLocator('iframe[title="Office location"]').getByText("Synthetic map", { exact: true })).toBeVisible({ timeout: 30000 });
-  assert.equal(messages.filter(m => /Content Security Policy|Framing/.test(m)).length, 0);
+  await expect(
+    page
+      .frameLocator('iframe[title="Office location"]')
+      .getByText("Synthetic map", { exact: true }),
+  ).toBeVisible({ timeout: 30000 });
+  assert.equal(messages.filter((m) => /Content Security Policy|Framing/.test(m)).length, 0);
   assert.equal(errors.length, 0);
-  fs.writeFileSync(out + "/contact-policy-evidence.json", JSON.stringify({ headers, mapFrame: "PASS: response fulfilled in browser memory", messages, errors, liveMutations: 0, externalMapDelivery: 0 }, null, 2) + "\n");
+  fs.writeFileSync(
+    out + "/contact-policy-evidence.json",
+    JSON.stringify(
+      {
+        headers,
+        mapFrame: "PASS: response fulfilled in browser memory",
+        messages,
+        errors,
+        liveMutations: 0,
+        externalMapDelivery: 0,
+      },
+      null,
+      2,
+    ) + "\n",
+  );
   await browser.close();
 }
 
 if (process.argv.includes("--browser")) {
-  const source = fs.readFileSync("scripts/qa/verify-retrieval-continuation.mjs", "utf8").replaceAll("\r\n", "\n");
-  const start = source.indexOf("const checks = String.raw`"), end = source.indexOf('const worker = out + "/retrieval-worker.mjs";');
+  const source = fs
+    .readFileSync("scripts/qa/verify-retrieval-continuation.mjs", "utf8")
+    .replaceAll("\r\n", "\n");
+  const start = source.indexOf("const checks = String.raw`"),
+    end = source.indexOf('const worker = out + "/retrieval-worker.mjs";');
   assert(start > 0 && end > start);
   const checks = String.raw`
   const inventory=JSON.parse(fs.readFileSync(out+'/route-inventory.json','utf8'));
@@ -327,15 +567,32 @@ await retrievalAudit();
 `;
   // Adapt only fixture setup: preserve locale preference, reject unexpected non-GET actions,
   // and let account/token pages without a main landmark render for inspection.
-  let prefix = source.slice(0,start).replace('const out = ".local/qa/session-17d";', `const out = "${out}";`);
-  prefix = prefix.replace('const retrievalFixtures = String.raw`', 'const retrievalFixtures = String.raw`\n      if(p==="/api/v1/analytics/dashboard")return r.fulfill({json:{data:{activeCases:3,totalCases:3,activeClients:3,activeStaff:3,openLeads:3,openTasks:3,upcomingHearings:3,mattersByPractice:{Civil:3},casesByStatus:{active:3},tasksByStatus:{todo:3},hearingsByMonth:[{month:"2026-10",count:3}]}}});');
-  prefix = prefix.replace('const retrievalFixtures = String.raw`', 'const retrievalFixtures = String.raw`\n      if(p==="/api/v1/envelopes/signing-inbox")return r.fulfill({json:{data:{pendingEnvelopes:[],pendingDirect:[],recentlySigned:[]}}});\n      if(p.startsWith("/api/v1/public/leads/intake/")||p.startsWith("/api/v1/public/document-shares/"))return r.continue();');
-  if(process.argv.includes('--public-positive')||process.argv.includes('--hydration-recheck'))prefix = prefix.replace('const retrievalFixtures = String.raw`','const retrievalFixtures = String.raw`\n      if(p.startsWith("/api/v1/public/cms/")&&req.method()==="GET")return r.continue();');
-  prefix = prefix.replace('const common = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\\r\\n", "\\n");',
-    'const common = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\\r\\n", "\\n").replace(\'localStorage.setItem("lexnepal_lang", "en");\',\'if (!localStorage.getItem("lexnepal_lang")) localStorage.setItem("lexnepal_lang", "en");\').replace(\' && !req.headers()["next-action"]\', "");');
-  prefix = prefix.replace('const fixtures = paging.slice(start, end)', 'const fixtures = paging.slice(start, end).replace(/    await page\\n      \\.locator[\\s\\S]*?\\.waitFor\\(\\);/, "")');
-  prefix = prefix.replace('const common =', 'let common =');
-  prefix = prefix.replace('const boundary =', 'let boundary =');
+  let prefix = source
+    .slice(0, start)
+    .replace('const out = ".local/qa/session-17d";', `const out = "${out}";`);
+  prefix = prefix.replace(
+    "const retrievalFixtures = String.raw`",
+    'const retrievalFixtures = String.raw`\n      if(p==="/api/v1/analytics/dashboard")return r.fulfill({json:{data:{activeCases:3,totalCases:3,activeClients:3,activeStaff:3,openLeads:3,openTasks:3,upcomingHearings:3,mattersByPractice:{Civil:3},casesByStatus:{active:3},tasksByStatus:{todo:3},hearingsByMonth:[{month:"2026-10",count:3}]}}});',
+  );
+  prefix = prefix.replace(
+    "const retrievalFixtures = String.raw`",
+    'const retrievalFixtures = String.raw`\n      if(p==="/api/v1/envelopes/signing-inbox")return r.fulfill({json:{data:{pendingEnvelopes:[],pendingDirect:[],recentlySigned:[]}}});\n      if(p.startsWith("/api/v1/public/leads/intake/")||p.startsWith("/api/v1/public/document-shares/"))return r.continue();',
+  );
+  if (process.argv.includes("--public-positive") || process.argv.includes("--hydration-recheck"))
+    prefix = prefix.replace(
+      "const retrievalFixtures = String.raw`",
+      'const retrievalFixtures = String.raw`\n      if(p.startsWith("/api/v1/public/cms/")&&req.method()==="GET")return r.continue();',
+    );
+  prefix = prefix.replace(
+    'const common = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\\r\\n", "\\n");',
+    'const common = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\\r\\n", "\\n").replace(\'localStorage.setItem("lexnepal_lang", "en");\',\'if (!localStorage.getItem("lexnepal_lang")) localStorage.setItem("lexnepal_lang", "en");\').replace(\' && !req.headers()["next-action"]\', "");',
+  );
+  prefix = prefix.replace(
+    "const fixtures = paging.slice(start, end)",
+    'const fixtures = paging.slice(start, end).replace(/    await page\\n      \\.locator[\\s\\S]*?\\.waitFor\\(\\);/, "")',
+  );
+  prefix = prefix.replace("const common =", "let common =");
+  prefix = prefix.replace("const boundary =", "let boundary =");
   prefix += String.raw`
 common=common.replace(/  await page\.goto\(\x60\$\{origin\}\/\$\{role\}\/profile\x60[\s\S]*?  await applyTheme\(\);/, "");
 common=common.replace('if (!localStorage.getItem("lexnepal_lang"))','if (window === window.top && !localStorage.getItem("lexnepal_lang"))');
@@ -345,8 +602,10 @@ common=common.replace('(theme) => document.documentElement.classList.toggle', '(
 common=common.replace('async function applyTheme() {', 'async function applyTheme() {\n  await page.waitForFunction(() => { const key = Object.keys(document.body).find(key => key.startsWith("__reactFiber$")); if (!key) return false; let fiber = document.body[key]; while (fiber.return) fiber = fiber.return; return fiber.stateNode?.current?.memoizedState?.isDehydrated === false; });\n  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));');
 boundary=common.indexOf("if (publicContrastOnly) {\n  assert.equal(prior.results.length");
 `;
-  const tail=source.slice(end);
-  const generator=out+"/integration-generator.mjs";
-  fs.writeFileSync(generator,prefix+"const checks = "+JSON.stringify(checks)+";\n"+tail);
-  process.exitCode=spawnSync(process.execPath,[generator,...process.argv.slice(2)],{stdio:"inherit"}).status??1;
+  const tail = source.slice(end);
+  const generator = out + "/integration-generator.mjs";
+  fs.writeFileSync(generator, prefix + "const checks = " + JSON.stringify(checks) + ";\n" + tail);
+  process.exitCode =
+    spawnSync(process.execPath, [generator, ...process.argv.slice(2)], { stdio: "inherit" })
+      .status ?? 1;
 }

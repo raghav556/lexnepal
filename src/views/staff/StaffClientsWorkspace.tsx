@@ -2,7 +2,15 @@
 import { formatDualDate, nepalDateOnly } from "@/lib/nepali-calendar";
 
 import { StaffPagedCollection } from "@/components/dashboard/staff-paged-collection";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type Ref,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -87,12 +95,16 @@ const FIELD_LABELS: Record<string, string> = {
 type FieldError = { field: string; message: string } | null;
 
 function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ApiClientError && error.status === 401) return "Your session expired. Sign in again.";
-  if (error instanceof ApiClientError && error.status === 403) return "You do not have permission for that client action.";
+  if (error instanceof ApiClientError && error.status === 401)
+    return "Your session expired. Sign in again.";
+  if (error instanceof ApiClientError && error.status === 403)
+    return "You do not have permission for that client action.";
   if (error instanceof ApiClientError && error.details && typeof error.details === "object") {
     const fieldErrors = (error.details as { fieldErrors?: Record<string, string[]> }).fieldErrors;
     const match = fieldErrors
-      ? Object.entries(fieldErrors).find(([, messages]) => Array.isArray(messages) && messages.length > 0)
+      ? Object.entries(fieldErrors).find(
+          ([, messages]) => Array.isArray(messages) && messages.length > 0,
+        )
       : undefined;
     if (match) return `${FIELD_LABELS[match[0]] ?? match[0]}: ${match[1][0]}`;
   }
@@ -116,7 +128,9 @@ export default function StaffClientsWorkspace() {
   const capabilitiesQuery = useQuery({
     queryKey: queryKeys.identity.sessionCapabilities,
     queryFn: async ({ signal }) => {
-      const data = await apiClient.request<{ capabilities: string[] }>("/api/v1/auth/session", { signal });
+      const data = await apiClient.request<{ capabilities: string[] }>("/api/v1/auth/session", {
+        signal,
+      });
       return data.capabilities ?? [];
     },
     staleTime: 60_000,
@@ -165,12 +179,23 @@ export default function StaffClientsWorkspace() {
     () => ({ query: search, type, status, kyc, portal, practiceArea }),
     [search, type, status, kyc, portal, practiceArea],
   );
-  const visible = useMemo(() => filterStaffClients(clients, matters, filters), [clients, matters, filters]);
+  const visible = useMemo(
+    () => filterStaffClients(clients, matters, filters),
+    [clients, matters, filters],
+  );
   const kpis = clientKpis(clients, casesQuery.isSuccess ? matters : []);
   const practiceAreas = clientPracticeAreas(matters);
   const matterCounts = activeMatterCounts(casesQuery.isSuccess ? matters : []);
-  const { paginatedItems, currentPage, totalPages, totalItems, goToPage, nextPage, prevPage, resetPagination } =
-    usePagination(visible, PAGE_SIZE);
+  const {
+    paginatedItems,
+    currentPage,
+    totalPages,
+    totalItems,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination,
+  } = usePagination(visible, PAGE_SIZE);
   const filterKey = `${search}|${type}|${status}|${kyc}|${portal}|${practiceArea}`;
   const [seenFilter, setSeenFilter] = useState(filterKey);
   if (seenFilter !== filterKey) {
@@ -183,9 +208,15 @@ export default function StaffClientsWorkspace() {
   const dirty = mode === "edit" && JSON.stringify(editForm) !== editBaseline;
   const createDirty =
     createForm.type !== "individual" ||
-    [createForm.fullName, createForm.email, createForm.phone, createForm.address, createForm.companyName, createForm.registrationNumber, createForm.notes].some(
-      (value) => value.trim() !== "",
-    );
+    [
+      createForm.fullName,
+      createForm.email,
+      createForm.phone,
+      createForm.address,
+      createForm.companyName,
+      createForm.registrationNumber,
+      createForm.notes,
+    ].some((value) => value.trim() !== "");
   const appointmentsQuery = useQuery({
     queryKey: queryKeys.crm.appointments({ clientId: profileId }),
     queryFn: ({ signal }) =>
@@ -367,7 +398,9 @@ export default function StaffClientsWorkspace() {
       return;
     }
     setConfirm({
-      title: client.userId ? `Resend portal email to ${client.email}?` : `Grant portal access to ${client.fullName}?`,
+      title: client.userId
+        ? `Resend portal email to ${client.email}?`
+        : `Grant portal access to ${client.fullName}?`,
       description: client.userId
         ? "They will receive a setup or password-reset email for the client portal."
         : `Invite ${client.email} to the client portal. They will receive a setup email.`,
@@ -376,9 +409,13 @@ export default function StaffClientsWorkspace() {
         setConfirmBusy(true);
         try {
           const result = await commands.grantPortalAccess(clientKey(client));
-          if (result.alreadyLinked && !result.inviteSent) toast.success("Portal access already active for this client.");
+          if (result.alreadyLinked && !result.inviteSent)
+            toast.success("Portal access already active for this client.");
           else if (result.alreadyLinked) toast.success(inviteEmailQueuedMessage("resent"));
-          else toast.success(result.inviteSent ? inviteEmailQueuedMessage("setup") : "Portal access linked.");
+          else
+            toast.success(
+              result.inviteSent ? inviteEmailQueuedMessage("setup") : "Portal access linked.",
+            );
         } catch (error) {
           toast.error(errorMessage(error, "Failed to grant portal access."));
         } finally {
@@ -397,7 +434,11 @@ export default function StaffClientsWorkspace() {
     setReviewing(true);
     setReviewError("");
     try {
-      await commands.reviewKyc(reviewClientId, decision, decision === "rejected" ? rejectReason.trim() : undefined);
+      await commands.reviewKyc(
+        reviewClientId,
+        decision,
+        decision === "rejected" ? rejectReason.trim() : undefined,
+      );
       toast.success(decision === "verified" ? "KYC verified." : "KYC rejected; client notified.");
       setReviewClientId(null);
       setRejectReason("");
@@ -411,7 +452,8 @@ export default function StaffClientsWorkspace() {
   const loading = clientsQuery.isLoading && !clientsQuery.data;
   const start = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const end = Math.min(currentPage * PAGE_SIZE, totalItems);
-  const matterLabel = (id: string) => (casesQuery.isSuccess ? String(matterCounts.get(id) ?? 0) : "—");
+  const matterLabel = (id: string) =>
+    casesQuery.isSuccess ? String(matterCounts.get(id) ?? 0) : "—";
 
   return (
     <PortalPageShell
@@ -429,7 +471,9 @@ export default function StaffClientsWorkspace() {
           className="staff-clients-hero-art"
           style={
             heroImageUrl
-              ? { backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")` }
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
               : undefined
           }
         />
@@ -437,213 +481,272 @@ export default function StaffClientsWorkspace() {
     >
       <div className="staff-clients-stage" data-profile={profile ? "open" : "closed"}>
         <div className="staff-clients-main">
-        <div className="staff-clients-metrics">
-          <MetricCard label="Total clients" value={String(kpis.total)} icon={Users} tone="information" helperText="Records in this firm" />
-          <MetricCard label="Active matters" value={casesQuery.isSuccess ? String(kpis.activeMatters) : "—"} icon={FolderOpen} tone="success" helperText="Visible matters with active status" />
-          <MetricCard label="KYC pending" value={String(kpis.kycPending)} icon={ShieldCheck} tone="warning" helperText="Status is pending" />
-          <MetricCard label="New this month" value={String(kpis.createdThisMonth)} icon={UserRound} tone="neutral" helperText="Created this calendar month" />
-        </div>
-        <section className="staff-clients-library" aria-busy={clientsQuery.isFetching}>
-          <div className="staff-clients-toolbar">
-            <div className="staff-clients-chips" role="group" aria-label="Client status">
-              {CLIENT_STATUS_CHIPS.map((chip) => (
-                <button
-                  key={chip.value}
-                  type="button"
-                  aria-pressed={status === chip.value}
-                  onClick={() => setStatus(chip.value)}
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-            <div className="staff-clients-toolbar-actions">
-              {canManage ? (
-                <DashboardButton size="sm" onClick={() => setCreateOpen(true)}>
-                  <Plus className="size-3.5" aria-hidden /> Add client
-                </DashboardButton>
-              ) : null}
-              <DashboardButton size="sm" variant="outline" onClick={exportVisible} disabled={visible.length === 0}>
-                <Download className="size-3.5" aria-hidden /> Export CSV
-              </DashboardButton>
-            </div>
+          <div className="staff-clients-metrics">
+            <MetricCard
+              label="Total clients"
+              value={String(kpis.total)}
+              icon={Users}
+              tone="information"
+              helperText="Records in this firm"
+            />
+            <MetricCard
+              label="Active matters"
+              value={casesQuery.isSuccess ? String(kpis.activeMatters) : "—"}
+              icon={FolderOpen}
+              tone="success"
+              helperText="Visible matters with active status"
+            />
+            <MetricCard
+              label="KYC pending"
+              value={String(kpis.kycPending)}
+              icon={ShieldCheck}
+              tone="warning"
+              helperText="Status is pending"
+            />
+            <MetricCard
+              label="New this month"
+              value={String(kpis.createdThisMonth)}
+              icon={UserRound}
+              tone="neutral"
+              helperText="Created this calendar month"
+            />
           </div>
-          <div className="staff-clients-filters">
-            <div className="staff-clients-search">
-              <Search aria-hidden />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search name, email, phone, or company…"
-                aria-label="Search clients"
+          <section className="staff-clients-library" aria-busy={clientsQuery.isFetching}>
+            <div className="staff-clients-toolbar">
+              <div className="staff-clients-chips" role="group" aria-label="Client status">
+                {CLIENT_STATUS_CHIPS.map((chip) => (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    aria-pressed={status === chip.value}
+                    onClick={() => setStatus(chip.value)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+              <div className="staff-clients-toolbar-actions">
+                {canManage ? (
+                  <DashboardButton size="sm" onClick={() => setCreateOpen(true)}>
+                    <Plus className="size-3.5" aria-hidden /> Add client
+                  </DashboardButton>
+                ) : null}
+                <DashboardButton
+                  size="sm"
+                  variant="outline"
+                  onClick={exportVisible}
+                  disabled={visible.length === 0}
+                >
+                  <Download className="size-3.5" aria-hidden /> Export CSV
+                </DashboardButton>
+              </div>
+            </div>
+            <div className="staff-clients-filters">
+              <div className="staff-clients-search">
+                <Search aria-hidden />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search name, email, phone, or company…"
+                  aria-label="Search clients"
+                />
+              </div>
+              <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
+                <SelectTrigger aria-label="Filter by client type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="corporate">Corporate</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={kyc} onValueChange={(value) => setKyc(value as typeof kyc)}>
+                <SelectTrigger aria-label="Filter by KYC status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All KYC statuses</SelectItem>
+                  {CLIENT_KYC_OPTIONS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={portal} onValueChange={(value) => setPortal(value as typeof portal)}>
+                <SelectTrigger aria-label="Filter by portal access">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All portal access</SelectItem>
+                  <SelectItem value="linked">Portal linked</SelectItem>
+                  <SelectItem value="none">No portal</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={practiceArea} onValueChange={setPracticeArea}>
+                <SelectTrigger aria-label="Filter by matter practice area">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All matter practice areas</SelectItem>
+                  {practiceAreas.map((area) => (
+                    <SelectItem key={area} value={area}>
+                      {area}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {clientsQuery.isError ? (
+              <div className="staff-clients-message">
+                <p>{errorMessage(clientsQuery.error, "Clients could not be loaded.")}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void clientsQuery.refetch()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : visible.length === 0 ? (
+              <EmptyState
+                title={clients.length === 0 ? "No clients yet" : "No clients match"}
+                description={
+                  clients.length === 0
+                    ? canManage
+                      ? "Add a client to start the directory."
+                      : "No client records are available."
+                    : "Try a different search or status."
+                }
+                icon={Users}
+                className="border-0"
+              />
+            ) : (
+              <div className="staff-clients-table">
+                <div className="staff-clients-table-head" aria-hidden>
+                  <span>Client</span>
+                  <span>Type</span>
+                  <span>KYC</span>
+                  <span>Portal</span>
+                  <span>Matters</span>
+                  <span>Status</span>
+                  <span>Actions</span>
+                </div>
+                <ul className="staff-clients-rows">
+                  {paginatedItems.map((client) => {
+                    const id = clientKey(client);
+                    return (
+                      <li key={id}>
+                        <article className="staff-clients-row" data-selected={profileId === id}>
+                          <button
+                            type="button"
+                            className="staff-clients-person"
+                            onClick={() => openProfile(client, "view")}
+                          >
+                            <span aria-hidden>{clientInitials(client.fullName)}</span>
+                            <strong>{client.fullName}</strong>
+                            <small>
+                              {client.email || "No email"}
+                              {client.phone ? ` · ${client.phone}` : ""}
+                            </small>
+                          </button>
+                          <div className="staff-clients-cell">
+                            <span className="staff-clients-field-label">Type</span>
+                            <StatusBadge tone="neutral">
+                              {client.type === "corporate" ? "Corporate" : "Individual"}
+                            </StatusBadge>
+                          </div>
+                          <div className="staff-clients-cell">
+                            <span className="staff-clients-field-label">KYC</span>
+                            <StatusBadge
+                              tone={
+                                client.kycStatus === "verified"
+                                  ? "success"
+                                  : client.kycStatus === "rejected"
+                                    ? "danger"
+                                    : client.kycStatus === "submitted"
+                                      ? "warning"
+                                      : "neutral"
+                              }
+                            >
+                              {clientKycLabel(client.kycStatus)}
+                            </StatusBadge>
+                          </div>
+                          <div className="staff-clients-cell">
+                            <span className="staff-clients-field-label">Portal</span>
+                            <StatusBadge tone={client.userId ? "information" : "neutral"}>
+                              {client.userId ? "Linked" : "No portal"}
+                            </StatusBadge>
+                          </div>
+                          <div className="staff-clients-cell">
+                            <span className="staff-clients-field-label">Active matters</span>
+                            <span className="staff-clients-count">{matterLabel(id)}</span>
+                          </div>
+                          <div className="staff-clients-cell">
+                            <span className="staff-clients-field-label">Status</span>
+                            <StatusBadge tone={clientIsActive(client) ? "success" : "warning"}>
+                              {clientIsActive(client) ? "Active" : "Inactive"}
+                            </StatusBadge>
+                          </div>
+                          <div className="staff-clients-actions">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openProfile(client, "view")}
+                            >
+                              View
+                            </Button>
+                            {canManage ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openProfile(client, "edit")}
+                              >
+                                Edit
+                              </Button>
+                            ) : null}
+                          </div>
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            {casesQuery.isError ? (
+              <p className="staff-clients-message">Linked matters could not be loaded.</p>
+            ) : null}
+            <div className="staff-clients-pagination">
+              <p className="staff-clients-page-status">
+                {totalItems === 0
+                  ? "Showing 0 clients"
+                  : `Showing ${start}–${end} of ${totalItems} clients`}
+              </p>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                onNextPage={nextPage}
+                onPrevPage={prevPage}
+                ariaLabel="Client pages"
               />
             </div>
-            <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
-              <SelectTrigger aria-label="Filter by client type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="individual">Individual</SelectItem>
-                <SelectItem value="corporate">Corporate</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={kyc} onValueChange={(value) => setKyc(value as typeof kyc)}>
-              <SelectTrigger aria-label="Filter by KYC status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All KYC statuses</SelectItem>
-                {CLIENT_KYC_OPTIONS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={portal} onValueChange={(value) => setPortal(value as typeof portal)}>
-              <SelectTrigger aria-label="Filter by portal access">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All portal access</SelectItem>
-                <SelectItem value="linked">Portal linked</SelectItem>
-                <SelectItem value="none">No portal</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={practiceArea} onValueChange={setPracticeArea}>
-              <SelectTrigger aria-label="Filter by matter practice area">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All matter practice areas</SelectItem>
-                {practiceAreas.map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {clientsQuery.isError ? (
-            <div className="staff-clients-message">
-              <p>{errorMessage(clientsQuery.error, "Clients could not be loaded.")}</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => void clientsQuery.refetch()}>
-                Retry
-              </Button>
-            </div>
-          ) : visible.length === 0 ? (
-            <EmptyState
-              title={clients.length === 0 ? "No clients yet" : "No clients match"}
-              description={
-                clients.length === 0
-                  ? canManage
-                    ? "Add a client to start the directory."
-                    : "No client records are available."
-                  : "Try a different search or status."
-              }
-              icon={Users}
-              className="border-0"
-            />
-          ) : (
-            <div className="staff-clients-table">
-              <div className="staff-clients-table-head" aria-hidden>
-                <span>Client</span>
-                <span>Type</span>
-                <span>KYC</span>
-                <span>Portal</span>
-                <span>Matters</span>
-                <span>Status</span>
-                <span>Actions</span>
-              </div>
-              <ul className="staff-clients-rows">
-                {paginatedItems.map((client) => {
-                  const id = clientKey(client);
-                  return (
-                    <li key={id}>
-                      <article className="staff-clients-row" data-selected={profileId === id}>
-                        <button type="button" className="staff-clients-person" onClick={() => openProfile(client, "view")}>
-                          <span aria-hidden>{clientInitials(client.fullName)}</span>
-                          <strong>{client.fullName}</strong>
-                          <small>
-                            {client.email || "No email"}
-                            {client.phone ? ` · ${client.phone}` : ""}
-                          </small>
-                        </button>
-                        <div className="staff-clients-cell">
-                          <span className="staff-clients-field-label">Type</span>
-                          <StatusBadge tone="neutral">{client.type === "corporate" ? "Corporate" : "Individual"}</StatusBadge>
-                        </div>
-                        <div className="staff-clients-cell">
-                          <span className="staff-clients-field-label">KYC</span>
-                          <StatusBadge
-                            tone={
-                              client.kycStatus === "verified"
-                                ? "success"
-                                : client.kycStatus === "rejected"
-                                  ? "danger"
-                                  : client.kycStatus === "submitted"
-                                    ? "warning"
-                                    : "neutral"
-                            }
-                          >
-                            {clientKycLabel(client.kycStatus)}
-                          </StatusBadge>
-                        </div>
-                        <div className="staff-clients-cell">
-                          <span className="staff-clients-field-label">Portal</span>
-                          <StatusBadge tone={client.userId ? "information" : "neutral"}>
-                            {client.userId ? "Linked" : "No portal"}
-                          </StatusBadge>
-                        </div>
-                        <div className="staff-clients-cell">
-                          <span className="staff-clients-field-label">Active matters</span>
-                          <span className="staff-clients-count">{matterLabel(id)}</span>
-                        </div>
-                        <div className="staff-clients-cell">
-                          <span className="staff-clients-field-label">Status</span>
-                          <StatusBadge tone={clientIsActive(client) ? "success" : "warning"}>
-                            {clientIsActive(client) ? "Active" : "Inactive"}
-                          </StatusBadge>
-                        </div>
-                        <div className="staff-clients-actions">
-                          <Button type="button" variant="outline" size="sm" onClick={() => openProfile(client, "view")}>
-                            View
-                          </Button>
-                          {canManage ? (
-                            <Button type="button" variant="outline" size="sm" onClick={() => openProfile(client, "edit")}>
-                              Edit
-                            </Button>
-                          ) : null}
-                        </div>
-                      </article>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-          {casesQuery.isError ? <p className="staff-clients-message">Linked matters could not be loaded.</p> : null}
-          <div className="staff-clients-pagination">
-            <p className="staff-clients-page-status">
-              {totalItems === 0 ? "Showing 0 clients" : `Showing ${start}–${end} of ${totalItems} clients`}
-            </p>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              onNextPage={nextPage}
-              onPrevPage={prevPage}
-              ariaLabel="Client pages"
-            />
-          </div>
-        </section>
+          </section>
         </div>
 
         {profile ? (
           <>
-            <button type="button" className="staff-clients-backdrop" aria-label="Close client profile" onClick={closeProfile} />
+            <button
+              type="button"
+              className="staff-clients-backdrop"
+              aria-label="Close client profile"
+              onClick={closeProfile}
+            />
             <aside className="staff-clients-profile" aria-label="Client profile">
               <div className="staff-clients-profile-head">
                 <span aria-hidden>{clientInitials(profile.fullName)}</span>
@@ -656,7 +759,13 @@ export default function StaffClientsWorkspace() {
                     {profile.companyName ? ` · ${profile.companyName}` : ""}
                   </p>
                 </div>
-                <Button type="button" variant="ghost" size="icon" aria-label="Close client profile" onClick={closeProfile}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close client profile"
+                  onClick={closeProfile}
+                >
                   <X className="size-4" aria-hidden />
                 </Button>
               </div>
@@ -689,12 +798,18 @@ export default function StaffClientsWorkspace() {
                           if (editError && editError.field !== "form") setEditError(null);
                         }}
                       />
-                      {editError?.field === "form" ? <p className="staff-clients-field-error">{editError.message}</p> : null}
+                      {editError?.field === "form" ? (
+                        <p className="staff-clients-field-error">{editError.message}</p>
+                      ) : null}
                       <div className="staff-clients-actions">
                         <Button type="button" onClick={() => void submitEdit()} disabled={saving}>
                           {saving ? "Saving…" : "Save profile"}
                         </Button>
-                        <Button type="button" variant="outline" onClick={() => openProfile(profile, "view")}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openProfile(profile, "view")}
+                        >
                           Cancel
                         </Button>
                       </div>
@@ -753,17 +868,32 @@ export default function StaffClientsWorkspace() {
                   )}
                   <div className="staff-clients-actions">
                     {canManage && mode === "view" ? (
-                      <Button type="button" variant="outline" size="sm" onClick={() => openProfile(profile, "edit")}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openProfile(profile, "edit")}
+                      >
                         Edit
                       </Button>
                     ) : null}
                     {canManage ? (
-                      <Button type="button" variant="outline" size="sm" onClick={() => askToggleActive(profile)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => askToggleActive(profile)}
+                      >
                         {clientIsActive(profile) ? "Deactivate" : "Reactivate"}
                       </Button>
                     ) : null}
                     {canManage ? (
-                      <Button type="button" variant="outline" size="sm" onClick={() => askPortal(profile)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => askPortal(profile)}
+                      >
                         {profile.userId ? "Resend portal invite" : "Grant portal access"}
                       </Button>
                     ) : null}
@@ -793,21 +923,28 @@ export default function StaffClientsWorkspace() {
                     <p className="staff-clients-message">No matters linked to this client.</p>
                   ) : (
                     <ul className="staff-clients-matters">
-                      {<StaffPagedCollection label="Client matters" resetKey={profileId ?? ""} footerAs="li">{profileMatters.map((matter) => {
-                        const id = matterKey(matter);
-                        return (
-                          <li key={id || matter.title}>
-                            <strong>{matter.title || "Untitled matter"}</strong>
-                            <small>
-                              {matter.caseNumber || "No number"} · {String(matter.status ?? "unknown").replaceAll("_", " ")}
-                              {matter.practiceArea ? ` · ${matter.practiceArea}` : ""}
-                            </small>
-                            {id ? (
-                              <Link href={`/staff/cases/${id}`}>Open matter</Link>
-                            ) : null}
-                          </li>
-                        );
-                      })}</StaffPagedCollection>}
+                      {
+                        <StaffPagedCollection
+                          label="Client matters"
+                          resetKey={profileId ?? ""}
+                          footerAs="li"
+                        >
+                          {profileMatters.map((matter) => {
+                            const id = matterKey(matter);
+                            return (
+                              <li key={id || matter.title}>
+                                <strong>{matter.title || "Untitled matter"}</strong>
+                                <small>
+                                  {matter.caseNumber || "No number"} ·{" "}
+                                  {String(matter.status ?? "unknown").replaceAll("_", " ")}
+                                  {matter.practiceArea ? ` · ${matter.practiceArea}` : ""}
+                                </small>
+                                {id ? <Link href={`/staff/cases/${id}`}>Open matter</Link> : null}
+                              </li>
+                            );
+                          })}
+                        </StaffPagedCollection>
+                      }
                     </ul>
                   )}
                   <Button variant="outline" size="sm" asChild>
@@ -868,11 +1005,15 @@ export default function StaffClientsWorkspace() {
           <DialogHeader>
             <DialogTitle>KYC — {reviewClient?.fullName ?? "Client"}</DialogTitle>
           </DialogHeader>
-          <p className="staff-clients-hint">Status: {reviewClient ? clientKycLabel(reviewClient.kycStatus) : "—"}</p>
+          <p className="staff-clients-hint">
+            Status: {reviewClient ? clientKycLabel(reviewClient.kycStatus) : "—"}
+          </p>
           {kycQuery.isError ? (
             <div role="alert">
               <p className="staff-clients-hint">KYC files could not be loaded.</p>
-              <Button type="button" variant="outline" onClick={() => void kycQuery.refetch()}>Retry KYC files</Button>
+              <Button type="button" variant="outline" onClick={() => void kycQuery.refetch()}>
+                Retry KYC files
+              </Button>
             </div>
           ) : kycFiles === undefined ? (
             <p className="staff-clients-hint">Loading KYC files…</p>
@@ -880,17 +1021,27 @@ export default function StaffClientsWorkspace() {
             <p className="staff-clients-hint">No KYC files on record.</p>
           ) : (
             <ul className="staff-clients-matters">
-              {<StaffPagedCollection label="KYC files" resetKey={reviewClientId ?? ""} footerAs="li">{kycFiles.map((file: { _id?: string; docType?: string; fileName?: string; url?: string }) => (
-                <li key={file._id ?? file.fileName}>
-                  <strong>{String(file.docType ?? "file").replaceAll("_", " ")}</strong>
-                  <small>{file.fileName || "Unnamed file"}</small>
-                  {file.url ? (
-                    <a href={file.url} target="_blank" rel="noreferrer">
-                      Open file
-                    </a>
-                  ) : null}
-                </li>
-              ))}</StaffPagedCollection>}
+              {
+                <StaffPagedCollection
+                  label="KYC files"
+                  resetKey={reviewClientId ?? ""}
+                  footerAs="li"
+                >
+                  {kycFiles.map(
+                    (file: { _id?: string; docType?: string; fileName?: string; url?: string }) => (
+                      <li key={file._id ?? file.fileName}>
+                        <strong>{String(file.docType ?? "file").replaceAll("_", " ")}</strong>
+                        <small>{file.fileName || "Unnamed file"}</small>
+                        {file.url ? (
+                          <a href={file.url} target="_blank" rel="noreferrer">
+                            Open file
+                          </a>
+                        ) : null}
+                      </li>
+                    ),
+                  )}
+                </StaffPagedCollection>
+              }
             </ul>
           )}
           {reviewClient?.kycStatus === "submitted" ? (
@@ -906,10 +1057,19 @@ export default function StaffClientsWorkspace() {
               </div>
               {reviewError ? <p className="staff-clients-field-error">{reviewError}</p> : null}
               <DialogFooter>
-                <Button type="button" variant="outline" disabled={reviewing} onClick={() => void submitReview("rejected")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={reviewing}
+                  onClick={() => void submitReview("rejected")}
+                >
                   Reject
                 </Button>
-                <Button type="button" disabled={reviewing} onClick={() => void submitReview("verified")}>
+                <Button
+                  type="button"
+                  disabled={reviewing}
+                  onClick={() => void submitReview("verified")}
+                >
                   {reviewing ? "Saving…" : "Approve and verify"}
                 </Button>
               </DialogFooter>
@@ -976,7 +1136,11 @@ function ClientFields({
       </Field>
       {form.type === "corporate" ? (
         <>
-          <Field id={`${idPrefix}-companyName`} label="Company name" message={fieldError("companyName")}>
+          <Field
+            id={`${idPrefix}-companyName`}
+            label="Company name"
+            message={fieldError("companyName")}
+          >
             <Input
               id={`${idPrefix}-companyName`}
               value={form.companyName}
@@ -984,7 +1148,11 @@ function ClientFields({
               onChange={(event) => onChange({ ...form, companyName: event.target.value })}
             />
           </Field>
-          <Field id={`${idPrefix}-registrationNumber`} label="Registration number" message={fieldError("registrationNumber")}>
+          <Field
+            id={`${idPrefix}-registrationNumber`}
+            label="Registration number"
+            message={fieldError("registrationNumber")}
+          >
             <Input
               id={`${idPrefix}-registrationNumber`}
               value={form.registrationNumber}

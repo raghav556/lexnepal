@@ -101,7 +101,11 @@ export function StaffCasesList({
                 </div>
               </DashboardTableCell>
               <DashboardTableCell data-label="Next hearing">
-                {nextHearingDate || hearing?.dateBs ? <DualDateDisplay isoDate={nextHearingDate} recordedBs={hearing?.dateBs} /> : "—"}
+                {nextHearingDate || hearing?.dateBs ? (
+                  <DualDateDisplay isoDate={nextHearingDate} recordedBs={hearing?.dateBs} />
+                ) : (
+                  "—"
+                )}
               </DashboardTableCell>
               <DashboardTableCell data-label="Assigned lawyer">
                 <div className="staff-case-person">

@@ -1,0 +1,750 @@
+{
+  "baseline": "a3e7975e30e758a77741fa2b0b2d1203096858d3",
+  "total": 148,
+  "modified": 138,
+  "new": 10,
+  "excludedProtectedPath": "doc/ui-reference/staff-admin/SESSION-08-ENGINEERING-REPORT.md",
+  "paths": [
+    {
+      "state": " M",
+      "path": ".github/workflows/next-foundation-ci.yml",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "AGENTS.md",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "db/index-manifest.json",
+      "classification": "generated"
+    },
+    {
+      "state": " M",
+      "path": "doc/migration/INVENTORY_SUMMARY.md",
+      "classification": "generated"
+    },
+    {
+      "state": " M",
+      "path": "doc/migration/index-query-map.csv",
+      "classification": "generated"
+    },
+    {
+      "state": " M",
+      "path": "doc/migration/runtime-dependencies.csv",
+      "classification": "generated"
+    },
+    {
+      "state": " M",
+      "path": "package-lock.json",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "package.json",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "scripts/cms/verify-local.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/db/generate-index-map.mjs",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "scripts/db/migrate.mjs",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "scripts/local/verify-auth-baseline.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/migration/archive-convex.ts",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-application-integration.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-court-registry.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-date-system.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-kpi-icons.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-retrieval-continuation.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-staff-hr.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-staff-navigation.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-staff-pagination.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "scripts/qa/verify-staff-tasks.mjs",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/app/(staff)/layout.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/app/api/v1/documents/route.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/app/api/v1/documents/search/route.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/app/api/v1/notifications/route.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/app/providers.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/client/queries/collection.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/client/queries/communication.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/client/queries/crm.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/client/queries/documents.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/client/queries/identity.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/branding/firm-brand.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/cases/case-create-dialog.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/cases/case-hearing-dialog.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/cases/cases-workspace.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/cases/staff-cases-list.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/chat/luxury-chat-bubble.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/chat/luxury-chat-composer.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/chat/luxury-dm-panel.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/dashboard/dual-date-display.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/dashboard/portal-mobile-nav.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/dashboard/staff-paged-collection.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/documents/DocumentShareModal.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/components/documents/TemplateGeneratorModal.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/messages/MatterChatPanel.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/tasks/DueDateFields.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/tasks/TaskCalendarView.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/tasks/TaskWorkloadView.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/bs-date-field.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/collection-continuation.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/confirm-dialog.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/court-select.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/dialog.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/notification-bell.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/components/ui/sheet.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/hooks/use-pagination.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/index.css",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/dashboard-format.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/lex-constants.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/nepal-courts.json",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/nepal-courts.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/nepali-calendar.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/operational-navigation.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/lib/task-constants.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/repositories/collection-continuation.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/repositories/communication-repository.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/repositories/dm-repository.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/repositories/document-repository.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/repositories/identity-repository.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/services/communication-service.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/services/document-service.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/services/hr-notifications.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/services/identity-service.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/server/services/work-management-service.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/shared/collection-page.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/shared/crm/appointment-dates.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/shared/message-cursor.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/AdminAppointmentsPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/AdminAuditPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/AdminCRMPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/AdminUsersPage.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/cms/AdminCMSCareers.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/cms/AdminCMSHomepage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/cms/AdminCMSNews.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/cms/AdminCMSResources.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/admin/cms/AdminCMSTeam.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/auth/MfaEnrollmentPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/auth/SignInPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientBookingPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientCaseDetailPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientCasesPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientChecklistPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientDashboard.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientHearingsPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientNotificationsPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/client/ClientSignaturesPage.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/views/public/BlogPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/public/ResourcesPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffAppointmentCalendar.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffAppointmentsPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffCRMPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffCaseDetailPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffClientsWorkspace.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffContentMarkdownEditor.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffContentPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffContentWritePage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffDashboard.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffDocumentsPage.tsx",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffHRPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffHearingsPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffMessagesPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffResearchPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/StaffTasksPage.tsx",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/staff-appointments-model.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/staff-clients-model.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/staff-content-model.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "src/views/staff/staff-crm-model.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/database/schema-migrations.test.ts",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "tests/e2e/staff-appointments.spec.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/integration/retrieval-continuation.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/collection-query.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/collection-request-isolation.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/contact-frame-policy.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/cui-17-b1-rendered-states.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/cui-20-query-workflows.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/dashboard-contrast.test.ts",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/message-cursor.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/message-pagination.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/nepal-courts.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/nepali-calendar.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/nepali-date-reminders.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/staff-clients-model.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/staff-content-markdown.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/staff-crm-model.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/staff-messages-nav.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/staff-pagination.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": " M",
+      "path": "tests/unit/staff-responsive-navigation.test.ts",
+      "classification": "mechanical-formatting"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18C-CHANGED-PATHS.json",
+      "classification": "report/manifest"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18C-CI-MERGE-GATES-REPORT.md",
+      "classification": "report/manifest"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18C-COVERAGE.json",
+      "classification": "report/manifest"
+    },
+    {
+      "state": "??",
+      "path": "doc/ui-reference/staff-admin/SESSION-18C-FORMATTING-MANIFEST.json",
+      "classification": "report/manifest"
+    },
+    {
+      "state": "??",
+      "path": "scripts/db/migration-session.mjs",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": "??",
+      "path": "scripts/qa/verify-critical-actions.mjs",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": "??",
+      "path": "tests/database/migration-bootstrap.test.ts",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": "??",
+      "path": "tests/support/disposable-mysql.ts",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": "??",
+      "path": "tests/unit/archive-verification-safety.test.ts",
+      "classification": "purposeful-change"
+    },
+    {
+      "state": "??",
+      "path": "tests/unit/disposable-mysql-safety.test.ts",
+      "classification": "purposeful-change"
+    }
+  ],
+  "allowedButUnchanged": []
+}

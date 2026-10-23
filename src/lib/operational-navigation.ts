@@ -56,7 +56,9 @@ export const STAFF_NAV: PortalNavItemData[] = [
 
 /** The home link matches exactly; module links also own their nested pages. */
 export function isStaffNavActive(pathname: string, href: string): boolean {
-  return href === "/staff" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return href === "/staff"
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export interface NavItemLink {

@@ -1,25 +1,21 @@
 import fs from "node:fs";
 import path from "node:path";
-import { getTableName } from "drizzle-orm";
-import { createPool, type Pool, type RowDataPacket } from "mysql2/promise";
+import { getTableName, is } from "drizzle-orm";
+import { getTableConfig, MySqlTable } from "drizzle-orm/mysql-core";
+import { type Pool, type RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { convexTableTargets } from "../../db/schema";
+import * as schema from "../../db/schema";
 import indexManifest from "../../db/index-manifest.json";
+import { createDisposableMysql } from "../support/disposable-mysql";
+import { withMigrationSession } from "../../scripts/db/migration-session.mjs";
 
-const testDatabaseName = "dit_lexnepal_test";
+let testDatabaseName: string;
 const migrationFiles = fs
   .readdirSync(path.resolve("drizzle"))
   .filter((file) => /^\d{4}_.+\.sql$/.test(file))
   .sort()
   .map((file) => path.join("drizzle", file));
-
-function databaseUrl(databaseName = testDatabaseName): URL {
-  const url = new URL(
-    process.env.DATABASE_URL ?? "mysql://ethan:ethan@127.0.0.1:3306/dit_lexnepal",
-  );
-  url.pathname = databaseName ? `/${databaseName}` : "";
-  return url;
-}
 
 async function applySqlFile(database: Pool, file: string): Promise<void> {
   const contents = fs.readFileSync(path.resolve(file), "utf8");
@@ -46,18 +42,17 @@ async function expectRejected(statement: string): Promise<void> {
   await expect(database.query(statement)).rejects.toThrow();
 }
 
-let admin: Pool;
 let database: Pool;
+let fixture: Awaited<ReturnType<typeof createDisposableMysql>> | undefined;
 
 beforeAll(async () => {
-  admin = createPool({ uri: databaseUrl("").toString(), timezone: "Z" });
-  await admin.query(`DROP DATABASE IF EXISTS \`${testDatabaseName}\``);
-  await admin.query(
-    `CREATE DATABASE \`${testDatabaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
-  );
-  database = createPool({ uri: databaseUrl().toString(), timezone: "Z", charset: "utf8mb4" });
+  fixture = await createDisposableMysql();
+  testDatabaseName = fixture.name;
+  database = fixture.pool;
   await database.query("SET time_zone = '+00:00'");
-  for (const migration of migrationFiles) await applySqlFile(database, migration);
+  await withMigrationSession(database, async () => {
+    for (const migration of migrationFiles) await applySqlFile(database, migration);
+  });
   for (const statement of fs
     .readFileSync(path.resolve("tests/fixtures/mysql/base.sql"), "utf8")
     .split(";")
@@ -68,21 +63,21 @@ beforeAll(async () => {
 }, 600_000);
 
 afterAll(async () => {
-  if (database) await database.end();
-  if (admin) {
-    await admin.query(`DROP DATABASE IF EXISTS \`${testDatabaseName}\``);
-    await admin.end();
-  }
-});
+  await fixture?.dispose();
+}, 120_000);
 
 describe("MySQL schema migrations", () => {
   it("creates every retained table with utf8mb4 collation", async () => {
-    expect(Object.keys(convexTableTargets)).toHaveLength(39);
+    expect(Object.keys(convexTableTargets)).toHaveLength(38);
     const expectedTargets = Object.values(convexTableTargets).map(getTableName);
     const actual = await rows<{ tableName: string; tableCollation: string } & RowDataPacket>(
       `SELECT table_name AS tableName, table_collation AS tableCollation FROM information_schema.tables WHERE table_schema = '${testDatabaseName}' AND table_type = 'BASE TABLE'`,
     );
-    expect(actual).toHaveLength(77);
+    const schemaTables = Object.values(schema).filter((value) => is(value, MySqlTable));
+    expect(actual.map((row) => row.tableName).sort()).toEqual(
+      // Immutable 0000 retains this legacy table outside the current ORM exports.
+      [...schemaTables.map(getTableName), "conflict_checks"].sort(),
+    );
     const names = new Set(actual.map((row) => row.tableName));
     for (const target of expectedTargets) expect(names.has(target), target).toBe(true);
     expect(actual.every((row) => row.tableCollation.startsWith("utf8mb4_"))).toBe(true);
@@ -92,7 +87,12 @@ describe("MySQL schema migrations", () => {
     const result = await rows<{ tableName: string; isNullable: string } & RowDataPacket>(
       `SELECT table_name AS tableName, is_nullable AS isNullable FROM information_schema.columns WHERE table_schema = '${testDatabaseName}' AND column_name = 'firm_id'`,
     );
-    expect(result).toHaveLength(69);
+    const tenantTables = Object.values(schema)
+      .filter((value) => is(value, MySqlTable))
+      .filter((table) => getTableConfig(table).columns.some((column) => column.name === "firm_id"));
+    expect(result.map((row) => row.tableName).sort()).toEqual(
+      [...tenantTables.map(getTableName), "conflict_checks"].sort(),
+    );
     expect(result.filter((row) => row.isNullable !== "NO")).toEqual([]);
   });
 

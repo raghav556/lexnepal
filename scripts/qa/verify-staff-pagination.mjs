@@ -43,9 +43,7 @@ async function paginationAudit() {
         p = u.pathname;
       if (req.method() !== "GET") {
         const expectedHrFixture =
-          allowHrCommands &&
-          p === "/api/v1/hr/attendance" &&
-          req.method() === "POST";
+          allowHrCommands && p === "/api/v1/hr/attendance" && req.method() === "POST";
         writes.push({
           path: p,
           method: req.method(),
@@ -92,8 +90,7 @@ async function paginationAudit() {
         }));
         return r.fulfill({ json: { data: entries } });
       }
-      if (emptySecondary && p === emptySecondary)
-        return r.fulfill({ json: { data: [] } });
+      if (emptySecondary && p === emptySecondary) return r.fulfill({ json: { data: [] } });
       let data;
       if (p === "/api/v1/auth/session")
         data = {
@@ -112,10 +109,7 @@ async function paginationAudit() {
         };
       else if (p === "/api/v1/cases" || p.startsWith("/api/v1/cases/")) {
         const matters = rows("matter", (i) => ({
-          _id:
-            i === 0
-              ? caseId
-              : `72000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
+          _id: i === 0 ? caseId : `72000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
           title: `Pagination matter ${String(i + 1).padStart(3, "0")}`,
           caseNumber: `P-${i + 1}`,
           status: "active",
@@ -123,9 +117,7 @@ async function paginationAudit() {
           assignedLawyerId: id,
           clientId,
           filingDate: "2026-10-01",
-          teamMemberIds: rows("peer", (j) => ({ value: `peer-${j + 1}` })).map(
-            (r) => r.value,
-          ),
+          teamMemberIds: rows("peer", (j) => ({ value: `peer-${j + 1}` })).map((r) => r.value),
           parties: rows("party", (j) => ({
             name: `Synthetic party ${j + 1}`,
             side: "our_side",
@@ -208,18 +200,13 @@ async function paginationAudit() {
         data = rows("appointment", (i) => ({
           clientName: `Pagination appointment ${i + 1}`,
           clientId,
-          date: civil(
-            u.searchParams.has("leadId") || u.searchParams.has("clientId")
-              ? i
-              : 0,
-          ),
+          date: civil(u.searchParams.has("leadId") || u.searchParams.has("clientId") ? i : 0),
           timeSlot: "10:00 AM",
           status: "confirmed",
           assignedLawyerId: id,
           practiceArea: "Civil Litigation",
         }));
-      else if (p.endsWith("/appointments/slots"))
-        data = ["10:00 AM", "11:00 AM"];
+      else if (p.endsWith("/appointments/slots")) data = ["10:00 AM", "11:00 AM"];
       else if (p === "/api/v1/leads")
         data = rows("lead", (i) => ({
           fullName: `Pagination lead ${i + 1}`,
@@ -230,9 +217,7 @@ async function paginationAudit() {
         })).filter(
           (r) =>
             !u.searchParams.get("q") ||
-            r.fullName
-              .toLowerCase()
-              .includes(u.searchParams.get("q").toLowerCase()),
+            r.fullName.toLowerCase().includes(u.searchParams.get("q").toLowerCase()),
         );
       else if (
         p === "/api/v1/documents" ||
@@ -302,10 +287,7 @@ async function paginationAudit() {
           },
         }));
       else if (p === "/api/v1/messages/unread") data = {};
-      else if (
-        p === "/api/v1/messages" ||
-        /\/dm\/threads\/[^/]+\/messages$/.test(p)
-      ) {
+      else if (p === "/api/v1/messages" || /\/dm\/threads\/[^/]+\/messages$/.test(p)) {
         const older = Boolean(u.searchParams.get("cursor")),
           total = Math.min(count, 53);
         const messages = rows(
@@ -314,9 +296,7 @@ async function paginationAudit() {
             caseId,
             senderId: clientId,
             content: `Pagination message ${i + 1}`,
-            createdAt: new Date(
-              Date.parse(stamp) - (total - i) * 60000,
-            ).toISOString(),
+            createdAt: new Date(Date.parse(stamp) - (total - i) * 60000).toISOString(),
           }),
           total,
         );
@@ -389,36 +369,18 @@ async function paginationAudit() {
           .map((c) => c.textContent),
       );
     const initial = await rendered();
-    await expect(
-      footer.getByRole("button", { name: "Previous page", exact: true }),
-    ).toBeDisabled();
-    await footer
-      .getByRole("button", { name: "Next page", exact: true })
-      .click();
-    assert.notDeepEqual(
-      await rendered(),
-      initial,
-      `${label}: records must change`,
-    );
+    await expect(footer.getByRole("button", { name: "Previous page", exact: true })).toBeDisabled();
+    await footer.getByRole("button", { name: "Next page", exact: true }).click();
+    assert.notDeepEqual(await rendered(), initial, `${label}: records must change`);
     await expect(footer.locator('[aria-current="page"]')).toHaveText("2");
     const last = footer.getByRole("button").filter({ hasText: /^\d+$/ }).last();
     await last.click();
-    await expect(
-      footer.getByRole("button", { name: "Next page", exact: true }),
-    ).toBeDisabled();
-    await footer
-      .getByRole("button", { name: "Previous page", exact: true })
-      .click();
+    await expect(footer.getByRole("button", { name: "Next page", exact: true })).toBeDisabled();
+    await footer.getByRole("button", { name: "Previous page", exact: true }).click();
     await footer.getByRole("button", { name: "1", exact: true }).click();
-    assert.deepEqual(
-      await rendered(),
-      initial,
-      `${label}: first page must restore`,
-    );
+    assert.deepEqual(await rendered(), initial, `${label}: first page must restore`);
     assert.equal(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth - innerWidth,
-      ),
+      await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
       0,
       label,
     );
@@ -427,9 +389,7 @@ async function paginationAudit() {
       bounds.x >= 0 && bounds.x + bounds.width <= page.viewportSize().width + 1,
       `${label}: controls must fit`,
     );
-    await footer
-      .getByRole("button", { name: "Next page", exact: true })
-      .focus();
+    await footer.getByRole("button", { name: "Next page", exact: true }).focus();
     await page.keyboard.press("Enter");
     await expect(footer.locator('[aria-current="page"]')).toHaveText("2");
     await footer.getByRole("button", { name: "1", exact: true }).click();
@@ -448,8 +408,7 @@ async function paginationAudit() {
       })),
     });
     results.push({
-      check:
-        "secondary collection / actual records / first-middle-last / keyboard",
+      check: "secondary collection / actual records / first-middle-last / keyboard",
       label,
       path: new URL(page.url()).pathname,
     });
@@ -493,9 +452,7 @@ async function paginationAudit() {
     await page.getByRole("button", { name: "List", exact: true }).click();
     await page.getByRole("button", { name: "Kanban", exact: true }).click();
     await incremental(".staff-task-board .staff-collection-pagination");
-    assert(
-      (await page.locator('.staff-task-board [draggable="true"]').count()) > 12,
-    );
+    assert((await page.locator('.staff-task-board [draggable="true"]').count()) > 12);
     await capture("after-tasks-expanded-column-1440-light");
     await open("/staff/cases");
     await page.getByRole("button", { name: /board/i }).click();
@@ -509,10 +466,7 @@ async function paginationAudit() {
     await page.getByRole("tab", { name: /Hearings/ }).click();
     await exercise("Case hearings");
     await open("/staff/tasks");
-    await page
-      .locator(".staff-task-list")
-      .getByText("Pagination task 1", { exact: true })
-      .click();
+    await page.locator(".staff-task-list").getByText("Pagination task 1", { exact: true }).click();
     await exercise("Subtasks");
     await exercise("Task comments");
     await page.keyboard.press("Escape");
@@ -523,10 +477,7 @@ async function paginationAudit() {
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     await (await leadDownload).saveAs(`${out}/synthetic-leads.csv`);
     assert.equal(
-      fs
-        .readFileSync(`${out}/synthetic-leads.csv`, "utf8")
-        .trim()
-        .split(/\r?\n/).length,
+      fs.readFileSync(`${out}/synthetic-leads.csv`, "utf8").trim().split(/\r?\n/).length,
       54,
     );
     results.push({
@@ -543,15 +494,11 @@ async function paginationAudit() {
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     await (await clientDownload).saveAs(`${out}/synthetic-clients.csv`);
     assert.equal(
-      fs
-        .readFileSync(`${out}/synthetic-clients.csv`, "utf8")
-        .trim()
-        .split(/\r?\n/).length,
+      fs.readFileSync(`${out}/synthetic-clients.csv`, "utf8").trim().split(/\r?\n/).length,
       54,
     );
     results.push({
-      check:
-        "Client export retains full filtered dataset, not the ten-row page",
+      check: "Client export retains full filtered dataset, not the ten-row page",
     });
     await page.locator(".staff-clients-person").first().click();
     await page.getByRole("tab", { name: /Matters/ }).click();
@@ -564,26 +511,15 @@ async function paginationAudit() {
       name: /Select all on this page/,
     });
     await pageSelect.check();
-    await page
-      .getByRole("button", { name: "Next page", exact: true })
-      .first()
-      .click();
+    await page.getByRole("button", { name: "Next page", exact: true }).first().click();
     await expect(pageSelect).not.toBeChecked();
     await pageSelect.check();
-    await expect(page.locator(".staff-docs-bulk-count")).toContainText(
-      "24 selected",
-    );
-    await page
-      .getByRole("button", { name: "Previous page", exact: true })
-      .first()
-      .click();
+    await expect(page.locator(".staff-docs-bulk-count")).toContainText("24 selected");
+    await page.getByRole("button", { name: "Previous page", exact: true }).first().click();
     await expect(pageSelect).toBeChecked();
-    await expect(
-      page.getByText(/Showing a limited set of loaded documents/),
-    ).toBeVisible();
+    await expect(page.getByText(/Showing a limited set of loaded documents/)).toBeVisible();
     results.push({
-      check:
-        "document page identity selection / cross-page bulk scope / real cap warning",
+      check: "document page identity selection / cross-page bulk scope / real cap warning",
     });
     await page.locator(".staff-docs-name").first().click();
     await exercise("Document versions");
@@ -627,9 +563,7 @@ async function paginationAudit() {
       ).join("\n"),
     );
     const f = await context.newPage();
-    f.on("pageerror", (e) =>
-      errors.push({ scope: "actual hook fixture", message: e.message }),
-    );
+    f.on("pageerror", (e) => errors.push({ scope: "actual hook fixture", message: e.message }));
     await f.route("**/*", (r) => r.abort());
     await f.setContent('<html><body><div id="root"></div></body></html>');
     await f.addStyleTag({ content: css });
@@ -645,18 +579,14 @@ async function paginationAudit() {
     await expect(f.getByTestId("hook-records")).toHaveText("49,50,51,52,53");
     await f.getByRole("button", { name: "Set 9", exact: true }).click();
     await expect(f.getByTestId("hook-page")).toHaveText("2");
-    await nav
-      .getByRole("button", { name: "Previous page", exact: true })
-      .click();
+    await nav.getByRole("button", { name: "Previous page", exact: true }).click();
     await expect(f.getByTestId("hook-records")).toHaveText("1,2,3,4,5,6,7,8");
     await f.getByRole("button", { name: "Set 53", exact: true }).click();
     await expect(f.getByTestId("hook-page")).toHaveText("1");
     await nav.getByRole("button", { name: "Next page", exact: true }).click();
     await f.getByLabel("Fixture filter").selectOption("even");
     await expect(f.getByTestId("hook-page")).toHaveText("1");
-    await expect(f.getByTestId("hook-records")).toHaveText(
-      "2,4,6,8,10,12,14,16",
-    );
+    await expect(f.getByTestId("hook-records")).toHaveText("2,4,6,8,10,12,14,16");
     results.push({
       check:
         "clamp persistence / Previous after shrink / no resurrection / filter-before-slice reset",
@@ -668,12 +598,7 @@ async function paginationAudit() {
           (dark) => document.documentElement.classList.toggle("dark", dark),
           theme === "dark",
         );
-        assert.equal(
-          await f.evaluate(
-            () => document.documentElement.scrollWidth - innerWidth,
-          ),
-          0,
-        );
+        assert.equal(await f.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
         const scan = await new AxeBuilder({ page: f })
           .include(".staff-collection-pagination")
           .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -715,12 +640,8 @@ async function paginationAudit() {
       await log.evaluate((e) => {
         e.scrollTop = 0;
       });
-      await chat
-        .getByRole("button", { name: "Load earlier messages", exact: true })
-        .click();
-      await expect(
-        chat.getByText("Pagination message 1", { exact: true }),
-      ).toBeAttached();
+      await chat.getByRole("button", { name: "Load earlier messages", exact: true }).click();
+      await expect(chat.getByText("Pagination message 1", { exact: true })).toBeAttached();
       await expect(composer).toHaveValue("Unsent pagination regression draft");
       const reading = await log.evaluate((e) => {
         e.scrollTop = 100;
@@ -732,14 +653,10 @@ async function paginationAudit() {
           : "Matter conversations pagination",
         exact: true,
       });
-      await list
-        .getByRole("button", { name: "Next page", exact: true })
-        .click();
+      await list.getByRole("button", { name: "Next page", exact: true }).click();
       await expect(composer).toHaveValue("Unsent pagination regression draft");
       assert.equal(await log.evaluate((e) => e.scrollTop), reading);
-      await expect(
-        page.getByRole("button", { name: "Scroll to top of page" }),
-      ).toBeHidden();
+      await expect(page.getByRole("button", { name: "Scroll to top of page" })).toBeHidden();
       results.push({
         check:
           "cursor history / earlier records / composer / reading anchor preserved while paging conversations",
@@ -773,30 +690,18 @@ async function paginationAudit() {
     await open("/admin/cases", 1440, "light", 53, "admin");
     await page.getByRole("button", { name: "By status", exact: true }).click();
     await expect(page.locator(".staff-collection-pagination")).toHaveCount(0);
-    await expect(
-      page.getByText("Pagination matter 053", { exact: true }),
-    ).toBeAttached();
+    await expect(page.getByText("Pagination matter 053", { exact: true })).toBeAttached();
     results.push({
-      check:
-        "Admin board retains all original cards and opts out of Staff windows",
+      check: "Admin board retains all original cards and opts out of Staff windows",
     });
     await open("/client/cases", 390, "dark", 53, "client");
-    assert.equal(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth - innerWidth,
-      ),
-      0,
-    );
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
     await expect(page.locator(".staff-collection-pagination")).toHaveCount(0);
     results.push({ check: "Client scope/layout unchanged; no Staff controls" });
     readDelay = 1200;
     await open("/staff/appointments");
-    await expect(
-      page.locator('[data-collection="Appointment results"]'),
-    ).toHaveCount(0);
-    await expect(
-      page.locator('[data-collection="Appointment results"]'),
-    ).toBeVisible();
+    await expect(page.locator('[data-collection="Appointment results"]')).toHaveCount(0);
+    await expect(page.locator('[data-collection="Appointment results"]')).toBeVisible();
     readDelay = 0;
     results.push({
       check: "appointments delayed read resolves to correct paged results",
@@ -804,17 +709,12 @@ async function paginationAudit() {
     readFailure = "/api/v1/appointments";
     await open("/staff/appointments");
     await expect(page.getByRole("button", { name: /Retry/i })).toBeVisible();
-    await expect(
-      page.locator('[data-collection="Appointment results"]'),
-    ).toHaveCount(0);
+    await expect(page.locator('[data-collection="Appointment results"]')).toHaveCount(0);
     readFailure = "";
     await page.getByRole("button", { name: /Retry/i }).click();
-    await expect(
-      page.locator('[data-collection="Appointment results"]'),
-    ).toBeVisible();
+    await expect(page.locator('[data-collection="Appointment results"]')).toBeVisible();
     results.push({
-      check:
-        "403 error does not fabricate rows/pagination; retry restores results",
+      check: "403 error does not fabricate rows/pagination; retry restores results",
     });
   }
   async function existingCollections() {
@@ -831,10 +731,7 @@ async function paginationAudit() {
       ["/staff/hr", null, true],
     ]) {
       await open(path);
-      if (leave)
-        await page
-          .getByRole("tab", { name: "Leave & Requests", exact: true })
-          .click();
+      if (leave) await page.getByRole("tab", { name: "Leave & Requests", exact: true }).click();
       const nav = page.locator('main [data-slot="pagination"]').first();
       await expect(nav).toBeVisible();
       const content = () =>
@@ -844,9 +741,7 @@ async function paginationAudit() {
               .getByText(new RegExp(`^Pagination ${prefix} \\d`))
               .allTextContents()
           : page
-              .locator(
-                leave ? '[data-testid="leave-request-row"]' : "main tbody tr",
-              )
+              .locator(leave ? '[data-testid="leave-request-row"]' : "main tbody tr")
               .allTextContents();
       const first = await content();
       assert(first.length > 0);
@@ -854,43 +749,30 @@ async function paginationAudit() {
       assert.notDeepEqual(await content(), first, path);
       await expect(nav.locator('[aria-current="page"]')).toHaveText("2");
       await nav.getByRole("button").filter({ hasText: /^\d+$/ }).last().click();
-      await expect(
-        nav.getByRole("button", { name: "Next page", exact: true }),
-      ).toBeDisabled();
-      await nav
-        .getByRole("button", { name: "Previous page", exact: true })
-        .click();
+      await expect(nav.getByRole("button", { name: "Next page", exact: true })).toBeDisabled();
+      await nav.getByRole("button", { name: "Previous page", exact: true }).click();
       await nav.getByRole("button", { name: "1", exact: true }).click();
       assert.deepEqual(await content(), first);
       if (prefix && !["document", "article"].includes(prefix)) {
-        await nav
-          .getByRole("button", { name: "Next page", exact: true })
-          .click();
+        await nav.getByRole("button", { name: "Next page", exact: true }).click();
         const search = page
           .locator("main input")
           .filter({ visible: true })
           .filter({ hasNot: page.locator('[type="checkbox"]') });
         const field = page
-          .locator(
-            'main input[placeholder*="Search"], main input[placeholder*="search"]',
-          )
+          .locator('main input[placeholder*="Search"], main input[placeholder*="search"]')
           .first();
         assert((await search.count()) > 0);
-        await field.fill(
-          `Pagination ${prefix} ${prefix === "matter" ? "053" : "53"}`,
-        );
+        await field.fill(`Pagination ${prefix} ${prefix === "matter" ? "053" : "53"}`);
         await expect
           .poll(async () =>
-            (await nav.count())
-              ? await nav.locator('[aria-current="page"]').textContent()
-              : "1",
+            (await nav.count()) ? await nav.locator('[aria-current="page"]').textContent() : "1",
           )
           .toBe("1");
         await field.fill("");
       }
       results.push({
-        check:
-          "retained paginator / actual first-middle-last records / existing search reset",
+        check: "retained paginator / actual first-middle-last records / existing search reset",
         path,
         view: leave ? "leave" : prefix || "attendance",
       });
@@ -903,19 +785,14 @@ async function paginationAudit() {
         await page.locator(".staff-docs-name").first().click();
         await exercise("Document versions");
         const footer = page.locator('[data-collection="Document versions"]');
-        assert.equal(
-          await footer.evaluate((e) => getComputedStyle(e).display),
-          "block",
-        );
+        assert.equal(await footer.evaluate((e) => getComputedStyle(e).display), "block");
         await capture(`final-document-versions-${width}-${theme}`);
       }
     for (const width of [360, 1440])
       for (const theme of ["light", "dark"]) {
         await open("/staff/clients", width, theme);
         await page.locator(".staff-clients-person").first().click();
-        await page
-          .getByRole("button", { name: "Review KYC", exact: true })
-          .click();
+        await page.getByRole("button", { name: "Review KYC", exact: true }).click();
         await exercise("KYC files");
         assert.equal(
           await page
@@ -932,27 +809,18 @@ async function paginationAudit() {
     for (const resource of ["versions", "kyc"]) {
       const path = resource === "versions" ? versions : kyc;
       const enter = async () => {
-        await open(
-          resource === "versions" ? "/staff/documents" : "/staff/clients",
-          390,
-          "dark",
-        );
-        if (resource === "versions")
-          await page.locator(".staff-docs-name").first().click();
+        await open(resource === "versions" ? "/staff/documents" : "/staff/clients", 390, "dark");
+        if (resource === "versions") await page.locator(".staff-docs-name").first().click();
         else {
           await page.locator(".staff-clients-person").first().click();
-          await page
-            .getByRole("button", { name: "Review KYC", exact: true })
-            .click();
+          await page.getByRole("button", { name: "Review KYC", exact: true }).click();
         }
       };
       emptySecondary = path;
       await enter();
       await expect(
         page.getByText(
-          resource === "versions"
-            ? "No version history is available."
-            : "No KYC files on record.",
+          resource === "versions" ? "No version history is available." : "No KYC files on record.",
           { exact: true },
         ),
       ).toBeVisible();
@@ -962,8 +830,7 @@ async function paginationAudit() {
         ),
       ).toHaveCount(0);
       results.push({
-        check:
-          "known empty history does not remain loading or fabricate a page",
+        check: "known empty history does not remain loading or fabricate a page",
         resource,
       });
       emptySecondary = "";
@@ -999,8 +866,7 @@ async function paginationAudit() {
         ),
       ).toBeVisible();
       results.push({
-        check:
-          "403 history error / retained dialog / retry / real rows restored",
+        check: "403 history error / retained dialog / retry / real rows restored",
         resource,
       });
     }
@@ -1009,39 +875,24 @@ async function paginationAudit() {
     historicalAttendance = true;
     hrCurrent = null;
     await open("/staff/hr");
-    const historyNav = () =>
-      page.locator('main [data-slot="pagination"]').first();
+    const historyNav = () => page.locator('main [data-slot="pagination"]').first();
     await historyNav().getByRole("button", { name: "7", exact: true }).click();
-    await page
-      .getByRole("tab", { name: "Leave & Requests", exact: true })
-      .click();
+    await page.getByRole("tab", { name: "Leave & Requests", exact: true }).click();
     await historyNav().getByRole("button", { name: "7", exact: true }).click();
     count = 9;
     allowHrCommands = true;
-    await page
-      .getByRole("button", { name: "Clock In", exact: true })
-      .first()
-      .click();
-    await expect(
-      page.getByText("Clock-in saved.", { exact: true }).first(),
-    ).toBeVisible();
+    await page.getByRole("button", { name: "Clock In", exact: true }).first().click();
+    await expect(page.getByText("Clock-in saved.", { exact: true }).first()).toBeVisible();
     allowHrCommands = false;
     await expect(historyNav().locator('[aria-current="page"]')).toHaveText("2");
     await page.getByRole("tab", { name: "Attendance", exact: true }).click();
     await expect(historyNav().locator('[aria-current="page"]')).toHaveText("2");
     count = 53;
     await page.clock.setFixedTime(new Date(Date.parse(stamp) + 120000));
-    await page
-      .getByRole("button", { name: "Clock Out", exact: true })
-      .first()
-      .click();
+    await page.getByRole("button", { name: "Clock Out", exact: true }).first().click();
     allowHrCommands = true;
-    await page
-      .getByRole("button", { name: "Confirm Clock Out", exact: true })
-      .click();
-    await expect(
-      page.getByText("Clock-out saved.", { exact: true }).first(),
-    ).toBeVisible();
+    await page.getByRole("button", { name: "Confirm Clock Out", exact: true }).click();
+    await expect(page.getByText("Clock-out saved.", { exact: true }).first()).toBeVisible();
     allowHrCommands = false;
     await expect(historyNav().locator('[aria-current="page"]')).toHaveText("2");
     results.push({
@@ -1049,13 +900,10 @@ async function paginationAudit() {
         "HR attendance 53 → 9 → 53 records retains clamped page 2 after authenticated-command cache refresh",
       intercepted: true,
     });
-    await page
-      .getByRole("tab", { name: "Leave & Requests", exact: true })
-      .click();
+    await page.getByRole("tab", { name: "Leave & Requests", exact: true }).click();
     await expect(historyNav().locator('[aria-current="page"]')).toHaveText("2");
     results.push({
-      check:
-        "HR leave history independently retains clamped page 2 after 53 → 9 → 53 refresh",
+      check: "HR leave history independently retains clamped page 2 after 53 → 9 → 53 refresh",
       intercepted: true,
     });
   }
@@ -1068,83 +916,48 @@ async function paginationAudit() {
         for (const returned of [0, 1, 30]) {
           auditCount = returned;
           await open(`/${role}/profile`, width, theme, 53, role);
-          await page
-            .getByRole("tab", { name: "Data & Privacy", exact: true })
-            .click();
+          await page.getByRole("tab", { name: "Data & Privacy", exact: true }).click();
           const panel = page.getByRole("tabpanel");
           const badge = panel.getByText(/^\d+ loaded events?$/);
           const records = panel.getByText(
-            role === "client"
-              ? /^profile\.updated_\d+$/
-              : /^Profile Updated \d+$/,
+            role === "client" ? /^profile\.updated_\d+$/ : /^Profile Updated \d+$/,
           );
           if (!returned) {
-            await expect(
-              panel.getByText("No activity recorded.", { exact: true }),
-            ).toBeVisible();
+            await expect(panel.getByText("No activity recorded.", { exact: true })).toBeVisible();
             await expect(badge).toHaveCount(0);
-            await expect(panel.locator('[data-slot="pagination"]')).toHaveCount(
-              0,
-            );
+            await expect(panel.locator('[data-slot="pagination"]')).toHaveCount(0);
           } else {
-            await expect(badge).toHaveText(
-              `${returned} loaded event${returned === 1 ? "" : "s"}`,
-            );
+            await expect(badge).toHaveText(`${returned} loaded event${returned === 1 ? "" : "s"}`);
             await expect(records).toHaveCount(Math.min(returned, 6));
             if (returned === 30) {
               const nav = panel.locator('[data-slot="pagination"]');
               const action = (n) =>
-                role === "client"
-                  ? `profile.updated_${n}`
-                  : `Profile Updated ${n}`;
-              await expect(
-                panel.getByText(action(1), { exact: true }),
-              ).toBeVisible();
-              await nav
-                .getByRole("button", { name: "Next page", exact: true })
-                .click();
-              await expect(
-                panel.getByText(action(7), { exact: true }),
-              ).toBeVisible();
-              await expect(
-                panel.getByText(action(1), { exact: true }),
-              ).toHaveCount(0);
+                role === "client" ? `profile.updated_${n}` : `Profile Updated ${n}`;
+              await expect(panel.getByText(action(1), { exact: true })).toBeVisible();
+              await nav.getByRole("button", { name: "Next page", exact: true }).click();
+              await expect(panel.getByText(action(7), { exact: true })).toBeVisible();
+              await expect(panel.getByText(action(1), { exact: true })).toHaveCount(0);
               await nav.getByRole("button", { name: "3", exact: true }).click();
-              await expect(
-                panel.getByText(action(13), { exact: true }),
-              ).toBeVisible();
+              await expect(panel.getByText(action(13), { exact: true })).toBeVisible();
               await nav.getByRole("button", { name: "5", exact: true }).click();
-              await expect(
-                panel.getByText(action(30), { exact: true }),
-              ).toBeVisible();
+              await expect(panel.getByText(action(30), { exact: true })).toBeVisible();
               await expect(
                 nav.getByRole("button", { name: "Next page", exact: true }),
               ).toBeDisabled();
-              await nav
-                .getByRole("button", { name: "Previous page", exact: true })
-                .click();
-              await expect(
-                panel.getByText(action(19), { exact: true }),
-              ).toBeVisible();
+              await nav.getByRole("button", { name: "Previous page", exact: true }).click();
+              await expect(panel.getByText(action(19), { exact: true })).toBeVisible();
               const first = nav.getByRole("button", { name: "1", exact: true });
               await first.focus();
               await page.keyboard.press("Enter");
-              await expect(
-                panel.getByText(action(1), { exact: true }),
-              ).toBeVisible();
+              await expect(panel.getByText(action(1), { exact: true })).toBeVisible();
               await expect(records).toHaveCount(6);
               await expect(badge).toHaveText("30 loaded events");
-            } else
-              await expect(
-                panel.locator('[data-slot="pagination"]'),
-              ).toHaveCount(0);
+            } else await expect(panel.locator('[data-slot="pagination"]')).toHaveCount(0);
           }
           await expect(panel).not.toContainText("total events");
           await expect(panel).not.toContainText("53 loaded");
           if (role === "client") {
-            await expect(panel).not.toContainText(
-              "PRIVATE_SYNTHETIC_AUDIT_DETAILS",
-            );
+            await expect(panel).not.toContainText("PRIVATE_SYNTHETIC_AUDIT_DETAILS");
             await expect(panel).not.toContainText("192.0.2.123");
             await expect(panel.locator("details")).toHaveCount(0);
           }
@@ -1192,50 +1005,32 @@ async function paginationAudit() {
       });
       try {
         await open(`/${role}/profile`, 390, "light", 53, role);
-        await page
-          .getByRole("tab", { name: "Data & Privacy", exact: true })
-          .click();
+        await page.getByRole("tab", { name: "Data & Privacy", exact: true }).click();
         const panel = page.getByRole("tabpanel");
-        await expect(
-          panel.getByText("Loading...", { exact: true }),
-        ).toBeVisible();
+        await expect(panel.getByText("Loading...", { exact: true })).toBeVisible();
         await expect(panel.getByText(/^\d+ loaded events?$/)).toHaveCount(0);
       } finally {
         release();
         auditGate = null;
       }
-      await expect(
-        page.getByText("30 loaded events", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText("30 loaded events", { exact: true })).toBeVisible();
       results.push({
-        check:
-          "initial loading has no fabricated count; released response shows loaded count",
+        check: "initial loading has no fabricated count; released response shows loaded count",
         role,
       });
     }
     readFailure = "/api/v1/users/me/audit-events";
     await open("/client/profile", 390, "light", 53, "client");
-    await page
-      .getByRole("tab", { name: "Data & Privacy", exact: true })
-      .click();
-    await expect(
-      page.getByText("Activity unavailable", { exact: true }),
-    ).toBeVisible();
+    await page.getByRole("tab", { name: "Data & Privacy", exact: true }).click();
+    await expect(page.getByText("Activity unavailable", { exact: true })).toBeVisible();
     await expect(page.getByText(/^\d+ loaded events?$/)).toHaveCount(0);
     readFailure = "";
     await page.getByRole("button", { name: "Try again", exact: true }).click();
-    await expect(
-      page.getByText("30 loaded events", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("30 loaded events", { exact: true })).toBeVisible();
     results.push({
-      check:
-        "Client 403 keeps count hidden; retry restores loaded count and redacted events",
+      check: "Client 403 keeps count hidden; retry restores loaded count and redacted events",
     });
-    assert.equal(
-      writes.length,
-      0,
-      "Audit count checks must not issue mutations",
-    );
+    assert.equal(writes.length, 0, "Audit count checks must not issue mutations");
   }
   try {
     if (before) {
@@ -1248,11 +1043,8 @@ async function paginationAudit() {
       ]) {
         await open(path);
         if (name === "tasks")
-          await page
-            .getByRole("button", { name: "Kanban", exact: true })
-            .click();
-        if (name === "cases")
-          await page.getByRole("button", { name: /board/i }).click();
+          await page.getByRole("button", { name: "Kanban", exact: true }).click();
+        if (name === "cases") await page.getByRole("button", { name: /board/i }).click();
         await capture(`before-${name}-1440-light`);
         results.push({ path, before: true, geometry: await geometry() });
       }
@@ -1283,24 +1075,16 @@ async function paginationAudit() {
         for (const width of process.argv.includes("--smoke")
           ? [1440]
           : [360, 390, 768, 1024, 1280, 1440]) {
-          for (const theme of process.argv.includes("--smoke")
-            ? ["light"]
-            : ["light", "dark"]) {
+          for (const theme of process.argv.includes("--smoke") ? ["light"] : ["light", "dark"]) {
             await open(path, width, theme);
             const g = await geometry();
-            assert.equal(
-              g.overflow,
-              0,
-              JSON.stringify({ path, width, theme, g }),
-            );
+            assert.equal(g.overflow, 0, JSON.stringify({ path, width, theme, g }));
             assert.equal(g.bodyRange, 0);
             assert.equal(g.shellRange, 0);
             assert.equal(g.mainPosition, "relative");
             assert.equal(g.staffPrimary, 12); // Desktop navigation stays mounted but hidden on mobile.
             assert.equal(g.bottomBar, false);
-            const footer = await page
-              .locator(".staff-shell-footer")
-              .boundingBox();
+            const footer = await page.locator(".staff-shell-footer").boundingBox();
             assert(Math.abs(footer.y + footer.height - g.height) < 1);
             results.push({
               path,
@@ -1309,13 +1093,8 @@ async function paginationAudit() {
               check: "real route / all loaded data / responsive shell",
               geometry: g,
             });
-            if (
-              (width === 1440 && theme === "light") ||
-              (width === 360 && theme === "dark")
-            )
-              await capture(
-                `after-${path.slice(1).replaceAll("/", "-")}-${width}-${theme}`,
-              );
+            if ((width === 1440 && theme === "light") || (width === 360 && theme === "dark"))
+              await capture(`after-${path.slice(1).replaceAll("/", "-")}-${width}-${theme}`);
           }
         }
       }
@@ -1353,11 +1132,7 @@ async function paginationAudit() {
                     : process.argv.includes("--read-states")
                       ? "/read-state-evidence.json"
                       : "/evidence.json"),
-      JSON.stringify(
-        { results, scans, errors, writes, liveMutations: 0 },
-        null,
-        2,
-      ),
+      JSON.stringify({ results, scans, errors, writes, liveMutations: 0 }, null, 2),
     );
     await browser.close();
   }
@@ -1368,9 +1143,7 @@ async function paginationAudit() {
         w.intercepted &&
         (w.path === "/api/v1/messages/read" ||
           /^\/api\/v1\/dm\/threads\/[^/]+\/read$/.test(w.path) ||
-          (w.expectedHrFixture &&
-            w.method === "POST" &&
-            w.path === "/api/v1/hr/attendance")),
+          (w.expectedHrFixture && w.method === "POST" && w.path === "/api/v1/hr/attendance")),
     ),
     "Paging must not submit a form or issue an unrelated mutation",
   );
@@ -1394,9 +1167,7 @@ fs.mkdirSync(target, { recursive: true });
 const shared = fs
   .readFileSync("scripts/qa/verify-account-profile.mjs", "utf8")
   .replaceAll("\r\n", "\n");
-const boundary = shared.indexOf(
-  "if (publicContrastOnly) {\n  assert.equal(prior.results.length",
-);
+const boundary = shared.indexOf("if (publicContrastOnly) {\n  assert.equal(prior.results.length");
 if (boundary < 0) throw new Error("Review shared QA fixture boundary");
 const prefix = shared
   .slice(0, boundary)
@@ -1406,10 +1177,7 @@ const worker = `${target}/worker.mjs`;
 fs.writeFileSync(
   worker,
   prefix +
-    self.slice(
-      self.indexOf("async function paginationAudit"),
-      self.indexOf("const target ="),
-    ) +
+    self.slice(self.indexOf("async function paginationAudit"), self.indexOf("const target =")) +
     `\nawait ${paginationAudit.name}();\n`,
 );
 process.exitCode =

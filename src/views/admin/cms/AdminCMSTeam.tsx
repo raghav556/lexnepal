@@ -680,9 +680,7 @@ export default function AdminCMSTeam() {
                     <BsDateField
                       aria-label="Bar council expiry"
                       value={formData.barCouncilExpiry}
-                      onDateChange={(e) =>
-                        setFormData({ ...formData, barCouncilExpiry: e })
-                      }
+                      onDateChange={(e) => setFormData({ ...formData, barCouncilExpiry: e })}
                     />
                   </div>
                 </div>

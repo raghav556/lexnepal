@@ -328,7 +328,9 @@ try {
     assert.equal(await saveTask.evaluate((button) => button.form?.id), "staff-task-edit-form");
     for (const name of ["Add", "Post"])
       assert.equal(
-        await taskDialog.getByRole("button", { name, exact: true }).evaluate((button) => button.form),
+        await taskDialog
+          .getByRole("button", { name, exact: true })
+          .evaluate((button) => button.form),
         null,
       );
     assert(
@@ -338,7 +340,7 @@ try {
         );
         return Boolean(
           comments.compareDocumentPosition(dialog.querySelector(".staff-task-detail-actions")) &
-            Node.DOCUMENT_POSITION_FOLLOWING,
+          Node.DOCUMENT_POSITION_FOLLOWING,
         );
       }),
       "Final task actions must follow the independent Comments section",
@@ -346,15 +348,22 @@ try {
     const beforeInvalidSave = (await evidence()).length;
     await page.locator("#edit-task-title").fill("");
     await saveTask.click();
-    assert.equal(await page.locator("#edit-task-title").evaluate((field) => field.validity.valid), false);
+    assert.equal(
+      await page.locator("#edit-task-title").evaluate((field) => field.validity.valid),
+      false,
+    );
     assert.equal((await evidence()).length, beforeInvalidSave);
     await page.locator("#edit-task-title").fill("  Updated synthetic task  ");
     await page.locator("#edit-task-description").fill("  Updated note  ");
     await page.locator("#edit-task-category").selectOption("research");
     await page.locator("#edit-task-recurrence").selectOption("monthly");
     await page.locator("#edit-task-reminder").fill("2026-10-20");
-    await page.getByRole("textbox", { name: "New subtask", exact: true }).fill("Unsubmitted subtask");
-    await page.getByRole("textbox", { name: "New comment", exact: true }).fill("Unsubmitted comment");
+    await page
+      .getByRole("textbox", { name: "New subtask", exact: true })
+      .fill("Unsubmitted subtask");
+    await page
+      .getByRole("textbox", { name: "New comment", exact: true })
+      .fill("Unsubmitted comment");
     await page.evaluate(() => window.failNextTaskCommand());
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(
@@ -395,7 +404,9 @@ try {
     await page.getByRole("textbox", { name: "New subtask", exact: true }).press("Enter");
     await expect(page.getByText("Synthetic added subtask", { exact: true })).toBeVisible();
     assert.equal((await evidence()).at(-1).input.parentTaskId, "synthetic-task-1");
-    await page.getByRole("textbox", { name: "New subtask", exact: true }).fill("Button-added subtask");
+    await page
+      .getByRole("textbox", { name: "New subtask", exact: true })
+      .fill("Button-added subtask");
     const beforeSubtaskButton = (await evidence()).length;
     await taskDialog.getByRole("button", { name: "Add", exact: true }).click();
     await expect(page.getByText("Button-added subtask", { exact: true })).toBeVisible();
@@ -413,7 +424,9 @@ try {
       command: "comment",
       input: { taskId: "synthetic-task-1", content: "Synthetic comment" },
     });
-    await page.getByRole("textbox", { name: "New comment", exact: true }).fill("Button-posted comment");
+    await page
+      .getByRole("textbox", { name: "New comment", exact: true })
+      .fill("Button-posted comment");
     const beforeCommentButton = (await evidence()).length;
     await taskDialog.getByRole("button", { name: "Post", exact: true }).click();
     await expect(page.getByText("Button-posted comment", { exact: true })).toBeVisible();

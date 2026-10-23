@@ -84,7 +84,9 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
           size="icon"
           className={cn("group relative", triggerClassName)}
           aria-label={
-            unreadCount > 0 || notificationQuery.hasMore ? `Open notifications (${unreadCount} unread in loaded notifications${notificationQuery.hasMore ? "; more records available" : ""})` : "Open notifications"
+            unreadCount > 0 || notificationQuery.hasMore
+              ? `Open notifications (${unreadCount} unread in loaded notifications${notificationQuery.hasMore ? "; more records available" : ""})`
+              : "Open notifications"
           }
         >
           <Bell
@@ -124,7 +126,11 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
         <div className="min-h-0 max-h-[300px] flex-1 overflow-y-auto overscroll-contain">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {notificationQuery.isError ? "Notifications unavailable. Please retry." : notificationQuery.isLoading ? "Loading notifications…" : "No notifications yet."}
+              {notificationQuery.isError
+                ? "Notifications unavailable. Please retry."
+                : notificationQuery.isLoading
+                  ? "Loading notifications…"
+                  : "No notifications yet."}
             </div>
           ) : (
             <DropdownMenuGroup>
@@ -154,10 +160,14 @@ export function NotificationBell({ triggerClassName, iconClassName }: Notificati
             </DropdownMenuGroup>
           )}
         </div>
-        <div role="none" className="px-3"><CollectionContinuation query={notificationQuery} noun="notifications" inMenu /></div>
+        <div role="none" className="px-3">
+          <CollectionContinuation query={notificationQuery} noun="notifications" inMenu />
+        </div>
       </DropdownMenuContent>
       <span role="status" className="sr-only">
-        {notificationQuery.isError ? "Notifications unavailable. Please retry." : `${notifications.length} notifications loaded.${notificationQuery.hasMore ? " More records available." : ""}`}
+        {notificationQuery.isError
+          ? "Notifications unavailable. Please retry."
+          : `${notifications.length} notifications loaded.${notificationQuery.hasMore ? " More records available." : ""}`}
       </span>
     </DropdownMenu>
   );

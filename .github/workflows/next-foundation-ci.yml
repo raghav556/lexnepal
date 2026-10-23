@@ -31,6 +31,7 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/mysql
+      TEST_DATABASE_ADMIN_URL: mysql://root:root@127.0.0.1:3306/mysql
       APP_VERSION: ci
       GIT_SHA: ${{ github.sha }}
       LOG_LEVEL: error

@@ -82,7 +82,10 @@ export function CaseCreateDialog({
     return () => window.clearTimeout(id);
   }, [open]);
 
-  const reset = useCallback(() => { setForm(emptyForm); setFilingDate(nepalDateOnly()); }, []);
+  const reset = useCallback(() => {
+    setForm(emptyForm);
+    setFilingDate(nepalDateOnly());
+  }, []);
 
   // Keep Dialog's focus effect stable while a field edit re-renders this form.
   const handleOpenChange = useCallback(
@@ -147,7 +150,12 @@ export function CaseCreateDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="case-filing-date-bs">Filing date</Label>
-            <BsDateField id="case-filing-date-bs" value={filingDate} onDateChange={setFilingDate} required />
+            <BsDateField
+              id="case-filing-date-bs"
+              value={filingDate}
+              onDateChange={setFilingDate}
+              required
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="case-number">
@@ -284,8 +292,11 @@ export function CaseCreateDialog({
 
             <div className="space-y-1">
               <Label htmlFor="case-court">Court Name</Label>
-              <CourtSelect id="case-court" value={form.court}
-                onValueChange={(court) => setForm((current) => ({ ...current, court }))} />
+              <CourtSelect
+                id="case-court"
+                value={form.court}
+                onValueChange={(court) => setForm((current) => ({ ...current, court }))}
+              />
             </div>
           </div>
 

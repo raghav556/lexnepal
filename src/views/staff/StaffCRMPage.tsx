@@ -10,7 +10,11 @@ import { apiClient } from "@/client/api/client";
 import { ApiClientError } from "@/client/api/errors";
 import { usePracticeAreas } from "@/client/queries/cms";
 import { useStaffDirectory } from "@/client/queries/identity";
-import { useStaffAppointmentCreate, useAvailableSlots, useLeadCommands } from "@/client/queries/crm";
+import {
+  useStaffAppointmentCreate,
+  useAvailableSlots,
+  useLeadCommands,
+} from "@/client/queries/crm";
 import { queryKeys } from "@/client/queries/query-keys";
 import {
   DashboardButton,
@@ -67,11 +71,14 @@ import { toast } from "sonner";
 const PAGE_SIZE = 8;
 
 function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ApiClientError && error.status === 401) return "Your session expired. Sign in again.";
+  if (error instanceof ApiClientError && error.status === 401)
+    return "Your session expired. Sign in again.";
   if (error instanceof ApiClientError && error.details && typeof error.details === "object") {
     const fieldErrors = (error.details as { fieldErrors?: Record<string, string[]> }).fieldErrors;
     const match = fieldErrors
-      ? Object.entries(fieldErrors).find(([, messages]) => Array.isArray(messages) && messages.length > 0)
+      ? Object.entries(fieldErrors).find(
+          ([, messages]) => Array.isArray(messages) && messages.length > 0,
+        )
       : undefined;
     if (match) {
       const labels: Record<string, string> = {
@@ -98,7 +105,9 @@ export default function StaffCRMPage() {
   const capabilitiesQuery = useQuery({
     queryKey: queryKeys.identity.sessionCapabilities,
     queryFn: async ({ signal }) => {
-      const data = await apiClient.request<{ capabilities: string[] }>("/api/v1/auth/session", { signal });
+      const data = await apiClient.request<{ capabilities: string[] }>("/api/v1/auth/session", {
+        signal,
+      });
       return data.capabilities ?? [];
     },
     staleTime: 60_000,
@@ -173,7 +182,8 @@ export default function StaffCRMPage() {
   );
   const leadsQuery = useQuery({
     queryKey: queryKeys.crm.leads(listQuery),
-    queryFn: ({ signal }) => apiClient.request<StaffLead[]>("/api/v1/leads", { query: listQuery, signal }),
+    queryFn: ({ signal }) =>
+      apiClient.request<StaffLead[]>("/api/v1/leads", { query: listQuery, signal }),
     enabled: capabilitiesQuery.isSuccess,
   });
   const leads = leadsQuery.data ?? [];
@@ -187,8 +197,16 @@ export default function StaffCRMPage() {
     [leads, tab, practiceArea, assignee, selfScoped],
   );
   const kpis = leadKpis(leads);
-  const { paginatedItems, currentPage, totalPages, totalItems, goToPage, nextPage, prevPage, resetPagination } =
-    usePagination(visible, PAGE_SIZE);
+  const {
+    paginatedItems,
+    currentPage,
+    totalPages,
+    totalItems,
+    goToPage,
+    nextPage,
+    prevPage,
+    resetPagination,
+  } = usePagination(visible, PAGE_SIZE);
   const filterKey = `${tab}|${searchDebounced}|${source}|${assignee}|${practiceArea}`;
   const [seenFilter, setSeenFilter] = useState(filterKey);
   if (seenFilter !== filterKey) {
@@ -200,7 +218,10 @@ export default function StaffCRMPage() {
   const appointmentsQuery = useQuery({
     queryKey: queryKeys.crm.appointments({ leadId: detailId }),
     queryFn: ({ signal }) =>
-      apiClient.request<StaffAppointment[]>("/api/v1/appointments", { query: { leadId: detailId }, signal }),
+      apiClient.request<StaffAppointment[]>("/api/v1/appointments", {
+        query: { leadId: detailId },
+        signal,
+      }),
     enabled: Boolean(detailId),
   });
   const scheduleLawyerId =
@@ -261,7 +282,9 @@ export default function StaffCRMPage() {
     const apply = async () => {
       await updateLead.mutateAsync({ leadId: leadKey(lead), status });
       toast.success("Lead status updated.");
-      setDetails((current) => (current && leadKey(current) === leadKey(lead) ? { ...current, status } : current));
+      setDetails((current) =>
+        current && leadKey(current) === leadKey(lead) ? { ...current, status } : current,
+      );
     };
     if (status === "lost") {
       setConfirm({
@@ -295,7 +318,9 @@ export default function StaffCRMPage() {
       const next = assignedTo === "unassigned" ? null : assignedTo;
       await updateLead.mutateAsync({ leadId: leadKey(lead), assignedTo: next });
       toast.success("Lead assignment updated.");
-      setDetails((current) => (current && leadKey(current) === leadKey(lead) ? { ...current, assignedTo: next } : current));
+      setDetails((current) =>
+        current && leadKey(current) === leadKey(lead) ? { ...current, assignedTo: next } : current,
+      );
     } catch (error) {
       toast.error(errorMessage(error, "Failed to update assignment."));
     }
@@ -382,11 +407,16 @@ export default function StaffCRMPage() {
         date: scheduleForm.date,
         timeSlot: scheduleForm.timeSlot,
         notes: scheduleForm.notes.trim() || undefined,
-        assignedLawyerId: scheduleForm.assignedLawyerId === "unassigned" ? undefined : scheduleForm.assignedLawyerId,
+        assignedLawyerId:
+          scheduleForm.assignedLawyerId === "unassigned"
+            ? undefined
+            : scheduleForm.assignedLawyerId,
       })) as { id?: string; _id?: string } | undefined;
       toast.success("Consultation scheduled.");
       setScheduleOpen(false);
-      setDetails((current) => (current ? { ...current, status: "consultation_scheduled" } : current));
+      setDetails((current) =>
+        current ? { ...current, status: "consultation_scheduled" } : current,
+      );
       const appointmentId = created?.id ?? created?._id;
       router.push(
         appointmentId
@@ -423,7 +453,9 @@ export default function StaffCRMPage() {
           setConvertOpen(false);
           setDetails(null);
           const clientId = result.clientId ?? result._id;
-          router.push(clientId ? `/staff/clients?client=${encodeURIComponent(clientId)}` : "/staff/clients");
+          router.push(
+            clientId ? `/staff/clients?client=${encodeURIComponent(clientId)}` : "/staff/clients",
+          );
         } catch (error) {
           toast.error(errorMessage(error, "Conversion failed."));
         } finally {
@@ -438,13 +470,26 @@ export default function StaffCRMPage() {
   const exportVisible = () => {
     downloadCsv(
       `staff-crm-leads-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Name", "Email", "Phone", "Status", "Source", "Practice area", "Assignee", "Updated", "Intake", "Converted client"],
+      [
+        "Name",
+        "Email",
+        "Phone",
+        "Status",
+        "Source",
+        "Practice area",
+        "Assignee",
+        "Updated",
+        "Intake",
+        "Converted client",
+      ],
       leadCsvRows(visible, staffName),
     );
     toast.success(`Exported ${visible.length} lead${visible.length === 1 ? "" : "s"}.`);
   };
 
-  const loading = capabilitiesQuery.isLoading || (capabilitiesQuery.isSuccess && leadsQuery.isLoading && !leadsQuery.data);
+  const loading =
+    capabilitiesQuery.isLoading ||
+    (capabilitiesQuery.isSuccess && leadsQuery.isLoading && !leadsQuery.data);
   const start = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const end = Math.min(currentPage * PAGE_SIZE, totalItems);
 
@@ -465,10 +510,34 @@ export default function StaffCRMPage() {
       loading={loading}
       loadingLabel="Loading leads…"
       metrics={[
-        { label: "Total leads", value: String(kpis.total), icon: Users, tone: "information", helperText: "Matching the current search" },
-        { label: "New leads", value: String(kpis.fresh), icon: UserRound, tone: "neutral", helperText: "Status is new" },
-        { label: "Consultations", value: String(kpis.consultations), icon: CalendarClock, tone: "warning", helperText: "Consultation scheduled" },
-        { label: "Converted", value: String(kpis.converted), icon: Users, tone: "success", helperText: "Already a client record" },
+        {
+          label: "Total leads",
+          value: String(kpis.total),
+          icon: Users,
+          tone: "information",
+          helperText: "Matching the current search",
+        },
+        {
+          label: "New leads",
+          value: String(kpis.fresh),
+          icon: UserRound,
+          tone: "neutral",
+          helperText: "Status is new",
+        },
+        {
+          label: "Consultations",
+          value: String(kpis.consultations),
+          icon: CalendarClock,
+          tone: "warning",
+          helperText: "Consultation scheduled",
+        },
+        {
+          label: "Converted",
+          value: String(kpis.converted),
+          icon: Users,
+          tone: "success",
+          helperText: "Already a client record",
+        },
       ]}
       heroChildren={
         <div
@@ -476,7 +545,9 @@ export default function StaffCRMPage() {
           className="staff-crm-hero-art"
           style={
             heroImageUrl
-              ? { backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")` }
+              ? {
+                  backgroundImage: `url(${JSON.stringify(heroImageUrl)}), url("/images/staff-home-nepal.jpg")`,
+                }
               : undefined
           }
         />
@@ -550,7 +621,12 @@ export default function StaffCRMPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button type="button" variant="outline" onClick={exportVisible} disabled={visible.length === 0}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={exportVisible}
+            disabled={visible.length === 0}
+          >
             <Download className="size-3.5" aria-hidden />
             Export CSV
           </Button>
@@ -579,16 +655,26 @@ export default function StaffCRMPage() {
                     <span aria-hidden>{leadInitials(lead.fullName)}</span>
                     <div>
                       <strong>{lead.fullName}</strong>
-                      <small>{[lead.email, lead.phone].filter(Boolean).join(" · ") || "No contact details"}</small>
+                      <small>
+                        {[lead.email, lead.phone].filter(Boolean).join(" · ") ||
+                          "No contact details"}
+                      </small>
                     </div>
                   </div>
                   <span>{lead.practiceAreaInterest || "—"}</span>
-                  <StatusBadge tone={getDashboardStatusTone(lead.status)}>{leadStatusLabel(lead.status)}</StatusBadge>
+                  <StatusBadge tone={getDashboardStatusTone(lead.status)}>
+                    {leadStatusLabel(lead.status)}
+                  </StatusBadge>
                   <span>{staffName(lead.assignedTo)}</span>
                   <DualDateDisplay isoDate={lead.updatedAt || lead.createdAt || undefined} />
                   <span>{leadSourceLabel(lead.source)}</span>
                   <div className="staff-crm-actions">
-                    <Button type="button" variant="outline" size="sm" onClick={() => openDetails(lead, "view")}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openDetails(lead, "view")}
+                    >
                       View
                     </Button>
                     <Button type="button" size="sm" onClick={() => openDetails(lead, "edit")}>
@@ -615,7 +701,12 @@ export default function StaffCRMPage() {
         </div>
       </section>
 
-      <Dialog open={Boolean(details) && !scheduleOpen} onOpenChange={(open) => { if (!open) closeDetails(); }}>
+      <Dialog
+        open={Boolean(details) && !scheduleOpen}
+        onOpenChange={(open) => {
+          if (!open) closeDetails();
+        }}
+      >
         <DialogContent className="staff-crm-dialog" aria-label="Lead details">
           {details ? (
             <>
@@ -628,20 +719,38 @@ export default function StaffCRMPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="staff-crm-detail-grid">
-                <p><strong>Email</strong><span>{details.email || "—"}</span></p>
-                <p><strong>Phone</strong><span>{details.phone || "—"}</span></p>
-                <p><strong>Practice area</strong><span>{details.practiceAreaInterest || "—"}</span></p>
-                <p><strong>Source</strong><span>{leadSourceLabel(details.source)}</span></p>
+                <p>
+                  <strong>Email</strong>
+                  <span>{details.email || "—"}</span>
+                </p>
+                <p>
+                  <strong>Phone</strong>
+                  <span>{details.phone || "—"}</span>
+                </p>
+                <p>
+                  <strong>Practice area</strong>
+                  <span>{details.practiceAreaInterest || "—"}</span>
+                </p>
+                <p>
+                  <strong>Source</strong>
+                  <span>{leadSourceLabel(details.source)}</span>
+                </p>
               </div>
               {details.message ? <p className="staff-crm-message-box">{details.message}</p> : null}
               <Label>Stage</Label>
-              <Select value={details.status} onValueChange={(status) => void changeStatus(details, status)} disabled={detailsReadOnly}>
+              <Select
+                value={details.status}
+                onValueChange={(status) => void changeStatus(details, status)}
+                disabled={detailsReadOnly}
+              >
                 <SelectTrigger aria-label="Lead stage" disabled={detailsReadOnly}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {LEAD_STATUS_OPTIONS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -667,60 +776,109 @@ export default function StaffCRMPage() {
                   </Select>
                 </>
               ) : (
-                <p className="staff-crm-hint">Assigned to {staffName(details.assignedTo)}. Reassignment stays with a CRM manager.</p>
+                <p className="staff-crm-hint">
+                  Assigned to {staffName(details.assignedTo)}. Reassignment stays with a CRM
+                  manager.
+                </p>
               )}
               <Label htmlFor="staff-crm-notes">Internal notes</Label>
               <Textarea
                 id="staff-crm-notes"
                 value={details.notes || ""}
                 readOnly={detailsReadOnly}
-                onChange={(event) => setDetails((current) => (current ? { ...current, notes: event.target.value } : current))}
+                onChange={(event) =>
+                  setDetails((current) =>
+                    current ? { ...current, notes: event.target.value } : current,
+                  )
+                }
               />
               {detailsReadOnly ? null : (
-              <div className="staff-crm-actions">
-                <Button type="button" onClick={() => void saveNotes()} disabled={savingNotes || !notesDirty}>
-                  {savingNotes ? "Saving…" : "Save notes"}
-                </Button>
-                <Button type="button" variant="outline" onClick={openSchedule}>Schedule consultation</Button>
-                <Button type="button" variant="outline" onClick={() => void copyIntakeLink(details)}>
-                  {details.intakeToken ? "Copy new intake link" : "Copy intake link"}
-                </Button>
-                {details.intakeSubmitted ? <span className="staff-crm-hint">Intake submitted</span> : null}
-              </div>
+                <div className="staff-crm-actions">
+                  <Button
+                    type="button"
+                    onClick={() => void saveNotes()}
+                    disabled={savingNotes || !notesDirty}
+                  >
+                    {savingNotes ? "Saving…" : "Save notes"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={openSchedule}>
+                    Schedule consultation
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void copyIntakeLink(details)}
+                  >
+                    {details.intakeToken ? "Copy new intake link" : "Copy intake link"}
+                  </Button>
+                  {details.intakeSubmitted ? (
+                    <span className="staff-crm-hint">Intake submitted</span>
+                  ) : null}
+                </div>
               )}
               <div>
                 <strong>Consultations</strong>
-                {appointmentsQuery.isLoading ? <p className="staff-crm-hint">Loading consultations…</p> : null}
-                {appointmentsQuery.isError ? <p className="staff-crm-hint">Consultations could not be loaded.</p> : null}
+                {appointmentsQuery.isLoading ? (
+                  <p className="staff-crm-hint">Loading consultations…</p>
+                ) : null}
+                {appointmentsQuery.isError ? (
+                  <p className="staff-crm-hint">Consultations could not be loaded.</p>
+                ) : null}
                 {(appointmentsQuery.data ?? []).length === 0 && appointmentsQuery.isSuccess ? (
                   <p className="staff-crm-hint">No consultation is linked to this lead.</p>
                 ) : (
                   <ul className="staff-crm-appointments">
-                    {<StaffPagedCollection label="Lead appointments" resetKey={detailId} footerAs="li">{(appointmentsQuery.data ?? []).map((appointment) => {
-                      const id = appointment.id ?? appointment._id ?? appointment.date;
-                      return (
-                        <li key={String(id)}>
-                          <span>{appointment.date} · {appointment.timeSlot}</span>
-                          <StatusBadge tone={getDashboardStatusTone(appointment.status)}>{appointment.status || "Scheduled"}</StatusBadge>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/staff/appointments?appointment=${encodeURIComponent(String(appointment.id ?? appointment._id ?? ""))}`)}
-                          >
-                            Open
-                          </Button>
-                        </li>
-                      );
-                    })}</StaffPagedCollection>}
+                    {
+                      <StaffPagedCollection
+                        label="Lead appointments"
+                        resetKey={detailId}
+                        footerAs="li"
+                      >
+                        {(appointmentsQuery.data ?? []).map((appointment) => {
+                          const id = appointment.id ?? appointment._id ?? appointment.date;
+                          return (
+                            <li key={String(id)}>
+                              <span>
+                                {appointment.date} · {appointment.timeSlot}
+                              </span>
+                              <StatusBadge tone={getDashboardStatusTone(appointment.status)}>
+                                {appointment.status || "Scheduled"}
+                              </StatusBadge>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(
+                                    `/staff/appointments?appointment=${encodeURIComponent(String(appointment.id ?? appointment._id ?? ""))}`,
+                                  )
+                                }
+                              >
+                                Open
+                              </Button>
+                            </li>
+                          );
+                        })}
+                      </StaffPagedCollection>
+                    }
                   </ul>
                 )}
               </div>
               {canManageCrm && !detailsReadOnly && details.status !== "converted" ? (
-                <Button type="button" onClick={() => setConvertOpen(true)}>Convert to client</Button>
+                <Button type="button" onClick={() => setConvertOpen(true)}>
+                  Convert to client
+                </Button>
               ) : null}
               {details.convertedClientId ? (
-                <Button type="button" variant="outline" onClick={() => router.push(`/staff/clients?client=${encodeURIComponent(details.convertedClientId!)}`)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    router.push(
+                      `/staff/clients?client=${encodeURIComponent(details.convertedClientId!)}`,
+                    )
+                  }
+                >
                   Open client
                 </Button>
               ) : null}
@@ -733,11 +891,18 @@ export default function StaffCRMPage() {
         <DialogContent aria-label="Convert lead">
           <DialogHeader>
             <DialogTitle>Convert to client</DialogTitle>
-            <DialogDescription>Uses the existing conversion permission. Staff without it cannot convert.</DialogDescription>
+            <DialogDescription>
+              Uses the existing conversion permission. Staff without it cannot convert.
+            </DialogDescription>
           </DialogHeader>
           <Label>Client type</Label>
-          <Select value={convertType} onValueChange={(value) => setConvertType(value as "individual" | "corporate")}>
-            <SelectTrigger aria-label="Client type"><SelectValue /></SelectTrigger>
+          <Select
+            value={convertType}
+            onValueChange={(value) => setConvertType(value as "individual" | "corporate")}
+          >
+            <SelectTrigger aria-label="Client type">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="individual">Individual</SelectItem>
               <SelectItem value="corporate">Corporate</SelectItem>
@@ -746,12 +911,20 @@ export default function StaffCRMPage() {
           {convertType === "corporate" ? (
             <>
               <Label htmlFor="staff-crm-company">Company name</Label>
-              <Input id="staff-crm-company" value={convertCompany} onChange={(event) => setConvertCompany(event.target.value)} />
+              <Input
+                id="staff-crm-company"
+                value={convertCompany}
+                onChange={(event) => setConvertCompany(event.target.value)}
+              />
             </>
           ) : null}
           <div className="staff-crm-actions">
-            <Button type="button" variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={() => void submitConvert()} disabled={converting}>Convert</Button>
+            <Button type="button" variant="outline" onClick={() => setConvertOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void submitConvert()} disabled={converting}>
+              Convert
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -760,52 +933,116 @@ export default function StaffCRMPage() {
         <DialogContent aria-label="Schedule consultation">
           <DialogHeader>
             <DialogTitle>Schedule consultation</DialogTitle>
-            <DialogDescription>{details ? `Book a consultation for ${details.fullName}.` : "Book a consultation."}</DialogDescription>
+            <DialogDescription>
+              {details ? `Book a consultation for ${details.fullName}.` : "Book a consultation."}
+            </DialogDescription>
           </DialogHeader>
           <form className="staff-crm-form" onSubmit={(event) => void submitSchedule(event)}>
             <Label htmlFor="staff-crm-phone">Phone</Label>
-            <Input id="staff-crm-phone" required value={scheduleForm.clientPhone} onChange={(event) => setScheduleForm((form) => ({ ...form, clientPhone: event.target.value }))} />
+            <Input
+              id="staff-crm-phone"
+              required
+              value={scheduleForm.clientPhone}
+              onChange={(event) =>
+                setScheduleForm((form) => ({ ...form, clientPhone: event.target.value }))
+              }
+            />
             <Label htmlFor="staff-crm-area">Practice area</Label>
-            <Input id="staff-crm-area" value={scheduleForm.practiceArea} onChange={(event) => setScheduleForm((form) => ({ ...form, practiceArea: event.target.value }))} />
+            <Input
+              id="staff-crm-area"
+              value={scheduleForm.practiceArea}
+              onChange={(event) =>
+                setScheduleForm((form) => ({ ...form, practiceArea: event.target.value }))
+              }
+            />
             <Label htmlFor="staff-crm-date">Date</Label>
-            <BsDateField id="staff-crm-date" required value={scheduleForm.date} onDateChange={(event) => setScheduleForm((form) => ({ ...form, date: event, timeSlot: "" }))} />
+            <BsDateField
+              id="staff-crm-date"
+              required
+              value={scheduleForm.date}
+              onDateChange={(event) =>
+                setScheduleForm((form) => ({ ...form, date: event, timeSlot: "" }))
+              }
+            />
             <Label>Time</Label>
-            <Select value={scheduleForm.timeSlot || undefined} onValueChange={(timeSlot) => setScheduleForm((form) => ({ ...form, timeSlot }))} disabled={!scheduleForm.date || slotsQuery.isLoading}>
-              <SelectTrigger aria-label="Available time"><SelectValue placeholder={slotsQuery.isLoading ? "Loading times…" : "Choose a time"} /></SelectTrigger>
+            <Select
+              value={scheduleForm.timeSlot || undefined}
+              onValueChange={(timeSlot) => setScheduleForm((form) => ({ ...form, timeSlot }))}
+              disabled={!scheduleForm.date || slotsQuery.isLoading}
+            >
+              <SelectTrigger aria-label="Available time">
+                <SelectValue
+                  placeholder={slotsQuery.isLoading ? "Loading times…" : "Choose a time"}
+                />
+              </SelectTrigger>
               <SelectContent>
                 {slotsQuery.data.map((slot) => (
-                  <SelectItem key={slot} value={slot}>{slot}</SelectItem>
+                  <SelectItem key={slot} value={slot}>
+                    {slot}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {scheduleForm.date && !slotsQuery.isLoading && !slotsQuery.isError && slotsQuery.data.length === 0 ? (
+            {scheduleForm.date &&
+            !slotsQuery.isLoading &&
+            !slotsQuery.isError &&
+            slotsQuery.data.length === 0 ? (
               <p className="staff-crm-hint">No open times on this date.</p>
             ) : null}
             {canManageCrm ? (
               <>
                 <Label>Lawyer</Label>
-                <Select value={scheduleForm.assignedLawyerId} onValueChange={(assignedLawyerId) => setScheduleForm((form) => ({ ...form, assignedLawyerId, timeSlot: "" }))}>
-                  <SelectTrigger aria-label="Consultation lawyer"><SelectValue /></SelectTrigger>
+                <Select
+                  value={scheduleForm.assignedLawyerId}
+                  onValueChange={(assignedLawyerId) =>
+                    setScheduleForm((form) => ({ ...form, assignedLawyerId, timeSlot: "" }))
+                  }
+                >
+                  <SelectTrigger aria-label="Consultation lawyer">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {staffUsers.map((user) => (
-                      <SelectItem key={user.id || user._id} value={user.id || user._id}>{user.name || "Staff"}</SelectItem>
+                      <SelectItem key={user.id || user._id} value={user.id || user._id}>
+                        {user.name || "Staff"}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </>
             ) : null}
             <Label htmlFor="staff-crm-schedule-notes">Notes</Label>
-            <Textarea id="staff-crm-schedule-notes" value={scheduleForm.notes} onChange={(event) => setScheduleForm((form) => ({ ...form, notes: event.target.value }))} />
+            <Textarea
+              id="staff-crm-schedule-notes"
+              value={scheduleForm.notes}
+              onChange={(event) =>
+                setScheduleForm((form) => ({ ...form, notes: event.target.value }))
+              }
+            />
             <div className="staff-crm-actions">
-              <Button type="button" variant="outline" onClick={() => setScheduleOpen(false)} disabled={scheduling}>Cancel</Button>
-              <Button type="submit" disabled={scheduling}>{scheduling ? "Scheduling…" : "Schedule"}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setScheduleOpen(false)}
+                disabled={scheduling}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={scheduling}>
+                {scheduling ? "Scheduling…" : "Schedule"}
+              </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addOpen} onOpenChange={(open) => { if (!adding) setAddOpen(open); }}>
+      <Dialog
+        open={addOpen}
+        onOpenChange={(open) => {
+          if (!adding) setAddOpen(open);
+        }}
+      >
         <DialogContent aria-label="New lead">
           <DialogHeader>
             <DialogTitle>New lead</DialogTitle>
@@ -813,56 +1050,124 @@ export default function StaffCRMPage() {
           </DialogHeader>
           <form className="staff-crm-form" onSubmit={(event) => void submitLead(event)}>
             <Label htmlFor="staff-crm-name">Full name</Label>
-            <Input id="staff-crm-name" data-autofocus required value={addForm.fullName} onChange={(event) => setAddForm((form) => ({ ...form, fullName: event.target.value }))} />
+            <Input
+              id="staff-crm-name"
+              data-autofocus
+              required
+              value={addForm.fullName}
+              onChange={(event) =>
+                setAddForm((form) => ({ ...form, fullName: event.target.value }))
+              }
+            />
             <Label htmlFor="staff-crm-email">Email</Label>
-            <Input id="staff-crm-email" type="email" value={addForm.email} onChange={(event) => setAddForm((form) => ({ ...form, email: event.target.value }))} />
+            <Input
+              id="staff-crm-email"
+              type="email"
+              value={addForm.email}
+              onChange={(event) => setAddForm((form) => ({ ...form, email: event.target.value }))}
+            />
             <Label htmlFor="staff-crm-lead-phone">Phone</Label>
-            <Input id="staff-crm-lead-phone" value={addForm.phone} onChange={(event) => setAddForm((form) => ({ ...form, phone: event.target.value }))} />
+            <Input
+              id="staff-crm-lead-phone"
+              value={addForm.phone}
+              onChange={(event) => setAddForm((form) => ({ ...form, phone: event.target.value }))}
+            />
             <Label>Source</Label>
-            <Select value={addForm.source} onValueChange={(value) => setAddForm((form) => ({ ...form, source: value as LeadCreateInput["source"] }))}>
-              <SelectTrigger aria-label="Lead source"><SelectValue /></SelectTrigger>
+            <Select
+              value={addForm.source}
+              onValueChange={(value) =>
+                setAddForm((form) => ({ ...form, source: value as LeadCreateInput["source"] }))
+              }
+            >
+              <SelectTrigger aria-label="Lead source">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {LEAD_SOURCE_OPTIONS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Label>Practice area</Label>
-            <Select value={addForm.practiceAreaInterest || "none"} onValueChange={(value) => setAddForm((form) => ({ ...form, practiceAreaInterest: value === "none" ? "" : value }))}>
-              <SelectTrigger aria-label="Practice area interest"><SelectValue /></SelectTrigger>
+            <Select
+              value={addForm.practiceAreaInterest || "none"}
+              onValueChange={(value) =>
+                setAddForm((form) => ({
+                  ...form,
+                  practiceAreaInterest: value === "none" ? "" : value,
+                }))
+              }
+            >
+              <SelectTrigger aria-label="Practice area interest">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
                 {practiceTitles.map((title: string) => (
-                  <SelectItem key={title} value={title}>{title}</SelectItem>
+                  <SelectItem key={title} value={title}>
+                    {title}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {selfScoped ? null : (
               <>
                 <Label>Assignee</Label>
-                <Select value={addForm.assignedTo} onValueChange={(assignedTo) => setAddForm((form) => ({ ...form, assignedTo }))}>
-                  <SelectTrigger aria-label="New lead assignee"><SelectValue /></SelectTrigger>
+                <Select
+                  value={addForm.assignedTo}
+                  onValueChange={(assignedTo) => setAddForm((form) => ({ ...form, assignedTo }))}
+                >
+                  <SelectTrigger aria-label="New lead assignee">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {staffUsers.map((user) => (
-                      <SelectItem key={user.id || user._id} value={user.id || user._id}>{user.name || "Staff"}</SelectItem>
+                      <SelectItem key={user.id || user._id} value={user.id || user._id}>
+                        {user.name || "Staff"}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </>
             )}
             <Label htmlFor="staff-crm-add-notes">Internal notes</Label>
-            <Textarea id="staff-crm-add-notes" value={addForm.notes} onChange={(event) => setAddForm((form) => ({ ...form, notes: event.target.value }))} />
+            <Textarea
+              id="staff-crm-add-notes"
+              value={addForm.notes}
+              onChange={(event) => setAddForm((form) => ({ ...form, notes: event.target.value }))}
+            />
             <Label htmlFor="staff-crm-message">Message</Label>
-            <Textarea id="staff-crm-message" value={addForm.message} onChange={(event) => setAddForm((form) => ({ ...form, message: event.target.value }))} />
+            <Textarea
+              id="staff-crm-message"
+              value={addForm.message}
+              onChange={(event) => setAddForm((form) => ({ ...form, message: event.target.value }))}
+            />
             <div className="staff-crm-actions">
-              <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={adding}>Cancel</Button>
-              <Button type="submit" disabled={adding}>{adding ? "Creating…" : "Create lead"}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={adding}>
+                {adding ? "Creating…" : "Create lead"}
+              </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-      <ConfirmDialog state={confirm} busy={confirmBusy} onOpenChange={(open) => { if (!open && !confirmBusy) setConfirm(null); }} />
+      <ConfirmDialog
+        state={confirm}
+        busy={confirmBusy}
+        onOpenChange={(open) => {
+          if (!open && !confirmBusy) setConfirm(null);
+        }}
+      />
     </PortalPageShell>
   );
 }

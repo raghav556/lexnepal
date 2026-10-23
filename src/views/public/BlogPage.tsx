@@ -57,7 +57,9 @@ function authorLabel(post: BlogPostRow) {
 
 function postDate(post: BlogPostRow): string {
   const value = post.publishDate || post._creationTime;
-  return value === undefined || value === null || value === "" ? "Date not recorded" : formatDualDate(value);
+  return value === undefined || value === null || value === ""
+    ? "Date not recorded"
+    : formatDualDate(value);
 }
 
 function postId(post: BlogPostRow) {
@@ -407,9 +409,7 @@ export default function BlogPage() {
                               </div>
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                                 <Calendar className="w-3.5 h-3.5" />
-                                <span>
-                                  {postDate(post)}
-                                </span>
+                                <span>{postDate(post)}</span>
                               </div>
                             </div>
                           </CardContent>

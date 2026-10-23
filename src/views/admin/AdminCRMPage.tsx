@@ -1289,9 +1289,7 @@ export default function AdminCRMPage({ portal = "admin" }: CrmLeadsPageProps) {
                     className="mt-1"
                     required
                     value={scheduleForm.date}
-                    onDateChange={(e) =>
-                      setScheduleForm((f) => ({ ...f, date: e, timeSlot: "" }))
-                    }
+                    onDateChange={(e) => setScheduleForm((f) => ({ ...f, date: e, timeSlot: "" }))}
                   />
                 </div>
                 <div>

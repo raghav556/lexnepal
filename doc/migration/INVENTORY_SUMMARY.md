@@ -14,7 +14,7 @@
 | Internal functions | 5 |
 | Direct frontend API references | 0 |
 | Frontend files with API references | 0 |
-| Runtime storage/scheduler/internal-call dependencies | 20 |
+| Runtime storage/scheduler/internal-call dependencies | 19 |
 | Frontend references without a Convex export | 0 |
 | Tables without a direct `firmId` field | 28 |
 | Public exports without a detected auth helper | 48 |

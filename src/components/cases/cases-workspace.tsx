@@ -390,7 +390,10 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                           </span>
                           <div className="flex items-center gap-1.5 text-sm font-semibold text-dashboard-warning-foreground bg-dashboard-warning-soft border border-dashboard-warning/35 px-3 py-1.5 rounded-lg">
                             <CalendarDays className="w-4 h-4" aria-hidden />
-                            <DualDateDisplay isoDate={nextHearingDate} recordedBs={hearing?.dateBs} />
+                            <DualDateDisplay
+                              isoDate={nextHearingDate}
+                              recordedBs={hearing?.dateBs}
+                            />
                           </div>
                         </div>
                       ) : null}
@@ -457,39 +460,49 @@ function CasesWorkspaceInner({ basePath, portal }: CasesWorkspaceProps) {
                     </StatusBadge>
                   </div>
                   <div className="p-3 overflow-y-auto space-y-3 flex-1 min-h-[150px] scrollbar-thin scrollbar-thumb-border">
-                    {<StaffPagedCollection label={`${CASE_LIFECYCLE_LABELS[statusKey]} cases`} resetKey={JSON.stringify([statusKey, search, statusFilter, staffFilters])} pageSize={10} incremental enabled={portal === "staff"}>{columnCases.map((matter) => {
-                      const client = clients.find((entry) => entry._id === matter.clientId);
-                      return (
-                        <div
-                          key={matter._id}
-                          className="group rounded-xl border border-dashboard-border bg-dashboard-panel p-4 transition-all hover:border-dashboard-primary/40 hover:shadow-sm"
-                        >
-                          <div className="flex flex-col h-full relative">
-                            <CaseIdentity
-                              caseNumber={matter.caseNumber}
-                              status={matter.status}
-                              closureOutcome={matter.closureOutcome}
-                              practiceArea={matter.practiceArea}
-                              className="mb-2.5"
-                            />
-                            <Link
-                              href={caseDetailPath(basePath, matter._id)}
-                              className="font-serif font-bold text-[15px] text-foreground group-hover:text-dashboard-primary leading-snug block mb-3 line-clamp-3 transition-colors before:absolute before:inset-0"
+                    {
+                      <StaffPagedCollection
+                        label={`${CASE_LIFECYCLE_LABELS[statusKey]} cases`}
+                        resetKey={JSON.stringify([statusKey, search, statusFilter, staffFilters])}
+                        pageSize={10}
+                        incremental
+                        enabled={portal === "staff"}
+                      >
+                        {columnCases.map((matter) => {
+                          const client = clients.find((entry) => entry._id === matter.clientId);
+                          return (
+                            <div
+                              key={matter._id}
+                              className="group rounded-xl border border-dashboard-border bg-dashboard-panel p-4 transition-all hover:border-dashboard-primary/40 hover:shadow-sm"
                             >
-                              {matter.title}
-                            </Link>
-                            <div className="mt-auto pt-3 border-t border-dashboard-border flex items-center gap-2 text-xs text-muted-foreground">
-                              <div className="w-5 h-5 rounded-full bg-dashboard-primary-soft flex items-center justify-center text-dashboard-primary font-bold text-[10px] shrink-0">
-                                {client ? client.fullName.charAt(0).toUpperCase() : "?"}
+                              <div className="flex flex-col h-full relative">
+                                <CaseIdentity
+                                  caseNumber={matter.caseNumber}
+                                  status={matter.status}
+                                  closureOutcome={matter.closureOutcome}
+                                  practiceArea={matter.practiceArea}
+                                  className="mb-2.5"
+                                />
+                                <Link
+                                  href={caseDetailPath(basePath, matter._id)}
+                                  className="font-serif font-bold text-[15px] text-foreground group-hover:text-dashboard-primary leading-snug block mb-3 line-clamp-3 transition-colors before:absolute before:inset-0"
+                                >
+                                  {matter.title}
+                                </Link>
+                                <div className="mt-auto pt-3 border-t border-dashboard-border flex items-center gap-2 text-xs text-muted-foreground">
+                                  <div className="w-5 h-5 rounded-full bg-dashboard-primary-soft flex items-center justify-center text-dashboard-primary font-bold text-[10px] shrink-0">
+                                    {client ? client.fullName.charAt(0).toUpperCase() : "?"}
+                                  </div>
+                                  <span className="truncate font-medium">
+                                    {client ? client.fullName : "Unknown"}
+                                  </span>
+                                </div>
                               </div>
-                              <span className="truncate font-medium">
-                                {client ? client.fullName : "Unknown"}
-                              </span>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}</StaffPagedCollection>}
+                          );
+                        })}
+                      </StaffPagedCollection>
+                    }
                     {columnCases.length === 0 && (
                       <EmptyState
                         title="No cases"

@@ -71,7 +71,11 @@ function matterOf(cases: ClientCaseDto[], caseId: string | undefined): ClientCas
 
 function dueDayIso(dueDate?: string | null): string | null {
   if (!dueDate) return null;
-  try { return nepalDateOnly(dueDate); } catch { return null; }
+  try {
+    return nepalDateOnly(dueDate);
+  } catch {
+    return null;
+  }
 }
 
 function addDaysIso(iso: string, days: number): string {

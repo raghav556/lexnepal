@@ -62,7 +62,14 @@ export default function AdminAuditPage() {
       icon={Shield}
       actions={
         <Select value={resourceFilter} onValueChange={setResourceFilter}>
-          <SelectTrigger aria-label={language === "ne" ? "अडिट अभिलेखको स्रोत छान्नुहोस्" : "Filter audit records by resource"} className="w-44 h-8 text-xs">
+          <SelectTrigger
+            aria-label={
+              language === "ne"
+                ? "अडिट अभिलेखको स्रोत छान्नुहोस्"
+                : "Filter audit records by resource"
+            }
+            className="w-44 h-8 text-xs"
+          >
             <SelectValue placeholder="Filter by resource" />
           </SelectTrigger>
           <SelectContent>
@@ -103,7 +110,11 @@ export default function AdminAuditPage() {
         },
       ]}
     >
-      <DashboardSection title="Audit entries" description="Recent events for the selected filter. Counts describe the loaded records." icon={Activity}>
+      <DashboardSection
+        title="Audit entries"
+        description="Recent events for the selected filter. Counts describe the loaded records."
+        icon={Activity}
+      >
         {auditLog.length === 0 ? (
           <EmptyState
             title="No audit events"

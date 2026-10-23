@@ -45,7 +45,6 @@ export function CaseHearingDialog({
   const [purpose, setPurpose] = useState("");
   const [busy, setBusy] = useState(false);
 
-
   useEffect(() => {
     if (!open) return;
     setCourt(defaultCourt?.trim() || "");
@@ -114,15 +113,15 @@ export function CaseHearingDialog({
             <CourtSelect id="case-hearing-court" required value={court} onValueChange={setCourt} />
           </div>
           <div className="space-y-1">
-              <label htmlFor="case-hearing-bs" className="text-xs font-medium">
-                Hearing date
-              </label>
-              <BsDateField
-                id="case-hearing-bs"
-                required
-                value={dateGregorian}
-                onDateChange={handleGregorianChange}
-              />
+            <label htmlFor="case-hearing-bs" className="text-xs font-medium">
+              Hearing date
+            </label>
+            <BsDateField
+              id="case-hearing-bs"
+              required
+              value={dateGregorian}
+              onDateChange={handleGregorianChange}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">

@@ -8,9 +8,27 @@ import { dirname, join } from "node:path";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 const USERS = [
-  { label: "admin", email: "admin@srimarlaw.com.np", password: "admin@1234", role: "admin", portal: "/admin" },
-  { label: "staff", email: "staff@srimarlaw.com.np", password: "staff@1234", role: "associate", portal: "/staff" },
-  { label: "client", email: "client@srimarlaw.com.np", password: "client@1234", role: "client", portal: "/client" },
+  {
+    label: "admin",
+    email: "admin@srimarlaw.com.np",
+    password: "admin@1234",
+    role: "admin",
+    portal: "/admin",
+  },
+  {
+    label: "staff",
+    email: "staff@srimarlaw.com.np",
+    password: "staff@1234",
+    role: "associate",
+    portal: "/staff",
+  },
+  {
+    label: "client",
+    email: "client@srimarlaw.com.np",
+    password: "client@1234",
+    role: "client",
+    portal: "/client",
+  },
 ];
 
 const DOC_PATH = join(

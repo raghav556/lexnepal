@@ -29,7 +29,9 @@ export interface LuxuryDmPanelProps {
   showTemplates?: boolean;
 }
 
-function formatDateSeparator(dateInput?: string | Date): string { return dateInput ? relativeNepalDay(dateInput) : ""; }
+function formatDateSeparator(dateInput?: string | Date): string {
+  return dateInput ? relativeNepalDay(dateInput) : "";
+}
 
 export function LuxuryDmPanel({
   threadId,
@@ -47,14 +49,8 @@ export function LuxuryDmPanel({
   const currentUser = useCurrentUser();
   const myId = currentUser?._id || currentUser?.id;
 
-  const {
-    messages,
-    isLoading,
-    hasMore,
-    loadingEarlier,
-    earlierError,
-    loadEarlier,
-  } = useDmMessageHistory(threadId);
+  const { messages, isLoading, hasMore, loadingEarlier, earlierError, loadEarlier } =
+    useDmMessageHistory(threadId);
   const { sendMessage, markRead } = useDmCommands();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -181,7 +177,9 @@ export function LuxuryDmPanel({
             ) : null}
           </div>
         ) : messages.length > 0 ? (
-          <p className="text-[11px] text-muted-foreground text-center pb-2">Beginning of conversation</p>
+          <p className="text-[11px] text-muted-foreground text-center pb-2">
+            Beginning of conversation
+          </p>
         ) : null}
 
         {isLoading && messages.length === 0 ? (

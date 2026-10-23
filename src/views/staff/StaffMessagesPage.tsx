@@ -23,7 +23,16 @@ import { useUnreadMessageCounts } from "@/client/queries/communication";
 import { useDmCommands, useDmThreads } from "@/client/queries/dm";
 import { useSessionCapabilities, useStaffDirectory } from "@/client/queries/identity";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { Briefcase, FolderOpen, Lock, Mail, MessageSquare, Phone, Search, Users } from "lucide-react";
+import {
+  Briefcase,
+  FolderOpen,
+  Lock,
+  Mail,
+  MessageSquare,
+  Phone,
+  Search,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type Channel = "client" | "dm" | "team";
@@ -93,10 +102,13 @@ export default function StaffMessagesPage() {
   }, [searchParams]);
 
   const clientName = (clientId?: string) =>
-    clients.find((client) => String(client._id ?? client.id) === String(clientId ?? ""))?.fullName ||
-    "Client";
+    clients.find((client) => String(client._id ?? client.id) === String(clientId ?? ""))
+      ?.fullName || "Client";
 
-  const matterUnread = Object.values(unreadByCase).reduce((sum, count) => sum + Number(count || 0), 0);
+  const matterUnread = Object.values(unreadByCase).reduce(
+    (sum, count) => sum + Number(count || 0),
+    0,
+  );
   const dmUnread = threads.reduce((sum, thread) => sum + Number(thread.unreadCount || 0), 0);
   const query = search.trim().toLowerCase();
 
@@ -106,8 +118,12 @@ export default function StaffMessagesPage() {
         if (!query) return true;
         const name = clientName(matter.clientId).toLowerCase();
         return (
-          String(matter.title ?? "").toLowerCase().includes(query) ||
-          String(matter.caseNumber ?? "").toLowerCase().includes(query) ||
+          String(matter.title ?? "")
+            .toLowerCase()
+            .includes(query) ||
+          String(matter.caseNumber ?? "")
+            .toLowerCase()
+            .includes(query) ||
           name.includes(query)
         );
       }),
@@ -121,7 +137,9 @@ export default function StaffMessagesPage() {
     if (!user.id || user.id === myId || user.role === "client") return false;
     if (threads.some((thread) => thread.peerUserId === user.id)) return false;
     if (!query) return true;
-    return String(user.name || user.email || "").toLowerCase().includes(query);
+    return String(user.name || user.email || "")
+      .toLowerCase()
+      .includes(query);
   });
 
   const selectedMatter = cases.find((matter) => matter._id === selectedId) ?? null;
@@ -133,8 +151,7 @@ export default function StaffMessagesPage() {
     ? staff.find((user) => user.id === selectedThread.peerUserId)
     : null;
   const hasSelection =
-    (channel === "dm" && Boolean(selectedThread)) ||
-    (channel !== "dm" && Boolean(selectedMatter));
+    (channel === "dm" && Boolean(selectedThread)) || (channel !== "dm" && Boolean(selectedMatter));
 
   const choose = (nextChannel: Channel, id: string | null) => {
     setChannel(nextChannel);
@@ -281,7 +298,12 @@ export default function StaffMessagesPage() {
             {channel !== "dm" && casesQuery.isError ? (
               <div className="staff-messages-empty">
                 <p>Matters could not be loaded.</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => void casesQuery.refetch()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void casesQuery.refetch()}
+                >
                   Retry
                 </Button>
               </div>
@@ -289,8 +311,13 @@ export default function StaffMessagesPage() {
               <p className="staff-messages-empty">Loading direct messages…</p>
             ) : (
               <ul className="staff-messages-rows">
-                {channel !== "dm"
-                  ? <StaffPagedCollection label="Matter conversations" resetKey={`${channel}|${query}`} footerAs="li">{visibleMatters.map((matter) => {
+                {channel !== "dm" ? (
+                  <StaffPagedCollection
+                    label="Matter conversations"
+                    resetKey={`${channel}|${query}`}
+                    footerAs="li"
+                  >
+                    {visibleMatters.map((matter) => {
                       const unread = Number(unreadByCase[matter._id] || 0);
                       return (
                         <li key={matter._id}>
@@ -306,7 +333,8 @@ export default function StaffMessagesPage() {
                             <span className="staff-messages-copy">
                               <strong>{clientName(matter.clientId)}</strong>
                               <small>
-                                {matter.caseNumber || "No number"} · {matter.title || "Untitled matter"}
+                                {matter.caseNumber || "No number"} ·{" "}
+                                {matter.title || "Untitled matter"}
                               </small>
                               <em>{channel === "team" ? "Confidential" : "Client-visible"}</em>
                             </span>
@@ -320,8 +348,11 @@ export default function StaffMessagesPage() {
                           </button>
                         </li>
                       );
-                    })}</StaffPagedCollection>
-                  : <StaffPagedCollection label="Direct conversations" resetKey={query} footerAs="li">{visibleThreads.map((thread) => (
+                    })}
+                  </StaffPagedCollection>
+                ) : (
+                  <StaffPagedCollection label="Direct conversations" resetKey={query} footerAs="li">
+                    {visibleThreads.map((thread) => (
                       <li key={thread._id}>
                         <button
                           type="button"
@@ -344,7 +375,9 @@ export default function StaffMessagesPage() {
                           ) : null}
                         </button>
                       </li>
-                    ))}</StaffPagedCollection>}
+                    ))}
+                  </StaffPagedCollection>
+                )}
               </ul>
             )}
             {channel === "dm" ? (
@@ -358,16 +391,25 @@ export default function StaffMessagesPage() {
                 </p>
                 {peers.length > 0 ? (
                   <div className="staff-messages-peers">
-                    {<StaffPagedCollection label="Colleagues" resetKey={query} pageSize={8} incremental>{peers.map((user) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        disabled={openingDm === user.id}
-                        onClick={() => void startDm(user.id)}
+                    {
+                      <StaffPagedCollection
+                        label="Colleagues"
+                        resetKey={query}
+                        pageSize={8}
+                        incremental
                       >
-                        {user.name || user.email || "Staff"}
-                      </button>
-                    ))}</StaffPagedCollection>}
+                        {peers.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            disabled={openingDm === user.id}
+                            onClick={() => void startDm(user.id)}
+                          >
+                            {user.name || user.email || "Staff"}
+                          </button>
+                        ))}
+                      </StaffPagedCollection>
+                    }
                   </div>
                 ) : (
                   <p className="staff-messages-new-dm-empty">
@@ -583,9 +625,7 @@ export default function StaffMessagesPage() {
                     <DashboardButton asChild size="sm">
                       <Link href={`/staff/cases/${selectedMatter._id}`}>Open matter</Link>
                     </DashboardButton>
-                    {channel === "client" &&
-                    canOpenClient &&
-                    selectedMatter.clientId ? (
+                    {channel === "client" && canOpenClient && selectedMatter.clientId ? (
                       <DashboardButton asChild size="sm" variant="outline">
                         <Link
                           href={`/staff/clients?client=${encodeURIComponent(selectedMatter.clientId)}`}

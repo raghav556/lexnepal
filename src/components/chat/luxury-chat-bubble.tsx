@@ -89,9 +89,7 @@ export function LuxuryChatBubble({
 
   const roleBadge = getRoleBadge(senderRole, appearance);
   const timeStr =
-    createdAt instanceof Date
-      ? formatNepalClock(createdAt)
-      : formatNepalClock(new Date(createdAt));
+    createdAt instanceof Date ? formatNepalClock(createdAt) : formatNepalClock(new Date(createdAt));
 
   return (
     <div

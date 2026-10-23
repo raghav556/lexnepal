@@ -2,10 +2,15 @@ import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 const out = ".local/qa/session-17d";
 fs.mkdirSync(out, { recursive: true });
-const common = fs.readFileSync("scripts/qa/verify-account-profile.mjs", "utf8").replaceAll("\r\n", "\n");
-const paging = fs.readFileSync("scripts/qa/verify-staff-pagination.mjs", "utf8").replaceAll("\r\n", "\n");
+const common = fs
+  .readFileSync("scripts/qa/verify-account-profile.mjs", "utf8")
+  .replaceAll("\r\n", "\n");
+const paging = fs
+  .readFileSync("scripts/qa/verify-staff-pagination.mjs", "utf8")
+  .replaceAll("\r\n", "\n");
 const boundary = common.indexOf("if (publicContrastOnly) {\n  assert.equal(prior.results.length");
-const start = paging.indexOf("async function paginationAudit()"), end = paging.indexOf("  async function exercise(label)");
+const start = paging.indexOf("async function paginationAudit()"),
+  end = paging.indexOf("  async function exercise(label)");
 if (boundary < 0 || start < 0 || end < 0) throw new Error("Review committed fixture boundaries");
 const retrievalFixtures = String.raw`
       if (['/api/v1/documents','/api/v1/documents/search','/api/v1/users/me/audit-events','/api/v1/notifications'].includes(p)) {
@@ -30,9 +35,16 @@ const retrievalFixtures = String.raw`
         return r.fulfill({json:{data:u.searchParams.get('page')==='true'?{items,nextCursor,total:null}:items}});
       }
 `;
-const fixtures = paging.slice(start, end).replace("async function paginationAudit()", "async function retrievalAudit()")
-  .replace('      if (p === "/api/v1/users/me/audit-events" && auditCount !== null)', retrievalFixtures+'\n      if (p === "/api/v1/users/me/audit-events" && auditCount !== null)')
-  .replace('      if (req.method() !== "GET") {', String.raw`      if (req.method() !== "GET" && p.startsWith('/api/v1/notifications')) {
+const fixtures = paging
+  .slice(start, end)
+  .replace("async function paginationAudit()", "async function retrievalAudit()")
+  .replace(
+    '      if (p === "/api/v1/users/me/audit-events" && auditCount !== null)',
+    retrievalFixtures + '\n      if (p === "/api/v1/users/me/audit-events" && auditCount !== null)',
+  )
+  .replace(
+    '      if (req.method() !== "GET") {',
+    String.raw`      if (req.method() !== "GET" && p.startsWith('/api/v1/notifications')) {
         writes.push({path:p,method:req.method(),intercepted:true,payload:req.postDataJSON()});
         if(p==='/api/v1/notifications')readAll=true;else readIds.add(p.split('/').at(-1));
         return r.fulfill({json:{data:{success:true}}});
@@ -41,7 +53,8 @@ const fixtures = paging.slice(start, end).replace("async function paginationAudi
         const payload=req.postDataJSON();writes.push({path:p,method:'PATCH',intercepted:true,payload});
         return r.fulfill({json:{data:{id:p.split('/').at(-1),...payload}}});
       }
-      if (req.method() !== "GET") {`)
+      if (req.method() !== "GET") {`,
+  )
   .replace('waitUntil: "domcontentloaded"', 'waitUntil: "commit", timeout: 90000');
 const checks = String.raw`
   async function locale(language) {const control=page.getByRole('button',{name:language==='ne'?'Switch language to Nepali':'Switch language to English',exact:true}).filter({visible:true});if(await control.count())await control.click();}
@@ -172,5 +185,14 @@ const checks = String.raw`
 await retrievalAudit();
 `;
 const worker = out + "/retrieval-worker.mjs";
-fs.writeFileSync(worker, common.slice(0,boundary).replace('const out = ".local/qa/session-17a";',`const out = "${out}";`) + '\nlet failure="",failureStatus=503,failureInitial=false,readAll=false,generalDocs=false,requests=[];const readIds=new Set();\n' + fixtures + checks);
-process.exitCode = spawnSync(process.execPath,[worker,...process.argv.slice(2)],{stdio:"inherit"}).status ?? 1;
+fs.writeFileSync(
+  worker,
+  common
+    .slice(0, boundary)
+    .replace('const out = ".local/qa/session-17a";', `const out = "${out}";`) +
+    '\nlet failure="",failureStatus=503,failureInitial=false,readAll=false,generalDocs=false,requests=[];const readIds=new Set();\n' +
+    fixtures +
+    checks,
+);
+process.exitCode =
+  spawnSync(process.execPath, [worker, ...process.argv.slice(2)], { stdio: "inherit" }).status ?? 1;

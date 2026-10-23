@@ -7,7 +7,11 @@ const cursorPayloadSchema = z.object({
 
 function toBase64Url(value: string): string {
   if (typeof Buffer !== "undefined") {
-    return Buffer.from(value, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    return Buffer.from(value, "utf8")
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
   }
   const bytes = new TextEncoder().encode(value);
   let binary = "";
@@ -62,9 +66,7 @@ export function messageIdOf(message: { _id?: string; id?: string }): string {
   return String(message._id ?? message.id ?? "");
 }
 
-export function mergeMessagePages<T extends { _id?: string; id?: string }>(
-  ...pages: T[][]
-): T[] {
+export function mergeMessagePages<T extends { _id?: string; id?: string }>(...pages: T[][]): T[] {
   const byId = new Map<string, T>();
   for (const page of pages) {
     for (const message of page) {
