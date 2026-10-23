@@ -3,6 +3,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import postcss from "postcss";
 
 const page = readFileSync("src/views/client/ClientChecklistPage.tsx", "utf8");
 const css = readFileSync("src/index.css", "utf8");
@@ -78,7 +79,16 @@ describe("CUI-09 client checklist contract", () => {
     expect(page).toContain("client-checklist-progress-fill");
     expect(page).not.toContain("bg-gradient-to-r");
     expect(css).toContain(".client-checklist-progress-fill");
-    expect(css).not.toMatch(/\.client-checklist[\s\S]*gradient/);
+    const checklistRules: string[] = [];
+    postcss.parse(css).walkRules((rule) => {
+      if (rule.selector.includes(".client-checklist")) {
+        rule.walkDecls((declaration) => {
+          checklistRules.push(declaration.toString());
+          expect(declaration.value, rule.selector).not.toMatch(/gradient\(/i);
+        });
+      }
+    });
+    expect(checklistRules).toContain("background: var(--dashboard-success, #1f7a4d)");
     expect(home).toContain("ClientDashboard");
     expect(matters).toContain("ClientCasesPage");
     expect(detail).toContain("ClientCaseDetailPage");

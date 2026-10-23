@@ -4,6 +4,9 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { StatusBadge } from "@/components/dashboard/dashboard-primitives";
 
 function readSrc(path: string): string {
   return readFileSync(path, "utf8");
@@ -57,7 +60,7 @@ describe("CUI-04 client primitives contract", () => {
     expect(pageShell).not.toMatch(/isClient\?:/);
   });
 
-  it("exposes stable semantic hooks without changing Staff/Admin default classes", () => {
+  it("exposes stable semantic hooks and uses the approved portal palette for every status tone", () => {
     expect(primitives).toContain('data-slot="dashboard-status-badge"');
     expect(primitives).toContain('data-tone={tone ?? "neutral"}');
     expect(primitives).toContain('data-slot="dashboard-hero-ornament"');
@@ -69,7 +72,26 @@ describe("CUI-04 client primitives contract", () => {
     expect(primitives).toContain("rounded-2xl");
     expect(primitives).toContain("shadow-xl");
     expect(primitives).toContain("hover:scale-110");
-    expect(primitives).toContain("border-blue-200 bg-blue-50 text-blue-700");
+    for (const tone of [
+      "primary",
+      "neutral",
+      "information",
+      "success",
+      "warning",
+      "danger",
+    ] as const) {
+      const html = renderToStaticMarkup(
+        React.createElement(StatusBadge, { tone }, "Recorded status"),
+      );
+      expect(html).toContain(`data-tone="${tone}"`);
+      expect(html).toContain('data-slot="dashboard-status-badge"');
+      expect(html).toContain(`bg-dashboard-${tone}-soft`);
+      expect(html).toContain(
+        tone === "primary" ? "text-dashboard-primary" : `text-dashboard-${tone}-foreground`,
+      );
+      expect(html).toContain("Recorded status");
+      expect(html).not.toMatch(/(?:bg|text|border)-(?:blue|sky|slate|emerald|amber|rose)-\d/);
+    }
     expect(table).toContain("hover:-translate-y-0.5");
     expect(table).toContain('data-slot="dashboard-list-row"');
     expect(table).toContain('data-slot="dashboard-filter-bar"');

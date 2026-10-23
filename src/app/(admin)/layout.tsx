@@ -84,21 +84,21 @@ function AdminDesktopSidebar() {
   const getItemBadge = (href: string) => {
     if (href === "/admin/appointments" && appointmentsCount > 0) {
       return (
-        <span className="inline-flex items-center rounded-full bg-blue-500/20 border border-blue-500/30 px-2 py-0.5 text-[11px] font-bold text-blue-300">
+        <span className="inline-flex items-center rounded-full bg-dashboard-information/20 border border-dashboard-information/30 px-2 py-0.5 text-[11px] font-bold text-dashboard-information">
           {appointmentsCount}
         </span>
       );
     }
     if (href === "/admin/hr" && pendingLeavesCount > 0) {
       return (
-        <span className="inline-flex items-center rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-300">
+        <span className="inline-flex items-center rounded-full bg-dashboard-warning/20 border border-dashboard-warning/30 px-2 py-0.5 text-[11px] font-bold text-dashboard-warning">
           {pendingLeavesCount}
         </span>
       );
     }
     if (href === "/admin/crm" && leadsCount > 0) {
       return (
-        <span className="inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+        <span className="inline-flex items-center rounded-full bg-dashboard-success/20 border border-dashboard-success/30 px-2 py-0.5 text-[11px] font-bold text-dashboard-success">
           {leadsCount}
         </span>
       );
@@ -111,7 +111,7 @@ function AdminDesktopSidebar() {
       const total = appointmentsCount + leadsCount;
       if (total > 0) {
         return (
-          <span className="inline-flex items-center rounded-full bg-blue-500/20 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold text-blue-300">
+          <span className="inline-flex items-center rounded-full bg-dashboard-information/20 border border-dashboard-information/30 px-2 py-0.5 text-[10px] font-bold text-dashboard-information">
             {total}
           </span>
         );
@@ -119,7 +119,7 @@ function AdminDesktopSidebar() {
     }
     if (branchId === "workforce-branch" && pendingLeavesCount > 0) {
       return (
-        <span className="inline-flex items-center rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+        <span className="inline-flex items-center rounded-full bg-dashboard-warning/20 border border-dashboard-warning/30 px-2 py-0.5 text-[10px] font-bold text-dashboard-warning">
           {pendingLeavesCount}
         </span>
       );

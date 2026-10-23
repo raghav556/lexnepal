@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import ts from "typescript";
 import { resolveCapabilities } from "@/server/auth/capabilities";
 import type { AuthPrincipal, AuthUser } from "@/server/auth/types";
 import { requireCaseAccess, type AuthorizationDataSource } from "@/server/policies/authorization";
@@ -26,6 +27,27 @@ const repoRoot = path.resolve(".");
 
 function readSrc(...segments: string[]): string {
   return fs.readFileSync(path.join(repoRoot, ...segments), "utf8");
+}
+
+function importsFrom(file: string, module: string) {
+  const source = ts.createSourceFile(
+    file,
+    readSrc(file),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  return source.statements
+    .filter(ts.isImportDeclaration)
+    .filter(
+      (node) => ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === module,
+    )
+    .flatMap((node) => {
+      const bindings = node.importClause?.namedBindings;
+      return bindings && ts.isNamedImports(bindings)
+        ? bindings.elements.map((element) => (element.propertyName ?? element.name).text)
+        : [];
+    });
 }
 
 function principal(role: AuthUser["role"], userId: string): AuthPrincipal {
@@ -91,8 +113,20 @@ describe("R7 Client Case portal", () => {
       "src/views/client/ClientMessagesPage.tsx",
       "src/views/client/ClientSignaturesPage.tsx",
     ]) {
-      expect(readSrc(file)).toMatch(/useClientCases/);
-      expect(readSrc(file)).not.toMatch(/\buseCases\b/);
+      const imports = importsFrom(file, "@/client/queries/cases");
+      if (file.endsWith("ClientSignaturesPage.tsx")) {
+        expect(importsFrom(file, "@/client/queries/envelopes")).toContain("useSigningInbox");
+        expect(imports).toEqual([]);
+      } else {
+        expect(
+          imports.some((name) => name === "useClientCases" || name === "useClientCasesQuery"),
+          file,
+        ).toBe(true);
+      }
+      expect(imports, file).not.toEqual(expect.arrayContaining(["useCases"]));
+      expect(imports, file).not.toContain("useCasesQuery");
+      expect(imports, file).not.toContain("useCase");
+      expect(imports, file).not.toContain("useCaseQuery");
     }
   });
 
@@ -200,7 +234,16 @@ describe("R7 Client Case portal", () => {
     expect(detail).toMatch(/portal="client"/);
     expect(list).not.toMatch(/CasesWorkspace/);
     expect(detail).not.toMatch(/CasesWorkspace/);
-    expect(readSrc("src/views/client/ClientBookingPage.tsx")).toMatch(/\buseCases\b/);
+    // Booking is appointment-scoped, with no Staff or Client case-list dependency.
+    expect(importsFrom("src/views/client/ClientBookingPage.tsx", "@/client/queries/cases")).toEqual(
+      [],
+    );
+    expect(importsFrom("src/views/client/ClientBookingPage.tsx", "@/client/queries/crm")).toEqual(
+      expect.arrayContaining(["useAvailableSlots", "useAppointmentCommands", "useAppointments"]),
+    );
+    expect(
+      importsFrom("src/views/client/ClientBookingPage.tsx", "@/client/queries/clients"),
+    ).toContain("useMyClientQuery");
     expect(layout).toMatch(/PortalRoleGuard/);
     expect(STAFF_ROLES).not.toContain("admin");
   });

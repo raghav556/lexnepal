@@ -24,9 +24,13 @@ import { serializeJsonLd } from "@/shared/seo/serialize-json-ld";
 import { resolvePublicTitle } from "@/shared/leadership";
 import { consultationHrefForLawyer } from "@/shared/lawyers-visibility";
 import { normalizePracticeAreaKey } from "@/shared/practice-areas-visibility";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n-context";
+import { formatDualDate } from "@/lib/nepali-calendar";
 
 export default function PublicLawyerProfilePage({ id }: { id: string }) {
+  const { language } = useI18n();
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
   const { data: lawyer, isLoading, isError } = usePublicTeamMember(id);
   const colleagues = usePublicTeam() || [];
   const cmsPracticeAreas = usePracticeAreas({ isActive: true }, "public") || [];
@@ -145,19 +149,23 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
               </span>
             </nav>
             <div className="flex flex-col sm:flex-row gap-6 items-start">
-              {lawyer.avatarUrl || lawyer.avatar ? (
+              {(lawyer.avatarUrl || lawyer.avatar) &&
+              failedAvatar !== String(lawyer.avatarUrl || lawyer.avatar) ? (
                 <img
                   src={String(lawyer.avatarUrl || lawyer.avatar)}
                   alt=""
+                  onError={() => setFailedAvatar(String(lawyer.avatarUrl || lawyer.avatar))}
                   className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-primary-foreground/20 shadow-lg"
                 />
               ) : (
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-accent/20 text-accent flex items-center justify-center text-4xl font-serif font-bold">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-primary-foreground/10 text-primary-foreground flex items-center justify-center text-4xl font-serif font-bold">
                   {String(lawyer.name ?? "?").slice(0, 1)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <Badge className="bg-accent/20 text-accent border-0 mb-3">{title}</Badge>
+                <Badge className="bg-primary-foreground/10 text-primary-foreground border-0 mb-3">
+                  {title}
+                </Badge>
                 <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground leading-tight">
                   {lawyer.name}
                 </h1>
@@ -293,7 +301,7 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
 
           <aside className="space-y-5 lg:sticky lg:top-28 self-start">
             <div className="rounded-2xl border border-border bg-card shadow-sm p-5 space-y-4">
-              <div className="inline-flex items-center gap-2 text-accent text-xs font-medium uppercase tracking-wide">
+              <div className="inline-flex items-center gap-2 text-foreground text-xs font-medium uppercase tracking-wide">
                 <Calendar className="w-3.5 h-3.5" /> Book an appointment
               </div>
               <h3 className="font-serif text-xl font-bold">Consult with {lawyer.name}</h3>
@@ -379,7 +387,7 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
                   <p>
                     <span className="text-muted-foreground">Licence expiry</span>{" "}
                     <span className="font-medium">
-                      {String(lawyer.barCouncilExpiry).slice(0, 10)}
+                      {formatDualDate(lawyer.barCouncilExpiry, language)}
                     </span>
                   </p>
                 )}
@@ -440,7 +448,7 @@ export default function PublicLawyerProfilePage({ id }: { id: string }) {
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-primary-foreground mb-3">
             Work with {lawyer.name}
           </h2>
-          <p className="text-sm text-primary-foreground/70 mb-6">
+          <p className="text-sm text-primary-foreground mb-6">
             Book a consultation or contact our intake team for matter intake.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">

@@ -466,6 +466,11 @@
   --dashboard-sidebar-width: 15.5rem;
 }
 
+/* Accessible Client control boundaries; decorative CUI-02 borders stay frozen. */
+.dashboard-theme.dashboard-client :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"]):not(:disabled):not([readonly]) {
+  border-color: var(--dashboard-focus);
+}
+
 .dashboard-theme.dashboard-client {
   /*
    * CUI-02 measured Client tokens. Values are sampled from the frozen

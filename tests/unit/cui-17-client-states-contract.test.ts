@@ -43,8 +43,12 @@ describe("CUI-17 Client state contracts", () => {
     const chat = read("src/components/messages/MatterChatPanel.tsx");
     const profile = read("src/views/shared/SharedProfilePage.tsx");
     expect(chat).toContain("isClientAppearance && isError");
-    expect(profile).toContain('variant === "client" && sessionsQuery.isError');
+    // Session failures now have retry feedback in all three portals. The
+    // rendered profile suite verifies error recovery and Client redaction.
+    expect(profile).toContain("sessionsQuery.isError ? (");
+    expect(profile).toContain("sessionsQuery.refetch()");
     expect(profile).toContain('variant === "client" && auditQuery.isError');
-    expect(profile).toContain('variant !== "client" && log.details');
+    expect(profile).toContain('variant !== "client" ? (');
+    expect(profile).toContain('{log.details ? `: ${log.details}` : ""}');
   });
 });

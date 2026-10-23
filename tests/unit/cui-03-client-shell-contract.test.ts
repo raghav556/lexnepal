@@ -147,7 +147,11 @@ describe("CUI-03 client shell contract", () => {
     expect(topbar).not.toMatch(/Upload Document/);
     expect(topbar).toMatch(/Search your matters, documents or messages/);
     expect(topbar).toMatch(/Create/);
-    expect(staff).toMatch(/onOpenCommandCenter/);
+    expect(staff).toContain("onOpenSearch={() => setSearchOpen(true)}");
+    expect(staff).toContain(
+      '<GlobalSearchPalette isOpen onClose={() => setSearchOpen(false)} portal="staff"',
+    );
+    expect(staff).toContain('onOpenChat={() => router.push("/staff/messages")}');
   });
 
   it("preserves Client legal copy and excludes unsupported operational footer claims", () => {

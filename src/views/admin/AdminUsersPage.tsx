@@ -573,191 +573,196 @@ export default function AdminUsersPage() {
           </TabsList>
 
           <TabsContent value={activeTab}>
-          {paginatedItems.length === 0 ? (
-            <EmptyState
-              title="No users found"
-              description="No users match these filters."
-              icon={User}
-            />
-          ) : (
-            <DashboardTable>
-              <DashboardTableHead>
-                <tr>
-                  <DashboardTableHeaderCell className="w-10">
-                    <input
-                      type="checkbox"
-                      checked={allPageSelected}
-                      onChange={toggleSelectAllPage}
-                      className="h-4 w-4 rounded border-border"
-                      aria-label="Select page"
-                    />
-                  </DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Person</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Role</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell>Last login</DashboardTableHeaderCell>
-                  <DashboardTableHeaderCell className="text-right">
-                    Actions
-                  </DashboardTableHeaderCell>
-                </tr>
-              </DashboardTableHead>
-              <DashboardTableBody>
-                {paginatedItems.map((u) => {
-                  const barExpiryDate = u.barCouncilExpiry ? new Date(u.barCouncilExpiry) : null;
-                  const isExpiringSoon =
-                    barExpiryDate && barExpiryDate < new Date(Date.now() + 90 * 86400000);
-                  const rowId = userKey(u);
-                  const isEditing = editingId === rowId;
-                  const isSelected = selectedIds.has(rowId);
-                  const isRowOpen = selectedUser ? userKey(selectedUser) === rowId : false;
+            {paginatedItems.length === 0 ? (
+              <EmptyState
+                title="No users found"
+                description="No users match these filters."
+                icon={User}
+              />
+            ) : (
+              <DashboardTable>
+                <DashboardTableHead>
+                  <tr>
+                    <DashboardTableHeaderCell className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        onChange={toggleSelectAllPage}
+                        className="h-4 w-4 rounded border-border"
+                        aria-label="Select page"
+                      />
+                    </DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Person</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Role</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell>Last login</DashboardTableHeaderCell>
+                    <DashboardTableHeaderCell className="text-right">
+                      Actions
+                    </DashboardTableHeaderCell>
+                  </tr>
+                </DashboardTableHead>
+                <DashboardTableBody>
+                  {paginatedItems.map((u) => {
+                    const barExpiryDate = u.barCouncilExpiry ? new Date(u.barCouncilExpiry) : null;
+                    const isExpiringSoon =
+                      barExpiryDate && barExpiryDate < new Date(Date.now() + 90 * 86400000);
+                    const rowId = userKey(u);
+                    const isEditing = editingId === rowId;
+                    const isSelected = selectedIds.has(rowId);
+                    const isRowOpen = selectedUser ? userKey(selectedUser) === rowId : false;
 
-                  return (
-                    <DashboardTableRow
-                      key={rowId}
-                      striped
-                      className={`cursor-pointer ${!u.isActive ? "opacity-70" : ""} ${
-                        isRowOpen ? "bg-dashboard-primary-soft/40" : ""
-                      } ${isSelected ? "bg-dashboard-neutral-soft/60" : ""}`}
-                      onClick={() => setSelectedUser(u)}
-                    >
-                      <DashboardTableCell onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => toggleSelect(e, rowId)}
-                          className="h-4 w-4 rounded border-border"
-                          aria-label={`Select ${u.name}`}
-                        />
-                      </DashboardTableCell>
-                      <DashboardTableCell className="min-w-0">
-                        <div className="font-medium text-foreground truncate max-w-[220px]">
-                          {u.name ?? "Unnamed"}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[240px]">
-                          {u.email ?? "—"}
-                        </div>
-                        {u.barCouncilNumber && (
-                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                            Bar {u.barCouncilNumber}
-                            {isExpiringSoon && (
-                              <span className="inline-flex items-center gap-0.5 text-amber-600">
-                                <AlertTriangle className="w-3 h-3" /> soon
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </DashboardTableCell>
-                      <DashboardTableCell onClick={(e) => e.stopPropagation()}>
-                        {isEditing ? (
-                          <div className="flex items-center gap-1">
-                            <Select
-                              value={draftRole}
-                              onValueChange={(v) => setDraftRole(v as UserRole)}
-                            >
-                              <SelectTrigger aria-label={`Role for ${u.name || u.email || u.id}`} className="h-8 text-xs w-36">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {ALL_ROLES.map((r) => (
-                                  <SelectItem key={r} value={r}>
-                                    {ROLE_LABELS[r]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-green-600"
-                              disabled={saving}
-                              onClick={(e) => saveRole(e, rowId)}
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={cancelEdit}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="text-left"
-                            onClick={(e) => startEdit(e, rowId, u.role)}
-                          >
-                            <DashboardStatusLabel
-                              tone={getDashboardRoleTone(u.role)}
-                              label={ROLE_LABELS[u.role]}
-                              className="text-xs"
-                            />
-                          </button>
-                        )}
-                      </DashboardTableCell>
-                      <DashboardTableCell>
-                        {u.isPending ? (
-                          <DashboardStatusLabel status="pending" className="text-[10px]" />
-                        ) : !u.isActive ? (
-                          <DashboardStatusLabel status="suspended" className="text-[10px]" />
-                        ) : (
-                          <DashboardStatusLabel status="active" className="text-[10px]" />
-                        )}
-                      </DashboardTableCell>
-                      <DashboardTableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {u.lastLoginAt ? formatNepalTimestamp(u.lastLoginAt) : "—"}
-                      </DashboardTableCell>
-                      <DashboardTableCell
-                        className="text-right"
-                        onClick={(e) => e.stopPropagation()}
+                    return (
+                      <DashboardTableRow
+                        key={rowId}
+                        striped
+                        className={`cursor-pointer ${!u.isActive ? "opacity-70" : ""} ${
+                          isRowOpen ? "bg-dashboard-primary-soft/40" : ""
+                        } ${isSelected ? "bg-dashboard-neutral-soft/60" : ""}`}
+                        onClick={() => setSelectedUser(u)}
                       >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={() => setSelectedUser(u)}
+                        <DashboardTableCell onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => toggleSelect(e, rowId)}
+                            className="h-4 w-4 rounded border-border"
+                            aria-label={`Select ${u.name}`}
+                          />
+                        </DashboardTableCell>
+                        <DashboardTableCell className="min-w-0">
+                          <div className="font-medium text-foreground truncate max-w-[220px]">
+                            {u.name ?? "Unnamed"}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[240px]">
+                            {u.email ?? "—"}
+                          </div>
+                          {u.barCouncilNumber && (
+                            <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                              Bar {u.barCouncilNumber}
+                              {isExpiringSoon && (
+                                <span className="inline-flex items-center gap-0.5 text-amber-600">
+                                  <AlertTriangle className="w-3 h-3" /> soon
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </DashboardTableCell>
+                        <DashboardTableCell onClick={(e) => e.stopPropagation()}>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Select
+                                value={draftRole}
+                                onValueChange={(v) => setDraftRole(v as UserRole)}
+                              >
+                                <SelectTrigger
+                                  aria-label={`Role for ${u.name || u.email || u.id}`}
+                                  className="h-8 text-xs w-36"
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ALL_ROLES.map((r) => (
+                                    <SelectItem key={r} value={r}>
+                                      {ROLE_LABELS[r]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-green-600"
+                                disabled={saving}
+                                onClick={(e) => saveRole(e, rowId)}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={cancelEdit}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="text-left"
+                              onClick={(e) => startEdit(e, rowId, u.role)}
+                            >
+                              <DashboardStatusLabel
+                                tone={getDashboardRoleTone(u.role)}
+                                label={ROLE_LABELS[u.role]}
+                                className="text-xs"
+                              />
+                            </button>
+                          )}
+                        </DashboardTableCell>
+                        <DashboardTableCell>
+                          {u.isPending ? (
+                            <DashboardStatusLabel status="pending" className="text-[10px]" />
+                          ) : !u.isActive ? (
+                            <DashboardStatusLabel status="suspended" className="text-[10px]" />
+                          ) : (
+                            <DashboardStatusLabel status="active" className="text-[10px]" />
+                          )}
+                        </DashboardTableCell>
+                        <DashboardTableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {u.lastLoginAt ? formatNepalTimestamp(u.lastLoginAt) : "—"}
+                        </DashboardTableCell>
+                        <DashboardTableCell
+                          className="text-right"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          Open
-                        </Button>
-                      </DashboardTableCell>
-                    </DashboardTableRow>
-                  );
-                })}
-              </DashboardTableBody>
-            </DashboardTable>
-          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setSelectedUser(u)}
+                          >
+                            Open
+                          </Button>
+                        </DashboardTableCell>
+                      </DashboardTableRow>
+                    );
+                  })}
+                </DashboardTableBody>
+              </DashboardTable>
+            )}
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={goToPage}
-            onNextPage={nextPage}
-            onPrevPage={prevPage}
-            className="mt-4"
-          />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              onNextPage={nextPage}
+              onPrevPage={prevPage}
+              className="mt-4"
+            />
           </TabsContent>
         </Tabs>
       )}
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" aria-labelledby="admin-user-invite-title">
           <DialogHeader>
-            <DialogTitle>Invite user</DialogTitle>
+            <DialogTitle id="admin-user-invite-title">Invite user</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label>Full name</Label>
+              <Label htmlFor="admin-user-invite-name">Full name</Label>
               <Input
+                id="admin-user-invite-name"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                 placeholder="Jane Doe"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Email</Label>
+              <Label htmlFor="admin-user-invite-email">Email</Label>
               <Input
+                id="admin-user-invite-email"
                 type="email"
                 value={createForm.email}
                 onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
@@ -765,20 +770,21 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label>Phone</Label>
+              <Label htmlFor="admin-user-invite-phone">Phone</Label>
               <Input
+                id="admin-user-invite-phone"
                 value={createForm.phone}
                 onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
                 placeholder="+977…"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Role</Label>
+              <Label htmlFor="admin-user-invite-role">Role</Label>
               <Select
                 value={createForm.role}
                 onValueChange={(v: any) => setCreateForm({ ...createForm, role: v })}
               >
-                <SelectTrigger aria-label="Invited user role">
+                <SelectTrigger id="admin-user-invite-role" aria-label="Invited user role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -792,8 +798,9 @@ export default function AdminUsersPage() {
             </div>
             {PUBLIC_ROLES.includes(createForm.role as (typeof PUBLIC_ROLES)[number]) && (
               <div className="grid gap-2">
-                <Label>Bar council number</Label>
+                <Label htmlFor="admin-user-invite-bar-council">Bar council number</Label>
                 <Input
+                  id="admin-user-invite-bar-council"
                   value={createForm.barCouncilNumber}
                   onChange={(e) =>
                     setCreateForm({ ...createForm, barCouncilNumber: e.target.value })
@@ -891,9 +898,7 @@ export default function AdminUsersPage() {
                         <BsDateField
                           aria-label="Bar council expiry"
                           value={editForm.barCouncilExpiry}
-                          onDateChange={(e) =>
-                            setEditForm({ ...editForm, barCouncilExpiry: e })
-                          }
+                          onDateChange={(e) => setEditForm({ ...editForm, barCouncilExpiry: e })}
                         />
                       </div>
                     </>

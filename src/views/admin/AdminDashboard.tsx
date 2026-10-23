@@ -119,29 +119,28 @@ function auditEventStyle(action: string) {
   if (a.includes("login") || a.includes("sign") || a.includes("auth"))
     return {
       icon: ShieldCheck,
-      dot: "bg-emerald-500 shadow-emerald-500/50",
+      dot: "bg-dashboard-success shadow-dashboard-success",
       iconBg:
-        "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-400",
+        "border-dashboard-success bg-dashboard-success-soft text-dashboard-success-foreground ",
     };
   if (a.includes("delete") || a.includes("remove") || a.includes("revoke"))
     return {
       icon: AlertTriangle,
-      dot: "bg-rose-500 shadow-rose-500/50",
-      iconBg:
-        "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400",
+      dot: "bg-dashboard-danger shadow-dashboard-danger",
+      iconBg: "border-dashboard-danger bg-dashboard-danger-soft text-dashboard-danger-foreground ",
     };
   if (a.includes("payroll") || a.includes("salary") || a.includes("payment"))
     return {
       icon: DollarSign,
-      dot: "bg-amber-500 shadow-amber-500/50",
+      dot: "bg-dashboard-warning shadow-dashboard-warning",
       iconBg:
-        "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400",
+        "border-dashboard-warning bg-dashboard-warning-soft text-dashboard-warning-foreground ",
     };
   return {
     icon: Activity,
-    dot: "bg-[#487FFF] shadow-[#487FFF]/50",
+    dot: "bg-dashboard-information shadow-dashboard-information/50",
     iconBg:
-      "border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-400",
+      "border-dashboard-information bg-dashboard-information-soft text-dashboard-information-foreground ",
   };
 }
 
@@ -450,15 +449,17 @@ export default function AdminDashboard() {
       heroChildren={
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Glass status pills */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
-            <CheckSquare className="size-3.5 text-amber-300" aria-hidden />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-dashboard-hero-foreground/20 bg-dashboard-hero-foreground/10 px-3 py-1 text-xs font-semibold text-dashboard-hero-foreground backdrop-blur-md">
+            <CheckSquare className="size-3.5 text-dashboard-warning" aria-hidden />
             {openTasks.length} open task{openTasks.length === 1 ? "" : "s"}
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-dashboard-hero-foreground/20 bg-dashboard-hero-foreground/10 px-3 py-1 text-xs font-semibold text-dashboard-hero-foreground backdrop-blur-md">
             <span
               className={cn(
                 "size-2 rounded-full",
-                pendingApprovalsTotal > 0 ? "bg-rose-400 animate-pulse" : "bg-emerald-400",
+                pendingApprovalsTotal > 0
+                  ? "bg-dashboard-danger animate-pulse"
+                  : "bg-dashboard-success",
               )}
             />
             {pendingApprovalsTotal} pending approval{pendingApprovalsTotal === 1 ? "" : "s"}
@@ -505,7 +506,7 @@ export default function AdminDashboard() {
           <Link
             key={action.label}
             href={action.href}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-dashboard-border bg-white px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-dashboard-primary/30 dark:bg-slate-900/50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-dashboard-border bg-dashboard-panel px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-dashboard-primary/30 "
           >
             <action.icon className="size-3.5 text-dashboard-primary" aria-hidden />
             {action.label}
@@ -527,14 +528,14 @@ export default function AdminDashboard() {
               : "Active matters with hearings in next 14 days"
           }
           actions={
-            <div className="inline-flex items-center rounded-xl border border-dashboard-border bg-slate-100/80 p-0.5 dark:bg-slate-800/80">
+            <div className="inline-flex items-center rounded-xl border border-dashboard-border bg-dashboard-panel-hover p-0.5 ">
               <button
                 type="button"
                 onClick={() => setOperationsView("trend")}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
                   operationsView === "trend"
-                    ? "bg-white text-foreground shadow-sm dark:bg-slate-900"
+                    ? "bg-dashboard-panel text-foreground shadow-sm "
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -547,14 +548,14 @@ export default function AdminDashboard() {
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
                   operationsView === "cases"
-                    ? "bg-white text-foreground shadow-sm dark:bg-slate-900"
+                    ? "bg-dashboard-panel text-foreground shadow-sm "
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <FolderOpen className="size-3 text-amber-500" aria-hidden />
+                <FolderOpen className="size-3 text-dashboard-warning" aria-hidden />
                 Upcoming Cases
                 {attentionCases.length > 0 ? (
-                  <span className="ml-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.2 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  <span className="ml-0.5 rounded-full bg-dashboard-warning-soft px-1.5 py-0.2 text-[10px] font-bold text-dashboard-warning-foreground ">
                     {attentionCases.length}
                   </span>
                 ) : null}
@@ -565,7 +566,7 @@ export default function AdminDashboard() {
             operationsView === "trend" ? (
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span aria-hidden className="size-2.5 rounded-full bg-[#487FFF]" />
+                  <span aria-hidden className="size-2.5 rounded-full bg-dashboard-information" />
                   Hearings
                 </span>
               </div>
@@ -584,8 +585,8 @@ export default function AdminDashboard() {
                 >
                   <defs>
                     <linearGradient id="ghostGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#487FFF" stopOpacity="0.4" />
-                      <stop offset="100%" stopColor="#487FFF" stopOpacity="0" />
+                      <stop offset="0%" stopColor="var(--dashboard-chart-1)" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="var(--dashboard-chart-1)" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   <path
@@ -595,7 +596,7 @@ export default function AdminDashboard() {
                   <path
                     d="M0 120 Q50 80 100 100 T200 60 T300 90 T400 40"
                     fill="none"
-                    stroke="#487FFF"
+                    stroke="var(--dashboard-chart-1)"
                     strokeWidth="2"
                     strokeDasharray="6 4"
                   />
@@ -603,12 +604,12 @@ export default function AdminDashboard() {
                 {/* Horizontal grid lines */}
                 <div className="absolute inset-0 flex flex-col justify-between py-4 opacity-[0.06]">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-px bg-slate-400" />
+                    <div key={i} className="h-px bg-dashboard-panel-hover" />
                   ))}
                 </div>
                 {/* Centered message */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="flex size-11 items-center justify-center rounded-2xl border border-dashboard-primary/20 bg-gradient-to-br from-blue-50 to-indigo-50 text-dashboard-primary shadow-sm dark:from-blue-950/30 dark:to-indigo-950/30">
+                  <span className="flex size-11 items-center justify-center rounded-2xl border border-dashboard-primary/20 bg-gradient-to-br from-dashboard-information-soft to-dashboard-information-soft text-dashboard-primary shadow-sm ">
                     <CalendarDays className="size-5" aria-hidden />
                   </span>
                   <p className="mt-3 text-sm font-bold text-foreground">No hearing history yet</p>
@@ -631,8 +632,8 @@ export default function AdminDashboard() {
                   >
                     <defs>
                       <linearGradient id="hearingsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#487FFF" stopOpacity={0.32} />
-                        <stop offset="95%" stopColor="#487FFF" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="var(--dashboard-chart-1)" stopOpacity={0.32} />
+                        <stop offset="95%" stopColor="var(--dashboard-chart-1)" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid
@@ -653,10 +654,11 @@ export default function AdminDashboard() {
                       axisLine={false}
                     />
                     <Tooltip
+                      itemStyle={{ color: "var(--dashboard-tooltip-foreground)" }}
                       contentStyle={{
-                        background: "rgba(255, 255, 255, 0.95)",
-                        color: "#0F172A",
-                        border: "1px solid #E2E8F0",
+                        background: "var(--dashboard-tooltip)",
+                        color: "var(--dashboard-tooltip-foreground)",
+                        border: "1px solid var(--dashboard-border)",
                         borderRadius: 12,
                         boxShadow: "0 10px 25px -5px rgba(72, 127, 255, 0.15)",
                         fontSize: 12,
@@ -667,19 +669,29 @@ export default function AdminDashboard() {
                       type="monotone"
                       dataKey="hearings"
                       name="Hearings"
-                      stroke="#487FFF"
+                      stroke="var(--dashboard-chart-1)"
                       fill="url(#hearingsGradient)"
                       strokeWidth={3}
-                      dot={{ r: 4, fill: "#487FFF", stroke: "#FFFFFF", strokeWidth: 2 }}
-                      activeDot={{ r: 6, fill: "#487FFF", stroke: "#FFFFFF", strokeWidth: 3 }}
+                      dot={{
+                        r: 4,
+                        fill: "var(--dashboard-chart-1)",
+                        stroke: "var(--dashboard-panel)",
+                        strokeWidth: 2,
+                      }}
+                      activeDot={{
+                        r: 6,
+                        fill: "var(--dashboard-chart-1)",
+                        stroke: "var(--dashboard-panel)",
+                        strokeWidth: 3,
+                      }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             )
           ) : attentionCases.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-emerald-50/50 to-transparent px-6 py-10 text-center dark:from-emerald-950/10">
-              <span className="flex size-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-600 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-dashboard-success-soft to-transparent px-6 py-10 text-center ">
+              <span className="flex size-11 items-center justify-center rounded-2xl border border-dashboard-success bg-dashboard-success-soft text-dashboard-success-foreground shadow-sm ">
                 <CheckCircle2 className="size-5" aria-hidden />
               </span>
               <p className="mt-3 text-sm font-bold text-foreground">All clear!</p>
@@ -724,8 +736,12 @@ export default function AdminDashboard() {
                       <span className="text-sm text-muted-foreground">{row.practiceArea}</span>
                     </DashboardTableCell>
                     <DashboardTableCell>
-                      <span className="text-sm font-medium text-foreground">{formatOperationalDate(row.hearingDate)}</span>
-                      <span className="block text-xs text-muted-foreground">{formatCourtName(row.court, language)}</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {formatOperationalDate(row.hearingDate)}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {formatCourtName(row.court, language)}
+                      </span>
                     </DashboardTableCell>
                   </DashboardTableRow>
                 ))}
@@ -755,8 +771,8 @@ export default function AdminDashboard() {
           }
         >
           {priorities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-emerald-50/50 to-transparent px-6 py-8 text-center dark:from-emerald-950/10">
-              <span className="flex size-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-600 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-dashboard-success-soft to-transparent px-6 py-8 text-center ">
+              <span className="flex size-11 items-center justify-center rounded-2xl border border-dashboard-success bg-dashboard-success-soft text-dashboard-success-foreground shadow-sm ">
                 <CheckCircle2 className="size-5" aria-hidden />
               </span>
               <p className="mt-3 text-sm font-bold text-foreground">All clear!</p>
@@ -805,8 +821,8 @@ export default function AdminDashboard() {
           }
         >
           {approvalQueue.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-emerald-50/50 to-transparent px-6 py-8 text-center dark:from-emerald-950/10">
-              <span className="flex size-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-600 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-dashboard-success-soft to-transparent px-6 py-8 text-center ">
+              <span className="flex size-11 items-center justify-center rounded-2xl border border-dashboard-success bg-dashboard-success-soft text-dashboard-success-foreground shadow-sm ">
                 <CheckCircle2 className="size-5" aria-hidden />
               </span>
               <p className="mt-3 text-sm font-bold text-foreground">Queue is clear</p>
@@ -818,8 +834,8 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               {approvalQueue.map((entry) => (
                 <Link key={entry.id} href={entry.href} className="block">
-                  <DashboardListRow className="border-l-[3px] border-l-amber-400">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400">
+                  <DashboardListRow className="border-l-[3px] border-l-dashboard-warning">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashboard-warning bg-dashboard-warning-soft text-dashboard-warning-foreground ">
                       <entry.icon className="size-4" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -828,7 +844,7 @@ export default function AdminDashboard() {
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{entry.category}</p>
                     </div>
-                    <span className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+                    <span className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-dashboard-warning bg-dashboard-warning-soft px-2.5 py-1 text-[11px] font-bold text-dashboard-warning-foreground ">
                       Review <ArrowRight className="size-3" aria-hidden />
                     </span>
                   </DashboardListRow>
@@ -848,8 +864,8 @@ export default function AdminDashboard() {
           icon={Users}
         >
           {workload.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-blue-50/50 to-transparent px-4 py-8 text-center dark:from-blue-950/10">
-              <span className="flex size-11 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-blue-600 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-400">
+            <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-dashboard-information-soft to-transparent px-4 py-8 text-center ">
+              <span className="flex size-11 items-center justify-center rounded-2xl border border-dashboard-information bg-dashboard-information-soft text-dashboard-information-foreground shadow-sm ">
                 <Users className="size-5" aria-hidden />
               </span>
               <p className="mt-3 text-sm font-bold text-foreground">No open workload</p>
@@ -881,10 +897,10 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={row.assignedTo}
-                    className="rounded-2xl border border-dashboard-border bg-white dark:bg-slate-900/50 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-dashboard-primary/30"
+                    className="rounded-2xl border border-dashboard-border bg-dashboard-panel p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-dashboard-primary/30"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-indigo-950 dark:to-blue-900 text-xs font-black text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-dashboard-information-soft to-dashboard-information-soft text-xs font-black text-dashboard-information-foreground border border-dashboard-information ">
                         {initials || "TM"}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -904,14 +920,14 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700">
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-dashboard-panel-hover border border-dashboard-border ">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
                           row.overdue > 0
-                            ? "bg-gradient-to-r from-rose-500 to-red-600"
+                            ? "bg-gradient-to-r from-dashboard-danger to-dashboard-danger"
                             : row.urgent > 0
-                              ? "bg-gradient-to-r from-amber-400 to-orange-500"
-                              : "bg-gradient-to-r from-blue-500 to-indigo-600"
+                              ? "bg-gradient-to-r from-dashboard-warning to-dashboard-warning"
+                              : "bg-gradient-to-r from-dashboard-information to-dashboard-information"
                         }`}
                         style={{ width: `${pct}%` }}
                       />
@@ -922,15 +938,15 @@ export default function AdminDashboard() {
               {/* Legend */}
               <div className="flex items-center justify-center gap-3 pt-1 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-gradient-to-r from-rose-500 to-red-600" />{" "}
+                  <span className="size-2 rounded-full bg-gradient-to-r from-dashboard-danger to-dashboard-danger" />{" "}
                   Overdue
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500" />{" "}
+                  <span className="size-2 rounded-full bg-gradient-to-r from-dashboard-warning to-dashboard-warning" />{" "}
                   Urgent
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600" />{" "}
+                  <span className="size-2 rounded-full bg-gradient-to-r from-dashboard-information to-dashboard-information" />{" "}
                   Normal
                 </span>
               </div>
@@ -969,7 +985,7 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={event.id}
-                    className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-white dark:bg-slate-900/40 p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-dashboard-primary/30"
+                    className="flex items-center gap-3 rounded-xl border border-dashboard-border bg-dashboard-panel p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-dashboard-primary/30"
                   >
                     <span
                       className={cn(
@@ -990,7 +1006,7 @@ export default function AdminDashboard() {
                         {event.actorName ?? "System"} · {event.resource}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <span className="shrink-0 rounded-md bg-dashboard-panel-hover px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                       {relativeTime(event.createdAt)}
                     </span>
                   </div>

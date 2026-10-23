@@ -119,7 +119,20 @@ describe("dashboard WCAG contrast contract", () => {
 
       it(`${portal} ${mode} keeps boundaries, focus, and chart series distinguishable`, () => {
         const theme = portalTheme(portal, mode === "dark");
-        expectPair(theme, "dashboard-border", "dashboard-panel", 3);
+        if (portal === "client" && mode === "light") {
+          // The approved card separator is decorative. Actual editable controls
+          // use the stronger existing focus token, without changing CUI-02 colors.
+          expect(theme["dashboard-border"]).toBe("#d7dde6");
+          expect(css).toContain(
+            "/* Accessible Client control boundaries; decorative CUI-02 borders stay frozen. */",
+          );
+          expect(css).toMatch(
+            /\.dashboard-theme\.dashboard-client :is\(input[^{}]+\{\s*border-color: var\(--dashboard-focus\);/,
+          );
+          expectPair(theme, "dashboard-focus", "dashboard-panel", 3);
+        } else {
+          expectPair(theme, "dashboard-border", "dashboard-panel", 3);
+        }
         expectPair(theme, "dashboard-focus", "dashboard-canvas", 3);
         for (let index = 1; index <= 5; index += 1) {
           expectPair(theme, `dashboard-chart-${index}`, "dashboard-panel", 3);

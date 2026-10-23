@@ -120,7 +120,7 @@ export function DashboardHero({
       data-slot="dashboard-hero"
       data-state={state}
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-[var(--dashboard-hero-border,rgba(255,255,255,0.18))] bg-gradient-to-r from-[var(--dashboard-hero-start,#0f172a)] via-[var(--dashboard-hero-mid,#1e3a8a)] to-[var(--dashboard-hero-end,#487fff)] p-5 text-[var(--dashboard-hero-foreground,#ffffff)] shadow-xl shadow-slate-900/10 transition-all sm:p-7",
+        "relative overflow-hidden rounded-2xl border border-dashboard-hero-border bg-gradient-to-r from-dashboard-hero-start via-[var(--dashboard-hero-mid)] to-dashboard-hero-end p-5 text-dashboard-hero-foreground shadow-xl transition-all sm:p-7",
         stateClasses[state],
         className,
       )}
@@ -134,7 +134,7 @@ export function DashboardHero({
       <div
         aria-hidden
         data-slot="dashboard-hero-ornament"
-        className="pointer-events-none absolute left-1/4 -bottom-16 size-56 rounded-full bg-blue-400/15 blur-2xl"
+        className="pointer-events-none absolute left-1/4 -bottom-16 size-56 rounded-full bg-dashboard-information/15 blur-2xl"
       />
       <div
         aria-hidden
@@ -396,20 +396,7 @@ const statusBadgeVariants = cva(
   "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold leading-none shadow-sm transition-all",
   {
     variants: {
-      tone: {
-        primary:
-          "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300",
-        neutral:
-          "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300",
-        information:
-          "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300",
-        success:
-          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
-        warning:
-          "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
-        danger:
-          "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300",
-      },
+      tone: toneClasses,
       state: stateClasses,
     },
     defaultVariants: { tone: "neutral", state: "default" },
@@ -557,9 +544,9 @@ const dashboardButtonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-dashboard-primary text-white shadow-sm shadow-blue-500/20 hover:bg-dashboard-primary-hover active:bg-dashboard-primary-pressed",
+          "bg-dashboard-primary text-dashboard-primary-foreground shadow-sm shadow-dashboard-primary/20 hover:bg-dashboard-primary-hover active:bg-dashboard-primary-pressed",
         secondary:
-          "border border-dashboard-border bg-white text-foreground hover:bg-dashboard-panel-hover hover:border-dashboard-primary/30 shadow-sm dark:bg-slate-900",
+          "border border-dashboard-border bg-dashboard-panel text-foreground hover:bg-dashboard-panel-hover hover:border-dashboard-primary/30 shadow-sm",
         outline:
           "border border-dashboard-border bg-dashboard-panel text-foreground hover:border-dashboard-primary/40 hover:bg-dashboard-panel-hover active:bg-dashboard-panel-pressed",
         ghost:
