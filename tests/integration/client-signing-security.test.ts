@@ -39,7 +39,13 @@ const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4]);
 const jpeg = new Uint8Array([255, 216, 255, 224, 1, 2, 3, 4]);
 
 function restoreEnvironment(
-  name: "DATABASE_URL" | "STORAGE_ROOT" | "LEXNEPAL_SKIP_LOCAL_CLAMAV" | "LEXNEPAL_SKIP_SMTP",
+  name:
+    | "DATABASE_URL"
+    | "STORAGE_ROOT"
+    | "LEXNEPAL_SKIP_LOCAL_CLAMAV"
+    | "LEXNEPAL_SKIP_SMTP"
+    | "SMTP_HOST"
+    | "SMTP_FROM",
 ) {
   const original = originalEnvironment[name];
   if (original === undefined) delete process.env[name];
@@ -182,6 +188,10 @@ async function putArtifact(
 beforeAll(async () => {
   Object.assign(process.env, { NODE_ENV: "test" });
   process.env.LEXNEPAL_SKIP_LOCAL_CLAMAV = "1";
+  // Exercise durable-email queueing without relying on .env.local or a delivery service.
+  process.env.SMTP_HOST = "smtp.fixture.invalid";
+  process.env.SMTP_FROM = "fixture@example.invalid";
+  process.env.LEXNEPAL_SKIP_SMTP = "0";
   sandbox = await createSigningTestDatabase();
   const [
     dbModule,
@@ -225,6 +235,8 @@ afterAll(async () => {
   restoreEnvironment("STORAGE_ROOT");
   restoreEnvironment("LEXNEPAL_SKIP_LOCAL_CLAMAV");
   restoreEnvironment("LEXNEPAL_SKIP_SMTP");
+  restoreEnvironment("SMTP_HOST");
+  restoreEnvironment("SMTP_FROM");
 });
 
 describe("client signing security against isolated real MySQL", () => {
