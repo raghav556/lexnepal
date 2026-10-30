@@ -43,6 +43,45 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Configure isolated MySQL service for trigger fixtures
+        env:
+          MYSQL_TEST_SERVICE_ID: ${{ job.services.mysql.id }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { createConnection } from "mysql2/promise";
+          const id = process.env.MYSQL_TEST_SERVICE_ID;
+          let url;
+          try {
+            url = new URL(process.env.TEST_DATABASE_ADMIN_URL);
+          } catch {
+            throw new Error("Invalid test-admin configuration");
+          }
+          if (process.env.GITHUB_ACTIONS !== "true" || process.env.NODE_ENV !== "test" ||
+              !/^[a-f0-9]{64}$/.test(id ?? "") || url.protocol !== "mysql:" ||
+              !["127.0.0.1", "localhost"].includes(url.hostname)) {
+            throw new Error("Refusing to configure an unverified test service");
+          }
+          const ports = JSON.parse(execFileSync("docker", ["inspect", "--format",
+            "{{json .NetworkSettings.Ports}}", id], { encoding: "utf8" }));
+          if (!ports["3306/tcp"]?.some(p => Number(p.HostPort) === Number(url.port || 3306))) {
+            throw new Error("Test-admin port does not match this job's MySQL service");
+          }
+          url.pathname = "/";
+          let connection;
+          try {
+            connection = await createConnection(url.toString());
+            // This nonpersistent setting affects only this job's disposable container.
+            await connection.query("SET GLOBAL log_bin_trust_function_creators = 1");
+            const [[state]] = await connection.query(
+              "SELECT @@GLOBAL.log_bin_trust_function_creators AS ready");
+            if (state.ready !== 1) throw new Error("Test service configuration did not apply");
+          } catch {
+            throw new Error("Could not configure the verified disposable MySQL service");
+          } finally {
+            await connection?.end();
+          }
+          NODE
       - run: npm run audit:production
       - run: npm run migration:archive-convex -- --verify
       - run: npm run migration:inventory

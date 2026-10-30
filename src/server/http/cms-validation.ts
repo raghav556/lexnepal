@@ -28,14 +28,15 @@ export function inputSchemaFor(collection: CmsCollection) {
   if (collection === "resources") return resourceInputSchema;
   return navigationInputSchema;
 }
-function objectSchemaForPatch(schema: z.ZodTypeAny): z.ZodObject<z.ZodRawShape> {
-  if (schema instanceof z.ZodEffects) {
-    return objectSchemaForPatch(schema._def.schema);
-  }
-  if (schema instanceof z.ZodObject) {
-    return schema;
-  }
-  throw new Error("Unsupported CMS patch schema");
+function objectSchemaForPatch(schema: z.ZodObject): z.ZodObject<z.ZodRawShape> {
+  // PATCH validates supplied fields; create-only defaults/refinements must not reset stored data.
+  const shape: z.ZodRawShape = Object.fromEntries(
+    Object.entries(schema.shape).map(([key, field]) => [
+      key,
+      field instanceof z.ZodDefault ? field.unwrap() : field,
+    ]),
+  );
+  return z.object(shape);
 }
 export function patchInputSchemaFor(collection: CmsCollection) {
   return objectSchemaForPatch(inputSchemaFor(collection)).partial();

@@ -52,12 +52,12 @@ export const documentListSchema = collectionPageQuerySchema.extend({
   caseId: uuidSchema.optional(),
   isTemplate: z
     .enum(["true", "false"])
-    .optional()
-    .transform((value) => (value === undefined ? undefined : value === "true")),
+    .transform((value) => value === "true")
+    .optional(),
   inTrash: z
     .enum(["true", "false"])
-    .optional()
-    .transform((value) => (value === undefined ? undefined : value === "true")),
+    .transform((value) => value === "true")
+    .optional(),
 });
 
 export const documentSearchSchema = collectionPageQuerySchema.extend({
@@ -68,8 +68,8 @@ export const documentSearchSchema = collectionPageQuerySchema.extend({
   inTrash: documentListSchema.shape.inTrash,
   generalOnly: z
     .enum(["true", "false"])
-    .optional()
-    .transform((value) => (value === undefined ? undefined : value === "true")),
+    .transform((value) => value === "true")
+    .optional(),
 });
 
 export const documentRecentSchema = z.object({

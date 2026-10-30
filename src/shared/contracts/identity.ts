@@ -31,7 +31,10 @@ export const capabilitySchema = z.enum([
   "records.dispose",
   "legalHold.manage",
 ]);
-export const rolePermissionMatrixSchema = z.record(userRoleSchema, z.array(capabilitySchema));
+export const rolePermissionMatrixSchema = z.partialRecord(
+  userRoleSchema,
+  z.array(capabilitySchema),
+);
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -47,7 +50,10 @@ export const createUserSchema = z.object({
 export const updateUserSchema = createUserSchema
   .omit({ invite: true })
   .partial()
-  .extend({ isActive: z.boolean().optional() })
+  .extend({
+    isPublicFacing: createUserSchema.shape.isPublicFacing.unwrap().optional(),
+    isActive: z.boolean().optional(),
+  })
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 
 export const updateOwnProfileSchema = z

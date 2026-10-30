@@ -1,111 +1,177 @@
-import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+﻿import { execFileSync } from "node:child_process";
+import { chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { createConnection } from "mysql2/promise";
+import { createDisposableMysql, testMysqlAdminUrl } from "./disposable-mysql";
+import { withMigrationSession } from "../../scripts/db/migration-session.mjs";
 
-/** A schema-only copy of local MySQL, never a copy of owner or client records. */
+function optionValue(value: string) {
+  if (/[\0\x01-\x08\x0b\x0c\x0e-\x1f]/.test(value)) {
+    throw new Error("Unsupported MySQL client credential characters");
+  }
+  return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", "\\n").replaceAll("\r", "\\r").replaceAll("\t", "\\t")}"`;
+}
+
+/** Dumps only a freshly migrated owned template, never the configured application's data. */
+async function dumpSchema(name: string) {
+  if (!/^lexnepal_test_[a-f0-9]{24}$/.test(name)) throw new Error("Unowned dump source");
+  const url = testMysqlAdminUrl();
+  const credentialsRoot = await mkdtemp(path.join(tmpdir(), "lexnepal-mysql-client-"));
+  try {
+    await chmod(credentialsRoot, 0o700);
+    const config = path.join(credentialsRoot, "client.cnf");
+    await writeFile(
+      config,
+      `[client]\nprotocol=TCP\nhost=${optionValue(url.hostname)}\nport=${url.port || "3306"}\nuser=${optionValue(decodeURIComponent(url.username))}\npassword=${optionValue(decodeURIComponent(url.password))}\n`,
+      { mode: 0o600 },
+    );
+    const dumpBin =
+      process.env.MYSQLDUMP_BIN ??
+      (process.env.LOCALAPPDATA
+        ? path.join(
+            process.env.LOCALAPPDATA,
+            "LexNepal",
+            "MySQL",
+            "server",
+            "mysql-8.4.9-winx64",
+            "bin",
+            "mysqldump.exe",
+          )
+        : "mysqldump");
+    try {
+      return execFileSync(
+        dumpBin,
+        [
+          `--defaults-extra-file=${config}`,
+          "--no-data",
+          "--skip-triggers",
+          "--skip-events",
+          "--skip-routines",
+          "--no-tablespaces",
+          "--skip-comments",
+          "--set-gtid-purged=OFF",
+          name,
+        ],
+        { encoding: "utf8", maxBuffer: 32 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] },
+      );
+    } catch {
+      // Child errors may contain parsed option-file contents. Never propagate credentials.
+      throw new Error("Schema-only fixture dump failed");
+    }
+  } finally {
+    if (
+      path.dirname(path.resolve(credentialsRoot)) !== path.resolve(tmpdir()) ||
+      !path.basename(credentialsRoot).startsWith("lexnepal-mysql-client-")
+    )
+      throw new Error("Refusing unowned credential-directory cleanup");
+    await rm(credentialsRoot, { recursive: true, force: true });
+  }
+}
+
+/** Builds the pre-0007 schema from immutable migrations in disposable schemas only. */
 export async function createSigningTestDatabase(
   options: { applyArtifactMigration?: boolean } = {},
 ) {
-  const source = process.env.DATABASE_URL;
-  if (!source) throw new Error("DATABASE_URL must be loaded from .env.local for signing tests");
-  const url = new URL(source);
-  if (!["127.0.0.1", "localhost"].includes(url.hostname)) {
-    throw new Error("Signing integration tests only run against local MySQL");
-  }
-  const sourceName = decodeURIComponent(url.pathname.slice(1));
-  if (!/^[a-zA-Z0-9_]+$/.test(sourceName)) throw new Error("Unsafe local database name");
-  const name = `lexnepal_signing_test_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
-  const admin = await createConnection({
-    host: url.hostname,
-    port: Number(url.port || 3306),
-    user: "root",
-    multipleStatements: true,
-  });
-  const localRoot = process.env.LOCALAPPDATA;
-  const dumpBin =
-    process.env.MYSQLDUMP_BIN ??
-    (localRoot
-      ? path.join(
-          localRoot,
-          "LexNepal",
-          "MySQL",
-          "server",
-          "mysql-8.4.9-winx64",
-          "bin",
-          "mysqldump.exe",
-        )
-      : "mysqldump");
+  const adminUrl = testMysqlAdminUrl();
+  let source: Awaited<ReturnType<typeof createDisposableMysql>> | undefined;
+  let target: Awaited<ReturnType<typeof createDisposableMysql>> | undefined;
+  let setup: Awaited<ReturnType<typeof createConnection>> | undefined;
+  let database: Awaited<ReturnType<typeof createConnection>> | undefined;
   let storageRoot: string | undefined;
-  try {
-    const [tableRows] = await admin.query<
-      Array<{ count: number }> & import("mysql2").RowDataPacket[]
-    >(
-      "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = ? AND table_name = 'signature_artifact_upload_intents'",
-      [sourceName],
-    );
-    if (Number(tableRows[0]?.count) !== 0)
-      throw new Error("Source database is not at the expected pre-0007 schema");
-    await admin.query(
-      `CREATE DATABASE \`${name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
-    );
-    const schemaSql = execFileSync(
-      dumpBin,
-      [
-        "--no-data",
-        "--skip-triggers",
-        "--skip-events",
-        "--skip-routines",
-        "--no-tablespaces",
-        "--skip-comments",
-        "--set-gtid-purged=OFF",
-        "--host",
-        url.hostname,
-        "--port",
-        String(url.port || 3306),
-        "--user",
-        "root",
-        sourceName,
-      ],
-      { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-    );
-    await admin.query(`USE \`${name}\``);
-    await admin.query(schemaSql);
-    if (options.applyArtifactMigration !== false) {
-      // Job A/B fixture setup only. Job C opts out and applies 0007 itself.
-      await admin.query(
-        await readFile(path.resolve("drizzle/0007_signature_artifact_upload_intents.sql"), "utf8"),
-      );
-    }
-    const testUrl = new URL(source);
-    testUrl.pathname = `/${name}`;
-    // The app user is scoped to the source schema. The local root connection
-    // created this disposable clone and is used only for this guarded test URL.
-    testUrl.username = "root";
-    testUrl.password = "";
-    process.env.DATABASE_URL = testUrl.toString();
-    storageRoot = await mkdtemp(path.join(tmpdir(), "lexnepal-signing-tests-"));
-    process.env.STORAGE_ROOT = storageRoot;
-    return {
-      name,
-      admin,
-      storageRoot,
-      async dispose(closeAppDatabase: () => Promise<void>) {
-        await closeAppDatabase();
-        await admin.query(`DROP DATABASE \`${name}\``);
-        await admin.end();
-        if (storageRoot && path.basename(storageRoot).startsWith("lexnepal-signing-tests-")) {
+  let stage = "provision template";
+  async function dispose(closeAppDatabase: () => Promise<void> = async () => undefined) {
+    // Attempt every owned cleanup even when an earlier close/drop fails.
+    const failures: unknown[] = [];
+    for (const close of [
+      closeAppDatabase,
+      async () => database?.end(),
+      async () => setup?.end(),
+      async () => target?.dispose(),
+      async () => source?.dispose(),
+      async () => {
+        if (storageRoot) {
+          if (
+            path.dirname(path.resolve(storageRoot)) !== path.resolve(tmpdir()) ||
+            !path.basename(storageRoot).startsWith("lexnepal-signing-tests-")
+          )
+            throw new Error("Refusing unowned storage cleanup");
           await rm(storageRoot, { recursive: true, force: true });
         }
       },
-    };
+    ]) {
+      try {
+        await close();
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+    if (failures.length) throw new Error("Owned signing-fixture cleanup failed");
+  }
+  try {
+    source = await createDisposableMysql();
+    adminUrl.pathname = `/${source.name}`;
+    setup = await createConnection(adminUrl.toString());
+    stage = "migrate template";
+    await withMigrationSession(setup, async () => {
+      const files = (await readdir(path.resolve("drizzle")))
+        .filter((file) => /^000[0-6]_.+\.sql$/.test(file))
+        .sort();
+      if (files.length !== 7) throw new Error("Expected seven pre-artifact migrations");
+      for (const file of files) {
+        const sql = await readFile(path.resolve("drizzle", file), "utf8");
+        for (const statement of sql
+          .split("--> statement-breakpoint")
+          .map((s) => s.trim())
+          .filter(Boolean)) {
+          await setup!.query(statement);
+        }
+      }
+    });
+    const [tables] = await setup.query<import("mysql2").RowDataPacket[]>(
+      "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ?",
+      [source.name],
+    );
+    const names = new Set(tables.map((table) => String(table.name)));
+    if (
+      !["firms", "users", "documents", "durable_jobs", "signing_challenges"].every((name) =>
+        names.has(name),
+      ) ||
+      names.has("signature_artifact_upload_intents")
+    )
+      throw new Error("Invalid pre-artifact application fixture schema");
+    const [[rows]] = await setup.query<import("mysql2").RowDataPacket[]>(
+      "SELECT (SELECT COUNT(*) FROM firms) + (SELECT COUNT(*) FROM users) + (SELECT COUNT(*) FROM documents) AS records",
+    );
+    if (Number(rows.records) !== 0)
+      throw new Error("Fixture template must contain no application records");
+    stage = "dump schema";
+    const schemaSql = await dumpSchema(source.name);
+    if (/^\s*(?:USE\s|CREATE\s+DATABASE\b|INSERT\s+INTO\b|REPLACE\s+INTO\b)/im.test(schemaSql)) {
+      throw new Error("Unexpected data or database selection in schema-only dump");
+    }
+    stage = "import schema";
+    target = await createDisposableMysql();
+    database = await createConnection({ uri: target.url, multipleStatements: true });
+    await database.query(schemaSql);
+    if (options.applyArtifactMigration !== false) {
+      await database.query(
+        await readFile(path.resolve("drizzle/0007_signature_artifact_upload_intents.sql"), "utf8"),
+      );
+    }
+    await setup.end();
+    setup = undefined;
+    await source.dispose();
+    source = undefined;
+    storageRoot = await mkdtemp(path.join(tmpdir(), "lexnepal-signing-tests-"));
+    process.env.DATABASE_URL = target.url;
+    process.env.STORAGE_ROOT = storageRoot;
+    return { name: target.name, admin: database, storageRoot, dispose };
   } catch (error) {
-    await admin.query(`DROP DATABASE IF EXISTS \`${name}\``).catch(() => undefined);
-    await admin.end();
-    if (storageRoot && path.basename(storageRoot).startsWith("lexnepal-signing-tests-"))
-      await rm(storageRoot, { recursive: true, force: true });
-    throw error;
+    await dispose();
+    const code = (error as { code?: string })?.code;
+    throw new Error(
+      `Disposable signing database ${stage} failed${code && /^[A-Z0-9_]+$/.test(code) ? ` (${code})` : ""}`,
+    );
   }
 }
