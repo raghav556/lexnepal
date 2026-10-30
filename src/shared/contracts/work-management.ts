@@ -174,6 +174,7 @@ export const researchCreateSchema = z.object({
 
 export const researchUpdateSchema = researchCreateSchema
   .partial()
+  .extend({ tags: researchCreateSchema.shape.tags.unwrap().optional() })
   .refine((v) => Object.keys(v).length > 0, "At least one field is required");
 
 // ── Types ─────────────────────────────────────────────────────────────────────

@@ -12,7 +12,7 @@ export const readinessResponseSchema = z.object({
   status: serviceStatusSchema,
   service: z.string(),
   mode: z.enum(["foundation", "database"]),
-  checks: z.record(z.string()),
+  checks: z.record(z.string(), z.string()),
   timestamp: z.string().datetime(),
 });
 

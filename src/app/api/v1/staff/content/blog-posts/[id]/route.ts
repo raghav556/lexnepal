@@ -4,22 +4,12 @@ import { withApiHandler } from "@/server/http/handler";
 import { jsonResponse } from "@/server/http/response";
 import { parseJson } from "@/server/http/validation";
 import { getCmsService } from "@/server/services/cms-service";
-import { blogPostInputSchema, cmsIdSchema } from "@/shared/contracts/cms";
-import { z } from "zod";
+import { patchInputSchemaFor } from "@/server/http/cms-validation";
+import { cmsIdSchema } from "@/shared/contracts/cms";
 
 type Context = { params: Promise<{ id: string }> };
 
-function objectSchemaForPatch(schema: z.ZodTypeAny): z.ZodObject<z.ZodRawShape> {
-  if (schema instanceof z.ZodEffects) {
-    return objectSchemaForPatch(schema._def.schema);
-  }
-  if (schema instanceof z.ZodObject) {
-    return schema;
-  }
-  throw new Error("Unsupported patch schema");
-}
-
-const blogPostPatchSchema = objectSchemaForPatch(blogPostInputSchema).partial();
+const blogPostPatchSchema = patchInputSchemaFor("blog-posts");
 
 export const PATCH = (request: Request, context: Context) =>
   withApiHandler(
